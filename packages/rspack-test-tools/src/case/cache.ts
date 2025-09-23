@@ -2,14 +2,16 @@ import path from "node:path";
 import rspack from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update";
-import { BasicProcessor } from "../processor";
 import { CacheRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type TCompilerOptions
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	TCompilerOptions
 } from "../type";
+import { build, check, compiler, config, getCompiler, run } from "./common";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -97,7 +99,7 @@ function findBundle(
 ): string[] {
 	const files: string[] = [];
 	const prefiles: string[] = [];
-	const compiler = context.getCompiler(name);
+	const compiler = getCompiler(context, name);
 	if (!compiler) throw new Error("Compiler should exists when find bundle");
 	const stats = compiler.getStats();
 	if (!stats) throw new Error("Stats should exists when find bundle");
@@ -124,40 +126,51 @@ function createCacheProcessor(
 	src: string,
 	temp: string,
 	target: TTarget
-) {
+): ITestProcessor {
 	const updatePlugin = new HotUpdatePlugin(src, temp);
-
-	const processor = new BasicProcessor<ECompilerType.Rspack>({
-		name,
-		runable: true,
-		compilerType: ECompilerType.Rspack,
-		configFiles: ["rspack.config.js", "webpack.config.js"].map(i =>
-			path.resolve(temp, i)
-		),
-		defaultOptions: context => defaultOptions(context, temp, target),
-		overrideOptions: (context, options) =>
-			overrideOptions(options, temp, target, updatePlugin),
-		findBundle: context => findBundle(name, target, context)
-	});
-
-	processor.before = async (context: ITestContext) => {
-		await updatePlugin.initialize();
-		context.setValue(name, "hotUpdateContext", updatePlugin);
-	};
-
-	const originalAfterAll = processor.afterAll;
-	processor.afterAll = async function (context) {
-		await originalAfterAll.call(this, context);
-		const updateIndex = updatePlugin.getUpdateIndex();
-		const totalUpdates = updatePlugin.getTotalUpdates();
-		if (updateIndex + 1 !== totalUpdates) {
-			throw new Error(
-				`Should run all hot steps (${updateIndex + 1} / ${totalUpdates}): ${this._options.name}`
+	return {
+		before: async (context: ITestContext) => {
+			await updatePlugin.initialize();
+			context.setValue(name, "hotUpdateContext", updatePlugin);
+		},
+		config: async (context: ITestContext) => {
+			const compiler = getCompiler(context, name);
+			let options = defaultOptions(context, temp, target);
+			options = await config(
+				context,
+				name,
+				["rspack.config.js", "webpack.config.js"].map(i =>
+					path.resolve(temp, i)
+				),
+				options
 			);
+			overrideOptions(options, temp, target, updatePlugin);
+			compiler.setOptions(options);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			await run(env, context, name, context =>
+				findBundle(name, target, context)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		},
+		afterAll: async (context: ITestContext) => {
+			const updateIndex = updatePlugin.getUpdateIndex();
+			const totalUpdates = updatePlugin.getTotalUpdates();
+			if (updateIndex + 1 !== totalUpdates) {
+				throw new Error(
+					`Should run all hot steps (${updateIndex + 1} / ${totalUpdates}): ${name}`
+				);
+			}
 		}
-	};
-
-	return processor;
+	} as ITestProcessor;
 }
 
 function getCreator(target: TTarget) {

@@ -1,11 +1,12 @@
-import { SnapshotProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type TCompilerOptions
+	ITestContext,
+	ITestEnv,
+	TCompilerOptions
 } from "../type";
 import { defaultOptions } from "./builtin";
+import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
 function overrideOptions(
 	context: ITestContext,
@@ -31,14 +32,26 @@ const creator = new BasicCaseCreator({
 		return `${name} with newTreeshaking should match snapshot`;
 	},
 	steps: ({ name }) => [
-		new SnapshotProcessor({
-			name,
-			snapshot: "treeshaking.snap.txt",
-			compilerType: ECompilerType.Rspack,
-			runable: false,
-			defaultOptions,
-			overrideOptions
-		})
+		{
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				const options = defaultOptions(context);
+				overrideOptions(context, options);
+				compiler.setOptions(options);
+			},
+			compiler: async (context: ITestContext) => {
+				await compiler(context, name);
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check snapshot
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await checkSnapshot(env, context, name, "treeshaking.snap.txt");
+			}
+		}
 	]
 });
 

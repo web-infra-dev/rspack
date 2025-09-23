@@ -3,18 +3,18 @@ import type { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 import { escapeSep } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
-import type { BasicProcessor } from "../processor";
 import { HotRunnerFactory, type THotStepRuntimeData } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import type {
+import {
 	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions,
-	TCompilerStats,
-	TCompilerStatsCompilation,
-	THotUpdateContext
+	type ITestContext,
+	type ITestEnv,
+	type TCompilerOptions,
+	type TCompilerStats,
+	type TCompilerStatsCompilation,
+	type THotUpdateContext
 } from "../type";
+import { getCompiler } from "./common";
 import { createHotProcessor } from "./hot";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
@@ -325,11 +325,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 	}
 
 	const originRun = processor.run;
-	processor.run = async function (
-		this: BasicProcessor<ECompilerType.Rspack>,
-		env,
-		context
-	) {
+	processor.run = async function (env, context) {
 		context.setValue(
 			name,
 			"hotUpdateStepChecker",
@@ -358,7 +354,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 								: Array.from(entry.runtime);
 					}
 				}
-				const compiler = this.getCompiler(context);
+				const compiler = context.getCompiler(name, ECompilerType.Rspack);
 				const compilerOptions = compiler.getOptions();
 				matchStepSnapshot(
 					env,
@@ -383,15 +379,11 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			}
 		);
 
-		await originRun.call(this, env, context);
+		await originRun(env, context);
 	};
 
-	processor.check = async function (
-		this: BasicProcessor<ECompilerType.Rspack>,
-		env,
-		context
-	) {
-		const compiler = this.getCompiler(context);
+	processor.check = async function (env, context) {
+		const compiler = getCompiler(context, name);
 		const stats = compiler.getStats() as TCompilerStats<ECompilerType.Rspack>;
 		if (!stats || !stats.hash) {
 			env.expect(false);

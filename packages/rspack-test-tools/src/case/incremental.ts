@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
 import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, EDocumentType, type TCompilerOptions } from "../type";
+import { type ECompilerType, EDocumentType, type TCompilerOptions } from "../type";
 import { createHotProcessor } from "./hot";
+import { createWatchInitialProcessor, createWatchStepProcessor } from "./watch";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -20,7 +20,6 @@ function createHotIncrementalProcessor(
 	webpackCases: boolean
 ) {
 	const processor = createHotProcessor(name, target, true);
-
 	processor.before = async context => {
 		context.setValue(
 			name,
@@ -28,11 +27,10 @@ function createHotIncrementalProcessor(
 			webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
 		);
 	};
-
 	const originalAfterAll = processor.afterAll;
 	processor.afterAll = async function (context) {
 		try {
-			await originalAfterAll.call(this, context);
+			await originalAfterAll?.(context);
 		} catch (e: any) {
 			const isFake =
 				context.getValue(name, "documentType") === EDocumentType.Fake;
@@ -40,7 +38,6 @@ function createHotIncrementalProcessor(
 			throw e;
 		}
 	};
-
 	return processor;
 }
 
@@ -103,46 +100,21 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 					const runs = fs
 						.readdirSync(src)
 						.sort()
-						.filter(name => {
-							return fs.statSync(path.join(src, name)).isDirectory();
-						})
+						.filter(name => fs.statSync(path.join(src, name)).isDirectory())
 						.map(name => ({ name }));
 
 					return runs.map((run, index) =>
 						index === 0
-							? new WatchProcessor(
-									{
-										name,
-										stepName: run.name,
-										tempDir: temp!,
-										runable: true,
-										compilerType: ECompilerType.Rspack,
-										configFiles: ["rspack.config.js", "webpack.config.js"],
-										defaultOptions(index, context) {
-											return {
-												experiments: {
-													incremental: "advance"
-												},
-												ignoreWarnings:
-													options.ignoreNotFriendlyForIncrementalWarnings
-														? [/is not friendly for incremental/]
-														: undefined
-											};
-										}
-									},
-									watchState
-								)
-							: new WatchStepProcessor(
-									{
-										name,
-										stepName: run.name,
-										tempDir: temp!,
-										runable: true,
-										compilerType: ECompilerType.Rspack,
-										configFiles: ["rspack.config.js", "webpack.config.js"]
-									},
-									watchState
-								)
+							? createWatchInitialProcessor(name, temp!, run.name, watchState, {
+									incremental: true,
+									ignoreNotFriendlyForIncrementalWarnings:
+										options.ignoreNotFriendlyForIncrementalWarnings
+								})
+							: createWatchStepProcessor(name, temp!, run.name, watchState, {
+									incremental: true,
+									ignoreNotFriendlyForIncrementalWarnings:
+										options.ignoreNotFriendlyForIncrementalWarnings
+								})
 					);
 				},
 				concurrent: true

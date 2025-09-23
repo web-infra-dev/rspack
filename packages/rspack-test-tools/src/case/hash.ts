@@ -1,16 +1,13 @@
-import { MultiTaskProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type ITester,
-	type TCompiler,
-	type TCompilerMultiStats,
-	type TCompilerOptions,
-	type TCompilerStats,
-	type TTestConfig
+	ITestContext,
+	ITestEnv,
+	ITester,
+	TCompilerOptions,
+	TTestConfig
 } from "../type";
+import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
@@ -71,22 +68,15 @@ class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 	}
 }
 
-async function check(
-	this: MultiTaskProcessor<ECompilerType.Rspack>,
-	env: ITestEnv,
-	context: ITestContext,
-	compiler: TCompiler<ECompilerType.Rspack>,
-	stats:
-		| TCompilerStats<ECompilerType.Rspack>
-		| TCompilerMultiStats<ECompilerType.Rspack>
-		| null
-) {
+async function check(env: ITestEnv, context: ITestContext, name: string) {
+	const compiler = getCompiler(context, name);
+	const stats = compiler.getStats();
 	const testConfig = context.getTestConfig();
 	if (!stats) {
 		env.expect(false);
 		return;
 	}
-	if (REG_ERROR_CASE.test(this._options.name)) {
+	if (REG_ERROR_CASE.test(name)) {
 		env.expect(stats.hasErrors());
 	} else {
 		env.expect(!stats.hasErrors());
@@ -101,23 +91,34 @@ async function check(
 	}
 }
 
-function createHashProcessor(name: string) {
-	const processor = new MultiTaskProcessor({
-		name,
-		compilerType: ECompilerType.Rspack,
-		configFiles: ["rspack.config.js", "webpack.config.js"],
-		runable: false,
-		defaultOptions,
-		overrideOptions,
-		check
-	});
-	return processor;
-}
-
 const creator = new HashCaseCreator({
 	clean: true,
 	describe: false,
-	steps: ({ name }) => [createHashProcessor(name)]
+	steps: ({ name }) => [
+		{
+			config: async (context: ITestContext) => {
+				configMultiCompiler(
+					context,
+					name,
+					["rspack.config.js", "webpack.config.js"],
+					defaultOptions,
+					overrideOptions
+				);
+			},
+			compiler: async (context: ITestContext) => {
+				await compiler(context, name);
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check snapshot
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name);
+			}
+		}
+	]
 });
 
 export function createHashCase(name: string, src: string, dist: string) {

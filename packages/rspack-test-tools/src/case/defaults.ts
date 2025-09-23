@@ -2,17 +2,15 @@ import path from "node:path";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
 import { diff as jestDiff } from "jest-diff";
 
-import { SimpleTaskProcessor } from "../processor";
 import { TestContext } from "../test/context";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type ITestProcessor,
-	type TCompiler,
-	type TCompilerOptions,
-	type TCompilerStats
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	TCompilerOptions
 } from "../type";
+import { getCompiler } from "./common";
 
 const CURRENT_CWD = process.cwd();
 
@@ -71,9 +69,9 @@ class RspackTestDiff {
 }
 
 async function check(
-	this: SimpleTaskProcessor<ECompilerType.Rspack>,
 	env: ITestEnv,
 	context: ITestContext,
+	name: string,
 	options: {
 		cwd?: string;
 		diff: (
@@ -82,7 +80,7 @@ async function check(
 		) => Promise<void>;
 	}
 ) {
-	const compiler = this.getCompiler(context);
+	const compiler = getCompiler(context, name);
 	const config = getRspackDefaultConfig(
 		options.cwd || CURRENT_CWD,
 		compiler.getOptions()
@@ -117,23 +115,24 @@ async function run(name: string, processor: ITestProcessor) {
 export function createDefaultsCase(name: string, src: string) {
 	const caseConfig = require(src) as TDefaultsCaseConfig;
 	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
-		await run(
-			name,
-			new SimpleTaskProcessor({
-				name,
-				compilerType: ECompilerType.Rspack,
-				options: (context: ITestContext) =>
-					options(context, caseConfig.options),
-				check(
-					this: SimpleTaskProcessor<ECompilerType.Rspack>,
-					env: ITestEnv,
-					context: ITestContext,
-					_compiler: TCompiler<ECompilerType.Rspack>,
-					_stats: TCompilerStats<ECompilerType.Rspack>
-				) {
-					return check.call(this, env, context, caseConfig);
-				}
-			})
-		);
+		await run(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.setOptions(options(context, caseConfig.options));
+			},
+			compiler: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.createCompiler();
+			},
+			build: async (context: ITestContext) => {
+				// no need to build, just check the snapshot of compiler options
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of compiler options
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, caseConfig);
+			}
+		});
 	});
 }

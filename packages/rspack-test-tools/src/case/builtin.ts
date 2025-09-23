@@ -3,16 +3,14 @@ import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
 import { isJavaScript } from "../helper";
-import {
-	type ISnapshotProcessorOptions,
-	SnapshotProcessor
-} from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type TCompilerOptions
+	ITestContext,
+	ITestEnv,
+	TCompilerOptions
 } from "../type";
+import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
 export function defaultOptions<T extends ECompilerType.Rspack>(
 	context: ITestContext
@@ -168,10 +166,7 @@ export function defaultOptions<T extends ECompilerType.Rspack>(
 	return defaultOptions;
 }
 
-const FILTERS: Record<
-	string,
-	ISnapshotProcessorOptions<ECompilerType>["snapshotFileFilter"]
-> = {
+const FILTERS: Record<string, (file: string) => boolean> = {
 	"plugin-css": (file: string) => file.endsWith(".css"),
 	"plugin-css-modules": (file: string) =>
 		file.endsWith(".css") || (isJavaScript(file) && !file.includes("runtime")),
@@ -188,14 +183,24 @@ const creator = new BasicCaseCreator({
 		const cat = path.basename(path.dirname(src));
 		const filter = FILTERS[cat];
 		return [
-			new SnapshotProcessor({
-				name,
-				snapshot: "output.snap.txt",
-				snapshotFileFilter: filter,
-				compilerType: ECompilerType.Rspack,
-				defaultOptions,
-				runable: false
-			})
+			{
+				config: async (context: ITestContext) => {
+					const compiler = getCompiler(context, name);
+					compiler.setOptions(defaultOptions(context));
+				},
+				compiler: async (context: ITestContext) => {
+					await compiler(context, name);
+				},
+				build: async (context: ITestContext) => {
+					await build(context, name);
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					// no need to run, just check snapshot
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await checkSnapshot(env, context, name, "output.snap.txt", filter);
+				}
+			}
 		];
 	},
 	concurrent: true

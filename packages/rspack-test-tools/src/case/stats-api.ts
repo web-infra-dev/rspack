@@ -1,15 +1,15 @@
 import type fs from "node:fs";
 import { createFsFromVolume, Volume } from "memfs";
-import { SimpleTaskProcessor } from "../processor";
 import { getSimpleProcessorRunner } from "../test/simple";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type TCompiler,
-	type TCompilerOptions,
-	type TCompilerStats
+	ITestContext,
+	ITestEnv,
+	TCompiler,
+	TCompilerOptions,
+	TCompilerStats
 } from "../type";
+import { getCompiler } from "./common";
 
 let addedSerializer = false;
 
@@ -71,15 +71,16 @@ async function compiler(
 async function check(
 	env: ITestEnv,
 	context: ITestContext,
-	compiler: TCompiler<ECompilerType.Rspack>,
-	stats: TCompilerStats<ECompilerType.Rspack>,
+	name: string,
 	custom?: (
 		stats: TCompilerStats<ECompilerType.Rspack>,
 		compiler: TCompiler<ECompilerType.Rspack>
 	) => Promise<void>
 ) {
+	const manager = getCompiler(context, name);
+	const stats = manager.getStats()! as TCompilerStats<ECompilerType.Rspack>;
 	env.expect(typeof stats).toBe("object");
-	await custom?.(stats, compiler);
+	await custom?.(stats, manager.getCompiler()!);
 }
 
 export function createStatsAPICase(
@@ -95,17 +96,30 @@ export function createStatsAPICase(
 	const runner = getSimpleProcessorRunner(src, dist);
 
 	it(caseConfig.description, async () => {
-		await runner(
-			name,
-			new SimpleTaskProcessor({
-				name: name,
-				compilerType: ECompilerType.Rspack,
-				options: context => options(context, caseConfig.options),
-				compiler: (context, c) => compiler(context, c, caseConfig.compiler),
-				build: caseConfig.build,
-				check: (env, context, compiler, stats) =>
-					check(env, context, compiler, stats, caseConfig.check)
-			})
-		);
+		await runner(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.setOptions(options(context, caseConfig.options));
+			},
+			compiler: async (context: ITestContext) => {
+				const compilerManager = getCompiler(context, name);
+				compilerManager.createCompiler();
+				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
+			},
+			build: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				if (typeof caseConfig.build === "function") {
+					await caseConfig.build(context, compiler.getCompiler()!);
+				} else {
+					await compiler.build();
+				}
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of diagnostics
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, caseConfig.check);
+			}
+		});
 	});
 }

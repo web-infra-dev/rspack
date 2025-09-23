@@ -13,16 +13,21 @@ export class WatchRunnerFactory<
 	T extends ECompilerType
 > extends BasicRunnerFactory<T> {
 	protected getRunnerKey(file: string): string {
-		const stepName: string | void = this.context.getValue(
+		const watchContext = this.context.getValue(
 			this.name,
-			"watchStepName"
-		);
+			"watchContext"
+		) as any;
+		const stepName: string | void = watchContext?.step;
 		return `${this.name}-${stepName}`;
 	}
 
 	protected createStatsGetter() {
 		const compiler = this.context.getCompiler<T>(this.name);
-		const stepName: string = this.context.getValue(this.name, "watchStepName")!;
+		const watchContext = this.context.getValue(
+			this.name,
+			"watchContext"
+		) as any;
+		const stepName: string = watchContext?.step!;
 		const statsGetter = (() => {
 			const cached: Record<string, TCompilerStatsCompilation<T>> = {};
 			return () => {
@@ -45,18 +50,16 @@ export class WatchRunnerFactory<
 		env: ITestEnv
 	): ITestRunner {
 		this.context.getCompiler<T>(this.name);
-		const stepName: string | void = this.context.getValue(
+		const watchContext = this.context.getValue(
 			this.name,
-			"watchStepName"
-		);
+			"watchContext"
+		) as any;
+		const stepName: string | void = watchContext?.step;
 		if (!stepName) {
 			throw new Error("Can not get watch step name from context");
 		}
 
-		const state: Record<string, any> | void = this.context.getValue(
-			this.name,
-			"watchState"
-		);
+		const state: Record<string, any> | void = watchContext?.watchState;
 		if (!state) {
 			throw new Error("Can not get watch state from context");
 		}

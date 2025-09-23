@@ -3,17 +3,15 @@ import type { Compiler, Stats } from "@rspack/core";
 import fs from "fs-extra";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import captureStdio from "../helper/legacy/captureStdio";
-import { MultiTaskProcessor } from "../processor";
 import { BasicCaseCreator } from "../test/creator";
-import {
+import type {
 	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type TCompiler,
-	type TCompilerMultiStats,
-	type TCompilerOptions,
-	type TCompilerStats
+	ITestContext,
+	ITestEnv,
+	TCompiler,
+	TCompilerOptions
 } from "../type";
+import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
@@ -81,165 +79,164 @@ class RspackStats {
 	constructor(public value: string) {}
 }
 
+async function check(
+	env: ITestEnv,
+	context: ITestContext,
+	name: string,
+	writeStatsOuptut: boolean,
+	snapshot: string,
+	stderr: any
+) {
+	const compiler = getCompiler(context, name);
+	const options =
+		compiler.getOptions() as TCompilerOptions<ECompilerType.Rspack>;
+	const stats = compiler.getStats();
+	if (!stats || !compiler) return;
+
+	for (const compilation of []
+		.concat((stats as any).stats || stats)
+		.map((s: any) => s.compilation)) {
+		compilation.logging.delete("webpack.Compilation.ModuleProfile");
+	}
+
+	if (REG_ERROR_CASE.test(name)) {
+		env.expect(stats.hasErrors()).toBe(true);
+	} else if (stats.hasErrors()) {
+		throw new Error(
+			stats.toString({
+				all: false,
+				errors: true
+				// errorStack: true,
+				// errorDetails: true
+			})
+		);
+	} else if (writeStatsOuptut) {
+		fs.writeFileSync(
+			path.join(context.getDist(), "stats.txt"),
+			stats.toString({
+				preset: "verbose",
+				// context: context.getSource(),
+				colors: false
+			}),
+			"utf-8"
+		);
+	}
+	let toStringOptions: any = {
+		context: context.getSource(),
+		colors: false
+	};
+	let hasColorSetting = false;
+	if (typeof options.stats !== "undefined") {
+		toStringOptions = options.stats;
+		if (toStringOptions === null || typeof toStringOptions !== "object")
+			toStringOptions = { preset: toStringOptions };
+		if (!toStringOptions.context) toStringOptions.context = context.getSource();
+		hasColorSetting = typeof toStringOptions.colors !== "undefined";
+	}
+
+	if (Array.isArray(options) && !toStringOptions.children) {
+		toStringOptions.children = options.map(o => o.stats);
+	}
+
+	// mock timestamps
+	for (const { compilation: s } of [].concat(
+		(stats as any).stats || stats
+	) as Stats[]) {
+		env.expect(s.startTime).toBeGreaterThan(0);
+		env.expect(s.endTime).toBeGreaterThan(0);
+		s.endTime = new Date("04/20/1970, 12:42:42 PM").getTime();
+		s.startTime = s.endTime - 1234;
+	}
+
+	let actual = stats.toString(toStringOptions);
+	env.expect(typeof actual).toBe("string");
+	actual = stderr.toString() + actual;
+	if (!hasColorSetting) {
+		actual = actual
+			.replace(/\u001b\[[0-9;]*m/g, "")
+			// CHANGE: The time unit display in Rspack is second
+			.replace(/[.0-9]+(\s?s)/g, "X$1")
+			// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
+			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
+	}
+
+	const snapshotPath = path.isAbsolute(snapshot)
+		? snapshot
+		: path.resolve(context.getSource(), `./__snapshots__/${snapshot}`);
+
+	env.expect(new RspackStats(actual)).toMatchFileSnapshot(snapshotPath);
+
+	const testConfig = context.getTestConfig();
+	if (typeof testConfig?.validate === "function") {
+		testConfig.validate(stats, stderr.toString());
+	}
+}
+
+async function statsCompiler(
+	context: ITestContext,
+	compiler: TCompiler<ECompilerType.Rspack>
+) {
+	const compilers: Compiler[] = (compiler as any).compilers
+		? (compiler as any).compilers
+		: [compiler as any];
+	for (const compiler of compilers) {
+		if (!compiler.inputFileSystem) {
+			continue;
+		}
+		const ifs = compiler.inputFileSystem;
+		const inputFileSystem = Object.create(ifs);
+		compiler.inputFileSystem = inputFileSystem;
+		inputFileSystem.readFile = (...args: any[]) => {
+			const callback = args.pop();
+			ifs.readFile.apply(
+				ifs,
+				args.concat([
+					(err: Error, result: Buffer) => {
+						if (err) return callback(err);
+						if (!/\.(js|json|txt)$/.test(args[0]))
+							return callback(null, result);
+						callback(null, normalizePlaceholder(result.toString("utf-8")));
+					}
+				]) as Parameters<typeof ifs.readFile>
+			);
+		};
+	}
+}
+
 function createStatsProcessor(name: string) {
 	const writeStatsOuptut = false;
 	const snapshotName = "stats.txt";
-	const processor = new MultiTaskProcessor<ECompilerType.Rspack>({
-		name,
-		compilerType: ECompilerType.Rspack,
-		configFiles: ["rspack.config.js", "webpack.config.js"],
-		runable: false,
-		defaultOptions: (index, context) => defaultOptions(index, context),
-		overrideOptions: (index, context, options) =>
-			overrideOptions(index, context, options),
-		async check(
-			env: ITestEnv,
-			context: ITestContext,
-			compiler: TCompiler<ECompilerType.Rspack>,
-			stats:
-				| TCompilerStats<ECompilerType.Rspack>
-				| TCompilerMultiStats<ECompilerType.Rspack>
-				| null
-		) {
-			if (!stats || !compiler) return;
-
-			for (const compilation of []
-				.concat((stats as any).stats || stats)
-				.map((s: any) => s.compilation)) {
-				compilation.logging.delete("webpack.Compilation.ModuleProfile");
-			}
-
-			if (REG_ERROR_CASE.test(name)) {
-				env.expect(stats.hasErrors()).toBe(true);
-			} else if (stats.hasErrors()) {
-				throw new Error(
-					stats.toString({
-						all: false,
-						errors: true
-						// errorStack: true,
-						// errorDetails: true
-					})
-				);
-			} else if (writeStatsOuptut) {
-				fs.writeFileSync(
-					path.join(context.getDist(), "stats.txt"),
-					stats.toString({
-						preset: "verbose",
-						// context: context.getSource(),
-						colors: false
-					}),
-					"utf-8"
-				);
-			}
-			let toStringOptions: any = {
-				context: context.getSource(),
-				colors: false
-			};
-			let hasColorSetting = false;
-			if (typeof compiler.options.stats !== "undefined") {
-				toStringOptions = compiler.options.stats;
-				if (toStringOptions === null || typeof toStringOptions !== "object")
-					toStringOptions = { preset: toStringOptions };
-				if (!toStringOptions.context)
-					toStringOptions.context = context.getSource();
-				hasColorSetting = typeof toStringOptions.colors !== "undefined";
-			}
-
-			if (Array.isArray(compiler.options) && !toStringOptions.children) {
-				toStringOptions.children = compiler.options.map(o => o.stats);
-			}
-
-			// mock timestamps
-			for (const { compilation: s } of [].concat(
-				(stats as any).stats || stats
-			) as Stats[]) {
-				env.expect(s.startTime).toBeGreaterThan(0);
-				env.expect(s.endTime).toBeGreaterThan(0);
-				s.endTime = new Date("04/20/1970, 12:42:42 PM").getTime();
-				s.startTime = s.endTime - 1234;
-			}
-
-			let actual = stats.toString(toStringOptions);
-			env.expect(typeof actual).toBe("string");
-			actual = stderr.toString() + actual;
-			if (!hasColorSetting) {
-				actual = actual
-					.replace(/\u001b\[[0-9;]*m/g, "")
-					// CHANGE: The time unit display in Rspack is second
-					.replace(/[.0-9]+(\s?s)/g, "X$1")
-					// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
-					.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
-			}
-
-			const snapshotPath = path.isAbsolute(snapshotName)
-				? snapshotName
-				: path.resolve(context.getSource(), `./__snapshots__/${snapshotName}`);
-
-			env.expect(new RspackStats(actual)).toMatchFileSnapshot(snapshotPath);
-
-			const testConfig = context.getTestConfig();
-			if (typeof testConfig?.validate === "function") {
-				testConfig.validate(stats, stderr.toString());
-			}
+	let stderr: any = null;
+	return {
+		before: async (context: ITestContext) => {
+			stderr = captureStdio(process.stderr, true);
 		},
-
-		async compiler(
-			context: ITestContext,
-			compiler: TCompiler<ECompilerType.Rspack>
-		) {
-			const compilers: Compiler[] = (compiler as any).compilers
-				? (compiler as any).compilers
-				: [compiler as any];
-			for (const compiler of compilers) {
-				if (!compiler.inputFileSystem) {
-					continue;
-				}
-				const ifs = compiler.inputFileSystem;
-				const inputFileSystem = Object.create(ifs);
-				compiler.inputFileSystem = inputFileSystem;
-				inputFileSystem.readFile = (...args: any[]) => {
-					const callback = args.pop();
-					ifs.readFile.apply(
-						ifs,
-						args.concat([
-							(err: Error, result: Buffer) => {
-								if (err) return callback(err);
-								if (!/\.(js|json|txt)$/.test(args[0]))
-									return callback(null, result);
-								callback(null, normalizePlaceholder(result.toString("utf-8")));
-							}
-						]) as Parameters<typeof ifs.readFile>
-					);
-				};
-
-				// CHANGE: The checkConstraints() function is currently not implemented in rspack
-				// compiler.hooks.compilation.tap("StatsTestCasesTest", compilation => {
-				// 	[
-				// 		"optimize",
-				// 		"optimizeModules",
-				// 		"optimizeChunks",
-				// 		"afterOptimizeTree",
-				// 		"afterOptimizeAssets",
-				// 		"beforeHash"
-				// 	].forEach(hook => {
-				// 		compilation.hooks[hook].tap("TestCasesTest", () =>
-				// 			compilation.checkConstraints()
-				// 		);
-				// 	});
-				// });
-			}
+		config: async (context: ITestContext) => {
+			configMultiCompiler(
+				context,
+				name,
+				["rspack.config.js", "webpack.config.js"],
+				defaultOptions,
+				overrideOptions
+			);
+		},
+		compiler: async (context: ITestContext) => {
+			const c = await compiler(context, name);
+			await statsCompiler(context, c);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			// no need to run, just check snapshot
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name, writeStatsOuptut, snapshotName, stderr);
+		},
+		after: async (context: ITestContext) => {
+			stderr.restore();
 		}
-	});
-
-	let stderr: any;
-	processor.before = async (context: ITestContext) => {
-		stderr = captureStdio(process.stderr, true);
 	};
-	processor.after = async (context: ITestContext) => {
-		stderr.restore();
-	};
-
-	return processor;
 }
 
 const creator = new BasicCaseCreator({
