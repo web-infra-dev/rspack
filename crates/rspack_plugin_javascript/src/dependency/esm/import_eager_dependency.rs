@@ -23,7 +23,7 @@ pub struct ImportEagerDependency {
   request: Atom,
   range: DependencyRange,
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  pub referenced_exports: Option<Vec<Vec<Atom>>>,
+  referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   factorize_info: FactorizeInfo,
@@ -47,6 +47,10 @@ impl ImportEagerDependency {
       resource_identifier,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
   }
 }
 

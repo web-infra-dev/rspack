@@ -178,8 +178,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-    let referenced_properties_in_destructuring =
-      parser.destructuring_assignment_properties_for(&ident.span());
+    let referenced_properties_in_destructuring = parser
+      .destructuring_assignment_properties
+      .get(&ident.span())
+      .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -309,8 +311,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
-    let referenced_properties_in_destructuring =
-      parser.destructuring_assignment_properties_for(&member_expr.span());
+    let referenced_properties_in_destructuring = parser
+      .destructuring_assignment_properties
+      .get(&member_expr.span())
+      .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,

@@ -368,7 +368,7 @@ impl WalkData {
             let code = code_to_string(
               &record.object,
               Some(!parser.is_asi_position(span.lo)),
-              parser.destructuring_assignment_properties_for(&span),
+              parser.destructuring_assignment_properties.get(&span),
             );
             parser.add_presentational_dependency(Box::new(gen_const_dep(
               parser, code, for_name, start, end,

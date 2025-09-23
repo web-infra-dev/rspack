@@ -63,15 +63,15 @@ pub fn create_import_dependency_referenced_exports(
 pub struct ImportDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
-  pub request: Atom,
+  request: Atom,
   pub range: DependencyRange,
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  pub referenced_exports: Option<Vec<Vec<Atom>>>,
-  pub attributes: Option<ImportAttributes>,
+  referenced_exports: Option<Vec<Vec<Atom>>>,
+  attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
-  pub resource_identifier: String,
-  pub factorize_info: FactorizeInfo,
-  pub optional: bool,
+  resource_identifier: String,
+  factorize_info: FactorizeInfo,
+  optional: bool,
 }
 
 impl ImportDependency {
@@ -96,6 +96,10 @@ impl ImportDependency {
       optional,
       comments,
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
   }
 }
 

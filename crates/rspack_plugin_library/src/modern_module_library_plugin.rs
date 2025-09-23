@@ -5,8 +5,8 @@ use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeSpec, UsedNameItem,
+  DependencyId, LibraryOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, Plugin,
+  PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -64,7 +64,7 @@ pub fn replace_import_dependencies_for_external_modules(
             if let Some(external_module) = import_module.as_external_module() {
               let new_dep = ModernModuleImportDependency::new(
                 *block_dep.id(),
-                import_dependency.request.as_str().into(),
+                import_dependency.request().into(),
                 external_module.request.clone(),
                 external_module.external_type.clone(),
                 import_dependency.range,
