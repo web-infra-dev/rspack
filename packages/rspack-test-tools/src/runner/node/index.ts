@@ -2,23 +2,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
-import asModule from "../../../helper/legacy/asModule";
-import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
-import type {
-	ECompilerType,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation,
-	TTestConfig
-} from "../../../type";
+import asModule from "../../helper/legacy/asModule";
+import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import {
+	type ECompilerType,
 	EEsmMode,
 	type IGlobalContext,
 	type IModuleScope,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation,
 	type TModuleObject,
 	type TRunnerFile,
-	type TRunnerRequirer
+	type TRunnerRequirer,
+	type TTestConfig
 } from "../../type";
 
 declare global {

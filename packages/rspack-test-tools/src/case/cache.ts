@@ -1,19 +1,26 @@
 import path from "node:path";
-import rspack from "@rspack/core";
+import rspack, { type StatsCompilation } from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update";
-import { CacheRunnerFactory } from "../runner";
+import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
+import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilerOptions
+import {
+	type ECompilerType,
+	EDocumentType,
+	type IModuleScope,
+	type ITestContext,
+	type ITestEnv,
+	type ITestProcessor,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation
 } from "../type";
 import { build, check, compiler, config, getCompiler, run } from "./common";
+import { cachedStats } from "./runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+
+const MAX_COMPILER_INDEX = 100;
 
 function createCacheProcessor(
 	name: string,
@@ -78,7 +85,10 @@ function getCreator(target: TTarget) {
 				steps: ({ name, src, target, temp }) => [
 					createCacheProcessor(name, src, temp!, target as TTarget)
 				],
-				runner: CacheRunnerFactory,
+				runner: {
+					key: (context: ITestContext, name: string, file: string) => name,
+					runner: createRunner
+				},
 				concurrent: true
 			})
 		);
@@ -201,4 +211,139 @@ function findBundle(
 		files.push(assets[assets.length - 1].name);
 	}
 	return [...prefiles, ...files];
+}
+
+function createRunner<T extends ECompilerType.Rspack>(
+	context: ITestContext,
+	name: string,
+	file: string,
+	env: ITestEnv
+) {
+	const compiler = context.getCompiler(name);
+	const options = compiler.getOptions() as TCompilerOptions<T>;
+	let compilerIndex = 0;
+	const testConfig = context.getTestConfig();
+	const source = context.getSource();
+	const dist = context.getDist();
+	const updatePlugin = context.getValue<HotUpdatePlugin>(
+		name,
+		"hotUpdateContext"
+	)!;
+	const getWebRunner = () => {
+		return new WebRunner<T>({
+			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+			env,
+			stats: cachedStats(context, name),
+			cachable: false,
+			name: name,
+			runInNewContext: false,
+			testConfig: {
+				...testConfig,
+				moduleScope(
+					ms: IModuleScope,
+					stats?: TCompilerStatsCompilation<T>,
+					options?: TCompilerOptions<T>
+				) {
+					const moduleScope =
+						typeof testConfig.moduleScope === "function"
+							? testConfig.moduleScope(ms, stats, options)
+							: ms;
+
+					moduleScope.COMPILER_INDEX = compilerIndex;
+					moduleScope.NEXT_HMR = nextHmr;
+					moduleScope.NEXT_START = nextStart;
+					return moduleScope;
+				}
+			},
+			source,
+			dist,
+			compilerOptions: options
+		});
+	};
+	const nextHmr = async (
+		m: any,
+		options?: any
+	): Promise<TCompilerStatsCompilation<T>> => {
+		await updatePlugin.goNext();
+		const stats = await compiler.build();
+		if (!stats) {
+			throw new Error("Should generate stats during build");
+		}
+		const jsonStats = stats.toJson({
+			// errorDetails: true
+		});
+		const compilerOptions = compiler.getOptions();
+
+		const updateIndex = updatePlugin.getUpdateIndex();
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"error",
+			`errors${updateIndex}`,
+			"Error",
+			compilerOptions
+		);
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"warning",
+			`warnings${updateIndex}`,
+			"Warning",
+			compilerOptions
+		);
+
+		const updatedModules = await m.hot.check(options || true);
+		if (!updatedModules) {
+			throw new Error("No update available");
+		}
+
+		return jsonStats as StatsCompilation;
+	};
+
+	const nextStart = async (): Promise<TCompilerStatsCompilation<T>> => {
+		await compiler.close();
+		compiler.createCompiler();
+		await updatePlugin.goNext();
+		const stats = await compiler.build();
+		if (!stats) {
+			throw new Error("Should generate stats during build");
+		}
+		const jsonStats = stats.toJson({
+			// errorDetails: true
+		});
+		const compilerOptions = compiler.getOptions();
+
+		const updateIndex = updatePlugin.getUpdateIndex();
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"error",
+			`errors${updateIndex}`,
+			"Error",
+			compilerOptions
+		);
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"warning",
+			`warnings${updateIndex}`,
+			"Warning",
+			compilerOptions
+		);
+		env.it(
+			`NEXT_START run with compilerIndex==${compilerIndex + 1}`,
+			async () => {
+				if (compilerIndex > MAX_COMPILER_INDEX) {
+					throw new Error(
+						"NEXT_START has been called more than the maximum times"
+					);
+				}
+				compilerIndex++;
+				return getWebRunner().run(file);
+			}
+		);
+		return jsonStats as StatsCompilation;
+	};
+
+	return getWebRunner();
 }

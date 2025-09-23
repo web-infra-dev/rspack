@@ -2,7 +2,7 @@ import {
 	type ECompilerType,
 	EDocumentType,
 	type ITestRunner
-} from "../../../type";
+} from "../../type";
 import type { INodeRunnerOptions, NodeRunner } from "../node";
 import { FakeDocumentWebRunner } from "./fake";
 import { JSDOMWebRunner } from "./jsdom";

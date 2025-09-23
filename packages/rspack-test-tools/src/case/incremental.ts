@@ -1,15 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import {
 	type ECompilerType,
 	EDocumentType,
+	type ITestContext,
 	type TCompilerOptions
 } from "../type";
-import { createHotProcessor } from "./hot";
-import { createWatchInitialProcessor, createWatchStepProcessor } from "./watch";
+import { createHotProcessor, createHotRunner } from "./hot";
+import {
+	createWatchInitialProcessor,
+	createWatchRunner,
+	createWatchStepProcessor,
+	getWatchRunnerKey
+} from "./watch";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -57,7 +62,10 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				steps: ({ name, target }) => [
 					createHotIncrementalProcessor(name, target as TTarget, webpackCases)
 				],
-				runner: HotRunnerFactory,
+				runner: {
+					key: (context: ITestContext, name: string, file: string) => name,
+					runner: createHotRunner
+				},
 				concurrent: true
 			})
 		);
@@ -92,7 +100,10 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 			key,
 			new BasicCaseCreator({
 				clean: true,
-				runner: WatchRunnerFactory,
+				runner: {
+					key: getWatchRunnerKey,
+					runner: createWatchRunner
+				},
 				description: (name, index) => {
 					return index === 0
 						? `${name} should compile`

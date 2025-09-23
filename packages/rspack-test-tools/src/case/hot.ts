@@ -1,19 +1,26 @@
 import path from "node:path";
-import rspack from "@rspack/core";
+import rspack, { type StatsCompilation } from "@rspack/core";
 import { isJavaScript } from "../helper";
+import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import { TestHotUpdatePlugin } from "../helper/plugins";
 import { LazyCompilationTestPlugin } from "../plugin";
-import { HotRunnerFactory } from "../runner";
+import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilerOptions,
-	THotUpdateContext
+import {
+	type ECompilerType,
+	EDocumentType,
+	type IModuleScope,
+	type ITestContext,
+	type ITestEnv,
+	type ITestProcessor,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStats,
+	type TCompilerStatsCompilation,
+	type THotUpdateContext
 } from "../type";
 import { build, check, compiler, config, getCompiler, run } from "./common";
+import { cachedStats, type THotStepRuntimeData } from "./runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -92,7 +99,10 @@ function getCreator(target: TTarget) {
 				steps: ({ name, target }) => [
 					createHotProcessor(name, target as TTarget)
 				],
-				runner: HotRunnerFactory,
+				runner: {
+					key: (context: ITestContext, name: string, file: string) => name,
+					runner: createHotRunner
+				},
 				concurrent: true
 			})
 		);
@@ -239,3 +249,127 @@ function findBundle(
 type THotProcessor = ITestProcessor & {
 	hotUpdateContext: THotUpdateContext;
 };
+
+export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
+	context: ITestContext,
+	name: string,
+	file: string,
+	env: ITestEnv
+): ITestRunner {
+	const compiler = context.getCompiler(name);
+	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
+	const testConfig = context.getTestConfig();
+	const source = context.getSource();
+	const dist = context.getDist();
+	const hotUpdateContext = context.getValue<THotUpdateContext>(
+		name,
+		"hotUpdateContext"
+	)!;
+
+	const next = async (
+		callback?: (
+			error: Error | null,
+			stats?: TCompilerStatsCompilation<T>
+		) => void
+	) => {
+		const usePromise = typeof callback === "function";
+		try {
+			hotUpdateContext.updateIndex++;
+			const stats = await compiler.build();
+			if (!stats) {
+				throw new Error("Should generate stats during build");
+			}
+			const jsonStats = stats.toJson({
+				// errorDetails: true
+			});
+			const compilerOptions = compiler.getOptions();
+
+			const checker = context.getValue(
+				name,
+				jsonStats.errors?.length
+					? "hotUpdateStepErrorChecker"
+					: "hotUpdateStepChecker"
+			) as (
+				context: { updateIndex: number },
+				stats: TCompilerStats<T>,
+				runtime: THotStepRuntimeData
+			) => void;
+			if (checker) {
+				checker(
+					hotUpdateContext,
+					stats as TCompilerStats<T>,
+					runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
+				);
+			}
+			await checkArrayExpectation(
+				source,
+				jsonStats,
+				"error",
+				`errors${hotUpdateContext.updateIndex}`,
+				"Error",
+				compilerOptions
+			);
+			await checkArrayExpectation(
+				source,
+				jsonStats,
+				"warning",
+				`warnings${hotUpdateContext.updateIndex}`,
+				"Warning",
+				compilerOptions
+			);
+			if (usePromise) {
+				// old callback style hmr cases
+				callback(null, jsonStats as StatsCompilation);
+			} else {
+				// new promise style hmr cases
+				return jsonStats as StatsCompilation;
+			}
+		} catch (e) {
+			if (usePromise) {
+				callback(e as Error);
+			} else {
+				throw e;
+			}
+		}
+	};
+
+	const nextHMR = async (m: any, options?: any) => {
+		const jsonStats = await next();
+		const updatedModules = await m.hot.check(options || true);
+		if (!updatedModules) {
+			throw new Error("No update available");
+		}
+		return jsonStats as StatsCompilation;
+	};
+
+	const runner = new WebRunner({
+		dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+		env,
+		stats: cachedStats(context, name),
+		name: name,
+		runInNewContext: false,
+		testConfig: {
+			documentType: testConfig.documentType || EDocumentType.Fake,
+			...testConfig,
+			moduleScope(
+				ms: IModuleScope,
+				stats?: TCompilerStatsCompilation<T>,
+				options?: TCompilerOptions<T>
+			) {
+				const moduleScope = ms;
+				if (typeof testConfig.moduleScope === "function") {
+					testConfig.moduleScope(moduleScope, stats, compilerOptions);
+				}
+				moduleScope.NEXT = next;
+				moduleScope.NEXT_HMR = nextHMR;
+				return moduleScope;
+			}
+		},
+		cachable: true,
+		source,
+		dist,
+		compilerOptions
+	});
+
+	return runner;
+}

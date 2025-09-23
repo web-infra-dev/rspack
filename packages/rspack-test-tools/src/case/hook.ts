@@ -8,7 +8,6 @@ import {
 } from "pretty-format";
 import merge from "webpack-merge";
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
-import { BasicRunnerFactory } from "../runner";
 import { TestContext, type TTestContextOptions } from "../test/context";
 import { getSimpleProcessorRunner } from "../test/simple";
 import type {
@@ -47,8 +46,7 @@ export function createHookCase(
 		context: () =>
 			new HookCasesContext(src, testName, {
 				src: source,
-				dist: dist,
-				runnerFactory: BasicRunnerFactory
+				dist: dist
 			})
 	});
 

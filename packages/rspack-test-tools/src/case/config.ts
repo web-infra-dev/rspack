@@ -1,7 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
 import { parseResource } from "../helper/legacy/parseResource";
-import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import type {
 	ECompilerType,
@@ -19,6 +18,7 @@ import {
 	findMultiCompilerBundle,
 	run
 } from "./common";
+import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
@@ -68,7 +68,10 @@ const creator = new BasicCaseCreator({
 		};
 	},
 	steps: ({ name }) => [createConfigProcessor(name)],
-	runner: MultipleRunnerFactory,
+	runner: {
+		key: getMultiCompilerRunnerKey,
+		runner: createMultiCompilerRunner
+	},
 	concurrent: true
 });
 
