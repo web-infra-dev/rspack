@@ -3,7 +3,6 @@ import type { Chunk } from "@rspack/core";
 import fs from "fs-extra";
 import { escapeSep } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
-import { HotRunnerFactory, type THotStepRuntimeData } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import {
 	ECompilerType,
@@ -15,7 +14,8 @@ import {
 	type THotUpdateContext
 } from "../type";
 import { getCompiler } from "./common";
-import { createHotProcessor } from "./hot";
+import { createHotProcessor, createHotRunner } from "./hot";
+import type { THotStepRuntimeData } from "./runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
@@ -431,7 +431,10 @@ function getCreator(target: TTarget) {
 				steps: ({ name, target }) => [
 					createHotStepProcessor(name, target as TTarget)
 				],
-				runner: HotRunnerFactory,
+				runner: {
+					key: (context: ITestContext, name: string, file: string) => name,
+					runner: createHotRunner
+				},
 				concurrent: true
 			})
 		);

@@ -2,17 +2,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
-import { isCss } from "../../../helper";
-import asModule from "../../../helper/legacy/asModule";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
-import CurrentScript from "../../../helper/legacy/currentScript";
-import EventSource from "../../../helper/legacy/EventSourceForNode";
+import { isCss } from "../../helper";
+import asModule from "../../helper/legacy/asModule";
+import createFakeWorker from "../../helper/legacy/createFakeWorker";
+import CurrentScript from "../../helper/legacy/currentScript";
+import EventSource from "../../helper/legacy/EventSourceForNode";
 import FakeDocument, {
 	type FakeElement
-} from "../../../helper/legacy/FakeDocument";
-import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
-import type { ECompilerType } from "../../../type";
-import { EEsmMode, type TRunnerFile, type TRunnerRequirer } from "../../type";
+} from "../../helper/legacy/FakeDocument";
+import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
+import {
+	type ECompilerType, 
+	EEsmMode,
+	type TRunnerFile,
+	type TRunnerRequirer
+} from "../../type";
 import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 export class FakeDocumentWebRunner<

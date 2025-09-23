@@ -1,7 +1,7 @@
-import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import type { ECompilerType, TTestConfig } from "../type";
 import { createConfigProcessor } from "./config";
+import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
 export type TSerialCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
@@ -23,7 +23,11 @@ const creator = new BasicCaseCreator({
 		};
 	},
 	steps: ({ name }) => [createConfigProcessor(name)],
-	runner: MultipleRunnerFactory
+	runner: {
+		key: getMultiCompilerRunnerKey,
+		runner: createMultiCompilerRunner
+	},
+	concurrent: false
 });
 
 export function createSerialCase(name: string, src: string, dist: string) {

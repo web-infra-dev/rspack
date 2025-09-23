@@ -1,13 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { createWatchInitialProcessor, createWatchStepProcessor } from "./watch";
+import {
+	createWatchInitialProcessor,
+	createWatchRunner,
+	createWatchStepProcessor,
+	getWatchRunnerKey
+} from "./watch";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	runner: WatchRunnerFactory,
+	runner: {
+		key: getWatchRunnerKey,
+		runner: createWatchRunner
+	},
 	description: (name, index) => {
 		return index === 0
 			? `${name} should compile`

@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { HotModuleReplacementPlugin } from "@rspack/core";
-import { BasicRunnerFactory } from "../runner";
 import {
 	BasicCaseCreator,
 	type IBasicCaseCreatorOptions
@@ -14,6 +13,7 @@ import type {
 	TCompilerOptions
 } from "../type";
 import { build, check, compiler, config, getCompiler, run } from "./common";
+import { createRunner } from "./runner";
 
 const NORMAL_CASES_ROOT = path.resolve(
 	__dirname,
@@ -56,7 +56,10 @@ const createCaseOptions = (
 				}
 			}
 		],
-		runner: BasicRunnerFactory,
+		runner: {
+			key: (context: ITestContext, name: string, file: string) => name,
+			runner: createRunner
+		},
 		concurrent: true
 	};
 };

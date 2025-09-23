@@ -5,12 +5,11 @@ import { rimrafSync } from "rimraf";
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import type {
 	ECompilerType,
-	ITestContext,
 	ITestEnv,
 	ITester,
 	ITestProcessor,
-	TRunnerFactory,
-	TTestConfig
+	TTestConfig,
+	TTestRunnerCreator
 } from "../type";
 import { Tester } from "./tester";
 
@@ -38,10 +37,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	) => ITestProcessor[];
 	testConfig?: (testConfig: TTestConfig<T>) => void;
 	description?: (name: string, step: number) => string;
-	runner?: new (
-		name: string,
-		context: ITestContext
-	) => TRunnerFactory<ECompilerType>;
+	runner?: TTestRunnerCreator;
 	[key: string]: unknown;
 	concurrent?: boolean | number;
 }
@@ -306,7 +302,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	}
 
 	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
-		if (typeof this._options.runner === "function" && !testConfig.noTests) {
+		if (this._options.runner && !testConfig.noTests) {
 			return createLazyTestEnv(10000);
 		}
 		return {
@@ -370,7 +366,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			temp,
 			testConfig,
 			contextValue: this._options.contextValue,
-			runnerFactory: this._options.runner,
+			runnerCreator: this._options.runner,
 			steps: this._options.steps({
 				...this._options,
 				name,

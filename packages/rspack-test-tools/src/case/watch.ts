@@ -5,14 +5,17 @@ import { ECompilerEvent } from "../compiler";
 import { readConfigFile } from "../helper";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import copyDiff from "../helper/legacy/copyDiff";
-import { WatchRunnerFactory } from "../runner";
+import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions,
-	TCompilerStatsCompilation
+import {
+	type ECompilerType,
+	EDocumentType,
+	type IModuleScope,
+	type ITestContext,
+	type ITestEnv,
+	type ITestRunner,
+	type TCompilerOptions,
+	type TCompilerStatsCompilation
 } from "../type";
 import { compiler, findMultiCompilerBundle, getCompiler, run } from "./common";
 
@@ -301,7 +304,10 @@ export function createWatchStepProcessor(
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	runner: WatchRunnerFactory,
+	runner: {
+		key: getWatchRunnerKey,
+		runner: createWatchRunner
+	},
 	description: (name, index) => {
 		return index === 0
 			? `${name} should compile`
@@ -416,4 +422,95 @@ function defaultOptions({
 		};
 	}
 	return {};
+}
+
+export function getWatchRunnerKey(
+	context: ITestContext,
+	name: string,
+	file: string
+): string {
+	const watchContext = context.getValue(name, "watchContext") as any;
+	const stepName: string | void = watchContext?.step;
+	return `${name}-${stepName}`;
+}
+
+function cachedWatchStats<T extends ECompilerType = ECompilerType.Rspack>(
+	context: ITestContext,
+	name: string
+): () => TCompilerStatsCompilation<T> {
+	const compiler = context.getCompiler<T>(name);
+	const watchContext = context.getValue(name, "watchContext") as any;
+	const stepName: string = watchContext?.step!;
+	const statsGetter = (() => {
+		const cached: Record<string, TCompilerStatsCompilation<T>> = {};
+		return () => {
+			if (cached[stepName]) {
+				return cached[stepName];
+			}
+			cached[stepName] = compiler.getStats()!.toJson({
+				errorDetails: true
+			});
+			return cached[stepName];
+		};
+	})();
+	return statsGetter;
+}
+
+export function createWatchRunner<
+	T extends ECompilerType = ECompilerType.Rspack
+>(
+	context: ITestContext,
+	name: string,
+	file: string,
+	env: ITestEnv
+): ITestRunner {
+	const compiler = context.getCompiler<T>(name);
+	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
+	const watchContext = context.getValue(name, "watchContext") as any;
+	const stepName: string | void = watchContext?.step;
+	if (!stepName) {
+		throw new Error("Can not get watch step name from context");
+	}
+
+	const state: Record<string, any> | void = watchContext?.watchState;
+	if (!state) {
+		throw new Error("Can not get watch state from context");
+	}
+
+	const isWeb = Array.isArray(compilerOptions)
+		? compilerOptions.some(option => {
+				return option.target === "web" || option.target === "webworker";
+			})
+		: compilerOptions.target === "web" ||
+			compilerOptions.target === "webworker";
+
+	const testConfig = context.getTestConfig();
+	const documentType: EDocumentType =
+		context.getValue(name, "documentType") || EDocumentType.Fake;
+	return new WebRunner({
+		dom: documentType,
+		env,
+		stats: cachedWatchStats(context, name),
+		name: name,
+		runInNewContext: isWeb,
+		cachable: false,
+		testConfig: {
+			...(testConfig || {}),
+			moduleScope: (
+				ms: IModuleScope,
+				stats?: TCompilerStatsCompilation<T>,
+				options?: TCompilerOptions<T>
+			) => {
+				ms.STATE = state;
+				ms.WATCH_STEP = stepName;
+				if (typeof testConfig.moduleScope === "function") {
+					return testConfig.moduleScope(ms, stats, options);
+				}
+				return ms;
+			}
+		},
+		source: context.getSource(),
+		dist: context.getDist(),
+		compilerOptions
+	});
 }

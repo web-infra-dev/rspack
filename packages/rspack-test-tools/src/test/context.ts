@@ -5,9 +5,9 @@ import {
 	ECompilerType,
 	type ITestCompilerManager,
 	type ITestContext,
+	type ITestEnv,
 	type ITesterConfig,
 	type ITestRunner,
-	type TRunnerFactory,
 	type TTestConfig
 } from "../type";
 
@@ -19,7 +19,6 @@ export class TestContext implements ITestContext {
 		new Map();
 	protected store: Map<string, Record<string, unknown>> = new Map();
 	protected runners: Map<string, ITestRunner> = new Map();
-	protected runnerFactory: TRunnerFactory<ECompilerType> | null = null;
 
 	constructor(private config: TTestContextOptions) {}
 
@@ -60,24 +59,19 @@ export class TestContext implements ITestContext {
 		return compiler;
 	}
 
-	getRunnerFactory<T extends ECompilerType>(
-		name: string
-	): TRunnerFactory<T> | null {
-		if (
-			!this.runnerFactory &&
-			typeof this.config.runnerFactory === "function"
-		) {
-			this.runnerFactory = new this.config.runnerFactory(name, this);
+	getRunner(name: string, file: string, env: ITestEnv): ITestRunner {
+		if (!this.config.runnerCreator) {
+			throw new Error("TestContext: Runner creator not found");
 		}
-		return this.runnerFactory;
-	}
 
-	getRunner(key: string): ITestRunner | null {
-		return this.runners.get(key) || null;
-	}
-
-	setRunner(key: string, runner: ITestRunner) {
-		this.runners.set(key, runner);
+		const runnerKey = this.config.runnerCreator.key(this, name, file);
+		let runner = this.runners.get(runnerKey);
+		if (runner) {
+			return runner;
+		}
+		runner = this.config.runnerCreator.runner(this, name, file, env);
+		this.runners.set(runnerKey, runner!);
+		return runner;
 	}
 
 	getTestConfig<T extends ECompilerType>(): TTestConfig<T> {

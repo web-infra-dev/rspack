@@ -102,11 +102,7 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 		if (!bundle) {
 			continue;
 		}
-		const runnerFactory = context.getRunnerFactory(name);
-		if (!runnerFactory) {
-			throw new Error(`Test case ${name} is not runable`);
-		}
-		const runner = runnerFactory.create(bundle, compiler.getOptions(), env);
+		const runner = context.getRunner(name, bundle, env);
 		const mod = runner.run(bundle);
 		const result =
 			context.getValue<Array<Promise<unknown>>>(name, "modules") || [];

@@ -62,29 +62,6 @@ export class BasicCaseCreator<T extends ECompilerType> {
 }
 
 // @public (undocumented)
-export class BasicRunnerFactory<T extends ECompilerType> implements TRunnerFactory<T> {
-    constructor(name: string, context: ITestContext);
-    // (undocumented)
-    protected context: ITestContext;
-    // (undocumented)
-    create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
-    // (undocumented)
-    protected getRunnerKey(file: string): string;
-    // (undocumented)
-    protected name: string;
-}
-
-// @public (undocumented)
-export class CacheRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-}
-
-// @public (undocumented)
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
@@ -265,12 +242,6 @@ export function getSimpleProcessorRunner(src: string, dist: string, options?: {
 }): (name: string, processor: ITestProcessor) => Promise<void>;
 
 // @public (undocumented)
-export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-}
-
-// @public (undocumented)
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     [key: string]: unknown;
@@ -285,7 +256,7 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     description?: (name: string, step: number) => string;
     // (undocumented)
-    runner?: new (name: string, context: ITestContext) => TRunnerFactory<ECompilerType>;
+    runner?: TTestRunnerCreator;
     // (undocumented)
     steps: (creatorConfig: IBasicCaseCreatorOptions<T> & {
         name: string;
@@ -500,9 +471,7 @@ export interface ITestContext {
     // (undocumented)
     getNames(): string[];
     // (undocumented)
-    getRunner(key: string): ITestRunner | null;
-    // (undocumented)
-    getRunnerFactory<T extends ECompilerType>(name: string): TRunnerFactory<T> | null;
+    getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
@@ -513,8 +482,6 @@ export interface ITestContext {
     getValue<T>(name: string, key: string): T | void;
     // (undocumented)
     hasError(name?: string): boolean;
-    // (undocumented)
-    setRunner(key: string, runner: ITestRunner): void;
     // (undocumented)
     setValue<T>(name: string, key: string, value: T): void;
 }
@@ -564,7 +531,7 @@ export interface ITesterConfig {
     // (undocumented)
     name: string;
     // (undocumented)
-    runnerFactory?: new (name: string, context: ITestContext) => TRunnerFactory<ECompilerType>;
+    runnerCreator?: TTestRunnerCreator;
     // (undocumented)
     src: string;
     // (undocumented)
@@ -626,24 +593,15 @@ export interface ITestRunner {
 }
 
 // @public (undocumented)
-export class LazyCompilationTestPlugin {
+export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends INodeRunnerOptions<T> {
     // (undocumented)
-    apply(compiler: Compiler | MultiCompiler): void;
+    dom: EDocumentType;
 }
 
 // @public (undocumented)
-export class MultipleRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
+export class LazyCompilationTestPlugin {
     // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected getFileIndexHandler(file: string): {
-        getIndex: () => number[];
-        flagIndex: () => Set<string>;
-    };
-    // (undocumented)
-    protected getRunnerKey(file: string): string;
-    // (undocumented)
-    protected runned: Set<string>;
+    apply(compiler: Compiler | MultiCompiler): void;
 }
 
 // @public (undocumented)
@@ -804,9 +762,7 @@ export class TestContext implements ITestContext {
     // (undocumented)
     getNames(): string[];
     // (undocumented)
-    getRunner(key: string): ITestRunner | null;
-    // (undocumented)
-    getRunnerFactory<T extends ECompilerType>(name: string): TRunnerFactory<T> | null;
+    getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
@@ -818,11 +774,7 @@ export class TestContext implements ITestContext {
     // (undocumented)
     hasError(name?: string): boolean;
     // (undocumented)
-    protected runnerFactory: TRunnerFactory<ECompilerType> | null;
-    // (undocumented)
     protected runners: Map<string, ITestRunner>;
-    // (undocumented)
-    setRunner(key: string, runner: ITestRunner): void;
     // (undocumented)
     setValue<T>(name: string, key: string, value: T): void;
     // (undocumented)
@@ -857,23 +809,6 @@ export type TFileCompareResult = TCompareResult & {
         dist: string;
     };
     modules: Partial<Record<"modules" | "runtimeModules", TModuleCompareResult[]>>;
-};
-
-// @public (undocumented)
-export type THotStepRuntimeData = {
-    javascript: THotStepRuntimeLangData;
-    css: THotStepRuntimeLangData;
-    statusPath: string[];
-};
-
-// @public (undocumented)
-export type THotStepRuntimeLangData = {
-    outdatedModules: string[];
-    outdatedDependencies: Record<string, string[]>;
-    updatedModules: string[];
-    updatedRuntime: string[];
-    acceptedModules: string[];
-    disposedModules: string[];
 };
 
 // @public (undocumented)
@@ -943,22 +878,18 @@ export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
 export type TTestFilter<T extends ECompilerType> = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig<T>) => boolean | string;
 
 // @public (undocumented)
+export type TTestRunnerCreator = {
+    key: (context: ITestContext, name: string, file: string) => string;
+    runner: (context: ITestContext, name: string, file: string, env: ITestEnv) => ITestRunner;
+};
+
+// @public (undocumented)
 export type TTestRunResult = Record<string, any>;
 
 // @public (undocumented)
 type WatchIncrementalOptions = {
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
-
-// @public (undocumented)
-export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
-    // (undocumented)
-    protected getRunnerKey(file: string): string;
-}
 
 // @public (undocumented)
 export class WebpackDiffConfigPlugin {
@@ -973,6 +904,21 @@ export class WebpackDiffConfigPlugin {
 export class WebpackModulePlaceholderPlugin {
     // (undocumented)
     apply(compiler: any): void;
+}
+
+// @public (undocumented)
+export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
+    constructor(_webOptions: IWebRunnerOptions<T>);
+    // (undocumented)
+    getGlobal(name: string): unknown;
+    // (undocumented)
+    getRequire(): TRunnerRequirer;
+    // (undocumented)
+    protected originMethods: Partial<NodeRunner<T>>;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
+    // (undocumented)
+    protected _webOptions: IWebRunnerOptions<T>;
 }
 
 // (No @packageDocumentation comment for this package)

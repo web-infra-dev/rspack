@@ -2,12 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 
-import { escapeSep } from "../../../helper";
-import createFakeWorker from "../../../helper/legacy/createFakeWorker";
-import EventSource from "../../../helper/legacy/EventSourceForNode";
-import urlToRelativePath from "../../../helper/legacy/urlToRelativePath";
-import type { ECompilerType } from "../../../type";
-import type { TRunnerFile, TRunnerRequirer } from "../../type";
+import { escapeSep } from "../../helper";
+import createFakeWorker from "../../helper/legacy/createFakeWorker";
+import EventSource from "../../helper/legacy/EventSourceForNode";
+import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
+import type { ECompilerType, TRunnerFile, TRunnerRequirer } from "../../type";
 import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 // Compatibility code to suppress iconv-lite warnings
