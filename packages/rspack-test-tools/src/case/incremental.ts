@@ -3,7 +3,11 @@ import path from "node:path";
 
 import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { type ECompilerType, EDocumentType, type TCompilerOptions } from "../type";
+import {
+	type ECompilerType,
+	EDocumentType,
+	type TCompilerOptions
+} from "../type";
 import { createHotProcessor } from "./hot";
 import { createWatchInitialProcessor, createWatchStepProcessor } from "./watch";
 

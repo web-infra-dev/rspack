@@ -11,11 +11,14 @@ import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import { BasicRunnerFactory } from "../runner";
 import { TestContext, type TTestContextOptions } from "../test/context";
 import { getSimpleProcessorRunner } from "../test/simple";
-import type { 
+import type {
 	ECompilerType,
-	ITestContext,ITestEnv, ITestProcessor, 
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
 	TCompiler,
-	TCompilerOptions} from "../type";
+	TCompilerOptions
+} from "../type";
 import { build, checkSnapshot, compiler, config, getCompiler } from "./common";
 
 const srcDir = path.resolve(
