@@ -411,6 +411,10 @@ pub trait Module:
     false
   }
 
+  fn depends_on_removed(&self, removed_files: &ArcPathSet) -> bool {
+    self.depends_on(removed_files)
+  }
+
   fn need_id(&self) -> bool {
     true
   }

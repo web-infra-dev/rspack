@@ -164,10 +164,17 @@ impl Module for LazyCompilationProxyModule {
     }
   }
 
-  /// Lazy compilation module do not depends on any files.
-  /// The only way to make this module rebuild is self.need_build() return true.
+  /// Lazy compilation module depends on proxied module's existence only.
+  /// The only way to make this module rebuild to changing its content is self.need_build() return true.
   fn depends_on(&self, _modified_file: &ArcPathSet) -> bool {
     false
+  }
+
+  // Lazy compilation module should be removed when proxied module is removed.
+  fn depends_on_removed(&self, removed_files: &ArcPathSet) -> bool {
+    removed_files
+      .iter()
+      .any(|removed_file| self.resource == removed_file.to_string_lossy())
   }
 
   async fn build(

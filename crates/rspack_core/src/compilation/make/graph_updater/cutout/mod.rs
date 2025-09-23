@@ -58,10 +58,29 @@ impl Cutout {
             }
           }));
         }
-        UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
+        UpdateParam::ModifiedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
+              // add module id
+              force_build_modules.insert(module.identifier());
+            }
+          }
+          // only failed dependencies need to check
+          for dep_id in &artifact.make_failed_dependencies {
+            let dep = module_graph
+              .dependency_by_id(dep_id)
+              .expect("should have dependency");
+            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+            if info.depends_on(&files) {
+              force_build_deps.insert(*dep_id);
+            }
+          }
+        }
+        UpdateParam::RemovedFiles(files) => {
+          for module in module_graph.modules().values() {
+            // check has dependencies modified
+            if module.depends_on_removed(&files) {
               // add module id
               force_build_modules.insert(module.identifier());
             }
