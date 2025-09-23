@@ -14,7 +14,7 @@ export type {
 	PathData
 } from "./Compilation";
 export { Compilation } from "./Compilation";
-export { Compiler } from "./Compiler";
+export { Compiler, type CompilerHooks } from "./Compiler";
 export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
 export { MultiCompiler } from "./MultiCompiler";
 
