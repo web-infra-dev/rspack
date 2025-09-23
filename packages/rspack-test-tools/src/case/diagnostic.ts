@@ -12,6 +12,60 @@ import type {
 } from "../type";
 import { getCompiler } from "./common";
 
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	steps: ({ name }) => [
+		{
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				let options = defaultOptions(context);
+				const custom = readConfigFile<ECompilerType.Rspack>(
+					["rspack.config.js", "webpack.config.js"].map(i =>
+						context.getSource(i)
+					)
+				)[0];
+				if (custom) {
+					options = merge(options, custom);
+				}
+				if (!global.printLogger) {
+					options.infrastructureLogging = {
+						level: "error"
+					};
+				}
+				compiler.setOptions(options);
+			},
+			compiler: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.createCompiler();
+			},
+			build: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				await compiler.build();
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of diagnostics
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, {
+					snapshot: "./stats.err",
+					snapshotErrors: "./raw-error.err",
+					snapshotWarning: "./raw-warning.err",
+					format: (output: string) => {
+						// TODO: change to stats.errorStack
+						// TODO: add `errorStack: false`
+						return output.replace(/(│.* at ).*/g, "$1xxx");
+					}
+				});
+			}
+		}
+	],
+	concurrent: true
+});
+
+export function createDiagnosticCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
 export interface IDiagnosticOptions {
 	snapshot: string;
 	snapshotErrors: string;
@@ -112,59 +166,4 @@ async function check(
 	env.expect(output).toMatchFileSnapshot(errorOutputPath);
 	env.expect(errors).toMatchFileSnapshot(errorStatsOutputPath);
 	env.expect(warnings).toMatchFileSnapshot(warningStatsOutputPath);
-}
-
-const creator = new BasicCaseCreator({
-	clean: true,
-	describe: false,
-	steps: ({ name }) => [
-		{
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				let options = defaultOptions(context);
-				const custom = readConfigFile<ECompilerType.Rspack>(
-					["rspack.config.js", "webpack.config.js"].map(i =>
-						context.getSource(i)
-					)
-				)[0];
-				if (custom) {
-					options = merge(options, custom);
-				}
-				if (!global.printLogger) {
-					options.infrastructureLogging = {
-						level: "error"
-					};
-				}
-				compiler.setOptions(options);
-			},
-			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.createCompiler();
-			},
-			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				await compiler.build();
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of diagnostics
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, {
-					snapshot: "./stats.err",
-					snapshotErrors: "./raw-error.err",
-					snapshotWarning: "./raw-warning.err",
-					format: (output: string) => {
-						// TODO: change to stats.errorStack
-						// TODO: add `errorStack: false`
-						return output.replace(/(│.* at ).*/g, "$1xxx");
-					}
-				});
-			}
-		}
-	],
-	concurrent: true
-});
-
-export function createDiagnosticCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

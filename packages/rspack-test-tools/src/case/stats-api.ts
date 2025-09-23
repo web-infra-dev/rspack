@@ -31,6 +31,47 @@ type TStatsAPICaseConfig = {
 	) => Promise<void>;
 };
 
+export function createStatsAPICase(
+	name: string,
+	src: string,
+	dist: string,
+	testConfig: string
+) {
+	if (!addedSerializer) {
+		addedSerializer = true;
+	}
+	const caseConfig: TStatsAPICaseConfig = require(testConfig);
+	const runner = getSimpleProcessorRunner(src, dist);
+
+	it(caseConfig.description, async () => {
+		await runner(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.setOptions(options(context, caseConfig.options));
+			},
+			compiler: async (context: ITestContext) => {
+				const compilerManager = getCompiler(context, name);
+				compilerManager.createCompiler();
+				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
+			},
+			build: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				if (typeof caseConfig.build === "function") {
+					await caseConfig.build(context, compiler.getCompiler()!);
+				} else {
+					await compiler.build();
+				}
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of diagnostics
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, caseConfig.check);
+			}
+		});
+	});
+}
+
 function options(
 	context: ITestContext,
 	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
@@ -81,45 +122,4 @@ async function check(
 	const stats = manager.getStats()! as TCompilerStats<ECompilerType.Rspack>;
 	env.expect(typeof stats).toBe("object");
 	await custom?.(stats, manager.getCompiler()!);
-}
-
-export function createStatsAPICase(
-	name: string,
-	src: string,
-	dist: string,
-	testConfig: string
-) {
-	if (!addedSerializer) {
-		addedSerializer = true;
-	}
-	const caseConfig: TStatsAPICaseConfig = require(testConfig);
-	const runner = getSimpleProcessorRunner(src, dist);
-
-	it(caseConfig.description, async () => {
-		await runner(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.setOptions(options(context, caseConfig.options));
-			},
-			compiler: async (context: ITestContext) => {
-				const compilerManager = getCompiler(context, name);
-				compilerManager.createCompiler();
-				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
-			},
-			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				if (typeof caseConfig.build === "function") {
-					await caseConfig.build(context, compiler.getCompiler()!);
-				} else {
-					await compiler.build();
-				}
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of diagnostics
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, caseConfig.check);
-			}
-		});
-	});
 }

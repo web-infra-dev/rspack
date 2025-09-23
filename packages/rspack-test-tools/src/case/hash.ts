@@ -16,6 +16,55 @@ export type THashCaseConfig = Pick<
 	"validate"
 >;
 
+class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
+	protected describe(
+		name: string,
+		tester: ITester,
+		testConfig: TTestConfig<T>
+	) {
+		it(`should print correct hash for ${name}`, async () => {
+			await tester.prepare();
+			await tester.compile();
+			await tester.check(this.createEnv(testConfig));
+			await tester.resume();
+		}, 30000);
+	}
+}
+
+const creator = new HashCaseCreator({
+	clean: true,
+	describe: false,
+	steps: ({ name }) => [
+		{
+			config: async (context: ITestContext) => {
+				configMultiCompiler(
+					context,
+					name,
+					["rspack.config.js", "webpack.config.js"],
+					defaultOptions,
+					overrideOptions
+				);
+			},
+			compiler: async (context: ITestContext) => {
+				await compiler(context, name);
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check snapshot
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name);
+			}
+		}
+	]
+});
+
+export function createHashCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
+
 function defaultOptions(
 	index: number,
 	context: ITestContext
@@ -53,21 +102,6 @@ function overrideOptions(
 	}
 }
 
-class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
-	protected describe(
-		name: string,
-		tester: ITester,
-		testConfig: TTestConfig<T>
-	) {
-		it(`should print correct hash for ${name}`, async () => {
-			await tester.prepare();
-			await tester.compile();
-			await tester.check(this.createEnv(testConfig));
-			await tester.resume();
-		}, 30000);
-	}
-}
-
 async function check(env: ITestEnv, context: ITestContext, name: string) {
 	const compiler = getCompiler(context, name);
 	const stats = compiler.getStats();
@@ -89,38 +123,4 @@ async function check(env: ITestEnv, context: ITestContext, name: string) {
 			"HashTestCases should have test.config.js and a validate method"
 		);
 	}
-}
-
-const creator = new HashCaseCreator({
-	clean: true,
-	describe: false,
-	steps: ({ name }) => [
-		{
-			config: async (context: ITestContext) => {
-				configMultiCompiler(
-					context,
-					name,
-					["rspack.config.js", "webpack.config.js"],
-					defaultOptions,
-					overrideOptions
-				);
-			},
-			compiler: async (context: ITestContext) => {
-				await compiler(context, name);
-			},
-			build: async (context: ITestContext) => {
-				await build(context, name);
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check snapshot
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name);
-			}
-		}
-	]
-});
-
-export function createHashCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

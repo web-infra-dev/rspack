@@ -30,6 +30,71 @@ const distDir = path.resolve(
 	"../../../../tests/rspack-test/js/hook"
 );
 
+export function createHookCase(
+	name: string,
+	src: string,
+	dist: string,
+	source: string
+) {
+	const caseConfig: Partial<THookCaseConfig> = require(
+		path.join(src, "test.js")
+	);
+	const testName = path.basename(
+		name.slice(0, name.indexOf(path.extname(name)))
+	);
+	const runner = getSimpleProcessorRunner(source, dist, {
+		env: () => env,
+		context: () =>
+			new HookCasesContext(src, testName, {
+				src: source,
+				dist: dist,
+				runnerFactory: BasicRunnerFactory
+			})
+	});
+
+	it(caseConfig.description!, async () => {
+		await runner(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				const options = await config(
+					context,
+					name,
+					["rspack.config.js", "webpack.config.js"],
+					defaultOptions(context, caseConfig.options)
+				);
+				if (!global.printLogger) {
+					options.infrastructureLogging = {
+						level: "error"
+					};
+				}
+				compiler.setOptions(options);
+			},
+			compiler: async (context: ITestContext) => {
+				const c = await compiler(context, name);
+				if (caseConfig.compiler) {
+					await caseConfig.compiler(context, c);
+				}
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check snapshot
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await checkSnapshot(
+					env,
+					context,
+					name,
+					path.join(src, "output.snap.txt"),
+					caseConfig.snapshotFileFilter
+				);
+			}
+		} as ITestProcessor);
+	});
+	const env = createLazyTestEnv(10000);
+}
+
 const sourceSerializer = {
 	test(val: unknown) {
 		return val instanceof sources.Source;
@@ -222,69 +287,4 @@ function defaultOptions(
 		defaultOptions = merge(defaultOptions, custom(context));
 	}
 	return defaultOptions;
-}
-
-export function createHookCase(
-	name: string,
-	src: string,
-	dist: string,
-	source: string
-) {
-	const caseConfig: Partial<THookCaseConfig> = require(
-		path.join(src, "test.js")
-	);
-	const testName = path.basename(
-		name.slice(0, name.indexOf(path.extname(name)))
-	);
-	const runner = getSimpleProcessorRunner(source, dist, {
-		env: () => env,
-		context: () =>
-			new HookCasesContext(src, testName, {
-				src: source,
-				dist: dist,
-				runnerFactory: BasicRunnerFactory
-			})
-	});
-
-	it(caseConfig.description!, async () => {
-		await runner(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				const options = await config(
-					context,
-					name,
-					["rspack.config.js", "webpack.config.js"],
-					defaultOptions(context, caseConfig.options)
-				);
-				if (!global.printLogger) {
-					options.infrastructureLogging = {
-						level: "error"
-					};
-				}
-				compiler.setOptions(options);
-			},
-			compiler: async (context: ITestContext) => {
-				const c = await compiler(context, name);
-				if (caseConfig.compiler) {
-					await caseConfig.compiler(context, c);
-				}
-			},
-			build: async (context: ITestContext) => {
-				await build(context, name);
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check snapshot
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await checkSnapshot(
-					env,
-					context,
-					name,
-					path.join(src, "output.snap.txt"),
-					caseConfig.snapshotFileFilter
-				);
-			}
-		} as ITestProcessor);
-	});
-	const env = createLazyTestEnv(10000);
 }

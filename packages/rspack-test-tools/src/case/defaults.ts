@@ -14,6 +14,31 @@ import { getCompiler } from "./common";
 
 const CURRENT_CWD = process.cwd();
 
+export function createDefaultsCase(name: string, src: string) {
+	const caseConfig = require(src) as TDefaultsCaseConfig;
+	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
+		await run(name, {
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.setOptions(options(context, caseConfig.options));
+			},
+			compiler: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				compiler.createCompiler();
+			},
+			build: async (context: ITestContext) => {
+				// no need to build, just check the snapshot of compiler options
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check the snapshot of compiler options
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name, caseConfig);
+			}
+		});
+	});
+}
+
 export function getRspackDefaultConfig(
 	cwd: string,
 	config: TCompilerOptions<ECompilerType>
@@ -110,29 +135,4 @@ async function run(name: string, processor: ITestProcessor) {
 		);
 		await processor.after?.(context);
 	}
-}
-
-export function createDefaultsCase(name: string, src: string) {
-	const caseConfig = require(src) as TDefaultsCaseConfig;
-	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
-		await run(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.setOptions(options(context, caseConfig.options));
-			},
-			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.createCompiler();
-			},
-			build: async (context: ITestContext) => {
-				// no need to build, just check the snapshot of compiler options
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of compiler options
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, caseConfig);
-			}
-		});
-	});
 }

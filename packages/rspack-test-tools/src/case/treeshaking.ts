@@ -8,23 +8,6 @@ import type {
 import { defaultOptions } from "./builtin";
 import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
-function overrideOptions(
-	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
-) {
-	options.target = options.target || ["web", "es2022"];
-	options.optimization ??= {};
-	options.optimization.providedExports = true;
-	options.optimization.innerGraph = true;
-	options.optimization.usedExports = true;
-
-	if (!global.printLogger) {
-		options.infrastructureLogging = {
-			level: "error"
-		};
-	}
-}
-
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
@@ -57,4 +40,21 @@ const creator = new BasicCaseCreator({
 
 export function createTreeShakingCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
+}
+
+function overrideOptions(
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	options.target = options.target || ["web", "es2022"];
+	options.optimization ??= {};
+	options.optimization.providedExports = true;
+	options.optimization.innerGraph = true;
+	options.optimization.usedExports = true;
+
+	if (!global.printLogger) {
+		options.infrastructureLogging = {
+			level: "error"
+		};
+	}
 }

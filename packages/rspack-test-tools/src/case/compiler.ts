@@ -12,38 +12,6 @@ import type {
 } from "../type";
 import { getCompiler } from "./common";
 
-export type TCompilerCaseConfig = {
-	description: string;
-	error?: boolean;
-	skip?: boolean;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	check?: ({
-		context,
-		stats,
-		files,
-		compiler,
-		compilation
-	}: {
-		context: ITestContext;
-		stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
-		files?: Record<string, string>;
-		compiler: TCompiler<ECompilerType.Rspack>;
-		compilation?: TCompilation<ECompilerType.Rspack>;
-	}) => Promise<void>;
-	compilerCallback?: (
-		error: Error | null,
-		stats: TCompilerStats<ECompilerType.Rspack> | null
-	) => void;
-};
-
 export function createCompilerCase(
 	name: string,
 	src: string,
@@ -192,3 +160,35 @@ export function createCompilerCase(
 		});
 	}
 }
+
+export type TCompilerCaseConfig = {
+	description: string;
+	error?: boolean;
+	skip?: boolean;
+	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+	compiler?: (
+		context: ITestContext,
+		compiler: TCompiler<ECompilerType.Rspack>
+	) => Promise<void>;
+	build?: (
+		context: ITestContext,
+		compiler: TCompiler<ECompilerType.Rspack>
+	) => Promise<void>;
+	check?: ({
+		context,
+		stats,
+		files,
+		compiler,
+		compilation
+	}: {
+		context: ITestContext;
+		stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+		files?: Record<string, string>;
+		compiler: TCompiler<ECompilerType.Rspack>;
+		compilation?: TCompilation<ECompilerType.Rspack>;
+	}) => Promise<void>;
+	compilerCallback?: (
+		error: Error | null,
+		stats: TCompilerStats<ECompilerType.Rspack> | null
+	) => void;
+};

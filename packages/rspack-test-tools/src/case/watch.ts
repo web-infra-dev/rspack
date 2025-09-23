@@ -16,79 +16,6 @@ import type {
 } from "../type";
 import { compiler, findMultiCompilerBundle, getCompiler, run } from "./common";
 
-// This file is used to port step number to rspack.config.js/webpack.config.js
-const currentWatchStepModulePath = path.resolve(
-	__dirname,
-	"../helper/util/currentWatchStep"
-);
-
-function overrideOptions(
-	index: number,
-	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>,
-	tempDir: string,
-	nativeWatcher: boolean
-) {
-	if (!options.mode) options.mode = "development";
-	if (!options.context) options.context = tempDir;
-	if (!options.entry) options.entry = "./index.js";
-	if (!options.target) options.target = "async-node";
-	if (!options.devtool) options.devtool = false;
-	if (!options.output) options.output = {};
-	if (!options.output.path) options.output.path = context.getDist();
-	if (typeof options.output.pathinfo === "undefined")
-		options.output.pathinfo = false;
-	if (!options.output.filename) options.output.filename = "bundle.js";
-	if (options.cache && (options.cache as any).type === "filesystem") {
-		const cacheDirectory = path.join(tempDir, ".cache");
-		(options.cache as any).cacheDirectory = cacheDirectory;
-		(options.cache as any).name = `config-${index}`;
-	}
-	options.optimization ??= {};
-	options.experiments ??= {};
-	options.experiments.css ??= true;
-
-	if (nativeWatcher) {
-		(
-			options as TCompilerOptions<ECompilerType.Rspack>
-		).experiments!.nativeWatcher ??= true;
-	}
-
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture ??= {};
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture!.bundlerInfo ??= {};
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
-	// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.incremental ??= "safe";
-
-	if (!global.printLogger) {
-		options.infrastructureLogging = {
-			level: "error"
-		};
-	}
-}
-
-function findBundle(
-	index: number,
-	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>,
-	stepName: string
-) {
-	const testConfig = context.getTestConfig();
-
-	if (typeof testConfig.findBundle === "function") {
-		return testConfig.findBundle!(index, options, stepName);
-	}
-	return "./bundle.js";
-}
-
 type TWatchContext = {
 	currentTriggerFilename: string | null;
 	lastHash: string | null;
@@ -98,22 +25,11 @@ type TWatchContext = {
 	watchState: Record<string, any>;
 };
 
-function defaultOptions({
-	incremental = false,
-	ignoreNotFriendlyForIncrementalWarnings = false
-} = {}): TCompilerOptions<ECompilerType.Rspack> {
-	if (incremental) {
-		return {
-			experiments: {
-				incremental: "advance"
-			},
-			ignoreWarnings: ignoreNotFriendlyForIncrementalWarnings
-				? [/is not friendly for incremental/]
-				: undefined
-		};
-	}
-	return {};
-}
+// This file is used to port step number to rspack.config.js/webpack.config.js
+const currentWatchStepModulePath = path.resolve(
+	__dirname,
+	"../helper/util/currentWatchStep"
+);
 
 export function createWatchInitialProcessor(
 	name: string,
@@ -416,4 +332,88 @@ export function createWatchCase(
 	temp: string
 ) {
 	creator.create(name, src, dist, temp);
+}
+
+function overrideOptions(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>,
+	tempDir: string,
+	nativeWatcher: boolean
+) {
+	if (!options.mode) options.mode = "development";
+	if (!options.context) options.context = tempDir;
+	if (!options.entry) options.entry = "./index.js";
+	if (!options.target) options.target = "async-node";
+	if (!options.devtool) options.devtool = false;
+	if (!options.output) options.output = {};
+	if (!options.output.path) options.output.path = context.getDist();
+	if (typeof options.output.pathinfo === "undefined")
+		options.output.pathinfo = false;
+	if (!options.output.filename) options.output.filename = "bundle.js";
+	if (options.cache && (options.cache as any).type === "filesystem") {
+		const cacheDirectory = path.join(tempDir, ".cache");
+		(options.cache as any).cacheDirectory = cacheDirectory;
+		(options.cache as any).name = `config-${index}`;
+	}
+	options.optimization ??= {};
+	options.experiments ??= {};
+	options.experiments.css ??= true;
+
+	if (nativeWatcher) {
+		(
+			options as TCompilerOptions<ECompilerType.Rspack>
+		).experiments!.nativeWatcher ??= true;
+	}
+
+	(
+		options as TCompilerOptions<ECompilerType.Rspack>
+	).experiments!.rspackFuture ??= {};
+	(
+		options as TCompilerOptions<ECompilerType.Rspack>
+	).experiments!.rspackFuture!.bundlerInfo ??= {};
+	(
+		options as TCompilerOptions<ECompilerType.Rspack>
+	).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+	// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+	(
+		options as TCompilerOptions<ECompilerType.Rspack>
+	).experiments!.incremental ??= "safe";
+
+	if (!global.printLogger) {
+		options.infrastructureLogging = {
+			level: "error"
+		};
+	}
+}
+
+function findBundle(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>,
+	stepName: string
+) {
+	const testConfig = context.getTestConfig();
+
+	if (typeof testConfig.findBundle === "function") {
+		return testConfig.findBundle!(index, options, stepName);
+	}
+	return "./bundle.js";
+}
+
+function defaultOptions({
+	incremental = false,
+	ignoreNotFriendlyForIncrementalWarnings = false
+} = {}): TCompilerOptions<ECompilerType.Rspack> {
+	if (incremental) {
+		return {
+			experiments: {
+				incremental: "advance"
+			},
+			ignoreWarnings: ignoreNotFriendlyForIncrementalWarnings
+				? [/is not friendly for incremental/]
+				: undefined
+		};
+	}
+	return {};
 }

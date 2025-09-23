@@ -25,6 +25,57 @@ export type TConfigCaseConfig = Omit<
 	"validate"
 >;
 
+export function createConfigProcessor(name: string): ITestProcessor {
+	return {
+		config: async (context: ITestContext) => {
+			configMultiCompiler(
+				context,
+				name,
+				["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
+				defaultOptions,
+				overrideOptions
+			);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			await run(env, context, name, (context: ITestContext) =>
+				findMultiCompilerBundle(context, name, findBundle)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		}
+	};
+}
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	testConfig: testConfig => {
+		const oldModuleScope = testConfig.moduleScope;
+		testConfig.moduleScope = (ms, stats, compilerOptions) => {
+			let res = ms;
+			// TODO: modify runner module scope based on stats here
+			if (typeof oldModuleScope === "function") {
+				res = oldModuleScope(ms, stats, compilerOptions);
+			}
+			return res;
+		};
+	},
+	steps: ({ name }) => [createConfigProcessor(name)],
+	runner: MultipleRunnerFactory,
+	concurrent: true
+});
+
+export function createConfigCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
+
 export function defaultOptions(
 	index: number,
 	context: ITestContext
@@ -112,55 +163,4 @@ export function findBundle(
 	}
 
 	return bundlePath;
-}
-
-export function createConfigProcessor(name: string): ITestProcessor {
-	return {
-		config: async (context: ITestContext) => {
-			configMultiCompiler(
-				context,
-				name,
-				["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
-				defaultOptions,
-				overrideOptions
-			);
-		},
-		compiler: async (context: ITestContext) => {
-			await compiler(context, name);
-		},
-		build: async (context: ITestContext) => {
-			await build(context, name);
-		},
-		run: async (env: ITestEnv, context: ITestContext) => {
-			await run(env, context, name, (context: ITestContext) =>
-				findMultiCompilerBundle(context, name, findBundle)
-			);
-		},
-		check: async (env: ITestEnv, context: ITestContext) => {
-			await check(env, context, name);
-		}
-	};
-}
-
-const creator = new BasicCaseCreator({
-	clean: true,
-	describe: false,
-	testConfig: testConfig => {
-		const oldModuleScope = testConfig.moduleScope;
-		testConfig.moduleScope = (ms, stats, compilerOptions) => {
-			let res = ms;
-			// TODO: modify runner module scope based on stats here
-			if (typeof oldModuleScope === "function") {
-				res = oldModuleScope(ms, stats, compilerOptions);
-			}
-			return res;
-		};
-	},
-	steps: ({ name }) => [createConfigProcessor(name)],
-	runner: MultipleRunnerFactory,
-	concurrent: true
-});
-
-export function createConfigCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

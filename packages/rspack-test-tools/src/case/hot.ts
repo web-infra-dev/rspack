@@ -22,6 +22,94 @@ const creators: Map<
 	BasicCaseCreator<ECompilerType.Rspack>
 > = new Map();
 
+export function createHotProcessor(
+	name: string,
+	target: TTarget,
+	incremental: boolean = false
+): THotProcessor {
+	const hotUpdateContext: THotUpdateContext = {
+		updateIndex: 0,
+		totalUpdates: 1,
+		changedFiles: []
+	};
+
+	const processor = {
+		config: async (context: ITestContext) => {
+			const compiler = getCompiler(context, name);
+			let options = defaultOptions(context, target, hotUpdateContext);
+			options = await config(
+				context,
+				name,
+				["rspack.config.js", "webpack.config.js"],
+				options
+			);
+			overrideOptions(context, options, target, hotUpdateContext);
+			if (incremental) {
+				options.experiments ??= {};
+				options.experiments.incremental ??= "advance-silent";
+			}
+			compiler.setOptions(options);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			context.setValue(name, "hotUpdateContext", hotUpdateContext);
+			await run(env, context, name, context =>
+				findBundle(context, name, target, hotUpdateContext)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		},
+		afterAll: async (context: ITestContext) => {
+			if (context.getTestConfig().checkSteps === false) {
+				return;
+			}
+
+			if (hotUpdateContext.updateIndex + 1 !== hotUpdateContext.totalUpdates) {
+				throw new Error(
+					`Should run all hot steps (${hotUpdateContext.updateIndex + 1} / ${hotUpdateContext.totalUpdates}): ${name}`
+				);
+			}
+		}
+	} as THotProcessor;
+	processor.hotUpdateContext = hotUpdateContext;
+	return processor;
+}
+
+function getCreator(target: TTarget) {
+	if (!creators.has(target)) {
+		creators.set(
+			target,
+			new BasicCaseCreator({
+				clean: true,
+				describe: true,
+				target,
+				steps: ({ name, target }) => [
+					createHotProcessor(name, target as TTarget)
+				],
+				runner: HotRunnerFactory,
+				concurrent: true
+			})
+		);
+	}
+	return creators.get(target)!;
+}
+
+export function createHotCase(
+	name: string,
+	src: string,
+	dist: string,
+	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+) {
+	const creator = getCreator(target);
+	creator.create(name, src, dist);
+}
+
 function defaultOptions(
 	context: ITestContext,
 	target: TTarget,
@@ -151,91 +239,3 @@ function findBundle(
 type THotProcessor = ITestProcessor & {
 	hotUpdateContext: THotUpdateContext;
 };
-
-export function createHotProcessor(
-	name: string,
-	target: TTarget,
-	incremental: boolean = false
-): THotProcessor {
-	const hotUpdateContext: THotUpdateContext = {
-		updateIndex: 0,
-		totalUpdates: 1,
-		changedFiles: []
-	};
-
-	const processor = {
-		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
-			let options = defaultOptions(context, target, hotUpdateContext);
-			options = await config(
-				context,
-				name,
-				["rspack.config.js", "webpack.config.js"],
-				options
-			);
-			overrideOptions(context, options, target, hotUpdateContext);
-			if (incremental) {
-				options.experiments ??= {};
-				options.experiments.incremental ??= "advance-silent";
-			}
-			compiler.setOptions(options);
-		},
-		compiler: async (context: ITestContext) => {
-			await compiler(context, name);
-		},
-		build: async (context: ITestContext) => {
-			await build(context, name);
-		},
-		run: async (env: ITestEnv, context: ITestContext) => {
-			context.setValue(name, "hotUpdateContext", hotUpdateContext);
-			await run(env, context, name, context =>
-				findBundle(context, name, target, hotUpdateContext)
-			);
-		},
-		check: async (env: ITestEnv, context: ITestContext) => {
-			await check(env, context, name);
-		},
-		afterAll: async (context: ITestContext) => {
-			if (context.getTestConfig().checkSteps === false) {
-				return;
-			}
-
-			if (hotUpdateContext.updateIndex + 1 !== hotUpdateContext.totalUpdates) {
-				throw new Error(
-					`Should run all hot steps (${hotUpdateContext.updateIndex + 1} / ${hotUpdateContext.totalUpdates}): ${name}`
-				);
-			}
-		}
-	} as THotProcessor;
-	processor.hotUpdateContext = hotUpdateContext;
-	return processor;
-}
-
-function getCreator(target: TTarget) {
-	if (!creators.has(target)) {
-		creators.set(
-			target,
-			new BasicCaseCreator({
-				clean: true,
-				describe: true,
-				target,
-				steps: ({ name, target }) => [
-					createHotProcessor(name, target as TTarget)
-				],
-				runner: HotRunnerFactory,
-				concurrent: true
-			})
-		);
-	}
-	return creators.get(target)!;
-}
-
-export function createHotCase(
-	name: string,
-	src: string,
-	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"]
-) {
-	const creator = getCreator(target);
-	creator.create(name, src, dist);
-}

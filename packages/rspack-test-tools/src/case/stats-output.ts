@@ -15,6 +15,53 @@ import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
+function createStatsProcessor(name: string) {
+	const writeStatsOuptut = false;
+	const snapshotName = "stats.txt";
+	let stderr: any = null;
+	return {
+		before: async (context: ITestContext) => {
+			stderr = captureStdio(process.stderr, true);
+		},
+		config: async (context: ITestContext) => {
+			configMultiCompiler(
+				context,
+				name,
+				["rspack.config.js", "webpack.config.js"],
+				defaultOptions,
+				overrideOptions
+			);
+		},
+		compiler: async (context: ITestContext) => {
+			const c = await compiler(context, name);
+			await statsCompiler(context, c);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			// no need to run, just check snapshot
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name, writeStatsOuptut, snapshotName, stderr);
+		},
+		after: async (context: ITestContext) => {
+			stderr.restore();
+		}
+	};
+}
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	steps: ({ name }) => [createStatsProcessor(name)],
+	description: () => "should print correct stats for"
+});
+
+export function createStatsOutputCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
+
 function defaultOptions(
 	index: number,
 	context: ITestContext
@@ -201,51 +248,4 @@ async function statsCompiler(
 			);
 		};
 	}
-}
-
-function createStatsProcessor(name: string) {
-	const writeStatsOuptut = false;
-	const snapshotName = "stats.txt";
-	let stderr: any = null;
-	return {
-		before: async (context: ITestContext) => {
-			stderr = captureStdio(process.stderr, true);
-		},
-		config: async (context: ITestContext) => {
-			configMultiCompiler(
-				context,
-				name,
-				["rspack.config.js", "webpack.config.js"],
-				defaultOptions,
-				overrideOptions
-			);
-		},
-		compiler: async (context: ITestContext) => {
-			const c = await compiler(context, name);
-			await statsCompiler(context, c);
-		},
-		build: async (context: ITestContext) => {
-			await build(context, name);
-		},
-		run: async (env: ITestEnv, context: ITestContext) => {
-			// no need to run, just check snapshot
-		},
-		check: async (env: ITestEnv, context: ITestContext) => {
-			await check(env, context, name, writeStatsOuptut, snapshotName, stderr);
-		},
-		after: async (context: ITestContext) => {
-			stderr.restore();
-		}
-	};
-}
-
-const creator = new BasicCaseCreator({
-	clean: true,
-	describe: false,
-	steps: ({ name }) => [createStatsProcessor(name)],
-	description: () => "should print correct stats for"
-});
-
-export function createStatsOutputCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
 }

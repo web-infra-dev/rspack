@@ -15,6 +15,88 @@ import { build, check, compiler, config, getCompiler, run } from "./common";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
 
+function createCacheProcessor(
+	name: string,
+	src: string,
+	temp: string,
+	target: TTarget
+): ITestProcessor {
+	const updatePlugin = new HotUpdatePlugin(src, temp);
+	return {
+		before: async (context: ITestContext) => {
+			await updatePlugin.initialize();
+			context.setValue(name, "hotUpdateContext", updatePlugin);
+		},
+		config: async (context: ITestContext) => {
+			const compiler = getCompiler(context, name);
+			let options = defaultOptions(context, temp, target);
+			options = await config(
+				context,
+				name,
+				["rspack.config.js", "webpack.config.js"].map(i =>
+					path.resolve(temp, i)
+				),
+				options
+			);
+			overrideOptions(options, temp, target, updatePlugin);
+			compiler.setOptions(options);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			await run(env, context, name, context =>
+				findBundle(name, target, context)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		},
+		afterAll: async (context: ITestContext) => {
+			const updateIndex = updatePlugin.getUpdateIndex();
+			const totalUpdates = updatePlugin.getTotalUpdates();
+			if (updateIndex + 1 !== totalUpdates) {
+				throw new Error(
+					`Should run all hot steps (${updateIndex + 1} / ${totalUpdates}): ${name}`
+				);
+			}
+		}
+	} as ITestProcessor;
+}
+
+function getCreator(target: TTarget) {
+	if (!creators.has(target)) {
+		creators.set(
+			target,
+			new BasicCaseCreator({
+				clean: true,
+				describe: true,
+				target,
+				steps: ({ name, src, target, temp }) => [
+					createCacheProcessor(name, src, temp!, target as TTarget)
+				],
+				runner: CacheRunnerFactory,
+				concurrent: true
+			})
+		);
+	}
+	return creators.get(target)!;
+}
+
+export function createCacheCase(
+	name: string,
+	src: string,
+	dist: string,
+	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	temp: string
+) {
+	const creator = getCreator(target);
+	creator.create(name, src, dist, temp);
+}
+
 const creators: Map<
 	TTarget,
 	BasicCaseCreator<ECompilerType.Rspack>
@@ -119,86 +201,4 @@ function findBundle(
 		files.push(assets[assets.length - 1].name);
 	}
 	return [...prefiles, ...files];
-}
-
-function createCacheProcessor(
-	name: string,
-	src: string,
-	temp: string,
-	target: TTarget
-): ITestProcessor {
-	const updatePlugin = new HotUpdatePlugin(src, temp);
-	return {
-		before: async (context: ITestContext) => {
-			await updatePlugin.initialize();
-			context.setValue(name, "hotUpdateContext", updatePlugin);
-		},
-		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
-			let options = defaultOptions(context, temp, target);
-			options = await config(
-				context,
-				name,
-				["rspack.config.js", "webpack.config.js"].map(i =>
-					path.resolve(temp, i)
-				),
-				options
-			);
-			overrideOptions(options, temp, target, updatePlugin);
-			compiler.setOptions(options);
-		},
-		compiler: async (context: ITestContext) => {
-			await compiler(context, name);
-		},
-		build: async (context: ITestContext) => {
-			await build(context, name);
-		},
-		run: async (env: ITestEnv, context: ITestContext) => {
-			await run(env, context, name, context =>
-				findBundle(name, target, context)
-			);
-		},
-		check: async (env: ITestEnv, context: ITestContext) => {
-			await check(env, context, name);
-		},
-		afterAll: async (context: ITestContext) => {
-			const updateIndex = updatePlugin.getUpdateIndex();
-			const totalUpdates = updatePlugin.getTotalUpdates();
-			if (updateIndex + 1 !== totalUpdates) {
-				throw new Error(
-					`Should run all hot steps (${updateIndex + 1} / ${totalUpdates}): ${name}`
-				);
-			}
-		}
-	} as ITestProcessor;
-}
-
-function getCreator(target: TTarget) {
-	if (!creators.has(target)) {
-		creators.set(
-			target,
-			new BasicCaseCreator({
-				clean: true,
-				describe: true,
-				target,
-				steps: ({ name, src, target, temp }) => [
-					createCacheProcessor(name, src, temp!, target as TTarget)
-				],
-				runner: CacheRunnerFactory,
-				concurrent: true
-			})
-		);
-	}
-	return creators.get(target)!;
-}
-
-export function createCacheCase(
-	name: string,
-	src: string,
-	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
-	temp: string
-) {
-	const creator = getCreator(target);
-	creator.create(name, src, dist, temp);
 }

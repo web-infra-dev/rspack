@@ -20,6 +20,57 @@ const NORMAL_CASES_ROOT = path.resolve(
 	"../../../../tests/rspack-test/normalCases"
 );
 
+const createCaseOptions = (
+	hot: boolean
+): IBasicCaseCreatorOptions<ECompilerType> => {
+	return {
+		clean: true,
+		describe: false,
+		steps: ({ name }) => [
+			{
+				config: async (context: ITestContext) => {
+					const compiler = getCompiler(context, name);
+					let options = defaultOptions(context, {
+						plugins: hot ? [new HotModuleReplacementPlugin()] : []
+					});
+					options = await config(
+						context,
+						name,
+						["rspack.config.js", "webpack.config.js"],
+						options
+					);
+					overrideOptions(context, options);
+					compiler.setOptions(options);
+				},
+				compiler: async (context: ITestContext) => {
+					await compiler(context, name);
+				},
+				build: async (context: ITestContext) => {
+					await build(context, name);
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					await run(env, context, name, findBundle);
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await check(env, context, name);
+				}
+			}
+		],
+		runner: BasicRunnerFactory,
+		concurrent: true
+	};
+};
+
+const creator = new BasicCaseCreator(createCaseOptions(false));
+export function createNormalCase(name: string, src: string, dist: string) {
+	creator.create(name, src, dist);
+}
+
+const hotCreator = new BasicCaseCreator(createCaseOptions(true));
+export function createHotNormalCase(name: string, src: string, dist: string) {
+	hotCreator.create(name, src, dist);
+}
+
 function findBundle(
 	context: ITestContext,
 	options: TCompilerOptions<ECompilerType.Rspack>
@@ -180,55 +231,4 @@ function overrideOptions<T extends ECompilerType.Rspack>(
 			level: "error"
 		};
 	}
-}
-
-const createCaseOptions = (
-	hot: boolean
-): IBasicCaseCreatorOptions<ECompilerType> => {
-	return {
-		clean: true,
-		describe: false,
-		steps: ({ name }) => [
-			{
-				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
-					let options = defaultOptions(context, {
-						plugins: hot ? [new HotModuleReplacementPlugin()] : []
-					});
-					options = await config(
-						context,
-						name,
-						["rspack.config.js", "webpack.config.js"],
-						options
-					);
-					overrideOptions(context, options);
-					compiler.setOptions(options);
-				},
-				compiler: async (context: ITestContext) => {
-					await compiler(context, name);
-				},
-				build: async (context: ITestContext) => {
-					await build(context, name);
-				},
-				run: async (env: ITestEnv, context: ITestContext) => {
-					await run(env, context, name, findBundle);
-				},
-				check: async (env: ITestEnv, context: ITestContext) => {
-					await check(env, context, name);
-				}
-			}
-		],
-		runner: BasicRunnerFactory,
-		concurrent: true
-	};
-};
-
-const creator = new BasicCaseCreator(createCaseOptions(false));
-export function createNormalCase(name: string, src: string, dist: string) {
-	creator.create(name, src, dist);
-}
-
-const hotCreator = new BasicCaseCreator(createCaseOptions(true));
-export function createHotNormalCase(name: string, src: string, dist: string) {
-	hotCreator.create(name, src, dist);
 }
