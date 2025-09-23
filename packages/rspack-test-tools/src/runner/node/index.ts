@@ -15,7 +15,7 @@ import {
 	type TCompilerStatsCompilation,
 	type TModuleObject,
 	type TRunnerFile,
-	type TRunnerRequirer, 
+	type TRunnerRequirer,
 	type TTestConfig
 } from "../../type";
 

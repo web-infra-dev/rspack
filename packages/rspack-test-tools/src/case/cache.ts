@@ -12,7 +12,7 @@ import {
 	type ITestContext,
 	type ITestEnv,
 	type ITestProcessor,
-	type TCompilerOptions, 
+	type TCompilerOptions,
 	type TCompilerStatsCompilation
 } from "../type";
 import { build, check, compiler, config, getCompiler, run } from "./common";

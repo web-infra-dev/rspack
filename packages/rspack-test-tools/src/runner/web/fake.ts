@@ -12,7 +12,7 @@ import FakeDocument, {
 } from "../../helper/legacy/FakeDocument";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import {
-	type ECompilerType, 
+	type ECompilerType,
 	EEsmMode,
 	type TRunnerFile,
 	type TRunnerRequirer
