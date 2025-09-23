@@ -322,6 +322,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importMeta", true);
 	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
+	D(parserOptions, "jsx", false);
 };
 
 const applyJsonGeneratorOptionsDefaults = (

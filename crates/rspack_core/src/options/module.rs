@@ -284,6 +284,7 @@ pub struct JavascriptParserOptions {
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
   pub inline_const: Option<bool>,
+  pub jsx: Option<bool>,
 }
 
 #[cacheable]

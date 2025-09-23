@@ -30,7 +30,7 @@ use swc_core::{
   ecma::{
     ast::{EsVersion, Program},
     atoms::Atom,
-    parser::{Syntax, parse_file_as_module},
+    parser::{EsSyntax, Syntax, parse_file_as_module},
     transforms::base::resolver,
   },
 };
@@ -47,13 +47,13 @@ use crate::{
   IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, PrefetchExportsInfoMode, Resolve,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, UsageState, UsedName, UsedNameItem,
-  define_es_module_flag_statement, escape_identifier, filter_runtime, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, runtime_condition_expression, subtract_runtime_condition,
-  to_identifier_with_escaped, to_normal_comment,
+  ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
+  PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
+  UsageState, UsedName, UsedNameItem, define_es_module_flag_statement, escape_identifier,
+  filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1993,10 +1993,24 @@ impl ConcatenatedModule {
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;
 
+      let jsx = module
+        .as_ref()
+        .as_normal_module()
+        .and_then(|normal_module| normal_module.get_parser_options())
+        .and_then(|options: &ParserOptions| {
+          options
+            .get_javascript()
+            .and_then(|js_options| js_options.jsx)
+        })
+        .unwrap_or(false);
+
       let mut errors = vec![];
       let program = match parse_file_as_module(
         &fm,
-        Syntax::default(),
+        Syntax::Es(EsSyntax {
+          jsx,
+          ..Default::default()
+        }),
         EsVersion::EsNext,
         Some(&comments),
         &mut errors,
