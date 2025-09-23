@@ -10,23 +10,56 @@ Rspack 提供了对 [Web Workers](https://developer.mozilla.org/zh-CN/docs/Web/A
 
 ## 使用方式
 
+基本的 Worker 创建语法：
+
 ```js
 new Worker(new URL('./worker.js', import.meta.url));
 ```
 
+通过 `name` 属性可以自定义 Worker 的 chunk 名称（需要属性值可被静态分析），此名称会替换生成的 chunk 文件名中的 `[name]` 占位符：
+
 ```js
 new Worker(new URL('./worker.js', import.meta.url), {
-  name: 'my-worker', // <-- 在可静态分析 name 属性的值时，可通过该属性自定义 worker 的 chunk name，用于替换最终 chunk 文件生成时 [name] 占位符
+  name: 'my-worker',
 });
 ```
 
-除 `new Worker()` 以外还支持以下语法：
+:::info
+选择该语法的原因在于其具备良好的标准兼容性，它基于标准的 ECMAScript 模块规范，即使在没有构建工具的环境中也能正常运行。例如，它可以直接在支持 ES modules 的现代浏览器中执行。
+:::
 
-- `new SharedWorker()`
-- `import { Worker } from "worker_thread"`：常用于 node 环境
-- `navigator.serviceWorker.register()`：用于注册 Service Worker
+### 更多语法
 
-可通过 [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) 提供自定义语法。
+除 `new Worker()` 以外，Rspack 还默认支持以下语法：
+
+- `new SharedWorker()`，详见 [SharedWorker](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker)。
+
+```js
+const sharedWorker = new SharedWorker(
+  new URL('./shared-worker.js', import.meta.url),
+);
+sharedWorker.port.start();
+```
+
+- `import { Worker } from "node:worker_threads"`：常用于 Node.js 环境，详见 [Worker threads](https://nodejs.org/api/worker_threads.html)。
+
+```js
+import { Worker } from 'node:worker_threads';
+
+const worker = new Worker(new URL('./node-worker.js', import.meta.url));
+```
+
+- `navigator.serviceWorker.register()`：用于注册 Service Worker，详见 [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)。
+
+```js
+navigator.serviceWorker.register('./sw.js').then(registration => {
+  console.log('Service worker registration succeeded:', registration);
+});
+```
+
+如需支持更多自定义语法，可通过 [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) 配置实现。
+
+### 示例
 
 使用示例可参考：
 
@@ -34,11 +67,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 - [examples/monaco-editor-js](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-js)
 - [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
 
-:::info
-选择该语法是因为该语法在不使用打包工具时也能运行代码，它可以直接运行在支持 ES modules 的浏览器上运行，是符合标准的 ECMAScript 语法。
-:::
-
-:::warning
+### 注意事项
 
 1. 需要注意的是 `new Worker` 也可以接受一个 URL 的字符串表示，但在 Rspack 中只支持传入 URL。
 2. Rspack 不支持在 `new Worker` 中使用变量。例如，以下代码将不起作用：
@@ -50,9 +79,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
    这是因为 Rspack 无法静态分析该语法。在 Rspack 中使用 Worker 语法时，请务必注意此限制。
 
-3. 目前不支持 `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释
-
-:::
+3. 目前不支持 `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释。
 
 ## worker-loader
 

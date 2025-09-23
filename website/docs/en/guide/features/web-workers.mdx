@@ -10,35 +10,64 @@ Rspack provides built-in support for [Web Workers](https://developer.mozilla.org
 
 ## Usage
 
+Basic Worker creation syntax:
+
 ```js
 new Worker(new URL('./worker.js', import.meta.url));
 ```
 
+You can customize the Worker's chunk name through the `name` property (the property value must be statically analyzable). This name will replace the `[name]` placeholder in the generated chunk filename:
+
 ```js
 new Worker(new URL('./worker.js', import.meta.url), {
-  name: 'my-worker', // <-- When the value of the name property can be statically analyzed, the worker's chunk name can be customized with this property to replace the [name] placeholder when the chunk file is generated
+  name: 'my-worker',
 });
 ```
 
-In addition to `new Worker()`, the following syntax is also supported:
+:::info
+This syntax was chosen for its strong standards compliance. It's built on the standard ECMAScript module specification, which means it works seamlessly even without build tools. For example, it runs natively in modern browsers with ES module support.
+:::
 
-- `new SharedWorker()`
-- `import { Worker } from "worker_threads"`: usually used in Node environments
-- `navigator.serviceWorker.register()`: used to register Service Workers
+### Additional syntax
 
-Custom syntax can be provided via [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker).
+In addition to `new Worker()`, Rspack also supports the following syntax by default:
 
-For examples:
+- `new SharedWorker()`, see [SharedWorker](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker)
+
+```js
+const sharedWorker = new SharedWorker(
+  new URL('./shared-worker.js', import.meta.url),
+);
+sharedWorker.port.start();
+```
+
+- `import { Worker } from "node:worker_threads"`: commonly used in Node.js environments, see [Worker threads](https://nodejs.org/api/worker_threads.html)
+
+```js
+import { Worker } from 'node:worker_threads';
+
+const worker = new Worker(new URL('./node-worker.js', import.meta.url));
+```
+
+- `navigator.serviceWorker.register()`: used to register Service Workers, see [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)
+
+```js
+navigator.serviceWorker.register('./sw.js').then(registration => {
+  console.log('Service worker registration succeeded:', registration);
+});
+```
+
+To support additional custom syntax, you can configure it through [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker).
+
+### Examples
+
+For usage examples, see:
 
 - [examples/worker](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/worker)
 - [examples/monaco-editor-js](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-js)
 - [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
 
-:::info
-The syntax was chosen to allow running code without bundler, it is also available in native ECMAScript modules in the browser.
-:::
-
-:::warning
+### Notes
 
 1. Note that `new Worker` can also accept a string representation of a URL, but only passing in URLs is supported in Rspack.
 2. Rspack does not support the use of variables in `new Worker`. For example, the following code will not work:
@@ -51,8 +80,6 @@ The syntax was chosen to allow running code without bundler, it is also availabl
    This is because Rspack cannot statically analyze the syntax. Please be sure to note this limitation when using the Worker syntax in Rspack.
 
 3. Not support `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comments for now.
-
-:::
 
 ## worker-loader
 
