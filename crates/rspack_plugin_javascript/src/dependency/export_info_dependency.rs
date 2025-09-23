@@ -92,7 +92,7 @@ impl ExportInfoDependency {
         let used_name = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
           *runtime,
-          &export_name,
+          export_name,
         );
         Some(matches!(used_name, Some(UsedName::Inlined(_))).to_string())
       }

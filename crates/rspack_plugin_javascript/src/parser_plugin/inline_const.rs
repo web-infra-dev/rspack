@@ -153,7 +153,7 @@ pub fn is_export_inlined(
   let used_name = if ids.is_empty() {
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &mg.get_exports_info(module),
-      &mg,
+      mg,
       runtime,
       false,
     );
