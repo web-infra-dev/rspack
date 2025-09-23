@@ -29,7 +29,7 @@ export function ApiMeta(props: ApiMetaProps) {
     `https://github.com/web-infra-dev/rspack/releases/tag/v${version.replace('v', '')}`;
 
   return (
-    <div className={wrapperStyle}>
+    <div className={`${wrapperStyle} rp-not-doc`}>
       {props.addedVersion && (
         <span className={`${tagStyle} ${styles.added}`}>
           <a
