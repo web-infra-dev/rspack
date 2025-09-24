@@ -1341,10 +1341,7 @@ impl Compilation {
 
         self.emit_asset(
           filename.clone(),
-          CompilationAsset::new(
-            Some(CachedSource::new(file_manifest.source).boxed()),
-            file_manifest.info,
-          ),
+          CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
         );
 
         _ = self
