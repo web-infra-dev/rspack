@@ -72,7 +72,7 @@
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/jest": "29.5.14",
-    "@types/node": "^20.19.15",
+    "@types/node": "^20.19.17",
     "check-dependency-version-consistency": "^5.0.1",
     "commander": "13.1.0",
     "cross-env": "^10.0.0",
@@ -85,7 +85,7 @@
     "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
-    "ts-jest": "29.4.2",
+    "ts-jest": "29.4.4",
     "typescript": "^5.9.2",
     "webpack": "5.99.9",
     "zx": "8.7.1"
