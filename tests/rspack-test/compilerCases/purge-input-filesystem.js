@@ -1,5 +1,5 @@
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [(() => {
+defineCompileCase(Utils.basename(__filename), [(() => {
   const mockPurge = jest.fn();
   return {
     description: "invokes purge() if inputFileSystem.purge",
@@ -35,4 +35,4 @@ module.exports = [(() => {
       expect(mockPurge.mock.calls.length).toBe(0);
     }
   };
-})()];
+})()]);

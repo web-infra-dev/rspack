@@ -1,5 +1,5 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
   skip: true,
   description: "returns booleanized this.parentCompilation",
   options(context) {
@@ -46,4 +46,4 @@ module.exports = {
     const response9 = compiler.isChild();
     expect(response9).toBe(false);
   },
-};
+});

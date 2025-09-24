@@ -1,10 +1,9 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have time log when logging verbose",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/abc"
+			entry: "./abc"
 		};
 	},
 	async check(stats) {
@@ -83,4 +82,4 @@ module.exports = {
 		    0 chunk group info updated (0 already connected chunk groups reconnected)
 	`);
 	}
-};
+});

@@ -1,16 +1,15 @@
-/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should output error chunk info",
 	options(context) {
 		return {
 			context: context.getSource(),
 			entry: {
 				a: {
-					import: "./fixtures/a",
+					import: "./a",
 					dependOn: "b"
 				},
 				b: {
-					import: "./fixtures/b",
+					import: "./b",
 					dependOn: "a"
 				}
 			}
@@ -22,4 +21,4 @@ module.exports = {
 		});
 		expect(string).toContain(`ERROR in × Entrypoints 'b' and 'a' use 'dependOn' to depend on each other in a circular way.`);
 	}
-};
+});

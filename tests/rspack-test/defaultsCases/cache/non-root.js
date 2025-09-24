@@ -1,6 +1,5 @@
 const path = require("path");
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "non-root directory",
 	options: () => ({
 		cache: {
@@ -19,4 +18,4 @@ module.exports = {
 		+     "type": "filesystem",
 		+   },
 	`)
-};
+});

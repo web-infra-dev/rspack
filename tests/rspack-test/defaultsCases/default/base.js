@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "cache true",
 	options: () => ({}),
 	diff: (_, defaults) =>
@@ -8,7 +7,7 @@ module.exports = {
 		  amd: undefined,
 		  bail: false,
 		  cache: false,
-		  context: <TEST_TOOLS_ROOT>,
+		  context: <TEST_TOOLS_ROOT>/fixtures,
 		  dependencies: undefined,
 		  devServer: undefined,
 		  devtool: false,
@@ -293,7 +292,7 @@ module.exports = {
 		    chunkFormat: array-push,
 		    chunkLoadTimeout: 120000,
 		    chunkLoading: jsonp,
-		    chunkLoadingGlobal: webpackChunk_rspack_tests,
+		    chunkLoadingGlobal: webpackChunk,
 		    clean: false,
 		    compareBeforeEmit: true,
 		    crossOriginLoading: false,
@@ -301,7 +300,7 @@ module.exports = {
 		    cssFilename: [name].css,
 		    devtoolFallbackModuleFilenameTemplate: undefined,
 		    devtoolModuleFilenameTemplate: undefined,
-		    devtoolNamespace: @rspack/tests,
+		    devtoolNamespace: ,
 		    enabledChunkLoadingTypes: Array [
 		      jsonp,
 		      import-scripts,
@@ -333,21 +332,21 @@ module.exports = {
 		    hashFunction: xxhash64,
 		    hashSalt: undefined,
 		    hotUpdateChunkFilename: [id].[fullhash].hot-update.js,
-		    hotUpdateGlobal: webpackHotUpdate_rspack_tests,
+		    hotUpdateGlobal: webpackHotUpdate,
 		    hotUpdateMainFilename: [runtime].[fullhash].hot-update.json,
 		    iife: true,
 		    importFunctionName: import,
 		    importMetaName: import.meta,
 		    library: undefined,
 		    module: false,
-		    path: <TEST_TOOLS_ROOT>/dist,
+		    path: <TEST_TOOLS_ROOT>/fixtures/dist,
 		    pathinfo: false,
 		    publicPath: auto,
 		    scriptType: false,
 		    sourceMapFilename: [file].map[query],
 		    strictModuleErrorHandling: false,
 		    trustedTypes: undefined,
-		    uniqueName: @rspack/tests,
+		    uniqueName: ,
 		    wasmLoading: fetch,
 		    webassemblyModuleFilename: [hash].module.wasm,
 		    workerChunkLoading: import-scripts,
@@ -548,7 +547,7 @@ module.exports = {
 		    ],
 		    pnp: false,
 		    roots: Array [
-		      <TEST_TOOLS_ROOT>,
+		      <TEST_TOOLS_ROOT>/fixtures,
 		    ],
 		  },
 		  resolveLoader: Object {
@@ -578,4 +577,4 @@ module.exports = {
 		  watchOptions: Object {},
 		}
 	`)
-};
+});

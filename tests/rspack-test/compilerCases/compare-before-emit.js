@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const path = require("path");
 const fs = require("fs");
 const { rimrafSync } = require("rimraf");
@@ -5,7 +6,7 @@ const { rimrafSync } = require("rimraf");
 let first_asset_mtime;
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
   description: "should write emit same content to same file",
   options(context) {
     return {
@@ -72,4 +73,4 @@ module.exports = [{
     )?.mtime;
     expect(first_asset_mtime).not.toEqual(second_asset_mtime);
   }
-}];
+}]);

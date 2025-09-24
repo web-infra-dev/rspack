@@ -1,11 +1,10 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have stats",
 	options(context) {
 		return {
 			context: context.getSource(),
 			entry: {
-				main: "./fixtures/a"
+				main: "./a"
 			}
 		};
 	},
@@ -66,7 +65,7 @@ module.exports = {
 		        main.js,
 		      ],
 		      filteredModules: undefined,
-		      hash: 8c119b10eb3bf1e9,
+		      hash: 4ee9e6e51ec11d11,
 		      id: 889,
 		      idHints: Array [],
 		      initial: true,
@@ -86,7 +85,7 @@ module.exports = {
 		          errors: 0,
 		          failed: false,
 		          filteredReasons: undefined,
-		          id: 195,
+		          id: 670,
 		          identifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		          index: 0,
 		          index2: 0,
@@ -96,10 +95,10 @@ module.exports = {
 		          issuerPath: undefined,
 		          layer: undefined,
 		          moduleType: javascript/auto,
-		          name: ./fixtures/a.js,
+		          name: ./a.js,
 		          nameForCondition: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		          optimizationBailout: Array [
-		            Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
+		            Statement with side_effects in source code at ./a.js<LINE_COL_RANGE>,
 		            ModuleConcatenation bailout: Module is not an ECMAScript module,
 		          ],
 		          optional: false,
@@ -115,17 +114,17 @@ module.exports = {
 		              moduleId: null,
 		              resolvedModuleId: null,
 		              type: entry,
-		              userRequest: ./fixtures/a,
+		              userRequest: ./a,
 		            },
 		            Object {
 		              active: true,
 		              explanation: undefined,
 		              loc: undefined,
-		              moduleId: 195,
+		              moduleId: 670,
 		              moduleIdentifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
-		              moduleName: ./fixtures/a.js,
-		              resolvedModule: ./fixtures/a.js,
-		              resolvedModuleId: 195,
+		              moduleName: ./a.js,
+		              resolvedModule: ./a.js,
+		              resolvedModuleId: 670,
 		              resolvedModuleIdentifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		              type: cjs self exports reference,
 		              userRequest: self,
@@ -153,7 +152,7 @@ module.exports = {
 		          moduleId: undefined,
 		          moduleIdentifier: ,
 		          moduleName: ,
-		          request: ./fixtures/a,
+		          request: ./a,
 		        },
 		      ],
 		      parents: Array [],
@@ -196,7 +195,7 @@ module.exports = {
 		  errorsCount: 0,
 		  filteredAssets: undefined,
 		  filteredModules: undefined,
-		  hash: 73a5752d7bf35dcd,
+		  hash: 01bf851dd9d2b320,
 		  modules: Array [
 		    Object {
 		      assets: Array [],
@@ -213,7 +212,7 @@ module.exports = {
 		      errors: 0,
 		      failed: false,
 		      filteredReasons: undefined,
-		      id: 195,
+		      id: 670,
 		      identifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		      index: 0,
 		      index2: 0,
@@ -223,10 +222,10 @@ module.exports = {
 		      issuerPath: undefined,
 		      layer: undefined,
 		      moduleType: javascript/auto,
-		      name: ./fixtures/a.js,
+		      name: ./a.js,
 		      nameForCondition: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		      optimizationBailout: Array [
-		        Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
+		        Statement with side_effects in source code at ./a.js<LINE_COL_RANGE>,
 		        ModuleConcatenation bailout: Module is not an ECMAScript module,
 		      ],
 		      optional: false,
@@ -242,17 +241,17 @@ module.exports = {
 		          moduleId: null,
 		          resolvedModuleId: null,
 		          type: entry,
-		          userRequest: ./fixtures/a,
+		          userRequest: ./a,
 		        },
 		        Object {
 		          active: true,
 		          explanation: undefined,
 		          loc: undefined,
-		          moduleId: 195,
+		          moduleId: 670,
 		          moduleIdentifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
-		          moduleName: ./fixtures/a.js,
-		          resolvedModule: ./fixtures/a.js,
-		          resolvedModuleId: 195,
+		          moduleName: ./a.js,
+		          resolvedModule: ./a.js,
+		          resolvedModuleId: 670,
 		          resolvedModuleIdentifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		          type: cjs self exports reference,
 		          userRequest: self,
@@ -302,21 +301,21 @@ module.exports = {
 		asset main.js 204 bytes {889} [emitted] (name: main)
 		Entrypoint main 204 bytes = main.js
 		chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
-		  > ./fixtures/a main
-		  ./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
+		  > ./a main
+		  ./a.js [670] 55 bytes {889} [depth 0] [built] [code generated]
 		    [used exports unknown]
-		    Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
+		    Statement with side_effects in source code at ./a.js<LINE_COL_RANGE>
 		    ModuleConcatenation bailout: Module is not an ECMAScript module
-		    entry ./fixtures/a
-		    cjs self exports reference self [195] ./fixtures/a.js
-		./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
+		    entry ./a
+		    cjs self exports reference self [670] ./a.js
+		./a.js [670] 55 bytes {889} [depth 0] [built] [code generated]
 		  [used exports unknown]
-		  Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
+		  Statement with side_effects in source code at ./a.js<LINE_COL_RANGE>
 		  ModuleConcatenation bailout: Module is not an ECMAScript module
-		  entry ./fixtures/a
-		  cjs self exports reference self [195] ./fixtures/a.js
+		  entry ./a
+		  cjs self exports reference self [670] ./a.js
 		  
-		Rspack compiled successfully (73a5752d7bf35dcd)
+		Rspack compiled successfully (01bf851dd9d2b320)
 	`);
 	}
-};
+});

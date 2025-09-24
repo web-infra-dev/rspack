@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "target electron-preload",
 	options: () => ({ target: "electron-preload" }),
 	diff: e =>
@@ -124,4 +123,4 @@ module.exports = {
 		-   "target": "web",
 		+   "target": "electron-preload",
 	`)
-};
+});

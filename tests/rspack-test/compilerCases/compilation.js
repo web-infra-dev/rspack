@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const mockFn = jest.fn();
 
 class MyPlugin {
@@ -8,8 +9,8 @@ class MyPlugin {
 	}
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
 	description: "should be called every compilation",
 	options(context) {
 		return {
@@ -30,4 +31,4 @@ module.exports = {
 	async check() {
 		expect(mockFn).toBeCalledTimes(2);
 	}
-};
+});

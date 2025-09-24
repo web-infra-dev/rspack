@@ -1,5 +1,4 @@
-/** @type {import('../..').TErrorCaseConfig} */
-module.exports = {
+defineErrorCase(Utils.basename(__filename), {
 	description: "Testing set errors",
 	options() {
 		return {
@@ -30,4 +29,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

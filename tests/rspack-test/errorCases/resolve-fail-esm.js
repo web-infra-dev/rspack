@@ -1,5 +1,4 @@
-/** @type {import('../..').TErrorCaseConfig} */
-module.exports = {
+defineErrorCase(Utils.basename(__filename), {
 	description: "should emit warnings for resolve failure in esm",
 	options() {
 		return {
@@ -24,4 +23,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

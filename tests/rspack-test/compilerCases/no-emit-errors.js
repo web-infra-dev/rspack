@@ -1,10 +1,11 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const { createFsFromVolume, Volume } = require("memfs");
 const { Stats } = require("@rspack/core");
 
 let watchStats = null;
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
   description: "should not emit on errors",
   error: true,
   options(context) {
@@ -76,4 +77,4 @@ module.exports = [{
   async check() {
     expect(watchStats).toBeInstanceOf(Stats);
   }
-}];
+}]);

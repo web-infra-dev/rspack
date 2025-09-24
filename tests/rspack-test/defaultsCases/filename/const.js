@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "const filename",
 	options: () => ({ output: { filename: "bundle.js" } }),
 	diff: e =>
@@ -19,4 +18,4 @@ module.exports = {
 		-     "filename": "[name].js",
 		+     "filename": "bundle.js",
 	`)
-};
+});

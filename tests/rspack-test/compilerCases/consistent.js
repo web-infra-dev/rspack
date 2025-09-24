@@ -1,7 +1,8 @@
+
 const stats = [];
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-module.exports = {
+defineCompileCase(Utils.basename(__filename), {
 	description: "should be called every compilation",
 	options(context) {
 		return {
@@ -42,4 +43,4 @@ module.exports = {
 		const stats3 = stats[2].reduce((acc, curr) => acc + curr.name, '')
 		expect(stats1 === stats2 === stats3);
 	}
-};
+});

@@ -1,5 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should generate asset info",
 	options(context) {
 		return {
@@ -9,7 +8,7 @@ module.exports = {
 				minimize: false
 			},
 			entry: {
-				main: "./fixtures/asset/index"
+				main: "./asset/index"
 			},
 			output: {},
 			module: {
@@ -42,7 +41,7 @@ module.exports = {
 			immutable: true,
 			isOverSizeLimit: false,
 			related: {},
-			sourceFilename: "fixtures/asset/image.png",
+			sourceFilename: "asset/image.png",
 		}, {
 			chunkhash: [],
 			contenthash: [],
@@ -56,4 +55,4 @@ module.exports = {
 			},
 		}]);
 	}
-};
+});

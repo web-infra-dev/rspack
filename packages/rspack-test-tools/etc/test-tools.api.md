@@ -20,7 +20,11 @@ import type { Stats } from '@rspack/core';
 import type { Stats as Stats_2 } from 'webpack';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
+import type { StatsError } from '@rspack/core';
 import type { WebpackOptionsNormalized } from 'webpack';
+
+// @public (undocumented)
+export function basename(filename: string): string;
 
 // @public (undocumented)
 export class BasicCaseCreator<T extends ECompilerType> {
@@ -62,6 +66,9 @@ export class BasicCaseCreator<T extends ECompilerType> {
 }
 
 // @public (undocumented)
+export function casename(filename: string): string;
+
+// @public (undocumented)
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
@@ -83,22 +90,13 @@ export function createBuiltinCase(name: string, src: string, dist: string): void
 export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], temp: string): void;
 
 // @public (undocumented)
-export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
-
-// @public (undocumented)
 export function createConfigCase(name: string, src: string, dist: string): void;
-
-// @public (undocumented)
-export function createDefaultsCase(name: string, src: string): void;
 
 // @public (undocumented)
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createDiffCase(name: string, src: string, dist: string): void;
-
-// @public (undocumented)
-export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
@@ -128,9 +126,6 @@ export function createNormalCase(name: string, src: string, dist: string): void;
 export function createSerialCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
-
-// @public (undocumented)
 export function createStatsOutputCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -141,6 +136,18 @@ export function createWatchCase(name: string, src: string, dist: string, temp: s
 
 // @public (undocumented)
 export function createWatchIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchIncrementalOptions): void;
+
+// @public (undocumented)
+export function defineCompileCase(name: string, caseConfigList: TCompilerCaseConfig | TCompilerCaseConfig[]): void;
+
+// @public (undocumented)
+export function defineDefaultsCase(name: string, caseConfig: TDefaultsCaseConfig): void;
+
+// @public (undocumented)
+export function defineErrorCase(name: string, caseConfig: TErrorCaseConfig): void;
+
+// @public (undocumented)
+export function defineStatsAPICase(name: string, caseConfig: TStatsAPICaseConfig): void;
 
 // @public (undocumented)
 export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
@@ -233,7 +240,7 @@ export function escapeSep(str: string): string;
 export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
-export function getRspackDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
+export function getRspackDefaultConfig(context: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
 
 // @public (undocumented)
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
@@ -673,6 +680,22 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 }
 
 // @public (undocumented)
+class RspackStatsDiagnostics {
+    constructor(errors: StatsError[], warnings: StatsError[]);
+    // (undocumented)
+    errors: StatsError[];
+    // (undocumented)
+    warnings: StatsError[];
+}
+
+// @public (undocumented)
+class RspackTestDiff {
+    constructor(value: string);
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
 export type TCaseSummary = Record<TCaseSummaryId, number>;
 
 // @public (undocumented)
@@ -701,6 +724,24 @@ export type TCompilation<T> = T extends ECompilerType.Rspack ? Compilation : Com
 export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
 
 // @public (undocumented)
+type TCompilerCaseConfig = {
+    description: string;
+    error?: boolean;
+    skip?: boolean;
+    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    check?: ({ context, stats, files, compiler, compilation }: {
+        context: ITestContext;
+        stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+        files?: Record<string, string>;
+        compiler: TCompiler<ECompilerType.Rspack>;
+        compilation?: TCompilation<ECompilerType.Rspack>;
+    }) => Promise<void>;
+    compilerCallback?: (error: Error | null, stats: TCompilerStats<ECompilerType.Rspack> | null) => void;
+};
+
+// @public (undocumented)
 export type TCompilerFactories<T extends ECompilerType> = Record<T, TCompilerFactory<T>>;
 
 // @public (undocumented)
@@ -722,6 +763,14 @@ export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? Stat
 export type TCompilerTypeId = ECompilerType.Rspack | ECompilerType.Webpack | "common";
 
 // @public (undocumented)
+type TDefaultsCaseConfig = {
+    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    cwd?: string;
+    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>) => Promise<void>;
+    description: string;
+};
+
+// @public (undocumented)
 export type TDiffStats = {
     root: string;
     data: Array<TDiffStatsItem>;
@@ -737,6 +786,15 @@ export type TDiffStatsItem = {
 
 // @public (undocumented)
 export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
+
+// @public (undocumented)
+type TErrorCaseConfig = {
+    description: string;
+    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    check?: (stats: RspackStatsDiagnostics) => Promise<void>;
+};
 
 // @public (undocumented)
 export class TestContext implements ITestContext {
@@ -847,6 +905,16 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+type TStatsAPICaseConfig = {
+    description: string;
+    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    snapshotName?: string;
+    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    check?: (stats: TCompilerStats<ECompilerType.Rspack>, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+};
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {

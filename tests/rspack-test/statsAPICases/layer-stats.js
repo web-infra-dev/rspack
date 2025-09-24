@@ -1,16 +1,15 @@
-/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have module layer",
 	options(context) {
 		return {
 			context: context.getSource(),
 			entry: {
 				main: {
-					import: "./fixtures/abc",
+					import: "./abc",
 					layer: "test"
 				},
 				legacy: {
-					import: "./fixtures/abc",
+					import: "./abc",
 					layer: "legacy"
 				}
 			},
@@ -62,4 +61,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

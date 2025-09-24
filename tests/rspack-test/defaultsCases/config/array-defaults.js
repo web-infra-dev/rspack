@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "array defaults",
 	options: () => ({
 		output: {
@@ -17,4 +16,4 @@ module.exports = {
 		@@ ... @@
 		+       "async-node",
 	`)
-};
+});

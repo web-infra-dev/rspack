@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { OutputFileSystem } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
 import type {
@@ -158,15 +159,18 @@ const creator = new BasicCaseCreator({
 	concurrent: false
 });
 
-export function createCompilerCase(
+const srcDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/fixtures"
+);
+const distDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/js/compiler"
+);
+export function defineCompileCase(
 	name: string,
-	src: string,
-	dist: string,
-	testConfig: string
+	caseConfigList: TCompilerCaseConfig | TCompilerCaseConfig[]
 ) {
-	let caseConfigList: TCompilerCaseConfig | TCompilerCaseConfig[] = require(
-		testConfig
-	);
 	if (!Array.isArray(caseConfigList)) {
 		caseConfigList = [caseConfigList];
 	}
@@ -176,10 +180,16 @@ export function createCompilerCase(
 			it.skip(`${name}[${i}]`, () => {});
 			continue;
 		}
-		creator.create(`${name}[${i}]`, src, dist, undefined, {
-			caseConfig,
-			description: () => caseConfig.description
-		});
+		creator.create(
+			`${name}[${i}]`,
+			srcDir,
+			path.join(distDir, name),
+			undefined,
+			{
+				caseConfig,
+				description: () => caseConfig.description
+			}
+		);
 	}
 }
 

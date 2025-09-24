@@ -1,4 +1,5 @@
 import type fs from "node:fs";
+import path from "node:path";
 import { createFsFromVolume, Volume } from "memfs";
 import { BasicCaseCreator } from "../test/creator";
 import type {
@@ -67,17 +68,22 @@ const creator = new BasicCaseCreator({
 	concurrent: true
 });
 
-export function createStatsAPICase(
+const srcDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/fixtures"
+);
+const distDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/js/stats-api"
+);
+export function defineStatsAPICase(
 	name: string,
-	src: string,
-	dist: string,
-	testConfig: string
+	caseConfig: TStatsAPICaseConfig
 ) {
 	if (!addedSerializer) {
 		addedSerializer = true;
 	}
-	const caseConfig: TStatsAPICaseConfig = require(testConfig);
-	creator.create(name, src, dist, undefined, {
+	creator.create(name, srcDir, path.join(distDir, name), undefined, {
 		caseConfig,
 		description: () => caseConfig.description
 	});

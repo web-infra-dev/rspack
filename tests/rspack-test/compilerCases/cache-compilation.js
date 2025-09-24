@@ -1,3 +1,4 @@
+
 const mockFn = jest.fn();
 const PLUGIN_NAME = "MyPlugin";
 
@@ -20,7 +21,7 @@ class MyPlugin {
 }
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-module.exports = {
+defineCompileCase(Utils.basename(__filename), {
   description: "should share cache cross compilations",
   options(context) {
     return {
@@ -41,4 +42,4 @@ module.exports = {
   async check() {
     expect(mockFn).toBeCalledTimes(2);
   }
-};
+});

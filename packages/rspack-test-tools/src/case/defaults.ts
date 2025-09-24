@@ -1,49 +1,70 @@
 import path from "node:path";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
 import { diff as jestDiff } from "jest-diff";
-
-import { TestContext } from "../test/context";
+import { BasicCaseCreator } from "../test/creator";
 import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	ITestProcessor,
 	TCompilerOptions
 } from "../type";
 import { getCompiler } from "./common";
 
 const CURRENT_CWD = process.cwd();
 
-export function createDefaultsCase(name: string, src: string) {
-	const caseConfig = require(src) as TDefaultsCaseConfig;
-	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
-		await run(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.setOptions(options(context, caseConfig.options));
-			},
-			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.createCompiler();
-			},
-			build: async (context: ITestContext) => {
-				// no need to build, just check the snapshot of compiler options
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of compiler options
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, caseConfig);
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: false,
+	steps: ({ name, caseConfig: _caseConfig }) => {
+		const caseConfig = _caseConfig as TDefaultsCaseConfig;
+		return [
+			{
+				config: async (context: ITestContext) => {
+					const compiler = getCompiler(context, name);
+					compiler.setOptions(options(context, caseConfig.options));
+				},
+				compiler: async (context: ITestContext) => {
+					// no need to create compiler, just check the snapshot of compiler options
+				},
+				build: async (context: ITestContext) => {
+					// no need to build, just check the snapshot of compiler options
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					// no need to run, just check the snapshot of compiler options
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await check(env, context, name, caseConfig);
+				}
 			}
-		});
+		];
+	},
+	concurrent: false
+});
+
+const srcDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/fixtures"
+);
+const distDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/js/defaults"
+);
+
+export function defineDefaultsCase(
+	name: string,
+	caseConfig: TDefaultsCaseConfig
+) {
+	creator.create(name, srcDir, path.join(distDir, name), undefined, {
+		caseConfig,
+		description: () => caseConfig.description
 	});
 }
 
 export function getRspackDefaultConfig(
-	cwd: string,
+	context: string,
 	config: TCompilerOptions<ECompilerType>
 ): TCompilerOptions<ECompilerType> {
-	process.chdir(cwd);
+	process.chdir(context);
 	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 		require("@rspack/core").config;
 	const normalizedConfig = getNormalizedWebpackOptions(config);
@@ -65,14 +86,6 @@ export type TDefaultsCaseConfig = {
 	description: string;
 };
 
-const srcDir = path.resolve(__dirname, "../../tests/fixtures");
-const distDir = path.resolve(__dirname, "../../tests/js/defaults");
-
-const context = new TestContext({
-	src: srcDir,
-	dist: distDir
-});
-
 function options(
 	context: ITestContext,
 	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
@@ -85,6 +98,9 @@ function options(
 	}
 	if (!("mode" in res)) {
 		res.mode = "none";
+	}
+	if (!("context" in res)) {
+		res.context = context.getSource();
 	}
 	return res;
 }
@@ -107,10 +123,10 @@ async function check(
 ) {
 	const compiler = getCompiler(context, name);
 	const config = getRspackDefaultConfig(
-		options.cwd || CURRENT_CWD,
+		context.getSource(),
 		compiler.getOptions()
 	);
-	const defaultConfig = getRspackDefaultConfig(options.cwd || CURRENT_CWD, {
+	const defaultConfig = getRspackDefaultConfig(context.getSource(), {
 		mode: "none"
 	});
 	const diff = stripAnsi(
@@ -120,19 +136,4 @@ async function check(
 		env.expect(new RspackTestDiff(diff)),
 		env.expect(defaultConfig)
 	);
-}
-
-async function run(name: string, processor: ITestProcessor) {
-	try {
-		await processor.before?.(context);
-		await processor.config?.(context);
-	} catch (e: unknown) {
-		context.emitError(name, e as Error);
-	} finally {
-		await processor.check?.(
-			{ expect, it, beforeEach, afterEach, jest },
-			context
-		);
-		await processor.after?.(context);
-	}
 }

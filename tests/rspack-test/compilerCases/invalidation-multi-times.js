@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const path = require('path');
 
 const mockWatchRunFn = jest.fn(() => { });
@@ -11,7 +12,7 @@ class MyPlugin {
 }
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-module.exports = {
+defineCompileCase(Utils.basename(__filename), {
 	description: "should be invalidated correctly",
 	options(context) {
 		return {
@@ -46,4 +47,4 @@ module.exports = {
 		expect(mockWatchRunFn).toHaveBeenCalledTimes(3);
 		expect(mockInvalidFn).toHaveBeenCalledTimes(2);
 	}
-};
+});

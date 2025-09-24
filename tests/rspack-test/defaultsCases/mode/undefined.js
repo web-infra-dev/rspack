@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "no mode provided",
 	options: () => ({ mode: undefined }),
 	diff: e =>
@@ -58,4 +57,4 @@ module.exports = {
 		+     "maxEntrypointSize": 250000,
 		+   },
 	`)
-};
+});

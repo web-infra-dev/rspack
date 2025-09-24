@@ -1,5 +1,4 @@
-/** @type {import('../..').TErrorCaseConfig} */
-module.exports = {
+defineErrorCase(Utils.basename(__filename), {
 	description: "Testing proxy methods on warnings: test splice 1",
 	options() {
 		return {
@@ -28,4 +27,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

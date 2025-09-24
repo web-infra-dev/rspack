@@ -1,11 +1,10 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description:
 		"should output the specified number of modules when set stats.modulesSpace",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/abc"
+			entry: "./abc"
 		};
 	},
 	async check(stats) {
@@ -29,4 +28,4 @@ module.exports = {
 			// 2 = 3 - 1 = max - filteredChildrenLineReserved
 		).toBe(2);
 	}
-};
+});

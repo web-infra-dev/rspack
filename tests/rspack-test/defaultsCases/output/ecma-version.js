@@ -1,7 +1,6 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "ecmaVersion",
 	options: () => ({ output: { ecmaVersion: 2020 } }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
-};
+});

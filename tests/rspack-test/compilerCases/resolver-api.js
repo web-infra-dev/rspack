@@ -1,5 +1,5 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
   description: "should successfully resolve module paths",
   options(context) {
     return {
@@ -24,4 +24,4 @@ module.exports = {
       testResolver(".", "react")
     ]);
   }
-}
+});

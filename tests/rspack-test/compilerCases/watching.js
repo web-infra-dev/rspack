@@ -1,9 +1,10 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const { createFsFromVolume, Volume } = require("memfs");
 const deprecationTracking = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
   description: "should set compiler.watching correctly",
   options(context) {
     return {
@@ -63,4 +64,4 @@ module.exports = [{
     expect(deprecations).toHaveLength(1);
     expect(deprecations[0].message).toContain("A 'callback' argument needs to be provided");
   }
-}];
+}]);

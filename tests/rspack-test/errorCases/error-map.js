@@ -1,7 +1,6 @@
 let errors = [];
 
-/** @type {import('../..').TErrorCaseConfig} */
-module.exports = {
+defineErrorCase(Utils.basename(__filename), {
 	description:
 		"Testing map function on errors and warnings: test map of errors",
 	options() {
@@ -63,4 +62,4 @@ module.exports = {
 		]
 	`);
 	}
-};
+});

@@ -1,12 +1,11 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have build time executed",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/css/index",
+			entry: "./css/index",
 			module: {
 				rules: [
 					{
@@ -47,4 +46,4 @@ module.exports = {
 		]
 	`);
 	}
-};
+});

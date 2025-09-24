@@ -3,7 +3,8 @@ const root = path.resolve(__dirname, "../../");
 
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
-	"@rspack/test-tools/setup-env"
+	"@rspack/test-tools/setup-env",
+	"@rspack/test-tools/setup"
 ];
 
 /** @type {import('jest').Config} */
@@ -45,6 +46,10 @@ const config = {
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [
+		"<rootDir>/compilerCases/*.js",
+		"<rootDir>/errorCases/*.js",
+		"<rootDir>/statsAPICases/*.js",
+		"<rootDir>/defaultsCases/*/*.js",
 		"<rootDir>/*.test.js",
 		"<rootDir>/legacy-test/*.test.js"
 	],

@@ -50,20 +50,28 @@ const creator = new BasicCaseCreator({
 	concurrent: true
 });
 
-export function createErrorCase(
-	name: string,
-	src: string,
-	dist: string,
-	testConfig: string
-) {
+const srcDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/fixtures"
+);
+const distDir = path.resolve(
+	__dirname,
+	"../../../../tests/rspack-test/js/error"
+);
+export function defineErrorCase(name: string, caseConfig: TErrorCaseConfig) {
 	if (!addedSerializer) {
 		addedSerializer = true;
 	}
-	const caseConfig = require(testConfig);
-	creator.create(name, src, dist, undefined, {
-		caseConfig,
-		description: () => caseConfig.description
-	});
+	creator.create(
+		name,
+		path.resolve(srcDir, "errors"),
+		path.join(distDir, name),
+		undefined,
+		{
+			caseConfig,
+			description: () => caseConfig.description
+		}
+	);
 }
 
 function options<T extends ECompilerType.Rspack>(
@@ -74,10 +82,7 @@ function options<T extends ECompilerType.Rspack>(
 	) => TCompilerOptions<T>
 ): TCompilerOptions<T> {
 	let options = {
-		context: path.resolve(
-			__dirname,
-			"../../../../tests/rspack-test/fixtures/errors"
-		),
+		context: context.getSource(),
 		mode: "none",
 		devtool: false,
 		optimization: {

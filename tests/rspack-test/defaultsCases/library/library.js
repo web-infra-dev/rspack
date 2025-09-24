@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "library",
 	options: () => ({ output: { library: ["myLib", "awesome"] } }),
 	diff: e =>
@@ -11,10 +10,10 @@ module.exports = {
 		-         "force": true,
 		+         "force": false,
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
+		-     "chunkLoadingGlobal": "webpackChunk",
 		+     "chunkLoadingGlobal": "webpackChunkmyLib_awesome",
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
+		-     "devtoolNamespace": "",
 		+     "devtoolNamespace": "myLib.awesome",
 		@@ ... @@
 		-     "enabledLibraryTypes": Array [],
@@ -22,7 +21,7 @@ module.exports = {
 		+       "var",
 		+     ],
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
+		-     "hotUpdateGlobal": "webpackHotUpdate",
 		+     "hotUpdateGlobal": "webpackHotUpdatemyLib_awesome",
 		@@ ... @@
 		-     "library": undefined,
@@ -38,7 +37,7 @@ module.exports = {
 		+       "umdNamedDefine": undefined,
 		+     },
 		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
+		-     "uniqueName": "",
 		+     "uniqueName": "myLib.awesome",
 	`)
-};
+});

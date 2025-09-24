@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "library.name.root contains escaped placeholder",
 	options: () => ({
 		output: {
@@ -20,10 +19,10 @@ module.exports = {
 		-         "force": true,
 		+         "force": false,
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
+		-     "chunkLoadingGlobal": "webpackChunk",
 		+     "chunkLoadingGlobal": "webpackChunk_name_my_name_Lib_name_",
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
+		-     "devtoolNamespace": "",
 		+     "devtoolNamespace": "[name].my[name]Lib.[name]",
 		@@ ... @@
 		-     "enabledLibraryTypes": Array [],
@@ -31,7 +30,7 @@ module.exports = {
 		+       "var",
 		+     ],
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
+		-     "hotUpdateGlobal": "webpackHotUpdate",
 		+     "hotUpdateGlobal": "webpackHotUpdate_name_my_name_Lib_name_",
 		@@ ... @@
 		-     "library": undefined,
@@ -50,7 +49,7 @@ module.exports = {
 		+       "umdNamedDefine": undefined,
 		+     },
 		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
+		-     "uniqueName": "",
 		+     "uniqueName": "[name].my[name]Lib.[name]",
 	`)
-};
+});

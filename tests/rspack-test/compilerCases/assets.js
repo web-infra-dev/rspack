@@ -1,6 +1,7 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const { createFsFromVolume, Volume } = require("memfs");
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
 	description: "should get assets with both `getAssets` and `assets`(getter)",
 	options(context) {
 		return {
@@ -209,4 +210,4 @@ module.exports = [{
 			}]
 		};
 	}
-}];
+}]);
