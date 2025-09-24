@@ -1,6 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
