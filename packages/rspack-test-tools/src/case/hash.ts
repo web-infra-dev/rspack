@@ -1,4 +1,7 @@
-import { BasicCaseCreator, type IBasicCaseCreatorOptions } from "../test/creator";
+import {
+	BasicCaseCreator,
+	type IBasicCaseCreatorOptions
+} from "../test/creator";
 import type {
 	ECompilerType,
 	ITestContext,
