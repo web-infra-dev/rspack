@@ -7,7 +7,7 @@ import type { CreatePartialRegisters } from "./types";
 
 export const createContextModuleFactoryHooksRegisters: CreatePartialRegisters<
 	`ContextModuleFactory`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerContextModuleFactoryBeforeResolveTaps: createTap(
 			binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,

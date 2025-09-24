@@ -119,7 +119,6 @@ class BulkUpdateDecorator extends Hash {
 	}
 }
 
-/* istanbul ignore next */
 class DebugHash extends Hash {
 	string: string;
 
@@ -136,7 +135,7 @@ class DebugHash extends Hash {
 	 */
 	update(data: string, inputEncoding: string): this;
 	update(data: Buffer): this;
-	update(data: string | Buffer, inputEncoding?: string): this {
+	update(data: string | Buffer): this {
 		let normalizedData: string;
 		if (Buffer.isBuffer(data)) {
 			normalizedData = data.toString("utf-8");

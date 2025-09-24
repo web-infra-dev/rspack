@@ -302,8 +302,7 @@ export class Compilation {
 		const createProcessAssetsHook = <T>(
 			name: string,
 			stage: number,
-			getArgs: () => liteTapable.AsArray<T>,
-			code?: string
+			getArgs: () => liteTapable.AsArray<T>
 		) => {
 			const errorMessage = (
 				reason: string
@@ -977,7 +976,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
 			chunk,
-			RuntimeModule.__to_binding(this, runtimeModule)
+			RuntimeModule.__to_binding(runtimeModule)
 		);
 	}
 
