@@ -12,8 +12,9 @@ pub use call_hooks_name::CallHooksName;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier, ModuleLayer, ModuleType,
+  ParseMeta, ResourceData, TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -346,7 +347,17 @@ impl<'parser> JavascriptParser<'parser> {
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
+      let commonjs_exports = javascript_options
+        .commonjs
+        .as_ref()
+        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
+          commonjs.exports
+        });
+      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
+        plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
+          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
+        )));
+      }
       if compiler_options.node.is_some() {
         plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
       }

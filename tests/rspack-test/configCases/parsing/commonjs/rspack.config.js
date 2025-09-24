@@ -15,7 +15,9 @@ module.exports = [
 		module: {
 			parser: {
 				javascript: {
-					suppressCommonjsExportsInEsm: true
+					commonjs: {
+						exports: "skipInEsm"
+					}
 				}
 			}
 		},
@@ -49,7 +51,9 @@ module.exports = [
 		module: {
 			parser: {
 				javascript: {
-					suppressCommonjsExportsInEsm: true
+					commonjs: {
+						exports: "skipInEsm"
+					}
 				}
 			}
 		},

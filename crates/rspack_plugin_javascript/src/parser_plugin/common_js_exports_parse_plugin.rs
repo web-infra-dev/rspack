@@ -256,15 +256,17 @@ fn handle_access_export(
   Some(true)
 }
 
-pub struct CommonJsExportsParserPlugin;
+pub struct CommonJsExportsParserPlugin {
+  skip_in_esm: bool,
+}
 
 impl CommonJsExportsParserPlugin {
-  fn should_suppress_commonjs_exports_in_esm(parser: &JavascriptParser) -> bool {
-    parser.is_esm
-      && parser
-        .javascript_options
-        .suppress_commonjs_exports_in_esm
-        .unwrap_or_default()
+  pub fn new(skip_in_esm: bool) -> Self {
+    Self { skip_in_esm }
+  }
+
+  fn should_skip_handler(&self, parser: &JavascriptParser) -> bool {
+    self.skip_in_esm && parser.is_esm
   }
 }
 
@@ -276,7 +278,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     remaining: &[Atom],
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -306,7 +308,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -370,7 +372,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -401,7 +403,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -418,7 +420,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -438,7 +440,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -475,7 +477,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 
@@ -521,7 +523,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if self.should_skip_handler(parser) {
       return None;
     }
 

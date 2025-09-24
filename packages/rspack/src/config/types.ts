@@ -1015,6 +1015,15 @@ export type CssModuleParserOptions = {
 
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
+export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+
+export type JavascriptParserCommonjsOption =
+	| boolean
+	| {
+			/** Controls how CommonJS export mutations are handled. */
+			exports?: JavascriptParserCommonjsExports;
+	  };
+
 export type JavascriptParserOptions = {
 	/**
 	 * Specifies global mode for dynamic import.
@@ -1106,9 +1115,10 @@ export type JavascriptParserOptions = {
 	requireResolve?: boolean;
 
 	/**
-	 * Skip transforming CommonJS export mutations when ESM import / export presents, preserving the original runtime behavior.
+	 * CommonJS-specific parser options. `true` enables the default behaviour, `{ exports: 'skipInEsm' }` preserves CommonJS export mutations when executed inside ESM.
+	 * @default true
 	 */
-	suppressCommonjsExportsInEsm?: boolean;
+	commonjs?: JavascriptParserCommonjsOption;
 
 	// TODO: add docs
 	importDynamic?: boolean;
