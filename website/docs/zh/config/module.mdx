@@ -164,6 +164,31 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+为 CommonJS 启用 [Magic comments](/api/runtime-api/module-methods#magic-comments) 支持。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+目前仅支持 `webpackIgnore` 注释：
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
 ### module.parser.javascript.dynamicImportMode
 
 <PropertyType
