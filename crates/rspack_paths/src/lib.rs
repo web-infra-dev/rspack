@@ -1,5 +1,6 @@
 use std::{
   collections::{HashMap, HashSet},
+  fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   ops::{Deref, DerefMut},
   path::{Path, PathBuf},
@@ -52,12 +53,18 @@ impl<'a> AssertUtf8 for &'a Path {
 }
 
 #[cacheable(with=AsRefStr, hashable)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ArcPath {
   path: Arc<Path>,
   // Pre-calculating and caching the hash value upon creation, making hashing operations
   // in collections virtually free.
   hash: u64,
+}
+
+impl Debug for ArcPath {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.path.fmt(f)
+  }
 }
 
 impl ArcPath {

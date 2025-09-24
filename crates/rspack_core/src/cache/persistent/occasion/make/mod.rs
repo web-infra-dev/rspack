@@ -9,8 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
-  FactorizeInfo, FileCounter, ModuleGraph,
+  FactorizeInfo, ModuleGraph,
   compilation::make::{MakeArtifact, MakeArtifactState},
+  utils::{FileCounter, ResourceId},
 };
 
 /// Make Occasion is used to save MakeArtifact
@@ -75,10 +76,11 @@ impl MakeOccasion {
     let mut build_dep = FileCounter::default();
     for (mid, module) in mg.modules() {
       let build_info = module.build_info();
-      file_dep.add_batch_file(&build_info.file_dependencies);
-      context_dep.add_batch_file(&build_info.context_dependencies);
-      missing_dep.add_batch_file(&build_info.missing_dependencies);
-      build_dep.add_batch_file(&build_info.build_dependencies);
+      let resource_id = ResourceId::from(mid);
+      file_dep.add_files(&resource_id, &build_info.file_dependencies);
+      context_dep.add_files(&resource_id, &build_info.context_dependencies);
+      missing_dep.add_files(&resource_id, &build_info.missing_dependencies);
+      build_dep.add_files(&resource_id, &build_info.build_dependencies);
       if !module.diagnostics().is_empty() {
         make_failed_module.insert(mid);
       }
@@ -90,9 +92,10 @@ impl MakeOccasion {
         && !info.is_success()
       {
         make_failed_dependencies.insert(dep_id);
-        file_dep.add_batch_file(&info.file_dependencies());
-        context_dep.add_batch_file(&info.context_dependencies());
-        missing_dep.add_batch_file(&info.missing_dependencies());
+        let resource = dep_id.into();
+        file_dep.add_files(&resource, &info.file_dependencies());
+        context_dep.add_files(&resource, &info.context_dependencies());
+        missing_dep.add_files(&resource, &info.missing_dependencies());
       }
     }
 

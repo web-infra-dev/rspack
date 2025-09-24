@@ -4,7 +4,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  compilation::make::ModuleToLazyMake, utils::FileCounter,
+  compilation::make::ModuleToLazyMake,
+  utils::{FileCounter, ResourceId},
 };
 
 /// Enum used to mark whether module graph has been built.
@@ -91,18 +92,19 @@ impl MakeArtifact {
       .expect("should have module");
     // clean module build info
     let build_info = module.build_info();
+    let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_batch_file(&build_info.file_dependencies);
+      .remove_files(&resource_id, &build_info.file_dependencies);
     self
       .context_dependencies
-      .remove_batch_file(&build_info.context_dependencies);
+      .remove_files(&resource_id, &build_info.context_dependencies);
     self
       .missing_dependencies
-      .remove_batch_file(&build_info.missing_dependencies);
+      .remove_files(&resource_id, &build_info.missing_dependencies);
     self
       .build_dependencies
-      .remove_batch_file(&build_info.build_dependencies);
+      .remove_files(&resource_id, &build_info.build_dependencies);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
@@ -120,15 +122,16 @@ impl MakeArtifact {
       // make failed dependencies clean it.
       let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
       let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_files(&resource_id, &info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_files(&resource_id, &info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_files(&resource_id, &info.missing_dependencies());
     }
 
     self.revoked_modules.insert(*module_identifier);
@@ -148,15 +151,16 @@ impl MakeArtifact {
       // make failed dependencies clean it.
       let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
       let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_files(&resource_id, &info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_files(&resource_id, &info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_files(&resource_id, &info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
       info.related_dep_ids().into_owned()
     } else {
