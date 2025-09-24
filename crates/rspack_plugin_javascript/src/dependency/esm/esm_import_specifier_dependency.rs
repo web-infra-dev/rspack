@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  visitors::DestructuringAssignmentProperty,
+  is_export_inlined, visitors::DestructuringAssignmentProperty,
 };
 
 #[cacheable]
@@ -513,33 +513,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && {
-        let used_name = if ids.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(con.module_identifier()),
-            &module_graph,
-            *runtime,
-            false,
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            con.module_identifier(),
-            PrefetchExportsInfoMode::Nested(ids),
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        };
-
-        !used_name.map(|used| used.is_inlined()).unwrap_or_default()
-      }
+      && !is_export_inlined(&module_graph, con.module_identifier(), ids, *runtime)
     {
       return;
     }
