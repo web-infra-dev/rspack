@@ -74,7 +74,8 @@ const config = {
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
 	},
-	...(wasmConfig || {})
+	...(wasmConfig || {}),
+	verbose: true,
 };
 
 module.exports = config;
