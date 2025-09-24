@@ -232,7 +232,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			const description =
 				typeof options.description === "function"
 					? options.description(name, index)
-					: `step [${index}】 should pass`;
+					: `step [${index}] should pass`;
 			it(
 				description,
 				async () => {
