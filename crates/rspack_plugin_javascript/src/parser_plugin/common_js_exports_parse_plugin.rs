@@ -1,4 +1,7 @@
-use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
+use rspack_core::{
+  BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange,
+  JavascriptParserCommonjsExportsOption, RuntimeGlobals,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -258,12 +261,21 @@ fn handle_access_export(
 pub struct CommonJsExportsParserPlugin;
 
 impl CommonJsExportsParserPlugin {
-  fn should_suppress_commonjs_exports_in_esm(parser: &JavascriptParser) -> bool {
-    parser.is_esm
-      && parser
-        .javascript_options
-        .suppress_commonjs_exports_in_esm
-        .unwrap_or_default()
+  fn commonjs_exports_option(parser: &JavascriptParser) -> JavascriptParserCommonjsExportsOption {
+    parser
+      .javascript_options
+      .commonjs
+      .as_ref()
+      .and_then(|commonjs| commonjs.exports)
+      .unwrap_or(JavascriptParserCommonjsExportsOption::Enable)
+  }
+
+  fn should_skip_commonjs_exports(parser: &JavascriptParser) -> bool {
+    match Self::commonjs_exports_option(parser) {
+      JavascriptParserCommonjsExportsOption::Disable => true,
+      JavascriptParserCommonjsExportsOption::Enable => false,
+      JavascriptParserCommonjsExportsOption::SkipInEsm => parser.is_esm,
+    }
   }
 }
 
@@ -275,7 +287,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     remaining: &[Atom],
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -305,7 +317,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -369,7 +381,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -400,7 +412,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -417,7 +429,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -437,7 +449,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -474,7 +486,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 
@@ -520,7 +532,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if Self::should_suppress_commonjs_exports_in_esm(parser) {
+    if Self::should_skip_commonjs_exports(parser) {
       return None;
     }
 

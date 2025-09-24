@@ -13,10 +13,11 @@ use rspack_core::{
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
   DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
-  JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
-  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
+  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -288,9 +289,8 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_resolve: Option<bool>,
-  /// This option is experimental in Rspack only and subject to change or be removed anytime.
-  /// @experimental
-  pub suppress_commonjs_exports_in_esm: Option<bool>,
+  #[napi(ts_type = "boolean | { exports?: boolean | 'skipInEsm' }")]
+  pub commonjs: Option<Either<bool, RawJavascriptParserCommonjsOptions>>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_dynamic: Option<bool>,
@@ -301,6 +301,20 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub type_reexports_presence: Option<String>,
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawJavascriptParserCommonjsOptions {
+  #[napi(ts_type = "boolean | 'skipInEsm'")]
+  pub exports: Option<Either<bool, RawJavascriptParserCommonjsExports>>,
+}
+
+#[napi(string_enum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RawJavascriptParserCommonjsExports {
+  #[napi(value = "skipInEsm")]
+  SkipInEsm,
 }
 
 impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
@@ -344,7 +358,19 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
-      suppress_commonjs_exports_in_esm: value.suppress_commonjs_exports_in_esm,
+      commonjs: value.commonjs.map(|commonjs| match commonjs {
+        Either::A(flag) => JavascriptParserCommonjsOptions {
+          exports: Some(JavascriptParserCommonjsExportsOption::from(flag)),
+        },
+        Either::B(options) => JavascriptParserCommonjsOptions {
+          exports: options.exports.map(|exports| match exports {
+            Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
+            Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
+              JavascriptParserCommonjsExportsOption::SkipInEsm
+            }
+          }),
+        },
+      }),
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,

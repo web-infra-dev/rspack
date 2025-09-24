@@ -3356,6 +3356,12 @@ class JavascriptModulesPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
+export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+
+export type JavascriptParserCommonjsOption = boolean | {
+    exports?: JavascriptParserCommonjsExports;
+};
+
 export type JavascriptParserOptions = {
     dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once";
     dynamicImportPreload?: boolean | number;
@@ -3376,7 +3382,7 @@ export type JavascriptParserOptions = {
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;
-    suppressCommonjsExportsInEsm?: boolean;
+    commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
     inlineConst?: boolean;

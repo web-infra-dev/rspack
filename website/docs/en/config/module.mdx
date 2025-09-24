@@ -603,6 +603,26 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjs
+
+<PropertyType type="boolean | { exports?: boolean | 'skipInEsm' }" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.inlineConst
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />

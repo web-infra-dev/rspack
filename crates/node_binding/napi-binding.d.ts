@@ -2285,6 +2285,14 @@ export interface RawIntegrityItem {
   integrity: string
 }
 
+export declare enum RawJavascriptParserCommonjsExports {
+  SkipInEsm = 'skipInEsm'
+}
+
+export interface RawJavascriptParserCommonjsOptions {
+  exports?: boolean | 'skipInEsm'
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2317,27 +2325,23 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   requireResolve?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  suppressCommonjsExportsInEsm?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importDynamic?: boolean
-  commonjsMagicComments?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  inlineConst?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  typeReexportsPresence?: string
+commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importDynamic?: boolean
+commonjsMagicComments?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+inlineConst?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+typeReexportsPresence?: string
 }
 
 export interface RawJsonGeneratorOptions {

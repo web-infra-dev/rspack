@@ -603,6 +603,26 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjs
+
+<PropertyType type="boolean | { exports?: boolean | 'skipInEsm' }" defaultValueList={[{ defaultValue: 'true' }]} />
+
+控制 CommonJS 相关的解析行为。`true` 会保持 Rspack 对 CommonJS 导出赋值的默认转换；设置 `{ exports: 'skipInEsm' }` 时，当模块以 ESM 方式执行会跳过对应的重写，从而保留原始的运行时副作用；配置为 `false` 则关闭所有 CommonJS 导出处理。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.inlineConst
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
