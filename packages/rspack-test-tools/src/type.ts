@@ -99,6 +99,7 @@ export interface ITesterConfig {
 	compilerFactories?: TCompilerFactories<ECompilerType>;
 	contextValue?: Record<string, unknown>;
 	runnerCreator?: TTestRunnerCreator;
+	createContext?: (config: ITesterConfig) => ITestContext;
 }
 
 export interface ITester {

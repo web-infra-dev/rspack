@@ -26,31 +26,31 @@ import type { WebpackOptionsNormalized } from 'webpack';
 export class BasicCaseCreator<T extends ECompilerType> {
     constructor(_options: IBasicCaseCreatorOptions<T>);
     // (undocumented)
-    protected checkSkipped(src: string, testConfig: TTestConfig<T>): boolean | string;
+    protected checkSkipped(src: string, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): boolean | string;
     // (undocumented)
     protected clean(folders: string[]): void;
     // (undocumented)
-    create(name: string, src: string, dist: string, temp?: string): ITester | undefined;
+    create(name: string, src: string, dist: string, temp?: string, caseOptions?: Partial<IBasicCaseCreatorOptions<T>>): ITester | undefined;
     // (undocumented)
     protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv;
     // (undocumented)
-    protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
+    protected createEnv(testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): ITestEnv;
     // (undocumented)
-    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig<T>): ITester;
+    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): ITester;
     // (undocumented)
     protected currentConcurrent: number;
     // (undocumented)
-    protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): void;
     // (undocumented)
-    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): void;
     // (undocumented)
-    protected getMaxConcurrent(): number;
+    protected getMaxConcurrent(concurrent?: number): number;
     // (undocumented)
     protected _options: IBasicCaseCreatorOptions<T>;
     // (undocumented)
     protected readTestConfig(src: string): TTestConfig<T>;
     // (undocumented)
-    protected registerConcurrentTask(name: string, starter: () => void): () => void;
+    protected registerConcurrentTask(name: string, starter: () => void, concurrent?: number): () => void;
     // (undocumented)
     protected shouldRun(name: string): boolean;
     // (undocumented)
@@ -58,7 +58,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     protected tasks: [string, () => void][];
     // (undocumented)
-    protected tryRunTask(): void;
+    protected tryRunTask(concurrent?: number): void;
 }
 
 // @public (undocumented)
@@ -236,12 +236,6 @@ export function formatCode(name: string, raw: string, options: IFormatCodeOption
 export function getRspackDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
 
 // @public (undocumented)
-export function getSimpleProcessorRunner(src: string, dist: string, options?: {
-    env?: () => ITestEnv;
-    context?: (src: string, dist: string) => ITestContext;
-}): (name: string, processor: ITestProcessor) => Promise<void>;
-
-// @public (undocumented)
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     [key: string]: unknown;
@@ -251,6 +245,8 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     concurrent?: boolean | number;
     // (undocumented)
     contextValue?: Record<string, unknown>;
+    // (undocumented)
+    createContext?: (config: ITesterConfig) => ITestContext;
     // (undocumented)
     describe?: boolean;
     // (undocumented)
@@ -526,6 +522,8 @@ export interface ITesterConfig {
     compilerFactories?: TCompilerFactories<ECompilerType>;
     // (undocumented)
     contextValue?: Record<string, unknown>;
+    // (undocumented)
+    createContext?: (config: ITesterConfig) => ITestContext;
     // (undocumented)
     dist: string;
     // (undocumented)
