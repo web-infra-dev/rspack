@@ -110,28 +110,6 @@ impl ModuleParseError {
   }
 }
 
-#[derive(Debug)]
-pub struct CapturedLoaderError {
-  pub source: Box<dyn std::error::Error>,
-  pub details: Option<String>,
-}
-
-impl CapturedLoaderError {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(source: Box<dyn std::error::Error>, details: Option<String>) -> Self {
-    Self { source, details }
-  }
-}
-
-impl From<CapturedLoaderError> for Error {
-  fn from(value: CapturedLoaderError) -> Error {
-    let mut error = rspack_error::error!(value.source.to_string());
-    error.code = Some("CapturedLoaderError".into());
-    error.details = value.details;
-    error
-  }
-}
-
 /// Mark boxed errors as [crate::diagnostics::ModuleParseError],
 /// then, map it to diagnostics
 pub fn map_box_diagnostics_to_module_parse_diagnostics(
