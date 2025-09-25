@@ -60,20 +60,21 @@ impl Cutout {
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
           for file in files {
-            for related_resource_ids in [
+            for resource_ids in [
               artifact.file_dependencies.related_resource_ids(&file),
               artifact.context_dependencies.related_resource_ids(&file),
               artifact.missing_dependencies.related_resource_ids(&file),
-            ] {
-              if let Some(resource_ids) = related_resource_ids {
-                for resource_id in resource_ids {
-                  match resource_id {
-                    ResourceId::Module(mid) => {
-                      force_build_modules.insert(*mid);
-                    }
-                    ResourceId::Dependency(dep_id) => {
-                      force_build_deps.insert(*dep_id);
-                    }
+            ]
+            .into_iter()
+            .flatten()
+            {
+              for resource_id in resource_ids {
+                match resource_id {
+                  ResourceId::Module(mid) => {
+                    force_build_modules.insert(*mid);
+                  }
+                  ResourceId::Dependency(dep_id) => {
+                    force_build_deps.insert(*dep_id);
                   }
                 }
               }

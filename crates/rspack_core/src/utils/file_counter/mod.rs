@@ -26,8 +26,9 @@ impl FileCounter {
       }
       if !list.insert(resource_id.clone()) {
         panic!(
-          "unable to add {}, it has already been added.",
-          path.to_string_lossy()
+          "unable to add path '{}' with resource_id '{:?}', it has already been added.",
+          path.to_string_lossy(),
+          resource_id
         );
       }
     }
@@ -42,12 +43,13 @@ impl FileCounter {
   pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
     for path in paths {
       let Some(list) = self.inner.get_mut(path) else {
-        panic!("unable to remove unused file {}", path.to_string_lossy());
+        panic!("unable to remove untracked file {}", path.to_string_lossy());
       };
       if !list.remove(resource_id) {
         panic!(
-          "unable to remove {}, it has not been added.",
-          path.to_string_lossy()
+          "unable to remove path '{}' with resource_id '{:?}', it has not been added.",
+          path.to_string_lossy(),
+          resource_id,
         )
       }
       if list.is_empty() {
