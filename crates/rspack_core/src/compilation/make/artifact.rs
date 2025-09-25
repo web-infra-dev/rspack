@@ -111,11 +111,14 @@ impl MakeArtifact {
       .expect("should have mgm");
     for dep_id in mgm
       .all_dependencies
-      .iter()
-      .chain(mgm.incoming_connections())
+      .clone()
+      .into_iter()
+      .chain(mgm.incoming_connections().clone())
     {
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      if let Some(info) = FactorizeInfo::get_from(dep) {
+      let dep = mg
+        .dependency_by_id_mut(&dep_id)
+        .expect("should have dependency");
+      if let Some(info) = FactorizeInfo::revoke(dep) {
         let resource_id = ResourceId::from(dep_id);
         self
           .file_dependencies
@@ -143,8 +146,8 @@ impl MakeArtifact {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
     let revoke_dep_ids = if let Some(factorize_info) = mg
-      .dependency_by_id(dep_id)
-      .and_then(|dependency| FactorizeInfo::get_from(dependency))
+      .dependency_by_id_mut(dep_id)
+      .and_then(FactorizeInfo::revoke)
     {
       let resource_id = ResourceId::from(dep_id);
       self

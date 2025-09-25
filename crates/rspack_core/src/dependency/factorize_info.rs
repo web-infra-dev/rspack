@@ -41,6 +41,16 @@ impl FactorizeInfo {
     }
   }
 
+  pub fn revoke(dep: &mut BoxDependency) -> Option<FactorizeInfo> {
+    if let Some(d) = dep.as_context_dependency_mut() {
+      Some(std::mem::take(d.factorize_info_mut()))
+    } else if let Some(d) = dep.as_module_dependency_mut() {
+      Some(std::mem::take(d.factorize_info_mut()))
+    } else {
+      None
+    }
+  }
+
   pub fn is_success(&self) -> bool {
     self.diagnostics.is_empty()
   }
