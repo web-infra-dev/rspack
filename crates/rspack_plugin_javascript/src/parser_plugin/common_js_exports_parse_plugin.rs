@@ -128,22 +128,22 @@ impl JavascriptParser<'_> {
 
 fn parse_require_call<'a>(
   parser: &mut JavascriptParser,
-  expr: &'a Expr,
+  mut expr: &'a Expr,
 ) -> Option<(BasicEvaluatedExpression<'a>, Vec<Atom>)> {
   let mut ids = Vec::new();
-  // while let Some(member) = expr.as_member() {
-  //   if let Some(prop) = member.prop.as_ident() {
-  //     ids.push(prop.sym.clone());
-  //   } else if let Some(prop) = member.prop.as_computed()
-  //     && let prop = parser.evaluate_expression(&*prop.expr)
-  //     && let Some(prop) = prop.as_string()
-  //   {
-  //     ids.push(prop.into());
-  //   } else {
-  //     return None;
-  //   }
-  //   expr = &*member.obj;
-  // }
+  while let Some(member) = expr.as_member() {
+    if let Some(prop) = member.prop.as_ident() {
+      ids.push(prop.sym.clone());
+    } else if let Some(prop) = member.prop.as_computed()
+      && let prop = parser.evaluate_expression(&prop.expr)
+      && let Some(prop) = prop.as_string()
+    {
+      ids.push(prop.into());
+    } else {
+      return None;
+    }
+    expr = &*member.obj;
+  }
   if let Some(call) = expr.as_call()
     && call.args.len() == 1
     && let Some(callee) = call.callee.as_expr()
@@ -172,7 +172,7 @@ fn handle_assign_export(
     return None;
   }
   if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
-    && let Some((arg, _ids)) = parse_require_call(parser, &assign_expr.right)
+    && let Some((arg, ids)) = parse_require_call(parser, &assign_expr.right)
     && arg.is_string()
   {
     parser.enable();
@@ -193,6 +193,7 @@ fn handle_assign_export(
       range,
       base,
       remaining.to_vec(),
+      ids,
       !parser.is_statement_level_expression(assign_expr.span()),
     )));
     return Some(true);
