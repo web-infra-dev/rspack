@@ -135,7 +135,7 @@ fn parse_require_call<'a>(
     if let Some(prop) = member.prop.as_ident() {
       ids.push(prop.sym.clone());
     } else if let Some(prop) = member.prop.as_computed()
-      && let prop = parser.evaluate_expression(&*prop.expr)
+      && let prop = parser.evaluate_expression(&prop.expr)
       && let Some(prop) = prop.as_string()
     {
       ids.push(prop.into());
