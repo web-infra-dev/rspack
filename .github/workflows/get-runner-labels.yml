@@ -42,7 +42,7 @@ jobs:
             LINUX_RUNNER_LABELS='"ubuntu-22.04"';
           fi
           if [[ -z "$MACOS_RUNNER_LABELS" ]]; then
-            MACOS_RUNNER_LABELS='"rspack-darwin-14-medium"';
+            MACOS_RUNNER_LABELS='"macos-latest"';
           fi
           if [[ -z "$WINDOWS_RUNNER_LABELS" ]]; then
             WINDOWS_RUNNER_LABELS='"windows-latest"';
