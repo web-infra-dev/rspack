@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7201
+- Update: main.hot-update.js, size: 7175
 
 ## Manifest
 
@@ -74,7 +74,7 @@ __nested_webpack_require_18_37__.r(__nested_webpack_exports__), __nested_webpack
     cssReload: ()=>cssReload,
     normalizeUrl: ()=>normalizeUrl
 });
-let srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
+const srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
     let normalizedUrl;
@@ -134,14 +134,13 @@ function cssReload(moduleId, options) {
             if (!src) return !1;
             let elements = document.querySelectorAll("link"), loaded = !1;
             return forEach.call(elements, (el)=>{
+                var href;
+                let ret, normalizedHref;
                 if (!el.href) return;
-                let url = function(href, src) {
-                    let ret = "", normalizedHref = normalizeUrl(href);
-                    return src.some((url)=>{
-                        normalizedHref.indexOf(src) > -1 && (ret = url);
-                    }), ret;
-                }(el.href, src);
-                isUrlRequest(url) && !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
+                let url = (href = el.href, ret = "", normalizedHref = normalizeUrl(href), src.some((url)=>{
+                    normalizedHref.indexOf(src) > -1 && (ret = url);
+                }), ret);
+                !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
             }), loaded;
         }(src);
         if (options.locals) {
