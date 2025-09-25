@@ -15,7 +15,9 @@ export class Tester implements ITester {
 	total = 0;
 
 	constructor(private config: ITesterConfig) {
-		this.context = new TestContext(config);
+		this.context = config.createContext
+			? config.createContext(config)
+			: new TestContext(config);
 		this.steps = config.steps || [];
 		this.step = 0;
 		this.total = config.steps?.length || 0;

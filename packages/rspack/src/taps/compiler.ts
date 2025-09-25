@@ -3,7 +3,7 @@ import type { CreatePartialRegisters } from "./types";
 
 export const createCompilerHooksRegisters: CreatePartialRegisters<
 	`Compiler`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerCompilerThisCompilationTaps: createTap(
 			binding.RegisterJsTapKind.CompilerThisCompilation,

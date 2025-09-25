@@ -1022,7 +1022,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			{ chunkGroupAuxiliary, chunkGroupChildren },
+			_,
 			factory
 		) => {
 			const { type, getStatsCompilation } = context;
@@ -1465,13 +1465,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
-		_: (
-			object,
-			{ origin, module, dependencies },
-			context,
-			{ requestShortener },
-			factory
-		) => {
+		_: (object, { origin, module, dependencies }, context, _, factory) => {
 			const { type } = context;
 			if (origin.moduleDescriptor) {
 				object.originIdentifier = origin.moduleDescriptor.identifier;

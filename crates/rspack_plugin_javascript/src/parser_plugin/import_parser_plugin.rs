@@ -433,11 +433,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       }
     };
 
-    if let Some(ns_obj) = referenced_fulfilled_ns_obj
-      && let Some(import_then) = import_then
-    {
-      walk_import_then_fulfilled_callback(parser, node, &import_then.args[0].expr, ns_obj);
-      parser.walk_expr_or_spread(&import_then.args[1..]);
+    if let Some(import_then) = import_then {
+      if let Some(ns_obj) = referenced_fulfilled_ns_obj {
+        walk_import_then_fulfilled_callback(parser, node, &import_then.args[0].expr, ns_obj);
+        parser.walk_expr_or_spread(&import_then.args[1..]);
+      } else {
+        parser.walk_expr_or_spread(&import_then.args);
+      }
     }
 
     if let Some(import_references) = parser

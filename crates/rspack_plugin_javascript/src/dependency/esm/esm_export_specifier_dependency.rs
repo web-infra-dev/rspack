@@ -10,6 +10,8 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::Atom;
 
+use crate::is_export_inlined;
+
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -177,15 +179,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           return false;
         }
         let export_name = &[dep.name.clone(), enum_key.clone()];
-        let exports_info = module_graph.get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(export_name),
-        );
-        let Some(export_info) = exports_info.get_read_only_export_info_recursive(export_name)
-        else {
-          return false;
-        };
-        export_info.get_inline().is_some()
+        is_export_inlined(&module_graph, &module.identifier(), export_name, *runtime)
       });
       if all_enum_member_inlined {
         return;

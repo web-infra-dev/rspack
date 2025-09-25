@@ -95,7 +95,6 @@ export const applyRspackOptionsDefaults = (
 	}
 
 	applyExperimentsDefaults(options.experiments, {
-		production,
 		development
 	});
 
@@ -208,7 +207,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ production, development }: { production: boolean; development: boolean }
+	{ development }: { development: boolean }
 ) => {
 	// IGNORE(experiments.cache): In webpack, cache is undefined by default
 	F(experiments, "cache", () => development);

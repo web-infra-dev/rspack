@@ -164,6 +164,31 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+Enable [Magic comments](/api/runtime-api/module-methods#magic-comments) support for CommonJS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+Note that only `webpackIgnore` comment is supported at the moment:
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
 ### module.parser.javascript.dynamicImportMode
 
 <PropertyType

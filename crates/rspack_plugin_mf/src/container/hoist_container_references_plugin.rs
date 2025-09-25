@@ -20,7 +20,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, incremental::Mutation,
+  ModuleIdentifier, Plugin, RuntimeSpec, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -206,7 +206,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let runtime_chunks = compilation
       .chunk_graph
       .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
-      .filter_map(|runtime_spec| entries.get(&runtime_spec).copied())
+      .flat_map(|runtime| runtime.iter())
+      .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
       .collect::<Vec<_>>();
     for runtime_chunk in runtime_chunks {
       if !compilation

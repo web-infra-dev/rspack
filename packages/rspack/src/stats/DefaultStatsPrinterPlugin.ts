@@ -287,10 +287,8 @@ const SIMPLE_PRINTERS: Record<
 	"asset.type": type => type,
 	"asset.name": (name, { formatFilename, asset: { isOverSizeLimit } }) =>
 		formatFilename(name, isOverSizeLimit),
-	"asset.size": (
-		size,
-		{ asset: { isOverSizeLimit }, yellow, green, formatSize }
-	) => (isOverSizeLimit ? yellow(formatSize(size)) : formatSize(size)),
+	"asset.size": (size, { asset: { isOverSizeLimit }, yellow, formatSize }) =>
+		isOverSizeLimit ? yellow(formatSize(size)) : formatSize(size),
 	"asset.emitted": (emitted, { green, formatFlag }) =>
 		emitted ? green(formatFlag("emitted")) : undefined,
 	"asset.comparedForEmit": (comparedForEmit, { yellow, formatFlag }) =>

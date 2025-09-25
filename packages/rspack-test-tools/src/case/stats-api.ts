@@ -1,6 +1,6 @@
 import type fs from "node:fs";
 import { createFsFromVolume, Volume } from "memfs";
-import { getSimpleProcessorRunner } from "../test/simple";
+import { BasicCaseCreator } from "../test/creator";
 import type {
 	ECompilerType,
 	ITestContext,
@@ -31,6 +31,42 @@ type TStatsAPICaseConfig = {
 	) => Promise<void>;
 };
 
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: true,
+	steps: ({ name, caseConfig }) => {
+		const config = caseConfig as TStatsAPICaseConfig;
+		return [
+			{
+				config: async (context: ITestContext) => {
+					const compiler = getCompiler(context, name);
+					compiler.setOptions(options(context, config.options));
+				},
+				compiler: async (context: ITestContext) => {
+					const compilerManager = getCompiler(context, name);
+					compilerManager.createCompiler();
+					compiler(context, compilerManager.getCompiler()!, config.compiler);
+				},
+				build: async (context: ITestContext) => {
+					const compiler = getCompiler(context, name);
+					if (typeof config.build === "function") {
+						await config.build(context, compiler.getCompiler()!);
+					} else {
+						await compiler.build();
+					}
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					// no need to run, just check the snapshot of diagnostics
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await check(env, context, name, config.check);
+				}
+			}
+		];
+	},
+	concurrent: true
+});
+
 export function createStatsAPICase(
 	name: string,
 	src: string,
@@ -41,34 +77,9 @@ export function createStatsAPICase(
 		addedSerializer = true;
 	}
 	const caseConfig: TStatsAPICaseConfig = require(testConfig);
-	const runner = getSimpleProcessorRunner(src, dist);
-
-	it(caseConfig.description, async () => {
-		await runner(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.setOptions(options(context, caseConfig.options));
-			},
-			compiler: async (context: ITestContext) => {
-				const compilerManager = getCompiler(context, name);
-				compilerManager.createCompiler();
-				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
-			},
-			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				if (typeof caseConfig.build === "function") {
-					await caseConfig.build(context, compiler.getCompiler()!);
-				} else {
-					await compiler.build();
-				}
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of diagnostics
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, caseConfig.check);
-			}
-		});
+	creator.create(name, src, dist, undefined, {
+		caseConfig,
+		description: () => caseConfig.description
 	});
 }
 

@@ -1,4 +1,7 @@
-import { BasicCaseCreator } from "../test/creator";
+import {
+	BasicCaseCreator,
+	type IBasicCaseCreatorOptions
+} from "../test/creator";
 import type {
 	ECompilerType,
 	ITestContext,
@@ -20,12 +23,13 @@ class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
 	protected describe(
 		name: string,
 		tester: ITester,
-		testConfig: TTestConfig<T>
+		testConfig: TTestConfig<T>,
+		options: IBasicCaseCreatorOptions<T>
 	) {
 		it(`should print correct hash for ${name}`, async () => {
 			await tester.prepare();
 			await tester.compile();
-			await tester.check(this.createEnv(testConfig));
+			await tester.check(this.createEnv(testConfig, options));
 			await tester.resume();
 		}, 30000);
 	}

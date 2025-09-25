@@ -6916,7 +6916,7 @@ export const RuntimeGlobals: {
 export class RuntimeModule {
     constructor(name: string, stage?: RuntimeModuleStage);
     // (undocumented)
-    static __to_binding(compilation: Compilation, module: RuntimeModule): JsAddingRuntimeModule;
+    static __to_binding(module: RuntimeModule): JsAddingRuntimeModule;
     // (undocumented)
     attach(compilation: Compilation, chunk: Chunk, chunkGraph: ChunkGraph): void;
     // (undocumented)

@@ -57,7 +57,7 @@ pub(crate) use self::{
   initialize_evaluating::InitializeEvaluating,
   inline_const::{
     InlineConstPlugin, connection_active_inline_value_for_esm_export_imported_specifier,
-    connection_active_inline_value_for_esm_import_specifier,
+    connection_active_inline_value_for_esm_import_specifier, is_export_inlined,
   },
   inner_graph::{connection_active_used_by_exports, plugin::*, state::InnerGraphState},
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
