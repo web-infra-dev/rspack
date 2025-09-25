@@ -278,6 +278,7 @@ impl From<RspackError> for rspack_error::Error {
     error.code = Some(value.name);
     error.details = value.details;
     error.stack = value.stack;
+    error.hide_stack = value.hide_stack;
     error
   }
 }

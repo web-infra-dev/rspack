@@ -110,7 +110,7 @@ pub(crate) fn merge_loader_context(
     } else {
       None
     };
-    return Err(error.into());
+    return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 
   let content = match from.content {

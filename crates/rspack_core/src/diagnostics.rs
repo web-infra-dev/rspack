@@ -41,11 +41,18 @@ impl ModuleBuildError {
 }
 
 impl From<ModuleBuildError> for Error {
-  fn from(mut value: ModuleBuildError) -> Error {
+  fn from(value: ModuleBuildError) -> Error {
+    let source = value.0;
+
     let mut err = Error::error("Module build failed:".into());
-    err.details = std::mem::take(&mut value.0.details);
-    err.severity = value.0.severity;
-    err.source_error = Some(Box::new(value.0));
+    let details = if let Some(stack) = &source.stack {
+      Some(stack.to_string())
+    } else {
+      None
+    };
+    err.details = details;
+    err.severity = source.severity;
+    err.source_error = Some(Box::new(source));
     err.code = Some("ModuleBuildError".into());
     err
   }
