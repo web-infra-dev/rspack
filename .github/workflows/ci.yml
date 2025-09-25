@@ -84,7 +84,7 @@ jobs:
     with:
       target: aarch64-apple-darwin
       profile: "ci"
-      runner: ${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}
+      runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
       test: true
 
   test-wasm:
