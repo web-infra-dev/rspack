@@ -172,13 +172,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
-        if let Some(factorize_info) = FactorizeInfo::get_from(dep)
-          && factorize_info.is_success()
+        if !has_error
+          && let Some(factorize_info) = FactorizeInfo::get_from(dep)
+          && !factorize_info.is_success()
         {
-          let diagnostics = FactorizeInfo::get_from(dep)
-            .expect("should have factorize info")
-            .diagnostics();
-          let errors: Vec<_> = diagnostics
+          let errors: Vec<_> = factorize_info
+            .diagnostics()
             .iter()
             .filter(|d| d.is_error())
             .map(|d| d.message.clone())

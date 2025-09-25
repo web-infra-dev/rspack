@@ -142,21 +142,22 @@ impl MakeArtifact {
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
 
-    let revoke_dep_ids = if let Some(dependency) = mg.dependency_by_id(dep_id)
-      && let Some(info) = FactorizeInfo::get_from(dependency)
+    let revoke_dep_ids = if let Some(factorize_info) = mg
+      .dependency_by_id(dep_id)
+      .and_then(|dependency| FactorizeInfo::get_from(dependency))
     {
       let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
-        .remove_files(&resource_id, info.file_dependencies());
+        .remove_files(&resource_id, factorize_info.file_dependencies());
       self
         .context_dependencies
-        .remove_files(&resource_id, info.context_dependencies());
+        .remove_files(&resource_id, factorize_info.context_dependencies());
       self
         .missing_dependencies
-        .remove_files(&resource_id, info.missing_dependencies());
+        .remove_files(&resource_id, factorize_info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().to_vec()
+      factorize_info.related_dep_ids().to_vec()
     } else {
       vec![*dep_id]
     };
