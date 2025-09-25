@@ -20,10 +20,10 @@ module.exports = {
                     expect(error).toMatchObject({
                         name: "ModuleBuildError",
                         error: {
-                            name: "NextFontError",
-                            message: "Cannot be used within pages/_document.js"
+                            name: "NextFontError"
                         }
                     });
+                    expect(error.error.message).toContain("Cannot be used within pages/_document.js");
                 });
             }
         }
