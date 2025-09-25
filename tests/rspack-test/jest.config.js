@@ -22,6 +22,7 @@ const wasmConfig = process.env.WASM && {
 		"Cache.test.js",
 		"Compiler.test.js",
 		"Serial.test.js",
+		"Normal-hot.test.js",
 		"Incremental-node.test.js",
 		"Incremental-watch-webpack.test.js",
 		"Incremental-watch.test.js",
@@ -81,6 +82,7 @@ const config = {
 	},
 	...(wasmConfig || {}),
 	verbose: true,
+	maxWorkers: 3,
 };
 
 module.exports = config;
