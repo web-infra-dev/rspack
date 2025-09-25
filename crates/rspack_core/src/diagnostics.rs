@@ -45,11 +45,11 @@ impl From<ModuleBuildError> for Error {
     let source = value.0;
 
     let mut err = Error::error("Module build failed:".into());
-    let details = if let Some(stack) = &source.stack {
-      Some(stack.to_string())
-    } else {
-      None
-    };
+    let details = source
+      .hide_stack
+      .unwrap_or(false)
+      .then_some(source.stack.as_ref().map(|stack| stack.to_string()))
+      .flatten();
     err.details = details;
     err.severity = source.severity;
     err.source_error = Some(Box::new(source));

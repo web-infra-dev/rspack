@@ -274,7 +274,7 @@ impl std::error::Error for RspackError {}
 
 impl From<RspackError> for rspack_error::Error {
   fn from(value: RspackError) -> Error {
-    let mut error = rspack_error::error!(value.message.to_string());
+    let mut error = rspack_error::error!(format!("{}", value));
     error.code = Some(value.name);
     error.details = value.details;
     error.stack = value.stack;
