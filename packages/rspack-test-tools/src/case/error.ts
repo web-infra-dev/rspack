@@ -16,7 +16,6 @@ let addedSerializer = false;
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
 	steps: ({ name, caseConfig }) => {
 		const config = caseConfig as TErrorCaseConfig;
 		return [

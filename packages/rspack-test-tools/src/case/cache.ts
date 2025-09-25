@@ -80,7 +80,6 @@ function getCreator(target: TTarget) {
 			target,
 			new BasicCaseCreator({
 				clean: true,
-				describe: true,
 				target,
 				steps: ({ name, src, target, temp }) => [
 					createCacheProcessor(name, src, temp!, target as TTarget)

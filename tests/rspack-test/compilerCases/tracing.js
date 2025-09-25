@@ -8,6 +8,5 @@ defineCompileCase(Utils.basename(__filename), {
 		await compiler.rspack.experiments.globalTrace.cleanup();
 		await compiler.rspack.experiments.globalTrace.register('info', 'logger', 'stdout');
 		await compiler.rspack.experiments.globalTrace.cleanup();
-
 	}
 });

@@ -9,7 +9,7 @@ import type {
 import { TestContext } from "./context";
 
 export class Tester implements ITester {
-	private context: ITestContext;
+	private context: ITestContext | null = null;
 	private steps: ITestProcessor[] = [];
 	step = 0;
 	total = 0;
@@ -30,17 +30,17 @@ export class Tester implements ITester {
 		}
 	}
 	getContext(): ITestContext {
-		return this.context;
+		return this.context!;
 	}
 	async prepare() {
-		fs.mkdirSync(this.context.getDist(), { recursive: true });
-		const tempDir = this.context.getTemp();
+		fs.mkdirSync(this.context!.getDist(), { recursive: true });
+		const tempDir = this.context!.getTemp();
 		if (tempDir) {
 			fs.mkdirSync(tempDir, { recursive: true });
 		}
 		for (const i of this.steps) {
 			if (typeof i.beforeAll === "function") {
-				await i.beforeAll(this.context);
+				await i.beforeAll(this.context!);
 			}
 		}
 	}
@@ -62,13 +62,13 @@ export class Tester implements ITester {
 		await this.runCheckStepMethods(
 			currentStep,
 			env,
-			this.context.hasError() ? ["check"] : ["run", "check"]
+			this.context!.hasError() ? ["check"] : ["run", "check"]
 		);
 		await this.runStepMethods(currentStep, ["after"], true);
 	}
 
 	next() {
-		if (this.context.hasError()) {
+		if (this.context!.hasError()) {
 			return false;
 		}
 		if (this.steps[this.step + 1]) {
@@ -81,10 +81,15 @@ export class Tester implements ITester {
 	async resume() {
 		for (const i of this.steps) {
 			if (typeof i.afterAll === "function") {
-				await i.afterAll(this.context);
+				await i.afterAll(this.context!);
 			}
 		}
-		await this.context.closeCompiler(this.config.name);
+		await this.context!.closeCompiler(this.config.name);
+	}
+
+	async close() {
+		this.steps = [];
+		this.context = null;
 	}
 
 	private async runStepMethods(
@@ -93,12 +98,12 @@ export class Tester implements ITester {
 		force = false
 	) {
 		for (const i of methods) {
-			if (!force && this.context.hasError()) return;
+			if (!force && this.context!.hasError()) return;
 			if (typeof step[i] === "function") {
 				try {
-					await step[i]!(this.context);
+					await step[i]!(this.context!);
 				} catch (e) {
-					this.context.emitError(this.config.name, e as Error);
+					this.context!.emitError(this.config.name, e as Error);
 				}
 			}
 		}
@@ -111,7 +116,7 @@ export class Tester implements ITester {
 	) {
 		for (const i of methods) {
 			if (typeof step[i] === "function") {
-				await step[i]!(env, this.context);
+				await step[i]!(env, this.context!);
 			}
 		}
 	}

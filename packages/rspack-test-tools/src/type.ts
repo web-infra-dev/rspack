@@ -111,6 +111,7 @@ export interface ITester {
 	check(env: ITestEnv): Promise<void>;
 	next(): boolean;
 	resume(): Promise<void>;
+	close(): Promise<void>;
 }
 
 export interface ITestProcessor {

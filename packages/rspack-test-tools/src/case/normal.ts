@@ -25,7 +25,6 @@ const createCaseOptions = (
 ): IBasicCaseCreatorOptions<ECompilerType> => {
 	return {
 		clean: true,
-		describe: false,
 		steps: ({ name }) => [
 			{
 				config: async (context: ITestContext) => {

@@ -30,7 +30,6 @@ const distDir = path.resolve(
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: true,
 	createContext: (config: ITesterConfig) =>
 		new HookCasesContext(config.src, config.name, config),
 	steps: ({ name, caseConfig: _caseConfig, src }) => {

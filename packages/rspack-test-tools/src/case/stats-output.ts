@@ -53,7 +53,6 @@ function createStatsProcessor(name: string) {
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	steps: ({ name }) => [createStatsProcessor(name)],
 	description: () => "should print correct stats for"
 });

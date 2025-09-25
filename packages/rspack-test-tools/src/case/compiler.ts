@@ -143,16 +143,12 @@ function createCompilerProcessor(
 					compiler: c
 				});
 			}
-		},
-		after: async (context: ITestContext) => {
-			await context.closeCompiler(name);
 		}
 	} as ITestProcessor;
 }
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	steps: ({ name, caseConfig }) => {
 		return [createCompilerProcessor(name, caseConfig as TCompilerCaseConfig)];
 	},

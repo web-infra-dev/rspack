@@ -55,7 +55,6 @@ export function createConfigProcessor(name: string): ITestProcessor {
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	testConfig: testConfig => {
 		const oldModuleScope = testConfig.moduleScope;
 		testConfig.moduleScope = (ms, stats, compilerOptions) => {

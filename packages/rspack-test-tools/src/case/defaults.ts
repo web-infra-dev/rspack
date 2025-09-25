@@ -14,7 +14,6 @@ const CURRENT_CWD = process.cwd();
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	steps: ({ name, caseConfig: _caseConfig }) => {
 		const caseConfig = _caseConfig as TDefaultsCaseConfig;
 		return [

@@ -426,7 +426,6 @@ function getCreator(target: TTarget) {
 			target,
 			new BasicCaseCreator({
 				clean: true,
-				describe: false,
 				target,
 				steps: ({ name, target }) => [
 					createHotStepProcessor(name, target as TTarget)

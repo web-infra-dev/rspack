@@ -10,7 +10,6 @@ import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	description(name, step) {
 		return `${name} with newTreeshaking should match snapshot`;
 	},

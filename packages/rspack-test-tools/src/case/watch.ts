@@ -313,7 +313,6 @@ const creator = new BasicCaseCreator({
 			? `${name} should compile`
 			: `should compile step ${index}`;
 	},
-	describe: false,
 	steps: ({ name, src, temp }) => {
 		const watchState = {};
 		const runs = fs

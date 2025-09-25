@@ -14,7 +14,6 @@ import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	description(name) {
 		return `${name} should match snapshot`;
 	},

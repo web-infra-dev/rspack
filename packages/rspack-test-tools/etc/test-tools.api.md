@@ -255,8 +255,6 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     createContext?: (config: ITesterConfig) => ITestContext;
     // (undocumented)
-    describe?: boolean;
-    // (undocumented)
     description?: (name: string, step: number) => string;
     // (undocumented)
     runner?: TTestRunnerCreator;
@@ -507,6 +505,8 @@ export interface ITestEnv {
 export interface ITester {
     // (undocumented)
     check(env: ITestEnv): Promise<void>;
+    // (undocumented)
+    close(): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
     // (undocumented)
@@ -842,6 +842,8 @@ export class Tester implements ITester {
     constructor(config: ITesterConfig);
     // (undocumented)
     check(env: ITestEnv): Promise<void>;
+    // (undocumented)
+    close(): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
     // (undocumented)
