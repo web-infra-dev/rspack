@@ -1,6 +1,6 @@
 const { pathToFileURL } = require("url");
 const url = pathToFileURL(
-	require("path").resolve("./normalCases/esm/import-meta-property/index.js")
+	require("path").resolve(__SOURCE__, "./index.js")
 ).toString();
 it("import.meta.url.xxx", () => {
 	expect(typeof import.meta.url.length).toBe("number");

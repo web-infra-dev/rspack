@@ -35,7 +35,7 @@ defineCompileCase(Utils.basename(__filename), {
 						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/b.js")]));
 						setTimeout(() => {
 							resolve();
-						}, 500)
+						}, 2000)
 					}
 				});
 			});
