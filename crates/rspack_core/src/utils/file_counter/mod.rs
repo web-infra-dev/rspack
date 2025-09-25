@@ -24,13 +24,8 @@ impl FileCounter {
       if list.is_empty() {
         self.incremental_info.add(path);
       }
-      if !list.insert(resource_id.clone()) {
-        panic!(
-          "unable to add path '{}' with resource_id '{:?}', it has already been added.",
-          path.to_string_lossy(),
-          resource_id
-        );
-      }
+      // multiple additions are allowed without additional checks to see if the addition was successful
+      list.insert(resource_id.clone());
     }
   }
 
@@ -117,6 +112,12 @@ mod test {
 
     counter.add_files(&resource_1, &file_list_all);
     counter.add_files(&resource_2, &file_list_a);
+    assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.added_files().len(), 2);
+    assert_eq!(counter.removed_files().len(), 0);
+
+    // test repeated additions
+    counter.add_files(&resource_1, &file_list_all);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
     assert_eq!(counter.added_files().len(), 2);
     assert_eq!(counter.removed_files().len(), 0);
