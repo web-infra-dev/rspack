@@ -153,7 +153,7 @@ RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
 
 export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 	`RsdoctorPlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerRsdoctorPluginModuleGraphTaps: createTap(
 			RegisterJsTapKind.RsdoctorPluginModuleGraph,

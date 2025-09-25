@@ -5,7 +5,7 @@ import { HtmlRspackPlugin } from "./plugin";
 
 export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 	`HtmlPlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	const getOptions = (uid: number): HtmlRspackPluginOptions => {
 		return getPluginOptions(getCompiler().__internal__get_compilation()!, uid)!;
 	};

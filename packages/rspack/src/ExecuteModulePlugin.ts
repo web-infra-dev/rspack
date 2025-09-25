@@ -52,10 +52,9 @@ const printGeneratedCodeForStack = (moduleId: string, code: string) => {
 			/**
 			 * @param {string} line the line
 			 * @param {number} i the index
-			 * @param {string[]} lines the lines
 			 * @returns {string} the line with line number
 			 */
-			(line, i, lines) => {
+			(line, i) => {
 				const iStr = `${i + 1}`;
 				return `${" ".repeat(n - iStr.length)}${iStr} | ${line}`;
 			}
