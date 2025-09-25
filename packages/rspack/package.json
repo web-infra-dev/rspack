@@ -56,7 +56,7 @@
     "enhanced-resolve": "5.18.3",
     "glob-to-regexp": "^0.4.1",
     "graceful-fs": "^4.2.11",
-    "memfs": "4.38.2",
+    "memfs": "4.46.0",
     "prebundle": "^1.4.2",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.5",
