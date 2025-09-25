@@ -3377,7 +3377,7 @@ export type JavascriptParserOptions = {
     dynamicImportPrefetch?: boolean | number;
     dynamicImportFetchPriority?: "low" | "high" | "auto";
     importMeta?: boolean;
-    url?: "relative" | boolean;
+    url?: "relative" | "new-url-relative" | boolean;
     exprContextCritical?: boolean;
     unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;

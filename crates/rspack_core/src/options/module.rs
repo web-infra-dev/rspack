@@ -146,6 +146,7 @@ impl fmt::Display for DynamicImportFetchPriority {
 pub enum JavascriptParserUrl {
   Enable,
   Disable,
+  NewUrlRelative,
   Relative,
 }
 
@@ -154,6 +155,7 @@ impl From<&str> for JavascriptParserUrl {
     match value {
       "false" => Self::Disable,
       "relative" => Self::Relative,
+      "new-url-relative" => Self::NewUrlRelative,
       _ => Self::Enable,
     }
   }

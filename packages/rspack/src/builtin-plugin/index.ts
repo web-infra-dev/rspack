@@ -76,6 +76,7 @@ export * from "./SourceMapDevToolPlugin";
 export * from "./SplitChunksPlugin";
 export * from "./SubresourceIntegrityPlugin";
 export * from "./SwcJsMinimizerPlugin";
+export * from "./URLPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";

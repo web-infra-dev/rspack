@@ -412,8 +412,13 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 					// no attribute
 					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
-					initializeImportMeta: (meta: { url: string }, _: any) => {
+					initializeImportMeta: (
+						meta: { url: string; dirname?: string; filename?: string },
+						_: any
+					) => {
 						meta.url = pathToFileURL(file!.path).href;
+						meta.dirname = path.dirname(file!.path);
+						meta.filename = file!.path;
 					},
 					importModuleDynamically: async (
 						specifier: any,

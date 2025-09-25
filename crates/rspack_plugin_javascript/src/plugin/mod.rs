@@ -16,6 +16,7 @@ pub mod infer_async_modules_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod side_effects_flag_plugin;
+pub mod url_plugin;
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;

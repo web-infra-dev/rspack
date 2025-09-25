@@ -278,21 +278,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 启用 `new URL()` 语法解析。
 
-当使用 'relative' 时，webpack 将为 `new URL()` 语法生成相对的 URL，即结果 URL 中不包含根 URL
+- `true`：生成包含根 URL 的绝对 URL（默认行为）。
+- `'relative'`：生成不包含根 URL 的相对 URL。
+- `'new-url-relative'`：相对于公共路径的相对 URL。
 
-```html
-<!-- 使用 'relative' -->
-<img src="icon.svg" />
+当使用 `'new-url-relative'` 时，Rspack 将在编译时计算出相对于公共路径的相对 URL：
 
-<!-- 不使用 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// 转换成 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+当使用 `'relative'` 时，Rspack 将生成运行时代码，为 `new URL()` 语法计算出相对的 URL，结果 URL 中不包含根 URL：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -304,6 +321,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- 使用 'relative' -->
+<img src="icon.svg" />
+
+<!-- 不使用 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical

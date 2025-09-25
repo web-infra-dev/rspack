@@ -13,8 +13,8 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, JavascriptParserUrl, ModuleIdentifier, ModuleLayer, ModuleType,
-  ParseMeta, ResourceData, TypeReexportPresenceMode,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -370,12 +370,6 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      let parse_url = javascript_options.url;
-      if !matches!(parse_url, Some(JavascriptParserUrl::Disable)) {
-        plugins.push(Box::new(parser_plugin::URLPlugin {
-          relative: matches!(parse_url, Some(JavascriptParserUrl::Relative)),
-        }));
-      }
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
         javascript_options
           .worker

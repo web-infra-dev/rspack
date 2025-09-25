@@ -278,21 +278,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 Enable parsing of `new URL()` syntax.
 
-When use 'relative', Rspack would generate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+- `true`: Generate absolute URLs that include the root URL (default behavior).
+- `'relative'`: Generate relative URLs without the root URL.
+- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
 
-```html
-<!-- with 'relative' -->
-<img src="icon.svg" />
+When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
 
-<!-- without 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// would become 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -304,6 +321,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical

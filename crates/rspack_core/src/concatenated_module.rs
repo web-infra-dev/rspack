@@ -49,10 +49,10 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  UsageState, UsedName, UsedNameItem, define_es_module_flag_statement, escape_identifier,
-  filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, define_es_module_flag_statement,
+  escape_identifier, filter_runtime, get_runtime_key, impl_source_map_config,
+  merge_runtime_condition, merge_runtime_condition_non_false, module_update_hash, property_access,
+  property_name, reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
@@ -203,7 +203,8 @@ pub struct ConcatenatedModuleInfo {
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
-  pub public_path_auto_replace: Option<bool>,
+  pub public_path_auto_replacement: Option<bool>,
+  pub static_url_replacement: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -705,6 +706,7 @@ impl Module for ConcatenatedModule {
 
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
+    let mut static_url_replace: bool = false;
 
     for (module_info_id, _raw_condition) in modules_with_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
@@ -937,8 +939,12 @@ impl Module for ConcatenatedModule {
           }
 
           // Handle publicPathAutoReplace for perf
-          if let Some(info_auto) = info.public_path_auto_replace {
+          if let Some(info_auto) = info.public_path_auto_replacement {
             public_path_auto_replace = public_path_auto_replace || info_auto;
+          }
+
+          if info.static_url_replacement {
+            static_url_replace = true;
           }
         }
 
@@ -1510,6 +1516,10 @@ impl Module for ConcatenatedModule {
       code_generation_result
         .data
         .insert(CodeGenerationPublicPathAutoReplace(true));
+    }
+
+    if static_url_replace {
+      code_generation_result.data.insert(URLStaticMode);
     }
 
     code_generation_result
@@ -2089,7 +2099,10 @@ impl ConcatenatedModule {
         .data
         .get::<CodeGenerationPublicPathAutoReplace>(
       ) {
-        module_info.public_path_auto_replace = Some(true);
+        module_info.public_path_auto_replacement = Some(true);
+      }
+      if codegen_res.data.contains::<URLStaticMode>() {
+        module_info.static_url_replacement = true;
       }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))
     } else {
