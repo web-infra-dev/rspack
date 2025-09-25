@@ -12,10 +12,10 @@ const wasmConfig = process.env.WASM && {
 	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	testPathIgnorePatterns: [
 		// Skip because they reply on snapshots
-		"<rootDir>/compilerCases/*.js",
-		"<rootDir>/errorCases/*.js",
-		"<rootDir>/statsAPICases/*.js",
-		"<rootDir>/defaultsCases/*/*.js",
+		"compilerCases/*.js",
+		"errorCases/*.js",
+		"statsAPICases/*.js",
+		"defaultsCases/*/*.js",
 
 		// Skip temporarily and should investigate in the future
 		"Defaults.test.js",
