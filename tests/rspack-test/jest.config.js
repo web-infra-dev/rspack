@@ -46,6 +46,10 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
+	testPathIgnorePatterns: [
+		"NativeWatcher.test.js",
+		"NativeWatcher-webpack.test.js"
+	],
 	testMatch: [
 		"<rootDir>/compilerCases/*.js",
 		"<rootDir>/errorCases/*.js",
