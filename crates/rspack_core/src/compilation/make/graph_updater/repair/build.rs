@@ -10,7 +10,10 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
   CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
   compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  utils::task_loop::{Task, TaskResult, TaskType},
+  utils::{
+    ResourceId,
+    task_loop::{Task, TaskResult, TaskType},
+  },
 };
 
 #[derive(Debug)]
@@ -125,18 +128,19 @@ impl Task<TaskContext> for BuildResultTask {
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
+    let resource_id = ResourceId::from(module.identifier());
     artifact
       .file_dependencies
-      .add_batch_file(&build_info.file_dependencies);
+      .add_files(&resource_id, &build_info.file_dependencies);
     artifact
       .context_dependencies
-      .add_batch_file(&build_info.context_dependencies);
+      .add_files(&resource_id, &build_info.context_dependencies);
     artifact
       .missing_dependencies
-      .add_batch_file(&build_info.missing_dependencies);
+      .add_files(&resource_id, &build_info.missing_dependencies);
     artifact
       .build_dependencies
-      .add_batch_file(&build_info.build_dependencies);
+      .add_files(&resource_id, &build_info.build_dependencies);
 
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();

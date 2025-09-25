@@ -13,7 +13,6 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_paths::ArcPathSet;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
@@ -162,12 +161,6 @@ impl Module for LazyCompilationProxyModule {
     } else {
       true
     }
-  }
-
-  /// Lazy compilation module do not depends on any files.
-  /// The only way to make this module rebuild is self.need_build() return true.
-  fn depends_on(&self, _modified_file: &ArcPathSet) -> bool {
-    false
   }
 
   async fn build(

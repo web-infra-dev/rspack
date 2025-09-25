@@ -55,27 +55,6 @@ impl FactorizeInfo {
     matches!(self, FactorizeInfo::Success)
   }
 
-  pub fn depends_on(&self, modified_file: &ArcPathSet) -> bool {
-    if let FactorizeInfo::Failed {
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      ..
-    } = self
-    {
-      for item in modified_file {
-        if file_dependencies.contains(item)
-          || context_dependencies.contains(item)
-          || missing_dependencies.contains(item)
-        {
-          return true;
-        }
-      }
-    }
-
-    false
-  }
-
   pub fn related_dep_ids(&self) -> Cow<'_, [DependencyId]> {
     match &self {
       Self::Success => Cow::Owned(vec![]),
