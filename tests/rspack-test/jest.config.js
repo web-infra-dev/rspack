@@ -85,8 +85,7 @@ const config = {
 		printLogger: process.argv.includes("--verbose")
 	},
 	...(wasmConfig || {}),
-	verbose: true,
-	maxWorkers: 3,
+	verbose: true
 };
 
 module.exports = config;
