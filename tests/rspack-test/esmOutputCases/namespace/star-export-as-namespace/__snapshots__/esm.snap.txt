@@ -7,8 +7,10 @@ __webpack_require__.d(foo_namespaceObject, {
   foo: () => (foo) });
 
 
+// ./foo.js
 const foo = 123
 
+// ./index.js
 
 let index_foo = 234
 

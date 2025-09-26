@@ -3,9 +3,10 @@ use std::{borrow::Cow, sync::Arc};
 use regex::Regex;
 use rspack_collections::{IdentifierSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, Compilation, ConcatenatedModuleInfo,
-  InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeGlobals, SourceType,
-  get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
+  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
+  PathInfo, RuntimeGlobals, SourceType, get_js_chunk_filename_template, get_undo_path,
+  render_init_fragments,
   rspack_sources::{
     BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -13,6 +14,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
+  dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
 use rspack_util::{
@@ -87,6 +89,7 @@ impl EsmLibraryPlugin {
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
     let mut replace_auto_public_path = false;
+    let mut replace_static_url = false;
 
     let concatenated_modules_map_by_compilation = CONCATENATED_MODULES_MAP.lock().await;
     let concatenated_modules_map = concatenated_modules_map_by_compilation
@@ -213,8 +216,11 @@ impl EsmLibraryPlugin {
         .get(m)
         .expect("should have info")
         .as_concatenated();
-      if info.public_path_auto_replace == Some(true) {
+      if info.public_path_auto_replacement == Some(true) {
         replace_auto_public_path = true;
+      }
+      if info.static_url_replacement {
+        replace_static_url = true;
       }
       let source = Self::render_module(info, chunk_link)?;
 
@@ -504,6 +510,38 @@ impl EsmLibraryPlugin {
       replace_source.boxed()
     } else {
       Arc::new(final_source)
+    };
+
+    let final_source = if replace_static_url {
+      let content = final_source.source().clone();
+      let mut replace_source = ReplaceSource::new(final_source.clone());
+      let replacement = URL_STATIC_PLACEHOLDER_RE
+        .find_iter(&content)
+        .map(|cap| (cap.start(), cap.end()));
+
+      for (start, end) in replacement {
+        let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
+        let dep_id: DependencyId = dep_id
+          .parse::<u32>()
+          .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
+          .into();
+        let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+          continue;
+        };
+        let codegen_result = compilation.code_generation_results.get(module, None);
+        let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
+          unreachable!()
+        };
+
+        replace_source.replace(start as u32, end as u32, filename.filename(), None);
+      }
+
+      // concate module does this by render_module()
+      // however esm module does not have concate module,
+      // some replacement needs to be done here
+      replace_source.boxed()
+    } else {
+      final_source
     };
 
     Ok(Some(RenderSource {

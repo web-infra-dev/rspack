@@ -1,17 +1,23 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./foo.js": (function (__unused_webpack_module, exports) {
+"./foo.js": 
+/*!****************!*\
+  !*** ./foo.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
 exports.foo = 123
 
 
 }),
 });
+// ./bar.js
 const foo_0 = __webpack_require__("./foo.js");
 var foo_0_namespace = /*#__PURE__*/__webpack_require__.t(foo_0, 2);
 
 
 
+// ./index.js
 
 let foo = 234
 

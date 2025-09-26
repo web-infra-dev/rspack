@@ -2,17 +2,23 @@
 import { __webpack_require__ } from "./runtime.mjs";
 
 __webpack_require__.add({
-"./bar.js": (function (__unused_webpack_module, exports) {
+"./bar.js": 
+/*!****************!*\
+  !*** ./bar.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
 exports.bar = 2
 
 
 }),
 });
+// ./foo.js
 const bar_0 = __webpack_require__("./bar.js");
 var bar_2 = bar_0.bar;
 const foo_foo = 1
 
 
+// ./index.js
 
 
 it('should have correct output for entry re-exports', async () => {

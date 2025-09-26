@@ -15,7 +15,18 @@ import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
-function createStatsProcessor(name: string) {
+export function createStatsProcessor(
+	name: string,
+	defaultOptions: (
+		index: number,
+		context: ITestContext
+	) => TCompilerOptions<ECompilerType.Rspack>,
+	overrideOptions: (
+		index: number,
+		context: ITestContext,
+		options: TCompilerOptions<ECompilerType.Rspack>
+	) => void
+) {
 	const writeStatsOuptut = false;
 	const snapshotName = "stats.txt";
 	let stderr: any = null;
@@ -54,7 +65,9 @@ function createStatsProcessor(name: string) {
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
-	steps: ({ name }) => [createStatsProcessor(name)],
+	steps: ({ name }) => [
+		createStatsProcessor(name, defaultOptions, overrideOptions)
+	],
 	description: () => "should print correct stats for"
 });
 

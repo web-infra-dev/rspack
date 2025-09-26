@@ -1,7 +1,11 @@
 ```mjs title=dynamic_js.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./dynamic.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./dynamic.js": 
+/*!********************!*\
+  !*** ./dynamic.js ***!
+  \********************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
@@ -17,9 +21,13 @@ __webpack_require__.d(__webpack_exports__, {
 import { __webpack_require__ } from "./runtime.mjs";
 
 __webpack_require__.add({
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js": 
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic_js.mjs").then(__webpack_require__.bind(__webpack_require__, "./dynamic.js"))
+	const value = await import("./dynamic_js.mjs").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js"))
 	expect(value.default).toBe(42)
 })
 

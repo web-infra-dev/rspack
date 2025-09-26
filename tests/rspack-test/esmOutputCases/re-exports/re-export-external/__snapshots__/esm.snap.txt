@@ -1,14 +1,18 @@
 ```mjs title=main.mjs
 import external_fs_, { readFile as external_fs_readFile } from "fs";
+// fs
 
+// ./lib.js
 const named = 42
 
 /* should not exported */
 const namedUnused = 42
 
 
+// ./lib2.js
 const starExports = 42
 
+// ./index.js
 
 
 

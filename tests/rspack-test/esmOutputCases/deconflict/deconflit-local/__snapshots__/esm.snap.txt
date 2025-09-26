@@ -1,7 +1,9 @@
 ```mjs title=main.mjs
+// ./foo.js
 const local = 'foo'
 const value = 42
 
+// ./index.js
 
 
 const index_local_0 = 'index'

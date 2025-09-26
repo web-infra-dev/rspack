@@ -8,15 +8,18 @@ __webpack_require__.d(foo_namespaceObject, {
   foo2: () => (foo2) });
 
 
+// ./foo.js
 const foo1 = 1
 const foo2 = 2
 
+// ./bar.js
 
 
 console.log; // side effect
 
 
 
+// ./index.js
 
 
 it('should import star export', () => {
