@@ -1435,6 +1435,11 @@ CompilerOptions {
                             require_resolve: Some(
                                 true,
                             ),
+                            commonjs: Some(
+                                JavascriptParserCommonjsOptions {
+                                    exports: Enable,
+                                },
+                            ),
                             import_dynamic: Some(
                                 true,
                             ),

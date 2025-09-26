@@ -193,6 +193,7 @@ module.exports = {
 		        },
 		      },
 		      javascript: Object {
+		        commonjs: true,
 		        dynamicImportMode: lazy,
 		        dynamicImportPrefetch: false,
 		        dynamicImportPreload: false,
