@@ -8,8 +8,8 @@ use rspack_core::{
   ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
   IdentCollector, InitFragmentKey, InitFragmentStage, MaybeDynamicTargetExportInfoHashKey,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
-  NormalInitFragment, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, UsageState,
-  UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
+  NormalInitFragment, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode,
+  UsageState, UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
   get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
   returning_function, rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
@@ -831,7 +831,10 @@ impl EsmLibraryPlugin {
                     .data
                     .get::<CodeGenerationPublicPathAutoReplace>()
                 {
-                  concate_info.public_path_auto_replace = Some(true);
+                  concate_info.public_path_auto_replacement = Some(true);
+                }
+                if codegen_res.data.contains::<URLStaticMode>() {
+                  concate_info.static_url_replacement = true;
                 }
                 Ok(ModuleInfo::Concatenated(concate_info))
               }

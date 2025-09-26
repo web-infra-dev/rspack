@@ -2,18 +2,27 @@
 import { __webpack_require__ } from "./runtime.mjs";
 
 __webpack_require__.add({
-"./bar.cjs": (function (module) {
+"./bar.cjs": 
+/*!*****************!*\
+  !*** ./bar.cjs ***!
+  \*****************/
+(function (module) {
 module.exports = 'bar'
 globalThis.testValue = 'bar';
 
 
 }),
-"./foo.cjs": (function (module) {
+"./foo.cjs": 
+/*!*****************!*\
+  !*** ./foo.cjs ***!
+  \*****************/
+(function (module) {
 module.exports = 'foo'
 globalThis.testValue = 'foo';
 
 }),
 });
+// ./index.js
 const foo = __webpack_require__("./foo.cjs");
 var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
 const bar = __webpack_require__("./bar.cjs");

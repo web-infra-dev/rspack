@@ -2,25 +2,37 @@
 import { __webpack_require__ } from "./runtime.mjs";
 
 __webpack_require__.add({
-"./bar.js": (function (__unused_webpack_module, exports) {
+"./bar.js": 
+/*!****************!*\
+  !*** ./bar.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
 exports.bar = 2
 
 
 }),
-"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./foo.js": 
+/*!****************!*\
+  !*** ./foo.js ***!
+  \****************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
   foo: () => (foo)
 });
-/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
 
 }),
-"./index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports = __webpack_require__("./foo.js")
+"./index.js": 
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
 
 it('should have correct output for entry re-exports', async () => {
 	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');

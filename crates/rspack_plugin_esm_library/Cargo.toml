@@ -35,4 +35,4 @@ workspace = true
 
 
 [package.metadata.cargo-shear]
-ignored = ["serde", "tracing"]
+ignored = ["serde", "tracing", "rspack_hash", "rspack_cacheable"]

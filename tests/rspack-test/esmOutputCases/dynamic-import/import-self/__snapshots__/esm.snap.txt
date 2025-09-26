@@ -1,4 +1,5 @@
 ```mjs title=main.mjs
+// ./index.js
 
 
 const conflict = 42;
@@ -20,6 +21,7 @@ it('should have access to the value from the same file', async () => {
 ```
 
 ```mjs title=value_js.mjs
+// ./value.js
 const conflict = 24
 
 export { conflict };

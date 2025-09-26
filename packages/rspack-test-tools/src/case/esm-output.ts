@@ -1,7 +1,16 @@
-import { EsmOutputProcessor } from "../processor/esm-output";
-import { BasicRunnerFactory } from "../runner";
+import rspack, { type RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType } from "../type";
+import type { ITestContext, ITestEnv } from "../type";
+import {
+	build,
+	check,
+	checkSnapshot,
+	compiler,
+	configMultiCompiler,
+	findMultiCompilerBundle,
+	run
+} from "./common";
+import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -18,20 +27,88 @@ const creator = new BasicCaseCreator({
 		};
 	},
 	steps: ({ name }) => [
-		new EsmOutputProcessor({
-			name,
-			runable: true,
-			compilerType: ECompilerType.Rspack,
-			configFiles: [
-				"rspack.config.cjs",
-				"rspack.config.js",
-				"webpack.config.js"
-			],
-			snapshot: "esm.snap.txt"
-		})
+		{
+			config: async (context: ITestContext) => {
+				configMultiCompiler(
+					context,
+					name,
+					["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
+					defaultOptions,
+					() => {}
+				);
+			},
+			compiler: async (context: ITestContext) => {
+				await compiler(context, name);
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				await run(env, context, name, (context: ITestContext) =>
+					findMultiCompilerBundle(
+						context,
+						name,
+						(_index, _context, options) => {
+							if (options.output?.filename === "[name].mjs") {
+								return ["main.mjs"];
+							} else {
+								return [options.output!.filename as string];
+							}
+						}
+					)
+				);
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await check(env, context, name);
+				await checkSnapshot(env, context, name, "esm.snap.txt");
+			}
+		}
 	],
-	runner: BasicRunnerFactory,
-	concurrent: true
+	runner: {
+		key: getMultiCompilerRunnerKey,
+		runner: createMultiCompilerRunner
+	},
+	concurrent: false
+});
+
+const defaultOptions = (
+	_index: number,
+	context: ITestContext
+): RspackOptions => ({
+	context: context.getSource(),
+	mode: "production",
+	target: "async-node",
+	devtool: false,
+	entry: "./index.js",
+	cache: false,
+	output: {
+		path: context.getDist(),
+		filename: "[name].mjs",
+		chunkLoading: "import",
+		chunkFormat: false,
+		pathinfo: true,
+		module: true
+	},
+	bail: true,
+	optimization: {
+		minimize: false,
+		moduleIds: "named",
+		chunkIds: "named",
+		runtimeChunk: "single",
+		removeEmptyChunks: false,
+		concatenateModules: false,
+		splitChunks: false
+	},
+	plugins: [new rspack.experiments.EsmLibraryPlugin()],
+	experiments: {
+		css: true,
+		rspackFuture: {
+			bundlerInfo: {
+				force: false
+			}
+		},
+		outputModule: true
+	}
 });
 
 export function createEsmOutputCase(name: string, src: string, dist: string) {

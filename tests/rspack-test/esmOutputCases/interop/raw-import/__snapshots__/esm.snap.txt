@@ -1,17 +1,26 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.js": (function () {
+"./bar.js": 
+/*!****************!*\
+  !*** ./bar.js ***!
+  \****************/
+(function () {
 globalThis.bar = 'bar';
 
 
 }),
-"./foo.js": (function () {
+"./foo.js": 
+/*!****************!*\
+  !*** ./foo.js ***!
+  \****************/
+(function () {
 globalThis.foo = 'foo';
 
 
 }),
 });
+// ./index.js
 __webpack_require__("./bar.js");
 __webpack_require__("./foo.js");
 
