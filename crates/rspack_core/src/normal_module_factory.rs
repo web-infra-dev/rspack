@@ -478,8 +478,6 @@ impl NormalModuleFactory {
       resource_data.resource().to_owned()
     };
 
-    let file_dependency = resource_data.path().map(|p| p.to_owned());
-
     let resolved_module_type =
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_module_layer =
@@ -586,9 +584,6 @@ impl NormalModuleFactory {
       .call(data, &mut create_data, &mut module)
       .await?;
 
-    if let Some(file_dependency) = file_dependency {
-      data.add_file_dependency(file_dependency.into_std_path_buf());
-    }
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
 

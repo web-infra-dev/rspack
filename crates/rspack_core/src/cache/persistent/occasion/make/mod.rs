@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
@@ -85,17 +85,18 @@ impl MakeOccasion {
         make_failed_module.insert(mid);
       }
     }
+
     // recovery make_failed_dependencies
-    let mut make_failed_dependencies = HashSet::default();
+    let mut make_failed_dependencies = FxHashSet::default();
     for (dep_id, dep) in mg.dependencies() {
-      if let Some(info) = FactorizeInfo::get_from(dep)
-        && !info.is_success()
-      {
-        make_failed_dependencies.insert(dep_id);
+      if let Some(info) = FactorizeInfo::get_from(dep) {
+        if !info.is_success() {
+          make_failed_dependencies.insert(dep_id);
+        }
         let resource = dep_id.into();
-        file_dep.add_files(&resource, &info.file_dependencies());
-        context_dep.add_files(&resource, &info.context_dependencies());
-        missing_dep.add_files(&resource, &info.missing_dependencies());
+        file_dep.add_files(&resource, info.file_dependencies());
+        context_dep.add_files(&resource, info.context_dependencies());
+        missing_dep.add_files(&resource, info.missing_dependencies());
       }
     }
 
