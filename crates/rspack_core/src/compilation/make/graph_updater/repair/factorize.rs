@@ -171,6 +171,11 @@ impl Task<TaskContext> for FactorizeResultTask {
     } = *self;
 
     let artifact = &mut context.artifact;
+    if !factorize_info.is_success() {
+      artifact
+        .make_failed_dependencies
+        .insert(*dependencies[0].id());
+    }
     let resource_id = ResourceId::from(*dependencies[0].id());
     artifact
       .file_dependencies

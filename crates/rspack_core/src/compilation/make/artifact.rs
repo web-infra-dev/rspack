@@ -52,6 +52,8 @@ pub struct MakeArtifact {
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
+  /// Factorize failed dependencies in module graph
+  pub make_failed_dependencies: HashSet<DependencyId>,
   /// Entry dependencies in the module graph
   pub entry_dependencies: HashSet<DependencyId>,
   /// The files that current module graph depends on.
@@ -115,6 +117,10 @@ impl MakeArtifact {
       .into_iter()
       .chain(mgm.incoming_connections().clone())
     {
+      if !self.make_failed_dependencies.remove(&dep_id) {
+        continue;
+      }
+      // make failed dependencies clean it.
       let dep = mg
         .dependency_by_id_mut(&dep_id)
         .expect("should have dependency");
@@ -143,8 +149,9 @@ impl MakeArtifact {
   /// If `force` is true, the dependency will be completely removed, and nothing will be returned.
   /// This function will update index on MakeArtifact.
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    self.make_failed_dependencies.remove(dep_id);
 
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
     let revoke_dep_ids = if let Some(factorize_info) = mg
       .dependency_by_id_mut(dep_id)
       .and_then(FactorizeInfo::revoke)
@@ -188,28 +195,20 @@ impl MakeArtifact {
           })
           .collect::<Vec<_>>()
       });
-    let dependencies = mg.dependencies();
-    let failed_factorize_infos = dependencies.values().filter_map(|dependency| {
-      if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
-        && !factorize_info.is_success()
-      {
-        let origin_module_identifier = mg.get_parent_module(dependency.id());
-        return Some((factorize_info, origin_module_identifier.copied()));
-      }
-      None
+    let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
+      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let origin_module_identifier = mg.get_parent_module(dep_id);
+      FactorizeInfo::get_from(dep)
+        .expect("should have factorize info")
+        .diagnostics()
+        .iter()
+        .cloned()
+        .map(|mut d| {
+          d.module_identifier = origin_module_identifier.copied();
+          d
+        })
+        .collect::<Vec<_>>()
     });
-    let dep_diagnostics =
-      failed_factorize_infos.flat_map(|(factorize_info, origin_module_identifier)| {
-        factorize_info
-          .diagnostics()
-          .iter()
-          .cloned()
-          .map(|mut d| {
-            d.module_identifier = origin_module_identifier;
-            d
-          })
-          .collect::<Vec<_>>()
-      });
     module_diagnostics.chain(dep_diagnostics).collect()
   }
 
