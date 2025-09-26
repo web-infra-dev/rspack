@@ -20,12 +20,16 @@ impl FileCounter {
   /// It will add resource_id at the PathBuf in inner hashmap
   pub fn add_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
     for path in paths {
-      let list = self.inner.entry(path.clone()).or_default();
-      if list.is_empty() {
+      // Use get_mut instead of entry API to avoid unnecessary path cloning,
+      // since paths are frequently duplicated in practice
+      if let Some(resources) = self.inner.get_mut(path) {
+        resources.insert(resource_id.clone());
+      } else {
+        let mut resources = HashSet::default();
+        resources.insert(resource_id.clone());
+        self.inner.insert(path.clone(), resources);
         self.incremental_info.add(path);
       }
-      // multiple additions are allowed without additional checks to see if the addition was successful
-      list.insert(resource_id.clone());
     }
   }
 
