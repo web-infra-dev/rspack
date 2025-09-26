@@ -140,6 +140,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       && call.callee.is_import()
       && let Some(binding) = declarator.name.as_ident()
     {
+      parser.define_variable(binding.id.sym.clone());
       tag_dynamic_import_referenced(parser, call, binding.id.sym.clone());
     }
     None
