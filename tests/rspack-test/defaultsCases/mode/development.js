@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "development",
 	options: () => ({ mode: "development" }),
 	diff: e =>
@@ -37,4 +36,4 @@ module.exports = {
 		-       "production",
 		+       "development",
 	`)
-};
+});

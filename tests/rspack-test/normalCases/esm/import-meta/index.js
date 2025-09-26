@@ -1,8 +1,7 @@
 const { pathToFileURL } = require("url");
 const url = pathToFileURL(
 	/// DIFF
-	// require("path").resolve("./test/cases/esm/import-meta/index.js")
-	require("path").resolve("./normalCases/esm/import-meta/index.js")
+	require("path").resolve(__SOURCE__, "./index.js")
 ).toString();
 const webpackVersion = parseInt(
 	/// DIFF

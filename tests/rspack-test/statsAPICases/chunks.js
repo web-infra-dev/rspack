@@ -14,13 +14,12 @@ function deepReplace(obj) {
 	}
 }
 
-/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should output the chunks",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/chunk-b"
+			entry: "./chunk-b"
 		};
 	},
 	async check(stats) {
@@ -42,8 +41,8 @@ module.exports = {
 			modulesSpace: 3
 		});
 		expect(string).toContain(`chunk (runtime: main) chunkB.js (chunkB) 94 bytes [rendered]`);
-		expect(string).toContain(`./fixtures/b.js 94 bytes [built] [code generated]`);
-		expect(string).toContain(`chunk (runtime: main) main.js (main) 85 bytes (javascript) 8.52 KiB (runtime) [entry] [rendered]`);
-		expect(string).toContain(`./fixtures/chunk-b.js 85 bytes [built] [code generated]`);
+		expect(string).toContain(`./b.js 94 bytes [built] [code generated]`);
+		expect(string).toContain(`chunk (runtime: main) main.js (main) 85 bytes (javascript) 8.33 KiB (runtime) [entry] [rendered]`);
+		expect(string).toContain(`./chunk-b.js 85 bytes [built] [code generated]`);
 	}
-};
+});

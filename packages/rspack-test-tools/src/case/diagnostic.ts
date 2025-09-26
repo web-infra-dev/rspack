@@ -14,7 +14,6 @@ import { getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
-	describe: false,
 	steps: ({ name }) => [
 		{
 			config: async (context: ITestContext) => {

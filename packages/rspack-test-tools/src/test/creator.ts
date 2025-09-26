@@ -26,7 +26,6 @@ interface IConcurrentTestEnv {
 
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;
-	describe?: boolean;
 	timeout?: number;
 	contextValue?: Record<string, unknown>;
 	steps: (
@@ -90,32 +89,18 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		const concurrent = process.env.WASM
 			? false
 			: testConfig.concurrent || options.concurrent;
-		if (options.describe) {
-			if (run) {
-				if (concurrent) {
-					describe(name, () =>
-						this.describeConcurrent(name, tester, testConfig, options)
-					);
-				} else {
-					describe(name, () =>
-						this.describe(name, tester, testConfig, options)
-					);
-				}
+		if (run) {
+			if (concurrent) {
+				describe(name, () =>
+					this.describeConcurrent(name, tester, testConfig, options)
+				);
 			} else {
-				describe.skip(name, () => {
-					it.skip("skipped", () => {});
-				});
+				describe(name, () => this.describe(name, tester, testConfig, options));
 			}
 		} else {
-			if (run) {
-				if (concurrent) {
-					this.describeConcurrent(name, tester, testConfig, options);
-				} else {
-					this.describe(name, tester, testConfig, options);
-				}
-			} else {
+			describe.skip(name, () => {
 				it.skip("skipped", () => {});
-			}
+			});
 		}
 
 		return tester;
@@ -214,6 +199,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 
 		afterAll(async () => {
 			await tester.resume();
+			await tester.close();
 		});
 	}
 

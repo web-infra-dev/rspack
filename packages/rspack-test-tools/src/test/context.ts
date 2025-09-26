@@ -1,14 +1,14 @@
 import path from "node:path";
 
 import { TestCompilerManager } from "../compiler";
-import {
+import type {
 	ECompilerType,
-	type ITestCompilerManager,
-	type ITestContext,
-	type ITestEnv,
-	type ITesterConfig,
-	type ITestRunner,
-	type TTestConfig
+	ITestCompilerManager,
+	ITestContext,
+	ITestEnv,
+	ITesterConfig,
+	ITestRunner,
+	TTestConfig
 } from "../type";
 
 export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
@@ -125,13 +125,10 @@ export class TestContext implements ITestContext {
 		}
 	}
 	async closeCompiler(name: string) {
-		const rspackCompiler = this.getCompiler(name, ECompilerType.Rspack);
-		if (rspackCompiler) {
-			await rspackCompiler.close();
-		}
-		const webpackCompiler = this.getCompiler(name, ECompilerType.Webpack);
-		if (webpackCompiler) {
-			await webpackCompiler.close();
+		const compiler = this.compilers.get(name);
+		if (compiler) {
+			await compiler.close();
+			this.compilers.delete(name);
 		}
 	}
 }

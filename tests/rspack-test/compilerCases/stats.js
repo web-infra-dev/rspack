@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 class MyPlugin {
   apply(compiler) {
     compiler.hooks.compilation.tap("Plugin", compilation => {
@@ -14,8 +15,8 @@ class MyPlugin {
   }
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
   description: "should not panic get stats when chunkGraphModule is not available",
   options(context) {
     return {
@@ -24,4 +25,4 @@ module.exports = {
       plugins: [new MyPlugin()]
     };
   }
-};
+});

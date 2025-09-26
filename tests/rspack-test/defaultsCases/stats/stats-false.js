@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "stats false",
 	options: () => ({ stats: false }),
 	diff: e =>
@@ -13,4 +12,4 @@ module.exports = {
 		+     "preset": "none",
 		+   },
 	`)
-};
+});

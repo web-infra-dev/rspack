@@ -1,7 +1,9 @@
+
+
 let error;
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
 	description: "should print error with stack information with sync callback",
 	error: true,
 	options(context) {
@@ -65,4 +67,4 @@ module.exports = [{
 		expect(error).toBeTruthy();
 		expect(error.message).toContain("Failed to handle process assets from JS");
 	}
-}];
+}]);

@@ -1,5 +1,4 @@
-/** @type {import('../../../packages/rspack-test-tools/dist').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have module layer",
 	options(context) {
 		return {
@@ -7,7 +6,7 @@ module.exports = {
 			mode: "development",
 			entry: {
 				main: {
-					import: "./fixtures/abc",
+					import: "./abc",
 					layer: "test"
 				}
 			},
@@ -29,10 +28,10 @@ module.exports = {
 		expect(jsModules.every(m => m.layer === "test")).toBe(true);
 		const string = stats?.toString(options);
 		expect(string).toMatchInlineSnapshot(`
-		./fixtures/abc.js (in test) 83 bytes [built] [code generated]
-		./fixtures/a.js (in test) 55 bytes [built] [code generated]
-		./fixtures/b.js (in test) 94 bytes [built] [code generated]
-		./fixtures/c.js (in test) 72 bytes [built] [code generated]
+		./abc.js (in test) 83 bytes [built] [code generated]
+		./a.js (in test) 55 bytes [built] [code generated]
+		./b.js (in test) 94 bytes [built] [code generated]
+		./c.js (in test) 72 bytes [built] [code generated]
 	`);
 	}
-};
+});

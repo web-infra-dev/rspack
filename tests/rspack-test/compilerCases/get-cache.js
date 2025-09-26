@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 class MyPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("MyPlugin", compilation => {
@@ -7,8 +8,8 @@ class MyPlugin {
 	}
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
 	description: "should call getCache function correctly",
 	options(context) {
 		return {
@@ -17,4 +18,4 @@ module.exports = {
 			plugins: [new MyPlugin()]
 		};
 	}
-};
+});

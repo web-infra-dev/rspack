@@ -90,3 +90,13 @@ export function describeByWalk(
 		describeDirectory("", level);
 	});
 }
+
+export function basename(filename: string) {
+	return path.basename(filename, ".js");
+}
+
+export function casename(filename: string) {
+	const catName = path.basename(path.dirname(filename));
+	const caseName = path.basename(filename, ".js");
+	return `${catName}/${caseName}`;
+}

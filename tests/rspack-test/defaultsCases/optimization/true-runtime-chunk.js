@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "true runtimeChunk",
 	options: () => ({ optimization: { runtimeChunk: true } }),
 	diff: e =>
@@ -13,4 +12,4 @@ module.exports = {
 		+       "name": "multiple",
 		+     },
 	`)
-};
+});

@@ -1,13 +1,12 @@
 const { Stats } = require("@rspack/core");
 
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description:
 		"should have any cache hits log of modules in incremental rebuild mode",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/abc",
+			entry: "./abc",
 			cache: true
 		};
 	},
@@ -22,7 +21,7 @@ module.exports = {
 		});
 		await new Promise((resolve, reject) => {
 			compiler.__internal__rebuild(
-				new Set([context.getSource("./fixtures/a")]),
+				new Set([context.getSource("./a")]),
 				new Set(),
 				err => {
 					if (err) {
@@ -40,4 +39,4 @@ module.exports = {
 		});
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	}
-};
+});

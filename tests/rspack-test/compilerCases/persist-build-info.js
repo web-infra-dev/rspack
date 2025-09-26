@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const customFieldValues = [];
 
 class MyPlugin {
@@ -12,8 +13,8 @@ class MyPlugin {
     }
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
     description: "should persist build info custom fields",
     options(context) {
         return {
@@ -55,4 +56,4 @@ module.exports = {
             expect(foo).toBeTruthy();
         });
     }
-};
+});

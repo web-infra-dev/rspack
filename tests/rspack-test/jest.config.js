@@ -3,24 +3,18 @@ const root = path.resolve(__dirname, "../../");
 
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
-	"@rspack/test-tools/setup-env"
+	"@rspack/test-tools/setup-env",
+	"@rspack/test-tools/setup"
 ];
 
 /** @type {import('jest').Config} */
 const wasmConfig = process.env.WASM && {
 	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	testPathIgnorePatterns: [
-		// Skip because they reply on snapshots
-		"Diagnostics.test.js",
-		"Error.test.js",
-		"StatsAPI.test.js",
-		"StatsOutput.test.js",
-
 		// Skip temporarily and should investigate in the future
-		"Defaults.test.js",
 		"Cache.test.js",
-		"Compiler.test.js",
 		"Serial.test.js",
+		"Normal-hot.test.js",
 		"Incremental-node.test.js",
 		"Incremental-watch-webpack.test.js",
 		"Incremental-watch.test.js",
@@ -45,9 +39,13 @@ const config = {
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [
+		!process.env.WASM && "<rootDir>/compilerCases/*.js",
+		!process.env.WASM && "<rootDir>/errorCases/*.js",
+		!process.env.WASM && "<rootDir>/statsAPICases/*.js",
+		!process.env.WASM && "<rootDir>/defaultsCases/*/*.js",
 		"<rootDir>/*.test.js",
 		"<rootDir>/legacy-test/*.test.js"
-	],
+	].filter(Boolean),
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
@@ -74,8 +72,9 @@ const config = {
 				: undefined,
 		printLogger: process.argv.includes("--verbose")
 	},
-	...(wasmConfig || {}),
 	verbose: true,
+	maxWorkers: 5,
+	...(wasmConfig || {}),
 };
 
 module.exports = config;

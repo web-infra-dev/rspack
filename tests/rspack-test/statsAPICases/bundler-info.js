@@ -1,10 +1,9 @@
-/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should inject bundler info runtime modules",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/index",
+			entry: "./index",
 			experiments: {
 				rspackFuture: {
 					bundlerInfo: {
@@ -24,4 +23,4 @@ module.exports = {
 		expect(runtimeModules).toContain("webpack/runtime/rspack_unique_id");
 		expect(runtimeModules).toContain("webpack/runtime/rspack_version");
 	}
-};
+});

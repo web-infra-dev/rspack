@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const mockFn = jest.fn();
 
 class MyPlugin {
@@ -10,8 +11,8 @@ class MyPlugin {
 	}
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
 	description: "should work with `namedChunks`",
 	options(context) {
 		return {
@@ -25,4 +26,4 @@ module.exports = {
 	async check() {
 		expect(mockFn).toBeCalled();
 	}
-};
+});

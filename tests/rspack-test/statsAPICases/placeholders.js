@@ -10,13 +10,12 @@ class TestPlugin {
 	}
 }
 
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have null as placeholders in stats before chunkIds",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/a",
+			entry: "./a",
 			plugins: [new TestPlugin()]
 		};
 	},
@@ -38,4 +37,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

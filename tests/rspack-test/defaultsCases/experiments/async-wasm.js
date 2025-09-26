@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "async wasm",
 	options: () => ({ experiments: { asyncWebAssembly: true } }),
 	diff: e =>
@@ -40,4 +39,4 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 	`)
-};
+});

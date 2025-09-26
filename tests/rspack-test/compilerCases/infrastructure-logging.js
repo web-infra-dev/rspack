@@ -1,3 +1,4 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 const { createFsFromVolume, Volume } = require("memfs");
 
@@ -28,7 +29,7 @@ const escapeAnsi = stringRaw =>
 let capture;
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [
+defineCompileCase(Utils.basename(__filename), [
 	{
 		description: "should log to the console (verbose)",
 		options(context) {
@@ -180,4 +181,4 @@ module.exports = [
 			capture.restore();
 		}
 	}
-];
+]);

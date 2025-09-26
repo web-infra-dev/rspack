@@ -1,6 +1,6 @@
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
 	description: "should call optimizeModules hook correctly",
 	options(context) {
 		return {
@@ -44,4 +44,4 @@ module.exports = [{
 			}]
 		};
 	}
-}];
+}]);

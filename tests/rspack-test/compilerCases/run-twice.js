@@ -1,7 +1,8 @@
+const { basename, defineCompileCase } = require("@rspack/test-tools");
 const { createFsFromVolume, Volume } = require("memfs");
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
   description: "should not be running twice at a time (run)",
   options(context) {
     return {
@@ -105,4 +106,4 @@ module.exports = [{
       })
     });
   },
-}];
+}]);

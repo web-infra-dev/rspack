@@ -1,5 +1,5 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
 	description: "splitChunks.minChunks equals 0",
 	options(context) {
 		return {
@@ -30,4 +30,4 @@ module.exports = {
 		);
 		context.clearError(name);
 	}
-};
+});

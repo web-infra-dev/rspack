@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "output module",
 	options: () => ({ experiments: { outputModule: true } }),
 	diff: e =>
@@ -61,4 +60,4 @@ module.exports = {
 		-     "workerChunkLoading": "import-scripts",
 		+     "workerChunkLoading": "import",
 	`)
-};
+});

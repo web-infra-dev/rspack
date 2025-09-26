@@ -1,5 +1,4 @@
-/** @type {import('../../../packages/rspack-test-tools/dist').TErrorCaseConfig} */
-module.exports = {
+defineErrorCase(Utils.basename(__filename), {
 	description: "Testing proxy methods on warnings: test splice 2",
 	options() {
 		return {
@@ -37,4 +36,4 @@ module.exports = {
 		}
 	`);
 	}
-};
+});

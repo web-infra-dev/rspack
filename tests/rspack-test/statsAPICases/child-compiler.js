@@ -1,4 +1,3 @@
-const { createFsFromVolume, Volume } = require("memfs");
 let statsJson;
 
 class TestPlugin {
@@ -15,7 +14,7 @@ class TestPlugin {
 						[
 							new compiler.webpack.EntryPlugin(
 								compiler.context,
-								"./fixtures/abc",
+								"./abc",
 								{ name: "TestChild" }
 							)
 						]
@@ -34,13 +33,12 @@ class TestPlugin {
 	}
 }
 
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have children when using childCompiler",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/a",
+			entry: "./a",
 			plugins: [new TestPlugin()]
 		};
 	},
@@ -58,4 +56,4 @@ module.exports = {
 		expect(children[0].assets.length).toBe(1);
 		expect(children[0].assets[0].name).toBe("TestChild.js");
 	}
-};
+});

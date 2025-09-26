@@ -174,6 +174,8 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			Symbol,
 			Buffer,
 			setImmediate,
+			__SOURCE__: this._options.source,
+			__DIST__: this._options.dist,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			...this._options.env

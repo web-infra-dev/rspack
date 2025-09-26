@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "target webworker",
 	options: () => ({ target: "webworker" }),
 	diff: e =>
@@ -24,4 +23,4 @@ module.exports = {
 		-   "target": "web",
 		+   "target": "webworker",
 	`)
-};
+});

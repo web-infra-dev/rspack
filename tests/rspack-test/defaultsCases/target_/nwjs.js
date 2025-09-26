@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "target nwjs",
 	options: () => ({ target: "nwjs" }),
 	diff: e =>
@@ -120,4 +119,4 @@ module.exports = {
 		-   "target": "web",
 		+   "target": "nwjs",
 	`)
-};
+});

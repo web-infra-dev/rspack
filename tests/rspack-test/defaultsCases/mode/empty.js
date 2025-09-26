@@ -1,7 +1,6 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "empty config",
 	options: () => ({}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
-};
+});

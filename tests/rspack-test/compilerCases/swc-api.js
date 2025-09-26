@@ -1,5 +1,5 @@
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
 	description: "should load @swc/plugin-remove-console successfully and transform code using rspack inner swc api",
 	async check({ compiler }) {
 		let swc = compiler.rspack.experiments.swc;
@@ -63,4 +63,4 @@ module.exports = [{
 			check_transform_sourcemap(swc.transformSync)
 		]);
 	}
-}]
+}]);

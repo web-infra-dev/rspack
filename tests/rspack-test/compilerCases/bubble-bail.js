@@ -1,7 +1,8 @@
+
 let error;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
 	description:
 		"should bubble up errors when wrapped in a promise and bail is true (empty dependency)",
 	options(context) {
@@ -47,4 +48,4 @@ module.exports = {
 		   ╰────
 	`);
 	}
-};
+});

@@ -1,6 +1,6 @@
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
   skip: true,
   description: "should not evaluate constants in asm.js",
   options(context) {
@@ -23,4 +23,4 @@ module.exports = {
     expect(bundle).toMatch("109");
     expect(bundle).toMatch("110");
   }
-};
+});

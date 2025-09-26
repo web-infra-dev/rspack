@@ -1,5 +1,4 @@
-/** @type {import('../../../../packages/rspack-test-tools/dist').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "stats true",
 	options: () => ({ stats: true }),
 	diff: e =>
@@ -13,4 +12,4 @@ module.exports = {
 		+     "preset": "normal",
 		+   },
 	`)
-};
+});

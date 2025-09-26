@@ -1,3 +1,5 @@
+
+
 let globalId = 0;
 
 const buildModule = jest.fn();
@@ -85,8 +87,8 @@ class MyPlugin {
     }
 }
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
-module.exports = {
+
+defineCompileCase(Utils.basename(__filename), {
     description: "The hooks should access the correct closure",
     options(context) {
         return {
@@ -131,4 +133,4 @@ module.exports = {
         expect(seal.mock.calls.length).toBeGreaterThanOrEqual(2);
         expect(afterSeal.mock.calls.length).toBeGreaterThanOrEqual(2);
     }
-};
+});

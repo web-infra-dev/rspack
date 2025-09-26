@@ -12,6 +12,7 @@
     "./setup-expect": "./dist/helper/setup-expect.js",
     "./setup-env": "./dist/helper/setup-env.js",
     "./setup-wasm": "./dist/helper/setup-wasm.js",
+    "./setup": "./dist/setup.js",
     "./package.json": "./package.json",
     "./helper/*": "./dist/helper/*.js",
     "./helper/legacy/*": "./dist/helper/legacy/*.js",

@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "uniqueName",
 	options: () => ({
 		output: {
@@ -13,21 +12,21 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
+		-     "chunkLoadingGlobal": "webpackChunk",
 		+     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
+		-     "devtoolNamespace": "",
 		+     "devtoolNamespace": "@@@Hello World!",
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
+		-     "hotUpdateGlobal": "webpackHotUpdate",
 		+     "hotUpdateGlobal": "webpackHotUpdate_Hello_World_",
 		@@ ... @@
 		-     "trustedTypes": undefined,
-		-     "uniqueName": "@rspack/tests",
+		-     "uniqueName": "",
 		+     "trustedTypes": Object {
 		+       "onPolicyCreationFailure": "stop",
 		+       "policyName": "@@@Hello_World_",
 		+     },
 		+     "uniqueName": "@@@Hello World!",
 	`)
-};
+});

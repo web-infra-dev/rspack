@@ -1,12 +1,11 @@
 const { Stats } = require("@rspack/core");
 
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should not have any cache hits log when cache is disabled",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/abc",
+			entry: "./abc",
 			cache: false
 		};
 	},
@@ -21,7 +20,7 @@ module.exports = {
 		});
 		await new Promise((resolve, reject) => {
 			compiler.__internal__rebuild(
-				new Set([context.getSource("./fixtures/a")]),
+				new Set([context.getSource("./a")]),
 				new Set(),
 				err => {
 					if (err) {
@@ -41,4 +40,4 @@ module.exports = {
 		expect(stats).not.toContain("module factorize cache");
 		expect(stats).not.toContain("module code generation cache");
 	}
-};
+});

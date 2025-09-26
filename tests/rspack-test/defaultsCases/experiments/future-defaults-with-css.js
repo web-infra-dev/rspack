@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "experiments.futureDefaults w/ experiments.css disabled",
 	options: () => ({
 		experiments: {
@@ -55,4 +54,4 @@ module.exports = {
 		-     "charset": true,
 		+     "charset": false,
 	`)
-};
+});

@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "sync wasm",
 	options: () => ({ experiments: { syncWebAssembly: true } }),
 	diff: e =>
@@ -10,4 +9,4 @@ module.exports = {
 		@@ ... @@
 		+     "syncWebAssembly": true,
 	`)
-};
+});

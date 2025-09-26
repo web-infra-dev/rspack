@@ -57,7 +57,6 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 			key,
 			new BasicCaseCreator({
 				clean: true,
-				describe: true,
 				target,
 				steps: ({ name, target }) => [
 					createHotIncrementalProcessor(name, target as TTarget, webpackCases)
@@ -109,7 +108,6 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 						? `${name} should compile`
 						: `should compile step ${index}`;
 				},
-				describe: false,
 				steps: ({ name, src, temp }) => {
 					const watchState = {};
 					const runs = fs

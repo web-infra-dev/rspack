@@ -1,6 +1,6 @@
 
 /** @type {import('@rspack/core').TCompilerCaseConfig[]} */
-module.exports = [{
+defineCompileCase(Utils.basename(__filename), [{
 	description: "should compile a single file",
 	options(context) {
 		return {
@@ -46,4 +46,4 @@ module.exports = [{
 		expect(bundle).not.toMatch("jsonp");
 		expect(bundle).not.toMatch("fixtures");
 	}
-}];
+}]);

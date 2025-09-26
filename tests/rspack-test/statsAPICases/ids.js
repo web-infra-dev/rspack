@@ -1,10 +1,9 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
-module.exports = {
+defineStatsAPICase(Utils.basename(__filename), {
 	description: "should have ids when ids is true",
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/a"
+			entry: "./a"
 		};
 	},
 	async check(stats) {
@@ -58,7 +57,7 @@ module.exports = {
 		      files: Array [
 		        main.js,
 		      ],
-		      hash: 8c119b10eb3bf1e9,
+		      hash: 4ee9e6e51ec11d11,
 		      id: 889,
 		      idHints: Array [],
 		      initial: true,
@@ -92,7 +91,7 @@ module.exports = {
 		      dependent: undefined,
 		      errors: 0,
 		      failed: false,
-		      id: 195,
+		      id: 670,
 		      identifier: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		      index: 0,
 		      index2: 0,
@@ -102,7 +101,7 @@ module.exports = {
 		      issuerPath: undefined,
 		      layer: undefined,
 		      moduleType: javascript/auto,
-		      name: ./fixtures/a.js,
+		      name: ./a.js,
 		      nameForCondition: <TEST_TOOLS_ROOT>/fixtures/a.js,
 		      optional: false,
 		      orphan: false,
@@ -121,7 +120,7 @@ module.exports = {
 		expect(stats?.toString(options)).toMatchInlineSnapshot(`
 		asset main.js 204 bytes {889} [emitted] (name: main)
 		chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
-		./fixtures/a.js [195] 55 bytes {889} [built] [code generated]
+		./a.js [670] 55 bytes {889} [built] [code generated]
 	`);
 	}
-};
+});

@@ -1,5 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "experiments.futureDefaults",
 	options: () => ({
 		experiments: {
@@ -128,4 +127,4 @@ module.exports = {
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)
-};
+});

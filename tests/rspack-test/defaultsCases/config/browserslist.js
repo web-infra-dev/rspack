@@ -1,32 +1,92 @@
 const path = require("path");
-/** @type {import('../../..').TDefaultsCaseConfig} */
-module.exports = {
+defineDefaultsCase(Utils.casename(__filename), {
 	description: "browserslist",
-	options: context => ({
-		context: path.resolve(context.getSource(), "./browserslist")
-	}),
+	options: context => {
+		return {
+			context: path.resolve(context.getSource(), "./browserslist")
+		};
+	},
 	diff: e =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
 
 		@@ ... @@
-		-   "context": "<cwd>",
-		+   "context": "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
+		-   "context": "<cwd>/fixtures",
+		+   "context": "<cwd>/fixtures/browserslist",
 		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-		+     "chunkLoadingGlobal": "webpackChunk",
+		-       "arrowFunction": true,
+		-       "asyncFunction": true,
+		-       "bigIntLiteral": true,
+		-       "const": true,
+		-       "destructuring": true,
+		+       "arrowFunction": false,
+		+       "asyncFunction": false,
+		+       "bigIntLiteral": false,
+		+       "const": false,
+		+       "destructuring": false,
 		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
-		+     "devtoolNamespace": "",
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		-       "forOf": true,
+		-       "globalThis": undefined,
+		-       "module": undefined,
+		-       "nodePrefixForCoreModules": true,
+		-       "optionalChaining": true,
+		-       "templateLiteral": true,
+		+       "dynamicImport": false,
+		+       "dynamicImportInWorker": false,
+		+       "forOf": false,
+		+       "globalThis": false,
+		+       "module": false,
+		+       "nodePrefixForCoreModules": false,
+		+       "optionalChaining": false,
+		+       "templateLiteral": false,
 		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-		+     "hotUpdateGlobal": "webpackHotUpdate",
+		-     "chunkLoadingGlobal": "webpackChunk",
+		+     "chunkLoadingGlobal": "webpackChunkbrowserslist_test",
 		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
-		+     "uniqueName": "",
+		-     "devtoolNamespace": "",
+		+     "devtoolNamespace": "browserslist-test",
 		@@ ... @@
-		-       "<cwd>",
-		+       "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
+		-       "arrowFunction": true,
+		-       "asyncFunction": true,
+		-       "bigIntLiteral": true,
+		-       "const": true,
+		-       "destructuring": true,
+		+       "arrowFunction": false,
+		+       "asyncFunction": false,
+		+       "bigIntLiteral": false,
+		+       "const": false,
+		+       "destructuring": false,
+		@@ ... @@
+		-       "dynamicImport": undefined,
+		-       "dynamicImportInWorker": undefined,
+		-       "forOf": true,
+		-       "globalThis": undefined,
+		-       "module": undefined,
+		-       "nodePrefixForCoreModules": true,
+		-       "optionalChaining": true,
+		-       "templateLiteral": true,
+		+       "dynamicImport": false,
+		+       "dynamicImportInWorker": false,
+		+       "forOf": false,
+		+       "globalThis": false,
+		+       "module": false,
+		+       "nodePrefixForCoreModules": false,
+		+       "optionalChaining": false,
+		+       "templateLiteral": false,
+		@@ ... @@
+		-     "hotUpdateGlobal": "webpackHotUpdate",
+		+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist_test",
+		@@ ... @@
+		-     "uniqueName": "",
+		+     "uniqueName": "browserslist-test",
+		@@ ... @@
+		-       "<cwd>/fixtures",
+		+       "<cwd>/fixtures/browserslist",
+		@@ ... @@
+		-   "target": "web",
+		+   "target": "browserslist",
 	`)
-};
+});
