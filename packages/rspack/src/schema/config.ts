@@ -630,7 +630,11 @@ export const getRspackOptionsSchema = memoize(() => {
 	const dynamicImportPreload = z.union([z.boolean(), numberOrInfinity]);
 	const dynamicImportPrefetch = z.union([z.boolean(), numberOrInfinity]);
 	const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
-	const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
+	const javascriptParserUrl = z.union([
+		z.literal("relative"),
+		z.literal("new-url-relative"),
+		z.boolean()
+	]);
 	const exprContextCritical = z.boolean();
 	const wrappedContextCritical = z.boolean();
 	const unknownContextCritical = z.boolean();

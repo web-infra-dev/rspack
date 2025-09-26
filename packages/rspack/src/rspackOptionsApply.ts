@@ -65,6 +65,7 @@ import {
 	SizeLimitsPlugin,
 	SourceMapDevToolPlugin,
 	SplitChunksPlugin,
+	URLPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
 import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
@@ -221,6 +222,7 @@ export class RspackOptionsApply {
 		}
 
 		new JavascriptModulesPlugin().apply(compiler);
+		new URLPlugin().apply(compiler);
 		new JsonModulesPlugin().apply(compiler);
 		new AssetModulesPlugin().apply(compiler);
 		if (options.experiments.asyncWebAssembly) {

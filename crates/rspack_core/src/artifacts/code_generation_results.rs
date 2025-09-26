@@ -38,6 +38,9 @@ impl CodeGenerationDataUrl {
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
 #[derive(Clone, Debug)]
+pub struct URLStaticMode;
+
+#[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
   public_path: String,

@@ -1059,7 +1059,7 @@ export type JavascriptParserOptions = {
 	 * Enable parsing of new URL() syntax.
 	 * @default true
 	 * */
-	url?: "relative" | boolean;
+	url?: "relative" | "new-url-relative" | boolean;
 
 	/**
 	 * Enable warnings for full dynamic dependencies
