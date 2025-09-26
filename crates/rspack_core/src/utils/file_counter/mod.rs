@@ -20,8 +20,8 @@ impl FileCounter {
   /// It will add resource_id at the PathBuf in inner hashmap
   pub fn add_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
     for path in paths {
-      // Use get_mut instead of entry API to avoid unnecessary path cloning,
-      // since paths are frequently duplicated in practice
+      // Use get_mut() instead of entry() to avoid unnecessary ArcPath cloning.
+      // ArcPath's pre-cached hash enables efficient lookups without rehashing.
       if let Some(resources) = self.inner.get_mut(path) {
         resources.insert(resource_id.clone());
       } else {
