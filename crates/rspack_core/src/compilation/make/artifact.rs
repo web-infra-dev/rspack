@@ -117,10 +117,8 @@ impl MakeArtifact {
       .into_iter()
       .chain(mgm.incoming_connections().clone())
     {
-      if !self.make_failed_dependencies.remove(&dep_id) {
-        continue;
-      }
-      // make failed dependencies clean it.
+      self.make_failed_dependencies.remove(&dep_id);
+
       let dep = mg
         .dependency_by_id_mut(&dep_id)
         .expect("should have dependency");
