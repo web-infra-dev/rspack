@@ -155,7 +155,7 @@ export function findBundle(
 				options.output.path!,
 				(typeof options.output?.cssFilename === "string" &&
 					options.output?.cssFilename) ||
-					`bundle${index}.css`
+				`bundle${index}.css`
 			);
 			if (fs.existsSync(cssOutputPath)) {
 				bundlePath.push(`./bundle${index}.css`);
@@ -164,6 +164,5 @@ export function findBundle(
 
 		bundlePath.push(`./bundle${index}${ext}`);
 	}
-
 	return bundlePath;
 }

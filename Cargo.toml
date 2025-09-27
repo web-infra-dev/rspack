@@ -183,6 +183,7 @@ rspack_plugin_dll                      = { version = "=0.5.7", path = "crates/rs
 rspack_plugin_dynamic_entry            = { version = "=0.5.7", path = "crates/rspack_plugin_dynamic_entry", default-features = false }
 rspack_plugin_ensure_chunk_conditions  = { version = "=0.5.7", path = "crates/rspack_plugin_ensure_chunk_conditions", default-features = false }
 rspack_plugin_entry                    = { version = "=0.5.7", path = "crates/rspack_plugin_entry", default-features = false }
+rspack_plugin_esm_library              = { version = "=0.5.7", path = "crates/rspack_plugin_esm_library", default-features = false }
 rspack_plugin_externals                = { version = "=0.5.7", path = "crates/rspack_plugin_externals", default-features = false }
 rspack_plugin_extract_css              = { version = "=0.5.7", path = "crates/rspack_plugin_extract_css", default-features = false }
 rspack_plugin_hmr                      = { version = "=0.5.7", path = "crates/rspack_plugin_hmr", default-features = false }

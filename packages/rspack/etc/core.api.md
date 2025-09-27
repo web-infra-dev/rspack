@@ -2241,6 +2241,14 @@ interface Es6Config extends BaseModuleConfig {
 }
 
 // @public (undocumented)
+class EsmLibraryPlugin {
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    static PLUGIN_NAME: string;
+}
+
+// @public (undocumented)
 interface EsParserConfig {
     allowReturnOutsideFunction?: boolean;
     allowSuperOutsideMethod?: boolean;
@@ -2396,6 +2404,8 @@ interface Experiments_2 {
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
+    // (undocumented)
+    EsmLibraryPlugin: typeof EsmLibraryPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;

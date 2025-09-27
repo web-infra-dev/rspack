@@ -26,6 +26,7 @@ export * from "./EnableLibraryPlugin";
 export * from "./EnableWasmLoadingPlugin";
 export * from "./EnsureChunkConditionsPlugin";
 export * from "./EntryPlugin";
+export * from "./EsmLibraryPlugin";
 export * from "./EvalDevToolModulePlugin";
 export * from "./EvalSourceMapDevToolPlugin";
 export * from "./ExternalsPlugin";

@@ -3564,6 +3564,7 @@ dependencies = [
  "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
+ "rspack_plugin_esm_library",
  "rspack_plugin_externals",
  "rspack_plugin_extract_css",
  "rspack_plugin_hmr",
@@ -4284,6 +4285,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_esm_library"
+version = "0.5.7"
+dependencies = [
+ "async-trait",
+ "rayon",
+ "regex",
+ "rspack_cacheable",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_futures",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_javascript_compiler",
+ "rspack_plugin_javascript",
+ "rspack_util",
+ "serde",
+ "serde_json",
+ "sugar_path",
+ "swc_core",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_externals"
 version = "0.5.7"
 dependencies = [
@@ -4628,6 +4654,7 @@ dependencies = [
 name = "rspack_plugin_remove_duplicate_modules"
 version = "0.5.7"
 dependencies = [
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
