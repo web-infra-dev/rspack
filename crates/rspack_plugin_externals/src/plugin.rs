@@ -184,9 +184,9 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
       ExternalItem::Fn(f) => {
         let request = dependency.request();
         let result = f(ExternalItemFnCtx {
-          context: context.to_string(),
+          context: context.clone(),
           request: request.to_string(),
-          dependency_type: dependency.category().to_string(),
+          dependency_type: *dependency.category(),
           context_info: ContextInfo {
             issuer: data
               .issuer
