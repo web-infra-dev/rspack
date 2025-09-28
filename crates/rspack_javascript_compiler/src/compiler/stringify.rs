@@ -4,9 +4,9 @@ use rspack_error::Result;
 use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
 use rustc_hash::FxHashMap;
 use swc_core::{
-  base::{config::JsMinifyFormatOptions, sourcemap},
+  base::sourcemap,
   common::{
-    BytePos, FileName, SourceMap as SwcSourceMap, Spanned, comments::Comments,
+    BytePos, FileName, SourceMap as SwcSourceMap, comments::Comments,
     source_map::SourceMapGenConfig,
   },
   ecma::{
@@ -21,19 +21,6 @@ use swc_core::{
 };
 
 use super::{JavaScriptCompiler, TransformOutput};
-use crate::ast::Ast;
-
-#[derive(Default, Clone, Debug)]
-pub struct CodegenOptions<'a> {
-  pub target: Option<EsVersion>,
-  pub source_map_config: SourceMapConfig,
-  pub input_source_map: Option<&'a sourcemap::SourceMap>,
-  pub keep_comments: Option<bool>,
-  pub minify: Option<bool>,
-  pub ascii_only: Option<bool>,
-  pub inline_script: Option<bool>,
-  pub emit_assert_for_import_attributes: Option<bool>,
-}
 
 #[derive(Default, Clone, Debug)]
 pub struct SourceMapConfig {
@@ -80,41 +67,6 @@ pub struct PrintOptions<'a> {
 }
 
 impl JavaScriptCompiler {
-  pub fn stringify(&self, ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
-    ast.visit(|program, context| {
-      let keep_comments = options.keep_comments;
-      let target = options.target.unwrap_or(EsVersion::latest());
-      let source_map_config = options.source_map_config;
-      let minify = options.minify.unwrap_or_default();
-      let format_opt = JsMinifyFormatOptions {
-        inline_script: options.inline_script.unwrap_or(true),
-        ascii_only: options.ascii_only.unwrap_or_default(),
-        emit_assert_for_import_attributes: options
-          .emit_assert_for_import_attributes
-          .unwrap_or_default(),
-        ..Default::default()
-      };
-
-      let span = program.program.span();
-      let print_options = PrintOptions {
-        source_len: span.hi.0.saturating_sub(span.lo.0),
-        source_map: context.source_map.clone(),
-        target,
-        source_map_config,
-        input_source_map: options.input_source_map,
-        minify,
-        comments: keep_comments
-          .unwrap_or_default()
-          .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
-          .flatten(),
-        preamble: &format_opt.preamble,
-        ascii_only: format_opt.ascii_only,
-        inline_script: format_opt.inline_script,
-      };
-      self.print(program.get_inner_program(), print_options)
-    })
-  }
-
   pub fn print(&self, node: &SwcProgram, options: PrintOptions<'_>) -> Result<TransformOutput> {
     let PrintOptions {
       source_len,

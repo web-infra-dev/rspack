@@ -67,10 +67,15 @@ impl SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = loader_context.source_map().cloned()
-        && let Ok(source_map) = pre_source_map.to_json()
-      {
-        swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+
+      if loader_context.context.module_source_map_kind.enabled() {
+        if let Some(pre_source_map) = loader_context.source_map().cloned()
+          && let Ok(source_map) = pre_source_map.to_json()
+        {
+          swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+        }
+      } else {
+        swc_options.config.input_source_map = Some(InputSourceMap::Bool(false));
       }
       swc_options.filename = resource_path.as_str().to_string();
       swc_options.source_file_name = Some(resource_path.as_str().to_string());
