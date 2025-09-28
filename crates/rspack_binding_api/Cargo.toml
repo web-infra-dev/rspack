@@ -61,7 +61,6 @@ once_cell                              = { workspace = true }
 rayon                                  = { workspace = true }
 regex                                  = { workspace = true }
 rspack_browser                         = { workspace = true, optional = true }
-rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }

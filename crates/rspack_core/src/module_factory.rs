@@ -1,11 +1,12 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
+use derive_more::Debug;
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
+  BoxDependency, BoxLoader, BoxModule, CompilationId, CompilerId, CompilerOptions, Context,
+  ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -69,22 +70,20 @@ impl ModuleFactoryCreateData {
 #[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
   pub module: Option<BoxModule>,
+  #[debug(skip)]
+  pub loaders: Vec<BoxLoader>,
 }
 
 impl ModuleFactoryResult {
   pub fn new_with_module(module: BoxModule) -> Self {
     Self {
       module: Some(module),
+      loaders: vec![],
     }
-  }
-
-  pub fn module(mut self, module: Option<BoxModule>) -> Self {
-    self.module = module;
-    self
   }
 }
 
 #[async_trait::async_trait]
-pub trait ModuleFactory: Debug + Sync + Send {
+pub trait ModuleFactory: std::fmt::Debug + Sync + Send {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

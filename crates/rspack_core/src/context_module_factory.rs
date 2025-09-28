@@ -340,9 +340,7 @@ impl ContextModuleFactory {
     data.add_missing_dependencies(missing_dependencies);
     // data.add_context_dependencies(context_dependencies);
 
-    let module_factory_result = ModuleFactoryResult {
-      module: Some(module),
-    };
+    let module_factory_result = ModuleFactoryResult::new_with_module(module);
     Ok((module_factory_result, context_module_options))
   }
 

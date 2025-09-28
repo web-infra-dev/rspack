@@ -1,13 +1,10 @@
 use async_trait::async_trait;
-use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
 use serde_json::json;
 
-#[cacheable]
 pub struct SimpleLoader;
-#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for SimpleLoader {
   fn identifier(&self) -> Identifier {
@@ -25,9 +22,7 @@ impl Loader<RunnerContext> for SimpleLoader {
 }
 pub const SIMPLE_LOADER_IDENTIFIER: &str = "builtin:test-simple-loader";
 
-#[cacheable]
 pub struct SimpleAsyncLoader;
-#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for SimpleAsyncLoader {
   fn identifier(&self) -> Identifier {
@@ -44,9 +39,7 @@ impl Loader<RunnerContext> for SimpleAsyncLoader {
 }
 pub const SIMPLE_ASYNC_LOADER_IDENTIFIER: &str = "builtin:test-simple-async-loader";
 
-#[cacheable]
 pub struct PitchingLoader;
-#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for PitchingLoader {
   fn identifier(&self) -> Identifier {
@@ -68,9 +61,7 @@ impl Loader<RunnerContext> for PitchingLoader {
 }
 pub const PITCHING_LOADER_IDENTIFIER: &str = "builtin:test-pitching-loader";
 
-#[cacheable]
 pub struct PassthroughLoader;
-#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for PassthroughLoader {
   fn identifier(&self) -> Identifier {
@@ -85,9 +76,7 @@ impl Loader<RunnerContext> for PassthroughLoader {
 }
 pub const PASS_THROUGH_LOADER_IDENTIFIER: &str = "builtin:test-passthrough-loader";
 
-#[cacheable]
 pub struct NoPassthroughLoader;
-#[cacheable_dyn]
 #[async_trait]
 impl Loader<RunnerContext> for NoPassthroughLoader {
   fn identifier(&self) -> Identifier {

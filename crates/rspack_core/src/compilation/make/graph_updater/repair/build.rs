@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use derive_more::Debug;
 use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
@@ -7,8 +8,9 @@ use super::{
   TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildContext, BuildResult, CompilationId,
+  CompilerId, CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
   compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
@@ -21,6 +23,8 @@ pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
+  #[debug(skip)]
+  pub loaders: Vec<BoxLoader>,
   pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -43,6 +47,7 @@ impl Task<TaskContext> for BuildTask {
       plugin_driver,
       mut current_profile,
       mut module,
+      loaders,
       fs,
       forwarded_ids,
     } = *self;
@@ -65,6 +70,7 @@ impl Task<TaskContext> for BuildTask {
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
           fs: fs.clone(),
+          loaders,
         },
         None,
       )

@@ -39,16 +39,6 @@ impl NormalModule {
         ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
       )?
     });
-    let loaders = Object::from_raw(env.raw(), unsafe {
-      ToNapiValue::to_napi_value(
-        env.raw(),
-        module
-          .loaders()
-          .iter()
-          .map(JsLoaderItem::from)
-          .collect::<Vec<_>>(),
-      )?
-    });
 
     #[js_function]
     pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&str, ()>> {
@@ -114,11 +104,6 @@ impl NormalModule {
         napi::Property::new()
           .with_utf8_name("resourceResolveData")?
           .with_value(&resource_resolve_data),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
-          .with_value(&loaders),
       );
       properties.push(
         napi::Property::new()

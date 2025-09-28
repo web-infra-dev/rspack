@@ -8,7 +8,6 @@ use std::{default::Default, path::Path};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
-use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
@@ -23,7 +22,6 @@ use swc_core::{
 
 use crate::collect_ts_info::collect_typescript_info;
 
-#[cacheable]
 #[derive(Debug)]
 pub struct SwcLoader {
   identifier: Identifier,
@@ -175,7 +173,6 @@ impl SwcLoader {
 
 pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 
-#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
   fn identifier(&self) -> Identifier {
