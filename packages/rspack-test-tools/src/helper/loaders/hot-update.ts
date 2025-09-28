@@ -37,5 +37,8 @@ export default function (this: any, c: string) {
 
 	options.totalUpdates = Math.max(options.totalUpdates, items.length);
 	options.changedFiles.push(this.resourcePath);
+	if (options.updateIndex >= items.length) {
+		return items[items.length - 1];
+	}
 	return items[options.updateIndex];
 }
