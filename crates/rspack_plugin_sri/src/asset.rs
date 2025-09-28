@@ -192,14 +192,15 @@ fn process_chunk_source(
   }
 }
 
-fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
+fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
   let mut batches = vec![];
   let mut visited_chunk_groups = HashSet::default();
   let mut visited_chunks = HashSet::default();
   let mut batch_chunk_groups = compilation.entrypoints().values().collect::<Vec<_>>();
 
   while !batch_chunk_groups.is_empty() {
-    let mut chunk_batch = HashSet::default();
+    let mut chunk_batch = vec![];
+    let mut chunk_runtime_batch = vec![];
     for chunk_group in std::mem::take(&mut batch_chunk_groups) {
       if visited_chunk_groups.contains(chunk_group) {
         continue;
@@ -208,15 +209,23 @@ fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
       if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
         batch_chunk_groups.extend(chunk_group.children.iter());
         batch_chunk_groups.extend(chunk_group.async_entrypoints_iterable());
-        for chunk in chunk_group.chunks.iter() {
-          if visited_chunks.contains(chunk) {
+        for chunk_ukey in chunk_group.chunks.iter() {
+          if visited_chunks.contains(chunk_ukey) {
             continue;
           }
-          visited_chunks.insert(*chunk);
-          chunk_batch.insert(*chunk);
+          let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+            continue;
+          };
+          visited_chunks.insert(*chunk_ukey);
+          if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+            chunk_runtime_batch.push(*chunk_ukey);
+          } else {
+            chunk_batch.push(*chunk_ukey);
+          }
         }
       }
     }
+    batches.push(chunk_runtime_batch);
     batches.push(chunk_batch);
   }
   batches.reverse();
