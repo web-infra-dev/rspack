@@ -161,6 +161,11 @@ module.exports = function () {
 		);
 		early(
 			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
+			"remoteInfos",
+			() => __module_federation_remote_infos__
+		);
+		early(
+			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
 			"idToExternalAndNameMapping",
 			() => {
 				const remotesLoadingIdToExternalAndNameMappingMapping = {};
@@ -262,7 +267,7 @@ module.exports = function () {
 						throw new Error(
 							'Module "' + module + '" does not exist in container.'
 						);
-					});
+				  });
 			__webpack_require__.R = undefined;
 			return getScope;
 		});
