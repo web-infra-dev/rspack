@@ -42,9 +42,9 @@ use crate::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
-  ConnectionState, Context, DEFAULT_EXPORT, DependenciesBlock, DependencyId, DependencyType,
-  ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam,
-  IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
+  DependencyType, ExportMode, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FactoryMeta, GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
@@ -201,10 +201,58 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
+  pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
+}
+
+impl ConcatenatedModuleInfo {
+  pub fn get_internal_name<'me>(&'me self, atom: &Atom) -> Option<&'me Atom> {
+    if let Some(name) = self.internal_names.get(atom) {
+      return Some(name);
+    }
+
+    if atom.as_str() == "default" {
+      return self.internal_names.get(&DEFAULT_EXPORT_ATOM);
+    }
+
+    if let Some(name) = &self.namespace_export_symbol
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if let Some(name) = &self.namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_default_access_used
+      && let Some(name) = &self.interop_default_access_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object_used
+      && let Some(name) = &self.interop_namespace_object_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    if self.interop_namespace_object2_used
+      && let Some(name) = &self.interop_namespace_object2_name
+      && name == atom
+    {
+      return Some(name);
+    }
+
+    None
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -219,6 +267,7 @@ pub struct ExternalModuleInfo {
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
   pub name: Option<Atom>,
+  pub runtime_requirements: RuntimeGlobals,
 }
 
 #[derive(Debug, Clone)]
@@ -234,6 +283,14 @@ pub enum ModuleInfo {
 }
 
 impl ModuleInfo {
+  pub fn is_external(&self) -> bool {
+    matches!(self, ModuleInfo::External(_))
+  }
+
+  pub fn is_concatenated(&self) -> bool {
+    matches!(self, ModuleInfo::Concatenated(_))
+  }
+
   pub fn try_as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
     if let Self::Concatenated(v) = self {
       Some(v)
@@ -256,6 +313,14 @@ impl ModuleInfo {
       v
     } else {
       panic!("should convert as concatenated module info")
+    }
+  }
+
+  pub fn as_external(&self) -> &ExternalModuleInfo {
+    if let Self::External(v) = self {
+      v
+    } else {
+      panic!("should convert as external module info")
     }
   }
 
@@ -356,6 +421,13 @@ impl ModuleInfo {
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
     }
   }
+
+  pub fn get_runtime_requirements(&self) -> &RuntimeGlobals {
+    match self {
+      ModuleInfo::External(e) => &e.runtime_requirements,
+      ModuleInfo::Concatenated(c) => &c.runtime_requirements,
+    }
+  }
 }
 
 impl ModuleInfo {
@@ -367,10 +439,10 @@ impl ModuleInfo {
   }
 }
 
-#[derive(Default)]
-struct ImportSpec {
-  atoms: BTreeMap<Atom, Atom>,
-  default_import: Option<Atom>,
+#[derive(Default, Clone, Debug)]
+pub struct ImportSpec {
+  pub atoms: BTreeMap<Atom, Atom>,
+  pub default_import: Option<Atom>,
 }
 
 #[impl_source_map_config]
@@ -1728,6 +1800,7 @@ impl ConcatenatedModule {
                 interop_default_access_used: false,
                 interop_default_access_name: None,
                 name: None,
+                runtime_requirements: Default::default(),
               };
               vac.insert(ModuleInfo::External(info));
               list.push((module_id, Some(e.runtime_condition)))
@@ -2720,7 +2793,12 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Ve
   }
 
   let mut i = 0;
-  let name_with_number_ident = to_identifier_with_escaped(format!("{name}_"));
+  let name: Atom = to_identifier_with_escaped(name).into();
+  if !name.is_empty() && !used_names.contains(&name) {
+    return name;
+  }
+
+  let name_with_number_ident = format!("{name}_");
   let mut i_buffer = itoa::Buffer::new();
   let mut name_with_number = format!("{}{}", name_with_number_ident, i_buffer.format(i)).into();
   while used_names.contains(&name_with_number) {

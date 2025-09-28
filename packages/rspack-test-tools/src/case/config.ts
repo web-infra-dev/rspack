@@ -164,6 +164,5 @@ export function findBundle(
 
 		bundlePath.push(`./bundle${index}${ext}`);
 	}
-
 	return bundlePath;
 }

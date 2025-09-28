@@ -130,7 +130,7 @@ impl ESMExportImportedSpecifierDependency {
       .unwrap_or_else(|| self.ids.as_slice())
   }
 
-  fn get_mode(
+  pub fn get_mode(
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
@@ -1514,7 +1514,8 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
           mode.name.clone(),
           String::from("/* reexport non-default export from non-ESM */ undefined"),
         );
-      }
+      };
+
       return;
     }
 

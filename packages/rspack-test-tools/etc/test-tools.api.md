@@ -101,6 +101,9 @@ export function createDiffCase(name: string, src: string, dist: string): void;
 export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
+export function createEsmOutputCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)

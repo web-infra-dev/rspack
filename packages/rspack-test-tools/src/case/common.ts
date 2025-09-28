@@ -11,7 +11,6 @@ import {
 	type ITestEnv,
 	type TCompilation,
 	type TCompiler,
-	type TCompilerMultiStats,
 	type TCompilerOptions,
 	type TCompilerStats
 } from "../type";
@@ -218,61 +217,70 @@ export async function checkSnapshot<
 		);
 	}
 
-	const compiler = getCompiler(context, name);
-	const stats = compiler.getStats();
-	const c = compiler.getCompiler();
-	if (!stats || !c) return;
+	const compilerManager = getCompiler(context, name);
+	const stats = compilerManager.getStats();
+	const compiler = compilerManager.getCompiler();
+	if (!stats || !compiler) return;
 
-	if (stats.hasErrors()) {
-		const errors = [];
-		if ((stats as TCompilerMultiStats<T>).stats) {
-			for (const s of (stats as TCompilerMultiStats<T>).stats) {
-				if (s.hasErrors()) {
-					errors.push(...s.compilation.errors);
-				}
-			}
-		} else {
-			const s = stats as TCompilerStats<T>;
-			errors.push(...s.compilation.errors);
+	const compilers: TCompiler<T>[] =
+		"compilers" in compiler
+			? (compiler.compilers as unknown as TCompiler<T>[])
+			: [compiler as unknown as TCompiler<T>];
+	const totalStats: TCompilerStats<T>[] =
+		"stats" in stats
+			? (stats.stats as unknown as TCompilerStats<T>[])
+			: [stats as TCompilerStats<T>];
+	const total = compilers.length;
+	for (let i = 0; i < compilers.length; i++) {
+		const c = compilers[i];
+		const stats = totalStats[i];
+		if (stats.hasErrors()) {
+			const errors = [];
+			errors.push(...stats.compilation.errors);
+
+			throw new Error(
+				`Failed to compile in fixture ${name}, Errors: ${errors
+					?.map(i => `${i.message}\n${i.stack}`)
+					.join("\n\n")}`
+			);
 		}
+		const compilation =
+			(c as unknown as TCompiler<ECompilerType.Rspack>)._lastCompilation ||
+			(
+				c as unknown as TCompiler<ECompilerType.Webpack> & {
+					_lastCompilation: TCompilation<T>;
+				}
+			)._lastCompilation;
 
-		throw new Error(
-			`Failed to compile in fixture ${name}, Errors: ${errors
-				?.map(i => `${i.message}\n${i.stack}`)
-				.join("\n\n")}`
-		);
+		const snapshotFileFilter =
+			filter ||
+			((file: string) =>
+				(file.endsWith(".js") || file.endsWith(".mjs")) &&
+				!file.includes("runtime.js"));
+
+		const fileContents = Object.entries(compilation.assets)
+			.filter(([file]) => snapshotFileFilter(file))
+			.map(([file, source]) => {
+				const tag = path.extname(file).slice(1) || "txt";
+				let content = normalizePlaceholder(source.source().toString());
+				const testConfig = context.getTestConfig();
+				if (testConfig.snapshotContent) {
+					content = testConfig.snapshotContent(content);
+				}
+
+				return `\`\`\`${tag} title=${file}\n${content}\n\`\`\``;
+			});
+		fileContents.sort();
+		const content = fileContents.join("\n\n");
+		const snapshotPath = path.isAbsolute(snapshot)
+			? snapshot
+			: path.resolve(
+					context.getSource(),
+					`./__snapshots__/${snapshot}${total > 1 ? `-${i}` : ""}`
+				);
+
+		env.expect(content).toMatchFileSnapshot(snapshotPath);
 	}
-	const compilation =
-		(c as unknown as TCompiler<ECompilerType.Rspack>)._lastCompilation ||
-		(
-			c as unknown as TCompiler<ECompilerType.Webpack> & {
-				_lastCompilation: TCompilation<T>;
-			}
-		)._lastCompilation;
-
-	const snapshotFileFilter =
-		filter ||
-		((file: string) => file.endsWith(".js") && !file.includes("runtime.js"));
-
-	const fileContents = Object.entries(compilation.assets)
-		.filter(([file]) => snapshotFileFilter(file))
-		.map(([file, source]) => {
-			const tag = path.extname(file).slice(1) || "txt";
-			let content = normalizePlaceholder(source.source().toString());
-			const testConfig = context.getTestConfig();
-			if (testConfig.snapshotContent) {
-				content = testConfig.snapshotContent(content);
-			}
-
-			return `\`\`\`${tag} title=${file}\n${content}\n\`\`\``;
-		});
-	fileContents.sort();
-	const content = fileContents.join("\n\n");
-	const snapshotPath = path.isAbsolute(snapshot)
-		? snapshot
-		: path.resolve(context.getSource(), `./__snapshots__/${snapshot}`);
-
-	env.expect(content).toMatchFileSnapshot(snapshotPath);
 }
 
 export function findMultiCompilerBundle<

@@ -6,6 +6,7 @@ export { createDefaultsCase, getRspackDefaultConfig } from "./defaults";
 export { createDiagnosticCase } from "./diagnostic";
 export { createDiffCase } from "./diff";
 export { createErrorCase } from "./error";
+export { createEsmOutputCase } from "./esm-output";
 export { createHashCase } from "./hash";
 export { createHookCase } from "./hook";
 export { createHotCase } from "./hot";

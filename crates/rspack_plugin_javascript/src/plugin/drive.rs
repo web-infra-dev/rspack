@@ -1,11 +1,12 @@
 use rspack_core::{
-  BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module, ModuleIdentifier,
-  rspack_sources::BoxSource,
+  AssetInfo, BoxModule, Chunk, ChunkInitFragments, ChunkUkey, Compilation, Module,
+  ModuleIdentifier, rspack_sources::BoxSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::define_hook;
 
 define_hook!(JavascriptModulesRenderChunk: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
+define_hook!(JavascriptModulesRenderChunkContent: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, asset_info: &mut AssetInfo) -> RenderSource);
 define_hook!(JavascriptModulesRender: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, source: &mut RenderSource));
 define_hook!(JavascriptModulesRenderStartup: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &ModuleIdentifier, source: &mut RenderSource));
 define_hook!(JavascriptModulesRenderModuleContent: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments),tracing=false);
@@ -19,6 +20,7 @@ define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Com
 #[derive(Debug, Default)]
 pub struct JavascriptModulesPluginHooks {
   pub render_chunk: JavascriptModulesRenderChunkHook,
+  pub render_chunk_content: JavascriptModulesRenderChunkContentHook,
   pub render: JavascriptModulesRenderHook,
   pub render_startup: JavascriptModulesRenderStartupHook,
   pub render_module_content: JavascriptModulesRenderModuleContentHook,
