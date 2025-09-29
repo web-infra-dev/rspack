@@ -68,7 +68,7 @@ it("should mangle when destructuring json", async () => {
 	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json.js"));
 	expect(generatedJson).toEqual({
 		"W": {
-			"arr": [
+			"Q": [
 				{ "X": 1 },
 				0,
 				0,
