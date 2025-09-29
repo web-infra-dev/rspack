@@ -48,12 +48,7 @@ export function createStatsProcessor(
 			await statsCompiler(context, c);
 		},
 		build: async (context: ITestContext) => {
-			try {
-				await build(context, name);
-			} catch (error) {
-				console.error(error);
-				throw error;
-			}
+			await build(context, name);
 		},
 		run: async (env: ITestEnv, context: ITestContext) => {
 			// no need to run, just check snapshot
