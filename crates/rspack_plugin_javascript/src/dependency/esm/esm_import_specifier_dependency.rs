@@ -598,8 +598,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           key
         };
-        let range = DependencyRange::from(prop.span);
-        source.replace(range.start, range.end, &content, None);
+        source.replace(prop.range.start, prop.range.end, &content, None);
       });
     }
   }

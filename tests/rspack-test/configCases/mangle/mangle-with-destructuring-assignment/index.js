@@ -69,9 +69,9 @@ it("should mangle when destructuring json", async () => {
 	expect(generatedJson).toEqual({
 		"W": {
 			"arr": [
-				{ "prop1": 1, "prop2": 2 },
-				{ "prop3": 3, "prop4": 4 },
-				{ "prop5": 5, "prop6": 6 }
+				{ "X": 1 },
+				0,
+				0,
 			]
 		},
 		"p": "foo"

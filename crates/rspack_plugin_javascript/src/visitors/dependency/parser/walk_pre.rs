@@ -235,7 +235,7 @@ impl JavascriptParser<'_> {
           if let Some(ident_key) = prop.key.as_ident() {
             keys.insert(DestructuringAssignmentProperty {
               id: ident_key.sym.clone(),
-              span: prop.key.span(),
+              range: prop.key.span().into(),
               pattern: self.collect_destructuring_assignment_properties(&prop.value),
               shorthand: false,
             });
@@ -244,7 +244,7 @@ impl JavascriptParser<'_> {
             if let Some(id) = name.as_string() {
               keys.insert(DestructuringAssignmentProperty {
                 id: id.into(),
-                span: prop.key.span(),
+                range: prop.key.span().into(),
                 pattern: self.collect_destructuring_assignment_properties(&prop.value),
                 shorthand: false,
               });
@@ -256,7 +256,7 @@ impl JavascriptParser<'_> {
         ObjectPatProp::Assign(prop) => {
           keys.insert(DestructuringAssignmentProperty {
             id: prop.key.sym.clone(),
-            span: prop.key.span(),
+            range: prop.key.span().into(),
             pattern: None,
             shorthand: true,
           });
@@ -283,7 +283,7 @@ impl JavascriptParser<'_> {
       let i = buf.format(i);
       keys.insert(DestructuringAssignmentProperty {
         id: i.into(),
-        span: ele.span(),
+        range: ele.span().into(),
         pattern: self.collect_destructuring_assignment_properties(ele),
         shorthand: false,
       });

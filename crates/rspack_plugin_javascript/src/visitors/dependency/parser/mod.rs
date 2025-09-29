@@ -21,8 +21,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -213,7 +214,7 @@ impl From<Span> for StatementPath {
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct DestructuringAssignmentProperty {
-  pub span: Span,
+  pub range: DependencyRange,
   #[cacheable(with=AsPreset)]
   pub id: Atom,
   #[cacheable(omit_bounds, with=AsOption<AsCacheable>)]
