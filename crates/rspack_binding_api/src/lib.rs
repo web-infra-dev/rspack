@@ -480,6 +480,26 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
   )
 }
 
+#[cfg(target_family = "wasm")]
+const _: () = {
+  #[used]
+  #[unsafe(link_section = ".init_array")]
+  static __CTOR: unsafe extern "C" fn() = init;
+
+  unsafe extern "C" fn init() {
+    #[cfg(feature = "browser")]
+    rspack_browser::panic::install_panic_handler();
+    #[cfg(not(feature = "browser"))]
+    panic::install_panic_handler();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+};
+
 #[cfg(not(target_family = "wasm"))]
 #[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
@@ -569,20 +589,6 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
-  #[cfg(target_family = "wasm")]
-  {
-    #[cfg(feature = "browser")]
-    rspack_browser::panic::install_panic_handler();
-    #[cfg(not(feature = "browser"))]
-    panic::install_panic_handler();
-    let rt = tokio::runtime::Builder::new_multi_thread()
-      .max_blocking_threads(1)
-      .enable_all()
-      .build()
-      .expect("Create tokio runtime failed");
-    create_custom_tokio_runtime(rt);
-  }
-
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
