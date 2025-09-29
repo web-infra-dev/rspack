@@ -1,0 +1,10 @@
+asset child.js 36 bytes [emitted]
+asset parent.js 36 bytes [emitted] (name: parent)
+Entrypoint parent 36 bytes = parent.js
+./parent.js 1 bytes [built] [code generated]
+  asset child.js 36 bytes [emitted] (name: child)
+  Entrypoint child 36 bytes = child.js
+  ./child.js 1 bytes [built] [code generated]
+    
+  Child TestApplyEntryOptionPlugin compiled successfully
+Rspack x.x.x compiled successfully in X s

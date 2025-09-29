@@ -1125,6 +1125,9 @@ importers:
       is-ci:
         specifier: 4.1.0
         version: 4.1.0
+      jest-diff:
+        specifier: ^29.7.0
+        version: 29.7.0
       less:
         specifier: 4.4.1
         version: 4.4.1

@@ -3,6 +3,7 @@ const path = require("path");
 
 module.exports = {
 	validate(stats, error, actual) {
+		console.log("asdfasdasdfasdfsadff", actual);
 		expect(diffStats(actual, path.basename(__dirname)))
 			.toMatchInlineSnapshot(`
 		"- Expected

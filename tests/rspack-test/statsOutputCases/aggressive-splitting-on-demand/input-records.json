@@ -1,0 +1,79 @@
+{
+  "modules": {
+    "byIdentifier": {
+      "b.js": 0,
+      "d.js": 1,
+      "e.js": 2,
+      "f.js": 3,
+      "g.js": 4,
+      "c.js": 5,
+      "h.js": 6,
+      "i.js": 7,
+      "j.js": 8,
+      "k.js": 9,
+      "a.js": 10,
+      "index.js": 11
+    },
+    "usedIds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  "aggressiveSplits": [
+    {
+      "modules": [
+        "x.js",
+        "y.js"
+      ],
+      "size": 1798,
+      "hash": "xxx",
+      "id": 0
+    },
+    {
+      "modules": [
+        "b.js",
+        "d.js"
+      ],
+      "size": 1798,
+      "hash": "ba1a8dd27d611254d4950a3f52eb4b10",
+      "id": 0
+    },
+    {
+      "modules": [
+        "f.js",
+        "g.js"
+      ],
+      "size": 1800,
+      "hash": "81950df8ced1664c8037f845fc519717",
+      "id": 2
+    },
+    {
+      "modules": [
+        "h.js",
+        "i.js"
+      ],
+      "size": 1798,
+      "hash": "2a7cf3b38962fac54bb997c2ccbd71d6",
+      "id": 3
+    },
+    {
+      "modules": [
+        "c.js",
+        "d.js"
+      ],
+      "size": 1798,
+      "hash": "xxx",
+      "id": 8
+    }
+  ]
+}

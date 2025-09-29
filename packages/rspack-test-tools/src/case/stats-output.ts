@@ -48,7 +48,12 @@ export function createStatsProcessor(
 			await statsCompiler(context, c);
 		},
 		build: async (context: ITestContext) => {
-			await build(context, name);
+			try {
+				await build(context, name);
+			} catch (error) {
+				console.error(error);
+				throw error;
+			}
 		},
 		run: async (env: ITestEnv, context: ITestContext) => {
 			// no need to run, just check snapshot
@@ -79,7 +84,10 @@ function defaultOptions(
 	index: number,
 	context: ITestContext
 ): TCompilerOptions<ECompilerType.Rspack> {
-	if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
+	if (
+		fs.existsSync(path.join(context.getSource(), "rspack.config.js")) ||
+		fs.existsSync(path.join(context.getSource(), "webpack.config.js"))
+	) {
 		return {
 			experiments: {
 				css: true,
@@ -217,7 +225,8 @@ async function check(
 			// CHANGE: The time unit display in Rspack is second
 			.replace(/[.0-9]+(\s?s)/g, "X$1")
 			// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
-			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
+			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB")
+			.replace(/[0-9]+ ms/g, "xx ms");
 	}
 
 	const snapshotPath = path.isAbsolute(snapshot)
