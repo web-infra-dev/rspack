@@ -1,1 +1,0 @@
-require('does-not-exist')

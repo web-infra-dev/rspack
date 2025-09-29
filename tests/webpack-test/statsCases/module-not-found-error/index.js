@@ -1,2 +1,0 @@
-require('buffer')
-require('os')
