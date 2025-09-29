@@ -4,7 +4,6 @@ import ComponentB from 'containerB/ComponentB';
 import LocalComponentB from './ComponentB';
 
 export default () => {
-  debugger;
   return `App rendered with [${React()}] and [${ComponentA()}] and [${ComponentB()}]`;
 };
 
