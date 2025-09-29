@@ -1,6 +1,7 @@
 [package]
 authors.workspace       = true
 categories.workspace    = true
+description             = "ESM library plugin for Rspack"
 documentation.workspace = true
 edition                 = "2024"
 homepage.workspace      = true
