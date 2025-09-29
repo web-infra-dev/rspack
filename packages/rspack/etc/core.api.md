@@ -6345,6 +6345,7 @@ declare namespace rspackExports {
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
         OutputFileSystem,
+        WatchFileSystem,
         web,
         node,
         electron,
@@ -9004,7 +9005,7 @@ type WatchFiles = {
 };
 
 // @public (undocumented)
-interface WatchFileSystem {
+export interface WatchFileSystem {
     // (undocumented)
     watch(files: Iterable<string> & {
         added?: Iterable<String>;
