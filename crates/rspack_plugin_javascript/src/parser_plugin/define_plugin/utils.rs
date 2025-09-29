@@ -3,10 +3,9 @@ use std::{borrow::Cow, sync::LazyLock};
 use itertools::Itertools as _;
 use regex::Regex;
 use rspack_core::{ConstDependency, RuntimeGlobals};
-use rustc_hash::FxHashSet;
 use serde_json::{Value, json};
 
-use crate::visitors::{DestructuringAssignmentProperty, JavascriptParser};
+use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
 static WEBPACK_REQUIRE_FUNCTION_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)")
@@ -47,7 +46,7 @@ pub fn gen_const_dep(
 pub fn code_to_string<'a>(
   code: &'a Value,
   asi_safe: Option<bool>,
-  obj_keys: Option<&FxHashSet<DestructuringAssignmentProperty>>,
+  obj_keys: Option<&DestructuringAssignmentProperties>,
 ) -> Cow<'a, str> {
   fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
     match asi_safe {
