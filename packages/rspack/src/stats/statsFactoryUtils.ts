@@ -204,6 +204,7 @@ export type KnownStatsError = {
 	 * - `"./src/index.js"`
 	 * - `"./src/index.css"`
 	 */
+	moduleName?: string;
 	loc?: string;
 	chunkId?: string | number;
 	moduleId?: string | number | null;

@@ -3967,6 +3967,7 @@ type KnownStatsError = {
     chunkInitial?: boolean;
     file?: string;
     moduleIdentifier?: string;
+    moduleName?: string;
     loc?: string;
     chunkId?: string | number;
     moduleId?: string | number | null;
