@@ -122,6 +122,9 @@ export function createHotNormalCase(name: string, src: string, dist: string): vo
 export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
+export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
+
+// @public (undocumented)
 export function createNativeWatcher(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)

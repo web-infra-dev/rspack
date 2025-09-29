@@ -15,6 +15,7 @@ export {
 	createHotIncrementalCase,
 	createWatchIncrementalCase
 } from "./incremental";
+export { createMultiCompilerCase } from "./multi-compiler";
 export { createNativeWatcher } from "./native-watcher";
 export { createHotNormalCase, createNormalCase } from "./normal";
 export { createSerialCase } from "./serial";
