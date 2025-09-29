@@ -185,9 +185,25 @@ export type KnownStatsError = {
 	chunkName?: string;
 	chunkEntry?: boolean;
 	chunkInitial?: boolean;
+	/**
+	 * A custom filename associated with this error/warning.
+	 */
 	file?: string;
+	/**
+	 * The identifier of the module related to this error/warning.
+	 * Usually an absolute path, may include inline loader requests.
+	 * @example
+	 * - `/path/to/project/src/index.js`
+	 * - `!builtin:react-refresh-loader!/path/to/project/src/index.css`
+	 */
 	moduleIdentifier?: string;
-	moduleName?: string;
+	/**
+	 * The readable name of the module related to this error/warning.
+	 * Usually a relative path, no inline loader requests.
+	 * @example
+	 * - `"./src/index.js"`
+	 * - `"./src/index.css"`
+	 */
 	loc?: string;
 	chunkId?: string | number;
 	moduleId?: string | number | null;

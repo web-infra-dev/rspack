@@ -1815,7 +1815,6 @@ type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
 
 // @public (undocumented)
 interface Diagnostic {
-    // (undocumented)
     file?: string;
     // (undocumented)
     help?: string;
@@ -3968,7 +3967,6 @@ type KnownStatsError = {
     chunkInitial?: boolean;
     file?: string;
     moduleIdentifier?: string;
-    moduleName?: string;
     loc?: string;
     chunkId?: string | number;
     moduleId?: string | number | null;
