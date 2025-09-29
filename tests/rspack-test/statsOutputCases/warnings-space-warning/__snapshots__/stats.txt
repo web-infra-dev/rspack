@@ -1,0 +1,15 @@
+asset main.js 802 bytes [emitted] (name: main)
+orphan modules 64 bytes [orphan] 2 modules
+runtime modules 274 bytes 1 module
+./index.js + 1 modules 64 bytes [code generated]
+
+WARNING in ./index.js 3:12-14
+  ⚠ ESModulesLinkingWarning: export 'bb' (imported as 'bb') was not found in './a' (possible exports: a)
+   ╭─[3:12]
+ 1 │ import { bb } from "./a";
+ 2 │ 
+ 3 │ console.log(bb);
+   ·             ──
+   ╰────
+
+Rspack x.x.x compiled with 1 warning in X s

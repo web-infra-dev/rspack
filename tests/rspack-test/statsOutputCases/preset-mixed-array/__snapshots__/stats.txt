@@ -1,0 +1,14 @@
+minimal:
+  1 asset
+  1 module
+  minimal (Rspack x.x.x) compiled successfully in X s
+
+none:
+  asset none.js 44 bytes [emitted] (name: main)
+  ./index.js 8 bytes [built] [code generated]
+  none (Rspack x.x.x) compiled successfully in X s
+
+verbose:
+  Entrypoint main 44 bytes = verbose.js
+  ./index.js 8 bytes [built] [code generated]
+  verbose (Rspack x.x.x) compiled successfully

@@ -109,10 +109,15 @@ export class Tester implements ITester {
 		env: ITestEnv,
 		methods: Array<"run" | "check">
 	) {
-		for (const i of methods) {
-			if (typeof step[i] === "function") {
-				await step[i]!(env, this.context);
+		try {
+			for (const i of methods) {
+				if (typeof step[i] === "function") {
+					await step[i]!(env, this.context);
+				}
 			}
+		} catch (e) {
+			console.error(e);
+			throw e;
 		}
 	}
 }

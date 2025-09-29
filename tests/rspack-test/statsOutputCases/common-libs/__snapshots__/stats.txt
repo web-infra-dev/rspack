@@ -1,0 +1,5 @@
+asset react.js xx KiB [emitted] (name: react)
+./react.js 74 bytes [built] [code generated]
+../../../../node_modules/<PNPM_INNER>/react/index.js 186 bytes [built] [code generated]
+../../../../node_modules/<PNPM_INNER>/react/cjs/react.production.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s
