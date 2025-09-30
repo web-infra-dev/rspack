@@ -9,6 +9,7 @@
  */
 
 import type { Compiler } from "../Compiler";
+import type { StatsColorOptions } from "../config";
 import { compareIds } from "../util/comparators";
 import { formatSize } from "../util/SizeFormatHelpers";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
@@ -1197,7 +1198,7 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	moduleTraceDependency: joinOneLine
 };
 
-const AVAILABLE_COLORS = {
+const AVAILABLE_COLORS: Record<keyof StatsColorOptions, string> = {
 	bold: "\u001b[1m",
 	yellow: "\u001b[1m\u001b[33m",
 	red: "\u001b[1m\u001b[31m",
@@ -1359,8 +1360,13 @@ export class DefaultStatsPrinterPlugin {
 						"DefaultStatsPrinterPlugin",
 						// @ts-expect-error
 						(compilation: StatsCompilation, context) => {
-							for (const color of Object.keys(AVAILABLE_COLORS)) {
+							const colorNames = Object.keys(
+								AVAILABLE_COLORS
+							) as (keyof typeof AVAILABLE_COLORS)[];
+
+							for (const color of colorNames) {
 								let start: string | undefined;
+
 								if (options.colors) {
 									if (
 										typeof options.colors === "object" &&
@@ -1372,6 +1378,7 @@ export class DefaultStatsPrinterPlugin {
 											AVAILABLE_COLORS[color as keyof typeof AVAILABLE_COLORS];
 									}
 								}
+
 								if (start) {
 									context[color] = (str: string) =>
 										`${start}${
@@ -1386,12 +1393,14 @@ export class DefaultStatsPrinterPlugin {
 									context[color] = (str: string) => str;
 								}
 							}
+
 							for (const format of Object.keys(AVAILABLE_FORMATS)) {
 								// @ts-expect-error
 								context[format] = (content, ...args) =>
 									// @ts-expect-error
 									AVAILABLE_FORMATS[format](content, context, ...args);
 							}
+
 							context.timeReference = compilation.time;
 						}
 					);

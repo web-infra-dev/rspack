@@ -6582,6 +6582,7 @@ declare namespace rspackExports {
         Loader,
         SnapshotOptions,
         CacheOptions,
+        StatsColorOptions,
         StatsOptions,
         StatsValue,
         RspackPluginInstance,
@@ -7328,6 +7329,16 @@ type StatsChunkGroup = KnownStatsChunkGroup & Record<string, any>;
 type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
 // @public (undocumented)
+export type StatsColorOptions = {
+    bold?: string;
+    cyan?: string;
+    green?: string;
+    magenta?: string;
+    red?: string;
+    yellow?: string;
+};
+
+// @public (undocumented)
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
 // @public (undocumented)
@@ -7404,7 +7415,7 @@ export type StatsOptions = {
     warningsCount?: boolean;
     errors?: boolean;
     errorsCount?: boolean;
-    colors?: boolean;
+    colors?: boolean | StatsColorOptions;
     hash?: boolean;
     version?: boolean;
     reasons?: boolean;
