@@ -199,7 +199,7 @@ export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		fallback: getRawAlias(resolve.fallback),
 		extensionAlias: getRawExtensionAlias(resolve.extensionAlias) as Record<
 			string,
-			Array<string>
+			string[]
 		>,
 		tsconfig: getRawTsConfig(resolve.tsConfig),
 		byDependency: getRawResolveByDependency(resolve.byDependency)

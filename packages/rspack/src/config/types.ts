@@ -2383,7 +2383,7 @@ export type Optimization = {
 	 * Customize the minimizer.
 	 * By default, `rspack.SwcJsMinimizerRspackPlugin` and `rspack.LightningCssMinimizerRspackPlugin` are used.
 	 */
-	minimizer?: Array<"..." | Plugin>;
+	minimizer?: ("..." | Plugin)[];
 
 	/**
 	 * Whether to merge chunks which contain the same modules.
@@ -2513,9 +2513,9 @@ export type ExperimentCacheOptions =
 			buildDependencies?: string[];
 			version?: string;
 			snapshot?: {
-				immutablePaths?: Array<string | RegExp>;
-				unmanagedPaths?: Array<string | RegExp>;
-				managedPaths?: Array<string | RegExp>;
+				immutablePaths?: (string | RegExp)[];
+				unmanagedPaths?: (string | RegExp)[];
+				managedPaths?: (string | RegExp)[];
 			};
 			storage?: {
 				type: "filesystem";

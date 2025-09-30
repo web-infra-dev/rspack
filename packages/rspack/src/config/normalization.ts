@@ -509,15 +509,12 @@ const keyedNestedConfig = <T, R>(
 	const result =
 		value === undefined
 			? {}
-			: Object.keys(value).reduce(
-					(obj, key) => {
-						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
-							value[key]
-						);
-						return obj;
-					},
-					{} as Record<string, R>
-				);
+			: Object.keys(value).reduce<Record<string, R>>((obj, key) => {
+					obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+						value[key]
+					);
+					return obj;
+				}, {});
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {
@@ -619,9 +616,9 @@ export type ExperimentCacheNormalized =
 			buildDependencies: string[];
 			version: string;
 			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
+				immutablePaths: (string | RegExp)[];
+				unmanagedPaths: (string | RegExp)[];
+				managedPaths: (string | RegExp)[];
 			};
 			storage: {
 				type: "filesystem";

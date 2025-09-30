@@ -34,8 +34,8 @@ type HtmlTagObject = {
 type BeforeAssetTagGenerationData = {
 	assets: {
 		publicPath: string;
-		js: Array<string>;
-		css: Array<string>;
+		js: string[];
+		css: string[];
 		favicon?: string;
 		manifest?: string;
 		[extraAssetType: string]: unknown;
@@ -269,7 +269,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 						) {
 							return;
 						}
-						const hwpHooks = getHooks!(compilation);
+						const hwpHooks = getHooks(compilation);
 						hwpHooks.beforeAssetTagGeneration.tapPromise(
 							PLUGIN_NAME,
 							async data => {
