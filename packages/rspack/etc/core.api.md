@@ -1815,7 +1815,6 @@ type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
 
 // @public (undocumented)
 interface Diagnostic {
-    // (undocumented)
     file?: string;
     // (undocumented)
     help?: string;

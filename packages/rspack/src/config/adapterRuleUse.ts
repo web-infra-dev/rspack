@@ -112,10 +112,13 @@ export interface Diagnostic {
 	sourceCode?: string;
 	/**
 	 * Location to the source code.
-	 *
 	 * If `sourceCode` is not provided, location will be omitted.
 	 */
 	location?: DiagnosticLocation;
+	/**
+	 * Optional filename to show.
+	 * If provided, it becomes the `StatsError.file` value in stats.
+	 */
 	file?: string;
 	severity: "error" | "warning";
 }
