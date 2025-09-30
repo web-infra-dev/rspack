@@ -28,6 +28,14 @@ import WebpackLicense from '@components/WebpackLicense';
 - `require("abc")` 会尝试解析 `<root>/src/abc`。
 - `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/files.js`。
 
+:::tip
+使用 alias 指向 `monorepo` 或 `node_modules` 中的包会改变模块的默认解析逻辑。当 `alias` 匹配并替换路径后，后续的解析过程会将替换结果视为普通相对路径，而不再执行完整的包解析流程。
+
+这会导致针对 `node_modules` 的某些解析机制失效，例如 `package.json` 中的 `exports` 字段将不再生效。这是 Node.js 的标准行为：[`exports`](https://nodejs.org/api/packages.html#exports) 仅在通过包名导入时应用，一旦解析为具体路径就会被跳过。
+
+同样的原则适用于 `monorepo` 中相互引用的包。不建议使用 `alias` 让 Rspack 将 `"@my-scope/lib"` 强制解析为同级包，而应通过 `npm`、`yarn` 或 `pnpm` 的工作区功能将包符号链接到 `node_modules` 中。
+:::
+
 ## resolve.aliasFields
 
 - **类型：** `string[]`
