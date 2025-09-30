@@ -134,6 +134,7 @@ const createConsoleLogger = ({
 					}
 					break;
 				}
+			// falls through
 			case LogType.group:
 				if (!debug && loglevel > LogLevel.log) return;
 
