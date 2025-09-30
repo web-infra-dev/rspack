@@ -212,12 +212,6 @@ module.exports = function () {
 			__webpack_require__.federation.attachShareScopeMap(__webpack_require__);
 		}
 
-		if (!__webpack_require__.f) {
-			__webpack_require__.f = {};
-		}
-		if (!__webpack_require__.f.remotes) {
-			__webpack_require__.f.remotes = function () {};
-		}
 		override(__webpack_require__.f, "remotes", (chunkId, promises) =>
 			__webpack_require__.federation.bundlerRuntime.remotes({
 				chunkId,
@@ -232,9 +226,6 @@ module.exports = function () {
 				webpackRequire: __webpack_require__
 			})
 		);
-		if (!__webpack_require__.f.consumes) {
-			__webpack_require__.f.consumes = function () {};
-		}
 		override(__webpack_require__.f, "consumes", (chunkId, promises) =>
 			__webpack_require__.federation.bundlerRuntime.consumes({
 				chunkId,
