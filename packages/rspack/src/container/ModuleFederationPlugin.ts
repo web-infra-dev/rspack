@@ -1,5 +1,6 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
+import { RuntimeGlobals } from "../RuntimeGlobals";
 import { getExternalsTypeSchema } from "../schema/config";
 import { isValidate } from "../schema/validate";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
@@ -40,6 +41,24 @@ export class ModuleFederationPlugin {
 			...this._options,
 			enhanced: true
 		}).apply(compiler);
+
+		// inject ensureChunkHandlers if enable lazy compilation
+		if (compiler.options.lazyCompilation && this._options.remotes) {
+			compiler.hooks.thisCompilation.tap(
+				"CoreModuleFederationPlugin",
+				compilation => {
+					compilation.hooks.additionalTreeRuntimeRequirements.tap(
+						"CoreModuleFederationPlugin",
+						(chunk, set) => {
+							if (chunk.hasRuntime()) {
+								set.add(RuntimeGlobals.ensureChunk);
+								set.add(RuntimeGlobals.ensureChunkHandlers);
+							}
+						}
+					);
+				}
+			);
+		}
 	}
 }
 
