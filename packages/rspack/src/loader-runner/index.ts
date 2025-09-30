@@ -877,6 +877,7 @@ export async function runLoaders(
 					case RequestType.GetLogger: {
 						const [type, name, arg] = args;
 						(loaderContext.getLogger(name) as any)[type](...arg);
+						break;
 					}
 					case RequestType.EmitError: {
 						const workerError = args[0];
