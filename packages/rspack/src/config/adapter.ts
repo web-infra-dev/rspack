@@ -801,6 +801,6 @@ function getRawNode(node: Node): RawOptions["node"] {
 function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	const statsOptions = normalizeStatsPreset(stats);
 	return {
-		colors: statsOptions.colors ?? false
+		colors: Boolean(statsOptions.colors)
 	};
 }

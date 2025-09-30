@@ -1751,6 +1751,33 @@ type ModuleFilterTypes =
 	| ModuleFilterItemTypes
 	| ModuleFilterItemTypes[];
 
+export type StatsColorOptions = {
+	/**
+	 * Custom color for bold text.
+	 */
+	bold?: string;
+	/**
+	 * Custom color for cyan text.
+	 */
+	cyan?: string;
+	/**
+	 * Custom color for green text.
+	 */
+	green?: string;
+	/**
+	 * Custom color for magenta text.
+	 */
+	magenta?: string;
+	/**
+	 * Custom color for red text.
+	 */
+	red?: string;
+	/**
+	 * Custom color for yellow text.
+	 */
+	yellow?: string;
+};
+
 /** Options for stats */
 export type StatsOptions = {
 	/**
@@ -1810,7 +1837,7 @@ export type StatsOptions = {
 	 * Enables or disables the use of colors in the output.
 	 * @default false
 	 */
-	colors?: boolean;
+	colors?: boolean | StatsColorOptions;
 	/**
 	 * Enables or disables the display of the hash.
 	 * @default true
