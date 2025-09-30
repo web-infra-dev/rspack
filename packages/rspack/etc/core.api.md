@@ -583,7 +583,7 @@ type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[
 export type CacheOptions = boolean;
 
 // @public (undocumented)
-type Callback_2 = (stats?: Stats | MultiStats | undefined) => any;
+type Callback_2 = (stats?: Stats | MultiStats) => any;
 
 // @public (undocumented)
 type CallbackCache<T> = (err?: WebpackError_2 | null, result?: T) => void;
@@ -671,7 +671,7 @@ export type CircularDependencyRspackPluginOptions = {
     failOnError?: boolean;
     allowAsyncCycles?: boolean;
     exclude?: RegExp;
-    ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
+    ignoredConnections?: [string | RegExp, string | RegExp][];
     onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
     onIgnored?(entrypoint: Module, modules: string[], compilation: Compilation): void;
     onStart?(compilation: Compilation): void;
@@ -878,7 +878,7 @@ export class Compilation {
     // (undocumented)
     chunkGraph: ChunkGraph;
     // (undocumented)
-    get chunkGroups(): ReadonlyArray<ChunkGroup>;
+    get chunkGroups(): readonly ChunkGroup[];
     // (undocumented)
     get chunks(): ReadonlySet<Chunk>;
     // (undocumented)
@@ -930,7 +930,7 @@ export class Compilation {
     getAssetPath(filename: string, data?: PathData): string;
     // (undocumented)
     getAssetPathWithInfo(filename: string, data?: PathData): binding.PathWithInfo;
-    getAssets(): ReadonlyArray<Asset>;
+    getAssets(): readonly Asset[];
     // (undocumented)
     getCache(name: string): CacheFacade;
     // (undocumented)
@@ -2343,9 +2343,9 @@ export type ExperimentCacheNormalized = boolean | {
     buildDependencies: string[];
     version: string;
     snapshot: {
-        immutablePaths: Array<string | RegExp>;
-        unmanagedPaths: Array<string | RegExp>;
-        managedPaths: Array<string | RegExp>;
+        immutablePaths: (string | RegExp)[];
+        unmanagedPaths: (string | RegExp)[];
+        managedPaths: (string | RegExp)[];
     };
     storage: {
         type: "filesystem";
@@ -2361,9 +2361,9 @@ export type ExperimentCacheOptions = boolean | {
     buildDependencies?: string[];
     version?: string;
     snapshot?: {
-        immutablePaths?: Array<string | RegExp>;
-        unmanagedPaths?: Array<string | RegExp>;
-        managedPaths?: Array<string | RegExp>;
+        immutablePaths?: (string | RegExp)[];
+        unmanagedPaths?: (string | RegExp)[];
+        managedPaths?: (string | RegExp)[];
     };
     storage?: {
         type: "filesystem";
@@ -2938,10 +2938,10 @@ interface HasSpan {
 }
 
 // @public (undocumented)
-type Headers_2 = Array<{
+type Headers_2 = {
     key: string;
     value: string;
-}> | Record<string, string | string[]>;
+}[] | Record<string, string | string[]>;
 
 // @public (undocumented)
 type HistoryApiFallbackOptions = {
@@ -3002,7 +3002,7 @@ export type HotUpdateMainFilename = FilenameTemplate;
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
     getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
-    createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string | undefined) => JsHtmlPluginTag;
+    createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string) => JsHtmlPluginTag;
     version: number;
 };
 
@@ -4842,7 +4842,7 @@ export interface MultiCompilerOptions {
 }
 
 // @public (undocumented)
-export type MultiRspackOptions = ReadonlyArray<RspackOptions> & MultiCompilerOptions;
+export type MultiRspackOptions = readonly RspackOptions[] & MultiCompilerOptions;
 
 // @public (undocumented)
 export class MultiStats {
@@ -5150,7 +5150,7 @@ export type Optimization = {
     moduleIds?: "named" | "natural" | "deterministic";
     chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
     minimize?: boolean;
-    minimizer?: Array<"..." | Plugin_2>;
+    minimizer?: ("..." | Plugin_2)[];
     mergeDuplicateChunks?: boolean;
     splitChunks?: false | OptimizationSplitChunksOptions;
     runtimeChunk?: OptimizationRuntimeChunk;
@@ -5748,7 +5748,7 @@ type ProvidesV1Config = {
 };
 
 // @public (undocumented)
-type ProxyConfigArray = (ProxyConfigArrayItem | ((req?: Request_2 | undefined, res?: Response_2 | undefined, next?: NextFunction | undefined) => ProxyConfigArrayItem))[];
+type ProxyConfigArray = (ProxyConfigArrayItem | ((req?: Request_2, res?: Response_2, next?: NextFunction) => ProxyConfigArrayItem))[];
 
 // @public (undocumented)
 type ProxyConfigArrayItem = {
@@ -5975,7 +5975,7 @@ type RealPathSync = {
 // @public (undocumented)
 type RecursiveArrayOrRecord<T> = {
     [index: string]: RecursiveArrayOrRecord<T>;
-} | Array<RecursiveArrayOrRecord<T>> | T;
+} | RecursiveArrayOrRecord<T>[] | T;
 
 // @public (undocumented)
 interface RegExpLiteral extends Node_4, HasSpan {
@@ -6196,8 +6196,8 @@ const RsdoctorPluginImpl: {
 
 // @public (undocumented)
 type RsdoctorPluginOptions = {
-    moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
-    chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+    moduleGraphFeatures?: boolean | ("graph" | "ids" | "sources")[];
+    chunkGraphFeatures?: boolean | ("graph" | "assets")[];
     sourceMapFeatures?: {
         module?: boolean;
         cheap?: boolean;
