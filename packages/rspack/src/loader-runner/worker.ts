@@ -461,6 +461,7 @@ async function loaderImpl(
 					break;
 				}
 			}
+			break;
 		}
 		case JsLoaderState.Normal: {
 			while (loaderContext.loaderIndex >= 0) {
