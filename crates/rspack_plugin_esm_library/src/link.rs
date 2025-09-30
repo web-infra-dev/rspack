@@ -871,6 +871,7 @@ impl EsmLibraryPlugin {
       from_module: Default::default(),
       required_symbol: None,
       default_access: None,
+      default_exported: None,
       namespace_object: None,
       namespace_object2: None,
       property_access: Default::default(),
@@ -905,7 +906,7 @@ impl EsmLibraryPlugin {
     current: ModuleIdentifier,
     current_chunk: ChunkUkey,
     compilation: &Compilation,
-    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     module_graph: &ModuleGraph,
@@ -1002,14 +1003,17 @@ impl EsmLibraryPlugin {
                 required,
               );
               let ref_chunk = Self::get_module_chunk(ref_module, compilation);
-
-              let default_access_symbol = interop_info.default_access(&mut chunk_link.used_names);
+              let info = concate_modules_map
+                .get_mut(&ref_module)
+                .expect("should have info");
+              info.set_interop_default_access_used(true);
+              let default_exported = interop_info.default_exported(&mut chunk_link.used_names);
               // ensure we import this chunk
               entry_imports.entry(ref_module).or_default();
 
               let exported = Self::add_chunk_export(
                 ref_chunk,
-                default_access_symbol,
+                default_exported.clone(),
                 mode.name.clone(),
                 exports,
                 ref_chunk == current_chunk,
@@ -1029,10 +1033,11 @@ impl EsmLibraryPlugin {
           rspack_core::ExportMode::ReexportNamedDefault(mode) => {
             // export { default as n } from './foo.cjs'
             let ref_info = concate_modules_map
-              .get(&ref_module)
+              .get_mut(&ref_module)
               .expect("should have info");
             match ref_info {
               ModuleInfo::External(ref_info) => {
+                ref_info.interop_default_access_used = true;
                 // var foo_default = /*#__PURE__*/ __webpack_require__.n(m3);
                 let interop_info = Self::add_require(
                   ref_module,
@@ -1042,14 +1047,15 @@ impl EsmLibraryPlugin {
                   required,
                 );
 
-                let default_access_symbol = interop_info.default_access(&mut chunk_link.used_names);
+                let default_exported_symbol =
+                  interop_info.default_exported(&mut chunk_link.used_names);
 
                 // ensure we import this chunk
                 entry_imports.entry(ref_module).or_default();
 
                 Self::add_chunk_export(
                   current_chunk,
-                  default_access_symbol,
+                  default_exported_symbol,
                   mode.name.clone(),
                   exports,
                   true,
@@ -1157,7 +1163,7 @@ impl EsmLibraryPlugin {
 
               let chunk_link = link.get_mut(&current_chunk).expect("should have link");
 
-              let mut export_info = item
+              let export_info = item
                 .ids
                 .first()
                 .and_then(|id| exports_info.as_data(module_graph).named_exports(id))
@@ -1178,18 +1184,17 @@ impl EsmLibraryPlugin {
                   continue;
                 };
                 ref_module = *module;
-
-                let exports_info = module_graph.get_exports_info(module).as_data(module_graph);
-                if let Some(target) =
-                  exports_info.named_exports(item.ids.first().unwrap_or(&item.name))
-                {
-                  export_info = target;
-                }
               }
 
-              let Some(used_name) = export_info.get_used_name(None, None) else {
-                continue;
-              };
+              let exports_info = module_graph
+                .get_prefetched_exports_info(&ref_module, PrefetchExportsInfoMode::Default);
+              let export_info =
+                exports_info.get_read_only_export_info(item.ids.first().unwrap_or(&item.name));
+
+              let used_name = export_info.get_used_name(None, None).unwrap_or_else(|| {
+                // dynamic export
+                UsedNameItem::Str(item.name.clone())
+              });
 
               if let UsedNameItem::Inlined(inlined) = used_name {
                 let new_name = find_new_name(&item.name, &chunk_link.used_names, &vec![]);
@@ -1882,9 +1887,9 @@ impl EsmLibraryPlugin {
         ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
           Some("default") => {
             // shadowing the previous immutable ref to avoid violating rustc borrow rules
+            info.set_interop_default_access_used(true);
             let symbol = match info {
               ModuleInfo::External(info) => {
-                info.interop_default_access_used = true;
                 let required_info = Self::add_require(
                   *info_id,
                   from,
@@ -1894,13 +1899,10 @@ impl EsmLibraryPlugin {
                 );
                 required_info.default_access(all_used_names)
               }
-              ModuleInfo::Concatenated(info) => {
-                info.interop_default_access_used = true;
-                info
-                  .interop_default_access_name
-                  .clone()
-                  .expect("should already set interop namespace")
-              }
+              ModuleInfo::Concatenated(info) => info
+                .interop_default_access_name
+                .clone()
+                .expect("should already set interop namespace"),
             };
 
             export_name = export_name[1..].to_vec();

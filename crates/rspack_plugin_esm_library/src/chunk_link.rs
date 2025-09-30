@@ -70,6 +70,7 @@ pub struct ExternalInterop {
   pub from_module: IdentifierSet,
   pub required_symbol: Option<Atom>,
   pub default_access: Option<Atom>,
+  pub default_exported: Option<Atom>,
   pub namespace_object: Option<Atom>,
   pub namespace_object2: Option<Atom>,
   pub property_access: FxIndexMap<Atom, Atom>,
@@ -152,6 +153,24 @@ impl ExternalInterop {
     }
   }
 
+  pub fn default_exported(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
+    if self.required_symbol.is_none() {
+      let new_name = find_new_name("", used_names, &vec![]);
+      used_names.insert(new_name.clone());
+      self.required_symbol = Some(new_name);
+    }
+
+    if let Some(default_exported) = &self.default_exported {
+      return default_exported.clone();
+    }
+
+    let default_access_symbol = self.default_access(used_names);
+    let default_exported_symbol = find_new_name(&default_access_symbol, used_names, &vec![]);
+    used_names.insert(default_exported_symbol.clone());
+    self.default_exported = Some(default_exported_symbol.clone());
+    default_exported_symbol
+  }
+
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
       let local_name = find_new_name(atom, used_names, &vec![]);
@@ -207,6 +226,12 @@ impl ExternalInterop {
           RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
           name
         )));
+
+        if let Some(default_exported_symbol) = &self.default_exported {
+          source.add(RawStringSource::from(format!(
+            "var {default_exported_symbol} = {default_access}();\n",
+          )));
+        }
       }
 
       for (s, local) in &self.property_access {

@@ -19,7 +19,6 @@ __webpack_require__.d(__webpack_exports__, {
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
 __webpack_require__.add({
 "./index.js": 
 /*!******************!*\

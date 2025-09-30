@@ -1,41 +1,46 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.cjs": 
-/*!*****************!*\
-  !*** ./bar.cjs ***!
-  \*****************/
-(function (module) {
-module.exports = 'bar'
-globalThis.testValue = 'bar';
+"./cjs-unknown.cjs": 
+/*!*************************!*\
+  !*** ./cjs-unknown.cjs ***!
+  \*************************/
+(function (__unused_webpack_module, exports) {
+const exportSymbol = () => 'bar'
 
+exports[exportSymbol()] = () => 'bar'
 
 }),
-"./foo.cjs": 
+"./cjs.cjs": 
 /*!*****************!*\
-  !*** ./foo.cjs ***!
+  !*** ./cjs.cjs ***!
   \*****************/
-(function (module) {
-module.exports = 'foo'
-globalThis.testValue = 'foo';
+(function (__unused_webpack_module, exports) {
+exports.foo = () => 'foo'
+
 
 }),
 });
 // ./index.js
-const foo = __webpack_require__("./foo.cjs");
-var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
-const bar = __webpack_require__("./bar.cjs");
-var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
+const cjs = __webpack_require__("./cjs.cjs");
+var foo_1 = cjs.foo;
+const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
+var cjs_unknown_default = /*#__PURE__*/__webpack_require__.n(cjs_unknown);
+var cjs_unknown_default_0 = cjs_unknown_default();
+var bar_1 = cjs_unknown.bar;
 
 
 
-// the order should be import order not access order
-it('should have correct order', () => {
-	expect((bar_default())).toBe('bar');
-	expect((foo_default())).toBe('foo');
-	expect(globalThis.testValue).toBe('bar')
+
+it('should have correct re-export', async () => {
+	const { foo, bar, default: defaultV } = await import(/*webpackIgnore: true*/ './main.mjs')
+	expect(foo()).toBe('foo')
+	expect(bar()).toBe('bar')
+	expect(defaultV.bar()).toBe('bar')
 })
 
+export { bar_1 as bar, foo_1 as foo };
+export default cjs_unknown_default_0;
 
 ```
 
