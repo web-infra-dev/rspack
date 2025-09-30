@@ -43,7 +43,7 @@
     "terser": "5.43.1",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.4",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "jest-diff": "^29.7.0"
   },
   "dependencies": {

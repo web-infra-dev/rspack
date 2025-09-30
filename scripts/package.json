@@ -15,7 +15,7 @@
     "chalk": "^5.4.1",
     "@types/fs-extra": "11.0.4",
     "fs-extra": "^11.3.2",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "jest-environment-jsdom": "^29.7.0",
     "glob":"^11.0.3",
     "semver": "^7.7.2",
