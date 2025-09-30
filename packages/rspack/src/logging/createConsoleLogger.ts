@@ -123,6 +123,7 @@ const createConsoleLogger = ({
 				if (!debug) return;
 				console.trace();
 				break;
+			// biome-ignore lint/suspicious/noFallthroughSwitchClause: This case is falling through to the next case.
 			case LogType.groupCollapsed:
 				if (!debug && loglevel > LogLevel.log) return;
 				if (!debug && loglevel > LogLevel.verbose) {
@@ -133,8 +134,6 @@ const createConsoleLogger = ({
 					}
 					break;
 				}
-				break;
-			// falls through
 			case LogType.group:
 				if (!debug && loglevel > LogLevel.log) return;
 
