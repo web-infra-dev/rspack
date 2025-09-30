@@ -38,7 +38,12 @@
       "@typescript-eslint/no-unnecessary-boolean-literal-compare": "warn",
       "@typescript-eslint/restrict-plus-operands": "warn",
       "@typescript-eslint/no-implied-eval": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "argsIgnorePattern": "^_"
+        }
+      ],
       "@typescript-eslint/class-literal-property-style": "warn",
       "@typescript-eslint/no-var-requires": "warn",
       "@typescript-eslint/no-require-imports": "warn",
