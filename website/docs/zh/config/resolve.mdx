@@ -28,6 +28,18 @@ import WebpackLicense from '@components/WebpackLicense';
 - `require("abc")` 会尝试解析 `<root>/src/abc`。
 - `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/files.js`。
 
+### 对包解析的影响
+
+当你使用 `resolve.alias` 将包名导入（例如 `import 'lib'`）重定向到 monorepo 或 `node_modules` 中的具体目录时，模块的解析方式会发生变化：
+
+- **默认情况**：如果导入的是包名，Rspack 会执行完整的包解析流程：读取该包的 `package.json`，并根据 `[exports](https://nodejs.org/api/packages.html#exports)` 字段决定入口文件和子路径映射。
+- **重定向后**：当别名被替换成实际的文件系统路径，例如 `./node_modules/lib`，Rspack 不再将其视为包名，而是按普通路径进行解析。这会跳过包的默认解析逻辑，导致 `package.json` 中的 `exports` 等字段不再生效。这是 Node.js 的标准解析行为。
+
+### Monorepo 场景
+
+如果希望 monorepo 中的各个包依然保持和正常 npm 包一致的解析方式，不建议通过 `alias` 将包名直接指向源码目录。
+推荐的做法是使用包管理器的工作区功能，将子包符号链接到 `node_modules` 中，让它们像普通依赖一样被解析。
+
 ## resolve.aliasFields
 
 - **类型：** `string[]`

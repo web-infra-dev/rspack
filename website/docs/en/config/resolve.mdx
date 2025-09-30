@@ -28,6 +28,18 @@ At this point:
 - `require("abc")` will attempt to resolve `<root>/src/abc`.
 - `require("abc/file.js")` will not match, and it will attempt to resolve `node_modules/abc/file.js`.
 
+### Impact on package resolution
+
+When you use `resolve.alias` to redirect a package import (for example, `import 'lib'`) to a specific directory inside a monorepo or within `node_modules`, the module resolution behavior changes:
+
+- **Default behavior**: If the import is a package name, Rspack performs the full package resolution process: it reads the package's `package.json` and determines the entry file and subpath mappings according to the [`exports`](https://nodejs.org/api/packages.html#exports) field.
+- **When aliased**: When an alias resolves to a file system path — for example, `./node_modules/lib` — Rspack no longer treats it as a package name and resolves it as a regular path. This bypasses the standard package resolution logic, causing fields such as `exports` in `package.json` to no longer take effect. This is the intended and standard behavior of Node.js.
+
+### Monorepo usage
+
+If you want packages within a monorepo to retain the same resolution behavior as regular npm packages, avoid using `alias` to point a package name directly to its source directory.
+The recommended approach is to use your package manager's workspace feature to symlink sub-packages into `node_modules`, so they can be resolved just like normal dependencies.
+
 ## resolve.aliasFields
 
 - **Type:** `string[]`
