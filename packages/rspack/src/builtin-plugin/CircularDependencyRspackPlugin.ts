@@ -36,7 +36,7 @@ export type CircularDependencyRspackPluginOptions = {
 	 * module "app/design/components/Button.tsx". When the entry is a RegExp,
 	 * it is tested against the entire identifier.
 	 */
-	ignoredConnections?: Array<[string | RegExp, string | RegExp]>;
+	ignoredConnections?: [string | RegExp, string | RegExp][];
 	/**
 	 * Called once for every detected cycle. Providing this handler overrides the
 	 * default behavior of adding diagnostics to the compilation.

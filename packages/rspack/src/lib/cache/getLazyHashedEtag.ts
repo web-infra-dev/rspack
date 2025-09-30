@@ -42,7 +42,7 @@ class LazyHashedEtag {
 		if (this._hash === undefined) {
 			const hash = createHash(this._hashFunction);
 			this._obj.updateHash(hash);
-			this._hash = hash.digest("base64") as string;
+			this._hash = hash.digest("base64");
 		}
 		return this._hash;
 	}

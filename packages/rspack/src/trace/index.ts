@@ -145,13 +145,12 @@ export class JavaScriptTracer {
 		};
 	}
 	static pushEvent(event: ChromeEvent) {
-		const stringifiedArgs = Object.keys(event.args || {}).reduce(
-			(acc, key) => {
-				acc[key as string] = JSON.stringify(event.args![key]);
-				return acc;
-			},
-			{} as Record<string, any>
-		);
+		const stringifiedArgs = Object.keys(event.args || {}).reduce<
+			Record<string, string>
+		>((acc, key) => {
+			acc[key] = JSON.stringify(event.args![key]);
+			return acc;
+		}, {});
 		this.events.push({
 			...event,
 			args: stringifiedArgs

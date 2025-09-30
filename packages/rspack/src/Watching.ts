@@ -320,7 +320,7 @@ export class Watching {
 					});
 					return;
 				}
-				this._done(null, this.compiler._lastCompilation!);
+				this._done(null, this.compiler._lastCompilation);
 			};
 
 			this.compiler.compile(onCompiled);
@@ -425,7 +425,7 @@ export class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
-			this.compiler.hooks.afterDone.call(stats!);
+			this.compiler.hooks.afterDone.call(stats);
 		});
 	}
 

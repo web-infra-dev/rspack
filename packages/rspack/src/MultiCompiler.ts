@@ -51,7 +51,7 @@ export interface MultiCompilerOptions {
 	parallelism?: number;
 }
 
-export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
+export type MultiRspackOptions = readonly RspackOptions[] &
 	MultiCompilerOptions;
 
 export class MultiCompiler {

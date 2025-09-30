@@ -613,7 +613,7 @@ const SIMPLE_PRINTERS: Record<
 	"error.moduleName": (moduleName, { bold }) => {
 		return moduleName.includes("!")
 			? `${bold(moduleName.replace(/^(\s|\S)*!/, ""))} (${moduleName})`
-			: `${bold(moduleName)}`;
+			: bold(moduleName);
 	},
 	"error.loc": (loc, { green }) => green(loc),
 	"error.message": (message, { bold, formatError }) =>
@@ -1006,12 +1006,12 @@ const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
 };
 
 const joinExplicitNewLine = (
-	items: Array<
+	items: (
 		| {
 				content?: string;
 		  }
 		| false
-	>,
+	)[],
 	indenter: string
 ) => {
 	let firstInLine = true;
@@ -1278,7 +1278,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		}
 		let timeStr = time.toString();
 		if (time > 1000) {
-			timeStr = `${(time / 1000).toFixed(2)}`;
+			timeStr = (time / 1000).toFixed(2);
 			unit = " s";
 		}
 		return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
@@ -1374,8 +1374,7 @@ export class DefaultStatsPrinterPlugin {
 									) {
 										start = options.colors[color];
 									} else {
-										start =
-											AVAILABLE_COLORS[color as keyof typeof AVAILABLE_COLORS];
+										start = AVAILABLE_COLORS[color];
 									}
 								}
 

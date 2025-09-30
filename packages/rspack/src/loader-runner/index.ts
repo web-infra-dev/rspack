@@ -629,7 +629,7 @@ export async function runLoaders(
 		} else {
 			source = new RawSource(content);
 		}
-		loaderContext._module.emitFile(name, source!, assetInfo!);
+		loaderContext._module.emitFile(name, source!, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 	loaderContext.experiments = {
