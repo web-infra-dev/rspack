@@ -106,7 +106,7 @@
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
     "terser": "5.43.1",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "wast-loader": "^1.14.1",
     "worker-rspack-loader": "^3.1.2",
     "exports-loader": "^5.0.0"

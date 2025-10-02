@@ -13,7 +13,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "typescript": "^5.9.2",
+    "typescript": "^5.9.3",
     "vue-loader": "^17.4.2"
   }
 }
