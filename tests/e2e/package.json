@@ -24,8 +24,8 @@
     "react-dom": "^19.1.1",
     "react-refresh": "^0.17.0",
     "typescript": "^5.9.3",
-    "tailwindcss": "^3.4.17",
-    "vue": "^3.5.21",
+    "tailwindcss": "^3.4.18",
+    "vue": "^3.5.22",
     "vue-loader": "^17.4.2",
     "css-loader": "^7.1.2",
     "ws": "^8.18.3"
