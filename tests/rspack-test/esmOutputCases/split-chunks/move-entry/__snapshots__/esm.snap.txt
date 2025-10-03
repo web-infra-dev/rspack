@@ -1,32 +1,37 @@
-```mjs title=main.mjs
+```mjs title=lib.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./lib_js.mjs";
+
+const lib = __webpack_require__("./lib.js");
+
+
+```
+
+```mjs title=lib_js.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.js": 
+"./lib.js": 
 /*!****************!*\
-  !*** ./bar.js ***!
+  !*** ./lib.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
-exports.bar = 2
+(function () {
+// side effect
+console.log.bind(console)
 
 
 }),
 });
-// ./foo.js
-const bar_0 = __webpack_require__("./bar.js");
-var bar_2 = bar_0.bar;
-const foo_foo = 1
 
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./lib_js.mjs";
 
 // ./index.js
+__webpack_require__("./lib.js");
 
 
-it('should have correct output for entry re-exports', async () => {
-	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');
-	expect(foo).toBe(1);
-	expect(bar).toBe(2);
-})
-
-export { bar_2 as bar, foo_foo as foo };
 
 ```
 

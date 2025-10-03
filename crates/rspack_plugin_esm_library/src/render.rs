@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use regex::Regex;
-use rspack_collections::{IdentifierSet, UkeyIndexMap, UkeySet};
+use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
@@ -181,6 +181,8 @@ impl EsmLibraryPlugin {
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
     let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
+    let mut runtime_requirements =
+      *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
@@ -210,7 +212,7 @@ impl EsmLibraryPlugin {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
 
-    let mut already_rendered = IdentifierSet::default();
+    let mut already_required = IdentifierIndexSet::default();
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -245,7 +247,7 @@ impl EsmLibraryPlugin {
         *m,
         compilation,
         chunk_link,
-        &mut already_rendered,
+        &mut already_required,
       ));
       render_source.add(source);
       render_source.add(RawSource::from_static("\n"));
@@ -299,7 +301,8 @@ impl EsmLibraryPlugin {
     }
 
     for (m, required_info) in &chunk_link.required {
-      if already_rendered.insert(*m) {
+      if already_required.insert(*m) {
+        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         render_source.add(required_info.render(compilation));
         render_source.add(RawSource::from_static("\n"));
       }
@@ -308,7 +311,14 @@ impl EsmLibraryPlugin {
     // render imports and exports to other chunks
     let mut final_source = ConcatSource::default();
 
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    for required_module in already_required {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      let target_chunk = Self::get_module_chunk(required_module, compilation);
+      if &target_chunk != chunk_ukey {
+        imported_chunks.entry(target_chunk).or_default();
+      }
+    }
+
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
       if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
@@ -355,49 +365,49 @@ impl EsmLibraryPlugin {
       final_source.add(RawStringSource::from(import_str));
     }
 
-    if !chunk_link.imports.is_empty() {
-      for (id, imports) in &chunk_link.imports {
-        let chunk = Self::get_module_chunk(*id, compilation);
-        if &chunk == chunk_ukey {
-          // ignore self import
-          continue;
-        }
-
-        let imported_symbols = imported_chunks.entry(chunk).or_default();
-        if imports.is_empty() {
-          continue;
-        }
-
-        for (imported, local) in imports {
-          imported_symbols.insert(imported.clone(), local.clone());
-        }
+    for (id, imports) in &chunk_link.imports {
+      let chunk = Self::get_module_chunk(*id, compilation);
+      if &chunk == chunk_ukey {
+        // ignore self import
+        continue;
       }
 
-      for (chunk, imported) in &imported_chunks {
-        final_source.add(RawStringSource::from(format!(
-          "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
-          if imported.is_empty() {
-            String::new()
-          } else {
-            format!(
-              "{{ {} }} from ",
-              imported
-                .iter()
-                .map(|(imported, local)| {
-                  if imported == local {
-                    Cow::Borrowed(imported.as_str())
-                  } else {
-                    Cow::Owned(format!("{imported} as {local}"))
-                  }
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-          },
-          chunk.as_u32()
-        )));
+      let imported_symbols = imported_chunks.entry(chunk).or_default();
+      if imports.is_empty() {
+        continue;
       }
 
+      for (imported, local) in imports {
+        imported_symbols.insert(imported.clone(), local.clone());
+      }
+    }
+
+    for (chunk, imported) in &imported_chunks {
+      final_source.add(RawStringSource::from(format!(
+        "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
+        if imported.is_empty() {
+          String::new()
+        } else {
+          format!(
+            "{{ {} }} from ",
+            imported
+              .iter()
+              .map(|(imported, local)| {
+                if imported == local {
+                  Cow::Borrowed(imported.as_str())
+                } else {
+                  Cow::Owned(format!("{imported} as {local}"))
+                }
+              })
+              .collect::<Vec<_>>()
+              .join(", ")
+          )
+        },
+        chunk.as_u32()
+      )));
+    }
+
+    if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
       final_source.add(RawSource::from_static("\n"));
     }
 
@@ -695,7 +705,7 @@ impl EsmLibraryPlugin {
     root: ModuleIdentifier,
     compilation: &Compilation,
     chunk_link: &ChunkLinkContext,
-    already_required: &mut IdentifierSet,
+    already_required: &mut IdentifierIndexSet,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
 

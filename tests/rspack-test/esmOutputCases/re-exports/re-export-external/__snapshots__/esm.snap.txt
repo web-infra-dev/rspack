@@ -1,5 +1,6 @@
 ```mjs title=main.mjs
 import external_fs_, { readFile as external_fs_readFile } from "fs";
+
 // fs
 
 // ./lib.js
