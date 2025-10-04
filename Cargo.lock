@@ -4778,6 +4778,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "cow-utils",
+ "napi",
  "once_cell",
  "regex",
  "rspack_core",

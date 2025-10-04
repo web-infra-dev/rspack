@@ -275,7 +275,9 @@ class Compiler {
 		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
-		new TraceHookPlugin().apply(this);
+		if (!IS_BROWSER) {
+			new TraceHookPlugin().apply(this);
+		}
 
 		// this.hooks.shutdown.tap("rspack:cleanup", () => {
 		// 	// Delayed rspack cleanup to the next tick.

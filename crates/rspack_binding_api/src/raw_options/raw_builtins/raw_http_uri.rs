@@ -63,7 +63,7 @@ impl HttpClient for JsHttpClient {
     Ok(HttpResponse {
       status: result.status,
       headers: result.headers,
-      body: result.body.to_vec(),
+      body: result.body,
     })
   }
 }
