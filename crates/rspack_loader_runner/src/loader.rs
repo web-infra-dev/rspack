@@ -9,7 +9,6 @@ use std::{
 
 use async_trait::async_trait;
 use derive_more::Debug;
-use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -175,7 +174,6 @@ impl<Context: Send> Display for LoaderItemList<'_, Context> {
   }
 }
 
-#[cacheable_dyn]
 #[async_trait]
 pub trait Loader<Context = ()>: Send + Sync
 where
@@ -293,15 +291,12 @@ fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&st
 pub(crate) mod test {
   use std::{path::PathBuf, sync::Arc};
 
-  use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
 
   use super::{Loader, LoaderItem};
 
-  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Custom;
-  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Custom {
     fn identifier(&self) -> Identifier {
@@ -309,10 +304,8 @@ pub(crate) mod test {
     }
   }
 
-  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Custom2;
-  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Custom2 {
     fn identifier(&self) -> Identifier {
@@ -320,10 +313,8 @@ pub(crate) mod test {
     }
   }
 
-  #[cacheable]
   #[allow(dead_code)]
   pub(crate) struct Builtin;
-  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for Builtin {
     fn identifier(&self) -> Identifier {
@@ -331,10 +322,7 @@ pub(crate) mod test {
     }
   }
 
-  #[cacheable]
   pub(crate) struct PosixNonLenBlankUnicode;
-
-  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for PosixNonLenBlankUnicode {
     fn identifier(&self) -> Identifier {
@@ -342,9 +330,7 @@ pub(crate) mod test {
     }
   }
 
-  #[cacheable]
   pub(crate) struct WinNonLenBlankUnicode;
-  #[cacheable_dyn]
   #[async_trait::async_trait]
   impl Loader<()> for WinNonLenBlankUnicode {
     fn identifier(&self) -> Identifier {

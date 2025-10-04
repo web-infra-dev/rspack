@@ -33,14 +33,14 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
-  diagnostics::ModuleBuildError, get_context, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxModule, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  GenerateContext, GeneratorOptions, LibIdentOptions, Module, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SourceType, contextify, diagnostics::ModuleBuildError, get_context,
+  impl_module_meta_info, module_update_hash,
 };
 
 #[cacheable]
@@ -121,8 +121,6 @@ pub struct NormalModule {
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
-  #[debug(skip)]
-  loaders: Vec<BoxLoader>,
 
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
@@ -180,7 +178,6 @@ impl NormalModule {
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
-    loaders: Vec<BoxLoader>,
     context: Option<Context>,
   ) -> Self {
     let module_type = module_type.into();
@@ -201,7 +198,6 @@ impl NormalModule {
       match_resource,
       resource_data,
       resolve_options,
-      loaders,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
@@ -247,10 +243,6 @@ impl NormalModule {
 
   pub fn raw_request(&self) -> &str {
     &self.raw_request
-  }
-
-  pub fn loaders(&self) -> &[BoxLoader] {
-    &self.loaders
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
@@ -373,7 +365,7 @@ impl Module for NormalModule {
     perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
-    module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
+    loaders = ?build_context.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
     &mut self,
@@ -402,7 +394,7 @@ impl Module for NormalModule {
     });
 
     let (mut loader_result, err) = run_loaders(
-      self.loaders.clone(),
+      build_context.loaders.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
@@ -538,7 +530,7 @@ impl Module for NormalModule {
         module_layer: self.layer.as_ref(),
         module_user_request: &self.user_request,
         module_source_map_kind: *self.get_source_map_kind(),
-        loaders: &self.loaders,
+        loaders: &build_context.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,

@@ -571,7 +571,6 @@ impl NormalModuleFactory {
         match_resource_data,
         Arc::new(create_data.resource_resolve_data.clone()),
         resolved_resolve_options,
-        loaders,
         create_data.context.clone().map(|x| x.into()),
       )
       .boxed()
@@ -587,7 +586,10 @@ impl NormalModuleFactory {
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
 
-    Ok(Some(ModuleFactoryResult::new_with_module(module)))
+    Ok(Some(ModuleFactoryResult {
+      module: Some(module),
+      loaders,
+    }))
   }
 
   async fn calculate_module_rules<'a>(

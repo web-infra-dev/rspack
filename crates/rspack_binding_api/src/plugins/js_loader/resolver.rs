@@ -1,9 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsOption, AsRefStr},
-};
 use rspack_collections::Identifier;
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
@@ -15,14 +11,12 @@ use rspack_paths::Utf8Path;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
-#[cacheable]
 #[derive(Debug)]
 pub struct JsLoader(
   pub Identifier,
-  /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
+  /* LoaderType */ pub Option<Cow<'static, str>>,
 );
 
-#[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {
   fn identifier(&self) -> Identifier {
     self.0
