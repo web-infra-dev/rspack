@@ -5,7 +5,6 @@ use rspack_core::{
 };
 use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
-use rspack_plugin_mf::{ConsumeSharedModule, ProvideSharedModule};
 use rspack_plugin_runtime::{
   CreateScriptData, LinkPreloadData, RuntimePluginCreateScript, RuntimePluginLinkPreload,
 };
@@ -83,10 +82,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           .chunk_graph
           .get_chunk_modules(&c, &module_graph)
           .iter()
-          .any(|m| {
-            m.downcast_ref::<ConsumeSharedModule>().is_none()
-              && m.downcast_ref::<ProvideSharedModule>().is_none()
-          });
+          .any(|m| m.source().is_some());
 
         if has_modules && include_chunks.contains_key(id) {
           Some(id)
