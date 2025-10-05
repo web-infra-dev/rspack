@@ -7010,7 +7010,7 @@ const RuntimePluginImpl: {
 };
 
 // @public (undocumented)
-type RuntimePlugins = string[];
+type RuntimePlugins = Array<string | [string, Record<string, any>]>;
 
 // @public (undocumented)
 type RuntimeSpec = string | Set<string> | undefined;

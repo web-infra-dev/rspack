@@ -14,7 +14,7 @@ export interface ModuleFederationPluginOptions
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
 }
-export type RuntimePlugins = string[];
+export type RuntimePlugins = Array<string | [string, Record<string, any>]>;
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
@@ -180,10 +180,16 @@ function getDefaultEntryRuntime(
 	const runtimePluginVars = [];
 	for (let i = 0; i < runtimePlugins.length; i++) {
 		const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
+		const pluginSpec = runtimePlugins[i] as string | [string, any];
+		const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
+		const pluginParams = Array.isArray(pluginSpec) ? pluginSpec[1] : undefined;
+
 		runtimePluginImports.push(
-			`import ${runtimePluginVar} from ${JSON.stringify(runtimePlugins[i])}`
+			`import ${runtimePluginVar} from ${JSON.stringify(pluginPath)}`
 		);
-		runtimePluginVars.push(`${runtimePluginVar}()`);
+		const paramsCode =
+			pluginParams === undefined ? "undefined" : JSON.stringify(pluginParams);
+		runtimePluginVars.push(`${runtimePluginVar}(${paramsCode})`);
 	}
 
 	const content = [
