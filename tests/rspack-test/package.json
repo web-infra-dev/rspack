@@ -42,7 +42,7 @@
     "html-webpack-plugin": "^5.6.4",
     "less-loader": "^12.3.0",
     "lodash": "^4.17.21",
-    "memfs": "4.46.0",
+    "memfs": "4.48.1",
     "mini-svg-data-uri": "^1.4.4",
     "postcss-loader": "^8.2.0",
     "postcss-pxtorem": "^6.1.0",
