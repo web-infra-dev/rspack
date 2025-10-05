@@ -30,7 +30,7 @@
     "less": "4.4.1",
     "less-loader": "^12.3.0",
     "lodash-es": "^4.17.21",
-    "memfs": "^4.46.0",
+    "memfs": "^4.48.1",
     "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",
     "raw-loader": "^4.0.2",
