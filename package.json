@@ -88,7 +88,7 @@
     "ts-jest": "29.4.4",
     "typescript": "^5.9.3",
     "webpack": "5.99.9",
-    "zx": "8.7.1"
+    "zx": "8.8.4"
   },
   "packageManager": "pnpm@10.16.0",
   "pnpm": {
