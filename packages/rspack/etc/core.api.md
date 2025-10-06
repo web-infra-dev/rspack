@@ -6838,6 +6838,7 @@ export type RuleSetRule = {
     enforce?: "pre" | "post";
     oneOf?: (RuleSetRule | Falsy)[];
     rules?: (RuleSetRule | Falsy)[];
+    extractSourceMap?: boolean;
 };
 
 // @public

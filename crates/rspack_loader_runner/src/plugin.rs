@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use rspack_error::Result;
+use rspack_fs::ReadableFileSystem;
+use rspack_sources::SourceMap;
 
 use crate::{
   LoaderContext,
@@ -25,5 +29,9 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>>;
+  async fn process_resource(
+    &self,
+    resource_data: &ResourceData,
+    fs: Arc<dyn ReadableFileSystem>,
+  ) -> Result<Option<(Content, Option<SourceMap>)>>;
 }

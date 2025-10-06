@@ -939,6 +939,9 @@ export type RuleSetRule = {
 
 	/** A kind of Nested Rule, an array of Rules that is also used when the parent Rule matches. */
 	rules?: (RuleSetRule | Falsy)[];
+
+	/** Whether to extract source maps from the module. */
+	extractSourceMap?: boolean;
 };
 
 /** A list of rules. */
