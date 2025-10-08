@@ -404,109 +404,100 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   // We use finishModules with high priority stage to ensure buildMeta is available before other plugins process exports
   // Based on webpack's Compilation.js: finishModules (line 2833) runs before seal (line 2920)
 
-  let module_graph = compilation.get_module_graph();
+  let (consume_updates, missing_fallbacks) = {
+    let module_graph = compilation.get_module_graph();
+    let mut updates = Vec::new();
+    let mut missing = Vec::new();
 
-  // Iterate through all modules to find ConsumeShared modules with a configured fallback import
-  let mut consume_shared_modules = Vec::new();
-  for (module_id, module) in module_graph.modules() {
-    if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
-      && consume_shared.get_options().import.is_some()
-    {
-      consume_shared_modules.push(module_id);
-    }
-  }
+    for (module_id, module) in module_graph.modules() {
+      let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() else {
+        continue;
+      };
 
-  // Process each ConsumeShared module
-  for module_id in consume_shared_modules {
-    // Compute fallback module id and metadata with a single immutable access to the module graph
-    let fallback_meta_info = {
-      let module_graph = compilation.get_module_graph();
-      if let Some(module) = module_graph.module_by_identifier(&module_id) {
-        if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
-          // Find the fallback dependency
-          let mut fallback_id = None;
+      let options = consume_shared.get_options();
 
-          if consume_shared.get_options().eager {
-            // For eager mode, get the fallback directly from dependencies
-            for dep_id in module.get_dependencies() {
-              if let Some(dep) = module_graph.dependency_by_id(dep_id)
-                && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
-              {
-                fallback_id = module_graph
-                  .module_identifier_by_dependency_id(dep_id)
-                  .copied();
-                break;
-              }
-            }
-          } else {
-            // For async mode, get it from the async dependencies block
-            for block_id in module.get_blocks() {
-              if let Some(block) = module_graph.block_by_id(block_id) {
-                for dep_id in block.get_dependencies() {
-                  if let Some(dep) = module_graph.dependency_by_id(dep_id)
-                    && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
-                  {
-                    fallback_id = module_graph
-                      .module_identifier_by_dependency_id(dep_id)
-                      .copied();
-                    break;
-                  }
-                }
-                if fallback_id.is_some() {
-                  break;
-                }
-              }
-            }
-          }
+      let Some(import_request) = options.import.as_ref() else {
+        continue;
+      };
 
-          if let Some(fallback_id) = fallback_id {
-            module_graph
-              .module_by_identifier(&fallback_id)
-              .map(|fallback_module| {
-                (
-                  fallback_module.build_meta().clone(),
-                  fallback_module.build_info().clone(),
-                )
-              })
-          } else {
-            None
-          }
+      let fallback_id = if options.eager {
+        module.get_dependencies().iter().find_map(|dep_id| {
+          module_graph
+            .dependency_by_id(dep_id)
+            .filter(|dep| matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback))
+            .and_then(|_| {
+              module_graph
+                .module_identifier_by_dependency_id(dep_id)
+                .copied()
+            })
+        })
+      } else {
+        module.get_blocks().iter().find_map(|block_id| {
+          module_graph.block_by_id(block_id).and_then(|block| {
+            block.get_dependencies().iter().find_map(|dep_id| {
+              module_graph
+                .dependency_by_id(dep_id)
+                .filter(|dep| {
+                  matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+                })
+                .and_then(|_| {
+                  module_graph
+                    .module_identifier_by_dependency_id(dep_id)
+                    .copied()
+                })
+            })
+          })
+        })
+      };
+
+      if let Some(fallback_id) = fallback_id {
+        if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
+          updates.push((
+            module_id,
+            fallback_module.build_meta().clone(),
+            fallback_module.build_info().clone(),
+          ));
         } else {
-          None
+          missing.push((module_id, import_request.clone()));
         }
       } else {
-        None
+        missing.push((module_id, import_request.clone()));
       }
-    };
+    }
 
-    if let Some((fallback_meta, fallback_info)) = fallback_meta_info {
-      // Update the ConsumeShared module with fallback's metadata
-      let mut module_graph_mut = compilation.get_module_graph_mut();
+    (updates, missing)
+  };
+
+  if !consume_updates.is_empty() {
+    let mut module_graph_mut = compilation.get_module_graph_mut();
+    for (module_id, fallback_meta, fallback_info) in consume_updates {
       if let Some(consume_module) = module_graph_mut.module_by_identifier_mut(&module_id) {
         // Copy buildMeta and buildInfo following webpack's DelegatedModule pattern: this.buildMeta = { ...delegateData.buildMeta };
         // This ensures ConsumeSharedModule inherits ESM/CJS detection (exportsType) and other optimization metadata
         *consume_module.build_meta_mut() = fallback_meta;
         *consume_module.build_info_mut() = fallback_info;
       }
-    } else {
-      // No fallback module found. Emit a warning instead of silently defaulting values.
-      // This avoids masking potential issues where a configured fallback import cannot be resolved.
-      {
-        let module_graph = compilation.get_module_graph();
-        if let Some(module) = module_graph.module_by_identifier(&module_id)
-          && let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
-          && let Some(req) = &consume_shared.get_options().import
-        {
-          compilation.push_diagnostic(Diagnostic::warn(
-            "ConsumeSharedFallbackMissing".into(),
-            format!(
-              "Fallback module for '{}' not found; skipping build meta copy",
-              req
-            ),
-          ));
-        }
-      }
+      // Mark all exports as provided to avoid later export analysis from pruning fallback-provided exports.
+      let exports_info = module_graph_mut.get_exports_info(&module_id);
+      exports_info.set_unknown_exports_provided(
+        &mut module_graph_mut,
+        false,
+        None,
+        None,
+        None,
+        None,
+      );
     }
+  }
+
+  for (module_id, request) in missing_fallbacks {
+    compilation.push_diagnostic(Diagnostic::warn(
+      "ConsumeSharedFallbackMissing".into(),
+      format!(
+        "Fallback module for '{}' not found; skipping build meta copy for module '{}'",
+        request, module_id
+      ),
+    ));
   }
 
   Ok(())
