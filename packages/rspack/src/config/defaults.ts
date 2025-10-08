@@ -95,7 +95,6 @@ export const applyRspackOptionsDefaults = (
 	}
 
 	applyExperimentsDefaults(options.experiments, {
-		production,
 		development
 	});
 
@@ -208,7 +207,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ production, development }: { production: boolean; development: boolean }
+	{ development }: { development: boolean }
 ) => {
 	// IGNORE(experiments.cache): In webpack, cache is undefined by default
 	F(experiments, "cache", () => development);
@@ -317,11 +316,13 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "requireAsExpression", true);
 	D(parserOptions, "requireDynamic", true);
 	D(parserOptions, "requireResolve", true);
+	D(parserOptions, "commonjs", true);
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
 	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
+	D(parserOptions, "jsx", false);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -1205,7 +1206,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					obj[prop] = newArray as any;
+					obj[prop] = newArray;
 				}
 				const items = factory();
 				if (items !== undefined) {

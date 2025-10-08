@@ -15,7 +15,9 @@ export class Tester implements ITester {
 	total = 0;
 
 	constructor(private config: ITesterConfig) {
-		this.context = new TestContext(config);
+		this.context = config.createContext
+			? config.createContext(config)
+			: new TestContext(config);
 		this.steps = config.steps || [];
 		this.step = 0;
 		this.total = config.steps?.length || 0;
@@ -82,6 +84,7 @@ export class Tester implements ITester {
 				await i.afterAll(this.context);
 			}
 		}
+		await this.context.closeCompiler(this.config.name);
 	}
 
 	private async runStepMethods(
@@ -106,10 +109,15 @@ export class Tester implements ITester {
 		env: ITestEnv,
 		methods: Array<"run" | "check">
 	) {
-		for (const i of methods) {
-			if (typeof step[i] === "function") {
-				await step[i]!(env, this.context);
+		try {
+			for (const i of methods) {
+				if (typeof step[i] === "function") {
+					await step[i]!(env, this.context);
+				}
 			}
+		} catch (e) {
+			console.error(e);
+			throw e;
 		}
 	}
 }

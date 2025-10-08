@@ -9,6 +9,7 @@
  */
 
 import type { Compiler } from "../Compiler";
+import type { StatsColorOptions } from "../config";
 import { compareIds } from "../util/comparators";
 import { formatSize } from "../util/SizeFormatHelpers";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
@@ -287,10 +288,8 @@ const SIMPLE_PRINTERS: Record<
 	"asset.type": type => type,
 	"asset.name": (name, { formatFilename, asset: { isOverSizeLimit } }) =>
 		formatFilename(name, isOverSizeLimit),
-	"asset.size": (
-		size,
-		{ asset: { isOverSizeLimit }, yellow, green, formatSize }
-	) => (isOverSizeLimit ? yellow(formatSize(size)) : formatSize(size)),
+	"asset.size": (size, { asset: { isOverSizeLimit }, yellow, formatSize }) =>
+		isOverSizeLimit ? yellow(formatSize(size)) : formatSize(size),
 	"asset.emitted": (emitted, { green, formatFlag }) =>
 		emitted ? green(formatFlag("emitted")) : undefined,
 	"asset.comparedForEmit": (comparedForEmit, { yellow, formatFlag }) =>
@@ -614,7 +613,7 @@ const SIMPLE_PRINTERS: Record<
 	"error.moduleName": (moduleName, { bold }) => {
 		return moduleName.includes("!")
 			? `${bold(moduleName.replace(/^(\s|\S)*!/, ""))} (${moduleName})`
-			: `${bold(moduleName)}`;
+			: bold(moduleName);
 	},
 	"error.loc": (loc, { green }) => green(loc),
 	"error.message": (message, { bold, formatError }) =>
@@ -1007,12 +1006,12 @@ const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
 };
 
 const joinExplicitNewLine = (
-	items: Array<
+	items: (
 		| {
 				content?: string;
 		  }
 		| false
-	>,
+	)[],
 	indenter: string
 ) => {
 	let firstInLine = true;
@@ -1199,7 +1198,7 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	moduleTraceDependency: joinOneLine
 };
 
-const AVAILABLE_COLORS = {
+const AVAILABLE_COLORS: Record<keyof StatsColorOptions, string> = {
 	bold: "\u001b[1m",
 	yellow: "\u001b[1m\u001b[33m",
 	red: "\u001b[1m\u001b[31m",
@@ -1279,7 +1278,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		}
 		let timeStr = time.toString();
 		if (time > 1000) {
-			timeStr = `${(time / 1000).toFixed(2)}`;
+			timeStr = (time / 1000).toFixed(2);
 			unit = " s";
 		}
 		return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
@@ -1361,8 +1360,13 @@ export class DefaultStatsPrinterPlugin {
 						"DefaultStatsPrinterPlugin",
 						// @ts-expect-error
 						(compilation: StatsCompilation, context) => {
-							for (const color of Object.keys(AVAILABLE_COLORS)) {
+							const colorNames = Object.keys(
+								AVAILABLE_COLORS
+							) as (keyof typeof AVAILABLE_COLORS)[];
+
+							for (const color of colorNames) {
 								let start: string | undefined;
+
 								if (options.colors) {
 									if (
 										typeof options.colors === "object" &&
@@ -1370,10 +1374,10 @@ export class DefaultStatsPrinterPlugin {
 									) {
 										start = options.colors[color];
 									} else {
-										start =
-											AVAILABLE_COLORS[color as keyof typeof AVAILABLE_COLORS];
+										start = AVAILABLE_COLORS[color];
 									}
 								}
+
 								if (start) {
 									context[color] = (str: string) =>
 										`${start}${
@@ -1388,12 +1392,14 @@ export class DefaultStatsPrinterPlugin {
 									context[color] = (str: string) => str;
 								}
 							}
+
 							for (const format of Object.keys(AVAILABLE_FORMATS)) {
 								// @ts-expect-error
 								context[format] = (content, ...args) =>
 									// @ts-expect-error
 									AVAILABLE_FORMATS[format](content, context, ...args);
 							}
+
 							context.timeReference = compilation.time;
 						}
 					);

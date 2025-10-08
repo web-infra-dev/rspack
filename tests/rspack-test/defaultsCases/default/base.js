@@ -193,6 +193,7 @@ module.exports = {
 		        },
 		      },
 		      javascript: Object {
+		        commonjs: true,
 		        dynamicImportMode: lazy,
 		        dynamicImportPrefetch: false,
 		        dynamicImportPreload: false,
@@ -200,6 +201,7 @@ module.exports = {
 		        importDynamic: true,
 		        importMeta: true,
 		        inlineConst: false,
+		        jsx: false,
 		        requireAsExpression: true,
 		        requireDynamic: true,
 		        requireResolve: true,

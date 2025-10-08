@@ -33,15 +33,14 @@ module.exports = {
 						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/a.js")]));
 						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/b.js")]));
 						setTimeout(() => {
-							resolve()
-						}, 2000)
+							resolve();
+						}, 500)
 					}
 				});
 			});
 		} catch (err) {
 			throw err
 		}
-
 	},
 	async check() {
 		expect(mockWatchRunFn).toHaveBeenCalledTimes(3);

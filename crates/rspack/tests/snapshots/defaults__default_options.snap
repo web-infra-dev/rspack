@@ -1435,10 +1435,21 @@ CompilerOptions {
                             require_resolve: Some(
                                 true,
                             ),
+                            commonjs: Some(
+                                JavascriptParserCommonjsOptions {
+                                    exports: Enable,
+                                },
+                            ),
                             import_dynamic: Some(
                                 true,
                             ),
+                            commonjs_magic_comments: Some(
+                                false,
+                            ),
                             inline_const: Some(
+                                false,
+                            ),
+                            jsx: Some(
                                 false,
                             ),
                         },

@@ -21,6 +21,7 @@ use crate::{
   visitors::{
     JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
   },
+  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 fn create_commonjs_require_context_dependency(
@@ -126,8 +127,35 @@ impl CallOrNewExpr<'_> {
 pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
+  fn has_webpack_ignore_comment(
+    parser: &mut JavascriptParser,
+    error_span: Span,
+    span: Span,
+  ) -> bool {
+    if !parser
+      .javascript_options
+      .commonjs_magic_comments
+      .unwrap_or(false)
+    {
+      return false;
+    }
+
+    try_extract_webpack_magic_comment(parser, error_span, span)
+      .get_webpack_ignore()
+      .unwrap_or_default()
+  }
+
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
     if call_expr.args.len() != 1 {
+      return;
+    }
+
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = &call_expr.args[0]
+      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
+    {
       return;
     }
 
@@ -196,6 +224,14 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
     let arg = &call_expr.args[0];
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = arg
+      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
+    {
+      return None;
+    }
     let param = parser.evaluate_expression(&arg.expr);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
@@ -252,8 +288,16 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let argument_expr = &args[0].expr;
-    let param = parser.evaluate_expression(argument_expr);
+    if let ExprOrSpread {
+      spread: None,
+      expr: argument_expr,
+    } = &args[0]
+      && Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span())
+    {
+      return Some(true);
+    }
+
+    let param = parser.evaluate_expression(&args[0].expr);
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {

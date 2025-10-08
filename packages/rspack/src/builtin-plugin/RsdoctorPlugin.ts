@@ -60,8 +60,8 @@ export declare namespace RsdoctorPluginData {
 }
 
 export type RsdoctorPluginOptions = {
-	moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
-	chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+	moduleGraphFeatures?: boolean | ("graph" | "ids" | "sources")[];
+	chunkGraphFeatures?: boolean | ("graph" | "assets")[];
 	sourceMapFeatures?: {
 		module?: boolean;
 		cheap?: boolean;
@@ -153,7 +153,7 @@ RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
 
 export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 	`RsdoctorPlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerRsdoctorPluginModuleGraphTaps: createTap(
 			RegisterJsTapKind.RsdoctorPluginModuleGraph,

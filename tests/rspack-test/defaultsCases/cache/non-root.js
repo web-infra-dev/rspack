@@ -15,28 +15,8 @@ module.exports = {
 
 		@@ ... @@
 		-   "cache": false,
-		-   "context": "<cwd>",
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
-		+   "context": "<cwd>/fixtures",
-		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-		+     "chunkLoadingGlobal": "webpackChunk",
-		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
-		+     "devtoolNamespace": "",
-		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-		+     "hotUpdateGlobal": "webpackHotUpdate",
-		@@ ... @@
-		-     "path": "<cwd>/dist",
-		+     "path": "<cwd>/fixtures/dist",
-		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
-		+     "uniqueName": "",
-		@@ ... @@
-		-       "<cwd>",
-		+       "<cwd>/fixtures",
 	`)
 };

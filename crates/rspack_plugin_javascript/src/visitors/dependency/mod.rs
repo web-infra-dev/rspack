@@ -17,9 +17,9 @@ use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments}
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
-    AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperty,
-    ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, RootName, TagInfoData,
-    TopLevelScope, estree::*,
+    AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperties,
+    DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
+    RootName, TagInfoData, TopLevelScope, estree::*,
   },
   util::*,
 };

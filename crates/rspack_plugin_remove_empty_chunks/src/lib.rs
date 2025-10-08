@@ -22,6 +22,9 @@ impl RemoveEmptyChunksPlugin {
         chunk_graph.get_number_of_chunk_modules(&chunk.ukey()) == 0
           && !chunk.has_runtime(&compilation.chunk_group_by_ukey)
           && chunk_graph.get_number_of_entry_modules(&chunk.ukey()) == 0
+          && chunk
+            .get_entry_options(&compilation.chunk_group_by_ukey)
+            .is_none()
       })
       .map(|chunk| chunk.ukey())
       .collect::<Vec<_>>();

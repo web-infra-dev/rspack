@@ -1015,6 +1015,15 @@ export type CssModuleParserOptions = {
 
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
+export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+
+export type JavascriptParserCommonjsOption =
+	| boolean
+	| {
+			/** Controls how CommonJS export mutations are handled. */
+			exports?: JavascriptParserCommonjsExports;
+	  };
+
 export type JavascriptParserOptions = {
 	/**
 	 * Specifies global mode for dynamic import.
@@ -1050,7 +1059,7 @@ export type JavascriptParserOptions = {
 	 * Enable parsing of new URL() syntax.
 	 * @default true
 	 * */
-	url?: "relative" | boolean;
+	url?: "relative" | "new-url-relative" | boolean;
 
 	/**
 	 * Enable warnings for full dynamic dependencies
@@ -1105,14 +1114,28 @@ export type JavascriptParserOptions = {
 	// TODO: add docs
 	requireResolve?: boolean;
 
+	/**
+	 * CommonJS-specific parser options. `true` enables the default behaviour, `{ exports: 'skipInEsm' }` preserves CommonJS export mutations when executed inside ESM.
+	 * @default true
+	 */
+	commonjs?: JavascriptParserCommonjsOption;
+
 	// TODO: add docs
 	importDynamic?: boolean;
+
+	/**
+	 * Enable magic comments for CommonJS require() expressions.
+	 */
+	commonjsMagicComments?: boolean;
 
 	/** Inline const values in this module */
 	inlineConst?: boolean;
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+
+	/** Whether to enable JSX parsing */
+	jsx?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -1728,6 +1751,33 @@ type ModuleFilterTypes =
 	| ModuleFilterItemTypes
 	| ModuleFilterItemTypes[];
 
+export type StatsColorOptions = {
+	/**
+	 * Custom color for bold text.
+	 */
+	bold?: string;
+	/**
+	 * Custom color for cyan text.
+	 */
+	cyan?: string;
+	/**
+	 * Custom color for green text.
+	 */
+	green?: string;
+	/**
+	 * Custom color for magenta text.
+	 */
+	magenta?: string;
+	/**
+	 * Custom color for red text.
+	 */
+	red?: string;
+	/**
+	 * Custom color for yellow text.
+	 */
+	yellow?: string;
+};
+
 /** Options for stats */
 export type StatsOptions = {
 	/**
@@ -1787,7 +1837,7 @@ export type StatsOptions = {
 	 * Enables or disables the use of colors in the output.
 	 * @default false
 	 */
-	colors?: boolean;
+	colors?: boolean | StatsColorOptions;
 	/**
 	 * Enables or disables the display of the hash.
 	 * @default true
@@ -2333,7 +2383,7 @@ export type Optimization = {
 	 * Customize the minimizer.
 	 * By default, `rspack.SwcJsMinimizerRspackPlugin` and `rspack.LightningCssMinimizerRspackPlugin` are used.
 	 */
-	minimizer?: Array<"..." | Plugin>;
+	minimizer?: ("..." | Plugin)[];
 
 	/**
 	 * Whether to merge chunks which contain the same modules.
@@ -2463,9 +2513,9 @@ export type ExperimentCacheOptions =
 			buildDependencies?: string[];
 			version?: string;
 			snapshot?: {
-				immutablePaths?: Array<string | RegExp>;
-				unmanagedPaths?: Array<string | RegExp>;
-				managedPaths?: Array<string | RegExp>;
+				immutablePaths?: (string | RegExp)[];
+				unmanagedPaths?: (string | RegExp)[];
+				managedPaths?: (string | RegExp)[];
 			};
 			storage?: {
 				type: "filesystem";

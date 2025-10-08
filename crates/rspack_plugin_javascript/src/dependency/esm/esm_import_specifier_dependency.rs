@@ -16,7 +16,6 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
-use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -25,7 +24,7 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  visitors::DestructuringAssignmentProperty,
+  is_export_inlined, visitors::DestructuringAssignmentProperties,
 };
 
 #[cacheable]
@@ -45,8 +44,8 @@ pub struct ESMImportSpecifierDependency {
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
-  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
-  referenced_properties_in_destructuring: Option<HashSet<DestructuringAssignmentProperty>>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
@@ -69,7 +68,7 @@ impl ESMImportSpecifierDependency {
     call: bool,
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
-    referenced_properties_in_destructuring: Option<HashSet<DestructuringAssignmentProperty>>,
+    referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -110,17 +109,19 @@ impl ESMImportSpecifierDependency {
     ids: Option<&[Atom]>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
-      referenced_properties
-        .iter()
-        .map(|prop| {
-          if let Some(v) = ids {
-            let mut value = v.to_vec();
-            value.push(prop.id.clone());
-            value
-          } else {
-            vec![prop.id.clone()]
-          }
-        })
+      let mut refs = Vec::new();
+      referenced_properties.traverse_on_left(&mut |stack| {
+        let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
+        if let Some(ids) = ids {
+          let mut ids = ids.to_vec();
+          ids.extend(ids_in_destructuring);
+          refs.push(ids);
+        } else {
+          refs.push(ids_in_destructuring.collect::<Vec<_>>());
+        }
+      });
+      refs
+        .into_iter()
         // Do not inline if there are any places where used as destructuring
         .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
         .collect::<Vec<_>>()
@@ -513,33 +514,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && {
-        let used_name = if ids.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(con.module_identifier()),
-            &module_graph,
-            *runtime,
-            false,
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            con.module_identifier(),
-            PrefetchExportsInfoMode::Nested(ids),
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            ids,
-          )
-        };
-
-        !used_name.map(|used| used.is_inlined()).unwrap_or_default()
-      }
+      && !is_export_inlined(&module_graph, con.module_identifier(), ids, *runtime)
     {
       return;
     }
@@ -591,9 +566,10 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
       }
 
-      for prop in referenced_properties {
+      referenced_properties.traverse_on_enter(&mut |stack| {
+        let prop = stack.last().expect("should have last");
         let mut concated_ids = prefixed_ids.clone();
-        concated_ids.push(prop.id.clone());
+        concated_ids.extend(stack.iter().map(|p| p.id.clone()));
         let Some(new_name) = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
             &module.identifier(),
@@ -612,7 +588,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         };
 
         if new_name == prop.id {
-          continue;
+          return;
         }
 
         let comment = to_normal_comment(prop.id.as_str());
@@ -623,7 +599,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           key
         };
         source.replace(prop.range.start, prop.range.end, &content, None);
-      }
+      });
     }
   }
 }

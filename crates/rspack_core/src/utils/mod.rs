@@ -39,7 +39,7 @@ pub use self::{
   comment::*,
   extract_url_and_global::*,
   fast_actions::*,
-  file_counter::FileCounter,
+  file_counter::{FileCounter, ResourceId},
   find_graph_roots::*,
   hash::*,
   identifier::*,

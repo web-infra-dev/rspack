@@ -630,7 +630,11 @@ export const getRspackOptionsSchema = memoize(() => {
 	const dynamicImportPreload = z.union([z.boolean(), numberOrInfinity]);
 	const dynamicImportPrefetch = z.union([z.boolean(), numberOrInfinity]);
 	const dynamicImportFetchPriority = z.enum(["low", "high", "auto"]);
-	const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
+	const javascriptParserUrl = z.union([
+		z.literal("relative"),
+		z.literal("new-url-relative"),
+		z.boolean()
+	]);
 	const exprContextCritical = z.boolean();
 	const wrappedContextCritical = z.boolean();
 	const unknownContextCritical = z.boolean();
@@ -650,13 +654,23 @@ export const getRspackOptionsSchema = memoize(() => {
 	const requireAsExpression = z.boolean();
 	const requireDynamic = z.boolean();
 	const requireResolve = z.boolean();
+	const commonjsExports = z.union([z.boolean(), z.literal("skipInEsm")]);
+	const commonjs = z.boolean().or(
+		z
+			.strictObject({
+				exports: commonjsExports
+			})
+			.partial()
+	);
 	const importDynamic = z.boolean();
+	const commonjsMagicComments = z.boolean();
 	const inlineConst = z.boolean();
 	const typeReexportsPresence = z.enum([
 		"no-tolerant",
 		"tolerant",
 		"tolerant-no-check"
 	]);
+	const jsx = z.boolean();
 
 	const javascriptParserOptions = z
 		.strictObject({
@@ -676,13 +690,16 @@ export const getRspackOptionsSchema = memoize(() => {
 			strictExportPresence: strictExportPresence,
 			worker: worker,
 			overrideStrict: overrideStrict,
+			commonjsMagicComments: commonjsMagicComments,
 			// #region Not available in webpack yet.
 			requireAsExpression: requireAsExpression,
 			requireDynamic: requireDynamic,
 			requireResolve: requireResolve,
+			commonjs: commonjs,
 			importDynamic: importDynamic,
 			inlineConst: inlineConst,
-			typeReexportsPresence: typeReexportsPresence
+			typeReexportsPresence: typeReexportsPresence,
+			jsx: jsx
 			// #endregion
 		})
 		.partial() satisfies z.ZodType<t.JavascriptParserOptions>;

@@ -79,6 +79,50 @@ export interface AssetEmittedInfo {
 
 const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
 
+export type CompilerHooks = {
+	done: liteTapable.AsyncSeriesHook<Stats>;
+	afterDone: liteTapable.SyncHook<Stats>;
+	thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
+	compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
+	invalid: liteTapable.SyncHook<[string | null, number]>;
+	compile: liteTapable.SyncHook<[CompilationParams]>;
+	normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
+	contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
+	initialize: liteTapable.SyncHook<[]>;
+	shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
+	/**
+	 * Called when infrastructure logging is triggered, allowing plugins to intercept, modify, or handle log messages.
+	 * If the hook returns `true`, the default infrastructure logging will be prevented.
+	 * If it returns `undefined`, the default logging will proceed.
+	 * @param name - The name of the logger
+	 * @param type - The log type (e.g., 'log', 'warn', 'error', ...)
+	 * @param args - An array of arguments passed to the logging method
+	 */
+	infrastructureLog: liteTapable.SyncBailHook<
+		[string, string, any[]],
+		true | void
+	>;
+	beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+	run: liteTapable.AsyncSeriesHook<[Compiler]>;
+	emit: liteTapable.AsyncSeriesHook<[Compilation]>;
+	assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
+	afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
+	failed: liteTapable.SyncHook<[Error]>;
+	shutdown: liteTapable.AsyncSeriesHook<[]>;
+	watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+	watchClose: liteTapable.SyncHook<[]>;
+	environment: liteTapable.SyncHook<[]>;
+	afterEnvironment: liteTapable.SyncHook<[]>;
+	afterPlugins: liteTapable.SyncHook<[Compiler]>;
+	afterResolvers: liteTapable.SyncHook<[Compiler]>;
+	make: liteTapable.AsyncParallelHook<[Compilation]>;
+	beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
+	afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
+	finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
+	entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
+	additionalPass: liteTapable.AsyncSeriesHook<[]>;
+};
+
 class Compiler {
 	#instance?: binding.JsCompiler;
 	#initial: boolean;
@@ -95,38 +139,7 @@ class Compiler {
 
 	#ruleSet: RuleSetCompiler;
 
-	hooks: {
-		done: liteTapable.AsyncSeriesHook<Stats>;
-		afterDone: liteTapable.SyncHook<Stats>;
-		thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		invalid: liteTapable.SyncHook<[string | null, number]>;
-		compile: liteTapable.SyncHook<[CompilationParams]>;
-		normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
-		contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
-		initialize: liteTapable.SyncHook<[]>;
-		shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
-		infrastructureLog: liteTapable.SyncBailHook<[string, string, any[]], true>;
-		beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
-		run: liteTapable.AsyncSeriesHook<[Compiler]>;
-		emit: liteTapable.AsyncSeriesHook<[Compilation]>;
-		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
-		afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
-		failed: liteTapable.SyncHook<[Error]>;
-		shutdown: liteTapable.AsyncSeriesHook<[]>;
-		watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
-		watchClose: liteTapable.SyncHook<[]>;
-		environment: liteTapable.SyncHook<[]>;
-		afterEnvironment: liteTapable.SyncHook<[]>;
-		afterPlugins: liteTapable.SyncHook<[Compiler]>;
-		afterResolvers: liteTapable.SyncHook<[Compiler]>;
-		make: liteTapable.AsyncParallelHook<[Compilation]>;
-		beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
-		afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
-		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
-		entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
-		additionalPass: liteTapable.AsyncSeriesHook<[]>;
-	};
+	hooks: CompilerHooks;
 
 	webpack: typeof rspack;
 	rspack: typeof rspack;

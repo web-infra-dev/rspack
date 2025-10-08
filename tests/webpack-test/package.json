@@ -23,14 +23,14 @@
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
     "css-loader": "^7.1.2",
-    "csv-to-markdown-table": "^1.5.0",
+    "csv-to-markdown-table": "1.5.0",
     "es5-ext": "^0.10.64",
     "file-loader": "^6.2.0",
     "is-ci": "4.1.0",
     "less": "4.4.1",
     "less-loader": "^12.3.0",
     "lodash-es": "^4.17.21",
-    "memfs": "^4.38.2",
+    "memfs": "^4.48.1",
     "mime-types": "^3.0.1",
     "mini-svg-data-uri": "^1.4.4",
     "raw-loader": "^4.0.2",
@@ -43,7 +43,8 @@
     "terser": "5.43.1",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.4",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3",
+    "jest-diff": "^29.7.0"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",

@@ -164,6 +164,31 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+Enable [Magic comments](/api/runtime-api/module-methods#magic-comments) support for CommonJS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+Note that only `webpackIgnore` comment is supported at the moment:
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
 ### module.parser.javascript.dynamicImportMode
 
 <PropertyType
@@ -253,21 +278,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 Enable parsing of `new URL()` syntax.
 
-When use 'relative', Rspack would generate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+- `true`: Generate absolute URLs that include the root URL (default behavior).
+- `'relative'`: Generate relative URLs without the root URL.
+- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
 
-```html
-<!-- with 'relative' -->
-<img src="icon.svg" />
+When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
 
-<!-- without 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// would become 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -279,6 +321,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical
@@ -581,6 +631,8 @@ export default {
 };
 ```
 
+> See [Web Workers](/guide/features/web-workers) for more details.
+
 ### module.parser.javascript.overrideStrict
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
@@ -597,6 +649,29 @@ export default {
     parser: {
       javascript: {
         overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
       },
     },
   },
@@ -661,6 +736,32 @@ Please refer to [inline const example](https://github.com/rspack-contrib/rstack-
 
 :::warning
 This is currently an experimental feature, so you also need to enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence).
+:::
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Allow the JavaScript parser to understand JSX syntax so that parsing and minimization can operate on files that keep JSX in the final bundle.
+
+Enable this option when you set the loader's JSX mode to "preserve" and want to defer the actual JSX transform to a later tool (for example, libraries that ship JSX output or rely on a custom JSX runtime).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This option is experimental in Rspack and may change or be removed.
 :::
 
 ### module.parser["javascript/auto"]

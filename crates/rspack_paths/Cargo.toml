@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 camino           = { workspace = true }
 dashmap          = { workspace = true }
+indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true }
 rustc-hash       = { workspace = true }
 ustr             = { workspace = true }

@@ -1,0 +1,19 @@
+asset c560fa876f51d750.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
+asset bundle.js xx KiB [emitted] (name: main)
+asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
+runtime modules xx KiB 2 modules
+modules by path ./ xx KiB (javascript) xx KiB (asset)
+  modules by path ./images/ xx KiB (javascript) xx KiB (asset)
+    ./images/file.png 42 bytes (javascript) xx KiB (asset) [built] [code generated]
+    ./images/fileXsvg 915 bytes [built] [code generated]
+    ./images/file.jpg xx KiB [built] [code generated]
+  modules by path ./*.js 415 bytes
+    ./index.js 402 bytes [built] [code generated]
+    ./aXsource.js 13 bytes [built] [code generated]
+  ./static/file.html 42 bytes (javascript) 12 bytes (asset) [built] [code generated]
+  ./a.css 41.4 bytes [built] [code generated]
+modules by mime type text/plain 172 bytes
+  data:text/plain;base64,szsaAAdsadasdfaf.. 72.2 bytes [built] [code generated]
+  data:text/plain,asd= 41.4 bytes [built] [code generated]
+  data:text/plain,XXXXXXXXXXXXXXX.. 58.8 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

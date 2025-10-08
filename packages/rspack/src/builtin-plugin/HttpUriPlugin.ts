@@ -66,13 +66,11 @@ function compatibleFetch(
 					/** @type {Readable} */
 					let stream = res;
 					if (contentEncoding === "gzip") {
-						stream = stream.pipe(createGunzip()) as any as IncomingMessage;
+						stream = stream.pipe(createGunzip()) as IncomingMessage;
 					} else if (contentEncoding === "br") {
-						stream = stream.pipe(
-							createBrotliDecompress()
-						) as any as IncomingMessage;
+						stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
 					} else if (contentEncoding === "deflate") {
-						stream = stream.pipe(createInflate()) as any as IncomingMessage;
+						stream = stream.pipe(createInflate()) as IncomingMessage;
 					}
 					const chunks: Buffer[] = [];
 					stream.on("data", chunk => {

@@ -396,21 +396,6 @@ pub trait Module:
       || self.diagnostics().iter().any(|item| item.is_error())
   }
 
-  fn depends_on(&self, modified_file: &ArcPathSet) -> bool {
-    let build_info = self.build_info();
-    for item in modified_file {
-      if build_info.file_dependencies.contains(item)
-        || build_info.build_dependencies.contains(item)
-        || build_info.context_dependencies.contains(item)
-        || build_info.missing_dependencies.contains(item)
-      {
-        return true;
-      }
-    }
-
-    false
-  }
-
   fn need_id(&self) -> bool {
     true
   }

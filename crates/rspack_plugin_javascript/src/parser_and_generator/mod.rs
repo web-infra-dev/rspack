@@ -179,8 +179,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
+
+    let jsx = module_parser_options
+      .and_then(|options| options.get_javascript())
+      .and_then(|options| options.jsx)
+      .unwrap_or(false);
+
     let parser_lexer = Lexer::new(
       Syntax::Es(EsSyntax {
+        jsx,
         allow_return_outside_function: matches!(
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto

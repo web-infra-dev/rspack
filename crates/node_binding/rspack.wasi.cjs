@@ -160,6 +160,7 @@ module.exports.JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 module.exports.loadBrowserslist = __napiModule.exports.loadBrowserslist
 module.exports.minify = __napiModule.exports.minify
 module.exports.minifySync = __napiModule.exports.minifySync
+module.exports.RawJavascriptParserCommonjsExports = __napiModule.exports.RawJavascriptParserCommonjsExports
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind

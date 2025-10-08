@@ -1,5 +1,6 @@
 use std::{
   collections::{HashMap, HashSet},
+  fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   ops::{Deref, DerefMut},
   path::{Path, PathBuf},
@@ -8,6 +9,7 @@ use std::{
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
 use dashmap::{DashMap, DashSet};
+use indexmap::IndexSet;
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
@@ -51,12 +53,18 @@ impl<'a> AssertUtf8 for &'a Path {
 }
 
 #[cacheable(with=AsRefStr, hashable)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ArcPath {
   path: Arc<Path>,
   // Pre-calculating and caching the hash value upon creation, making hashing operations
   // in collections virtually free.
   hash: u64,
+}
+
+impl Debug for ArcPath {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.path.fmt(f)
+  }
 }
 
 impl ArcPath {
@@ -143,3 +151,7 @@ pub type ArcPathDashMap<V> = DashMap<ArcPath, V, BuildHasherDefault<IdentityHash
 /// A standard `DashSet` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathDashSet = DashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+
+/// A standard `IndexSet` using `ArcPath` as the key type with a custom `Hasher`
+/// that just uses the precomputed hash for speed instead of calculating it.
+pub type ArcPathIndexSet = IndexSet<ArcPath, BuildHasherDefault<IdentityHasher>>;

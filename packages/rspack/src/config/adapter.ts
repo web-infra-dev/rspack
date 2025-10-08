@@ -199,7 +199,7 @@ export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		fallback: getRawAlias(resolve.fallback),
 		extensionAlias: getRawExtensionAlias(resolve.extensionAlias) as Record<
 			string,
-			Array<string>
+			string[]
 		>,
 		tsconfig: getRawTsConfig(resolve.tsConfig),
 		byDependency: getRawResolveByDependency(resolve.byDependency)
@@ -583,9 +583,12 @@ function getRawJavascriptParserOptions(
 		requireAsExpression: parser.requireAsExpression,
 		requireDynamic: parser.requireDynamic,
 		requireResolve: parser.requireResolve,
+		commonjs: parser.commonjs,
 		importDynamic: parser.importDynamic,
+		commonjsMagicComments: parser.commonjsMagicComments,
 		inlineConst: parser.inlineConst,
-		typeReexportsPresence: parser.typeReexportsPresence
+		typeReexportsPresence: parser.typeReexportsPresence,
+		jsx: parser.jsx
 	};
 }
 
@@ -798,6 +801,6 @@ function getRawNode(node: Node): RawOptions["node"] {
 function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	const statsOptions = normalizeStatsPreset(stats);
 	return {
-		colors: statsOptions.colors ?? false
+		colors: Boolean(statsOptions.colors)
 	};
 }

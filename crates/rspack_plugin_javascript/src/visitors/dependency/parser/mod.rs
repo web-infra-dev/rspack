@@ -5,15 +5,25 @@ mod walk_block_pre;
 mod walk_module_pre;
 mod walk_pre;
 
-use std::{borrow::Cow, fmt::Display, rc::Rc, sync::Arc};
+use std::{
+  borrow::Cow,
+  fmt::Display,
+  hash::{Hash, Hasher},
+  rc::Rc,
+  sync::Arc,
+};
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
-use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
+};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, TypeReexportPresenceMode,
+  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -112,15 +122,6 @@ pub struct ExpressionExpressionInfo {
   pub member_ranges: Vec<Span>,
 }
 
-#[cacheable]
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct DestructuringAssignmentProperty {
-  pub range: DependencyRange,
-  #[cacheable(with=AsPreset)]
-  pub id: Atom,
-  pub shorthand: bool,
-}
-
 #[derive(Debug, Clone)]
 pub enum ExportedVariableInfo {
   Name(Atom),
@@ -210,6 +211,100 @@ impl From<Span> for StatementPath {
   }
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct DestructuringAssignmentProperty {
+  pub range: DependencyRange,
+  #[cacheable(with=AsPreset)]
+  pub id: Atom,
+  #[cacheable(omit_bounds, with=AsOption<AsCacheable>)]
+  pub pattern: Option<DestructuringAssignmentProperties>,
+  pub shorthand: bool,
+}
+
+#[cacheable]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct DestructuringAssignmentProperties {
+  #[cacheable(with=AsVec<AsCacheable>)]
+  inner: FxHashSet<DestructuringAssignmentProperty>,
+}
+
+impl Hash for DestructuringAssignmentProperties {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    for prop in &self.inner {
+      prop.hash(state);
+    }
+  }
+}
+
+impl DestructuringAssignmentProperties {
+  pub fn new(properties: FxHashSet<DestructuringAssignmentProperty>) -> Self {
+    Self { inner: properties }
+  }
+
+  pub fn insert(&mut self, prop: DestructuringAssignmentProperty) -> bool {
+    self.inner.insert(prop)
+  }
+
+  pub fn extend(&mut self, other: Self) {
+    self.inner.extend(other.inner);
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &DestructuringAssignmentProperty> {
+    self.inner.iter()
+  }
+
+  pub fn traverse_on_left<'a, F>(&'a self, on_left_node: &mut F)
+  where
+    F: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
+  {
+    self.traverse_impl(on_left_node, &mut |_| {}, &mut Vec::new());
+  }
+
+  pub fn traverse_on_enter<'a, F>(&'a self, on_enter_node: &mut F)
+  where
+    F: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
+  {
+    self.traverse_impl(&mut |_| {}, on_enter_node, &mut Vec::new());
+  }
+
+  fn traverse_impl<'a, L, E>(
+    &'a self,
+    on_left_node: &mut L,
+    on_enter_node: &mut E,
+    stack: &mut Vec<&'a DestructuringAssignmentProperty>,
+  ) where
+    L: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
+    E: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
+  {
+    for prop in &self.inner {
+      stack.push(prop);
+      on_enter_node(stack);
+      if let Some(pattern) = &prop.pattern {
+        pattern.traverse_impl(on_left_node, on_enter_node, stack);
+      } else {
+        on_left_node(stack);
+      }
+      stack.pop();
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct DestructuringAssignmentPropertiesMap {
+  inner: FxHashMap<Span, DestructuringAssignmentProperties>,
+}
+
+impl DestructuringAssignmentPropertiesMap {
+  pub fn add(&mut self, span: Span, props: DestructuringAssignmentProperties) {
+    self.inner.entry(span).or_default().extend(props)
+  }
+
+  pub fn get(&self, span: &Span) -> Option<&DestructuringAssignmentProperties> {
+    self.inner.get(span)
+  }
+}
+
 pub struct JavascriptParser<'parser> {
   // ===== results =======
   errors: Vec<Diagnostic>,
@@ -248,8 +343,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
-  pub(crate) destructuring_assignment_properties:
-    FxHashMap<Span, FxHashSet<DestructuringAssignmentProperty>>,
+  pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
@@ -332,7 +426,17 @@ impl<'parser> JavascriptParser<'parser> {
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin));
+      let commonjs_exports = javascript_options
+        .commonjs
+        .as_ref()
+        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
+          commonjs.exports
+        });
+      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
+        plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
+          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
+        )));
+      }
       if compiler_options.node.is_some() {
         plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
       }
@@ -345,12 +449,6 @@ impl<'parser> JavascriptParser<'parser> {
         compiler_options.output.module,
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      let parse_url = javascript_options.url;
-      if !matches!(parse_url, Some(JavascriptParserUrl::Disable)) {
-        plugins.push(Box::new(parser_plugin::URLPlugin {
-          relative: matches!(parse_url, Some(JavascriptParserUrl::Relative)),
-        }));
-      }
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
         javascript_options
           .worker
@@ -1104,9 +1202,12 @@ impl<'parser> JavascriptParser<'parser> {
       can_collect.then_some(expr)
     };
     if let Some(destructuring) = destructuring
-      && let Some(keys) = self.collect_destructuring_assignment_properties(pattern)
+      && let Some(keys) =
+        self.collect_destructuring_assignment_properties_from_object_pattern(pattern)
     {
-      self.add_destructuring_assignment_properties(destructuring.span(), keys);
+      self
+        .destructuring_assignment_properties
+        .add(destructuring.span(), keys);
     }
     destructuring
   }
@@ -1168,25 +1269,6 @@ impl<'parser> JavascriptParser<'parser> {
       return false;
     };
     !info.is_free()
-  }
-
-  pub fn add_destructuring_assignment_properties(
-    &mut self,
-    span: Span,
-    props: FxHashSet<DestructuringAssignmentProperty>,
-  ) {
-    self
-      .destructuring_assignment_properties
-      .entry(span)
-      .or_default()
-      .extend(props)
-  }
-
-  pub fn destructuring_assignment_properties_for(
-    &self,
-    span: &Span,
-  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
-    self.destructuring_assignment_properties.get(span).cloned()
   }
 }
 

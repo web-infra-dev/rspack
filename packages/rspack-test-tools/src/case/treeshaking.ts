@@ -1,6 +1,12 @@
-import { TreeShakingProcessor } from "../processor/treeshaking";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType } from "../type";
+import type {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	TCompilerOptions
+} from "../type";
+import { defaultOptions } from "./builtin";
+import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -9,14 +15,46 @@ const creator = new BasicCaseCreator({
 		return `${name} with newTreeshaking should match snapshot`;
 	},
 	steps: ({ name }) => [
-		new TreeShakingProcessor({
-			name,
-			snapshot: "treeshaking.snap.txt",
-			compilerType: ECompilerType.Rspack
-		})
+		{
+			config: async (context: ITestContext) => {
+				const compiler = getCompiler(context, name);
+				const options = defaultOptions(context);
+				overrideOptions(context, options);
+				compiler.setOptions(options);
+			},
+			compiler: async (context: ITestContext) => {
+				await compiler(context, name);
+			},
+			build: async (context: ITestContext) => {
+				await build(context, name);
+			},
+			run: async (env: ITestEnv, context: ITestContext) => {
+				// no need to run, just check snapshot
+			},
+			check: async (env: ITestEnv, context: ITestContext) => {
+				await checkSnapshot(env, context, name, "treeshaking.snap.txt");
+			}
+		}
 	]
 });
 
 export function createTreeShakingCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
+}
+
+function overrideOptions(
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	options.target = options.target || ["web", "es2022"];
+	options.optimization ??= {};
+	options.optimization.providedExports = true;
+	options.optimization.innerGraph = true;
+	options.optimization.usedExports = true;
+
+	if (!global.printLogger) {
+		options.infrastructureLogging = {
+			level: "error"
+		};
+	}
 }

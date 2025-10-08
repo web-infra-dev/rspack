@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{MakeArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, FactorizeInfo};
+use crate::{BuildDependency, Compilation, ResourceId};
 
 /// Cutout module graph.
 ///
@@ -59,21 +59,25 @@ impl Cutout {
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {
-          for module in module_graph.modules().values() {
-            // check has dependencies modified
-            if module.depends_on(&files) {
-              // add module id
-              force_build_modules.insert(module.identifier());
-            }
-          }
-          // only failed dependencies need to check
-          for dep_id in &artifact.make_failed_dependencies {
-            let dep = module_graph
-              .dependency_by_id(dep_id)
-              .expect("should have dependency");
-            let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-            if info.depends_on(&files) {
-              force_build_deps.insert(*dep_id);
+          for file in files {
+            for resource_ids in [
+              artifact.file_dependencies.related_resource_ids(&file),
+              artifact.context_dependencies.related_resource_ids(&file),
+              artifact.missing_dependencies.related_resource_ids(&file),
+            ]
+            .into_iter()
+            .flatten()
+            {
+              for resource_id in resource_ids {
+                match resource_id {
+                  ResourceId::Module(mid) => {
+                    force_build_modules.insert(*mid);
+                  }
+                  ResourceId::Dependency(dep_id) => {
+                    force_build_deps.insert(*dep_id);
+                  }
+                }
+              }
             }
           }
         }

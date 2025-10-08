@@ -726,6 +726,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						LogType.warn,
 						LogType.info,
 						LogType.log,
+						LogType.debug,
 						LogType.group,
 						LogType.groupEnd,
 						LogType.groupCollapsed,
@@ -969,7 +970,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const statsCompilation = getStatsCompilation(compilation);
 			const array = statsCompilation.modules;
 			const groupedModules = factory.create(`${type}.modules`, array, context);
-			const limited = spaceLimited(groupedModules, options.modulesSpace!);
+			const limited = spaceLimited(groupedModules, options.modulesSpace);
 			object.modules = limited.children;
 			object.filteredModules = limited.filteredChildren;
 		},
@@ -1000,7 +1001,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					!chunkGroupChildren &&
 					array.every(({ chunkGroup }) => {
 						if (chunkGroup.chunks.length !== 1) return false;
-						const chunk = chunks[chunkGroup.chunks[0]!];
+						const chunk = chunks[chunkGroup.chunks[0]];
 						return (
 							chunk &&
 							chunk.files.size === 1 &&
@@ -1022,7 +1023,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			{ chunkGroupAuxiliary, chunkGroupChildren },
+			_,
 			factory
 		) => {
 			const { type, getStatsCompilation } = context;
@@ -1465,13 +1466,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
-		_: (
-			object,
-			{ origin, module, dependencies },
-			context,
-			{ requestShortener },
-			factory
-		) => {
+		_: (object, { origin, module, dependencies }, context, _, factory) => {
 			const { type } = context;
 			if (origin.moduleDescriptor) {
 				object.originIdentifier = origin.moduleDescriptor.identifier;

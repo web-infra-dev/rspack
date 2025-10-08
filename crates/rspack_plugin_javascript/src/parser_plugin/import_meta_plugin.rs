@@ -167,10 +167,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
       if let Some(referenced_properties_in_destructuring) =
-        parser.destructuring_assignment_properties_for(&span)
+        parser.destructuring_assignment_properties.get(&span)
       {
         let mut content = vec![];
-        for prop in referenced_properties_in_destructuring {
+        for prop in referenced_properties_in_destructuring.iter() {
           if prop.id == "url" {
             content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
           } else if prop.id == "webpack" {

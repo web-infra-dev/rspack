@@ -14,7 +14,7 @@ export type {
 	PathData
 } from "./Compilation";
 export { Compilation } from "./Compilation";
-export { Compiler } from "./Compiler";
+export { Compiler, type CompilerHooks } from "./Compiler";
 export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
 export { MultiCompiler } from "./MultiCompiler";
 
@@ -130,9 +130,10 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
-export type { OutputFileSystem } from "./util/fs";
+export type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 
 import {
+	EsmLibraryPlugin,
 	FetchCompileAsyncWasmPlugin,
 	lazyCompilationMiddleware,
 	SubresourceIntegrityPlugin
@@ -368,6 +369,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
@@ -405,6 +407,7 @@ export const experiments: Experiments = {
 		}
 	},
 	RemoveDuplicateModulesPlugin,
+	EsmLibraryPlugin,
 	/**
 	 * Note: This plugin is unstable yet
 	 *

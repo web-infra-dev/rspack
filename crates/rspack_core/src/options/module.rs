@@ -146,6 +146,7 @@ impl fmt::Display for DynamicImportFetchPriority {
 pub enum JavascriptParserUrl {
   Enable,
   Disable,
+  NewUrlRelative,
   Relative,
 }
 
@@ -154,6 +155,7 @@ impl From<&str> for JavascriptParserUrl {
     match value {
       "false" => Self::Disable,
       "relative" => Self::Relative,
+      "new-url-relative" => Self::NewUrlRelative,
       _ => Self::Enable,
     }
   }
@@ -189,6 +191,26 @@ impl From<&str> for JavascriptParserOrder {
       }
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq)]
+pub enum JavascriptParserCommonjsExportsOption {
+  Enable,
+  Disable,
+  SkipInEsm,
+}
+
+impl From<bool> for JavascriptParserCommonjsExportsOption {
+  fn from(value: bool) -> Self {
+    if value { Self::Enable } else { Self::Disable }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JavascriptParserCommonjsOptions {
+  pub exports: JavascriptParserCommonjsExportsOption,
 }
 
 #[cacheable]
@@ -281,8 +303,11 @@ pub struct JavascriptParserOptions {
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,
   pub require_resolve: Option<bool>,
+  pub commonjs: Option<JavascriptParserCommonjsOptions>,
   pub import_dynamic: Option<bool>,
+  pub commonjs_magic_comments: Option<bool>,
   pub inline_const: Option<bool>,
+  pub jsx: Option<bool>,
 }
 
 #[cacheable]

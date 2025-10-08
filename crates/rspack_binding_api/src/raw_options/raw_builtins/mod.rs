@@ -55,6 +55,7 @@ use rspack_plugin_dll::{
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
+use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
   ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin, node_target_plugin,
 };
@@ -64,7 +65,7 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
   MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
-  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
+  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -155,6 +156,7 @@ pub enum BuiltinPluginName {
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
+  EsmLibraryPlugin,
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
   WorkerPlugin,
@@ -221,6 +223,7 @@ pub enum BuiltinPluginName {
   RstestPlugin,
   RslibPlugin,
   CircularDependencyRspackPlugin,
+  URLPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -300,6 +303,9 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed();
         plugins.push(plugin);
+      }
+      BuiltinPluginName::URLPlugin => {
+        plugins.push(URLPlugin::default().boxed());
       }
       BuiltinPluginName::BannerPlugin => {
         let plugin = BannerPlugin::new(
@@ -402,6 +408,9 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
+      }
+      BuiltinPluginName::EsmLibraryPlugin => {
+        plugins.push(EsmLibraryPlugin::default().boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
         plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());

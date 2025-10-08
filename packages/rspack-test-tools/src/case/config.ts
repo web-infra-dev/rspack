@@ -1,12 +1,57 @@
-import { ConfigProcessor } from "../processor/config";
-import { MultipleRunnerFactory } from "../runner";
+import fs from "fs-extra";
+import path from "path";
+import { parseResource } from "../helper/legacy/parseResource";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, type TTestConfig } from "../type";
+import type {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	TCompilerOptions,
+	TTestConfig
+} from "../type";
+import {
+	build,
+	check,
+	compiler,
+	configMultiCompiler,
+	findMultiCompilerBundle,
+	run
+} from "./common";
+import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
 export type TConfigCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
 	"validate"
 >;
+
+export function createConfigProcessor(name: string): ITestProcessor {
+	return {
+		config: async (context: ITestContext) => {
+			configMultiCompiler(
+				context,
+				name,
+				["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
+				defaultOptions,
+				overrideOptions
+			);
+		},
+		compiler: async (context: ITestContext) => {
+			await compiler(context, name);
+		},
+		build: async (context: ITestContext) => {
+			await build(context, name);
+		},
+		run: async (env: ITestEnv, context: ITestContext) => {
+			await run(env, context, name, (context: ITestContext) =>
+				findMultiCompilerBundle(context, name, findBundle)
+			);
+		},
+		check: async (env: ITestEnv, context: ITestContext) => {
+			await check(env, context, name);
+		}
+	};
+}
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -22,22 +67,102 @@ const creator = new BasicCaseCreator({
 			return res;
 		};
 	},
-	steps: ({ name }) => [
-		new ConfigProcessor({
-			name,
-			runable: true,
-			compilerType: ECompilerType.Rspack,
-			configFiles: [
-				"rspack.config.cjs",
-				"rspack.config.js",
-				"webpack.config.js"
-			]
-		})
-	],
-	runner: MultipleRunnerFactory,
+	steps: ({ name }) => [createConfigProcessor(name)],
+	runner: {
+		key: getMultiCompilerRunnerKey,
+		runner: createMultiCompilerRunner
+	},
 	concurrent: true
 });
 
 export function createConfigCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
+}
+
+export function defaultOptions(
+	index: number,
+	context: ITestContext
+): TCompilerOptions<ECompilerType.Rspack> {
+	return {
+		context: context.getSource(),
+		mode: "production",
+		target: "async-node",
+		devtool: false,
+		cache: false,
+		output: {
+			path: context.getDist()
+		},
+		optimization: {
+			minimize: false
+		},
+		experiments: {
+			css: true,
+			rspackFuture: {
+				bundlerInfo: {
+					force: false
+				}
+			},
+			inlineConst: true,
+			lazyBarrel: true
+		}
+	};
+}
+
+export function overrideOptions(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	if (!options.entry) {
+		options.entry = "./index.js";
+	}
+	if (options.amd === undefined) {
+		options.amd = {};
+	}
+	if (!options.output?.filename) {
+		const outputModule = options.experiments?.outputModule;
+		options.output ??= {};
+		options.output.filename = `bundle${index}${outputModule ? ".mjs" : ".js"}`;
+	}
+
+	if (options.cache === undefined) options.cache = false;
+	if (!global.printLogger) {
+		options.infrastructureLogging = {
+			level: "error"
+		};
+	}
+}
+
+export function findBundle(
+	index: number,
+	context: ITestContext,
+	options: TCompilerOptions<ECompilerType.Rspack>
+) {
+	const testConfig = context.getTestConfig();
+
+	if (typeof testConfig.findBundle === "function") {
+		return testConfig.findBundle!(index, options);
+	}
+
+	const ext = path.extname(parseResource(options.output?.filename).path);
+	const bundlePath = [];
+	if (
+		options.output?.path &&
+		fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
+	) {
+		if (options.experiments?.css) {
+			const cssOutputPath = path.join(
+				options.output.path!,
+				(typeof options.output?.cssFilename === "string" &&
+					options.output?.cssFilename) ||
+					`bundle${index}.css`
+			);
+			if (fs.existsSync(cssOutputPath)) {
+				bundlePath.push(`./bundle${index}.css`);
+			}
+		}
+
+		bundlePath.push(`./bundle${index}${ext}`);
+	}
+	return bundlePath;
 }

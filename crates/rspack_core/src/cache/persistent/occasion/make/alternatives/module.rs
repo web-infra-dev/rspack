@@ -4,7 +4,6 @@ use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 use rspack_collections::Identifiable;
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
@@ -98,11 +97,6 @@ impl Module for TempModule {
   }
 
   fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
-    // return true to make sure this module always rebuild
-    true
-  }
-
-  fn depends_on(&self, _modified_file: &ArcPathSet) -> bool {
     // return true to make sure this module always rebuild
     true
   }

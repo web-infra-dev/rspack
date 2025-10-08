@@ -18,8 +18,6 @@ import type {
 	StatsCompilation as WebpackStatsCompilation
 } from "webpack";
 
-import type { IModuleScope, TRunnerRequirer } from "./runner/type";
-
 export interface ITestContext {
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
@@ -29,13 +27,10 @@ export interface ITestContext {
 		name: string,
 		type: T | void
 	): ITestCompilerManager<T>;
+	closeCompiler(name: string): Promise<void>;
 
 	getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
-	getRunnerFactory<T extends ECompilerType>(
-		name: string
-	): TRunnerFactory<T> | null;
-	getRunner(key: string): ITestRunner | null;
-	setRunner(key: string, runner: ITestRunner): void;
+	getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
 
 	setValue<T>(name: string, key: string, value: T): void;
 	getValue<T>(name: string, key: string): T | void;
@@ -103,10 +98,8 @@ export interface ITesterConfig {
 	testConfig?: TTestConfig<ECompilerType>;
 	compilerFactories?: TCompilerFactories<ECompilerType>;
 	contextValue?: Record<string, unknown>;
-	runnerFactory?: new (
-		name: string,
-		context: ITestContext
-	) => TRunnerFactory<ECompilerType>;
+	runnerCreator?: TTestRunnerCreator;
+	createContext?: (config: ITesterConfig) => ITestContext;
 }
 
 export interface ITester {
@@ -126,11 +119,11 @@ export interface ITestProcessor {
 	before?(context: ITestContext): Promise<void>;
 	after?(context: ITestContext): Promise<void>;
 
-	config?(context: ITestContext): Promise<void>;
-	compiler?(context: ITestContext): Promise<void>;
-	build?(context: ITestContext): Promise<void>;
-	run?(env: ITestEnv, context: ITestContext): Promise<void>;
-	check?(env: ITestEnv, context: ITestContext): Promise<unknown>;
+	config(context: ITestContext): Promise<void>;
+	compiler(context: ITestContext): Promise<void>;
+	build(context: ITestContext): Promise<void>;
+	run(env: ITestEnv, context: ITestContext): Promise<void>;
+	check(env: ITestEnv, context: ITestContext): Promise<unknown>;
 }
 
 export interface ITestReporter<T> {
@@ -259,7 +252,7 @@ export interface TRunnerFactory<T extends ECompilerType> {
 	): ITestRunner;
 }
 
-export type TUpdateOptions = {
+export type THotUpdateContext = {
 	updateIndex: number;
 	totalUpdates: number;
 	changedFiles: string[];
@@ -269,3 +262,49 @@ export type TCompilerFactories<T extends ECompilerType> = Record<
 	T,
 	TCompilerFactory<T>
 >;
+
+export type TRunnerRequirer = (
+	currentDirectory: string,
+	modulePath: string[] | string,
+	context?: {
+		file?: TRunnerFile;
+		esmMode?: EEsmMode;
+	}
+) => Object | Promise<Object>;
+
+export type TRunnerFile = {
+	path: string;
+	content: string;
+	subPath: string;
+};
+
+export enum EEsmMode {
+	Unknown = 0,
+	Evaluated = 1,
+	Unlinked = 2
+}
+
+export interface IModuleScope extends ITestEnv {
+	console: Record<string, (...args: any[]) => void>;
+	expect: jest.Expect;
+	[key: string]: any;
+}
+
+export interface IGlobalContext {
+	console: Record<string, (...args: any[]) => void>;
+	setTimeout: typeof setTimeout;
+	clearTimeout: typeof clearTimeout;
+	[key: string]: any;
+}
+
+export type TModuleObject = { exports: unknown };
+
+export type TTestRunnerCreator = {
+	key: (context: ITestContext, name: string, file: string) => string;
+	runner: (
+		context: ITestContext,
+		name: string,
+		file: string,
+		env: ITestEnv
+	) => ITestRunner;
+};

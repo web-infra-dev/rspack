@@ -239,7 +239,7 @@ async function loaderImpl(
 		},
 		createHash: type => {
 			return createHash(
-				type || loaderContext._compilation.outputOptions!.hashFunction!
+				type || loaderContext._compilation.outputOptions.hashFunction!
 			);
 		}
 	};
@@ -461,6 +461,7 @@ async function loaderImpl(
 					break;
 				}
 			}
+			break;
 		}
 		case JsLoaderState.Normal: {
 			while (loaderContext.loaderIndex >= 0) {

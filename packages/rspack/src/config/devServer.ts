@@ -40,10 +40,10 @@ type ModifyResponseData<
 	byteLength: number
 ) => ResponseData;
 type Headers =
-	| Array<{
+	| {
 			key: string;
 			value: string;
-	  }>
+	  }[]
 	| Record<string, string | string[]>;
 type OutputFileSystem = import("..").OutputFileSystem & {
 	createReadStream?: typeof import("fs").createReadStream;
@@ -188,12 +188,12 @@ type ByPass = (
 type ProxyConfigArray = (
 	| ProxyConfigArrayItem
 	| ((
-			req?: Request | undefined,
-			res?: Response | undefined,
-			next?: NextFunction | undefined
+			req?: Request,
+			res?: Response,
+			next?: NextFunction
 	  ) => ProxyConfigArrayItem)
 )[];
-type Callback = (stats?: Stats | MultiStats | undefined) => any;
+type Callback = (stats?: Stats | MultiStats) => any;
 type DevMiddlewareContext<
 	_RequestInternal extends IncomingMessage = IncomingMessage,
 	_ResponseInternal extends ServerResponse = ServerResponse

@@ -1,0 +1,11 @@
+<e> [LogTestPlugin] Error
+asset main.js 36 bytes [emitted] (name: main)
+./index.js 1 bytes [built] [code generated]
+
+LOG from LogTestPlugin
+<e> Error
+<w> Warning
+<i> Info
++ 12 hidden lines
+
+Rspack x.x.x compiled successfully in X s

@@ -526,6 +526,7 @@ export declare enum BuiltinPluginName {
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  EsmLibraryPlugin = 'EsmLibraryPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WorkerPlugin = 'WorkerPlugin',
@@ -589,6 +590,7 @@ export declare enum BuiltinPluginName {
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
+  URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
@@ -2285,6 +2287,14 @@ export interface RawIntegrityItem {
   integrity: string
 }
 
+export declare enum RawJavascriptParserCommonjsExports {
+  SkipInEsm = 'skipInEsm'
+}
+
+export interface RawJavascriptParserCommonjsOptions {
+  exports?: boolean | 'skipInEsm'
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2317,21 +2327,28 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   requireResolve?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  inlineConst?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  typeReexportsPresence?: string
+commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importDynamic?: boolean
+commonjsMagicComments?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+inlineConst?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+typeReexportsPresence?: string
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+jsx?: boolean
 }
 
 export interface RawJsonGeneratorOptions {

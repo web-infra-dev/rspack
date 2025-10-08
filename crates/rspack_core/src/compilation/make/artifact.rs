@@ -4,7 +4,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  compilation::make::ModuleToLazyMake, utils::FileCounter,
+  compilation::make::ModuleToLazyMake,
+  utils::{FileCounter, ResourceId},
 };
 
 /// Enum used to mark whether module graph has been built.
@@ -91,18 +92,19 @@ impl MakeArtifact {
       .expect("should have module");
     // clean module build info
     let build_info = module.build_info();
+    let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_batch_file(&build_info.file_dependencies);
+      .remove_files(&resource_id, &build_info.file_dependencies);
     self
       .context_dependencies
-      .remove_batch_file(&build_info.context_dependencies);
+      .remove_files(&resource_id, &build_info.context_dependencies);
     self
       .missing_dependencies
-      .remove_batch_file(&build_info.missing_dependencies);
+      .remove_files(&resource_id, &build_info.missing_dependencies);
     self
       .build_dependencies
-      .remove_batch_file(&build_info.build_dependencies);
+      .remove_files(&resource_id, &build_info.build_dependencies);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
@@ -111,24 +113,27 @@ impl MakeArtifact {
       .expect("should have mgm");
     for dep_id in mgm
       .all_dependencies
-      .iter()
-      .chain(mgm.incoming_connections())
+      .clone()
+      .into_iter()
+      .chain(mgm.incoming_connections().clone())
     {
-      if !self.make_failed_dependencies.remove(dep_id) {
-        continue;
+      self.make_failed_dependencies.remove(&dep_id);
+
+      let dep = mg
+        .dependency_by_id_mut(&dep_id)
+        .expect("should have dependency");
+      if let Some(info) = FactorizeInfo::revoke(dep) {
+        let resource_id = ResourceId::from(dep_id);
+        self
+          .file_dependencies
+          .remove_files(&resource_id, info.file_dependencies());
+        self
+          .context_dependencies
+          .remove_files(&resource_id, info.context_dependencies());
+        self
+          .missing_dependencies
+          .remove_files(&resource_id, info.missing_dependencies());
       }
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-      self
-        .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
-      self
-        .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
-      self
-        .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
     }
 
     self.revoked_modules.insert(*module_identifier);
@@ -142,23 +147,25 @@ impl MakeArtifact {
   /// If `force` is true, the dependency will be completely removed, and nothing will be returned.
   /// This function will update index on MakeArtifact.
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    self.make_failed_dependencies.remove(dep_id);
 
-    let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    let revoke_dep_ids = if let Some(factorize_info) = mg
+      .dependency_by_id_mut(dep_id)
+      .and_then(FactorizeInfo::revoke)
+    {
+      let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_files(&resource_id, factorize_info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_files(&resource_id, factorize_info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_files(&resource_id, factorize_info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().into_owned()
+      factorize_info.related_dep_ids().to_vec()
     } else {
       vec![*dep_id]
     };

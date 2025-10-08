@@ -41,11 +41,18 @@ impl ModuleBuildError {
 }
 
 impl From<ModuleBuildError> for Error {
-  fn from(mut value: ModuleBuildError) -> Error {
+  fn from(value: ModuleBuildError) -> Error {
+    let source = value.0;
+
     let mut err = Error::error("Module build failed:".into());
-    err.details = std::mem::take(&mut value.0.details);
-    err.severity = value.0.severity;
-    err.source_error = Some(Box::new(value.0));
+    let details = source
+      .hide_stack
+      .unwrap_or(false)
+      .then_some(source.stack.as_ref().map(|stack| stack.to_string()))
+      .flatten();
+    err.details = details;
+    err.severity = source.severity;
+    err.source_error = Some(Box::new(source));
     err.code = Some("ModuleBuildError".into());
     err
   }
@@ -107,28 +114,6 @@ impl ModuleParseError {
       help,
       source,
     }
-  }
-}
-
-#[derive(Debug)]
-pub struct CapturedLoaderError {
-  pub source: Box<dyn std::error::Error>,
-  pub details: Option<String>,
-}
-
-impl CapturedLoaderError {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(source: Box<dyn std::error::Error>, details: Option<String>) -> Self {
-    Self { source, details }
-  }
-}
-
-impl From<CapturedLoaderError> for Error {
-  fn from(value: CapturedLoaderError) -> Error {
-    let mut error = rspack_error::error!(value.source.to_string());
-    error.code = Some("CapturedLoaderError".into());
-    error.details = value.details;
-    error
   }
 }
 

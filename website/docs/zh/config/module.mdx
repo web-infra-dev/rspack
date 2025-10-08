@@ -164,6 +164,31 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+为 CommonJS 启用 [Magic comments](/api/runtime-api/module-methods#magic-comments) 支持。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+目前仅支持 `webpackIgnore` 注释：
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
 ### module.parser.javascript.dynamicImportMode
 
 <PropertyType
@@ -253,21 +278,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 启用 `new URL()` 语法解析。
 
-当使用 'relative' 时，webpack 将为 `new URL()` 语法生成相对的 URL，即结果 URL 中不包含根 URL
+- `true`：生成包含根 URL 的绝对 URL（默认行为）。
+- `'relative'`：生成不包含根 URL 的相对 URL。
+- `'new-url-relative'`：相对于公共路径的相对 URL。
 
-```html
-<!-- 使用 'relative' -->
-<img src="icon.svg" />
+当使用 `'new-url-relative'` 时，Rspack 将在编译时计算出相对于公共路径的相对 URL：
 
-<!-- 不使用 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// 转换成 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+当使用 `'relative'` 时，Rspack 将生成运行时代码，为 `new URL()` 语法计算出相对的 URL，结果 URL 中不包含根 URL：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -279,6 +321,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- 使用 'relative' -->
+<img src="icon.svg" />
+
+<!-- 不使用 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical
@@ -581,6 +631,8 @@ export default {
 };
 ```
 
+> 查看 [Web Workers](/guide/features/web-workers) 了解更多。
+
 ### module.parser.javascript.overrideStrict
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
@@ -597,6 +649,29 @@ export default {
     parser: {
       javascript: {
         overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+控制 CommonJS 相关的解析行为。`true` 会保持 Rspack 对 CommonJS 导出赋值的默认转换；设置 `{ exports: 'skipInEsm' }` 时，当模块以 ESM 方式执行会跳过对应的重写，从而保留原始的运行时副作用；配置为 `false` 则关闭所有 CommonJS 导出处理。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
       },
     },
   },
@@ -661,6 +736,32 @@ export default {
 
 :::warning
 目前仍为实验性功能，需要开启 [experiments.inlineConst](/config/experiments#experimentstypereexportspresence)。
+:::
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+让 JavaScript 解析器能够识别 JSX 语法，这样语法解析和压缩等流程就可以在保留 JSX 的情况下继续工作。
+
+当你在 loader 中将 JSX 的模式设置为 "preserve"，希望把 JSX 的转换留给后续工具（例如输出 JSX 的类库或依赖自定义 JSX runtime 的场景）时，可以开启该选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
 ### module.parser["javascript/auto"]
