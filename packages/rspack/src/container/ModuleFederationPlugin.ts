@@ -14,7 +14,7 @@ export interface ModuleFederationPluginOptions
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
 }
-export type RuntimePlugins = Array<string | [string, Record<string, any>]>;
+export type RuntimePlugins = string[] | [string, Record<string, any>][];
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
