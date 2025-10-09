@@ -199,11 +199,11 @@ importers:
   packages/create-rspack/template-react-js:
     dependencies:
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -215,11 +215,11 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1(react-refresh@0.17.0)
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
+        version: 19.1.9(@types/react@19.2.2)
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
@@ -227,11 +227,11 @@ importers:
   packages/create-rspack/template-react-ts:
     dependencies:
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -243,11 +243,11 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1(react-refresh@0.17.0)
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
+        version: 19.1.9(@types/react@19.2.2)
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
@@ -575,11 +575,11 @@ importers:
         specifier: ^21.1.7
         version: 21.1.7
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
+        version: 19.1.9(@types/react@19.2.2)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
         version: 2.11.1(enhanced-resolve@5.18.3)(pug@3.0.3)(webpack@5.99.9)
@@ -629,11 +629,11 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.99.9)
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
@@ -695,11 +695,11 @@ importers:
   tests/bench:
     dependencies:
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
     devDependencies:
       '@codspeed/vitest-plugin':
         specifier: ^4.0.1
@@ -714,11 +714,11 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1(react-refresh@0.17.0)
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
+        version: 19.1.9(@types/react@19.2.2)
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.19)(jiti@2.6.0)(jsdom@26.1.0)(less@4.4.1)(sass-embedded@1.93.2)(sass@1.93.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)
@@ -768,11 +768,11 @@ importers:
         specifier: ^8.2.0
         version: 8.2.0(@rspack/core@packages+rspack)(postcss@8.5.6)(typescript@5.9.3)(webpack@5.99.9)
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
@@ -834,11 +834,11 @@ importers:
         specifier: ^21.1.7
         version: 21.1.7
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/react-dom':
         specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
+        version: 19.1.9(@types/react@19.2.2)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
         version: 2.11.1(enhanced-resolve@5.18.3)(pug@3.0.3)(webpack@5.99.9)
@@ -924,11 +924,11 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.99.9)
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       react-refresh:
         specifier: ^0.17.0
         version: 0.17.0
@@ -984,8 +984,8 @@ importers:
   tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/lib:
     dependencies:
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
 
   tests/webpack-cli-test:
     dependencies:
@@ -1044,11 +1044,11 @@ importers:
         specifier: ^15.8.1
         version: 15.8.1
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       style-loader:
         specifier: ^4.0.0
         version: 4.0.0(webpack@5.99.9)
@@ -1168,11 +1168,11 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.99.9)
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
@@ -1199,22 +1199,22 @@ importers:
     dependencies:
       '@rstack-dev/doc-ui':
         specifier: 1.11.0
-        version: 1.11.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        version: 1.11.0(react-dom@19.1.1(react@19.2.0))(react@19.2.0)
       axios:
         specifier: ^1.12.2
         version: 1.12.2
       markdown-to-jsx:
         specifier: ^7.7.13
-        version: 7.7.13(react@19.1.1)
+        version: 7.7.13(react@19.2.0)
       mermaid:
         specifier: ^11.12.0
         version: 11.12.0
       react:
-        specifier: ^19.1.1
-        version: 19.1.1
+        specifier: ^19.2.0
+        version: 19.2.0
       react-dom:
         specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
+        version: 19.1.1(react@19.2.0)
       semver:
         specifier: ^7.7.2
         version: 7.7.2
@@ -1227,19 +1227,19 @@ importers:
         version: 1.4.0(@rsbuild/core@1.5.13)
       '@rspress/core':
         specifier: 2.0.0-beta.34
-        version: 2.0.0-beta.34(@types/react@19.1.15)
+        version: 2.0.0-beta.34(@types/react@19.2.2)
       '@rspress/plugin-algolia':
         specifier: 2.0.0-beta.34
-        version: 2.0.0-beta.34(@algolia/client-search@5.39.0)(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))(@types/react@19.1.15)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(search-insights@2.17.3)
+        version: 2.0.0-beta.34(@algolia/client-search@5.39.0)(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.2.0))(react@19.2.0)(search-insights@2.17.3)
       '@rspress/plugin-llms':
         specifier: 2.0.0-beta.34
-        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))
+        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))
       '@rspress/plugin-rss':
         specifier: 2.0.0-beta.34
-        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))
+        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))
       '@rspress/plugin-sitemap':
         specifier: 2.0.0-beta.34
-        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))
+        version: 2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))
       '@shikijs/transformers':
         specifier: ^3.13.0
         version: 3.13.0
@@ -1247,8 +1247,8 @@ importers:
         specifier: ^20.19.19
         version: 20.19.19
       '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
+        specifier: ^19.2.2
+        version: 19.2.2
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
@@ -1275,7 +1275,7 @@ importers:
         version: 1.1.0(@rsbuild/core@1.5.13)
       rspress-plugin-font-open-sans:
         specifier: 1.0.3
-        version: 1.0.3(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))
+        version: 1.0.3(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -3825,8 +3825,8 @@ packages:
     peerDependencies:
       '@types/react': ^19.0.0
 
-  '@types/react@19.1.15':
-    resolution: {integrity: sha512-+kLxJpaJzXybyDyFXYADyP1cznTO8HSuBpenGlnKOAkH4hyNINiywvXS/tGJhsrGGP/gM185RA3xpjY0Yg4erA==}
+  '@types/react@19.2.2':
+    resolution: {integrity: sha512-6mDvHUFSjyT2B2yeNx2nUgMxh9LtOWvkhIU3uePn2I2oyNymUAX1NIsdgviM4CH+JSrp2D2hsMvJOkxY+0wNRA==}
 
   '@types/retry@0.12.2':
     resolution: {integrity: sha512-XISRgDJ2Tc5q4TRqvgJtzsRkFYNJzZrhTdtMoGVBttwzzQJkPnS3WWTFc7kuDRoPtPakl+T+OfdEUjYJj7Jbow==}
@@ -7527,8 +7527,8 @@ packages:
     peerDependencies:
       react: '>=16.8'
 
-  react@19.1.1:
-    resolution: {integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==}
+  react@19.2.0:
+    resolution: {integrity: sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==}
     engines: {node: '>=0.10.0'}
 
   read-cache@1.0.0:
@@ -9087,12 +9087,12 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@2.0.59(react@19.1.1)(zod@4.1.11)':
+  '@ai-sdk/react@2.0.59(react@19.2.0)(zod@4.1.11)':
     dependencies:
       '@ai-sdk/provider-utils': 3.0.10(zod@4.1.11)
       ai: 5.0.59(zod@4.1.11)
-      react: 19.1.1
-      swr: 2.3.6(react@19.1.1)
+      react: 19.2.0
+      swr: 2.3.6(react@19.2.0)
       throttleit: 2.1.0
     optionalDependencies:
       zod: 4.1.11
@@ -9850,9 +9850,9 @@ snapshots:
 
   '@docsearch/css@4.1.0': {}
 
-  '@docsearch/react@4.1.0(@algolia/client-search@5.39.0)(@types/react@19.1.15)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(search-insights@2.17.3)':
+  '@docsearch/react@4.1.0(@algolia/client-search@5.39.0)(@types/react@19.2.2)(react-dom@19.1.1(react@19.2.0))(react@19.2.0)(search-insights@2.17.3)':
     dependencies:
-      '@ai-sdk/react': 2.0.59(react@19.1.1)(zod@4.1.11)
+      '@ai-sdk/react': 2.0.59(react@19.2.0)(zod@4.1.11)
       '@algolia/autocomplete-core': 1.19.2(@algolia/client-search@5.39.0)(algoliasearch@5.39.0)(search-insights@2.17.3)
       '@docsearch/css': 4.1.0
       ai: 5.0.59(zod@4.1.11)
@@ -9860,9 +9860,9 @@ snapshots:
       marked: 16.3.0
       zod: 4.1.11
     optionalDependencies:
-      '@types/react': 19.1.15
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      '@types/react': 19.2.2
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
       search-insights: 2.17.3
     transitivePeerDependencies:
       - '@algolia/client-search'
@@ -10387,11 +10387,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mdx-js/react@3.1.1(@types/react@19.1.15)(react@19.1.1)':
+  '@mdx-js/react@3.1.1(@types/react@19.2.2)(react@19.2.0)':
     dependencies:
       '@types/mdx': 2.0.13
-      '@types/react': 19.1.15
-      react: 19.1.1
+      '@types/react': 19.2.2
+      react: 19.2.0
 
   '@mermaid-js/parser@0.6.2':
     dependencies:
@@ -11127,19 +11127,19 @@ snapshots:
       html-entities: 2.6.0
       react-refresh: 0.17.0
 
-  '@rspress/core@2.0.0-beta.34(@types/react@19.1.15)':
+  '@rspress/core@2.0.0-beta.34(@types/react@19.2.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
-      '@mdx-js/react': 3.1.1(@types/react@19.1.15)(react@19.1.1)
+      '@mdx-js/react': 3.1.1(@types/react@19.2.2)(react@19.2.0)
       '@rsbuild/core': 1.5.13
       '@rsbuild/plugin-react': 1.4.1(@rsbuild/core@1.5.13)
       '@rspress/mdx-rs': 0.6.6
       '@rspress/runtime': 2.0.0-beta.34
       '@rspress/shared': 2.0.0-beta.34
-      '@rspress/theme-default': 2.0.0-beta.34(@types/react@19.1.15)
+      '@rspress/theme-default': 2.0.0-beta.34(@types/react@19.2.2)
       '@shikijs/rehype': 3.13.0
       '@types/unist': 3.0.3
-      '@unhead/react': 2.0.17(react@19.1.1)
+      '@unhead/react': 2.0.17(react@19.2.0)
       cac: 6.7.14
       chokidar: 3.6.0
       github-slugger: 2.0.0
@@ -11149,10 +11149,10 @@ snapshots:
       mdast-util-mdxjs-esm: 2.0.1
       medium-zoom: 1.1.0
       picocolors: 1.1.1
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
       react-lazy-with-preload: 2.2.1
-      react-router-dom: 6.30.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react-router-dom: 6.30.1(react-dom@19.1.1(react@19.2.0))(react@19.2.0)
       rehype-external-links: 3.0.0
       rehype-raw: 7.0.0
       remark-gfm: 4.0.1
@@ -11202,11 +11202,11 @@ snapshots:
       '@rspress/mdx-rs-win32-arm64-msvc': 0.6.6
       '@rspress/mdx-rs-win32-x64-msvc': 0.6.6
 
-  '@rspress/plugin-algolia@2.0.0-beta.34(@algolia/client-search@5.39.0)(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))(@types/react@19.1.15)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(search-insights@2.17.3)':
+  '@rspress/plugin-algolia@2.0.0-beta.34(@algolia/client-search@5.39.0)(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.1.1(react@19.2.0))(react@19.2.0)(search-insights@2.17.3)':
     dependencies:
       '@docsearch/css': 4.1.0
-      '@docsearch/react': 4.1.0(@algolia/client-search@5.39.0)(@types/react@19.1.15)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(search-insights@2.17.3)
-      '@rspress/core': 2.0.0-beta.34(@types/react@19.1.15)
+      '@docsearch/react': 4.1.0(@algolia/client-search@5.39.0)(@types/react@19.2.2)(react-dom@19.1.1(react@19.2.0))(react@19.2.0)(search-insights@2.17.3)
+      '@rspress/core': 2.0.0-beta.34(@types/react@19.2.2)
     transitivePeerDependencies:
       - '@algolia/client-search'
       - '@types/react'
@@ -11214,9 +11214,9 @@ snapshots:
       - react-dom
       - search-insights
 
-  '@rspress/plugin-llms@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))':
+  '@rspress/plugin-llms@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))':
     dependencies:
-      '@rspress/core': 2.0.0-beta.34(@types/react@19.1.15)
+      '@rspress/core': 2.0.0-beta.34(@types/react@19.2.2)
       remark-mdx: 3.1.1
       remark-parse: 11.0.0
       remark-stringify: 11.0.0
@@ -11225,22 +11225,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@rspress/plugin-rss@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))':
+  '@rspress/plugin-rss@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))':
     dependencies:
-      '@rspress/core': 2.0.0-beta.34(@types/react@19.1.15)
+      '@rspress/core': 2.0.0-beta.34(@types/react@19.2.2)
       feed: 4.2.2
 
-  '@rspress/plugin-sitemap@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.1.15))':
+  '@rspress/plugin-sitemap@2.0.0-beta.34(@rspress/core@2.0.0-beta.34(@types/react@19.2.2))':
     dependencies:
-      '@rspress/core': 2.0.0-beta.34(@types/react@19.1.15)
+      '@rspress/core': 2.0.0-beta.34(@types/react@19.2.2)
 
   '@rspress/runtime@2.0.0-beta.34':
     dependencies:
       '@rspress/shared': 2.0.0-beta.34
-      '@unhead/react': 2.0.17(react@19.1.1)
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      react-router-dom: 6.30.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@unhead/react': 2.0.17(react@19.2.0)
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
+      react-router-dom: 6.30.1(react-dom@19.1.1(react@19.2.0))(react@19.2.0)
 
   '@rspress/shared@2.0.0-beta.34':
     dependencies:
@@ -11250,12 +11250,12 @@ snapshots:
       lodash-es: 4.17.21
       unified: 11.0.5
 
-  '@rspress/theme-default@2.0.0-beta.34(@types/react@19.1.15)':
+  '@rspress/theme-default@2.0.0-beta.34(@types/react@19.2.2)':
     dependencies:
-      '@mdx-js/react': 3.1.1(@types/react@19.1.15)(react@19.1.1)
+      '@mdx-js/react': 3.1.1(@types/react@19.2.2)(react@19.2.0)
       '@rspress/runtime': 2.0.0-beta.34
       '@rspress/shared': 2.0.0-beta.34
-      '@unhead/react': 2.0.17(react@19.1.1)
+      '@unhead/react': 2.0.17(react@19.2.0)
       body-scroll-lock: 4.0.0-beta.0
       copy-to-clipboard: 3.3.3
       flexsearch: 0.7.43
@@ -11263,16 +11263,16 @@ snapshots:
       hast-util-to-jsx-runtime: 2.3.6
       lodash-es: 4.17.21
       nprogress: 0.2.0
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
       shiki: 3.13.0
     transitivePeerDependencies:
       - '@types/react'
       - supports-color
 
-  '@rstack-dev/doc-ui@1.11.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@rstack-dev/doc-ui@1.11.0(react-dom@19.1.1(react@19.2.0))(react@19.2.0)':
     dependencies:
-      framer-motion: 12.23.22(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      framer-motion: 12.23.22(react-dom@19.1.1(react@19.2.0))(react@19.2.0)
     transitivePeerDependencies:
       - '@emotion/is-prop-valid'
       - react
@@ -11712,11 +11712,11 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
-  '@types/react-dom@19.1.9(@types/react@19.1.15)':
+  '@types/react-dom@19.1.9(@types/react@19.2.2)':
     dependencies:
-      '@types/react': 19.1.15
+      '@types/react': 19.2.2
 
-  '@types/react@19.1.15':
+  '@types/react@19.2.2':
     dependencies:
       csstype: 3.1.3
 
@@ -11782,9 +11782,9 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@unhead/react@2.0.17(react@19.1.1)':
+  '@unhead/react@2.0.17(react@19.2.0)':
     dependencies:
-      react: 19.1.1
+      react: 19.2.0
       unhead: 2.0.17
 
   '@vercel/ncc@0.38.3': {}
@@ -13743,14 +13743,14 @@ snapshots:
 
   forwarded@0.2.0: {}
 
-  framer-motion@12.23.22(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  framer-motion@12.23.22(react-dom@19.1.1(react@19.2.0))(react@19.2.0):
     dependencies:
       motion-dom: 12.23.21
       motion-utils: 12.23.6
       tslib: 2.8.1
     optionalDependencies:
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
 
   fresh@0.5.2: {}
 
@@ -15094,9 +15094,9 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@7.7.13(react@19.1.1):
+  markdown-to-jsx@7.7.13(react@19.2.0):
     dependencies:
-      react: 19.1.1
+      react: 19.2.0
 
   marked@16.3.0: {}
 
@@ -16249,9 +16249,9 @@ snapshots:
       schema-utils: 3.3.0
       webpack: 5.99.9
 
-  react-dom@19.1.1(react@19.1.1):
+  react-dom@19.1.1(react@19.2.0):
     dependencies:
-      react: 19.1.1
+      react: 19.2.0
       scheduler: 0.26.0
 
   react-is@16.13.1: {}
@@ -16262,19 +16262,19 @@ snapshots:
 
   react-refresh@0.17.0: {}
 
-  react-router-dom@6.30.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  react-router-dom@6.30.1(react-dom@19.1.1(react@19.2.0))(react@19.2.0):
     dependencies:
       '@remix-run/router': 1.23.0
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      react-router: 6.30.1(react@19.1.1)
+      react: 19.2.0
+      react-dom: 19.1.1(react@19.2.0)
+      react-router: 6.30.1(react@19.2.0)
 
-  react-router@6.30.1(react@19.1.1):
+  react-router@6.30.1(react@19.2.0):
     dependencies:
       '@remix-run/router': 1.23.0
-      react: 19.1.1
+      react: 19.2.0
 
-  react@19.1.1: {}
+  react@19.2.0: {}
 
   read-cache@1.0.0:
     dependencies:
@@ -16532,9 +16532,9 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 1.5.13
 
-  rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.0-beta.34(@types/react@19.1.15)):
+  rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.0-beta.34(@types/react@19.2.2)):
     dependencies:
-      '@rspress/core': 2.0.0-beta.34(@types/react@19.1.15)
+      '@rspress/core': 2.0.0-beta.34(@types/react@19.2.2)
 
   run-applescript@7.1.0: {}
 
@@ -17054,11 +17054,11 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  swr@2.3.6(react@19.1.1):
+  swr@2.3.6(react@19.2.0):
     dependencies:
       dequal: 2.0.3
-      react: 19.1.1
-      use-sync-external-store: 1.6.0(react@19.1.1)
+      react: 19.2.0
+      use-sync-external-store: 1.6.0(react@19.2.0)
 
   symbol-tree@3.2.4: {}
 
@@ -17412,9 +17412,9 @@ snapshots:
       punycode: 1.4.1
       qs: 6.14.0
 
-  use-sync-external-store@1.6.0(react@19.1.1):
+  use-sync-external-store@1.6.0(react@19.2.0):
     dependencies:
-      react: 19.1.1
+      react: 19.2.0
 
   util-deprecate@1.0.2: {}
 
