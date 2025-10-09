@@ -11,9 +11,6 @@ module.exports = {
 					layer: "test"
 				}
 			},
-			experiments: {
-				layers: true
-			}
 		};
 	},
 	async check(stats) {
