@@ -17,7 +17,12 @@ interface BrowserRequirePluginOptions {
 	/**
 	 * This function defines how to execute CommonJS code.
 	 */
-	execute: (code: string, runtime: CommonJsRuntime) => void;
+	execute?: (code: string, runtime: CommonJsRuntime) => void;
+	/**
+	 * This option provides a direct mapping from the module specifier to the module content, similar to the mechanism of a virtual module.
+	 * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs.
+	 */
+	modules?: Record<string, any> | ((id: string) => void);
 }
 
 const unsafeExecute: BrowserRequirePluginOptions["execute"] = (
@@ -30,8 +35,9 @@ const unsafeExecute: BrowserRequirePluginOptions["execute"] = (
 
 /**
  * This plugin inject browser-compatible `require` function to the `Compiler`.
- * 1. It resolves the JavaScript in the memfs with Node.js resolution algorithm rather than in the host filesystem.
- * 2. It transform ESM to CommonJS which will be executed with a user-defined `execute` function.
+ * 1. This plugin makes it possible to use custom loaders in browser by providing a virtual module mechanism.
+ * 2. This plugin resolves the JavaScript in the memfs with Node.js resolution algorithm rather than in the host filesystem.
+ * 3. This plugin transform ESM to CommonJS which will be executed with a user-defined `execute` function.
  */
 export class BrowserRequirePlugin {
 	/**
@@ -43,8 +49,28 @@ export class BrowserRequirePlugin {
 	constructor(private options: BrowserRequirePluginOptions) {}
 
 	apply(compiler: Compiler) {
-		const execute = this.options.execute;
+		const { execute, modules } = this.options;
 		compiler.__internal_browser_require = function browserRequire(id: string) {
+			// Try to map id to module
+			if (typeof modules === "function") {
+				const module = modules(id);
+				if (module) {
+					return module;
+				}
+			} else if (typeof modules === "object") {
+				const module = modules[id];
+				if (module) {
+					return module;
+				}
+			}
+
+			// Fallback: resolve in memfs and execute
+			if (!execute) {
+				throw Error(
+					`You should provide 'execute' option if there's no mapping for module '${id}'`
+				);
+			}
+
 			const { path: loaderPath } = resolveSync("", id);
 			if (!loaderPath) {
 				throw new Error(`Cannot find loader of ${id}`);
