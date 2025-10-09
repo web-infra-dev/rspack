@@ -353,13 +353,19 @@ impl EsmLibraryPlugin {
           }
         }
         format!(
-          "import {}{{ {} }} from {source_str};\n",
+          "import {}{}from {source_str};\n",
           if let Some(default_import) = &symbols.default_import {
-            format!("{default_import}, ")
+            format!("{default_import} ")
           } else {
             String::new()
           },
-          imports.join(", ")
+          if imports.is_empty() {
+            String::default()
+          } else if symbols.default_import.is_some() {
+            format!(", {{ {} }} ", imports.join(", "))
+          } else {
+            format!("{{ {} }} ", imports.join(", "))
+          }
         )
       };
       final_source.add(RawStringSource::from(import_str));
