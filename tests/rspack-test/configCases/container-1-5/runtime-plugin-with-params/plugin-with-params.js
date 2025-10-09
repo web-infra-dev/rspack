@@ -1,23 +1,19 @@
 module.exports = function(params) {
-  console.log('Runtime plugin with params loaded');
-  console.log('Received parameters:', params);
-
-  const hasValidParams =
-    params &&
-    params.testParam1 === 'value1' &&
-    params.testParam2 === 123 &&
-    params.testParam3 === true;
-
-  console.log('Parameters validation:', hasValidParams ? 'PASS' : 'FAIL');
-
   return {
-    name: 'parametric-plugin',
-    params: params,
-    getParam: function(key) {
-      return params[key];
-    },
-    validateParams: function() {
-      return hasValidParams;
+    name: 'basic-plugin',
+    version: '1.0.0',
+		getParams(){
+			return params
+		},
+    resolveShare: function(args) {
+				const { shareScopeMap, scope, pkgName, version, GlobalFederation } = args;
+        args.resolver = function () {
+          shareScopeMap[scope][pkgName][version] = {
+						lib: ()=>()=> 'This is react 0.2.1'
+					};
+          return shareScopeMap[scope][pkgName][version];
+        };
+        return args;
     }
   };
 };
