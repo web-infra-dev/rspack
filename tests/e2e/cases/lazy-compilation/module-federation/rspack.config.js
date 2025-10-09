@@ -43,6 +43,8 @@ module.exports = {
 		remotes: {
 			remote: "remote@http://localhost:5679/remoteEntry.js"
 		},
+		// prevent init remote entry
+		shareStrategy: 'loaded-first',
 		shared: {
 			react: {},
 			'react-dom': {}
