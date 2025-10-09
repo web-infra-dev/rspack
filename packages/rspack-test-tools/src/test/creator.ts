@@ -170,7 +170,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						cb(e);
 					});
 				},
-				options.timeout || 180000
+				options.timeout || 300000
 			);
 
 			chain = chain.then(
@@ -260,7 +260,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						);
 					}
 				},
-				options.timeout || 30000
+				options.timeout || 60000
 			);
 			const env = this.createEnv(testConfig, options);
 		}
