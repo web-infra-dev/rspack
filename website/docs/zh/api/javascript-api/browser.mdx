@@ -168,7 +168,7 @@ interface BrowserRequirePluginOptions {
    * 这个选项提供了直接从 id 到模块内容的映射，类似于 virtual module 机制。
    * 如果没有提供该选项或映射的结果为 undefined，那么会 fallback 到从 memfs 中解析，并执行 `execute`。
    */
-  modules?: Record<string, any> | ((id: string) => void);
+  modules?: Record<string, any> | ((id: string) => any);
 }
 ```
 
