@@ -38,7 +38,7 @@ module.exports = {
 		// "<rootDir>/ContextModuleFactory.unittest.js",
 		// "<rootDir>/Defaults.unittest.js",
 		// "<rootDir>/Errors.test.js",
-		"<rootDir>/Examples.test.js",
+		// "<rootDir>/Examples.test.js",
 		// "<rootDir>/FileSystemInfo.unittest.js",
 		// "<rootDir>/HotModuleReplacementPlugin.test.js",
 		"<rootDir>/HotTestCasesAsyncNode.test.js",

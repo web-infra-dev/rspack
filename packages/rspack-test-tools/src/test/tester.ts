@@ -116,7 +116,10 @@ export class Tester implements ITester {
 				}
 			}
 		} catch (e) {
-			console.error(e);
+			const errors = this.context.getError(this.config.name);
+			console.error(
+				new Error([...errors, e].map(e => (e as Error).message).join("\n"))
+			);
 			throw e;
 		}
 	}

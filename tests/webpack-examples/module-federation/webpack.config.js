@@ -1,5 +1,5 @@
 const path = require("path");
-const { ModuleFederationPlugin } = require("../../").container;
+const { ModuleFederationPlugin } = require("@rspack/core").container;
 const rules = [
 	{
 		test: /\.js$/,
