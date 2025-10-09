@@ -20,7 +20,7 @@ interface BrowserRequirePluginOptions {
 	execute?: (code: string, runtime: CommonJsRuntime) => void;
 	/**
 	 * This option provides a direct mapping from the module specifier to the module content, similar to the mechanism of a virtual module.
-	 * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs.
+	 * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs and run `execute`.
 	 */
 	modules?: Record<string, any> | ((id: string) => void);
 }
