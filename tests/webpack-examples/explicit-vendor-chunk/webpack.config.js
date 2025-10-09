@@ -1,5 +1,5 @@
 var path = require("path");
-var webpack = require("../../");
+var webpack = require("@rspack/core");
 module.exports = [
 	{
 		name: "vendor",
