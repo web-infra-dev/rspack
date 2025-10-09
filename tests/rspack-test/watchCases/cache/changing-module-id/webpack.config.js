@@ -20,6 +20,5 @@ module.exports = {
 	},
 	experiments: {
 		// cacheUnaffected: true,
-		layers: true
 	}
 };

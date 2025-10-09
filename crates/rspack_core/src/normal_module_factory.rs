@@ -482,11 +482,6 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &resolved_module_rules);
-    if resolved_module_layer.is_some() && !self.options.experiments.layers {
-      return Err(error!(
-        "'Rule.layer' is only allowed when 'experiments.layers' is enabled"
-      ));
-    }
 
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =

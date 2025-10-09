@@ -17,7 +17,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		layers: true,
 		parallelLoader: true
 	}
 };
