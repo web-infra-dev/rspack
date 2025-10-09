@@ -22,7 +22,7 @@ interface BrowserRequirePluginOptions {
 	 * This option provides a direct mapping from the module specifier to the module content, similar to the mechanism of a virtual module.
 	 * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs and run `execute`.
 	 */
-	modules?: Record<string, any> | ((id: string) => void);
+	modules?: Record<string, any> | ((id: string) => any);
 }
 
 const unsafeExecute: BrowserRequirePluginOptions["execute"] = (
