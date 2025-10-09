@@ -226,6 +226,8 @@ export type TTestConfig<T extends ECompilerType> = {
 
 	// Only valid for Hot tests
 	checkSteps?: boolean;
+	// Only valid for Watch tests
+	ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
 export type TTestFilter<T extends ECompilerType> = (

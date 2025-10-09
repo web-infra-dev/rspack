@@ -876,6 +876,7 @@ export type TTestConfig<T extends ECompilerType> = {
     concurrent?: boolean;
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
+    ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
 // @public (undocumented)
