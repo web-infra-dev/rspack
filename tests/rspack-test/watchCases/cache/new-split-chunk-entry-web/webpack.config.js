@@ -5,9 +5,11 @@ module.exports = {
 		entry: { import: "./entry.js", runtime: "runtime" }
 	},
 	mode: "production",
-	cache: {
-		type: "memory"
-	},
+	/// DIFF: rspack uses cache: true to enable memory cache
+	// cache: {
+	// 	type: "memory"
+	// },
+	cache: true,
 	output: {
 		filename: "[name].js",
 		pathinfo: true,
