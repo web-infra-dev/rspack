@@ -1,0 +1,13 @@
+# Case update-in-worker: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: worker_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update
