@@ -1,4 +1,4 @@
-const { HotModuleReplacementPlugin } = require("../../");
+const { HotModuleReplacementPlugin } = require("@rspack/core");
 
 module.exports = {
 	mode: "development",
