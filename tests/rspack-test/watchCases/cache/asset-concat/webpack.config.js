@@ -1,9 +1,11 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
-	cache: {
-		type: "memory"
-	},
+	/// DIFF: rspack uses cache: true to enable memory cache
+	// cache: {
+	// 	type: "memory"
+	// },
+	cache: true,
 	module: {
 		rules: [
 			{

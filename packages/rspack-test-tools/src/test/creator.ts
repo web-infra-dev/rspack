@@ -68,6 +68,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		if (typeof options.testConfig === "function") {
 			options.testConfig(testConfig);
 		}
+
 		const skipped = this.checkSkipped(src, testConfig, options);
 		if (skipped) {
 			this.skip(name, skipped);

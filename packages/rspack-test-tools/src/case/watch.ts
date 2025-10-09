@@ -39,11 +39,7 @@ export function createWatchInitialProcessor(
 	tempDir: string,
 	step: string,
 	watchState: Record<string, any>,
-	{
-		incremental = false,
-		nativeWatcher = false,
-		ignoreNotFriendlyForIncrementalWarnings = false
-	} = {}
+	{ incremental = false, nativeWatcher = false } = {}
 ) {
 	const watchContext: TWatchContext = {
 		currentTriggerFilename: null,
@@ -59,6 +55,7 @@ export function createWatchInitialProcessor(
 			context.setValue(name, "watchContext", watchContext);
 		},
 		config: async <T extends ECompilerType.Rspack>(context: ITestContext) => {
+			const testConfig = context.getTestConfig();
 			const multiCompilerOptions = [];
 			const caseOptions: TCompilerOptions<T>[] = readConfigFile(
 				["rspack.config.js", "webpack.config.js"].map(i => context.getSource(i))
@@ -68,7 +65,8 @@ export function createWatchInitialProcessor(
 				const compilerOptions = merge(
 					defaultOptions!({
 						incremental,
-						ignoreNotFriendlyForIncrementalWarnings
+						ignoreNotFriendlyForIncrementalWarnings:
+							testConfig.ignoreNotFriendlyForIncrementalWarnings
 					}),
 					options
 				);
@@ -258,18 +256,14 @@ export function createWatchStepProcessor(
 	tempDir: string,
 	step: string,
 	watchState: Record<string, any>,
-	{
-		incremental = false,
-		nativeWatcher = false,
-		ignoreNotFriendlyForIncrementalWarnings = false
-	} = {}
+	{ incremental = false, nativeWatcher = false } = {}
 ) {
 	const processor = createWatchInitialProcessor(
 		name,
 		tempDir,
 		step,
 		watchState,
-		{ incremental, ignoreNotFriendlyForIncrementalWarnings }
+		{ incremental }
 	);
 	processor.compiler = async (context: ITestContext) => {
 		// do nothing
