@@ -399,10 +399,9 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin, stage = 10)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  // Add finishModules hook to copy buildMeta/buildInfo from fallback modules before webpack's export analysis
-  // This follows webpack's pattern used by FlagDependencyExportsPlugin and InferAsyncModulesPlugin
-  // We use finishModules with high priority stage to ensure buildMeta is available before other plugins process exports
-  // Based on webpack's Compilation.js: finishModules (line 2833) runs before seal (line 2920)
+  // Add finishModules hook to copy buildMeta/buildInfo from fallback modules *after* webpack's export analysis.
+  // Running earlier caused parity regressions, so we intentionally execute later than plugins like FlagDependencyExportsPlugin,
+  // matching the behaviour in the module-federation/core repo. This still happens before seal (see webpack's Compilation.js).
 
   let (consume_updates, missing_fallbacks) = {
     let module_graph = compilation.get_module_graph();

@@ -294,7 +294,7 @@ export function createWatchStepProcessor(
 		// which will cause the compiler not rebuild when the files change.
 		// The timeout is set to 400ms for windows OS and 100ms for other OS.
 		// TODO: This is a workaround, we can remove it when notify support windows better.
-		const timeout = nativeWatcher && process.platform === "win32" ? 8000 : 100;
+		const timeout = nativeWatcher && process.platform === "win32" ? 400 : 100;
 		await new Promise(resolve => setTimeout(resolve, timeout));
 		copyDiff(path.join(context.getSource(), step), tempDir, false);
 		await task;
