@@ -14,9 +14,6 @@ module.exports = {
 					layer: "legacy"
 				}
 			},
-			experiments: {
-				layers: true
-			}
 		};
 	},
 	async check(stats) {

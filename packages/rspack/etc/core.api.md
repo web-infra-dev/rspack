@@ -2458,7 +2458,7 @@ export interface ExperimentsNormalized {
     inlineConst?: boolean;
     // (undocumented)
     inlineEnum?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     layers?: boolean;
     // (undocumented)
     lazyBarrel?: boolean;
