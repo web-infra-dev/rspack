@@ -173,10 +173,10 @@ This option allows you to directly map a module request id to any JavaScript obj
 
 ```js title="rspack.config.mjs"
 import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
-import CustomLoader from "./custom-loader";
+import CustomLoader from './custom-loader';
 
 builtinMemFs.volume.fromJSON({
-  "/LOADER/custom-loader.js": "",
+  '/LOADER/custom-loader.js': '',
 });
 
 export default {
@@ -184,14 +184,16 @@ export default {
     rules: [
       {
         test: /a\.js$/,
-        loader: "/LOADER/custom-loader.js",
+        loader: '/LOADER/custom-loader.js',
       },
     ],
   },
   plugins: [
-    modules: {
-      "/LOADER/custom-loader.js": CustomLoader,
-    },
+    new BrowserRequirePlugin({
+      modules: {
+        '/LOADER/custom-loader.js': CustomLoader,
+      },
+    }),
   ],
 };
 ```
