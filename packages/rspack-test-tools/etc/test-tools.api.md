@@ -104,6 +104,9 @@ export function createErrorCase(name: string, src: string, dist: string, testCon
 export function createEsmOutputCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createExampleCase(name: string, src: string): void;
+
+// @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -873,6 +876,7 @@ export type TTestConfig<T extends ECompilerType> = {
     concurrent?: boolean;
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
+    ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
 // @public (undocumented)

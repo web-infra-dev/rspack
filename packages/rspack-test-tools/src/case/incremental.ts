@@ -121,14 +121,10 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 					return runs.map((run, index) =>
 						index === 0
 							? createWatchInitialProcessor(name, temp!, run.name, watchState, {
-									incremental: true,
-									ignoreNotFriendlyForIncrementalWarnings:
-										options.ignoreNotFriendlyForIncrementalWarnings
+									incremental: true
 								})
 							: createWatchStepProcessor(name, temp!, run.name, watchState, {
-									incremental: true,
-									ignoreNotFriendlyForIncrementalWarnings:
-										options.ignoreNotFriendlyForIncrementalWarnings
+									incremental: true
 								})
 					);
 				},

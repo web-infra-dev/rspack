@@ -1,3 +1,2 @@
 
-module.exports = () =>{return false}
-			
+module.exports = () => { return "NOPLAN: support size moduleIds" }

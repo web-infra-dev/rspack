@@ -448,7 +448,7 @@ impl EsmLibraryPlugin {
                     "",
                     &all_used_names,
                     escaped_identifiers
-                      .get(&readable_identifier)
+                      .get(source)
                       .expect("should have escaped identifier"),
                   )
                 } else {

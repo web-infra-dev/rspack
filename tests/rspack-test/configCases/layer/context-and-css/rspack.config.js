@@ -6,7 +6,6 @@ module.exports = {
 		dark: { import: "./dark.js", layer: "dark" }
 	},
 	experiments: {
-		layers: true,
 		css: true
 	},
 	optimization: {

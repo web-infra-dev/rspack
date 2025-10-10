@@ -45,7 +45,6 @@ module.exports = {
 		    },
 		    inlineConst: false,
 		    inlineEnum: false,
-		    layers: false,
 		    lazyBarrel: false,
 		    lazyCompilation: false,
 		    parallelCodeSplitting: false,

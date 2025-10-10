@@ -1,0 +1,75 @@
+# Case full-hash-main: Step 1
+
+## Changed Files
+- thing.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: thing_js.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 39
+- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: thing_js.LAST_HASH.hot-update.js, size: 435
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","thing_js"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### thing_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./thing.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("thing_js", {
+"./thing.js": 
+/*!******************!*\
+  !*** ./thing.js ***!
+  \******************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+
+
+}),
+
+});
+```
