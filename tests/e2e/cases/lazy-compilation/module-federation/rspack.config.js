@@ -48,7 +48,7 @@ module.exports = {
 			react: {},
 			'react-dom': {}
 		},
-		runtimePlugins: [require.resolve('./runtimePlugin.js')]
+		runtimePlugins: [require.resolve('./runtime-plugin.js')]
 	}),
 		new ReactRefreshPlugin(),
 
