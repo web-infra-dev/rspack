@@ -104,21 +104,35 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         add_module(mid, chunk, &mut initial_consumes);
       }
     }
-    if module_id_to_consume_data_mapping.is_empty() {
-      return Ok("".to_string());
-    }
-    let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
-      .into_iter()
-      .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
-      .collect::<Vec<_>>()
-      .join(", ");
+    let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
+      "{}".to_string()
+    } else {
+      format!(
+        "{{{}}}",
+        module_id_to_consume_data_mapping
+          .into_iter()
+          .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
+          .collect::<Vec<_>>()
+          .join(", ")
+      )
+    };
+    let chunk_mapping = if chunk_to_module_mapping.is_empty() {
+      "{}".to_string()
+    } else {
+      json_stringify(&chunk_to_module_mapping)
+    };
+    let initial_consumes_json = if initial_consumes.is_empty() {
+      "[]".to_string()
+    } else {
+      json_stringify(&initial_consumes)
+    };
     let mut source = format!(
       r#"
-__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumes: {initial_consumes} }};
+__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
 "#,
-      chunk_mapping = json_stringify(&chunk_to_module_mapping),
+      chunk_mapping = chunk_mapping,
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
-      initial_consumes = json_stringify(&initial_consumes),
+      initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
