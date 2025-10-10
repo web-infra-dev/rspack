@@ -1,4 +1,4 @@
-/** @type {import('../..').TErrorCaseConfig} */
+/** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 module.exports = {
 	description: "Testing proxy methods on warnings: test pop",
 	options() {

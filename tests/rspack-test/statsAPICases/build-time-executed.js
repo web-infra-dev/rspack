@@ -1,6 +1,6 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have build time executed",
 	options(context) {

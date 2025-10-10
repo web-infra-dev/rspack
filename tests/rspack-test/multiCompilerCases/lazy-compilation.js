@@ -2,7 +2,7 @@ const { LazyCompilationTestPlugin } = require("@rspack/test-tools");
 const path = require("path");
 const context = path.join(__dirname, "../fixtures");
 
-
+/** @type {import('@rspack/test-tools').TMultiCompilerCaseConfig} */
 module.exports = {
   description: "compiler has unique lazy compilation config",
   options() {

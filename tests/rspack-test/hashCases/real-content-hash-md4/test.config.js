@@ -1,6 +1,6 @@
 // const crypto = require("node:crypto");
 
-/** @type {import("@rspack/test-tools").THashCaseConfig} */
+/** @type {import('@rspack/test-tools').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		const assets = stats.stats[0].toJson().assets.map(i => i.name);
