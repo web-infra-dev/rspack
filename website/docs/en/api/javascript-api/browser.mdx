@@ -81,6 +81,28 @@ builtinMemFs.volume.fromJSON({
 const files = builtinMemFs.volume.toJSON();
 ```
 
+`builtinMemFs` is a global singleton instance. In scenarios involving concurrent builds of multiple projects, it is recommended to enable [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) to avoid conflicts.  
+Please note that, currently in the `@rspack/browser`, `experiments.useInputFileSystem` can only intercept project files that will be ultimately bundled, and cannot intercept files relied upon during the build process, such as those used by Loaders (see also [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules) below).
+
+```js title="rspack.config.mjs"
+const projectFs = memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs;
+          compiler.outputFileSystem = projectFs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
 ## Browser-Specific Plugins
 
 To better meet the bundling needs in browser environments, `@rspack/browser` offers several dedicated plugins.
@@ -147,9 +169,7 @@ interface BrowserHttpImportPluginOptions {
 
 In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
 
-The `BrowserRequirePlugin` plugin provides two ways to address this requirement.
-
-Options for `BrowserRequirePlugin` are as follows:
+The `BrowserRequirePlugin` plugin provides two ways to address this requirement. Options for `BrowserRequirePlugin` are as follows:
 
 ```ts
 interface BrowserRequirePluginOptions {

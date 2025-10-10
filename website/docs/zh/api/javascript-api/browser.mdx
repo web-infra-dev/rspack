@@ -82,6 +82,28 @@ builtinMemFs.volume.fromJSON({
 const files = builtinMemFs.volume.toJSON();
 ```
 
+`builtinMemFs` 是一个全局单例实例。在存在并发构建多个项目的场景下，建议启用 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 以避免冲突。  
+需要注意的是，目前在 `@rspack/browser` 环境中，`experiments.useInputFileSystem` 仅能拦截最终将被打包的项目文件，无法拦截诸如 Loader 等构建过程中依赖的文件（见下文 [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules)）。
+
+```js title="rspack.config.mjs"
+const projectFs = memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs;
+          compiler.outputFileSystem = projectFs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
 ## 浏览器专用插件
 
 为更好地满足浏览器环境下的打包需求，`@rspack/browser` 提供了若干专用插件。
@@ -145,9 +167,7 @@ interface BrowserHttpImportPluginOptions {
 
 在 Rspack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](/plugins/rspack/html-rspack-plugin#use-template-function)。由于这些代码可能来自不可信的第三方用户，直接在浏览器环境中执行会带来潜在的安全风险。为了保障安全性，`@rspack/browser` 在遇到此类场景时会默认抛出错误，阻止不安全代码的执行。
 
-`BrowserRequirePlugin` 插件提供了两种方式解决这个需求。
-
-`BrowserRequirePlugin` 的选项如下：
+`BrowserRequirePlugin` 插件提供了两种方式解决这个需求。`BrowserRequirePlugin` 的选项如下：
 
 ```ts
 /**
