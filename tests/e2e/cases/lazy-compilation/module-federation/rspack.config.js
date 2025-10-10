@@ -1,5 +1,4 @@
 const { rspack } = require("@rspack/core");
-const path = require('path');
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
 /** @type { import('@rspack/core').RspackOptions } */
