@@ -30,9 +30,9 @@ export default function loadLoader(
 	callback: (err: unknown) => void
 ): void {
 	if (IS_BROWSER) {
-		let module: any;
+		let module: LoaderModule;
 		try {
-			module = compiler.__internal_browser_require(loader.path);
+			module = compiler.__internal_browser_require(loader.path) as LoaderModule;
 		} catch (e) {
 			return callback(e);
 		}
@@ -52,7 +52,7 @@ export default function loadLoader(
 			callback(e);
 		}
 	} else {
-		let module: any;
+		let module: LoaderModule;
 		try {
 			module = require(loader.path);
 		} catch (e) {
