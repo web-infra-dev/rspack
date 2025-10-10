@@ -3,7 +3,7 @@ module.exports = function (config) {
 
     // Ref: https://github.com/web-infra-dev/rspack/issues/11828
     if (process.platform === "win32" && nativeWatcherEnabled) {
-        return false
+        return false;
     }
     return true;
 }
