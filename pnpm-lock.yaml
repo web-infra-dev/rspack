@@ -314,8 +314,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.0.0-fix-lazy-comile-20250930092757
-        version: 0.0.0-fix-lazy-comile-20250930092757
+        specifier: 0.20.0
+        version: 0.20.0
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -2569,44 +2569,41 @@ packages:
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
 
-  '@module-federation/error-codes@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-LH64OXr9XQQvVgH08PtK0mhd22qXP6dxhyeaFy0C/r1DiJntz/sJeOIaq4q8SbX0Vbs4ocd2qRmmQn36dmEYOg==}
-
   '@module-federation/error-codes@0.18.0':
     resolution: {integrity: sha512-Woonm8ehyVIUPXChmbu80Zj6uJkC0dD9SJUZ/wOPtO8iiz/m+dkrOugAuKgoiR6qH4F+yorWila954tBz4uKsQ==}
 
-  '@module-federation/runtime-core@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-eAeSPrwbbq4FNQYcb2yRMBMSDGuY++2G0LWKSiyCZLn1v84Tu056YACZWXM4NOqvwLeEJCYsE1auhCllHfaNJA==}
+  '@module-federation/error-codes@0.20.0':
+    resolution: {integrity: sha512-pwKqIFXHG72AaXjtptZb+l5VOO3O7JQMVZ4txFhBH4H/BMu7o1LRBONllTisVmojLHOC/RQpBrxXSGrC64LC4w==}
 
   '@module-federation/runtime-core@0.18.0':
     resolution: {integrity: sha512-ZyYhrDyVAhUzriOsVfgL6vwd+5ebYm595Y13KeMf6TKDRoUHBMTLGQ8WM4TDj8JNsy7LigncK8C03fn97of0QQ==}
 
-  '@module-federation/runtime-tools@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-BYaabAPlQ0IJl4iQ+lSFUCzaXM+zvWR0UsraW5OeJZNkT6LgdIOYpeqWsAmbUkpMFNQ25ay0OCUfFhGsbInGRA==}
+  '@module-federation/runtime-core@0.20.0':
+    resolution: {integrity: sha512-M/0F/Ed6o1eCC5gKW3V3QtbxeNZ1w0Y7r6NKNacnwKKC12Nn7Ty9Rg1Kjw2B13EUqP8Qs2Y2IwmBEApy7cFLMw==}
 
   '@module-federation/runtime-tools@0.18.0':
     resolution: {integrity: sha512-fSga9o4t1UfXNV/Kh6qFvRyZpPp3EHSPRISNeyT8ZoTpzDNiYzhtw0BPUSSD8m6C6XQh2s/11rI4g80UY+d+hA==}
 
-  '@module-federation/runtime@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-qmejl5ext2RhejMXxSg8KMRY2dCy9wXnM/bOBMMG6Qatc2Ws2bAWFiYO0/FOJGpWMPcHuHJG0DNh3Afg+T+CdQ==}
+  '@module-federation/runtime-tools@0.20.0':
+    resolution: {integrity: sha512-5NimrYQyYr8hBl48YVU+w6bzl9uWDKNq3IEqYDgYljTYlupbVqsH2MJTf2A+c95nuCycjHS0vp5B3rnJ3Kdotg==}
 
   '@module-federation/runtime@0.18.0':
     resolution: {integrity: sha512-+C4YtoSztM7nHwNyZl6dQKGUVJdsPrUdaf3HIKReg/GQbrt9uvOlUWo2NXMZ8vDAnf/QRrpSYAwXHmWDn9Obaw==}
 
-  '@module-federation/sdk@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-9Ak3jYZQb3sj5di5XNLmQm7B+yr16gWanqDpReeMgw0b63hYCc/6A/1kOvIsPSECthRPA2qB4pFUYWBigzhn5w==}
+  '@module-federation/runtime@0.20.0':
+    resolution: {integrity: sha512-9vHE27aLCWbvzUfYWCTCsNbx4IQ5MtK3f340s4swQofTKj0Qv5dJ6gRIwmHk3DqvH5/1FZoQi3FYMCmrThiGrg==}
 
   '@module-federation/sdk@0.18.0':
     resolution: {integrity: sha512-Lo/Feq73tO2unjmpRfyyoUkTVoejhItXOk/h5C+4cistnHbTV8XHrW/13fD5e1Iu60heVdAhhelJd6F898Ve9A==}
 
-  '@module-federation/webpack-bundler-runtime@0.0.0-fix-lazy-comile-20250930092757':
-    resolution: {integrity: sha512-x/4qRE+lnl2PO58zyQ9Q8CabAQyXWxioF+7dK/ebvtalf1nL1kgE7dHZn7rBfyVt4wQVbcrh1uS6rkTc4kyvGA==}
+  '@module-federation/sdk@0.20.0':
+    resolution: {integrity: sha512-bBFGA07PpfioJLY0DITVe+szGwLtFad+8R4rb5bPFKCZPZsKqLKwMB9tSsdHeieFPSc+1v20s6wq+R1DiWe56Q==}
 
   '@module-federation/webpack-bundler-runtime@0.18.0':
     resolution: {integrity: sha512-TEvErbF+YQ+6IFimhUYKK3a5wapD90d90sLsNpcu2kB3QGT7t4nIluE25duXuZDVUKLz86tEPrza/oaaCWTpvQ==}
 
-  '@module-federation/webpack-bundler-runtime@0.19.1':
-    resolution: {integrity: sha512-pr9kgwvBoe8tvXELDCqu8ihvLJYwS+cfwJmvk99MTbespzK0nuOepkeRCy2gOpeATDNiWdy/2DJcw34qeAmhJw==}
+  '@module-federation/webpack-bundler-runtime@0.20.0':
+    resolution: {integrity: sha512-TB0v5FRjfpL5fR8O5L4L3FTKJsb4EsflK8aNkdrJ46Tm/MR+PvL4SEx/AXpnsY+g/zkGRkiz10vwF0/RgMh6fQ==}
 
   '@napi-rs/cli@3.0.4':
     resolution: {integrity: sha512-ilbCI69DVDQcIUSUB504LM1+Nhvo0jKycWAzzPJ22YwUoWrru/w0+V5sfjPINgkshQ4Ykv+oZOJXk9Kg1ZBUvg==}
@@ -10443,35 +10440,29 @@ snapshots:
 
   '@microsoft/tsdoc@0.15.1': {}
 
-  '@module-federation/error-codes@0.0.0-fix-lazy-comile-20250930092757': {}
-
   '@module-federation/error-codes@0.18.0': {}
 
-  '@module-federation/runtime-core@0.0.0-fix-lazy-comile-20250930092757':
-    dependencies:
-      '@module-federation/error-codes': 0.0.0-fix-lazy-comile-20250930092757
-      '@module-federation/sdk': 0.0.0-fix-lazy-comile-20250930092757
+  '@module-federation/error-codes@0.20.0': {}
 
   '@module-federation/runtime-core@0.18.0':
     dependencies:
       '@module-federation/error-codes': 0.18.0
       '@module-federation/sdk': 0.18.0
 
-  '@module-federation/runtime-tools@0.0.0-fix-lazy-comile-20250930092757':
+  '@module-federation/runtime-core@0.20.0':
     dependencies:
-      '@module-federation/runtime': 0.0.0-fix-lazy-comile-20250930092757
-      '@module-federation/webpack-bundler-runtime': 0.0.0-fix-lazy-comile-20250930092757
+      '@module-federation/error-codes': 0.20.0
+      '@module-federation/sdk': 0.20.0
 
   '@module-federation/runtime-tools@0.18.0':
     dependencies:
       '@module-federation/runtime': 0.18.0
       '@module-federation/webpack-bundler-runtime': 0.18.0
 
-  '@module-federation/runtime@0.0.0-fix-lazy-comile-20250930092757':
+  '@module-federation/runtime-tools@0.20.0':
     dependencies:
-      '@module-federation/error-codes': 0.0.0-fix-lazy-comile-20250930092757
-      '@module-federation/runtime-core': 0.0.0-fix-lazy-comile-20250930092757
-      '@module-federation/sdk': 0.0.0-fix-lazy-comile-20250930092757
+      '@module-federation/runtime': 0.20.0
+      '@module-federation/webpack-bundler-runtime': 0.20.0
 
   '@module-federation/runtime@0.18.0':
     dependencies:
@@ -10479,24 +10470,25 @@ snapshots:
       '@module-federation/runtime-core': 0.18.0
       '@module-federation/sdk': 0.18.0
 
-  '@module-federation/sdk@0.0.0-fix-lazy-comile-20250930092757': {}
+  '@module-federation/runtime@0.20.0':
+    dependencies:
+      '@module-federation/error-codes': 0.20.0
+      '@module-federation/runtime-core': 0.20.0
+      '@module-federation/sdk': 0.20.0
 
   '@module-federation/sdk@0.18.0': {}
 
-  '@module-federation/webpack-bundler-runtime@0.0.0-fix-lazy-comile-20250930092757':
-    dependencies:
-      '@module-federation/runtime': 0.0.0-fix-lazy-comile-20250930092757
-      '@module-federation/sdk': 0.0.0-fix-lazy-comile-20250930092757
+  '@module-federation/sdk@0.20.0': {}
 
   '@module-federation/webpack-bundler-runtime@0.18.0':
     dependencies:
       '@module-federation/runtime': 0.18.0
       '@module-federation/sdk': 0.18.0
 
-  '@module-federation/webpack-bundler-runtime@0.19.1':
+  '@module-federation/webpack-bundler-runtime@0.20.0':
     dependencies:
-      '@module-federation/runtime': 0.19.1
-      '@module-federation/sdk': 0.19.1
+      '@module-federation/runtime': 0.20.0
+      '@module-federation/sdk': 0.20.0
 
   '@napi-rs/cli@3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.19)(emnapi@1.5.0(node-addon-api@7.1.1))':
     dependencies:
