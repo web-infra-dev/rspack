@@ -260,6 +260,7 @@ export class JSDOMWebRunner<
 
 			this.preExecute(code, file);
 			this.dom.window.eval(code);
+
 			this.postExecute(m, file);
 
 			this.requireCache[file.path] = m;
@@ -269,6 +270,6 @@ export class JSDOMWebRunner<
 
 	protected createRunner() {
 		super.createRunner();
-		this.requirers.set("entry", this.createJSDOMRequirer());
+		this.requirers.set("cjs", this.createJSDOMRequirer());
 	}
 }
