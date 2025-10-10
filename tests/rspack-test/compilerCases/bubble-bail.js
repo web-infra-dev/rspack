@@ -1,6 +1,6 @@
 let error;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description:
 		"should bubble up errors when wrapped in a promise and bail is true (empty dependency)",

@@ -1,4 +1,4 @@
-/** @type {import('../../../packages/rspack-test-tools/dist').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have module layer",
 	options(context) {

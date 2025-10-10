@@ -24,7 +24,7 @@ module.exports = {
 	"testMatch": [
 		// "<rootDir>/AbstractMethodError.unittest.js",
 		// "<rootDir>/ArrayHelpers.unittest.js",
-		// "<rootDir>/BannerPlugin.test.js",
+		"<rootDir>/BannerPlugin.test.js",
 		// "<rootDir>/BinaryMiddleware.unittest.js",
 		// "<rootDir>/BuildDependencies.longtest.js",
 		// "<rootDir>/ChangesAndRemovals.test.js",
