@@ -148,9 +148,9 @@ jobs:
       #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
 
       # ### update metric diff against main branch when pull request change
-      - name: Update
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
-        uses: ./.github/actions/webpack-test-metric-diff
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{ github.sha }}
+      # - name: Update
+      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
+      #   uses: ./.github/actions/webpack-test-metric-diff
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     sha: ${{ github.sha }}

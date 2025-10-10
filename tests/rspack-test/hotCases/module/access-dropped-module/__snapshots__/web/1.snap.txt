@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 42
-- Update: main.LAST_HASH.hot-update.js, size: 15164
+- Update: main.LAST_HASH.hot-update.js, size: 15415
 
 ## Manifest
 
@@ -300,8 +300,10 @@ function applyHandler(options) {
 			});
 		}
 	} 
-      self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
-	    self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+      if (self.__HMR_UPDATED_RUNTIME__) {
+        self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
+        self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+      }
       
 
 	var moduleOutdatedDependencies;
@@ -323,7 +325,7 @@ function applyHandler(options) {
 
 				// Call dispose handlers
 				var disposeHandlers = module.hot._disposeHandlers; 
-      if (disposeHandlers.length > 0) {
+      if (disposeHandlers.length > 0 && self.__HMR_UPDATED_RUNTIME__) {
         self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
       }
       
@@ -368,7 +370,9 @@ function applyHandler(options) {
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
 					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; 
-      self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+      if (self.__HMR_UPDATED_RUNTIME__) {
+        self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+      }
       
 				}
 			}
@@ -378,7 +382,9 @@ function applyHandler(options) {
 				
       currentUpdateRuntime[i](new Proxy(__webpack_require__, {
         set(target, prop, value, receiver) {
-          self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
+          if (self.__HMR_UPDATED_RUNTIME__) {
+            self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
+          }
           return Reflect.set(target, prop, value, receiver);
         }
       }));
@@ -402,7 +408,9 @@ function applyHandler(options) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
 								errorHandlers.push(errorHandler); 
-      self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+      if (self.__HMR_UPDATED_RUNTIME__) {
+        self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+      }
       
 								dependenciesForCallbacks.push(dependency);
 							}

@@ -1,0 +1,13 @@
+# Case fetch-priority: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: style_module_css.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update
