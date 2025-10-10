@@ -93,6 +93,9 @@ export function createConfigCase(name: string, src: string, dist: string): void;
 export function createDefaultsCase(name: string, src: string): void;
 
 // @public (undocumented)
+export function createDevNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -133,6 +136,9 @@ export function createNativeWatcher(name: string, src: string, dist: string, tem
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createProdNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createSerialCase(name: string, src: string, dist: string): void;

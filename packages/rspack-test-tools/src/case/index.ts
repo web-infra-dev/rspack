@@ -26,7 +26,12 @@ export {
 export type { TMultiCompilerCaseConfig } from "./multi-compiler";
 export { createMultiCompilerCase } from "./multi-compiler";
 export { createNativeWatcher } from "./native-watcher";
-export { createHotNormalCase, createNormalCase } from "./normal";
+export {
+	createDevNormalCase,
+	createHotNormalCase,
+	createNormalCase,
+	createProdNormalCase
+} from "./normal";
 export { createSerialCase } from "./serial";
 export type { TStatsAPICaseConfig } from "./stats-api";
 export { createStatsAPICase } from "./stats-api";
