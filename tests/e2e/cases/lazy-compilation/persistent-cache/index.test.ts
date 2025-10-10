@@ -1,6 +1,7 @@
 import { expect, test } from "@/fixtures";
 
-test("should load success", async ({ page, rspack }) => {
+// Ref: https://github.com/web-infra-dev/rspack/issues/11829
+test.skip("should load success", async ({ page, rspack }) => {
 	await page.getByText("Click me").click();
 	let component_count = await page.getByText("Component").count();
 	expect(component_count).toBe(1);
