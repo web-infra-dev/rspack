@@ -810,6 +810,7 @@ export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
 // @public (undocumented)
 export type TErrorCaseConfig = {
     description: string;
+    skip?: boolean;
     options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
     compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
     build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
