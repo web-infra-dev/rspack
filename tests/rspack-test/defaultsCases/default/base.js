@@ -575,7 +575,9 @@ module.exports = {
 		  stats: Object {},
 		  target: web,
 		  watch: false,
-		  watchOptions: Object {},
+		  watchOptions: Object {
+		    followSymlinks: true,
+		  },
 		}
 	`)
 };
