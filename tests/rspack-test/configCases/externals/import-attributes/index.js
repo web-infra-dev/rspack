@@ -1,7 +1,11 @@
 import * as staticPkg from "./static-package.json" with { type: "json" };
+import * as staticPkgRaw from "./static-package.json";
 import * as staticPkgStr from "./static-package-str.json" with { "type": "json" };
 
+
 it("should allow async externals", async () => {
+	expect(staticPkgRaw.default.foo).toBe("static");
+	expect(staticPkgRaw).not.toBe(staticPkg)
 	expect(staticPkg.default.foo).toBe("static");
 	expect(staticPkgStr.default.foo).toBe("static-str");
 
