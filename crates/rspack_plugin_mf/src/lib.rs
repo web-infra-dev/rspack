@@ -1,4 +1,5 @@
 mod container;
+mod manifest;
 mod sharing;
 
 pub use container::{
@@ -10,6 +11,7 @@ pub use container::{
     ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
   },
 };
+pub use manifest::{ModuleFederationManifestPlugin, ModuleFederationManifestPluginOptions};
 pub use sharing::{
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{

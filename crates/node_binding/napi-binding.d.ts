@@ -540,6 +540,7 @@ export declare enum BuiltinPluginName {
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
@@ -2420,6 +2421,17 @@ export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
   maxChunks: number
+}
+
+export interface RawModuleFederationManifestPluginOptions {
+  name?: string
+  globalName?: string
+  fileName?: string
+  filePath?: string
+  statsFileName?: string
+  disableAssetsAnalyze?: boolean
+  typesFileName?: string
+  getPublicPath?: string
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

@@ -102,6 +102,20 @@ interface AdditionalData {
 }
 
 // @public (undocumented)
+interface AdditionalDataOptions {
+    // (undocumented)
+    bundler: 'webpack' | 'rspack';
+    // (undocumented)
+    compilation: Compilation;
+    // (undocumented)
+    compiler: Compiler;
+    // (undocumented)
+    manifest?: Manifest;
+    // (undocumented)
+    stats: Stats_2;
+}
+
+// @public (undocumented)
 type AffectedHooks = keyof Compiler["hooks"];
 
 // @public (undocumented)
@@ -435,6 +449,30 @@ type BasicApplication = any;
 
 // @public (undocumented)
 type BasicServer = Server | Server_2;
+
+// @public (undocumented)
+interface BasicStatsMetaData {
+    // (undocumented)
+    buildInfo: StatsBuildInfo;
+    // (undocumented)
+    globalName: string;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    pluginVersion: string;
+    // (undocumented)
+    prefetchEntry?: ResourceInfo;
+    // (undocumented)
+    prefetchInterface?: boolean;
+    // (undocumented)
+    remoteEntry: ResourceInfo;
+    // (undocumented)
+    ssrRemoteEntry?: ResourceInfo;
+    // (undocumented)
+    type: string;
+    // (undocumented)
+    types: MetaDataTypes;
+}
 
 // @public (undocumented)
 interface BigIntLiteral extends Node_4, HasSpan {
@@ -4558,6 +4596,56 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
+interface Manifest {
+    // (undocumented)
+    exposes: ManifestExpose[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    metaData: StatsMetaData;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    remotes: ManifestRemote[];
+    // (undocumented)
+    shared: ManifestShared[];
+}
+
+// @public (undocumented)
+type ManifestExpose = Pick<StatsExpose, 'assets' | 'id' | 'name' | 'path'>;
+
+// @public (undocumented)
+type ManifestRemote = (Omit<RemoteWithEntry, 'name'> & ManifestRemoteCommonInfo) | (Omit<RemoteWithVersion, 'name'> & ManifestRemoteCommonInfo);
+
+// @public (undocumented)
+interface ManifestRemoteCommonInfo {
+    // (undocumented)
+    alias: string;
+    // (undocumented)
+    federationContainerName: string;
+    // (undocumented)
+    moduleName: string;
+}
+
+// @public (undocumented)
+interface ManifestShared {
+    // (undocumented)
+    assets: StatsAssets;
+    // (undocumented)
+    hash: string;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    requiredVersion: string;
+    // (undocumented)
+    singleton: boolean;
+    // (undocumented)
+    version: string;
+}
+
+// @public (undocumented)
 interface MapOptions {
     	columns?: boolean;
 
@@ -4595,6 +4683,18 @@ interface MemberExpression extends ExpressionBase {
     property: Identifier | PrivateName | ComputedPropName;
     // (undocumented)
     type: "MemberExpression";
+}
+
+// @public (undocumented)
+interface MetaDataTypes {
+    // (undocumented)
+    api: string;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    zip: string;
 }
 
 // @public (undocumented)
@@ -4659,6 +4759,18 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
+type ModuleFederationManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    typesFileName?: string;
+    getPublicPath?: string;
+    additionalData?: (options: AdditionalDataOptions) => Promise<Stats_2 | void> | Stats_2 | void;
+};
+
+// @public (undocumented)
 class ModuleFederationPlugin {
     constructor(_options: ModuleFederationPluginOptions);
     // (undocumented)
@@ -4669,6 +4781,8 @@ class ModuleFederationPlugin {
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
     implementation?: string;
+    // (undocumented)
+    manifest?: boolean | ModuleFederationManifestPluginOptions;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
@@ -6008,6 +6122,22 @@ export type RemotesObject = {
 };
 
 // @public (undocumented)
+interface RemoteWithEntry {
+    // (undocumented)
+    entry: string;
+    // (undocumented)
+    name: string;
+}
+
+// @public (undocumented)
+interface RemoteWithVersion {
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    version: string;
+}
+
+// @public (undocumented)
 const RemoveDuplicateModulesPlugin: {
     new (): {
         name: string;
@@ -6118,6 +6248,16 @@ type ResourceData = binding.JsResourceData;
 export type ResourceDataWithData = ResourceData & {
     data?: Record<string, any>;
 };
+
+// @public (undocumented)
+interface ResourceInfo {
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    type: LibraryType;
+}
 
 // @public (undocumented)
 type Response_2 = ServerResponse_2;
@@ -7314,7 +7454,47 @@ export class Stats {
 }
 
 // @public (undocumented)
+interface Stats_2 {
+    // (undocumented)
+    exposes: StatsExpose[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    metaData: StatsMetaData;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    remotes: StatsRemote[];
+    // (undocumented)
+    shared: StatsShared[];
+}
+
+// @public (undocumented)
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
+
+// @public (undocumented)
+interface StatsAssets {
+    // (undocumented)
+    css: StatsAssetsInfo;
+    // (undocumented)
+    js: StatsAssetsInfo;
+}
+
+// @public (undocumented)
+interface StatsAssetsInfo {
+    // (undocumented)
+    async: string[];
+    // (undocumented)
+    sync: string[];
+}
+
+// @public (undocumented)
+interface StatsBuildInfo {
+    // (undocumented)
+    buildName: string;
+    // (undocumented)
+    buildVersion: string;
+}
 
 // @public (undocumented)
 type StatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats) => void;
@@ -7354,6 +7534,22 @@ export enum StatsErrorCode {
 }
 
 // @public (undocumented)
+interface StatsExpose {
+    // (undocumented)
+    assets: StatsAssets;
+    // (undocumented)
+    file: string;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    path?: string;
+    // (undocumented)
+    requires: string[];
+}
+
+// @public (undocumented)
 class StatsFactory {
     constructor();
     // (undocumented)
@@ -7378,6 +7574,20 @@ type StatsLogging = KnownStatsLogging & Record<string, any>;
 
 // @public (undocumented)
 type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
+
+// @public (undocumented)
+type StatsMetaData = StatsMetaDataWithGetPublicPath | StatsMetaDataWithPublicPath;
+
+// @public (undocumented)
+type StatsMetaDataWithGetPublicPath = BasicStatsMetaData & {
+    getPublicPath: string;
+};
+
+// @public (undocumented)
+type StatsMetaDataWithPublicPath = BasicStatsMetaData & {
+    publicPath: string;
+    ssrPublicPath?: string;
+};
 
 // @public (undocumented)
 export type StatsModule = KnownStatsModule & Record<string, any>;
@@ -7514,6 +7724,51 @@ type StatsPrinterContext = KnownStatsPrinterContext & Record<string, any>;
 
 // @public (undocumented)
 type StatsProfile = KnownStatsProfile & Record<string, any>;
+
+// @public (undocumented)
+type StatsRemote = StatsRemoteWithEntry | StatsRemoteWithVersion;
+
+// @public (undocumented)
+interface StatsRemoteVal {
+    // (undocumented)
+    alias: string;
+    // (undocumented)
+    consumingFederationContainerName: string;
+    // (undocumented)
+    federationContainerName: string;
+    // (undocumented)
+    moduleName: string;
+    // (undocumented)
+    usedIn: string[];
+}
+
+// @public (undocumented)
+type StatsRemoteWithEntry = StatsRemoteVal & Omit<RemoteWithEntry, 'name'>;
+
+// @public (undocumented)
+type StatsRemoteWithVersion = StatsRemoteVal & Omit<RemoteWithVersion, 'name'>;
+
+// @public (undocumented)
+interface StatsShared {
+    // (undocumented)
+    assets: StatsAssets;
+    // (undocumented)
+    deps: string[];
+    // (undocumented)
+    hash: string;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    requiredVersion: string;
+    // (undocumented)
+    singleton: boolean;
+    // (undocumented)
+    usedIn: string[];
+    // (undocumented)
+    version: string;
+}
 
 // @public
 export type StatsValue = boolean | StatsOptions | StatsPresets;
