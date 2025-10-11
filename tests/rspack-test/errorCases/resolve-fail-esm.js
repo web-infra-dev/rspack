@@ -1,4 +1,4 @@
-/** @type {import('../..').TErrorCaseConfig} */
+/** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 module.exports = {
 	description: "should emit warnings for resolve failure in esm",
 	options() {

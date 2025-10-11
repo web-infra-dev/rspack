@@ -21,7 +21,8 @@ const NORMAL_CASES_ROOT = path.resolve(
 );
 
 const createCaseOptions = (
-	hot: boolean
+	hot: boolean,
+	mode?: "development" | "production"
 ): IBasicCaseCreatorOptions<ECompilerType> => {
 	return {
 		clean: true,
@@ -30,9 +31,13 @@ const createCaseOptions = (
 			{
 				config: async (context: ITestContext) => {
 					const compiler = getCompiler(context, name);
-					let options = defaultOptions(context, {
-						plugins: hot ? [new HotModuleReplacementPlugin()] : []
-					});
+					let options = defaultOptions(
+						context,
+						{
+							plugins: hot ? [new HotModuleReplacementPlugin()] : []
+						},
+						mode
+					);
 					options = await config(
 						context,
 						name,
@@ -74,6 +79,20 @@ export function createHotNormalCase(name: string, src: string, dist: string) {
 	hotCreator.create(name, src, dist);
 }
 
+const devCreator = new BasicCaseCreator(
+	createCaseOptions(false, "development")
+);
+export function createDevNormalCase(name: string, src: string, dist: string) {
+	devCreator.create(name, src, dist);
+}
+
+const prodCreator = new BasicCaseCreator(
+	createCaseOptions(false, "production")
+);
+export function createProdNormalCase(name: string, src: string, dist: string) {
+	prodCreator.create(name, src, dist);
+}
+
 function findBundle(
 	context: ITestContext,
 	options: TCompilerOptions<ECompilerType.Rspack>
@@ -90,7 +109,8 @@ function findBundle(
 
 function defaultOptions<T extends ECompilerType.Rspack>(
 	context: ITestContext,
-	compilerOptions: TCompilerOptions<T>
+	compilerOptions: TCompilerOptions<T>,
+	mode?: "development" | "production"
 ) {
 	let testConfig: TCompilerOptions<T> = {};
 	const testConfigPath = path.join(context.getSource(), "test.config.js");
@@ -107,11 +127,12 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 		entry: `./${path.relative(NORMAL_CASES_ROOT, context.getSource())}/`,
 		target: compilerOptions?.target || "async-node",
 		devtool: compilerOptions?.devtool,
-		mode: compilerOptions?.mode || "none",
+		mode: compilerOptions?.mode || mode || "none",
 		optimization: compilerOptions?.mode
 			? {
-					// emitOnErrors: true,
+					emitOnErrors: true,
 					minimizer: [terserForTesting],
+					minimize: false,
 					...testConfig.optimization
 				}
 			: {
@@ -125,7 +146,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 					usedExports: true,
 					mangleExports: true,
 					// CHANGE: rspack does not support `emitOnErrors` yet.
-					// emitOnErrors: true,
+					emitOnErrors: true,
 					concatenateModules: !!testConfig?.optimization?.concatenateModules,
 					innerGraph: true,
 					// CHANGE: size is not supported yet
@@ -133,6 +154,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 					// chunkIds: "size",
 					moduleIds: "named",
 					chunkIds: "named",
+					minimize: false,
 					minimizer: [terserForTesting],
 					...compilerOptions?.optimization
 				},

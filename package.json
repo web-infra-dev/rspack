@@ -44,8 +44,7 @@
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"e2e-test\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
-    "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit",
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
@@ -59,14 +58,14 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "10.16.0"
+    "pnpm": "10.18.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.5",
     "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.52.15",
-    "@microsoft/api-extractor-model": "7.30.9",
+    "@microsoft/api-extractor-model": "7.31.1",
     "@rslint/core": "0.1.13",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
@@ -88,9 +87,9 @@
     "ts-jest": "29.4.4",
     "typescript": "^5.9.3",
     "webpack": "5.99.9",
-    "zx": "8.7.1"
+    "zx": "8.8.4"
   },
-  "packageManager": "pnpm@10.16.0",
+  "packageManager": "pnpm@10.18.1",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",

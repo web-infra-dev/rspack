@@ -1,4 +1,4 @@
-/** @type {import('../../..').THashCaseConfig} */
+/** @type {import('@rspack/test-tools').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		const assets = stats.stats[0].toJson().assets.map(i => i.name);

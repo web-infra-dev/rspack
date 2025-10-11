@@ -1,0 +1,25 @@
+```mjs title=main.mjs
+import fs from "fs";
+import { join, resolve } from "path";
+
+// fs
+
+// path
+
+// ./index.js
+
+
+
+
+it('should compile', () => {
+	console.log.bind([fs, join, resolve])
+})
+
+
+```
+
+```mjs title=runtime.mjs
+
+
+
+```

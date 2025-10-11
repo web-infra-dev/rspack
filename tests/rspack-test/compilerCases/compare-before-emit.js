@@ -4,7 +4,7 @@ const { rimrafSync } = require("rimraf");
 
 let first_asset_mtime;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
   description: "should write emit same content to same file",
   options(context) {

@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "experiments.futureDefaults",
 	options: () => ({
@@ -20,10 +20,9 @@ module.exports = {
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@
-		+       },
 		+       Object {
 		+         "rules": Array [
-		+           Object {
+		@@ ... @@
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -41,7 +40,7 @@ module.exports = {
 		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
-		@@ ... @@
+		+             },
 		+             "resolve": Object {
 		+               "fullySpecified": true,
 		+             },
@@ -49,7 +48,7 @@ module.exports = {
 		+         ],
 		+         "type": "webassembly/async",
 		+       },
-		@@ ... @@
+		+       Object {
 		+         "resolve": Object {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
@@ -92,8 +91,6 @@ module.exports = {
 		+         "localIdentName": "[id]-[local]",
 		+       },
 		@@ ... @@
-		+         },
-		+       },
 		+       "css": Object {
 		+         "namedExports": true,
 		+         "url": true,
@@ -101,15 +98,13 @@ module.exports = {
 		+       "css/auto": Object {
 		+         "namedExports": true,
 		+         "url": true,
-		@@ ... @@
+		+       },
 		+       "css/module": Object {
 		+         "namedExports": true,
 		+         "url": true,
+		+       },
 		@@ ... @@
 		+         "css",
-		@@ ... @@
-		-     "charset": true,
-		+     "charset": false,
 		@@ ... @@
 		+       },
 		+       "css-import": Object {

@@ -1505,7 +1505,6 @@ CompilerOptions {
     },
     cache: Disabled,
     experiments: Experiments {
-        layers: false,
         incremental: IncrementalOptions {
             silent: true,
             passes: IncrementalPasses(

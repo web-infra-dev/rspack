@@ -19,7 +19,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "glob":"^11.0.3",
     "semver": "^7.7.2",
-    "zx": "8.7.1",
+    "zx": "8.8.4",
     "@iarna/toml": "^3.0.0"
   }
 }

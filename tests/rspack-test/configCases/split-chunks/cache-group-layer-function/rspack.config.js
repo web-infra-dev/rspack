@@ -10,9 +10,6 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	experiments: {
-		layers: true
-	},
 	optimization: {
 		splitChunks: {
 			chunks: "all",

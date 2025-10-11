@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "cache true",
 	options: () => ({}),
@@ -45,7 +45,6 @@ module.exports = {
 		    },
 		    inlineConst: false,
 		    inlineEnum: false,
-		    layers: false,
 		    lazyBarrel: false,
 		    lazyCompilation: false,
 		    parallelCodeSplitting: false,
@@ -289,7 +288,7 @@ module.exports = {
 		  output: Object {
 		    assetModuleFilename: [hash][ext][query],
 		    asyncChunks: true,
-		    charset: true,
+		    charset: false,
 		    chunkFilename: [name].js,
 		    chunkFormat: array-push,
 		    chunkLoadTimeout: 120000,

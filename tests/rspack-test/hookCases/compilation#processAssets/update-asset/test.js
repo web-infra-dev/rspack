@@ -1,7 +1,7 @@
 let contentHashes = [];
 let files = [];
 
-/** @type {import("../../../../../packages/rspack-test-tools/dist").THookCaseConfig} */
+/** @type {import("@rspack/test-tools").THookCaseConfig} */
 module.exports = {
 	description: "should emit assets correctly",
 	findBundle() {

@@ -41,7 +41,7 @@ for (const { root, match, comment } of [
 	{
 		root: path.resolve(__dirname, "../../tests/rspack-test/hookCases"),
 		match: "**/test.js",
-		comment: `/** @type {import("../../../..").THookCaseConfig} */`
+		comment: `/** @type {import("@rspack/test-tools").THookCaseConfig} */`
 	},
 	{
 		root: path.resolve(__dirname, "../../tests/rspack-test/runtimeDiffCases"),

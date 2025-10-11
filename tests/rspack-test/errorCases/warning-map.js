@@ -1,6 +1,6 @@
 let warnings = [];
 
-/** @type {import('../..').TErrorCaseConfig} */
+/** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 module.exports = {
 	description:
 		"Testing map function on errors and warnings: test map of warnings",

@@ -2458,7 +2458,7 @@ export interface ExperimentsNormalized {
     inlineConst?: boolean;
     // (undocumented)
     inlineEnum?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     layers?: boolean;
     // (undocumented)
     lazyBarrel?: boolean;
@@ -7011,7 +7011,7 @@ const RuntimePluginImpl: {
 };
 
 // @public (undocumented)
-type RuntimePlugins = string[];
+type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 // @public (undocumented)
 type RuntimeSpec = string | Set<string> | undefined;

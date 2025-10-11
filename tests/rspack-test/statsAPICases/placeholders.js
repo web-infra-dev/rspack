@@ -10,7 +10,7 @@ class TestPlugin {
 	}
 }
 
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have null as placeholders in stats before chunkIds",
 	options(context) {

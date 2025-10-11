@@ -6,10 +6,10 @@ const fs = require("graceful-fs");
 const webpack = require("@rspack/core").rspack;
 
 // TODO: recover after we have this module
-// const pluginDir = path.join(__dirname, "js", "BannerPlugin");
-// const outputDir = path.join(pluginDir, "output");
+const pluginDir = path.join(__dirname, "js", "BannerPlugin");
+const outputDir = path.join(pluginDir, "output");
 
-it.skip("should cache assets", done => {
+it("should cache assets", (done) => {
 	const entry1File = path.join(pluginDir, "entry1.js");
 	const entry2File = path.join(pluginDir, "entry2.js");
 	const outputFile = path.join(outputDir, "entry1.js");
@@ -43,11 +43,13 @@ it.skip("should cache assets", done => {
 			expect(assets.find(as => as.name === "entry1.js").emitted).toBe(false);
 			expect(assets.find(as => as.name === "entry2.js").emitted).toBe(true);
 			done(err);
+		}, {
+			modifiedFiles: new Set([entry2File])
 		});
 	});
 });
 
-it.skip("can place banner as footer", done => {
+it("can place banner as footer", done => {
 	const footerFile = path.join(pluginDir, "footerFile.js");
 	const outputFile = path.join(outputDir, "footerFile.js");
 	try {
