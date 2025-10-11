@@ -355,7 +355,6 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected clean(folders: string[]) {
 		for (const f of folders) {
 			rimrafSync(f);
-			fs.mkdirSync(f, { recursive: true });
 		}
 	}
 
