@@ -1,7 +1,9 @@
 import * as staticPkg from "./static-package.json" with { type: "json" };
+import * as staticPkgPure from "./static-package.json";
 import * as staticPkgStr from "./static-package-str.json" with { "type": "json" };
 
 it("should allow async externals", async () => {
+	expect(staticPkgPure.default.foo).toBe("static");
 	expect(staticPkg.default.foo).toBe("static");
 	expect(staticPkgStr.default.foo).toBe("static-str");
 
@@ -11,10 +13,12 @@ it("should allow async externals", async () => {
 
 	expect(dynamicPkg.default.foo).toBe("dynamic");
 
+	const dynamicPkgPure = await import("./dynamic-package-str.json")
 	const dynamicPkgStr = await import("./dynamic-package-str.json", {
 		"with": { "type": "json" }
 	})
 
+	expect(dynamicPkgPure.default.foo).toBe("dynamic-str");
 	expect(dynamicPkgStr.default.foo).toBe("dynamic-str");
 
 	const eagerPkg = await import(/* webpackMode: "eager" */ "./eager.json", {
