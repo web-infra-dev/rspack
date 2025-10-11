@@ -46,6 +46,11 @@ async fn process_resource<Context: Send>(
 
   let resource_data = &loader_context.resource_data;
   let scheme = resource_data.get_scheme();
+
+  if scheme.is_none() {
+    return Ok(());
+  }
+
   let resource = resource_data.resource();
   Err(error!(
     r#"Reading from "{resource}" is not handled by plugins (Unhandled scheme).
