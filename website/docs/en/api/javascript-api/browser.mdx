@@ -165,6 +165,35 @@ interface BrowserHttpImportPluginOptions {
 }
 ```
 
+#### Compatibility with `resolve.alias`
+
+When using `BrowserHttpImportEsmPlugin`, the rewriting of dependency identifiers occurs **before** the alias replacements defined in [resolve.alias](/config/resolve#resolvealias). This ordering can lead to conflicts between the plugin’s rewriting logic and alias resolution.
+
+To resolve this issue, you can configure the plugin’s `dependencyUrl` option to preemptively skip requests that should be handled by `resolve.alias`:
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // e.g., "@/util.js" will be resolved to "/src/util.js"
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // Skip rewriting for requests starting with "@/” to allow alias resolution
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
 ### BrowserRequirePlugin
 
 In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
