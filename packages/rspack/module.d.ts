@@ -217,8 +217,6 @@ declare namespace Rspack {
 
 interface ImportMeta {
 	url: string;
-	// TODO: unsupported
-	// webpack: number;
 	webpackHot?: Rspack.Hot;
 	webpackContext: (
 		request: string,
