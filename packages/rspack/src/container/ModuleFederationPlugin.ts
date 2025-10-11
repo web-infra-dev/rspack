@@ -2,6 +2,10 @@ import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
 import { getExternalsTypeSchema } from "../schema/config";
 import { isValidate } from "../schema/validate";
+import {
+	ModuleFederationManifestPlugin,
+	type ModuleFederationManifestPluginOptions
+} from "./ModuleFederationManifestPlugin";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
@@ -13,6 +17,7 @@ export interface ModuleFederationPluginOptions
 	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
+	manifest?: boolean | ModuleFederationManifestPluginOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -40,6 +45,21 @@ export class ModuleFederationPlugin {
 			...this._options,
 			enhanced: true
 		}).apply(compiler);
+
+		if (this._options.manifest !== false) {
+			const manifestOptions: ModuleFederationManifestPluginOptions =
+				this._options.manifest === true ? {} : { ...this._options.manifest };
+			const containerName = manifestOptions.name ?? this._options.name;
+			const globalName =
+				manifestOptions.globalName ??
+				resolveLibraryGlobalName(this._options.library) ??
+				containerName;
+			new ModuleFederationManifestPlugin({
+				...manifestOptions,
+				name: containerName,
+				globalName
+			}).apply(compiler);
+		}
 	}
 }
 
@@ -58,6 +78,28 @@ interface RemoteInfo {
 }
 
 type RemoteInfos = Record<string, RemoteInfo[]>;
+
+function resolveLibraryGlobalName(
+	library: ModuleFederationPluginOptions["library"]
+): string | undefined {
+	if (!library) {
+		return undefined;
+	}
+	const libName = library.name;
+	if (!libName) {
+		return undefined;
+	}
+	if (typeof libName === "string") {
+		return libName;
+	}
+	if (Array.isArray(libName)) {
+		return libName[0];
+	}
+	if (typeof libName === "object") {
+		return libName.root?.[0] ?? libName.amd ?? libName.commonjs ?? undefined;
+	}
+	return undefined;
+}
 
 function getRemoteInfos(options: ModuleFederationPluginOptions): RemoteInfos {
 	if (!options.remotes) {

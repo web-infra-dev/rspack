@@ -1,0 +1,165 @@
+use serde::Serialize;
+
+#[derive(Debug, Serialize, Clone)]
+pub struct StatsAssetsGroup {
+  #[serde(default)]
+  pub js: AssetsSplit,
+  #[serde(default)]
+  pub css: AssetsSplit,
+}
+
+impl Default for StatsAssetsGroup {
+  fn default() -> Self {
+    Self {
+      js: AssetsSplit::default(),
+      css: AssetsSplit::default(),
+    }
+  }
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct AssetsSplit {
+  #[serde(default)]
+  pub sync: Vec<String>,
+  #[serde(default)]
+  pub r#async: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct StatsExpose {
+  pub path: String,
+  pub id: String,
+  pub name: String,
+  #[serde(default)]
+  pub requires: Vec<String>,
+  #[serde(default)]
+  pub assets: StatsAssetsGroup,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct StatsShared {
+  pub id: String,
+  pub name: String,
+  pub version: String,
+  #[serde(default)]
+  pub requiredVersion: Option<String>,
+  #[serde(default)]
+  pub singleton: Option<bool>,
+  #[serde(default)]
+  pub hash: Option<String>,
+  #[serde(default)]
+  pub assets: StatsAssetsGroup,
+  #[serde(default)]
+  pub usedIn: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct StatsRemote {
+  pub alias: String,
+  pub consumingFederationContainerName: String,
+  pub federationContainerName: String,
+  pub moduleName: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub entry: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub version: Option<String>,
+  #[serde(default)]
+  pub usedIn: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct BasicStatsMetaData {
+  pub name: String,
+  pub globalName: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub publicPath: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub getPublicPath: Option<String>,
+  #[serde(default)]
+  pub types: TypesMeta,
+  pub remoteEntry: RemoteEntryMeta,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub prefetchInterface: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub r#type: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct TypesMeta {
+  #[serde(default)]
+  pub path: String,
+  #[serde(default)]
+  pub name: String,
+  #[serde(default)]
+  pub zip: String,
+  #[serde(default)]
+  pub api: String,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct RemoteEntryMeta {
+  #[serde(default)]
+  pub name: String,
+  #[serde(default)]
+  pub path: String,
+  #[serde(default)]
+  pub r#type: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct StatsRoot {
+  pub id: String,
+  pub name: String,
+  pub metaData: BasicStatsMetaData,
+  #[serde(default)]
+  pub shared: Vec<StatsShared>,
+  #[serde(default)]
+  pub remotes: Vec<StatsRemote>,
+  #[serde(default)]
+  pub exposes: Vec<StatsExpose>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ManifestExpose {
+  pub id: String,
+  pub name: String,
+  pub path: String,
+  pub assets: StatsAssetsGroup,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ManifestShared {
+  pub id: String,
+  pub name: String,
+  pub version: String,
+  #[serde(default)]
+  pub requiredVersion: Option<String>,
+  #[serde(default)]
+  pub singleton: Option<bool>,
+  #[serde(default)]
+  pub hash: Option<String>,
+  #[serde(default)]
+  pub assets: StatsAssetsGroup,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ManifestRemote {
+  pub federationContainerName: String,
+  pub moduleName: String,
+  pub alias: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub entry: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ManifestRoot {
+  pub id: String,
+  pub name: String,
+  pub metaData: BasicStatsMetaData,
+  #[serde(default)]
+  pub shared: Vec<ManifestShared>,
+  #[serde(default)]
+  pub remotes: Vec<ManifestRemote>,
+  #[serde(default)]
+  pub exposes: Vec<ManifestExpose>,
+}

@@ -4,8 +4,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ModuleFederationRuntimePluginOptions,
-  ProvideOptions, ProvideVersion, RemoteOptions,
+  ContainerReferencePluginOptions, ExposeOptions, ModuleFederationManifestPluginOptions,
+  ModuleFederationRuntimePluginOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
 use crate::options::{
@@ -221,6 +221,34 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawModuleFederationManifestPluginOptions {
+  pub name: Option<String>,
+  pub global_name: Option<String>,
+  pub file_name: Option<String>,
+  pub file_path: Option<String>,
+  pub stats_file_name: Option<String>,
+  pub disable_assets_analyze: Option<bool>,
+  pub types_file_name: Option<String>,
+  pub get_public_path: Option<String>,
+}
+
+impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifestPluginOptions {
+  fn from(value: RawModuleFederationManifestPluginOptions) -> Self {
+    ModuleFederationManifestPluginOptions {
+      name: value.name,
+      global_name: value.global_name,
+      file_name: value.file_name,
+      file_path: value.file_path,
+      stats_file_name: value.stats_file_name,
+      disable_assets_analyze: value.disable_assets_analyze.unwrap_or(false),
+      types_file_name: value.types_file_name,
+      get_public_path: value.get_public_path,
     }
   }
 }
