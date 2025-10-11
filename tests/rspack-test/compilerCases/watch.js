@@ -86,7 +86,6 @@ module.exports = [{
       }, 50);
       compiler.hooks.done.tap("Test", () => {
         compiler.close(resolve);
-        resolve();
       });
     });
   },
