@@ -1,5 +1,3 @@
-// TODO: move to webpack-test after merged into webpack
-
 /** @type {import("../../../../types").Configuration} */
 module.exports = {
 	entry: {

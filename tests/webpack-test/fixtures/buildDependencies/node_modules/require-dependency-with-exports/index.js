@@ -1,1 +1,0 @@
-require("dependency-with-exports");
