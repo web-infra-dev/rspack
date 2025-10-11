@@ -493,6 +493,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
+    let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
     let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -568,6 +569,7 @@ impl NormalModuleFactory {
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),
+        resolved_extract_source_map,
       )
       .boxed()
     };
@@ -629,6 +631,17 @@ impl NormalModuleFactory {
       }
     }
     side_effect_res
+  }
+
+  fn calculate_extract_source_map(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
+    let mut extract_source_map_res = None;
+    // extract_source_map from module rule has higher priority
+    for rule in module_rules.iter() {
+      if rule.extract_source_map.is_some() {
+        extract_source_map_res = rule.extract_source_map;
+      }
+    }
+    extract_source_map_res
   }
 
   fn calculate_parser_and_generator_options(

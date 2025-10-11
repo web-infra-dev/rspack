@@ -569,7 +569,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			generator: z.record(z.string(), z.any()),
 			resolve: resolveOptions,
 			sideEffects: z.boolean(),
-			enforce: z.literal("pre").or(z.literal("post"))
+			enforce: z.literal("pre").or(z.literal("post")),
+			extractSourceMap: z.boolean()
 		})
 		.partial() satisfies z.ZodType<t.RuleSetRule>;
 

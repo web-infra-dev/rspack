@@ -2677,3 +2677,25 @@ export default {
   },
 };
 ```
+
+### Rule.extractSourceMap
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型**: `boolean`
+- **默认值:** `false`
+
+从文件中的 `//# sourceMappingURL` 注释中提取现有的 source-map 数据，对于保留第三方库的 source-map 非常有用。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
+      },
+    ],
+  },
+};
+```

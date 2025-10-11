@@ -368,7 +368,8 @@ const getRawModuleRule = (
 						)
 					)
 			: undefined,
-		enforce: rule.enforce
+		enforce: rule.enforce,
+		extractSourceMap: rule.extractSourceMap
 	};
 
 	// Function calls may contain side-effects when interoperating with single-threaded environment.

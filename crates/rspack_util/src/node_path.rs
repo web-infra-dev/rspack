@@ -114,6 +114,12 @@ pub trait NodePath {
   fn node_normalize_posix(&self) -> Utf8PathBuf;
 
   fn node_normalize_win32(&self) -> Utf8PathBuf;
+
+  fn node_is_absolute(&self) -> bool;
+
+  fn node_is_absolute_posix(&self) -> bool;
+
+  fn node_is_absolute_win32(&self) -> bool;
 }
 
 impl NodePath for Utf8Path {
@@ -159,6 +165,21 @@ impl NodePath for Utf8Path {
   #[inline]
   fn node_normalize_win32(&self) -> Utf8PathBuf {
     self.to_path_buf().node_normalize_win32()
+  }
+
+  #[inline]
+  fn node_is_absolute(&self) -> bool {
+    self.to_path_buf().node_is_absolute()
+  }
+
+  #[inline]
+  fn node_is_absolute_posix(&self) -> bool {
+    self.to_path_buf().node_is_absolute_posix()
+  }
+
+  #[inline]
+  fn node_is_absolute_win32(&self) -> bool {
+    self.to_path_buf().node_is_absolute_win32()
   }
 }
 
@@ -470,6 +491,45 @@ impl NodePath for Utf8PathBuf {
       None if is_absolute => Utf8PathBuf::from(format!("\\{tail}")),
       _ => Utf8PathBuf::from(tail),
     }
+  }
+
+  #[inline]
+  fn node_is_absolute(&self) -> bool {
+    if cfg!(windows) {
+      self.node_is_absolute_win32()
+    } else {
+      self.node_is_absolute_posix()
+    }
+  }
+
+  fn node_is_absolute_posix(&self) -> bool {
+    // POSIX absolute path starts with '/'
+    self.as_str().starts_with('/')
+  }
+
+  fn node_is_absolute_win32(&self) -> bool {
+    let path = self.as_str();
+
+    // Windows absolute path logic matching Node.js:
+    // 1. UNC path: \\server\share
+    if path.len() >= 2 && path.starts_with("\\") {
+      return true;
+    }
+
+    // 2. Drive letter path: C:\path or C:/path
+    if path.len() >= 3 {
+      let bytes = path.as_bytes();
+      if is_windows_device_root(&bytes[0]) && bytes[1] == b':' && is_path_separator(&bytes[2]) {
+        return true;
+      }
+    }
+
+    // 3. Device path: \\?\ or \\.\
+    if path.len() >= 4 && (path.starts_with("\\\\?\\") || path.starts_with("\\\\.\\")) {
+      return true;
+    }
+
+    false
   }
 }
 
@@ -1004,5 +1064,71 @@ mod test {
         }
         assert_eq!(path.node_normalize_win32().as_str(), *expected);
       });
+  }
+
+  #[test]
+  fn test_node_is_absolute_posix() {
+    // POSIX absolute paths
+    assert!(Utf8Path::new("/").node_is_absolute_posix());
+    assert!(Utf8Path::new("/foo").node_is_absolute_posix());
+    assert!(Utf8Path::new("/foo/bar").node_is_absolute_posix());
+    assert!(Utf8Path::new("/foo/bar/").node_is_absolute_posix());
+
+    // POSIX relative paths
+    assert!(!Utf8Path::new("foo").node_is_absolute_posix());
+    assert!(!Utf8Path::new("foo/bar").node_is_absolute_posix());
+    assert!(!Utf8Path::new("./foo").node_is_absolute_posix());
+    assert!(!Utf8Path::new("../foo").node_is_absolute_posix());
+    assert!(!Utf8Path::new("").node_is_absolute_posix());
+
+    // Windows-style paths should return false in POSIX mode
+    assert!(!Utf8Path::new("C:\\foo").node_is_absolute_posix());
+    assert!(!Utf8Path::new("C:/foo").node_is_absolute_posix());
+    assert!(!Utf8Path::new("\\\\server\\share").node_is_absolute_posix());
+  }
+
+  #[test]
+  fn test_node_is_absolute_win32() {
+    // Windows absolute paths
+    assert!(Utf8Path::new("C:\\foo").node_is_absolute_win32());
+    assert!(Utf8Path::new("C:/foo").node_is_absolute_win32());
+    assert!(Utf8Path::new("C:\\").node_is_absolute_win32());
+    assert!(Utf8Path::new("C:/").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\server\\share").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\server\\share\\foo").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\?\\C:\\foo").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\.\\C:\\foo").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\server").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\foo").node_is_absolute_win32());
+
+    // Windows relative paths
+    assert!(!Utf8Path::new("foo").node_is_absolute_win32());
+    assert!(!Utf8Path::new("foo\\bar").node_is_absolute_win32());
+    assert!(!Utf8Path::new("./foo").node_is_absolute_win32());
+    assert!(!Utf8Path::new("../foo").node_is_absolute_win32());
+    assert!(!Utf8Path::new("C:foo").node_is_absolute_win32()); // Drive-relative
+    assert!(!Utf8Path::new("C:").node_is_absolute_win32()); // Drive-relative
+    assert!(!Utf8Path::new("").node_is_absolute_win32());
+
+    // POSIX-style paths should return false in Windows mode
+    assert!(!Utf8Path::new("/foo").node_is_absolute_win32());
+    assert!(!Utf8Path::new("/").node_is_absolute_win32());
+  }
+
+  #[test]
+  fn test_node_is_absolute_cross_platform() {
+    // Test the cross-platform version
+    if cfg!(windows) {
+      // On Windows, should use win32 logic
+      assert!(Utf8Path::new("C:\\foo").node_is_absolute());
+      assert!(Utf8Path::new("\\\\server\\share").node_is_absolute());
+      assert!(!Utf8Path::new("/foo").node_is_absolute());
+      assert!(!Utf8Path::new("foo").node_is_absolute());
+    } else {
+      // On POSIX systems, should use posix logic
+      assert!(Utf8Path::new("/foo").node_is_absolute());
+      assert!(!Utf8Path::new("C:\\foo").node_is_absolute());
+      assert!(!Utf8Path::new("foo").node_is_absolute());
+    }
   }
 }
