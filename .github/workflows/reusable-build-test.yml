@@ -139,18 +139,3 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
         run: pnpm run test:ci
-
-      ### write the latest metric into branch gh-pages
-      ### Note that, We can't merge this script, because this script only runs on main branch
-      ### [Note] This step requires push permission and should be refactored.
-      # - name: Update main branch test compatibility metric
-      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
-      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
-
-      # ### update metric diff against main branch when pull request change
-      # - name: Update
-      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
-      #   uses: ./.github/actions/webpack-test-metric-diff
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     sha: ${{ github.sha }}

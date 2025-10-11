@@ -990,15 +990,6 @@ importers:
         specifier: ^19.1.1
         version: 19.1.1
 
-  tests/webpack-cli-test:
-    dependencies:
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      jest-watch-typeahead:
-        specifier: ^2.2.2
-        version: 2.2.2(jest@29.7.0(@types/node@20.19.19)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3)))
-
   tests/webpack-examples:
     devDependencies:
       '@babel/preset-react':
@@ -1070,133 +1061,6 @@ importers:
       yamljs:
         specifier: ^0.3.0
         version: 0.3.0
-
-  tests/webpack-test:
-    dependencies:
-      '@rspack/binding':
-        specifier: workspace:*
-        version: link:../../crates/node_binding
-      '@swc/helpers':
-        specifier: 0.5.17
-        version: 0.5.17
-      enhanced-resolve:
-        specifier: 5.18.3
-        version: 5.18.3
-      graceful-fs:
-        specifier: 4.2.11
-        version: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
-      neo-async:
-        specifier: 2.6.2
-        version: 2.6.2
-      react-refresh:
-        specifier: ^0.17.0
-        version: 0.17.0
-      tapable:
-        specifier: 2.2.3
-        version: 2.2.3
-      toml:
-        specifier: ^3.0.0
-        version: 3.0.0
-      wast-loader:
-        specifier: ^1.14.1
-        version: 1.14.1
-      watchpack:
-        specifier: ^2.4.4
-        version: 2.4.4
-      webpack-sources:
-        specifier: 3.3.3
-        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
-    devDependencies:
-      '@babel/preset-react':
-        specifier: ^7.27.1
-        version: 7.27.1(@babel/core@7.28.4)
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../../packages/rspack
-      '@rspack/test-tools':
-        specifier: workspace:*
-        version: link:../../packages/rspack-test-tools
-      '@webdiscus/pug-loader':
-        specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.18.3)(pug@3.0.3)(webpack@5.99.9)
-      babel-loader:
-        specifier: ^10.0.0
-        version: 10.0.0(@babel/core@7.28.4)(webpack@5.99.9)
-      bundle-loader:
-        specifier: ^0.5.6
-        version: 0.5.6
-      coffee-loader:
-        specifier: ^1.0.1
-        version: 1.0.1(coffeescript@2.7.0)(webpack@5.99.9)
-      coffeescript:
-        specifier: ^2.7.0
-        version: 2.7.0
-      css-loader:
-        specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9)
-      csv-to-markdown-table:
-        specifier: 1.5.0
-        version: 1.5.0
-      es5-ext:
-        specifier: ^0.10.64
-        version: 0.10.64
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0(webpack@5.99.9)
-      is-ci:
-        specifier: 4.1.0
-        version: 4.1.0
-      jest-diff:
-        specifier: ^29.7.0
-        version: 29.7.0
-      less:
-        specifier: 4.4.1
-        version: 4.4.1
-      less-loader:
-        specifier: ^12.3.0
-        version: 12.3.0(@rspack/core@packages+rspack)(less@4.4.1)(webpack@5.99.9)
-      lodash-es:
-        specifier: ^4.17.21
-        version: 4.17.21
-      memfs:
-        specifier: ^4.48.1
-        version: 4.48.1
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.1
-      mini-svg-data-uri:
-        specifier: ^1.4.4
-        version: 1.4.4
-      raw-loader:
-        specifier: ^4.0.2
-        version: 4.0.2(webpack@5.99.9)
-      react:
-        specifier: ^19.1.1
-        version: 19.1.1
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
-      rimraf:
-        specifier: ^5.0.10
-        version: 5.0.10
-      source-map:
-        specifier: ^0.7.6
-        version: 0.7.6
-      terser:
-        specifier: 5.43.1
-        version: 5.43.1
-      terser-webpack-plugin:
-        specifier: ^5.3.14
-        version: 5.3.14(webpack@5.99.9)
-      ts-loader:
-        specifier: ^9.5.4
-        version: 9.5.4(typescript@5.9.3)(webpack@5.99.9)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      url-loader:
-        specifier: ^4.1.1
-        version: 4.1.1(file-loader@6.2.0(webpack@5.99.9))(webpack@5.99.9)
 
   website:
     dependencies:
@@ -4117,10 +3981,6 @@ packages:
     resolution: {integrity: sha512-gKXj5ALrKWQLsYG9jlTRmR/xKluxHV+Z9QEwNIgCfM1/uwPMCuzVVnh5mwTd+OuBZcwSIMbqssNWRm1lE51QaQ==}
     engines: {node: '>=8'}
 
-  ansi-escapes@6.2.1:
-    resolution: {integrity: sha512-4nJ3yixlEthEJ9Rk4vPcdBRkZvQZlYyu8j4/Mqz5sgIkddmEnH2Yj2ZrnP9S3tQOvSNRUIgVNF/1yPpRAGNRig==}
-    engines: {node: '>=14.16'}
-
   ansi-escapes@7.1.1:
     resolution: {integrity: sha512-Zhl0ErHcSRUaVfGUeUdDuLgpkEo8KIFjB4Y9uAc46ScOpdDiU1Dbyplh7qWJeJ/ZHpbyMSM26+X3BySgnIz40Q==}
     engines: {node: '>=18'}
@@ -4447,10 +4307,6 @@ packages:
   char-regex@1.0.2:
     resolution: {integrity: sha512-kWWXztvZ5SBQV+eRgKFeh8q5sLuZY2+8WUIzlxWVTg+oGwY14qylx1KbKzHd8P6ZYkAg0xyIDU9JMHhyJMZ1jw==}
     engines: {node: '>=10'}
-
-  char-regex@2.0.2:
-    resolution: {integrity: sha512-cbGOjAptfM2LVmWhwRFHEKTPkLwNddVmuqYZQt895yXwAsWsXObCG+YN4DGQ/JBtT4GP1a1lPPdio2z413LmTg==}
-    engines: {node: '>=12.20'}
 
   character-entities-html4@2.1.0:
     resolution: {integrity: sha512-1v7fgQRj6hnSwFpq1Eu0ynr/CDEw0rXo2B61qXrLNdHZmPKgb7fqS1a2JwF0rISo9q77jDI8VMEHoApn8qDoZA==}
@@ -6344,12 +6200,6 @@ packages:
     resolution: {integrity: sha512-ZB7wHqaRGVw/9hST/OuFUReG7M8vKeq0/J2egIGLdvjHCmYqGARhzXmtgi+gVeZ5uXFF219aOc3Ls2yLg27tkw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
-  jest-watch-typeahead@2.2.2:
-    resolution: {integrity: sha512-+QgOFW4o5Xlgd6jGS5X37i08tuuXNW8X0CV9WNFi+3n8ExCIP+E1melYhvYLjv5fE6D0yyzk74vsSO8I6GqtvQ==}
-    engines: {node: ^14.17.0 || ^16.10.0 || >=18.0.0}
-    peerDependencies:
-      jest: ^27.0.0 || ^28.0.0 || ^29.0.0
-
   jest-watcher@29.7.0:
     resolution: {integrity: sha512-49Fg7WXkU3Vl2h6LbLtMQ/HyB6rXSIX7SqvBLQmssRBGN9I0PNvPmAmCWSOY6SOvrjhI/F7/bGAv9RtnsPA03g==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -8133,10 +7983,6 @@ packages:
   string-length@4.0.2:
     resolution: {integrity: sha512-+l6rNN5fYHNhZZy41RXsYptCjA2Igmq4EG7kZAYFQI1E1VTXarr6ZPXBg6eq7Y6eK4FEhY6AJlyuFIb/v/S0VQ==}
     engines: {node: '>=10'}
-
-  string-length@5.0.1:
-    resolution: {integrity: sha512-9Ep08KAMUn0OadnVaBuRdE2l615CQ508kr0XMadjClfYpdCyvrbFp6Taebo8yyxokQ4viUd/xPPUA4FGgUa0ow==}
-    engines: {node: '>=12.20'}
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -12094,8 +11940,6 @@ snapshots:
     dependencies:
       type-fest: 0.21.3
 
-  ansi-escapes@6.2.1: {}
-
   ansi-escapes@7.1.1:
     dependencies:
       environment: 1.1.0
@@ -12459,8 +12303,6 @@ snapshots:
   chalk@5.6.2: {}
 
   char-regex@1.0.2: {}
-
-  char-regex@2.0.2: {}
 
   character-entities-html4@2.1.0: {}
 
@@ -14767,17 +14609,6 @@ snapshots:
       leven: 3.1.0
       pretty-format: 29.7.0
 
-  jest-watch-typeahead@2.2.2(jest@29.7.0(@types/node@20.19.19)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))):
-    dependencies:
-      ansi-escapes: 6.2.1
-      chalk: 5.6.2
-      jest: 29.7.0(@types/node@20.19.19)(ts-node@10.9.2(@types/node@20.19.19)(typescript@5.9.3))
-      jest-regex-util: 29.6.3
-      jest-watcher: 29.7.0
-      slash: 5.1.0
-      string-length: 5.0.1
-      strip-ansi: 7.1.2
-
   jest-watcher@29.7.0:
     dependencies:
       '@jest/test-result': 29.7.0
@@ -16965,11 +16796,6 @@ snapshots:
     dependencies:
       char-regex: 1.0.2
       strip-ansi: 6.0.1
-
-  string-length@5.0.1:
-    dependencies:
-      char-regex: 2.0.2
-      strip-ansi: 7.1.2
 
   string-width@4.2.3:
     dependencies:
