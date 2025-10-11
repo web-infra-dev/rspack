@@ -1,5 +1,6 @@
 use rspack_core::{
-  BoxPlugin, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue, PluginExt,
+  BoxPlugin, DependencyCategory, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult,
+  ExternalItemValue, PluginExt,
 };
 
 use crate::ExternalsPlugin;
@@ -25,14 +26,14 @@ pub fn http_externals_rspack_plugin(css: bool, web_async: bool) -> BoxPlugin {
 fn http_external_item_web(css: bool) -> ExternalItem {
   ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
     Box::pin(async move {
-      if ctx.dependency_type == "url" {
+      if ctx.dependency_type == DependencyCategory::Url {
         if is_external_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("asset".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
-      } else if css && ctx.dependency_type == "css-import" {
+      } else if css && ctx.dependency_type == DependencyCategory::CssImport {
         if is_external_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
@@ -63,14 +64,14 @@ fn http_external_item_web(css: bool) -> ExternalItem {
 fn http_external_item_web_async(css: bool) -> ExternalItem {
   ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
     Box::pin(async move {
-      if ctx.dependency_type == "url" {
+      if ctx.dependency_type == DependencyCategory::Url {
         if is_external_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("asset".to_owned()),
             result: Some(ExternalItemValue::String(ctx.request)),
           });
         }
-      } else if css && ctx.dependency_type == "css-import" {
+      } else if css && ctx.dependency_type == DependencyCategory::CssImport {
         if is_external_http_request(&ctx.request) {
           return Ok(ExternalItemFnResult {
             external_type: Some("css-import".to_owned()),
