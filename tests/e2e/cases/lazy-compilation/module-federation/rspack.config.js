@@ -11,7 +11,7 @@ module.exports = {
 		extensions: ["...", ".jsx"]
 	},
 	module: {
-			rules: [
+		rules: [
 			{
 				test: /\.(jsx?|tsx?)$/,
 				use: [
@@ -37,22 +37,23 @@ module.exports = {
 			}
 		]
 	},
-	plugins: [new rspack.HtmlRspackPlugin({ template: "./src/index.html" }), new rspack.container.ModuleFederationPlugin({
-		name:"host",
-		remotes: {
-			remote: "remote@http://localhost:5679/remoteEntry.js"
-		},
-		// prevent init remote entry
-		shareStrategy: 'loaded-first',
-		shared: {
-			react: {},
-			'react-dom': {}
-		},
-		runtimePlugins: [require.resolve('./runtime-plugin.js')]
-	}),
+	plugins: [
+		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
+		new rspack.container.ModuleFederationPlugin({
+			name:"host",
+			remotes: {
+				remote: "remote@http://localhost:5679/remoteEntry.js"
+			},
+			// prevent init remote entry
+			shareStrategy: 'loaded-first',
+			shared: {
+				react: {},
+				'react-dom': {}
+			},
+			runtimePlugins: [require.resolve('./runtime-plugin.js')]
+		}),
 		new ReactRefreshPlugin(),
-
-],
+	],
 	lazyCompilation:true,
 	devServer: {
 		hot: true,
