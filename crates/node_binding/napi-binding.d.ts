@@ -2723,6 +2723,11 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   compactExternalModuleDynamicImport?: boolean
+  /**
+   * Add shims for javascript/esm modules
+   * @default `false`
+   */
+  forceNodeShims?: boolean
 }
 
 export interface RawRspackFuture {
