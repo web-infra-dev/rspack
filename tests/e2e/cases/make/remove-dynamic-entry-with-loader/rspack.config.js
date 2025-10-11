@@ -1,25 +1,27 @@
 const rspack = require("@rspack/core");
 
-let first = true;
+const sharedObj = {
+	useFullEntry: true
+};
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: async () => {
-		if (first) {
+		if (sharedObj.useFullEntry) {
 			return {
 				main: {
-					import: "./loader.js!./src/index1.js",
+					import: "./loader.js!./src/index1.js"
 				},
 				main2: {
 					import: "./loader.js!./src/index2.js"
 				}
-			}
+			};
 		} else {
 			return {
 				main: {
-					import: "./loader.js!./src/index1.js",
-				},
-			}
+					import: "./loader.js!./src/index1.js"
+				}
+			};
 		}
 	},
 	context: __dirname,
@@ -27,12 +29,10 @@ module.exports = {
 	plugins: [
 		new rspack.HtmlRspackPlugin(),
 		function (compiler) {
-			compiler.hooks.done.tap('t', () => {
-				first = false;
-			})
+			compiler.__sharedObj = sharedObj;
 		}
 	],
 	devServer: {
 		hot: true
-	},
+	}
 };

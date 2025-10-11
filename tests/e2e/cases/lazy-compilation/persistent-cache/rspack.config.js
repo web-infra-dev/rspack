@@ -8,7 +8,17 @@ module.exports = {
 	},
 	stats: "none",
 	mode: "production",
-	plugins: [new rspack.HtmlRspackPlugin()],
+	plugins: [
+		new rspack.HtmlRspackPlugin(),
+		{
+			apply(compiler) {
+				compiler.hooks.done.tap("TEST", function (stats) {
+					const { modules } = stats.toJson();
+					compiler.__modules = modules.map(item => item.identifier);
+				});
+			}
+		}
+	],
 	cache: true,
 	lazyCompilation: true,
 	experiments: {
@@ -21,7 +31,7 @@ module.exports = {
 		client: {
 			overlay: {
 				// hide warnings for incremental
-				warnings: false,
+				warnings: false
 			}
 		}
 	}
