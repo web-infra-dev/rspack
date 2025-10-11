@@ -99,8 +99,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
 	} as TCompilerOptions<T>;
 }

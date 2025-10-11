@@ -85,8 +85,7 @@ function defaultOptions(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
 	};
 }
