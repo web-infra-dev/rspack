@@ -15,6 +15,6 @@
     "react-refresh": "^0.17.0",
     "prettier": "^3.6.2",
     "monaco-editor": "0.52.2",
-    "monaco-editor-webpack-plugin": "7.1.0"
+    "monaco-editor-webpack-plugin": "7.1.1"
   }
 }
