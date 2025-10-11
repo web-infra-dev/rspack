@@ -163,6 +163,33 @@ interface BrowserHttpImportPluginOptions {
 }
 ```
 
+#### `resolve.alias` 兼容性说明
+
+在使用 `BrowserHttpImportEsmPlugin` 时，依赖标识符的重写操作会**先于** [resolve.alias](/config/resolve#resolvealias) 的别名替换执行，导致两者之间可能发生冲突。为避免此类问题，可以通过配置插件的 `dependencyUrl` 规则，提前识别并跳过那些应由 `resolve.alias` 处理的路径：
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // 例如：@/util.js 会被替换为 /src/util.js
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // 遇到以 "@/” 开头的请求时，直接返回原请求，跳过插件的重写逻辑
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
 ### BrowserRequirePlugin
 
 在 Rspack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](/plugins/rspack/html-rspack-plugin#use-template-function)。由于这些代码可能来自不可信的第三方用户，直接在浏览器环境中执行会带来潜在的安全风险。为了保障安全性，`@rspack/browser` 在遇到此类场景时会默认抛出错误，阻止不安全代码的执行。
