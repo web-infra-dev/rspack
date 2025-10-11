@@ -318,7 +318,7 @@ describe("snapshots", () => {
 		  "output": Object {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "asyncChunks": true,
-		    "charset": true,
+		    "charset": false,
 		    "chunkFilename": "[name].js",
 		    "chunkFormat": "array-push",
 		    "chunkLoadTimeout": 120000,
