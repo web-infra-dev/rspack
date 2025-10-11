@@ -1,4 +1,4 @@
-import { Stability } from '@components/ApiMeta';
+import { Stability, ApiMeta } from '@components/ApiMeta';
 
 # ModuleFederationPlugin
 
@@ -154,6 +154,33 @@ The SharedConfig can include the following sub-options:
 - strictVersion: Used to strengthen `requiredVersion`. If set to `true`, the shared module must match the version specified in requiredVersion exactly, otherwise an error will be reported and the module will not be loaded. If set to `false`, it can tolerate imprecise matching.
 - version: Explicitly set the version of the shared module. By default, the version in `package.json` will be used.
 
+### manifest
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+- Type:
+  ```ts
+  type Manifest = boolean | ManifestConfig;
+  interface ManifestConfig {
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+  }
+  ```
+
+Used to control whether to generate a manifest and the corresponding generation configuration.
+
+When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you can customize the base name through `fileName`) on every build and writes them into the build output so other tooling can read them during the `processAssets` hook or from the final artifacts.
+
+- `mf-stats.json`: Contains full build statistics, including the asset lists for exposes/shared/remotes, `metaData` (plugin version, build info, `remoteEntry`, etc.), and extra asset analysis data, making it suitable for later aggregation or diagnostics.
+- `mf-manifest.json`: A runtime manifest distilled from the stats file. The structure stays stable and can be consumed by Module Federation clients when loading remote modules. The exposes/shared/remotes sections describe what is publicly exposed.
+
+`ManifestConfig` provides the following options:
+
+- `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
+- `fileName`: Manifest file name. When set, the stats file automatically appends a `-stats` suffix (for example, `fileName: 'mf.json'` produces `mf.json` and `mf-stats.json`). All files are emitted into the directory defined by `filePath` (if provided).
+- `disableAssetsAnalyze`: Disables asset analysis. When `true`, the manifest omits the `shared` and `exposes` fields, and the `remotes` entries will not include asset information.
+
 ## FAQ
 
 - Found non-downgraded syntax in the build output?
@@ -179,3 +206,7 @@ The SharedConfig can include the following sub-options:
     },
   };
   ```
+
+- Multiple assets emit different content to the same filename mf-manifest.json
+
+  Upgrade the `@module-federation` scoped npm package to `0.21.0` or above.
