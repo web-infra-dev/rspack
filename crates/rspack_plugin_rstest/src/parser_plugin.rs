@@ -91,6 +91,22 @@ impl RstestParserPlugin {
           parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
+
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            DependencyRange::new(
+              call_expr.callee.span().real_lo() - 1,
+              call_expr.callee.span().real_lo() - 1,
+            ),
+            "/* ".into(),
+            None,
+          )));
+
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            range,
+            " */".into(),
+            None,
+          )));
+
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             range,
             Some(parser.source_map.clone()),
@@ -249,7 +265,7 @@ impl RstestParserPlugin {
           }
 
           if let Some(mocked_target) = self.calc_mocked_target(&lit_str).as_std_path().to_str() {
-            let dep = MockModuleIdDependency::new(
+            let module_dep = MockModuleIdDependency::new(
               lit_str.to_string(),
               first_arg.span().into(),
               false,
@@ -261,14 +277,16 @@ impl RstestParserPlugin {
               },
               if has_b { Some(", ".to_string()) } else { None },
             );
-            parser.add_dependency(Box::new(dep));
 
+            let id = module_dep.id.clone();
+            parser.add_dependency(Box::new(module_dep));
             parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
               call_expr.span(),
               call_expr.callee.span(),
               lit_str,
               hoist,
               method,
+              Some(id),
             )));
 
             if has_b {
@@ -327,6 +345,7 @@ impl RstestParserPlugin {
             lit_str,
             hoist,
             method,
+            Some(module_dep.id),
           )));
           parser.add_dependency(Box::new(module_dep));
         } else {
@@ -348,6 +367,7 @@ impl RstestParserPlugin {
           call_expr.span().real_lo().to_string(),
           true,
           MockMethod::Hoisted,
+          None,
         )));
       }
       _ => {

@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyRange,
+  AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyId, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  InitFragmentStage, NormalInitFragment, TemplateContext, TemplateReplaceSource, import_statement,
 };
 use swc_core::common::Span;
 
@@ -16,6 +16,7 @@ pub struct MockMethodDependency {
   request: String,
   hoist: bool,
   method: MockMethod,
+  module_dep_id: Option<DependencyId>,
 }
 
 #[cacheable]
@@ -38,6 +39,7 @@ impl MockMethodDependency {
     request: String,
     hoist: bool,
     method: MockMethod,
+    module_dep_id: Option<DependencyId>,
   ) -> Self {
     Self {
       call_expr_span,
@@ -45,6 +47,7 @@ impl MockMethodDependency {
       request,
       hoist,
       method,
+      module_dep_id,
     }
   }
 }
@@ -76,7 +79,14 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { init_fragments, .. } = code_generatable_context;
+    let TemplateContext {
+      module,
+      runtime_requirements,
+      compilation,
+      init_fragments,
+      runtime,
+      ..
+    } = code_generatable_context;
     let dep = dep
       .as_any()
       .downcast_ref::<MockMethodDependency>()
@@ -102,6 +112,31 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       MockMethod::Hoisted => "rstest_hoisted",
       MockMethod::DoUnmock => "rstest_do_unmock",
     };
+
+    let module_dependency = dep.as_module_dependency();
+
+    if let Some(module_dep_id) = dep.module_dep_id {
+      // TODO:
+      let import_var = compilation.get_import_var(&module_dep_id, *runtime);
+      let content: (String, String) = import_statement(
+        *module,
+        compilation,
+        runtime_requirements,
+        &module_dep_id,
+        &import_var,
+        request,
+        false,
+      );
+
+      // let init = NormalInitFragment::new(
+      //   content.0.clone(),
+      //   InitFragmentStage::StageAsyncDependencies,
+      //   999999 + 1,
+      //   InitFragmentKey::Const(format!("rstest re-declare {request}")),
+      //   None,
+      // );
+      // init_fragments.push(init.boxed());
+    }
 
     // Hoist placeholder init fragment.
     if !hoist_flag.is_empty() {
