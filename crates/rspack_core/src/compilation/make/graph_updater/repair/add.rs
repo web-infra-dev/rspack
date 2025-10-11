@@ -1,8 +1,9 @@
+use derive_more::Debug;
 use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::ProcessUnlazyDependenciesTask};
 use crate::{
-  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxLoader, Module, ModuleIdentifier, ModuleProfile,
   compilation::make::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -12,6 +13,8 @@ use crate::{
 pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
+  #[debug(skip)]
+  pub loaders: Vec<BoxLoader>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<ModuleProfile>,
@@ -112,6 +115,7 @@ impl Task<TaskContext> for AddTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
       module: self.module,
+      loaders: self.loaders,
       current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
