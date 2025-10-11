@@ -3,21 +3,16 @@
   Author Natsu @xiaoxiaojx
 */
 
-use std::{
-  borrow::Cow,
-  collections::HashSet,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{borrow::Cow, collections::HashSet, path::PathBuf, sync::Arc};
 
 use cow_utils::CowUtils;
 use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::AssertUtf8;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
-use rspack_util::base64;
+use rspack_util::{base64, node_path::NodePath};
 
 /// Source map extractor result
 #[derive(Debug, Clone)]
@@ -76,7 +71,11 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
 
 /// Check if value is a URL
 fn is_url(value: &str) -> bool {
-  VALID_PROTOCOL_PATTERN.is_match(value) && !PathBuf::from(value).is_absolute()
+  VALID_PROTOCOL_PATTERN.is_match(value) && !Utf8Path::new(value).node_is_absolute_win32()
+}
+
+fn is_absolute(path: &Utf8Path) -> bool {
+  path.node_is_absolute_posix() || path.node_is_absolute_win32()
 }
 
 /// Decode data URI
@@ -112,14 +111,14 @@ fn fetch_from_data_url(source_url: &str) -> Result<String, String> {
   }
 }
 
-/// Get absolute path for source file
-fn get_absolute_path(context: &Path, request: &str, source_root: Option<&str>) -> PathBuf {
+/// Get absolute path for source file using Node.js logic
+fn get_absolute_path(context: &Utf8Path, request: &str, source_root: Option<&str>) -> Utf8PathBuf {
   if let Some(source_root) = source_root {
-    let source_root_path = Path::new(source_root);
-    if source_root_path.is_absolute() {
+    let source_root_path = Utf8Path::new(source_root);
+    if is_absolute(source_root_path) {
       return source_root_path.join(request);
     }
-    return context.join(source_root_path).join(request);
+    return context.join(source_root).join(request);
   }
 
   context.join(request)
@@ -170,7 +169,7 @@ async fn fetch_paths_from_filesystem(
 /// Fetch source content from URL
 async fn fetch_from_url(
   fs: &Arc<dyn ReadableFileSystem>,
-  context: &Path,
+  context: &Utf8Path,
   url: &str,
   source_root: Option<&str>,
   skip_reading: bool,
@@ -210,9 +209,8 @@ async fn fetch_from_url(
   }
 
   // 3. Absolute path
-  let url_path = PathBuf::from(url);
-  if url_path.is_absolute() {
-    let source_url = url_path.to_string_lossy().into_owned();
+  if is_absolute(Utf8Path::new(url)) {
+    let source_url = url.to_string();
 
     if !skip_reading {
       let mut possible_requests = Vec::with_capacity(2);
@@ -220,7 +218,7 @@ async fn fetch_from_url(
 
       if let Some(stripped) = url.strip_prefix('/') {
         let absolute_path = get_absolute_path(context, stripped, source_root);
-        possible_requests.push(absolute_path.to_string_lossy().into_owned());
+        possible_requests.push(absolute_path.to_string());
       }
 
       return fetch_paths_from_filesystem(fs, &possible_requests, String::new()).await;
@@ -231,7 +229,7 @@ async fn fetch_from_url(
 
   // 4. Relative path
   let source_url = get_absolute_path(context, url, source_root);
-  let source_url_str = source_url.to_string_lossy().to_string();
+  let source_url_str = source_url.to_string();
 
   if !skip_reading {
     let (_, content) = fetch_from_filesystem(fs, &source_url_str).await?;
@@ -260,7 +258,7 @@ pub async fn extract_source_map(
     });
   }
 
-  let base_context = Path::new(resource_path)
+  let base_context = Utf8Path::new(resource_path)
     .parent()
     .ok_or_else(|| "Invalid resource path".to_string())?;
 
@@ -289,7 +287,7 @@ pub async fn extract_source_map(
     .map_err(|e| format!("Failed to parse source map: {e}"))?;
 
   let context = if !source_url.is_empty() {
-    Path::new(&source_url).parent().unwrap_or(base_context)
+    Utf8Path::new(&source_url).parent().unwrap_or(base_context)
   } else {
     base_context
   };
