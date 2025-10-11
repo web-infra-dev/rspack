@@ -44,13 +44,13 @@ module.exports = [
 			  "warnings": Array [
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ test push\\n",
+			      "message": "  ⚠ test push",
 			      "moduleTrace": Array [],
-			      "stack": "Error: test push\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: test push    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			    Object {
 			      "code": "ModuleParseWarning",
-			      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+			      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.         ╭────       1 │ require.main.require('./file');         · ──────────────────────────────         ╰────      ",
 			      "moduleId": "./require.main.require.js",
 			      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/require.main.require.js",
 			      "moduleName": "./require.main.require.js",
@@ -86,15 +86,15 @@ module.exports = [
 			  "warnings": Array [
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ warning 1\\n",
+			      "message": "  ⚠ warning 1",
 			      "moduleTrace": Array [],
-			      "stack": "Error: warning 1\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: warning 1    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ warning 2\\n",
+			      "message": "  ⚠ warning 2",
 			      "moduleTrace": Array [],
-			      "stack": "Error: warning 2\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: warning 2    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			  ],
 			}
@@ -126,9 +126,9 @@ module.exports = [
 			  "warnings": Array [
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ test unshift\\n",
+			      "message": "  ⚠ test unshift",
 			      "moduleTrace": Array [],
-			      "stack": "Error: test unshift\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: test unshift    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			  ],
 			}
@@ -156,9 +156,9 @@ module.exports = [
 			  "warnings": Array [
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ test splice\\n",
+			      "message": "  ⚠ test splice",
 			      "moduleTrace": Array [],
-			      "stack": "Error: test splice\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: test splice    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			  ],
 			}
@@ -186,13 +186,13 @@ module.exports = [
 			  "warnings": Array [
 			    Object {
 			      "code": "Error",
-			      "message": "  ⚠ test splice\\n",
+			      "message": "  ⚠ test splice",
 			      "moduleTrace": Array [],
-			      "stack": "Error: test splice\\n    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>\\n    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)\\n    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)\\n    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+			      "stack": "Error: test splice    at <TEST_TOOLS_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 			    },
 			    Object {
 			      "code": "ModuleParseWarning",
-			      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+			      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.         ╭────       1 │ require.main.require('./file');         · ──────────────────────────────         ╰────      ",
 			      "moduleId": "./require.main.require.js",
 			      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/require.main.require.js",
 			      "moduleName": "./require.main.require.js",

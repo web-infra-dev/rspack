@@ -13,7 +13,7 @@ module.exports = [{
 		  "warnings": Array [
 		    Object {
 		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: module.parent.require() is not supported by Rspack.\\n         ╭────\\n       1 │ module.parent.require('./file');\\n         · ───────────────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: module.parent.require() is not supported by Rspack.         ╭────       1 │ module.parent.require('./file');         · ───────────────────────────────         ╰────      ",
 		      "moduleId": "./module.parent.require.js",
 		      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/module.parent.require.js",
 		      "moduleName": "./module.parent.require.js",
@@ -38,7 +38,7 @@ module.exports = [{
 		  "warnings": Array [
 		    Object {
 		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.extensions is not supported by Rspack.\\n         ╭────\\n       1 │ require.extensions[\\".js\\"] = function() {};\\n         · ──────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.extensions is not supported by Rspack.         ╭────       1 │ require.extensions[\\".js\\"] = function() {};         · ──────────────────         ╰────      ",
 		      "moduleId": "./require.extensions.js",
 		      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/require.extensions.js",
 		      "moduleName": "./require.extensions.js",
@@ -63,7 +63,7 @@ module.exports = [{
 		  "warnings": Array [
 		    Object {
 		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:\\n  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.\\n         ╭────\\n       1 │ require.main.require('./file');\\n         · ──────────────────────────────\\n         ╰────\\n      \\n",
+		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.         ╭────       1 │ require.main.require('./file');         · ──────────────────────────────         ╰────      ",
 		      "moduleId": "./require.main.require.js",
 		      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/require.main.require.js",
 		      "moduleName": "./require.main.require.js",

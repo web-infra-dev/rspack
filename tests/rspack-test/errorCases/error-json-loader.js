@@ -12,7 +12,7 @@ module.exports = {
 		  "errors": Array [
 		    Object {
 		      "code": "ModuleBuildError",
-		      "message": "  × Module build failed:\\n  ╰─▶   × SyntaxError: Unexpected end of JSON input\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n        │     at xxx\\n      \\n",
+		      "message": "  × Module build failed:  ╰─▶   × SyntaxError: Unexpected end of JSON input        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
 		      "moduleId": "../../../../node_modules/<PNPM_INNER>/json-loader/index.js!./not-a-json.js",
 		      "moduleIdentifier": "<ROOT>/node_modules/<PNPM_INNER>/json-loader/index.js!<TEST_TOOLS_ROOT>/fixtures/errors/not-a-json.js",
 		      "moduleName": "../../../../node_modules/<PNPM_INNER>/json-loader/index.js!./not-a-json.js",

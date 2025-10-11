@@ -12,7 +12,7 @@ module.exports = {
 		  "errors": Array [
 		    Object {
 		      "code": "ModuleParseError",
-		      "message": "  × Module parse failed:\\n  ╰─▶   × JavaScript parse error: Unexpected token \`;\`. Expected identifier, string literal, numeric literal or [ for the computed key\\n         ╭─[2:12]\\n       1 │ window.foo = {\\n       2 │   bar: true,;\\n         ·             ─\\n       3 │ };\\n         ╰────\\n      \\n  help: \\n        You may need an appropriate loader to handle this file type.\\n",
+		      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Unexpected token \`;\`. Expected identifier, string literal, numeric literal or [ for the computed key         ╭─[2:12]       1 │ window.foo = {       2 │   bar: true,;         ·             ─       3 │ };         ╰────        help:         You may need an appropriate loader to handle this file type.",
 		      "moduleId": "./has-syntax-error.js",
 		      "moduleIdentifier": "<TEST_TOOLS_ROOT>/fixtures/errors/has-syntax-error.js",
 		      "moduleName": "./has-syntax-error.js",
