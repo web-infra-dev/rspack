@@ -261,6 +261,10 @@ export class Compilation {
 		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+
+		addEntry: liteTapable.SyncHook<[binding.Module]>;
+		succeedEntry: liteTapable.SyncHook<[binding.Module]>;
+		failedEntry: liteTapable.SyncHook<[string]>;
 	}>;
 	name?: string;
 	startTime?: number;
@@ -393,7 +397,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([]),
-			needAdditionalPass: new liteTapable.SyncBailHook([])
+			needAdditionalPass: new liteTapable.SyncBailHook([]),
+
+			addEntry: new liteTapable.SyncHook(["module"]),
+			succeedEntry: new liteTapable.SyncHook(["module"]),
+			failedEntry: new liteTapable.SyncHook(["error"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -409,10 +417,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 
 		this.#addIncludeDispatcher = new AddEntryItemDispatcher(
-			inner.addInclude.bind(inner)
+			inner.addInclude.bind(inner),
+			this.hooks
 		);
 		this.#addEntryDispatcher = new AddEntryItemDispatcher(
-			inner.addEntry.bind(inner)
+			inner.addEntry.bind(inner),
+			this.hooks
 		);
 		this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
 	}
@@ -1124,6 +1134,7 @@ class AddEntryItemDispatcher {
 		binding.JsEntryOptions | undefined
 	][] = [];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+	#hooks: typeof Compilation.prototype.hooks;
 
 	#execute = () => {
 		if (this.#running) {
@@ -1134,6 +1145,7 @@ class AddEntryItemDispatcher {
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
+
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
 				queueMicrotask(this.#execute.bind(this));
@@ -1148,8 +1160,15 @@ class AddEntryItemDispatcher {
 			}
 			for (let i = 0; i < results.length; i++) {
 				const [errMsg, module] = results[i];
+				this.#hooks.addEntry.call(module);
 				const cb = cbs[i];
-				cb(errMsg ? new WebpackError(errMsg) : null, module);
+				if (errMsg != null) {
+					this.#hooks.failedEntry.call(errMsg);
+					cb(new WebpackError(errMsg), module);
+					continue;
+				}
+				this.#hooks.succeedEntry.call(module);
+				cb(null, module);
 			}
 		});
 	};
@@ -1157,9 +1176,11 @@ class AddEntryItemDispatcher {
 	constructor(
 		binding:
 			| binding.JsCompilation["addInclude"]
-			| binding.JsCompilation["addEntry"]
+			| binding.JsCompilation["addEntry"],
+		hooks: typeof Compilation.prototype.hooks
 	) {
 		this.#inner = binding;
+		this.#hooks = hooks;
 		this.#running = false;
 	}
 
