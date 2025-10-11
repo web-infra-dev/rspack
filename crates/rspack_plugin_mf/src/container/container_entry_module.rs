@@ -73,6 +73,10 @@ impl ContainerEntryModule {
       enhanced,
     }
   }
+
+  pub fn exposes(&self) -> &[(String, ExposeOptions)] {
+    &self.exposes
+  }
 }
 
 impl Identifiable for ContainerEntryModule {
