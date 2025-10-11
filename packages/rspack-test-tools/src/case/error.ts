@@ -59,11 +59,24 @@ export function createErrorCase(
 	if (!addedSerializer) {
 		addedSerializer = true;
 	}
-	const caseConfig = require(testConfig);
-	creator.create(name, src, dist, undefined, {
-		caseConfig,
-		description: () => caseConfig.description
-	});
+	const caseConfigList = require(testConfig);
+	function createCase(caseConfig: TErrorCaseConfig) {
+		if (caseConfig.skip) {
+			it.skip(name, () => {});
+			return;
+		}
+		creator.create(name, src, dist, undefined, {
+			caseConfig,
+			description: () => caseConfig.description
+		});
+	}
+	if (Array.isArray(caseConfigList)) {
+		for (const caseConfig of caseConfigList) {
+			createCase(caseConfig);
+		}
+	} else {
+		createCase(caseConfigList);
+	}
 }
 
 function options<T extends ECompilerType.Rspack>(
@@ -149,6 +162,14 @@ async function check(
 	name: string,
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>
 ) {
+	if (context.getError(name).length > 0) {
+		await check?.(
+			new RspackStatsDiagnostics(context.getError(name) as StatsError[], [])
+		);
+		context.clearError(name);
+		return;
+	}
+
 	const compiler = getCompiler(context, name);
 	const stats = compiler.getStats();
 	env.expect(typeof stats).toBe("object");
@@ -165,6 +186,7 @@ async function check(
 
 export type TErrorCaseConfig = {
 	description: string;
+	skip?: boolean;
 	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
 	compiler?: (
 		context: ITestContext,
