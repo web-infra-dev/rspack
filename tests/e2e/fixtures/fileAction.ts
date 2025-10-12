@@ -19,9 +19,6 @@ export const fileActionFixtures: Fixtures<
 	RspackFixtures
 > = {
 	fileAction: async ({ rspack }, use) => {
-		// null means this file needs to be deleted
-		const fileOriginContent: Record<string, string | null> = {};
-
 		await use({
 			renameFile(oldPath, newPath) {
 				const oldFilePath = path.resolve(rspack.projectDir, oldPath);
@@ -33,10 +30,6 @@ export const fileActionFixtures: Fixtures<
 				const fileExists = fs.existsSync(filePath);
 				const content = fileExists ? fs.readFileSync(filePath).toString() : "";
 
-				if (fileOriginContent[filePath] === undefined) {
-					fileOriginContent[filePath] = fileExists ? content : null;
-				}
-
 				fs.writeFileSync(filePath, fn(content));
 			},
 			deleteFile(relativePath) {
@@ -46,24 +39,8 @@ export const fileActionFixtures: Fixtures<
 					return;
 				}
 
-				if (fileOriginContent[filePath] === undefined) {
-					fileOriginContent[filePath] = fs.readFileSync(filePath).toString();
-				}
-
 				fs.unlinkSync(filePath);
 			}
 		});
-
-		for (const [filePath, content] of Object.entries(fileOriginContent)) {
-			if (content === null) {
-				fs.unlinkSync(filePath);
-			} else {
-				fs.writeFileSync(filePath, content);
-			}
-		}
-		if (Object.keys(fileOriginContent).length) {
-			// has recovery file
-			await rspack.waitingForBuild();
-		}
 	}
 };
