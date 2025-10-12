@@ -265,26 +265,26 @@ pub async fn extract_source_map(
   let (source_url, source_content) =
     fetch_from_url(&fs, base_context, &source_mapping_url, None, false).await?;
 
-  if source_content.is_none() {
-    return Ok(ExtractSourceMapResult {
-      source: input.to_string(),
-      source_map: None,
-      file_dependencies: if source_url.is_empty() {
-        None
-      } else {
-        let mut set = HashSet::new();
-        set.insert(PathBuf::from(source_url));
-        Some(set)
-      },
-    });
-  }
-
-  let content = source_content.expect("Source content should be available");
-  let cleaned_content = content.trim_start_matches(")]}");
+  let content = match source_content.as_deref() {
+    Some(c) => c.trim_start_matches(")]}"),
+    None => {
+      return Ok(ExtractSourceMapResult {
+        source: input.to_string(),
+        source_map: None,
+        file_dependencies: if source_url.is_empty() {
+          None
+        } else {
+          let mut set = HashSet::new();
+          set.insert(PathBuf::from(source_url));
+          Some(set)
+        },
+      });
+    }
+  };
 
   // Create SourceMap directly from JSON
-  let mut source_map = SourceMap::from_json(cleaned_content)
-    .map_err(|e| format!("Failed to parse source map: {e}"))?;
+  let mut source_map =
+    SourceMap::from_json(content).map_err(|e| format!("Failed to parse source map: {e}"))?;
 
   let context = if !source_url.is_empty() {
     Utf8Path::new(&source_url).parent().unwrap_or(base_context)
