@@ -266,7 +266,7 @@ pub async fn extract_source_map(
     fetch_from_url(&fs, base_context, &source_mapping_url, None, false).await?;
 
   let content = match source_content.as_deref() {
-    Some(c) => c.trim_start_matches(")]}"),
+    Some(c) => c.trim_start_matches(")]}'"),
     None => {
       return Ok(ExtractSourceMapResult {
         source: input.to_string(),
