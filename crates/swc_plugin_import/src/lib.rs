@@ -212,7 +212,7 @@ struct EsSpec {
 
 pub struct ImportPlugin<'a> {
   pub config: &'a Vec<ImportOptions>,
-  pub renderer: TemplateEngine,
+  pub renderer: TemplateEngine<'a>,
 }
 
 impl ImportPlugin<'_> {

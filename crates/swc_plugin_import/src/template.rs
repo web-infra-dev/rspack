@@ -5,20 +5,20 @@ use rustc_hash::FxHashMap as HashMap;
 type HelperFn = Arc<dyn Fn(&str) -> String + Send + Sync>;
 
 #[derive(Clone, Debug)]
-pub struct Template {
-  segments: Vec<Segment>,
+pub struct Template<'a> {
+  segments: Vec<Segment<'a>>,
 }
 
 #[derive(Clone, Debug)]
-enum Segment {
-  Text(String),
-  Value(Value),
+enum Segment<'a> {
+  Text(&'a str),
+  Value(Value<'a>),
 }
 
 #[derive(Clone, Debug)]
-enum Value {
-  Variable(String),
-  Helper { helper: String, argument: String },
+enum Value<'a> {
+  Variable(&'a str),
+  Helper { helper: &'a str, argument: &'a str },
 }
 
 #[derive(Debug, Clone)]
@@ -48,15 +48,15 @@ impl fmt::Display for TemplateError {
 
 impl Error for TemplateError {}
 
-impl Template {
-  pub fn parse(input: &str) -> Result<Self, TemplateError> {
+impl<'a> Template<'a> {
+  pub fn parse(input: &'a str) -> Result<Self, TemplateError> {
     let mut segments = Vec::new();
     let mut cursor = 0usize;
     let s = input;
 
     while let Some(start) = find_subsequence(s, cursor, "{{") {
       if start > cursor {
-        segments.push(Segment::Text(input[cursor..start].to_string()));
+        segments.push(Segment::Text(&input[cursor..start]));
       }
 
       let tag_start = start + 2;
@@ -77,7 +77,7 @@ impl Template {
     }
 
     if cursor < input.len() {
-      segments.push(Segment::Text(input[cursor..].to_string()));
+      segments.push(Segment::Text(&input[cursor..]));
     }
 
     Ok(Self { segments })
@@ -85,7 +85,7 @@ impl Template {
 
   fn render(
     &self,
-    engine: &TemplateEngine,
+    engine: &TemplateEngine<'a>,
     ctx: &HashMap<&'static str, String>,
   ) -> Result<String, TemplateError> {
     let mut output = String::new();
@@ -94,23 +94,23 @@ impl Template {
         Segment::Text(text) => output.push_str(text),
         Segment::Value(value) => match value {
           Value::Variable(name) => {
-            let value = ctx
-              .get(name.as_str())
-              .ok_or_else(|| TemplateError::MissingValue { name: name.clone() })?;
+            let value = ctx.get(name).ok_or_else(|| TemplateError::MissingValue {
+              name: (*name).to_string(),
+            })?;
             output.push_str(value);
           }
           Value::Helper { helper, argument } => {
             let value = ctx
-              .get(argument.as_str())
+              .get(argument)
               .ok_or_else(|| TemplateError::MissingValue {
-                name: argument.clone(),
+                name: (*argument).to_string(),
               })?;
             let helper_fn =
               engine
                 .helpers
-                .get(helper.as_str())
+                .get(helper)
                 .ok_or_else(|| TemplateError::UnknownHelper {
-                  name: helper.clone(),
+                  name: (*helper).to_string(),
                 })?;
             let rendered = helper_fn(value);
             output.push_str(&rendered);
@@ -122,8 +122,8 @@ impl Template {
   }
 }
 
-impl Value {
-  fn parse(expression: &str) -> Result<Value, TemplateError> {
+impl<'a> Value<'a> {
+  fn parse(expression: &'a str) -> Result<Value<'a>, TemplateError> {
     let mut parts = expression.split_whitespace();
     let first = parts.next().unwrap();
     let second = parts.next();
@@ -136,22 +136,22 @@ impl Value {
 
     if let Some(arg) = second {
       Ok(Value::Helper {
-        helper: first.to_string(),
-        argument: arg.to_string(),
+        helper: first,
+        argument: arg,
       })
     } else {
-      Ok(Value::Variable(first.to_string()))
+      Ok(Value::Variable(first))
     }
   }
 }
 
 #[derive(Clone, Default)]
-pub struct TemplateEngine {
+pub struct TemplateEngine<'a> {
   helpers: HashMap<&'static str, HelperFn>,
-  templates: HashMap<String, Template>,
+  templates: HashMap<String, Template<'a>>,
 }
 
-impl TemplateEngine {
+impl<'a> TemplateEngine<'a> {
   pub fn new() -> Self {
     Self::default()
   }
@@ -163,7 +163,7 @@ impl TemplateEngine {
     self.helpers.insert(name, Arc::new(helper));
   }
 
-  pub fn register_template(&mut self, name: String, template: Template) {
+  pub fn register_template(&mut self, name: String, template: Template<'a>) {
     self.templates.insert(name, template);
   }
 
