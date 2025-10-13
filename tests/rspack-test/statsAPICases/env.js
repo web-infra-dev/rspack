@@ -1,3 +1,4 @@
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
   description: "should print env string in stats",
   options(context) {

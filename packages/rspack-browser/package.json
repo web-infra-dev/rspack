@@ -21,9 +21,7 @@
   "scripts": {
     "build": "pnpm run --fail-if-no-match --filter @rspack/core build:browser || pnpm --fail-if-no-match --filter @rspack-canary/core build:browser"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -32,7 +30,7 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^1.0.5",
+    "@napi-rs/wasm-runtime": "1.0.7",
     "@rspack/lite-tapable": "1.0.1",
     "@swc/types": "0.1.25",
     "@types/watchpack": "^2.4.4",

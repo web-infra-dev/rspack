@@ -33,7 +33,6 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link.rel).toBe("preload");
 	expect(link.as).toBe("script");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-b.js");
-	expect(link.charset).toBe("utf-8");
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 

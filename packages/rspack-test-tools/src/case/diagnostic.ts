@@ -66,12 +66,12 @@ const creator = new BasicCaseCreator({
 export function createDiagnosticCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
-export interface IDiagnosticOptions {
+export type TDiagnosticOptions = {
 	snapshot: string;
 	snapshotErrors: string;
 	snapshotWarning: string;
 	format?: (output: string) => string;
-}
+};
 
 function defaultOptions<T extends ECompilerType.Rspack>(
 	context: ITestContext
@@ -99,8 +99,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
 	} as TCompilerOptions<T>;
 }
@@ -109,7 +108,7 @@ async function check(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string,
-	options: IDiagnosticOptions
+	options: TDiagnosticOptions
 ) {
 	const compiler = getCompiler(context, name);
 	const stats = compiler.getStats();

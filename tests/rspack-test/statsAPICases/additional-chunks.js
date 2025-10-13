@@ -1,3 +1,4 @@
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should contain additional chunks",
 	options(context) {
@@ -60,10 +61,10 @@ module.exports = {
 		      assets: Array [
 		        Object {
 		          name: entryB.js,
-		          size: 3206,
+		          size: 3188,
 		        },
 		      ],
-		      assetsSize: 3206,
+		      assetsSize: 3188,
 		      auxiliaryAssets: undefined,
 		      auxiliaryAssetsSize: undefined,
 		      childAssets: undefined,

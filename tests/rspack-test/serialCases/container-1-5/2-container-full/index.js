@@ -22,6 +22,12 @@ beforeEach(done => {
 			warnings.push(m);
 		}
 	}
+	console.warn = (...args) => {
+		const m = args.join(' ');
+		if (m && m.includes('Federation Runtime')) {
+			warnings.push(m);
+		}
+	}
 	done();
 });
 

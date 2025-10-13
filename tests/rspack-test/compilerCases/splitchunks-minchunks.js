@@ -1,4 +1,4 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description: "splitChunks.minChunks equals 0",
 	options(context) {

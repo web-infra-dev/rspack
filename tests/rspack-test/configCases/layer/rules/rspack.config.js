@@ -49,9 +49,6 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		layers: true
-	},
 	externals: [
 		{
 			external1: "var 42"

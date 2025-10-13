@@ -1,4 +1,3 @@
-// Need to run some webpack-test
 process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
@@ -24,18 +23,4 @@ describeByWalk(
 	}
 );
 
-// Run tests webpack-test/hotCases in target webworker
-describeByWalk(
-	v("hot webworker (webpack-test)"),
-	(name, src, dist) => {
-		createHotIncrementalCase(name, src, dist, "webworker", true);
-	},
-	{
-		source: path.resolve(__dirname, "../webpack-test/hotCases"),
-		dist: path.resolve(
-			__dirname,
-			`./js/incremental/webpack-test/hot-webworker`
-		),
-		exclude: []
-	}
-);
+

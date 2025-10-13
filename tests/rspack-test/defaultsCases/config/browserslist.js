@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "browserslist",
 	options: context => ({

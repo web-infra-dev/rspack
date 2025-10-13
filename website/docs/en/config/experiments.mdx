@@ -122,10 +122,14 @@ This configuration has been deprecated. Please use [lazyCompilation](/config/laz
 
 ## experiments.layers
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
+<ApiMeta deprecatedVersion="1.6.0" />
 
 - **Type:** `boolean`
 - **Default:** `false`
+
+:::warning
+This config is deprecated, layers is enabled at all time. Please remove this option from your Rspack configuration.
+:::
 
 Controls whether to enable the layer feature. Layers can add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
 
@@ -855,7 +859,7 @@ export default {
 <ApiMeta addedVersion="1.5.0" />
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true` (enabled by default after v1.6.0)
 
 Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
 

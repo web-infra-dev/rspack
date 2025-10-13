@@ -1,3 +1,4 @@
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should be empty when there is no additional chunks",
 	options(context) {

@@ -150,14 +150,6 @@ testCommand
 		await $`./x test unit`;
 	});
 
-// x test webpack
-testCommand
-	.command("webpack")
-	.description("run webpack test suites")
-	.action(async () => {
-		await $`pnpm --filter "webpack-test" test`;
-	});
-
 // x api-extractor
 const extractorCommand = program
 	.command("api-extractor")
