@@ -134,7 +134,7 @@ impl<'a> ExportedEnumCollector<'a> {
     match expr.op {
       op!(unary, "+") => EnumMemberValue::Number(num),
       op!(unary, "-") => EnumMemberValue::Number(-num),
-      op!("~") => EnumMemberValue::Number(-num),
+      op!("~") => EnumMemberValue::Number(!js_number_to_int32(num) as f64),
       _ => unreachable!(),
     }
   }
