@@ -57,7 +57,7 @@ impl JavaScriptCompiler {
   pub fn transform<'a, S, P>(
     &self,
     source: S,
-    filename: Option<FileName>,
+    filename: Option<Arc<FileName>>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
     inspect_parsed_ast: impl FnOnce(&Program),
@@ -69,7 +69,7 @@ impl JavaScriptCompiler {
   {
     let fm = self
       .cm
-      .new_source_file(filename.unwrap_or(FileName::Anon).into(), source.into());
+      .new_source_file(filename.unwrap_or(Arc::new(FileName::Anon)), source.into());
     let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
