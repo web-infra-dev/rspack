@@ -1,7 +1,9 @@
 use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, ExportMode,
@@ -446,7 +448,7 @@ impl EsmLibraryPlugin {
                     "",
                     &all_used_names,
                     escaped_identifiers
-                      .get(&readable_identifier)
+                      .get(source)
                       .expect("should have escaped identifier"),
                   )
                 } else {
@@ -805,12 +807,6 @@ impl EsmLibraryPlugin {
                 concate_info.idents = idents;
                 concate_info.all_used_names = all_used_names;
                 concate_info.binding_to_ref = binding_to_ref;
-
-                let scope = codegen_res
-                  .concatenation_scope
-                  .as_ref()
-                  .expect("should have concatenation scope");
-                concate_info.re_exports = scope.re_exports.clone();
                 concate_info.has_ast = true;
                 concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
                 concate_info.internal_source = Some(render_source.source.clone());
@@ -967,6 +963,7 @@ impl EsmLibraryPlugin {
           .expect("should have mode");
 
         let optimize_reexport_star = possible_to_optimize_mode
+          && export_dep.name.is_none()
           && ref_box_module
             .as_external_module()
             .is_some_and(|m| matches!(m.get_external_type().as_str(), "module-import" | "module"));
@@ -979,16 +976,35 @@ impl EsmLibraryPlugin {
           chunk_link
             .raw_star_exports
             .insert(export_dep.request.to_string());
+          continue;
         }
 
         let chunk_link = link.get_mut(&current_chunk).expect("should have link");
+
         match re_exports {
           rspack_core::ExportMode::Missing
           | rspack_core::ExportMode::LazyMake
-          | rspack_core::ExportMode::DynamicReexport(_)
           | rspack_core::ExportMode::ReexportUndefined(_)
           | rspack_core::ExportMode::EmptyStar(_)
           | rspack_core::ExportMode::Unused(_) => {}
+
+          rspack_core::ExportMode::DynamicReexport(_) => {
+            // special handling for export * from normal module
+            if export_dep.name.is_none() && export_dep.get_ids(module_graph).is_empty() {
+              Self::link_re_export(
+                ref_module,
+                current_chunk,
+                compilation,
+                concate_modules_map,
+                required,
+                link,
+                module_graph,
+                needed_namespace_objects,
+                entry_imports,
+                exports,
+              );
+            }
+          }
 
           rspack_core::ExportMode::ReexportDynamicDefault(mode) => {
             let ref_info = concate_modules_map
@@ -1145,10 +1161,10 @@ impl EsmLibraryPlugin {
             let exports_info = module_graph.get_exports_info(&ref_module);
 
             for item in &mode.items {
-              // reset ref_module for each dep
               let mut ref_module = orig_ref_module;
 
               if item.hidden {
+                // ignore hidden
                 continue;
               }
 
@@ -1161,40 +1177,57 @@ impl EsmLibraryPlugin {
                 continue;
               }
 
-              let chunk_link = link.get_mut(&current_chunk).expect("should have link");
+              let name = item.ids.first().unwrap_or(&item.name);
+              let mut unknown_export_info = false;
 
-              let export_info = item
-                .ids
-                .first()
-                .and_then(|id| exports_info.as_data(module_graph).named_exports(id))
-                .unwrap_or(item.export_info.as_data(module_graph));
+              let mut export_info =
+                if let Some(export_info) = exports_info.as_data(module_graph).named_exports(name) {
+                  export_info
+                } else {
+                  unknown_export_info = true;
+                  // export info not found, this is likely because the export is from unknown
+                  item.export_info.as_data(module_graph)
+                };
 
-              if export_info.is_reexport() {
-                // should point to the real export
+              let mut visited_modules = IdentifierSet::default();
+              visited_modules.insert(ref_module);
+              while export_info.is_reexport() {
                 let targets = export_info.get_max_target();
-                let (Some(dep), _) = targets
+                let (dep, _) = targets
                   .iter()
                   .next()
-                  .expect("should have target if export info is reexport")
-                else {
-                  continue;
-                };
+                  .expect("should have target if export info is reexport");
+                let dep = dep.expect("should have dependency for re-exported export info");
 
-                let Some(module) = module_graph.module_identifier_by_dependency_id(dep) else {
-                  continue;
+                let Some(module) = module_graph.module_identifier_by_dependency_id(&dep) else {
+                  unreachable!("should have module for re-exported dependency");
                 };
                 ref_module = *module;
+                if !visited_modules.insert(*module) {
+                  break;
+                }
+                let Some(target_export_info) = module_graph
+                  .get_exports_info(&ref_module)
+                  .as_data(module_graph)
+                  .named_exports(name)
+                else {
+                  // unknown export info, break
+                  unknown_export_info = true;
+                  break;
+                };
+                export_info = target_export_info;
               }
 
-              let exports_info = module_graph
-                .get_prefetched_exports_info(&ref_module, PrefetchExportsInfoMode::Default);
-              let export_info =
-                exports_info.get_read_only_export_info(item.ids.first().unwrap_or(&item.name));
+              let chunk_link = link.get_mut(&current_chunk).expect("should have link");
 
-              let used_name = export_info.get_used_name(None, None).unwrap_or_else(|| {
-                // dynamic export
+              let used_name = if unknown_export_info {
                 UsedNameItem::Str(item.name.clone())
-              });
+              } else {
+                export_info.get_used_name(None, None).unwrap_or_else(|| {
+                  // dynamic export
+                  UsedNameItem::Str(item.name.clone())
+                })
+              };
 
               if let UsedNameItem::Inlined(inlined) = used_name {
                 let new_name = find_new_name(&item.name, &chunk_link.used_names, &vec![]);
@@ -1210,6 +1243,10 @@ impl EsmLibraryPlugin {
                   )));
                 Self::add_chunk_export(current_chunk, new_name, item.name.clone(), exports, true);
                 continue;
+              };
+
+              let UsedNameItem::Str(used_name) = used_name else {
+                unreachable!()
               };
 
               // if item is from other module
@@ -1233,10 +1270,6 @@ impl EsmLibraryPlugin {
 
                   chunk_link.used_names.insert(variable_to_export.clone());
                   entry_imports.entry(ref_info.module).or_default();
-
-                  let UsedNameItem::Str(used_name) = used_name else {
-                    unreachable!()
-                  };
 
                   let variable_to_export =
                     interop_info.property_access(&used_name, &mut chunk_link.used_names);

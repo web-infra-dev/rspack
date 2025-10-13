@@ -3650,8 +3650,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable module layers feature.  
-  layers: Option<bool>,
   /// Incremental passes.
   incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
@@ -3676,7 +3674,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      layers: Some(value.layers),
       incremental: Some(value.incremental),
       top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
@@ -3693,7 +3690,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      layers: value.layers.take(),
       incremental: value.incremental.take(),
       top_level_await: value.top_level_await.take(),
       rspack_future: value.rspack_future.take(),
@@ -3708,12 +3704,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
 }
 
 impl ExperimentsBuilder {
-  /// Set whether to enable layers.
-  pub fn layers(&mut self, layers: bool) -> &mut Self {
-    self.layers = Some(layers);
-    self
-  }
-
   /// Set the incremental passes.
   pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
@@ -3765,7 +3755,6 @@ impl ExperimentsBuilder {
     development: bool,
     production: bool,
   ) -> Result<Experiments> {
-    let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
       let passes = if !production {
         IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
@@ -3796,7 +3785,6 @@ impl ExperimentsBuilder {
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
 
     Ok(Experiments {
-      layers,
       incremental,
       top_level_await,
       rspack_future,

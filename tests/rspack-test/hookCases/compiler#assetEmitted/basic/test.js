@@ -2,7 +2,7 @@ const assert = require("assert");
 
 let hasMainJs = false;
 
-/** @type {import("../../../..").THookCaseConfig} */
+/** @type {import("@rspack/test-tools").THookCaseConfig} */
 module.exports = {
 	description: "should work with assetEmitted",
 	options(context) {

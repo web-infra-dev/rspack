@@ -1,4 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have module profile when profile is true",
 	options(context) {

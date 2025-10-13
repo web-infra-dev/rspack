@@ -638,6 +638,9 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
+	/**
+	 * @deprecated This option is deprecated, layers is enabled since v1.6.0
+	 */
 	layers?: boolean;
 	incremental?: false | Incremental;
 	parallelCodeSplitting?: boolean;

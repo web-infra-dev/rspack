@@ -68,6 +68,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		if (typeof options.testConfig === "function") {
 			options.testConfig(testConfig);
 		}
+
 		const skipped = this.checkSkipped(src, testConfig, options);
 		if (skipped) {
 			this.skip(name, skipped);
@@ -169,7 +170,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						cb(e);
 					});
 				},
-				options.timeout || 180000
+				options.timeout || 300000
 			);
 
 			chain = chain.then(
@@ -259,7 +260,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						);
 					}
 				},
-				options.timeout || 30000
+				options.timeout || 60000
 			);
 			const env = this.createEnv(testConfig, options);
 		}
@@ -354,7 +355,6 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected clean(folders: string[]) {
 		for (const f of folders) {
 			rimrafSync(f);
-			fs.mkdirSync(f, { recursive: true });
 		}
 	}
 

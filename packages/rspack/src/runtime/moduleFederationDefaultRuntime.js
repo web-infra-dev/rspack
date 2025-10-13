@@ -161,6 +161,11 @@ module.exports = function () {
 		);
 		early(
 			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
+			"remoteInfos",
+			() => __module_federation_remote_infos__
+		);
+		early(
+			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
 			"idToExternalAndNameMapping",
 			() => {
 				const remotesLoadingIdToExternalAndNameMappingMapping = {};

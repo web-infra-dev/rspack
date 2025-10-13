@@ -1,3 +1,4 @@
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
   description: "should omit all properties with all false",
   options(context) {

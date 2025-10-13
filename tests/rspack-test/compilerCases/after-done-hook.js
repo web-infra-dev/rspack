@@ -1,7 +1,7 @@
 const { createFsFromVolume, Volume } = require("memfs");
 
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [(() => {
   const runCb = jest.fn();
   const doneHookCb = jest.fn();

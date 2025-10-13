@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "ecmaVersion",
 	options: () => ({ output: { ecmaVersion: 2020 } }),

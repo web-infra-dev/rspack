@@ -21,6 +21,9 @@ class Plugin {
 				compiler.options.output.path,
 				"./bundle0.js"
 			);
+			if (!fs.existsSync(path.dirname(filePath))) {
+				fs.mkdirSync(path.dirname(filePath), { recursive: true });
+			}
 			fs.writeFileSync(filePath, customBundleFile);
 			return false;
 		});

@@ -66,7 +66,6 @@ rspack/
 ├── crates/           # Rust source code
 ├── packages/         # JavaScript packages
 ├── tests/            # Integration tests
-│   ├── webpack-test/ # Webpack compatibility tests
 │   ├── e2e/         # E2E tests
 │   └── bench/       # Benchmarking
 └── website/         # Documentation site

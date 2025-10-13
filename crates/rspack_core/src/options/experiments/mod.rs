@@ -9,7 +9,6 @@ use crate::incremental::IncrementalOptions;
 // `impl From<Experiments> for ExperimentsBuilder` should be updated.
 #[derive(Debug)]
 pub struct Experiments {
-  pub layers: bool,
   pub incremental: IncrementalOptions,
   pub parallel_code_splitting: bool,
   pub top_level_await: bool,

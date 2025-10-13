@@ -2101,7 +2101,6 @@ export interface RawExperimentCacheOptionsPersistent {
 }
 
 export interface RawExperiments {
-  layers: boolean
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
@@ -2724,6 +2723,11 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   compactExternalModuleDynamicImport?: boolean
+  /**
+   * Add shims for javascript/esm modules
+   * @default `false`
+   */
+  forceNodeShims?: boolean
 }
 
 export interface RawRspackFuture {

@@ -14,7 +14,6 @@ use super::WithFalse;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
-  pub layers: bool,
   pub top_level_await: bool,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
@@ -44,7 +43,6 @@ impl From<RawExperiments> for Experiments {
         None => IncrementalOptions::empty_passes(),
       },
       parallel_code_splitting: value.parallel_code_splitting,
-      layers: value.layers,
       top_level_await: value.top_level_await,
       rspack_future: value.rspack_future.unwrap_or_default().into(),
       cache: normalize_raw_experiment_cache_options(value.cache),

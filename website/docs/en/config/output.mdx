@@ -38,13 +38,9 @@ Create async chunks that are loaded on demand.
 ## output.charset
 
 - **Type:** `boolean`
-- **Default:** `true`
+- **Default:** `false`
 
-Add `charset="utf-8"` to the HTML `<script>` tag.
-
-:::tip
-Although the `charset` attribute for `<script>` tag was [deprecated](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Charset), rspack still adds it by default for compatibility with non-modern browsers.
-:::
+Add [deprecated](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Charset) `charset="utf-8"` attribute to the HTML `<script>` tag.
 
 ## output.chunkFilename
 

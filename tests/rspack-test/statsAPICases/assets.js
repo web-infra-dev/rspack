@@ -1,3 +1,4 @@
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should contain assets",
 	options(context) {
@@ -38,7 +39,7 @@ module.exports = {
 		        related: Object {},
 		      },
 		      name: entryB.js,
-		      size: 3206,
+		      size: 3188,
 		      type: asset,
 		    },
 		    Object {

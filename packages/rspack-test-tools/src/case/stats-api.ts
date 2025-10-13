@@ -13,7 +13,7 @@ import { getCompiler } from "./common";
 
 let addedSerializer = false;
 
-type TStatsAPICaseConfig = {
+export type TStatsAPICaseConfig = {
 	description: string;
 	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
 	snapshotName?: string;

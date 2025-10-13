@@ -14,7 +14,7 @@ const prettyFormatOptions = {
 				return `"${val
 					.replace(/\\/gm, "/")
 					.replace(/"/gm, '\\"')
-					.replace(/\r?\n/gm, "\\n")}"`;
+					.replace(/\r?\n/gm, "")}"`;
 			}
 		}
 	]

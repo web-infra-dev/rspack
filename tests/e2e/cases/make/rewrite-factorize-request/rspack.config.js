@@ -1,5 +1,9 @@
 const { rspack } = require("@rspack/core");
 
+const sharedObj = {
+	time: 1
+};
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
@@ -13,7 +17,7 @@ module.exports = {
 		new rspack.HtmlRspackPlugin(),
 		{
 			apply(compiler) {
-				let time = 0;
+				compiler.__sharedObj = sharedObj;
 				compiler.hooks.compilation.tap(
 					"PLUGIN",
 					(_, { normalModuleFactory }) => {
@@ -21,8 +25,7 @@ module.exports = {
 							"PLUGIN",
 							async resolveData => {
 								if (resolveData.request == "./file") {
-									time++;
-									resolveData.request = `./loader.js?time=${time}!./file`;
+									resolveData.request = `./loader.js?time=${sharedObj.time}!./file`;
 								}
 							}
 						);

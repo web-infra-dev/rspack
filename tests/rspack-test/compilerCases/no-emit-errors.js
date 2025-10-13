@@ -3,7 +3,7 @@ const { Stats } = require("@rspack/core");
 
 let watchStats = null;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
   description: "should not emit on errors",
   error: true,

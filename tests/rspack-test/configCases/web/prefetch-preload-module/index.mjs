@@ -13,14 +13,12 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link.rel).toBe("prefetch");
 	expect(link.as).toBe("script");
 	expect(link.href).toBe("https://example.com/public/path/chunk1.mjs");
-	expect(link.charset).toBe("utf-8");
 
 	link = document.head._children[1];
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("prefetch");
 	expect(link.as).toBe("style");
 	expect(link.href).toBe("https://example.com/public/path/chunk2-css.css");
-	expect(link.charset).toBe("utf-8");
 
 	link = document.head._children[2];
 	expect(link._type).toBe("link");
@@ -40,7 +38,6 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("modulepreload");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-b.mjs");
-	expect(link.charset).toBe("utf-8");
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 
@@ -49,7 +46,6 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link.rel).toBe("preload");
 	expect(link.as).toBe("style");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-a-css.css");
-	expect(link.charset).toBe("utf-8");
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 
@@ -57,7 +53,6 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("modulepreload");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-a-css.mjs");
-	expect(link.charset).toBe("utf-8");
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 

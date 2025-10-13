@@ -22,6 +22,7 @@ use crate::parser_plugin::RslibParserPlugin;
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub compact_external_module_dynamic_import: bool,
+  pub force_node_shims: bool,
 }
 
 #[derive(Debug)]
@@ -50,13 +51,19 @@ async fn nmf_parser(
   parser: &mut dyn ParserAndGenerator,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
-  if module_type.is_js_like()
-    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
-  {
-    parser.add_parser_plugin(
-      Box::new(RslibParserPlugin::new(self.options.intercept_api_plugin))
-        as BoxJavascriptParserPlugin,
-    );
+  if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
+    if module_type.is_js_like() {
+      parser.add_parser_plugin(
+        Box::new(RslibParserPlugin::new(self.options.intercept_api_plugin))
+          as BoxJavascriptParserPlugin,
+      );
+    }
+
+    if module_type.is_js_esm() && self.options.force_node_shims {
+      parser.add_parser_plugin(Box::new(
+        rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin,
+      ) as BoxJavascriptParserPlugin);
+    }
   }
 
   Ok(())

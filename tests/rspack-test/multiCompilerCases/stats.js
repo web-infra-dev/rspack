@@ -1,5 +1,6 @@
 const { createFsFromVolume, Volume } = require("memfs");
 
+/** @type {import('@rspack/test-tools').TMultiCompilerCaseConfig[]} */
 module.exports = {
   description: "should create JSON of children stats",
   options(context) {

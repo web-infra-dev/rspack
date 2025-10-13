@@ -1,4 +1,4 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description: "support call register global trace and cleanup global trace multi times",
 	async check({ compiler }) {
