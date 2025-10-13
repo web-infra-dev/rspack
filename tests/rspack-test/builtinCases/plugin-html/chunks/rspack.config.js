@@ -1,3 +1,4 @@
+const { HtmlRspackPlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -11,13 +12,11 @@ module.exports = {
 			import: ["./chunk3.js"]
 		}
 	},
-	builtins: {
-		html: [
-			{
-				template: "index.html",
-				chunks: ["chunk1", "chunk2"],
-				excludeChunks: ["chunk2"]
-			}
-		]
-	}
+	plugins: [
+		new HtmlRspackPlugin({
+			template: "index.html",
+			chunks: ["chunk1", "chunk2"],
+			excludeChunks: ["chunk2"]
+		})
+	],
 };
