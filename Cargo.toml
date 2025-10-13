@@ -45,7 +45,6 @@ enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "0.4.4", default-features = false }
 futures             = { version = "0.3.31", default-features = false, features = ["std"] }
 glob                = { version = "0.3.2", default-features = false }
-handlebars          = { version = "6.3.0", default-features = false }
 hashlink            = { version = "0.10.0", default-features = false }
 heck                = { version = "0.5.0", default-features = false }
 hex                 = { version = "0.4.3", default-features = false, features = ["std"] }
@@ -273,9 +272,6 @@ strip    = "none"
 opt-level = "s"
 
 [profile.release.package.swc_ecma_transforms_module]
-opt-level = "s"
-
-[profile.release.package.handlebars]
 opt-level = "s"
 
 [profile.release.package.swc_ecma_transforms_proposal]
