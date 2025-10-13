@@ -1,12 +1,12 @@
 #![allow(clippy::unwrap_used)]
 
 mod legacy_case;
+mod template;
 mod visit;
 
 use std::fmt::Debug;
 
 use cow_utils::CowUtils;
-use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
 use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
@@ -24,6 +24,7 @@ use swc_core::{
 
 use crate::{
   legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case},
+  template::{Template, TemplateEngine},
   visit::IdentComponent,
 };
 
@@ -156,160 +157,43 @@ const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 pub fn plugin_import(
   config: &Vec<ImportOptions>,
 ) -> swc_core::ecma::visit::VisitMutPass<ImportPlugin<'_>> {
-  let mut renderer = handlebars::Handlebars::new();
+  let mut renderer = TemplateEngine::new();
 
-  renderer.register_helper(
-    "kebabCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(param.to_kebab_case().as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "legacyKebabCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(identifier_to_legacy_kebab_case(param).as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "camelCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(param.to_lower_camel_case().as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "snakeCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(param.to_snake_case().as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "legacySnakeCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(identifier_to_legacy_snake_case(param).as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "upperCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(param.cow_to_ascii_uppercase().as_ref())?;
-        Ok(())
-      },
-    ),
-  );
-
-  renderer.register_helper(
-    "lowerCase",
-    Box::new(
-      |helper: &Helper<'_>,
-       _: &'_ handlebars::Handlebars<'_>,
-       _: &'_ Context,
-       _: &mut RenderContext<'_, '_>,
-       out: &mut dyn Output|
-       -> HelperResult {
-        let param = helper
-          .param(0)
-          .and_then(|v| v.value().as_str())
-          .unwrap_or("");
-        out.write(param.cow_to_ascii_lowercase().as_ref())?;
-        Ok(())
-      },
-    ),
-  );
+  renderer.register_helper("kebabCase", |value| value.to_kebab_case());
+  renderer.register_helper("legacyKebabCase", |value| {
+    identifier_to_legacy_kebab_case(value)
+  });
+  renderer.register_helper("camelCase", |value| value.to_lower_camel_case());
+  renderer.register_helper("snakeCase", |value| value.to_snake_case());
+  renderer.register_helper("legacySnakeCase", |value| {
+    identifier_to_legacy_snake_case(value)
+  });
+  renderer.register_helper("upperCase", |value| {
+    value.cow_to_ascii_uppercase().into_owned()
+  });
+  renderer.register_helper("lowerCase", |value| {
+    value.cow_to_ascii_lowercase().into_owned()
+  });
 
   config.iter().for_each(|cfg| {
     if let Some(CustomTransform::Tpl(tpl)) = &cfg.custom_name {
       renderer.register_template(
-        &(cfg.library_name.clone() + CUSTOM_JS),
-        Template::compile(tpl).unwrap(),
+        cfg.library_name.clone() + CUSTOM_JS,
+        Template::parse(tpl).unwrap(),
       )
     }
 
     if let Some(CustomTransform::Tpl(tpl)) = &cfg.custom_style_name {
       renderer.register_template(
-        &(cfg.library_name.clone() + CUSTOM_STYLE_NAME),
-        Template::compile(tpl).unwrap(),
+        cfg.library_name.clone() + CUSTOM_STYLE_NAME,
+        Template::parse(tpl).unwrap(),
       )
     }
 
     if let Some(StyleConfig::Custom(CustomTransform::Tpl(tpl))) = &cfg.style {
       renderer.register_template(
-        &(cfg.library_name.clone() + CUSTOM_STYLE),
-        Template::compile(tpl).unwrap(),
+        cfg.library_name.clone() + CUSTOM_STYLE,
+        Template::parse(tpl).unwrap(),
       )
     }
   });
@@ -328,7 +212,7 @@ struct EsSpec {
 
 pub struct ImportPlugin<'a> {
   pub config: &'a Vec<ImportOptions>,
-  pub renderer: handlebars::Handlebars<'a>,
+  pub renderer: TemplateEngine,
 }
 
 impl ImportPlugin<'_> {

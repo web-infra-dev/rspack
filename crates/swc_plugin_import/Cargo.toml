@@ -8,7 +8,6 @@ version.workspace = true
 
 [dependencies]
 cow-utils  = { workspace = true }
-handlebars = { workspace = true }
 heck       = { workspace = true }
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
