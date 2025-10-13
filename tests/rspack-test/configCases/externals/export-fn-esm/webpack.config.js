@@ -1,6 +1,6 @@
 "use strict";
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	externals: {
 		module: "commonjs module",

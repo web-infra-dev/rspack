@@ -1,52 +1,52 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
     moduleName: ./app.js,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
     moduleName: ./app.js,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
     moduleName: ./app.js,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.js,
     moduleName: ./app.js,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
     moduleName: ./app.jsx,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
     moduleName: ./app.jsx,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
     moduleName: ./app.jsx,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.jsx,
     moduleName: ./app.jsx,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.ts,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/app.ts,
     moduleName: ./app.ts,
   },
   Object {
     loc: 34:14-25,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/mismatched-module-type/index.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/mismatched-module-type/index.js,
     moduleName: ./index.js,
   },
 ]

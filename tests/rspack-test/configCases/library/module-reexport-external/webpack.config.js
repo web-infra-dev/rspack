@@ -2,7 +2,7 @@
 
 /** @typedef {import("@rspack/core").Compilation} Compilation */
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "none",
 	entry: { main: "./index.js", test: "./test" },

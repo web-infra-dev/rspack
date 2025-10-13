@@ -15,10 +15,7 @@ import type {
 import { build, check, compiler, config, getCompiler, run } from "./common";
 import { createRunner } from "./runner";
 
-const NORMAL_CASES_ROOT = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/normalCases"
-);
+const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, "normalCases");
 
 const createCaseOptions = (
 	hot: boolean,

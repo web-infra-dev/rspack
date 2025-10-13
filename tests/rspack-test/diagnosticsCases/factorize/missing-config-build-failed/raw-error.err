@@ -1,7 +1,7 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/missing-config-build-failed/font.ttf,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/missing-config-build-failed/font.ttf,
     moduleName: ./font.ttf,
   },
 ]

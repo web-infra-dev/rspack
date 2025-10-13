@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
 	experiments: {

@@ -16,8 +16,6 @@ declare global {
 	var updateSnapshot: boolean;
 }
 
-const WORKSPACE = path.resolve(__dirname, "../../../..");
-
 export interface ICompareOptions {
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
@@ -70,7 +68,9 @@ export function compareFile(
 	}
 
 	const sourceContent = replaceRuntimeModuleName(
-		fs.readFileSync(sourceFile, "utf-8").replaceAll(WORKSPACE, "__WORKSPACE__")
+		fs
+			.readFileSync(sourceFile, "utf-8")
+			.replaceAll(__ROOT_PATH__, "__WORKSPACE__")
 	);
 	const sourceModules = parseModules(sourceContent, {
 		bootstrap: compareOptions.bootstrap,
@@ -91,7 +91,9 @@ export function compareFile(
 		distModules = JSON.parse(fs.readFileSync(compareOptions.snapshot, "utf-8"));
 	} else {
 		const distContent = replaceRuntimeModuleName(
-			fs.readFileSync(distFile, "utf-8").replaceAll(WORKSPACE, "__WORKSPACE__")
+			fs
+				.readFileSync(distFile, "utf-8")
+				.replaceAll(__ROOT_PATH__, "__WORKSPACE__")
 		);
 		distModules = parseModules(distContent, {
 			bootstrap: compareOptions.bootstrap,

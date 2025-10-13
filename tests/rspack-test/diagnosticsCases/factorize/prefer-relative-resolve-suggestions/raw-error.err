@@ -1,7 +1,7 @@
 Array [
   Object {
     loc: 1:0-15,
-    moduleIdentifier: javascript/esm|<TEST_TOOLS_ROOT>/diagnosticsCases/factorize/prefer-relative-resolve-suggestions/index.js,
+    moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/prefer-relative-resolve-suggestions/index.js,
     moduleName: ./index.js,
   },
 ]

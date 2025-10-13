@@ -16,5 +16,5 @@ cacheable modules 1 MiB
   modules by path ./src/ xx KiB
     ./src/index.js 753 bytes [built] [code generated]
     ./src/pages/home.js xx KiB [built] [code generated]
-  <TEST_TOOLS_ROOT>/statsOutputCases/dynamic-import/src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object 160 bytes [built] [code generated]
+  <TEST_ROOT>/statsOutputCases/dynamic-import/src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object 160 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
