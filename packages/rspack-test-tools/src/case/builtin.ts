@@ -1,5 +1,4 @@
 import path from "node:path";
-import { rspack } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
 import { isJavaScript } from "../helper";
@@ -169,30 +168,6 @@ export function defaultOptions<T extends ECompilerType.Rspack>(
 		}
 		defaultOptions = merge(defaultOptions, caseOptions);
 	}
-
-	// TODO: remove builtin compatible code
-	const defineOptions = (defaultOptions as any).builtins?.define;
-	if (defineOptions) {
-		defaultOptions.plugins!.push(new rspack.DefinePlugin(defineOptions));
-	}
-
-	const provideOptions = (defaultOptions as any).builtins?.provide;
-	if (provideOptions) {
-		defaultOptions.plugins!.push(new rspack.ProvidePlugin(provideOptions));
-	}
-
-	const htmlOptions = (defaultOptions as any).builtins?.html;
-	if (htmlOptions) {
-		if (Array.isArray(htmlOptions)) {
-			for (const item of htmlOptions) {
-				defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(item));
-			}
-		} else {
-			defaultOptions.plugins!.push(new rspack.HtmlRspackPlugin(htmlOptions));
-		}
-	}
-
-	delete (defaultOptions as any).builtins;
 
 	if (!global.printLogger) {
 		defaultOptions.infrastructureLogging = {

@@ -1,6 +1,7 @@
+const { HtmlRspackPlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	builtins: {
-		html: [{}]
-	}
+	plugins: [
+		new HtmlRspackPlugin({})
+	],
 };
