@@ -49,6 +49,29 @@ pub struct BuildContext {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum RSCModuleType {
+  Server,
+  Client,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum ClientEntryType {
+  Cjs,
+  Auto,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct RSCMeta {
+  pub module_type: RSCModuleType,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub client_refs: Vec<Atom>,
+  pub client_entry_type: Option<ClientEntryType>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -73,6 +96,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
+  pub rsc: Option<RSCMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -101,6 +125,7 @@ impl Default for BuildInfo {
       assets: Default::default(),
       module: false,
       collected_typescript_info: None,
+      rsc: None,
       extras: Default::default(),
     }
   }

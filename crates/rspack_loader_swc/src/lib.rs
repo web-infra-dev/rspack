@@ -132,14 +132,15 @@ impl SwcLoader {
         collected_ts_info = Some(collect_typescript_info(program, options));
       },
       |_| {
-        transforms::server_components(
-          filename,
-          transforms::Config::WithOptions(transforms::Options {
-            is_react_server_layer: todo!(),
-          }),
-          todo!(),
-          None,
-        );
+        if self.options_with_additional.rspack_experiments.rsc {
+          transforms::server_components(
+            filename,
+            transforms::Config::WithOptions(transforms::Options {
+              // TODO: 应该当做配置项传入
+              is_react_server_layer: true,
+            }),
+          );
+        }
         transformer::transform(&self.options_with_additional.rspack_experiments)
       },
     )?;
