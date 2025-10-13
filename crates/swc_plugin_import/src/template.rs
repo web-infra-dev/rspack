@@ -125,7 +125,11 @@ impl<'a> Template<'a> {
 impl<'a> Value<'a> {
   fn parse(expression: &'a str) -> Result<Value<'a>, TemplateError> {
     let mut parts = expression.split_whitespace();
-    let first = parts.next().unwrap();
+    let first = parts
+      .next()
+      .ok_or_else(|| TemplateError::InvalidExpression {
+        expression: expression.to_string(),
+      })?;
     let second = parts.next();
 
     if parts.next().is_some() {
