@@ -91,12 +91,12 @@ impl<'a> ExportedEnumCollector<'a> {
       Expr::Lit(Lit::Str(s)) => EnumMemberValue::String(s.value.clone()),
       Expr::Lit(Lit::Num(n)) => EnumMemberValue::Number(n.value),
       Expr::Ident(Ident { ctxt, sym, .. }) if sym == "NaN" && *ctxt == self.unresolved_ctxt => {
-        EnumMemberValue::Number(f64::NAN.into())
+        EnumMemberValue::Number(f64::NAN)
       }
       Expr::Ident(Ident { ctxt, sym, .. })
         if sym == "Infinity" && *ctxt == self.unresolved_ctxt =>
       {
-        EnumMemberValue::Number(f64::INFINITY.into())
+        EnumMemberValue::Number(f64::INFINITY)
       }
       Expr::Ident(ident) => existing_enum_members
         .get(&ident.sym)
@@ -250,7 +250,7 @@ impl<'a> ExportedEnumCollector<'a> {
   ) -> EnumMemberValue {
     let Tpl { exprs, quasis, .. } = expr;
 
-    let mut quasis_iter = quasis.into_iter();
+    let mut quasis_iter = quasis.iter();
 
     let Some(mut string) = quasis_iter.next().map(|q| q.raw.to_string()) else {
       return EnumMemberValue::Unknown;

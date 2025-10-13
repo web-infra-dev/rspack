@@ -40,7 +40,7 @@ fn type_exports() {
         Some(FileName::Real(input)),
         options,
         None,
-        |program| {
+        |program, _| {
           program.visit_with(&mut TypeExportsCollector::new(&mut type_exports_results));
         },
         |_| noop_pass(),

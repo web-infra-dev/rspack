@@ -129,7 +129,7 @@ impl SwcLoader {
           return;
         };
         collected_ts_info = Some(collect_typescript_info(
-          &program,
+          program,
           SyntaxContext::empty().apply_mark(unresolved_mark),
           options,
         ));
