@@ -1,5 +1,5 @@
 
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/coretypes").Configuration} */
 module.exports = {
 	entry: {
 		bundle0: "./index.js",

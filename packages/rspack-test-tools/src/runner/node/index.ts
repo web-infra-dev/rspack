@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
 import asModule from "../../helper/legacy/asModule";
+import createFakeWorker from "../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import {
 	type ECompilerType,
@@ -176,6 +177,9 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			setImmediate,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
+			Worker: createFakeWorker(this._options.env, {
+				outputDirectory: this._options.dist
+			}),
 			...this._options.env
 		};
 		return baseModuleScope;

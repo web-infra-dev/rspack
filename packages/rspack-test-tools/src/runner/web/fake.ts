@@ -88,9 +88,6 @@ export class FakeDocumentWebRunner<
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
 		globalContext.document = this.document;
-		globalContext.Worker = createFakeWorker(this._options.env, {
-			outputDirectory: this._options.dist
-		});
 		globalContext.EventSource = EventSource;
 		globalContext.location = {
 			href: "https://test.cases/path/index.html",
@@ -180,6 +177,13 @@ export class FakeDocumentWebRunner<
 			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
+			}
+
+			if (file.content.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					esmContext.__STATS_I__ = statsIndex;
+				}
 			}
 
 			let esm = esmCache.get(file.path);
