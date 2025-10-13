@@ -3,6 +3,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   LoaderContext,
@@ -33,5 +34,5 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>)>>;
+  ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>>;
 }

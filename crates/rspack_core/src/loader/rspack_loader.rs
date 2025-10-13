@@ -4,6 +4,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
 use rspack_sources::SourceMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{RunnerContext, SharedPluginDriver, utils::extract_source_map};
 
@@ -34,7 +35,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>)>> {
+  ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -55,15 +56,21 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
         match extract_result {
           Ok(extract_result) => {
-            // Return the content with source map extracted
-            // The source map will be available through the loader context
+            // Convert file dependencies to FxHashSet for consistency
+            let file_deps = extract_result
+              .file_dependencies
+              .map(|deps| deps.into_iter().collect::<HashSet<_>>())
+              .unwrap_or_default();
+
+            // Return the content with source map extracted and file dependencies
             return Ok(Some((
               Content::String(extract_result.source),
               extract_result.source_map,
+              file_deps,
             )));
           }
           Err(e) => {
-            // If extraction fails, return original content
+            // If extraction fails, return original content with empty dependencies
             // Log the error as a warning
             self
               .plugin_driver
@@ -71,11 +78,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .lock()
               .expect("should get lock")
               .push(Diagnostic::warn("extractSourceMap".into(), e));
-            return Ok(Some((content, None)));
+            return Ok(Some((content, None, HashSet::default())));
           }
         }
       }
-      return Ok(Some((content, None)));
+      // Return original content with empty dependencies when extract_source_map is disabled
+      return Ok(Some((content, None, HashSet::default())));
     }
 
     // If no plugin handled it, return None so the default logic can handle it

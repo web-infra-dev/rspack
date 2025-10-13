@@ -35,12 +35,13 @@ async fn process_resource<Context: Send>(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = &loader_context.plugin
-    && let Some((content, source_map)) = plugin
+    && let Some((content, source_map, file_dependencies)) = plugin
       .process_resource(&loader_context.resource_data, fs)
       .await?
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map;
+    loader_context.file_dependencies.extend(file_dependencies);
     return Ok(());
   }
 
