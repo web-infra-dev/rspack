@@ -18,7 +18,7 @@ use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
-  common::FileName,
+  common::{FileName, SyntaxContext},
 };
 
 use crate::collect_ts_info::collect_typescript_info;
@@ -117,7 +117,7 @@ impl SwcLoader {
       Some(filename),
       swc_options,
       Some(loader_context.context.module_source_map_kind),
-      |program| {
+      |program, unresolved_mark| {
         if !is_typescript {
           return;
         }
@@ -128,7 +128,11 @@ impl SwcLoader {
         else {
           return;
         };
-        collected_ts_info = Some(collect_typescript_info(program, options));
+        collected_ts_info = Some(collect_typescript_info(
+          &program,
+          SyntaxContext::empty().apply_mark(unresolved_mark),
+          options,
+        ));
       },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
     )?;
