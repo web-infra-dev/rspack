@@ -252,6 +252,7 @@ mod test {
   use rspack_error::Result;
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
   use rspack_sources::SourceMap;
+  use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
@@ -274,8 +275,8 @@ mod test {
       &self,
       _resource_data: &ResourceData,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<Option<(Content, Option<SourceMap>)>> {
-      Ok(Some((Content::Buffer(vec![]), None)))
+    ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>> {
+      Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }
 
