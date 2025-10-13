@@ -280,7 +280,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "typeReexportsPresence", false);
 
 	// IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
-	D(experiments, "lazyBarrel", false);
+	D(experiments, "lazyBarrel", true);
 };
 
 const applybundlerInfoDefaults = (

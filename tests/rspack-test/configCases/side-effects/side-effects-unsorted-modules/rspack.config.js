@@ -1,7 +1,7 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 
 class ReorderModulesPlugin {
-	constructor() {}
+	constructor() { }
 
 	apply(compiler) {
 		compiler.hooks.compilation.tap("ReorderModulesPlugin", compilation => {

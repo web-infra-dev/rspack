@@ -62,7 +62,6 @@ build/Release
 node_modules/
 !scripts/node_modules/
 !tests/webpack-examples/*/node_modules
-!tests/webpack-test/*/**/node_modules
 !tests/rspack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
 jspm_packages/
@@ -217,16 +216,6 @@ packages/rspack/src/config/schema.check.js
 
 ## Angular Incremental Build Cache
 **/.angular/
-# align to webpack
-tests/webpack-test/js
-tests/webpack-test/browsertest/js
-tests/webpack-test/fixtures/temp-*
-tests/webpack-test/temp
-tests/webpack-test/ChangesAndRemovals
-tests/webpack-test/__snapshots__/*.snap.*
-tests/webpack-test/**/dev-defaults.webpack.lock
-!tests/webpack-test/**/target
-!tests/webpack-test/cases/**/node_modules
 
 /webpack-examples/**/dist
 
