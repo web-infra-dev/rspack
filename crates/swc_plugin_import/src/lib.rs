@@ -175,26 +175,56 @@ pub fn plugin_import(
     value.cow_to_ascii_lowercase().into_owned()
   });
 
-  config.iter().for_each(|cfg| {
-    if let Some(CustomTransform::Tpl(tpl)) = &cfg.custom_name {
-      renderer.register_template(
-        cfg.library_name.clone() + CUSTOM_JS,
-        Template::parse(tpl).unwrap(),
-      )
+  config.iter().enumerate().for_each(|(index, item)| {
+    if let Some(CustomTransform::Tpl(tpl)) = &item.custom_name {
+      match Template::parse(tpl) {
+        Ok(template) => {
+          renderer.register_template(item.library_name.clone() + CUSTOM_JS, template);
+        }
+        Err(e) => {
+          HANDLER.with(|handler| {
+            handler.err(&format!(
+              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].customName\".\nReason: {}",
+              index,
+              &e.to_string()
+            ))
+          });
+        }
+      }
     }
 
-    if let Some(CustomTransform::Tpl(tpl)) = &cfg.custom_style_name {
-      renderer.register_template(
-        cfg.library_name.clone() + CUSTOM_STYLE_NAME,
-        Template::parse(tpl).unwrap(),
-      )
+    if let Some(CustomTransform::Tpl(tpl)) = &item.custom_style_name {
+      match Template::parse(tpl) {
+        Ok(template) => {
+          renderer.register_template(item.library_name.clone() + CUSTOM_STYLE_NAME, template);
+        }
+        Err(e) => {
+          HANDLER.with(|handler| {
+            handler.err(&format!(
+              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].customStyleName\".\nReason: {}",
+              index,
+              &e.to_string()
+            ))
+          });
+        }
+      }
     }
 
-    if let Some(StyleConfig::Custom(CustomTransform::Tpl(tpl))) = &cfg.style {
-      renderer.register_template(
-        cfg.library_name.clone() + CUSTOM_STYLE,
-        Template::parse(tpl).unwrap(),
-      )
+    if let Some(StyleConfig::Custom(CustomTransform::Tpl(tpl))) = &item.style {
+      match Template::parse(tpl) {
+        Ok(template) => {
+          renderer.register_template(item.library_name.clone() + CUSTOM_STYLE, template);
+        }
+        Err(e) => {
+          HANDLER.with(|handler| {
+            handler.err(&format!(
+              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].style\".\nReason: {}",
+              index,
+              &e.to_string()
+            ))
+          });
+        }
+      }
     }
   });
 
@@ -263,36 +293,45 @@ impl ImportPlugin<'_> {
       )))
     };
 
-    let path = match path {
-      Ok(p) => p,
-      Err(e) => {
-        HANDLER.with(|handler| {
-          handler.err(&e.to_string());
-        });
-        None
-      }
-    };
+    let path = path.unwrap_or_else(|err| {
+      HANDLER.with(|handler| {
+        handler.err(&format!(
+          "[builtin:swc-loader] Failed to parse option \
+       \"rspackExperiments.import[i].customName\".\nReason: {}",
+          err
+        ));
+      });
+      None
+    });
 
-    if path.is_none() {
+    let Some(js_source) = path else {
       return (None, None);
-    }
-
-    let js_source = path.unwrap();
+    };
 
     let css = if *should_ignore_css {
       None
     } else if let Some(custom) = &config.custom_style_name {
       match custom {
         CustomTransform::Fn(f) => f(name),
-        CustomTransform::Tpl(_) => Some(
-          self
-            .renderer
-            .render(
-              &format!("{}{}", &config.library_name, CUSTOM_STYLE_NAME),
-              &render_context(name),
-            )
-            .unwrap(),
-        ),
+        CustomTransform::Tpl(_) => self
+          .renderer
+          .render(
+            &format!("{}{}", &config.library_name, CUSTOM_STYLE_NAME),
+            &render_context(name),
+          )
+          .map_or_else(
+            |err| {
+              HANDLER.with(|handler| {
+                handler.err(&format!(
+                  "[builtin:swc-loader] Failed to parse option \
+                  \"rspackExperiments.import[i].customStyleName\".\nReason: {}",
+                  err
+                ));
+              });
+              None
+            },
+            Some,
+          ),
       }
     } else if let Some(style) = &config.style {
       match style {
@@ -302,15 +341,25 @@ impl ImportPlugin<'_> {
         )),
         StyleConfig::Custom(custom) => match custom {
           CustomTransform::Fn(f) => f(js_source.clone()),
-          CustomTransform::Tpl(_) => Some(
-            self
-              .renderer
-              .render(
-                &format!("{}{}", config.library_name, CUSTOM_STYLE),
-                &render_context(js_source.clone()),
-              )
-              .expect("Should success"),
-          ),
+          CustomTransform::Tpl(_) => self
+            .renderer
+            .render(
+              &format!("{}{}", config.library_name, CUSTOM_STYLE),
+              &render_context(js_source.clone()),
+            )
+            .map_or_else(
+              |err| {
+                HANDLER.with(|handler| {
+                  handler.err(&format!(
+                    "[builtin:swc-loader] Failed to parse option \
+                     \"rspackExperiments.import[i].style\".\nReason: {}",
+                    err
+                  ));
+                });
+                None
+              },
+              Some,
+            ),
         },
         StyleConfig::Css => Some(format!("{js_source}/style/css")),
         StyleConfig::Bool(should_transform) => {
