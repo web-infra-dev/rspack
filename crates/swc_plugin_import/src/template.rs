@@ -34,14 +34,14 @@ impl fmt::Display for TemplateError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       TemplateError::UnclosedTag { position } => {
-        write!(f, "unclosed tag starting at byte {}", position)
+        write!(f, "Unclosed tag starting at byte {}", position)
       }
       TemplateError::InvalidExpression { expression } => {
-        write!(f, "invalid expression `{{{{ {} }}}}`", expression)
+        write!(f, "Invalid expression `{{{{ {} }}}}`", expression)
       }
       TemplateError::UnknownHelper { name } => write!(f, "Helper not found {}", name),
-      TemplateError::MissingValue { name } => write!(f, "missing value for `{}`", name),
-      TemplateError::TemplateNotFound { name } => write!(f, "template `{}` not found", name),
+      TemplateError::MissingValue { name } => write!(f, "Missing value for `{}`", name),
+      TemplateError::TemplateNotFound { name } => write!(f, "Template `{}` not found", name),
     }
   }
 }
@@ -52,15 +52,15 @@ impl Template {
   pub fn parse(input: &str) -> Result<Self, TemplateError> {
     let mut segments = Vec::new();
     let mut cursor = 0usize;
-    let bytes = input.as_bytes();
+    let s = input;
 
-    while let Some(start) = find_subsequence(bytes, cursor, b"{{") {
+    while let Some(start) = find_subsequence(s, cursor, "{{") {
       if start > cursor {
         segments.push(Segment::Text(input[cursor..start].to_string()));
       }
 
       let tag_start = start + 2;
-      let end = find_subsequence(bytes, tag_start, b"}}")
+      let end = find_subsequence(s, tag_start, "}}")
         .ok_or(TemplateError::UnclosedTag { position: start })?;
 
       let expression = input[tag_start..end].trim();
@@ -127,9 +127,10 @@ impl Value {
     let mut parts = expression.split_whitespace();
     let first = parts.next().unwrap();
     let second = parts.next();
-    if let Some(third) = parts.next() {
+
+    if parts.next().is_some() {
       return Err(TemplateError::InvalidExpression {
-        expression: format!("{} {} {}", first, second.unwrap_or_default(), third),
+        expression: expression.to_string(),
       });
     }
 
@@ -181,11 +182,8 @@ impl TemplateEngine {
   }
 }
 
-fn find_subsequence(haystack: &[u8], from: usize, needle: &[u8]) -> Option<usize> {
-  haystack[from..]
-    .windows(needle.len())
-    .position(|window| window == needle)
-    .map(|idx| idx + from)
+fn find_subsequence(haystack: &str, from: usize, needle: &str) -> Option<usize> {
+  haystack[from..].find(needle).map(|off| off + from)
 }
 
 #[cfg(test)]
@@ -202,9 +200,9 @@ mod tests {
 
   #[test]
   fn render_plain_and_variable() {
-    let tpl = Template::parse("foo {{ member }} bar").unwrap();
+    let template = Template::parse("foo {{ member }} bar").unwrap();
     let mut engine = TemplateEngine::new();
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
     let rendered = engine.render("test", &simple_ctx("MyButton")).unwrap();
     assert_eq!(rendered, "foo MyButton bar");
@@ -212,10 +210,10 @@ mod tests {
 
   #[test]
   fn render_with_helper() {
-    let tpl = Template::parse("foo/{{ kebabCase member }}").unwrap();
+    let template = Template::parse("foo/{{ kebabCase member }}").unwrap();
     let mut engine = TemplateEngine::new();
     engine.register_helper("kebabCase", |value| value.to_kebab_case());
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
     let rendered = engine.render("test", &simple_ctx("MyButton")).unwrap();
     assert_eq!(rendered, "foo/my-button");
@@ -223,10 +221,10 @@ mod tests {
 
   #[test]
   fn render_with_extra_whitespace() {
-    let tpl = Template::parse("foo/{{    kebabCase   member   }}").unwrap();
+    let template = Template::parse("foo/{{    kebabCase   member   }}").unwrap();
     let mut engine = TemplateEngine::new();
     engine.register_helper("kebabCase", |value| value.to_kebab_case());
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
     let rendered = engine.render("test", &simple_ctx("MyButton")).unwrap();
     assert_eq!(rendered, "foo/my-button");
@@ -234,19 +232,19 @@ mod tests {
 
   #[test]
   fn render_variable_with_padding() {
-    let tpl = Template::parse("{{    member   }}").unwrap();
+    let template = Template::parse("{{    member   }}").unwrap();
     let mut engine = TemplateEngine::new();
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
-    let rendered = engine.render("test", &simple_ctx("Btn")).unwrap();
-    assert_eq!(rendered, "Btn");
+    let rendered = engine.render("test", &simple_ctx("Button")).unwrap();
+    assert_eq!(rendered, "Button");
   }
 
   #[test]
   fn error_on_missing_value() {
-    let tpl = Template::parse("{{ member }}").unwrap();
+    let template = Template::parse("{{ member }}").unwrap();
     let mut engine = TemplateEngine::new();
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
     let result = engine.render("test", &HashMap::default());
     assert!(matches!(result, Err(TemplateError::MissingValue { .. })));
@@ -254,9 +252,9 @@ mod tests {
 
   #[test]
   fn error_on_unknown_helper() {
-    let tpl = Template::parse("{{ snakeCase member }}").unwrap();
+    let template = Template::parse("{{ snakeCase member }}").unwrap();
     let mut engine = TemplateEngine::new();
-    engine.register_template("test".to_string(), tpl);
+    engine.register_template("test".to_string(), template);
 
     let result = engine.render("test", &simple_ctx("MyButton"));
     assert!(matches!(result, Err(TemplateError::UnknownHelper { .. })));
