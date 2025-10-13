@@ -170,7 +170,7 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let mut source_map = if loader_context.context.module_source_map_kind.enabled() {
+    let mut source_map = if loader_context.context.source_map_kind.enabled() {
       Some(
         loader_context
           .source_map()

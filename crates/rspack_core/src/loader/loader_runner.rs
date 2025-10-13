@@ -1,21 +1,18 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 pub use rspack_loader_runner::{Content, Loader, LoaderContext, run_loaders};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{CompilationId, CompilerId, CompilerOptions, Module, ResolverFactory};
+use crate::{CompilationId, CompilerId, CompilerOptions, NormalModule, ResolverFactory};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RunnerContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub module: NonNull<dyn Module>,
-  pub module_source_map_kind: SourceMapKind,
+  pub module: NormalModule,
+  pub source_map_kind: SourceMapKind,
 }
-
-unsafe impl Send for RunnerContext {}
-unsafe impl Sync for RunnerContext {}
 
 pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;
