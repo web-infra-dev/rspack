@@ -2,7 +2,7 @@
 
 const EntryPlugin = require("@rspack/core").EntryPlugin;
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = () => ({
 	devtool: false,
 	mode: "development",

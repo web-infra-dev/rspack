@@ -1,6 +1,6 @@
 "use strict";
 
-/** @typedef {import("@rspack/coretypes").LoaderDefinition} LoaderDefinition */
+/** @typedef {import("@rspack/core").LoaderDefinition} LoaderDefinition */
 
 /**
  * @type {LoaderDefinition}
