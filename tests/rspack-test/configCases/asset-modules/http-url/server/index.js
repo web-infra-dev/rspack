@@ -52,7 +52,7 @@ class ServerPlugin {
 	}
 
 	/**
-	 * @param {import("../../../../../").Compiler} compiler
+	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
 		compiler.hooks.beforeRun.tapPromise(

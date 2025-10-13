@@ -114,7 +114,11 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	await Promise.all(results);
 
 	if (typeof testConfig.afterExecute === "function") {
-		testConfig.afterExecute(compiler.getOptions());
+		let options = compiler.getOptions();
+		if (Array.isArray(options) && options.length === 1) {
+			options = options[0];
+		}
+		testConfig.afterExecute(options);
 	}
 }
 

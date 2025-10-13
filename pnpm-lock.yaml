@@ -794,6 +794,9 @@ importers:
 
   tests/rspack-test:
     devDependencies:
+      '@babel/core':
+        specifier: ^7.28.4
+        version: 7.28.4
       '@babel/preset-react':
         specifier: ^7.27.1
         version: 7.27.1(@babel/core@7.28.4)

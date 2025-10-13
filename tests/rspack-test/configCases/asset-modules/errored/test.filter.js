@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: can not find the css folder"

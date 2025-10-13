@@ -74,6 +74,7 @@
     "rimraf": "^5.0.10",
     "url-loader": "^4.1.1",
     "terser-webpack-plugin": "^5.3.14",
-    "ts-loader": "^9.5.4"
+    "ts-loader": "^9.5.4",
+    "@babel/core": "^7.28.4"
   }
 }
