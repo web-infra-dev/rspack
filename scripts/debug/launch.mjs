@@ -17,7 +17,7 @@ export async function launchRspackCli(additionalArgs) {
 			type: "lldb",
 			request: "launch",
 			sourceLanguages: ["rust"],
-			program: "/Users/bytedance/.local/state/fnm_multishells/52776_1760165974924/bin/node",
+			program: "node",
 			args,
 			env: process.env,
 			cwd: process.cwd()
@@ -46,7 +46,7 @@ export async function launchJestWithArgs(additionalArgs) {
 			type: "lldb",
 			request: "launch",
 			sourceLanguages: ["rust"],
-			program: "/Users/bytedance/.local/state/fnm_multishells/52776_1760165974924/bin/node",
+			program: "node",
 			args,
 			env: {
 				NO_COLOR: JSON.stringify(1),
