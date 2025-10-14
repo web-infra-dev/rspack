@@ -5,6 +5,7 @@ const {
 	describeByWalk,
 	createHotIncrementalCase
 } = require("@rspack/test-tools");
+const tempDir = path.resolve(__dirname, `./js/temp/incremental-webworker`);
 
 function v(name) {
 	return path.join(__dirname, `incremental ${name}`);
@@ -14,7 +15,7 @@ function v(name) {
 describeByWalk(
 	v("hot webworker"),
 	(name, src, dist) => {
-		createHotIncrementalCase(name, src, dist, "webworker", false);
+		createHotIncrementalCase(name, src, dist, path.join(tempDir, name), "webworker", false);
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),

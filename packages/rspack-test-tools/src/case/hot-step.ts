@@ -455,8 +455,9 @@ export function createHotStepCase(
 	name: string,
 	src: string,
 	dist: string,
+	temp: string,
 	target: TCompilerOptions<ECompilerType.Rspack>["target"]
 ) {
 	const creator = getCreator(target);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }

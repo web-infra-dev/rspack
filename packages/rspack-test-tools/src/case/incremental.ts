@@ -87,11 +87,12 @@ export function createHotIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
+	temp: string,
 	target: TCompilerOptions<ECompilerType.Rspack>["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }
 
 const watchCreators: Map<

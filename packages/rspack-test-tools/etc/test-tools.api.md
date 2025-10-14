@@ -114,16 +114,16 @@ export function createHashCase(name: string, src: string, dist: string): void;
 export function createHookCase(name: string, src: string, dist: string, source: string): void;
 
 // @public (undocumented)
-export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
-export function createHotIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
 export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
