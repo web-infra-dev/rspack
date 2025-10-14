@@ -1,0 +1,18 @@
+/** @type {import("webpack").Configuration} */
+module.exports = {
+	output: {
+		wasmLoading: "fetch"
+	},
+	module: {
+		rules: [
+			{
+				test: /\.wat$/,
+				use: "wast-loader",
+				type: "webassembly/async"
+			}
+		]
+	},
+	experiments: {
+		asyncWebAssembly: true
+	}
+};
