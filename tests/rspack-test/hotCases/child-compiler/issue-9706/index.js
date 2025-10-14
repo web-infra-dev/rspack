@@ -9,5 +9,5 @@ it("should not emit hot updates from child compilers", () => new Promise((resolv
 		expect(assets).toEqual(["test.js"]);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

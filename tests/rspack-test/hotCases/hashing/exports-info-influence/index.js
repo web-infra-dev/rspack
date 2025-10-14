@@ -11,5 +11,5 @@ it("should keep the module hash when usage changes", () => new Promise((resolve,
 		expect(referencer).toBe("undefined undefined");
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

@@ -1,5 +1,5 @@
 "use strict";
 
 module.exports = function filter() {
-	return process.platform !== "win32" && "TODO: support extractSourceMap";
+	return process.platform !== "win32";
 };

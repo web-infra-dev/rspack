@@ -6,7 +6,7 @@ var options = { ignoreUnaccepted: true };
 it("should ignore unaccepted module updates", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());
 	function waitForUpdate(fn) {
-		NEXT(require("../../update")(done, options, fn));
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, options, fn));
 	}
 
 	expect(a).toBe(2);

@@ -23,7 +23,7 @@ it("should work", () => new Promise(async (resolve, reject) => {
 		});
 	});
 
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));
 
 module.hot.accept();

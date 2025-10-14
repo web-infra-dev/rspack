@@ -2,7 +2,7 @@ it("module and its loader-referencing module should update in right order", () =
 	const done = err => (err ? reject(err) : resolve());
 	expect(require("./loader.js!./a")).toBe(2);
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(require("./loader.js!./a")).toBe(3);
 			done();
 		})

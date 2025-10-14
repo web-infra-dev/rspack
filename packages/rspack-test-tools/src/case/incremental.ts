@@ -25,11 +25,15 @@ const hotCreators: Map<
 
 function createHotIncrementalProcessor(
 	name: string,
+	src: string,
+	temp: string,
 	target: TTarget,
 	webpackCases: boolean
 ) {
-	const processor = createHotProcessor(name, target, true);
+	const processor = createHotProcessor(name, src, temp, target, true);
+	const originalBefore = processor.before;
 	processor.before = async context => {
+		await originalBefore?.(context);
 		context.setValue(
 			name,
 			"documentType",
@@ -59,8 +63,14 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				clean: true,
 				describe: true,
 				target,
-				steps: ({ name, target }) => [
-					createHotIncrementalProcessor(name, target as TTarget, webpackCases)
+				steps: ({ name, target, src, temp, dist }) => [
+					createHotIncrementalProcessor(
+						name,
+						src,
+						temp || path.resolve(dist, "temp"),
+						target as TTarget,
+						webpackCases
+					)
 				],
 				runner: {
 					key: (context: ITestContext, name: string, file: string) => name,
@@ -77,11 +87,12 @@ export function createHotIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
+	temp: string,
 	target: TCompilerOptions<ECompilerType.Rspack>["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }
 
 const watchCreators: Map<

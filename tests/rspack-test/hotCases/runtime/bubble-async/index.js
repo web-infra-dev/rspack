@@ -1,5 +1,5 @@
 import { load } from "./parent-file";
-import update from "../../update";
+import update from "@rspack/test-tools/helper/legacy/update";
 
 it("should bubble update from a nested dependency", () => {
 	return load().then(value => {

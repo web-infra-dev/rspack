@@ -8,5 +8,5 @@ it("should bubble update from a nested dependency", () => new Promise((resolve, 
 		expect(value).toBe(2);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

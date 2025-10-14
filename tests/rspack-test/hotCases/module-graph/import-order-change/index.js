@@ -12,7 +12,7 @@ it("should have correct order", () => new Promise((resolve, reject) => {
 
 	});
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			const content = fs.readFileSync(path.resolve(__dirname, './bundle.css')).toString()
 			expect(content.replaceAll('\n', '').trim()).toBe('.b{}.a{}')
 			done()

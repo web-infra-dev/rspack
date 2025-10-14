@@ -12,5 +12,5 @@ it("should allow to hot replace modules in a ConcatenatedModule", () => new Prom
 		}));
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

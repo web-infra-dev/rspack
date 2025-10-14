@@ -19,5 +19,5 @@ it("should hot.accept the module located at the defined file path without breaki
 		expect(DEFINE_PATH).toBe("./a");
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

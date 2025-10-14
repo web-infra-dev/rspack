@@ -1,5 +1,5 @@
 import * as styles from "./style.module.css";
-import update from "../../update.esm";
+import update from "@rspack/test-tools/helper/legacy/update.esm";
 
 import.meta.webpackHot.accept(["./style.module.css"])
 
@@ -9,11 +9,11 @@ it("should work", () => new Promise((resolve, reject) => {
 	let firstFullHash = __webpack_hash__;
 
 	NEXT(update(done, true, () => {
-		try{
+		try {
 			// only css change should also trigger changing full hash in runtime
 			expect(__webpack_hash__).not.toBe(firstFullHash);
 			done();
-		}catch(e){
+		} catch (e) {
 			done(e)
 		}
 	}));

@@ -2488,6 +2488,8 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
+  /** Whether to extract source maps from the module. */
+  extractSourceMap?: boolean
 }
 
 /**

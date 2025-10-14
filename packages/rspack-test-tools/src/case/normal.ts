@@ -236,10 +236,6 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 			// Turning off here to fallback to webpack's default css processing logic.
 			...(compilerOptions?.module ? { outputModule: true } : {})
 		}
-		// infrastructureLogging: compilerOptions?.cache && {
-		//   debug: true,
-		//   console: createLogger(infraStructureLog)
-		// }
 	} as TCompilerOptions<T>;
 }
 

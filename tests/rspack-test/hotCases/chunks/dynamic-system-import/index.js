@@ -5,7 +5,7 @@ it("should import a changed chunk (dynamic import)", () => new Promise((resolve,
 	}
 	load(1).then((chunk) => {
 		expect(chunk.value).toBe(1);
-		NEXT(require("../../update")(done, true, () => {
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(chunk.value).toBe(2);
 			load(2).then((chunk2) => {
 				expect(chunk2.value).toBe(2);

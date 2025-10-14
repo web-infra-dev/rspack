@@ -16,7 +16,7 @@ it("should wait until promises returned by status handlers are fulfilled", () =>
 	module.hot.accept("./file", () => {
 		value = require("./file");
 	});
-	NEXT(require("../../update")(done, undefined, () => {
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, undefined, () => {
 		expect(handler.mock.calls).toStrictEqual([['check'], ['prepare'], ['dispose'], ['apply'], ['idle']]);
 		for (let result of handler.mock.results)
 			expect(result.value.test).toHaveBeenCalledTimes(1);
@@ -24,5 +24,5 @@ it("should wait until promises returned by status handlers are fulfilled", () =>
 		expect(module.hot.status()).toBe("idle");
 
 		done();
-  }));
+	}));
 }));

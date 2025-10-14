@@ -4,7 +4,7 @@ it("should hot update a splitted initial chunk", () => new Promise((resolve, rej
 	const done = err => (err ? reject(err) : resolve());
 	expect(vendor).toBe("1");
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(vendor).toBe("2");
 			done();
 		})

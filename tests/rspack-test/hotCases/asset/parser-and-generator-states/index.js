@@ -7,5 +7,5 @@ it("should store and resume asset parser and generator states", () => new Promis
 		expect(value).toBe('string result');
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

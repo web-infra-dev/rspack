@@ -9,7 +9,7 @@ it("should auto-reexport an ES6 imported value on accept with newTreeshaking", (
 	const done = err => (err ? reject(err) : resolve());
 	expect(v).toBe("foo");
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(v).toBe("foobar");
 			done();
 		})

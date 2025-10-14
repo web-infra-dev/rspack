@@ -11,5 +11,5 @@ it("should only register changes for the changed module", () => new Promise((res
 		done();
 	});
 
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

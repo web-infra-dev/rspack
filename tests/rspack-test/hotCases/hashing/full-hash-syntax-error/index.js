@@ -24,7 +24,7 @@ it("should generate the main file and change full hash on update", () => new Pro
 		NEXT((err, stats) => {
 			if (err) return done(err);
 			expect(stats.hash).toBe(hash1);
-			NEXT(require("../../update")(done));
+			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 		});
 	});
 }));

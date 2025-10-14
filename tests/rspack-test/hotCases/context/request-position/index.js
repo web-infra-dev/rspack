@@ -10,6 +10,6 @@ it("should not panic when context request position change", () => new Promise((r
       expect(value.a).toBe(1);
       done();
     });
-    NEXT(require("../../update")(done));
+    NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
   })();
 }));

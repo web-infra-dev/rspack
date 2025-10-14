@@ -10,7 +10,7 @@ it("should not lazily compile configured imports", () => new Promise((resolve, r
 		expect(resolvedA).toBe(undefined);
 		expect(resolvedB).toHaveProperty("default", "B");
 		NEXT(
-			require("../../update")(done, true, () => {
+			require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 				promiseA.then(result => {
 					expect(result).toHaveProperty("default", "A");
 					setTimeout(() => {

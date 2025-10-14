@@ -1,5 +1,5 @@
 import { sharedData } from "./shared";
-import update from "../../update.esm";
+import update from "@rspack/test-tools/helper/legacy/update.esm";
 
 it("should handle HMR with runtime chunk in ESM format", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());

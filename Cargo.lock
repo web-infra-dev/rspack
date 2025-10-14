@@ -3719,6 +3719,7 @@ dependencies = [
  "swc_node_comments",
  "tokio",
  "tracing",
+ "urlencoding",
  "ustr-fxhash",
  "winnow",
 ]

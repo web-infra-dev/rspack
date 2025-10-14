@@ -9,7 +9,7 @@ it("should accept a dependencies and require a new value", () => new Promise((re
 		outside();
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));
 
 function outside() {

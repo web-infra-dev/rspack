@@ -7,10 +7,10 @@ it("should accept a dependencies multiple times", () => new Promise((resolve, re
 		var oldValue = value;
 		value = require("../file");
 		expect(value).toBe(oldValue + 1);
-		if(value < 4)
-			NEXT(require("../../../update")(done));
+		if (value < 4)
+			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 		else
 			done();
 	});
-	NEXT(require("../../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 }));

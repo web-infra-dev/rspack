@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -6,6 +6,7 @@ use rspack_core::{
   Plugin, ResourceData, Scheme,
 };
 use rspack_error::Result;
+use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::base64;
 
@@ -57,7 +58,11 @@ async fn resolve_for_scheme(
 }
 
 #[plugin_hook(NormalModuleReadResource for DataUriPlugin,tracing=false)]
-async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+async fn read_resource(
+  &self,
+  resource_data: &ResourceData,
+  _fs: &Arc<dyn ReadableFileSystem>,
+) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
     && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {

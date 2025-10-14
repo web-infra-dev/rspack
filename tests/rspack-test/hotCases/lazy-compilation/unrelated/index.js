@@ -11,11 +11,11 @@ it("should compile to lazy imported module", () => new Promise((resolve, reject)
 	expect(value).toBe(42);
 	expect(generation).toBe(0);
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(value).toBe(43);
 			expect(generation).toBe(1);
 			NEXT(
-				require("../../update")(done, true, () => {
+				require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 					expect(value).toBe(44);
 					expect(generation).toBe(2);
 					done();

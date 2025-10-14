@@ -14,12 +14,12 @@ it("should compile to lazy imported module", () => new Promise((resolve, reject)
 		expect(resolved).toBe(undefined);
 		expect(generation).toBe(0);
 		NEXT(
-			require("../../update")(done, true, () => {
+			require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 				promise.then(result => {
 					expect(result).toHaveProperty("default", 42);
 					expect(generation).toBe(0);
 					NEXT(
-						require("../../update")(done, true, () => {
+						require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 							expect(result).toHaveProperty("default", 42);
 							expect(generation).toBe(1);
 							import("./module").then(result => {
