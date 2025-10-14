@@ -1,4 +1,4 @@
-const { HotModuleReplacementPlugin } = require("@rspack/core");
+const { HotModuleReplacementPlugin } = require("webpack");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

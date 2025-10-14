@@ -2,7 +2,7 @@
 module.exports = {
 	mode: "production",
 	optimization: {
-		minimize: false,
-		usedExports: true
+		usedExports: true,
+		minimize: false
 	}
 };
