@@ -875,6 +875,9 @@ importers:
       csv-to-markdown-table:
         specifier: 1.5.0
         version: 1.5.0
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       es5-ext:
         specifier: ^0.10.64
         version: 0.10.64
@@ -884,6 +887,9 @@ importers:
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.99.9)
+      fork-ts-checker-webpack-plugin:
+        specifier: ^9.1.0
+        version: 9.1.0(typescript@5.9.3)(webpack@5.99.9)
       graceful-fs:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
@@ -899,6 +905,9 @@ importers:
       json-loader:
         specifier: ^0.5.7
         version: 0.5.7
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       less:
         specifier: 4.4.2
         version: 4.4.2
@@ -926,6 +935,9 @@ importers:
       postcss-pxtorem:
         specifier: ^6.1.0
         version: 6.1.0(postcss@8.5.6)
+      prop-types:
+        specifier: ^15.8.1
+        version: 15.8.1
       raw-loader:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.99.9)
@@ -980,6 +992,12 @@ importers:
       worker-rspack-loader:
         specifier: ^3.1.2
         version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.99.9)
+      xxhashjs:
+        specifier: ^0.2.2
+        version: 0.2.2
+      yamljs:
+        specifier: ^0.3.0
+        version: 0.3.0
 
   tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/app:
     dependencies:
@@ -992,78 +1010,6 @@ importers:
       react:
         specifier: ^19.1.1
         version: 19.1.1
-
-  tests/webpack-examples:
-    devDependencies:
-      '@babel/preset-react':
-        specifier: ^7.27.1
-        version: 7.27.1(@babel/core@7.28.4)
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../../packages/rspack
-      acorn:
-        specifier: ^8.15.0
-        version: 8.15.0
-      babel-loader:
-        specifier: ^10.0.0
-        version: 10.0.0(@babel/core@7.28.4)(webpack@5.99.9)
-      bundle-loader:
-        specifier: ^0.5.6
-        version: 0.5.6
-      coffee-loader:
-        specifier: ^1.0.1
-        version: 1.0.1(coffeescript@2.7.0)(webpack@5.99.9)
-      coffeescript:
-        specifier: ^2.7.0
-        version: 2.7.0
-      core-js:
-        specifier: 3.45.1
-        version: 3.45.1
-      css-loader:
-        specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9)
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
-      fork-ts-checker-webpack-plugin:
-        specifier: ^9.1.0
-        version: 9.1.0(typescript@5.9.3)(webpack@5.99.9)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      mini-svg-data-uri:
-        specifier: ^1.4.4
-        version: 1.4.4
-      prop-types:
-        specifier: ^15.8.1
-        version: 15.8.1
-      react:
-        specifier: ^19.1.1
-        version: 19.1.1
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
-      style-loader:
-        specifier: ^4.0.0
-        version: 4.0.0(webpack@5.99.9)
-      toml:
-        specifier: ^3.0.0
-        version: 3.0.0
-      ts-loader:
-        specifier: ^9.5.4
-        version: 9.5.4(typescript@5.9.3)(webpack@5.99.9)
-      wast-loader:
-        specifier: ^1.14.1
-        version: 1.14.1
-      xxhashjs:
-        specifier: ^0.2.2
-        version: 0.2.2
-      yamljs:
-        specifier: ^0.3.0
-        version: 0.3.0
 
   website:
     dependencies:
