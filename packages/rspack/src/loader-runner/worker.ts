@@ -407,7 +407,7 @@ async function loaderImpl(
 	};
 
 	loaderContext.cacheable = function cacheable(flag: boolean) {
-		if (flag === false) {
+		if (!flag) {
 			sendRequest(RequestType.SetCacheable, false);
 		}
 	};

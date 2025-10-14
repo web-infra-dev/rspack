@@ -302,7 +302,7 @@ export type DevServerOptions<
 		| ((
 				req: Request,
 				res: Response,
-				context: DevMiddlewareContext<Request, Response> | undefined
+				context: DevMiddlewareContext | undefined
 		  ) => Headers)
 		| undefined;
 	onListening?: ((devServer: Server) => void) | undefined;

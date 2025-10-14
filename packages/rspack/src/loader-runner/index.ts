@@ -379,7 +379,7 @@ export async function runLoaders(
 					for (const dep of res.fileDependencies) {
 						context.addDependency(dep);
 					}
-					if (res.cacheable === false) {
+					if (!res.cacheable) {
 						context.cacheable(false);
 					}
 					JavaScriptTracer.endAsync({
@@ -728,7 +728,7 @@ export async function runLoaders(
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
 		get: () => (cacheable: boolean) => {
-			if (cacheable === false) {
+			if (!cacheable) {
 				context.cacheable = cacheable;
 			}
 		}
