@@ -32,7 +32,7 @@
     "format:toml": "taplo format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
-    "lint:rs": "node ./scripts/check_rust_dependency.cjs",
+    "lint:rs": "cargo clippy --workspace --all-targets",
     "lint:type": "rslint --config rslint.json --max-warnings=2486",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
