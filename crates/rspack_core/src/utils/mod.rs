@@ -10,6 +10,7 @@ mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
+mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
@@ -37,6 +38,7 @@ pub use memory_gc::MemoryGCStorage;
 
 pub use self::{
   comment::*,
+  extract_source_map::*,
   extract_url_and_global::*,
   fast_actions::*,
   file_counter::{FileCounter, ResourceId},

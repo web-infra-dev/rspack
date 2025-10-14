@@ -16,6 +16,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
+use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
@@ -77,7 +78,7 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content,tracing=false);
+define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
@@ -134,6 +135,8 @@ pub struct NormalModule {
   parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
+  /// enable/disable extracting source map
+  extract_source_map: Option<bool>,
 
   #[allow(unused)]
   debug_id: usize,
@@ -182,6 +185,7 @@ impl NormalModule {
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
     context: Option<Context>,
+    extract_source_map: Option<bool>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
@@ -204,6 +208,7 @@ impl NormalModule {
       loaders,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
+      extract_source_map,
 
       cached_source_sizes: DashMap::default(),
       diagnostics: Default::default(),
@@ -399,6 +404,7 @@ impl Module for NormalModule {
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
       current_loader: Default::default(),
+      extract_source_map: self.extract_source_map,
     });
 
     let (mut loader_result, err) = run_loaders(
@@ -453,6 +459,7 @@ impl Module for NormalModule {
         optimization_bailouts: vec![],
       });
     };
+
     build_context
       .plugin_driver
       .normal_module_hooks

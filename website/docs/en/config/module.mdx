@@ -2680,3 +2680,25 @@ export default {
   },
 };
 ```
+
+### Rule.extractSourceMap
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type**: `boolean`
+- **Default:** `false`
+
+Extracts existing source map data from files (from their `//# sourceMappingURL` comment), useful for preserving the source maps of third-party libraries.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
+      },
+    ],
+  },
+};
+```
