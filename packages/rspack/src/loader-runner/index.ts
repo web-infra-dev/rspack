@@ -727,8 +727,7 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
-		get: () => (cacheable: boolean) => {
-			// eslint-disable-next-line @typescript-eslint/no-unnecessary-boolean-literal-compare
+		get: () => (cacheable?: boolean) => {
 			if (cacheable === false) {
 				context.cacheable = cacheable;
 			}
