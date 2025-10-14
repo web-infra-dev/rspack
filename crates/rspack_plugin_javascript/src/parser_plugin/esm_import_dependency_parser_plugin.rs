@@ -41,12 +41,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-    let phase = parser
-      .javascript_options
-      .defer_import
-      .unwrap_or_default()
-      .then(|| import_decl.phase.into())
-      .unwrap_or_default();
+    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
+      import_decl.phase.into()
+    } else {
+      ImportPhase::Evaluation
+    };
     if !parser.compiler_options.experiments.defer_import && phase == ImportPhase::Defer {
       parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }
@@ -88,12 +87,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
-    let phase = parser
-      .javascript_options
-      .defer_import
-      .unwrap_or_default()
-      .then(|| statement.phase.into())
-      .unwrap_or_default();
+    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
+      statement.phase.into()
+    } else {
+      ImportPhase::Evaluation
+    };
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,

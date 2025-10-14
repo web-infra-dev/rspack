@@ -114,23 +114,23 @@ pub fn export_from_import(
     runtime,
     ..
   } = code_generatable_context;
-  let Some(module_identifier) = compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(id)
-    .copied()
-  else {
+  let mg = compilation.get_module_graph();
+  let Some(target_module) = mg.get_module_by_dependency_id(id) else {
     return missing_module(request);
   };
 
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    &mg,
     &compilation.module_graph_cache_artifact,
     id,
     &module.identifier(),
   );
 
-  let is_deferred = matches!(phase, ImportPhase::Defer) && !module.build_meta().has_top_level_await;
+  let target_module_identifier = target_module.identifier();
 
+  let is_deferred =
+    matches!(phase, ImportPhase::Defer) && !target_module.build_meta().has_top_level_await;
+  dbg!(target_module_identifier, is_deferred);
   let mut exclude_default_export_name = None;
   if default_interop {
     if !export_name.is_empty()
@@ -140,8 +140,8 @@ pub fn export_from_import(
       if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
         let name = &export_name[1..];
         let Some(used) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
-            &module_identifier,
+          GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+            &target_module_identifier,
             PrefetchExportsInfoMode::Nested(name),
           )),
           *runtime,
@@ -251,8 +251,8 @@ pub fn export_from_import(
     .unwrap_or(export_name);
   if !export_name.is_empty() {
     let used_name = match ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
-        &module_identifier,
+      GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+        &target_module_identifier,
         PrefetchExportsInfoMode::Nested(export_name),
       )),
       *runtime,
@@ -303,7 +303,7 @@ pub fn export_from_import(
         format!("Object({access})")
       }
     } else {
-      format!("{import_var}{comment}{property}")
+      access
     }
   } else if is_deferred {
     init_fragments.push(
@@ -433,6 +433,7 @@ pub fn module_id(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn import_statement(
   module: &dyn Module,
   compilation: &Compilation,
@@ -874,7 +875,7 @@ pub fn get_property_accessed_deferred_module(
   module_id_expr: &str,
 ) -> String {
   let is_async = false;
-  let mut content = format!("{{\n  get a() {{\n    ");
+  let mut content = "{\n  get a() {\n    ".to_string();
   let namespace_or_dynamic = matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
   if namespace_or_dynamic {
     content += "var exports = ";

@@ -20,7 +20,6 @@ use rspack_core::{
   ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
-use rspack_loader_lightningcss::lightningcss::traits::Op;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
