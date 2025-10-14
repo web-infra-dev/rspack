@@ -1,7 +1,7 @@
 beforeEach(() => {
 	global.it = it;
 });
-afterEach(() =>{
+afterEach(() => {
 	delete global.it;
 });
 
