@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // Copied from <https://github.com/webpack/webpack/blob/main/test/patch-node-env.js>
 //
 const NodeEnvironment =

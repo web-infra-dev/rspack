@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 const { SummaryReporter } = require("@jest/reporters");
 const chalk =
 	require.cache[require.resolve("@jest/reporters")].require("chalk");
