@@ -38,11 +38,11 @@ const wasmConfig = process.env.WASM && {
 
 /** @type {import('jest').Config} */
 const config = {
-	testEnvironment: "../../scripts/test/patch-node-env.cjs",
+	testEnvironment: "@rspack/test-tools/jest/patch-node-env",
 	setupFilesAfterEnv,
 	reporters: [
-		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
-		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+		["@rspack/test-tools/jest/ignore-snapshot-default-reporter", null],
+		"@rspack/test-tools/jest/ignore-snapshot-summary-reporter"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
@@ -52,7 +52,7 @@ const config = {
 	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
-		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
+		slash: "@rspack/test-tools/jest/slash",
 		// disable sourcmap remapping for ts file
 		"source-map-support/register": "identity-obj-proxy"
 	},
@@ -74,7 +74,13 @@ const config = {
 					: process.argv.indexOf("--test")) + 1
 				]
 				: undefined,
-		printLogger: process.argv.includes("--verbose")
+		printLogger: process.argv.includes("--verbose"),
+		__TEST_PATH__: __dirname,
+		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
+		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
+		__ROOT_PATH__: root,
+		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
+		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 	},
 	...(wasmConfig || {}),
 	verbose: true,

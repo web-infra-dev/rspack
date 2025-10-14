@@ -1,0 +1,64 @@
+Array [
+  /*!*******************!*\
+  !*** ./style.css ***!
+  \*******************/
+.class {
+	color: red;
+	background:
+		url(img.png),
+		url(img.png),
+		url(9aaba41ffa2da101.png);
+		url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=),
+		url(resource.png),
+		url('./source.text'),
+		url(fae013ca3772b2c5.htm),
+		url(https://example.com/img.png);
+}
+
+.class-2 {
+	background: url(shared.png);
+}
+
+.class-3 {
+	background: url(shared-external.png);
+}
+
+.class-4 {
+	background: url(4e418f0d69cf49fa.gif);
+}
+
+.class-5 {
+	background: url(1237b02e54ad8fd3.png);
+},
+  /*!*******************!*\
+  !*** ./style.css ***!
+  \*******************/
+.class {
+	color: red;
+	background:
+		url(img.png),
+		url(img.png),
+		url(9aaba41ffa2da101.png);
+		url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=),
+		url(resource.png),
+		url('./source.text'),
+		url(fae013ca3772b2c5.htm),
+		url(https://example.com/img.png);
+}
+
+.class-2 {
+	background: url(shared.png);
+}
+
+.class-3 {
+	background: url(shared-external.png);
+}
+
+.class-4 {
+	background: url(4e418f0d69cf49fa.gif);
+}
+
+.class-5 {
+	background: url(1237b02e54ad8fd3.png);
+},
+]

@@ -19,14 +19,8 @@ import type {
 } from "../type";
 import { build, checkSnapshot, compiler, config, getCompiler } from "./common";
 
-const srcDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/fixtures"
-);
-const distDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/js/hook"
-);
+const srcDir = __TEST_FIXTURES_PATH__;
+const distDir = path.resolve(__TEST_DIST_PATH__, "hook");
 
 const creator = new BasicCaseCreator({
 	clean: true,

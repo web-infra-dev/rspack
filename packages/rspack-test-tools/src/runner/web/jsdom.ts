@@ -3,7 +3,6 @@ import path from "node:path";
 import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 
 import { escapeSep } from "../../helper";
-import createFakeWorker from "../../helper/legacy/createFakeWorker";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import type { ECompilerType, TRunnerFile, TRunnerRequirer } from "../../type";
@@ -124,9 +123,6 @@ export class JSDOMWebRunner<
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope.EventSource = EventSource;
-		moduleScope.Worker = createFakeWorker(this._options.env, {
-			outputDirectory: this._options.dist
-		});
 		const urlToPath = (url: string) => {
 			return path.resolve(
 				this._webOptions.dist,

@@ -23,18 +23,13 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.ts",
+    "build:browser": "rslib build -c rslib.browser.config.mts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=18.12.0"
   },

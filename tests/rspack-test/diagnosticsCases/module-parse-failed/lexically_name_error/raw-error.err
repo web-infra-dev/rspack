@@ -1,7 +1,7 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/lexically_name_error/index.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/lexically_name_error/index.js,
     moduleName: ./index.js,
   },
 ]

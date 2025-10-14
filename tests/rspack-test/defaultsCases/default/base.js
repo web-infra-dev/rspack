@@ -8,7 +8,7 @@ module.exports = {
 		  amd: undefined,
 		  bail: false,
 		  cache: false,
-		  context: <TEST_TOOLS_ROOT>,
+		  context: <TEST_ROOT>,
 		  dependencies: undefined,
 		  devServer: undefined,
 		  devtool: false,
@@ -340,7 +340,7 @@ module.exports = {
 		    importMetaName: import.meta,
 		    library: undefined,
 		    module: false,
-		    path: <TEST_TOOLS_ROOT>/dist,
+		    path: <TEST_ROOT>/dist,
 		    pathinfo: false,
 		    publicPath: auto,
 		    scriptType: false,
@@ -548,7 +548,7 @@ module.exports = {
 		    ],
 		    pnp: false,
 		    roots: Array [
-		      <TEST_TOOLS_ROOT>,
+		      <TEST_ROOT>,
 		    ],
 		  },
 		  resolveLoader: Object {

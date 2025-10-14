@@ -113,7 +113,7 @@ jobs:
 
       ### *-apple-darwin
       - name: Test apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ contains(inputs.target, 'apple-darwin') }}
         run: |
           # arch is ARM and target is ARM

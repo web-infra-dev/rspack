@@ -12,7 +12,7 @@ module.exports = {
 
 		@@ ... @@
 		-   "context": "<cwd>",
-		+   "context": "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
+		+   "context": "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
 		@@ ... @@
 		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
 		+     "chunkLoadingGlobal": "webpackChunk",
@@ -27,6 +27,6 @@ module.exports = {
 		+     "uniqueName": "",
 		@@ ... @@
 		-       "<cwd>",
-		+       "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
+		+       "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
 	`)
 };

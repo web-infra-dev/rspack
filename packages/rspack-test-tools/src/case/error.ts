@@ -87,10 +87,7 @@ function options<T extends ECompilerType.Rspack>(
 	) => TCompilerOptions<T>
 ): TCompilerOptions<T> {
 	let options = {
-		context: path.resolve(
-			__dirname,
-			"../../../../tests/rspack-test/fixtures/errors"
-		),
+		context: path.resolve(__TEST_FIXTURES_PATH__, "errors"),
 		mode: "none",
 		devtool: false,
 		optimization: {

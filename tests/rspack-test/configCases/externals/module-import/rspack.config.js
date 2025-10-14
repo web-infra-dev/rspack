@@ -1,4 +1,4 @@
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: ["web", "es2020"],
 	node: {
