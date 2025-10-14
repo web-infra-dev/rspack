@@ -266,7 +266,7 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 	) => {
 		const usePromise = typeof callback === "function";
 		try {
-			updatePlugin.goNext();
+			await updatePlugin.goNext();
 			const stats = await compiler.build();
 			if (!stats) {
 				throw new Error("Should generate stats during build");
