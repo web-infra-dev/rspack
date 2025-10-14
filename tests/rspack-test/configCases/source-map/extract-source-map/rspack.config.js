@@ -40,26 +40,27 @@ module.exports = [
 			]
 		}
 	},
-	{
-		target: "node",
-		entry: "./extract4",
-		devtool: "source-map",
-		experiments: {
-			buildHttp: {
-				allowedUris: [() => true],
-				lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
-				cacheLocation: path.resolve(__dirname, "./lock-files/test"),
-				frozen: false
-			}
-		},
-		module: {
-			rules: [
-				{
-					extractSourceMap: true
-				}
-			]
-		}
-	},
+	// TODO: support http uri in extractSourceMap
+	// {
+	// 	target: "node",
+	// 	entry: "./extract4",
+	// 	devtool: "source-map",
+	// 	experiments: {
+	// 		buildHttp: {
+	// 			allowedUris: [() => true],
+	// 			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
+	// 			cacheLocation: path.resolve(__dirname, "./lock-files/test"),
+	// 			frozen: false
+	// 		}
+	// 	},
+	// 	module: {
+	// 		rules: [
+	// 			{
+	// 				extractSourceMap: true
+	// 			}
+	// 		]
+	// 	}
+	// },
 	{
 		entry: "./remove-comment",
 		devtool: "source-map",

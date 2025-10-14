@@ -12,7 +12,7 @@ use rspack_core::{
   NormalModuleFactoryResolveInScheme, NormalModuleReadResource, Plugin, ResourceData, Scheme,
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result, error};
-use rspack_fs::WritableFileSystem;
+use rspack_fs::{ReadableFileSystem, WritableFileSystem};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use url::Url;
@@ -169,7 +169,11 @@ async fn resolve_in_scheme(
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
-async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+async fn read_resource(
+  &self,
+  resource_data: &ResourceData,
+  _fs: &Arc<dyn ReadableFileSystem>,
+) -> Result<Option<Content>> {
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
     && EXTERNAL_HTTP_REQUEST.is_match(resource_data.resource())
   {
