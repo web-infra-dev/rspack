@@ -1,6 +1,6 @@
 "use strict";
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const base = {
 	output: {
 		module: true
@@ -14,7 +14,7 @@ const base = {
 	target: "es2020"
 };
 
-/** @type {import("@rspack/coretypes").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		...base,

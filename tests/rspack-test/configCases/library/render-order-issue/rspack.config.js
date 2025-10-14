@@ -41,7 +41,7 @@ module.exports = {
 			compiler.hooks.compilation.tap(
 				"testcase",
 				(
-					/** @type {import("@rspack/coretypes").Compilation} */ compilation
+					/** @type {import("@rspack/core").Compilation} */ compilation
 				) => {
 					compilation.hooks.afterProcessAssets.tap(
 						"testcase",

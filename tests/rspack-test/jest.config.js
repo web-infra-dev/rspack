@@ -74,7 +74,13 @@ const config = {
 					: process.argv.indexOf("--test")) + 1
 				]
 				: undefined,
-		printLogger: process.argv.includes("--verbose")
+		printLogger: process.argv.includes("--verbose"),
+		__TEST_PATH__: __dirname,
+		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
+		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
+		__ROOT_PATH__: root,
+		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
+		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 	},
 	...(wasmConfig || {}),
 	verbose: true,

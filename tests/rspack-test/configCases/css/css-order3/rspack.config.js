@@ -2,7 +2,7 @@
 
 const MiniCssExtractPlugin = require("@rspack/core").CssExtractRspackPlugin;
 
-/** @type {import("@rspack/coretypes").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: false,
 	target: "web",

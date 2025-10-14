@@ -1,15 +1,15 @@
 "use strict";
 
-/** @type {import("@rspack/coretypes").Configuration} */
+const EntryPlugin = require("@rspack/core").EntryPlugin;
+
+/** @type {import("@rspack/core").Configuration} */
 module.exports = () => ({
 	devtool: false,
 	mode: "development",
 	entry: {
 		main: {
-			import: "./index.js",
-			dependOn: "shared"
-		},
-		shared: "./common.js"
+			import: "./index.js"
+		}
 	},
 	output: {
 		filename: "[name].mjs",
@@ -23,7 +23,7 @@ module.exports = () => ({
 	},
 	optimization: {
 		minimize: false,
-		runtimeChunk: false,
+		runtimeChunk: "single",
 		splitChunks: {
 			cacheGroups: {
 				separate: {
@@ -31,8 +31,15 @@ module.exports = () => ({
 					chunks: "all",
 					filename: "separate.mjs",
 					enforce: true
+				},
+				common: {
+					test: /common/,
+					chunks: "all",
+					filename: "common.mjs",
+					enforce: true
 				}
 			}
 		}
-	}
+	},
+	plugins: [new EntryPlugin(__dirname, "./separate.js", "main")]
 });

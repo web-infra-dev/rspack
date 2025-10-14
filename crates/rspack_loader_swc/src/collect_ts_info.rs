@@ -4,12 +4,16 @@ use rspack_swc_plugin_ts_collector::{
 };
 use rustc_hash::FxHashMap;
 use swc::atoms::Atom;
-use swc_core::ecma::{ast::Program, visit::VisitWith};
+use swc_core::{
+  common::SyntaxContext,
+  ecma::{ast::Program, visit::VisitWith},
+};
 
 use crate::options::{CollectTypeScriptInfoOptions, CollectingEnumKind};
 
 pub fn collect_typescript_info(
   program: &Program,
+  unresolved_ctxt: SyntaxContext,
   options: &CollectTypeScriptInfoOptions,
 ) -> CollectedTypeScriptInfo {
   let mut type_exports = Default::default();
@@ -20,6 +24,7 @@ pub fn collect_typescript_info(
   if let Some(kind) = &options.exported_enum {
     program.visit_with(&mut ExportedEnumCollector::new(
       matches!(kind, CollectingEnumKind::ConstOnly),
+      unresolved_ctxt,
       &mut exported_enums,
     ));
   }

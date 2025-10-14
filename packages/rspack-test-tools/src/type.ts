@@ -310,3 +310,12 @@ export type TTestRunnerCreator = {
 		env: ITestEnv
 	) => ITestRunner;
 };
+
+declare global {
+	var __TEST_PATH__: string;
+	var __TEST_FIXTURES_PATH__: string;
+	var __TEST_DIST_PATH__: string;
+	var __ROOT_PATH__: string;
+	var __RSPACK_PATH__: string;
+	var __RSPACK_TEST_TOOLS_PATH__: string;
+}
