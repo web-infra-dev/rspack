@@ -2,7 +2,7 @@ import compute from "./compute";
 
 const update = () =>
 	new Promise((resolve, reject) => {
-		NEXT(require("../../update")(reject, true, resolve));
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(reject, true, resolve));
 	});
 
 it("should support adding and removing runtimes", async () => {

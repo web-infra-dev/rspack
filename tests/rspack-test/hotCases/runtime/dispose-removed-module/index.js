@@ -5,9 +5,9 @@ it("should dispose a module which is removed from bundle", (done) => {
 	m.setHandler((id) => {
 		disposed.push(id);
 	});
-	NEXT(require("../../update")(done, true, () => {
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 		require("./module");
-		NEXT(require("../../update")(done, true, () => {
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			var newModule = require("./module");
 			expect(disposed).toEqual([newModule.default]);
 			done();
@@ -15,6 +15,6 @@ it("should dispose a module which is removed from bundle", (done) => {
 	}));
 });
 
-if(module.hot) {
+if (module.hot) {
 	module.hot.accept("./module");
 }

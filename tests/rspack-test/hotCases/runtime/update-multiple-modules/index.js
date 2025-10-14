@@ -7,5 +7,5 @@ it("should update multiple modules at the same time", (done) => {
 		expect(value).toBe(4);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

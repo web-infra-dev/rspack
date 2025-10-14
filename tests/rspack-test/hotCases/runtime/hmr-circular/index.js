@@ -6,5 +6,5 @@ it("should not throw error when hmr remove circular dependencies", done => {
 		expect(entry).toBe("new_entry.js");
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

@@ -1,6 +1,7 @@
 # Case dispose-removed-chunk: Step 1
 
 ## Changed Files
+- a.js
 - b.js
 - module.js
 

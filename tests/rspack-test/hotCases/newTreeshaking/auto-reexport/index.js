@@ -3,7 +3,7 @@ import { value } from "./reexport";
 it("should auto-reexport an ES6 imported value on accept with newTreeshaking", function (done) {
 	expect(value).toBe(1);
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(value).toBe(2);
 			done();
 		})

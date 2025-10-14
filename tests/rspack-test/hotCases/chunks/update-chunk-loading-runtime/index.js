@@ -8,7 +8,7 @@ it("should correctly self-accept an entrypoint when chunk loading runtime module
 		hmrData = data;
 	});
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(hmrData).toHaveProperty("ok", true);
 			hmrData.test();
 			expect(hmrData.hash).not.toBe(hash);

@@ -6,7 +6,7 @@ it("should accept a shared dependency", async () => {
 	module.hot.accept("./module");
 
 	await new Promise((resolve, reject) =>
-		NEXT(require("../../update")(reject, true, resolve))
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(reject, true, resolve))
 	);
 
 	expect(value).toBe("common-lib");

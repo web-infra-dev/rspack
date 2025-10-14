@@ -28,12 +28,6 @@ type TWatchContext = {
 	watchState: Record<string, any>;
 };
 
-// This file is used to port step number to rspack.config.js/webpack.config.js
-const currentWatchStepModulePath = path.resolve(
-	__dirname,
-	"../helper/util/currentWatchStep"
-);
-
 export function createWatchInitialProcessor(
 	name: string,
 	tempDir: string,
@@ -96,8 +90,6 @@ export function createWatchInitialProcessor(
 		},
 		build: async (context: ITestContext) => {
 			const compiler = getCompiler(context, name);
-			const currentWatchStepModule = require(currentWatchStepModulePath);
-			currentWatchStepModule.step[name] = watchContext.step;
 			fs.mkdirSync(watchContext.tempDir, { recursive: true });
 			copyDiff(
 				path.join(context.getSource(), watchContext.step),
@@ -269,10 +261,7 @@ export function createWatchStepProcessor(
 		// do nothing
 	};
 	processor.build = async (context: ITestContext) => {
-		const watchContext = context.getValue(name, "watchContext") as any;
 		const compiler = getCompiler(context, name);
-		const currentWatchStepModule = require(currentWatchStepModulePath);
-		currentWatchStepModule.step[name] = watchContext.step;
 		const task = new Promise((resolve, reject) => {
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);

@@ -3,10 +3,10 @@ import './no-change';
 
 it("css recovery cacheable", done => {
 	NEXT(
-		require("../../update")(
+		require("@rspack/test-tools/helper/legacy/update")(
 			err => {
 				expect(String(err)).toContain("Module build failed");
-				NEXT(require("../../update")(done, true, () => done()));
+				NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => done()));
 			},
 		)
 	);

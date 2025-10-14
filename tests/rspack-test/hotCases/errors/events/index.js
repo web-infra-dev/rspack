@@ -40,7 +40,7 @@ it("should fire the correct events", done => {
 
 	function waitForUpdate(fn) {
 		NEXT(
-			require("../../update")(done, options, () => {
+			require("@rspack/test-tools/helper/legacy/update")(done, options, () => {
 				try {
 					fn();
 				} catch (e) {

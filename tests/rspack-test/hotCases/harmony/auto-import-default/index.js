@@ -7,7 +7,7 @@ it("should auto-import an ES6 imported default value from non-ESM module on acce
 		outside();
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });
 
 function outside() {

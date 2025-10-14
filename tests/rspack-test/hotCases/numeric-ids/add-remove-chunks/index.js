@@ -18,11 +18,11 @@ it("should add and remove chunks", done => {
 								return;
 						}
 						update++;
-						NEXT(require("../../update")(done));
+						NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 					})
 					.catch(done);
 			});
-			NEXT(require("../../update")(done));
+			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 		})
 		.catch(done);
 });

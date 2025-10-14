@@ -1,5 +1,4 @@
 var map = new Map();
-var currentWatchStepModule = require("../../../../helpers/currentWatchStep");
 var cacheMap = new WeakMap();
 
 const getCache = (associate, path) => {

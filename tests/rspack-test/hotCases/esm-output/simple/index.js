@@ -1,5 +1,5 @@
 import { greeting } from "./module.js";
-import update from "../../update.esm.js";
+import update from "@rspack/test-tools/helper/legacy/update.esm.js";
 
 import.meta.webpackHot.accept(["./module.js"]);
 

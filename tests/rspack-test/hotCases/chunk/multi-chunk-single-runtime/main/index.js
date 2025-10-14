@@ -7,9 +7,9 @@ it("should accept a dependencies multiple times", (done) => {
 		value = require("../file");
 		expect(value).toBe(oldValue + 1);
 		if (value < 4)
-			NEXT(require("../../../update")(done));
+			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 		else
 			done();
 	});
-	NEXT(require("../../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });
