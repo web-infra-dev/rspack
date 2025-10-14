@@ -10,7 +10,7 @@
     "setup": "pnpm install && pnpm run build:cli:dev",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "check-dependency-version": "check-dependency-version-consistency . --ignore-dep chalk --ignore-package webpack-examples",
+    "check-dependency-version": "check-dependency-version-consistency . --ignore-dep chalk",
     "build:js": "pnpm --filter \"@rspack/core\" build && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
     "build:js:canary": "pnpm --filter \"@rspack-canary/core\" build && pnpm --parallel --filter \"@rspack-canary/*\" --filter \"create-rspack-canary\" --filter \"!@rspack-canary/core\" build",
     "build:cli:dev": "pnpm run build:binding:dev && pnpm run build:js",

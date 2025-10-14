@@ -75,6 +75,12 @@
     "url-loader": "^4.1.1",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.4",
-    "@babel/core": "^7.28.4"
+    "@babel/core": "^7.28.4",
+    "date-fns": "^4.1.0",
+    "fork-ts-checker-webpack-plugin": "^9.1.0",
+    "json5": "^2.2.3",
+    "prop-types": "^15.8.1",
+    "xxhashjs": "^0.2.2",
+    "yamljs": "^0.3.0"
   }
 }
