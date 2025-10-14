@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeCondition, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, ImportPhase, RuntimeCondition, SharedSourceMap, TemplateContext,
   TemplateReplaceSource, import_statement, runtime_condition_expression,
 };
 
@@ -115,6 +115,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
           id,
           &import_var,
           request,
+          ImportPhase::Evaluation,
           true,
         );
         if condition == "true" {

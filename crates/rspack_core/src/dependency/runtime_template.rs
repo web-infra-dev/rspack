@@ -7,11 +7,11 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
-  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
-  to_comment, to_normal_comment,
+  FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
+  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify,
+  property_access, to_comment, to_normal_comment,
 };
 
 pub fn runtime_condition_expression(
@@ -104,6 +104,7 @@ pub fn export_from_import(
   is_call: bool,
   call_context: bool,
   asi_safe: Option<bool>,
+  phase: ImportPhase,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -128,12 +129,45 @@ pub fn export_from_import(
     &module.identifier(),
   );
 
+  let is_deferred = matches!(phase, ImportPhase::Defer) && !module.build_meta().has_top_level_await;
+
   let mut exclude_default_export_name = None;
   if default_interop {
     if !export_name.is_empty()
       && let Some(first_export_name) = export_name.first()
       && first_export_name == "default"
     {
+      if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
+        let name = &export_name[1..];
+        let Some(used) = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
+            &module_identifier,
+            PrefetchExportsInfoMode::Nested(name),
+          )),
+          *runtime,
+          name,
+        ) else {
+          return to_normal_comment(&format!(
+            "unused export {}",
+            property_access(export_name, 0)
+          )) + "undefined";
+        };
+        let UsedName::Normal(used) = used else {
+          unreachable!("can't inline the exports of defer imported module")
+        };
+        let access = format!("{import_var}.a{}", property_access(used, 0));
+        if is_call {
+          return access;
+        }
+        let Some(asi_safe) = asi_safe else {
+          return access;
+        };
+        return if asi_safe {
+          format!("({access})")
+        } else {
+          format!(";({access})")
+        };
+      }
       match exports_type {
         ExportsType::Dynamic => {
           if is_call {
@@ -172,6 +206,9 @@ pub fn export_from_import(
       {
         return "/* __esModule */true".to_string();
       }
+    } else if is_deferred {
+      // now exportName.length is 0
+      // fall through to the end of this function, create the namespace there.
     } else if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
@@ -223,6 +260,10 @@ pub fn export_from_import(
     ) {
       Some(UsedName::Normal(used_name)) => used_name,
       Some(UsedName::Inlined(inlined)) => {
+        assert!(
+          !is_deferred,
+          "can't inline the exports of defer imported module"
+        );
         return format!(
           "{} {}",
           to_normal_comment(&format!(
@@ -248,7 +289,10 @@ pub fn export_from_import(
       String::new()
     };
     let property = property_access(used_name, 0);
-    let access = format!("{import_var}{comment}{property}");
+    let access = format!(
+      "{import_var}{}{comment}{property}",
+      if is_deferred { ".a" } else { "" }
+    );
     if is_call && !call_context {
       if let Some(asi_safe) = asi_safe {
         match asi_safe {
@@ -261,6 +305,20 @@ pub fn export_from_import(
     } else {
       format!("{import_var}{comment}{property}")
     }
+  } else if is_deferred {
+    init_fragments.push(
+      NormalInitFragment::new(
+        format!("var {import_var}_deferred_namespace_cache;\n"),
+        InitFragmentStage::StageConstants,
+        -1,
+        InitFragmentKey::ESMDeferImportNamespaceObjectFragment(format!(
+          "{import_var}_deferred_namespace_cache"
+        )),
+        None,
+      )
+      .boxed(),
+    );
+    todo!()
   } else {
     import_var.to_string()
   }
@@ -382,6 +440,7 @@ pub fn import_statement(
   id: &DependencyId,
   import_var: &str,
   request: &str,
+  phase: ImportPhase,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
   if compilation
@@ -398,16 +457,24 @@ pub fn import_statement(
 
   let opt_declaration = if update { "" } else { "var " };
 
-  let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
-    RuntimeGlobals::REQUIRE
-  );
-
   let exports_type = get_exports_type(
     &compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
     id,
     &module.identifier(),
+  );
+
+  if matches!(phase, ImportPhase::Defer) && !module.build_meta().has_top_level_await {
+    let import_content = format!(
+      "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",
+      get_property_accessed_deferred_module(exports_type, &module_id_expr)
+    );
+    return (import_content, String::new());
+  }
+
+  let import_content = format!(
+    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    RuntimeGlobals::REQUIRE
   );
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
@@ -801,6 +868,45 @@ pub fn define_es_module_flag_statement(
     exports_argument
   )
 }
+
+pub fn get_property_accessed_deferred_module(
+  exports_type: ExportsType,
+  module_id_expr: &str,
+) -> String {
+  let is_async = false;
+  let mut content = format!("{{\n  get a() {{\n    ");
+  let namespace_or_dynamic = matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
+  if namespace_or_dynamic {
+    content += "var exports = ";
+  }
+  content += RuntimeGlobals::REQUIRE.name();
+  content += "(";
+  content += module_id_expr;
+  content += ")";
+  if is_async {
+    content += "[";
+    content += RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL.name();
+    content += "]";
+  }
+  content += ";\n    ";
+  if namespace_or_dynamic {
+    if matches!(exports_type, ExportsType::Dynamic) {
+      content += "if (exports.__esModule) ";
+    }
+    content += "Object.defineProperty(this, \"a\", { value: exports });\n    ";
+    content += "return exports;\n  ";
+  }
+  content += "},\n";
+  if is_async {
+    content += "  [";
+    content += RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL.name();
+    content += "]: ";
+    content += "[]";
+  }
+  content += "}";
+  content
+}
+
 #[allow(unused_imports)]
 mod test_items_to_regexp {
   use crate::items_to_regexp;

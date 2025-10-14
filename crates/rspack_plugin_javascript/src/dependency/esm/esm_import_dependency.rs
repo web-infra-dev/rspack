@@ -6,7 +6,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
+  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
@@ -62,6 +62,7 @@ pub struct ESMImportSideEffectDependency {
   id: DependencyId,
   range: DependencyRange,
   dependency_type: DependencyType,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   loc: Option<DependencyLocation>,
@@ -77,6 +78,7 @@ impl ESMImportSideEffectDependency {
     source_order: i32,
     range: DependencyRange,
     dependency_type: DependencyType,
+    phase: ImportPhase,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
     star_export: bool,
@@ -90,6 +92,7 @@ impl ESMImportSideEffectDependency {
       request,
       range,
       dependency_type,
+      phase,
       attributes,
       resource_identifier,
       loc,
@@ -107,6 +110,7 @@ impl ESMImportSideEffectDependency {
 pub fn esm_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
+  phase: ImportPhase,
   code_generatable_context: &mut TemplateContext,
 ) {
   let TemplateContext {
@@ -163,6 +167,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     module_dependency.id(),
     &import_var,
     module_dependency.request(),
+    phase,
     false,
   );
   let TemplateContext {
@@ -677,6 +682,6 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
         return;
       }
     }
-    esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+    esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
   }
 }

@@ -8,11 +8,11 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
-  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
-  property_access, to_normal_comment,
+  GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  export_from_import, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -48,6 +48,7 @@ pub struct ESMImportSpecifierDependency {
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
@@ -69,6 +70,7 @@ impl ESMImportSpecifierDependency {
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
+    phase: ImportPhase,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -91,6 +93,7 @@ impl ESMImportSpecifierDependency {
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
+      phase,
       attributes,
       resource_identifier,
       loc,
@@ -126,7 +129,12 @@ impl ESMImportSpecifierDependency {
         .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Array(v.to_vec())]
+      vec![ExtendedReferencedExport::Export(ReferencedExport {
+        name: v.to_vec(),
+        can_mangle: true,
+        // Need access the export value to trigger side effects for deferred module
+        can_inline: !matches!(self.phase, ImportPhase::Defer),
+      })]
     } else {
       create_exports_object_referenced()
     }
@@ -368,7 +376,7 @@ impl ESMImportSpecifierDependencyTemplate {
       }
     } else {
       let import_var = compilation.get_import_var(&dep.id, *runtime);
-      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       export_from_import(
         code_generatable_context,
         true,
@@ -379,6 +387,7 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.call,
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
+        dep.phase,
       )
     }
   }

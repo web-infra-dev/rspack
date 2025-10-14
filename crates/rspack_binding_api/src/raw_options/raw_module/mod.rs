@@ -20,6 +20,7 @@ use rspack_core::{
   ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
+use rspack_loader_lightningcss::lightningcss::traits::Op;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
@@ -304,6 +305,7 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[napi(object)]
@@ -382,6 +384,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,
       jsx: value.jsx,
+      defer_import: value.defer_import,
     }
   }
 }

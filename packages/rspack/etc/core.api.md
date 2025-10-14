@@ -2392,6 +2392,7 @@ export type Experiments = {
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -2450,6 +2451,8 @@ export interface ExperimentsNormalized {
     cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
+    // (undocumented)
+    deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
@@ -3406,6 +3409,7 @@ export type JavascriptParserOptions = {
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)

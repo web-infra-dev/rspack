@@ -671,6 +671,7 @@ export const getRspackOptionsSchema = memoize(() => {
 		"tolerant-no-check"
 	]);
 	const jsx = z.boolean();
+	const deferImport = z.boolean();
 
 	const javascriptParserOptions = z
 		.strictObject({
@@ -691,6 +692,7 @@ export const getRspackOptionsSchema = memoize(() => {
 			worker: worker,
 			overrideStrict: overrideStrict,
 			commonjsMagicComments: commonjsMagicComments,
+			deferImport: deferImport,
 			// #region Not available in webpack yet.
 			requireAsExpression: requireAsExpression,
 			requireDynamic: requireDynamic,
@@ -1447,7 +1449,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			inlineEnum: z.boolean(),
 			typeReexportsPresence: z.boolean(),
 			lazyBarrel: z.boolean(),
-			nativeWatcher: z.boolean()
+			nativeWatcher: z.boolean(),
+			deferImport: z.boolean()
 		})
 		.partial() satisfies z.ZodType<t.Experiments>;
 	//#endregion

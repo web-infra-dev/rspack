@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -52,6 +52,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       parser.last_esm_import_order,
       statement.span().into(),
       DependencyType::EsmExport,
+      ImportPhase::Evaluation,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
       statement.is_star_export(),

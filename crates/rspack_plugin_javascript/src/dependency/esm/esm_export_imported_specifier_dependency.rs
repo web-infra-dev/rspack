@@ -16,7 +16,7 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, GetUsedNameParam, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
@@ -52,6 +52,7 @@ pub struct ESMExportImportedSpecifierDependency {
   source_order: i32,
   pub other_star_exports: Option<Vec<DependencyId>>,
   range: DependencyRange,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
@@ -86,6 +87,7 @@ impl ESMExportImportedSpecifierDependency {
       other_star_exports,
       range,
       export_presence_mode,
+      phase: ImportPhase::Evaluation,
       attributes,
       loc,
       factorize_info: Default::default(),
@@ -1523,7 +1525,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       mode,
       ExportMode::LazyMake | ExportMode::Unused(_) | ExportMode::EmptyStar(_)
     ) {
-      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       dep.add_export_fragments(code_generatable_context, mode);
     }
   }
