@@ -1,6 +1,7 @@
 const prod = process.env.NODE_ENV === "production";
 
-it("should allow to create css modules", done => {
+it("should allow to create css modules", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	import("../css-modules/use-style.js").then(({ default: x }) => {
 		try {
 			expect(x).toEqual({
@@ -27,7 +28,7 @@ it("should allow to create css modules", done => {
 		}
 		done();
 	}, done);
-});
+}));
 
 import * as style from "../css-modules/style.module.css";
 

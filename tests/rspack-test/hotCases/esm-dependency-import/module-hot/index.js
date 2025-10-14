@@ -1,6 +1,7 @@
 import {val} from "./module";
 
-it("should fail accept changes", (done) => {
+it("should fail accept changes", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(val).toBe(1);
 	NEXT(require("../../update")((err) => {
 		try {
@@ -11,4 +12,4 @@ it("should fail accept changes", (done) => {
 			done(e);
 		}
 	}));
-});
+}));

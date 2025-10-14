@@ -1,6 +1,7 @@
 import x from "./module";
 
-it("should have correct this context in accept handler", (done) => {
+it("should have correct this context in accept handler", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(x).toEqual("ok1");
 
     (function() {
@@ -12,4 +13,4 @@ it("should have correct this context in accept handler", (done) => {
     }).call({ ok: true });
 
 	NEXT(require("../../update")(done));
-});
+}));

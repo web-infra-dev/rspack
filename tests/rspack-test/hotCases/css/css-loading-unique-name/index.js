@@ -1,6 +1,7 @@
 import './index.css';
 
-it("css hmr", (done) => {
+it("css hmr", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	if (__webpack_require__.hmrC.css) {
 		expect(document.head.children[0].href).toContain("bundle.css");
 	}
@@ -11,4 +12,4 @@ it("css hmr", (done) => {
 		}
 		done();
 	}));
-});
+}));

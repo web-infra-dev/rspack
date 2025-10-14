@@ -1,6 +1,7 @@
 import module from "./module";
 
-it("should not dispose shared modules when a chunk from a different runtime is removed", done => {
+it("should not dispose shared modules when a chunk from a different runtime is removed", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	import("./chunk1").then(chunk1 => {
 		import.meta.webpackHot.accept("./module", async () => {
 			expect(module).toBe(42);
@@ -11,4 +12,4 @@ it("should not dispose shared modules when a chunk from a different runtime is r
 		});
 		NEXT(require("../../update")(done));
 	}, done);
-});
+}));

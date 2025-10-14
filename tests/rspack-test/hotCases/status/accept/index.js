@@ -1,6 +1,7 @@
 var value = require("./file");
 
-it("should wait until promises returned by status handlers are fulfilled", (done) => {
+it("should wait until promises returned by status handlers are fulfilled", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var handler = jest.fn(status => {
 		var test = jest.fn(() => {
 			expect(module.hot.status()).toBe(status == "dispose" ? "apply" : status);
@@ -24,4 +25,4 @@ it("should wait until promises returned by status handlers are fulfilled", (done
 
 		done();
   }));
-});
+}));

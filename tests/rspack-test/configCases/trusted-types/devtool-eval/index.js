@@ -28,18 +28,16 @@ class TrustedScript {
 }
 
 let globalEval;
-beforeEach(done => {
+beforeEach(() => {
 	globalEval = eval;
 	window.module = {};
 	window.eval = jest.fn(x => {
 		expect(x).toBeInstanceOf(TrustedScript);
 		return globalEval(x._script);
 	});
-	done();
 });
 
-afterEach(done => {
+afterEach(() => {
 	delete window.module;
 	window.eval = globalEval;
-	done();
 });

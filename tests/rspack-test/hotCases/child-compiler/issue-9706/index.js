@@ -1,6 +1,7 @@
 import value, { assets } from "./report-child-assets-loader!./file";
 
-it("should not emit hot updates from child compilers", done => {
+it("should not emit hot updates from child compilers", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
 	expect(assets).toEqual(["test.js"]);
 	module.hot.accept("./report-child-assets-loader!./file", () => {
@@ -9,4 +10,4 @@ it("should not emit hot updates from child compilers", done => {
 		done();
 	});
 	NEXT(require("../../update")(done));
-});
+}));

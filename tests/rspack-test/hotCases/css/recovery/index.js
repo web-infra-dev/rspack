@@ -1,6 +1,7 @@
 import "./main";
 
-it("css recovery", done => {
+it("css recovery", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	NEXT(
 		require("../../update")(
 			err => {
@@ -9,4 +10,4 @@ it("css recovery", done => {
 			},
 		)
 	);
-});
+}));

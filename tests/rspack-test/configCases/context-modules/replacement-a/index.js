@@ -1,4 +1,4 @@
-it("should replace a context with a new resource and reqExp", function(done) {
+it("should replace a context with a new resource and reqExp", () => new Promise(done => {
 	function rqInContext(x, callback) {
 		require([x], function(x) {
 			callback(x);
@@ -8,4 +8,4 @@ it("should replace a context with a new resource and reqExp", function(done) {
 		expect(r).toBe("ok");
 		done();
 	});
-});
+}));

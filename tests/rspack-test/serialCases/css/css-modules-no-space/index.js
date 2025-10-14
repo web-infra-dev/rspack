@@ -1,6 +1,7 @@
 const prod = process.env.NODE_ENV === "production";
 
-it("should allow to create css modules", done => {
+it("should allow to create css modules", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	__non_webpack_require__("./use-style_js.bundle0.js");
 	import("./use-style.js").then(({ default: x }) => {
 		try {
@@ -20,4 +21,4 @@ it("should allow to create css modules", done => {
 		}
 		done();
 	}, done);
-});
+}));

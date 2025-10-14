@@ -3,7 +3,8 @@ import update from "../../update.esm";
 
 import.meta.webpackHot.accept(["./style.module.css"])
 
-it("should work", async function (done) {
+it("should work", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(styles).toMatchObject({ class: "_style_module_css-class" });
 	let firstFullHash = __webpack_hash__;
 
@@ -16,4 +17,4 @@ it("should work", async function (done) {
 			done(e)
 		}
 	}));
-});
+}));

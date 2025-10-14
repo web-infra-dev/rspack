@@ -6,12 +6,15 @@ it("should load a module from dll", function() {
 	expect(require("../0-create-dll/a")).toBe("a");
 });
 
-it("should load an async module from dll", function(done) {
-	require("../0-create-dll/b")().then(function(c) {
-		expect(c).toEqual(nsObj({ default: "c" }));
-		done();
-	}).catch(done);
-});
+it("should load an async module from dll", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
+	require("../0-create-dll/b")()
+		.then(function(c) {
+			expect(c).toEqual(nsObj({ default: "c" }));
+			done();
+		})
+		.catch(done);
+}));
 
 it("should load an ES module from dll (default export)", function() {
 	expect(d).toBe("d");

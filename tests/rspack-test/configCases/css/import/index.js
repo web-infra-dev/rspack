@@ -1,8 +1,8 @@
 import "./style.css";
 
-it("should compile", done => {
+it("should compile", () => {
 	const links = document.getElementsByTagName("link");
-	const css = [];
+	const css = [];``
 
 	// Skip first because import it by default
 	for (const link of links.slice(1)) {
@@ -10,5 +10,4 @@ it("should compile", done => {
 	}
 
 	expect(css).toMatchSnapshot();
-	done();
 });

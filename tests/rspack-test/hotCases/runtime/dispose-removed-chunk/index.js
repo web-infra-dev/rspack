@@ -1,4 +1,5 @@
-it("should dispose a chunk which is removed from bundle", (done) => {
+it("should dispose a chunk which is removed from bundle", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var m1 = require("./module");
 	m1.default.then((x1) => {
 		expect(x1.default).toEqual("version a1");
@@ -23,7 +24,7 @@ it("should dispose a chunk which is removed from bundle", (done) => {
 			}).catch(done);
 		}));
 	}).catch(done);
-});
+}));
 
 if(module.hot) {
 	module.hot.accept("./module");

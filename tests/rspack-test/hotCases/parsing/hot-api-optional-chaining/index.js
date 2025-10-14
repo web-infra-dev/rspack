@@ -1,6 +1,7 @@
 import value from "./a";
 
-it("should run module.hot.accept(…)", function (done) {
+it("should run module.hot.accept(…)", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
 	module?.hot?.accept("./a", function () {});
 	NEXT(
@@ -9,4 +10,4 @@ it("should run module.hot.accept(…)", function (done) {
 			done();
 		})
 	);
-});
+}));

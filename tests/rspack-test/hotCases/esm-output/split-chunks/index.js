@@ -1,7 +1,8 @@
 import update from "../../update.esm";
 import.meta.webpackHot.accept(["./common/shared", "vendor-lib"]);
 
-it("should handle HMR with split chunks in ESM format", (done) => {
+it("should handle HMR with split chunks in ESM format", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	Promise.all([
 		import("./common/shared"),
 		import("vendor-lib")
@@ -9,7 +10,7 @@ it("should handle HMR with split chunks in ESM format", (done) => {
 		expect(commonModule.commonFunction("test")).toBe("Common function processed: test");
 		expect(vendorModule.default.version).toBe("1.0.0");
 	}).catch(done);
-		
+
 	NEXT(update(done, true, () => {
 		// Re-import after HMR update
 		Promise.all([
@@ -21,4 +22,4 @@ it("should handle HMR with split chunks in ESM format", (done) => {
 			done();
 		}).catch(done);
 	}));
-});
+}));

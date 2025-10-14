@@ -2,7 +2,8 @@ const moduleValue = require("./module");
 const external = require("external");
 import referencer from "./referencer";
 
-it("should keep the module hash when usage changes", done => {
+it("should keep the module hash when usage changes", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(moduleValue).toBe("module");
 	expect(external).toBe("external");
 	expect(referencer).toBe(42);
@@ -11,4 +12,4 @@ it("should keep the module hash when usage changes", done => {
 		done();
 	});
 	NEXT(require("../../update")(done));
-});
+}));

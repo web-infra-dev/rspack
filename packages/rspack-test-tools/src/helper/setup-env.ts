@@ -70,17 +70,19 @@ if (process.env.DEBUG_INFO) {
 			} else {
 				it(
 					name,
-					done => {
-						process.stdout.write(`START2 ${name}\n`);
-						return fn(err => {
-							if (err) {
-								process.stdout.write(`DONE FAIL ${name}\n`);
-							} else {
-								process.stdout.write(`DONE OK ${name}\n`);
-							}
-							return done(err);
-						});
-					},
+					() =>
+						new Promise((resolve, reject) => {
+							const done = err => (err ? reject(err) : resolve());
+							process.stdout.write(`START2 ${name}\n`);
+							return fn(err => {
+								if (err) {
+									process.stdout.write(`DONE FAIL ${name}\n`);
+								} else {
+									process.stdout.write(`DONE OK ${name}\n`);
+								}
+								return done(err);
+							});
+						}),
 					timeout
 				);
 			}

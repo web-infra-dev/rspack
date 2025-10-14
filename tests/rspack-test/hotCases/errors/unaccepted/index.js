@@ -1,7 +1,8 @@
 import a from "./a";
 import b from "./b";
 
-it("should abort when module is not accepted", (done) => {
+it("should abort when module is not accepted", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(a).toBe(2);
 	expect(b).toBe(1);
 	NEXT(require("../../update")((err) => {
@@ -11,4 +12,4 @@ it("should abort when module is not accepted", (done) => {
 			done();
 		} catch(e) { done(e); }
 	}));
-});
+}));

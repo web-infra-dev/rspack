@@ -20,11 +20,12 @@ define("named1,named2".split(","), function(named1, named2) {
 		expect(named2).toBe("named2");
 	});
 
-	it("should load the named modules in const array require dependencies", function(done) {
+  it("should load the named modules in const array require dependencies", () => new Promise((resolve, reject) => {
+	  const done = err => (err ? reject(err) : resolve());
 		require("named3,named4".split(","), function (named3, named4) {
 			expect(named3).toBe("named3");
 			expect(named4).toBe("named4");
 			done();
 		});
-	});
+	}));
 });

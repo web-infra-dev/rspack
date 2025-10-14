@@ -1,6 +1,6 @@
 import * as styles from "./style.modules.css";
 
-it(`should work with URLs in CSS`, done => {
+it(`should work with URLs in CSS`, () => new Promise(done => {
 	const links = document.getElementsByTagName("link");
 	const css = [];
 
@@ -12,4 +12,4 @@ it(`should work with URLs in CSS`, done => {
 	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
 	expect(styles).toMatchFileSnapshot(`${__SNAPSHOT__}/classes.txt`);
 	done();
-});
+}));

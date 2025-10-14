@@ -1,4 +1,5 @@
-it(`should generate correct url public path with css filename`, done => {
+it(`should generate correct url public path with css filename`, () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const h1 = document.createElement('h1');
 	document.body.appendChild(h1);
 	const h2 = document.createElement('h2');
@@ -19,4 +20,4 @@ it(`should generate correct url public path with css filename`, done => {
 			done(e);
 		}
 	}, done);
-});
+}));

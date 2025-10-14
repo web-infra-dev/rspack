@@ -1,6 +1,7 @@
 import a from "./loader!./a";
 
-it("should abort when module is not accepted", (done) => {
+it("should abort when module is not accepted", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(a).toBe(1);
 	NEXT(require("../../update")(done, {
 		ignoreErrored: true
@@ -13,7 +14,7 @@ it("should abort when module is not accepted", (done) => {
 			done();
 		}));
 	}));
-});
+}));
 
 if(module.hot) {
 	module.hot.accept("./loader!./a");

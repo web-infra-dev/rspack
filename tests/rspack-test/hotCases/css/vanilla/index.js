@@ -6,7 +6,8 @@ const getFile = name =>
 		"utf-8"
 	);
 
-it("should work", async function (done) {
+it("should work", () => new Promise(async (resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	try {
 		const style = getFile("bundle.css");
 		expect(style).toContain("color: red;");
@@ -33,6 +34,6 @@ it("should work", async function (done) {
 
 		done();
 	}));
-});
+}));
 
 module.hot.accept();

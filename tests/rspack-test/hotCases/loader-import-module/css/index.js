@@ -1,6 +1,7 @@
 import stylesheet from "./stylesheet.css.js";
 
-it("should be able to use build-time code with HMR", done => {
+it("should be able to use build-time code with HMR", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(stylesheet).toBe(
 		'body { background: url("https://test.cases/path/assets/file.png"); color: #f00; }'
 	);
@@ -19,7 +20,7 @@ it("should be able to use build-time code with HMR", done => {
 			);
 		})
 	);
-});
+}));
 
 if (import.meta.webpackHot) {
 	import.meta.webpackHot.accept("./stylesheet.css.js");

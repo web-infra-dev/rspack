@@ -1,6 +1,7 @@
 // @ts-nocheck
 describe("warmup", () => {
-	it("should warmup webpack", done => {
+	it("should warmup webpack", () => new Promise((resolve, reject) => {
+		const done = err => (err ? reject(err) : resolve());
 		let webpack = require("@rspack/core");
 		const END = new Error("end warmup");
 		webpack(
@@ -24,5 +25,5 @@ describe("warmup", () => {
 				}
 			}
 		);
-	}, 300000);
+	}), 300000);
 });
