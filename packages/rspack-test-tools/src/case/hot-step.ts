@@ -10,8 +10,7 @@ import {
 	type ITestEnv,
 	type TCompilerOptions,
 	type TCompilerStats,
-	type TCompilerStatsCompilation,
-	type THotUpdateContext
+	type TCompilerStatsCompilation
 } from "../type";
 import { getCompiler } from "./common";
 import { createHotProcessor, createHotRunner } from "./hot";
@@ -75,8 +74,13 @@ const creators: Map<
 	BasicCaseCreator<ECompilerType.Rspack>
 > = new Map();
 
-function createHotStepProcessor(name: string, target: TTarget) {
-	const processor = createHotProcessor(name, target);
+function createHotStepProcessor(
+	name: string,
+	src: string,
+	temp: string,
+	target: TTarget
+) {
+	const processor = createHotProcessor(name, src, temp, target);
 	const entries: Record<string, string[]> = {};
 	const hashes: string[] = [];
 
@@ -107,9 +111,9 @@ function createHotStepProcessor(name: string, target: TTarget) {
 		const changedFiles: string[] =
 			step === 0
 				? []
-				: processor.hotUpdateContext.changedFiles.map((i: string) =>
-						escapeSep(path.relative(context.getSource(), i))
-					);
+				: processor.updatePlugin
+						.getModifiedFiles()
+						.map((i: string) => escapeSep(path.relative(temp, i)));
 		changedFiles.sort();
 
 		const resultHashes: Record<string, string> = {
@@ -330,7 +334,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			name,
 			"hotUpdateStepChecker",
 			(
-				hotUpdateContext: THotUpdateContext,
+				updateIndex: number,
 				stats: TCompilerStats<ECompilerType.Rspack>,
 				runtime: THotStepRuntimeData
 			) => {
@@ -359,7 +363,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 				matchStepSnapshot(
 					env,
 					context,
-					hotUpdateContext.updateIndex,
+					updateIndex,
 					compilerOptions,
 					statsJson,
 					runtime
@@ -371,7 +375,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			name,
 			"hotUpdateStepErrorChecker",
 			(
-				_: THotUpdateContext,
+				updateIndex: number,
 				stats: TCompilerStats<ECompilerType.Rspack>,
 				runtime: THotStepRuntimeData
 			) => {
@@ -428,8 +432,13 @@ function getCreator(target: TTarget) {
 				clean: true,
 				describe: false,
 				target,
-				steps: ({ name, target }) => [
-					createHotStepProcessor(name, target as TTarget)
+				steps: ({ name, target, src, temp, dist }) => [
+					createHotStepProcessor(
+						name,
+						src,
+						temp || path.resolve(dist, "temp"),
+						target as TTarget
+					)
 				],
 				runner: {
 					key: (context: ITestContext, name: string, file: string) => name,

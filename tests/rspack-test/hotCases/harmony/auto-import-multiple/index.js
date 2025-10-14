@@ -10,7 +10,7 @@ it("should auto-import multiple ES6 imported values on accept", (done) => {
 		outside();
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });
 
 function outside() {

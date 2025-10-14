@@ -10,5 +10,5 @@ it("should only register changes for the changed module", done => {
 		done();
 	});
 
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

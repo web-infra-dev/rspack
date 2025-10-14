@@ -12,11 +12,11 @@ function check() {
 
 it("should not have hot-update.map file when hmr", (done) => {
 	expect(value).toBe(1);
-	NEXT(require("../../update")(done, true, () => {
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 		check()
-		NEXT(require("../../update")(done, true, () => {
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			check()
-			NEXT(require("../../update")(done, true, () => {
+			NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 				check()
 				done();
 			}))

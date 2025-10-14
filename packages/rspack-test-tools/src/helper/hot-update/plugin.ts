@@ -32,9 +32,6 @@ export class HotUpdatePlugin {
 		private tempDir: string
 	) {}
 
-	private getModifiedFiles() {
-		return Object.keys(this.files);
-	}
 	private getContent(filePath: string, index: number) {
 		const contents = this.files[filePath] || [];
 		let content =
@@ -99,13 +96,17 @@ export class HotUpdatePlugin {
 		await this.updateFiles();
 	}
 
+	getModifiedFiles() {
+		return Object.keys(this.files);
+	}
+
 	getUpdateIndex() {
 		return this.updateIndex;
 	}
 	getTotalUpdates() {
 		return Object.values(this.files).reduce((max, item) => {
 			return Math.max(max, item.length);
-		}, 0);
+		}, 1);
 	}
 	async goNext() {
 		this.updateIndex++;

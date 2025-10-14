@@ -3,7 +3,7 @@ it("should create a conditional import when accepted", done => {
 	import("./module")
 		.then(module =>
 			module.test(callback => {
-				NEXT(require("../../update")(done, undefined, callback));
+				NEXT(require("@rspack/test-tools/helper/legacy/update")(done, undefined, callback));
 			}, done)
 		)
 		.catch(done);

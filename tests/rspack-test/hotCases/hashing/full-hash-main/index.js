@@ -18,5 +18,5 @@ it("should generate the main file and change full hash on update", done => {
 		expect(getFile("bundle.js")).not.toContain(hash1);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

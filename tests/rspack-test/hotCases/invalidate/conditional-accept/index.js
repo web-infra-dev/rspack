@@ -3,7 +3,7 @@ import mod1 from "./module1";
 import mod2 from "./module2";
 import { value1, value2 } from "./store";
 
-it("should invalidate a self-accepted module", function(done) {
+it("should invalidate a self-accepted module", function (done) {
 	expect(mod1).toBe(1);
 	expect(mod2).toBe(1);
 	expect(value1).toBe(1);
@@ -20,7 +20,7 @@ it("should invalidate a self-accepted module", function(done) {
 					expect(mod2).toBe(1);
 					expect(value1).toBe(2);
 					expect(value2).toBe(2);
-					NEXT(require("../../update")(done));
+					NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 					break;
 				case 1:
 					step++;
@@ -28,7 +28,7 @@ it("should invalidate a self-accepted module", function(done) {
 					expect(mod2).toBe(2);
 					expect(value1).toBe(2);
 					expect(value2).toBe(2);
-					NEXT(require("../../update")(done));
+					NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 					break;
 				case 2:
 					step++;
@@ -44,5 +44,5 @@ it("should invalidate a self-accepted module", function(done) {
 			}
 		}, 100)
 	);
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

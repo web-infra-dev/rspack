@@ -3,7 +3,7 @@ import m from "./module";
 it("should dispose a chunk which is removed from bundle", (done) => {
 	m.then(a => {
 		expect(a.default).toEqual("a");
-		NEXT(require("../../update")(done, true, () => {
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			m.then(b => {
 				expect(b.default).toEqual("b");
 				done();
@@ -12,6 +12,6 @@ it("should dispose a chunk which is removed from bundle", (done) => {
 	}).catch(done);
 });
 
-if(module.hot) {
+if (module.hot) {
 	module.hot.accept("./module");
 }

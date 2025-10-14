@@ -66,9 +66,6 @@ export class BasicCaseCreator<T extends ECompilerType> {
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
-export function checkChunkRuntime(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
-
-// @public (undocumented)
 export function compareContent(sourceContent: string | false, distContent: string | false, compareOptions: ICompareOptions): TCompareResult;
 
 // @public (undocumented)
@@ -174,32 +171,6 @@ export class DiffComparator {
     constructor(options: IDiffComparatorOptions);
     // (undocumented)
     compare(): Promise<void>;
-}
-
-// @public (undocumented)
-export class DiffHtmlReporter implements ITestReporter<TModuleCompareResult[]> {
-    constructor(options: IDiffHtmlReporterOptions);
-    // (undocumented)
-    failure(id: string): Promise<void>;
-    // (undocumented)
-    increment(id: string, data: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    init(data?: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    output(): Promise<void>;
-}
-
-// @public (undocumented)
-export class DiffStatsReporter implements ITestReporter<TModuleCompareResult[]> {
-    constructor(options: IDiffStatsReporterOptions);
-    // (undocumented)
-    failure(id: string): Promise<void>;
-    // (undocumented)
-    increment(id: string, data: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    init(data?: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    output(): Promise<void>;
 }
 
 // @public (undocumented)
@@ -326,26 +297,6 @@ export interface IDiffComparatorOptions {
     runtimeModules?: TCompareModules;
     // (undocumented)
     webpackDist: string;
-}
-
-// @public (undocumented)
-export interface IDiffHtmlReporterOptions {
-    // (undocumented)
-    dist: string;
-    // (undocumented)
-    ignore?: RegExp;
-}
-
-// @public (undocumented)
-export interface IDiffStatsReporterOptions {
-    // (undocumented)
-    file: string;
-    // (undocumented)
-    footer?: string[];
-    // (undocumented)
-    header?: string[];
-    // (undocumented)
-    report?: boolean;
 }
 
 // @public (undocumented)
@@ -705,12 +656,6 @@ class RspackTestDiff {
 }
 
 // @public (undocumented)
-export type TCaseSummary = Record<TCaseSummaryId, number>;
-
-// @public (undocumented)
-export type TCaseSummaryId = `${TCompilerTypeId}|${TModuleTypeId}|${TDimenTypeId}`;
-
-// @public (undocumented)
 export type TCompareModules = string[] | true;
 
 // @public (undocumented)
@@ -769,9 +714,6 @@ export type TCompilerStats<T> = T extends ECompilerType.Rspack ? Stats : Stats_2
 export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? StatsCompilation : StatsCompilation_2;
 
 // @public (undocumented)
-export type TCompilerTypeId = ECompilerType.Rspack | ECompilerType.Webpack | "common";
-
-// @public (undocumented)
 export type TConfigCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
 
 // @public (undocumented)
@@ -803,9 +745,6 @@ export type TDiffStatsItem = {
     dist: string;
     type: ECompareResultType;
 };
-
-// @public (undocumented)
-export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
 
 // @public (undocumented)
 export type TErrorCaseConfig = {
@@ -916,9 +855,6 @@ export type TModuleCompareResult = TCompareResult & {
 export type TModuleObject = {
     exports: unknown;
 };
-
-// @public (undocumented)
-export type TModuleTypeId = "normal" | "runtime";
 
 // @public (undocumented)
 export type TMultiCompilerCaseConfig = {

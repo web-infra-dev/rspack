@@ -1,5 +1,5 @@
 let value = require("./module.js");
-import {a} from "./lib/a.js";
+import { a } from "./lib/a.js";
 
 it("should compile", (done) => {
 	expect(value).toBe(1);
@@ -9,5 +9,5 @@ it("should compile", (done) => {
 		expect(value).toBe(2);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

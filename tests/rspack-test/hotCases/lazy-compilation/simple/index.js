@@ -10,12 +10,12 @@ it("should compile to lazy imported module", done => {
 		expect(resolved).toBe(undefined);
 		expect(generation).toBe(0);
 		NEXT(
-			require("../../update")(done, true, () => {
+			require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 				promise.then(result => {
 					expect(result).toHaveProperty("default", 42);
 					expect(generation).toBe(0);
 					NEXT(
-						require("../../update")(done, true, () => {
+						require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 							expect(result).toHaveProperty("default", 42);
 							expect(generation).toBe(1);
 							import("./module").then(result => {
@@ -25,7 +25,7 @@ it("should compile to lazy imported module", done => {
 									generation += 10;
 								});
 								NEXT(
-									require("../../update")(done, true, () => {
+									require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 										import("./module").then(result => {
 											expect(result).toHaveProperty("default", 44);
 											expect(generation).toBe(11);

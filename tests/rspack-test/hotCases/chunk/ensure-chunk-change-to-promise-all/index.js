@@ -9,6 +9,6 @@ it("should still works when ensure chunk causes the parent chunk change", (done)
         done()
       })
     });
-    NEXT(require("../../update")(done));
+    NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
   }).catch(done)
 });
