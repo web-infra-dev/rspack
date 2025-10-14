@@ -44,6 +44,7 @@
   "devDependencies": {
     "@rslib/core": "0.15.0",
     "@rspack/core": "workspace:*",
+    "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "@types/yargs": "17.0.33",
     "concat-stream": "^2.0.0",

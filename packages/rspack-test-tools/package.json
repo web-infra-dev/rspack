@@ -15,7 +15,8 @@
     "./package.json": "./package.json",
     "./helper/*": "./dist/helper/*.js",
     "./helper/legacy/*": "./dist/helper/legacy/*.js",
-    "./helper/util/*": "./dist/helper/util/*.js"
+    "./helper/util/*": "./dist/helper/util/*.js",
+    "./jest/*": "./dist/jest/*.js"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
@@ -45,6 +46,7 @@
     "@babel/parser": "7.28.4",
     "@babel/traverse": "7.28.4",
     "@babel/types": "7.28.4",
+    "@jest/reporters": "29.7.0",
     "cross-env": "^10.1.0",
     "csv-to-markdown-table": "1.5.0",
     "deepmerge": "^4.3.1",
@@ -55,6 +57,7 @@
     "iconv-lite": "^0.6.3",
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
+    "jest-environment-node": "29.7.0",
     "jsdom": "^26.1.0",
     "memfs": "4.48.1",
     "loader-utils": "^2.0.4",

@@ -63,7 +63,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.5",
     "@continuous-auth/client": "^2.3.2",
-    "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.52.15",
     "@microsoft/api-extractor-model": "7.31.1",
     "@rslint/core": "0.1.13",
@@ -79,7 +78,6 @@
     "is-ci": "4.1.0",
     "jest": "29.7.0",
     "jest-cli": "29.7.0",
-    "jest-environment-node": "29.7.0",
     "lint-staged": "^15.5.2",
     "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",
