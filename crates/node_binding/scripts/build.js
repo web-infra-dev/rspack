@@ -61,7 +61,7 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
-		if (process.env.BROWSER) {
+		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 			// Strip debug format to reduce wasm size of @rspack/browser
 			rustflags.push("-Zfmt-debug=none");
@@ -138,7 +138,7 @@ async function build() {
 				);
 
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
-				if (process.env.BROWSER) {
+				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
 				}
