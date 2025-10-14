@@ -955,7 +955,7 @@ export class Compilation {
         log: liteTapable.SyncBailHook<[string, LogEntry], true>;
         additionalAssets: any;
         optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-        afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+        afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
         optimizeTree: liteTapable.AsyncSeriesHook<[
         Iterable<Chunk>,
         Iterable<Module>
@@ -965,21 +965,18 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-        chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+        chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
         processWarnings: liteTapable.SyncWaterfallHook<[WebpackError_2[]]>;
-        succeedModule: liteTapable.SyncHook<[Module], void>;
-        stillValidModule: liteTapable.SyncHook<[Module], void>;
-        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
-        Partial<StatsOptions>,
-        CreateStatsOptionsContext
-        ], void>>;
+        succeedModule: liteTapable.SyncHook<[Module]>;
+        stillValidModule: liteTapable.SyncHook<[Module]>;
+        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>;
         statsNormalize: liteTapable.SyncHook<[
         Partial<StatsOptions>,
         CreateStatsOptionsContext
-        ], void>;
-        statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-        statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+        ]>;
+        statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+        statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
         buildModule: liteTapable.SyncHook<[Module]>;
         executeModule: liteTapable.SyncHook<[
         ExecuteModuleArgument,
@@ -988,10 +985,10 @@ export class Compilation {
         additionalTreeRuntimeRequirements: liteTapable.SyncHook<[
         Chunk,
         Set<string>
-        ], void>;
+        ]>;
         runtimeRequirementInTree: liteTapable.HookMap<liteTapable.SyncBailHook<[Chunk, Set<string>], void>>;
-        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-        seal: liteTapable.SyncHook<[], void>;
+        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+        seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
     }>;
@@ -1784,7 +1781,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     open?: string | boolean | Open_2 | (string | Open_2)[] | undefined;
     setupExitSignals?: boolean | undefined;
     client?: boolean | ClientConfiguration | undefined;
-    headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext<Request_2, Response_2> | undefined) => Headers_2) | undefined;
+    headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext | undefined) => Headers_2) | undefined;
     onListening?: ((devServer: Server_4) => void) | undefined;
     setupMiddlewares?: ((middlewares: DevServerMiddleware[], devServer: Server_4) => DevServerMiddleware[]) | undefined;
 };
@@ -3281,9 +3278,9 @@ type IntermediateFileSystem = InputFileSystem & OutputFileSystem & IntermediateF
 type IntermediateFileSystemExtras = {
     rename: (arg0: PathLike, arg1: PathLike, arg2: (arg0: null | NodeJS.ErrnoException) => void) => void;
     mkdirSync: MkdirSync;
-    write: Write<Buffer>;
+    write: Write;
     open: Open;
-    read: Read<Buffer>;
+    read: Read;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
 };
 
