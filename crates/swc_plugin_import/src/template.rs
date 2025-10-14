@@ -23,8 +23,8 @@ enum Value<'a> {
 
 #[derive(Debug, Clone)]
 pub enum TemplateError {
-  UnclosedTag { position: usize },
-  InvalidExpression { expression: String },
+  UnclosedTag { value: String },
+  InvalidTemplateString { value: String },
   UnknownHelper { name: String },
   MissingValue { name: String },
   TemplateNotFound { name: String },
@@ -33,15 +33,15 @@ pub enum TemplateError {
 impl fmt::Display for TemplateError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      TemplateError::UnclosedTag { position } => {
-        write!(f, "Unclosed tag starting at byte {}", position)
+      TemplateError::UnclosedTag { value } => {
+        write!(f, "unclosed tag in template string \"{}\"", value)
       }
-      TemplateError::InvalidExpression { expression } => {
-        write!(f, "Invalid expression `{{{{ {} }}}}`", expression)
+      TemplateError::InvalidTemplateString { value } => {
+        write!(f, "invalid template string `{{{{ {} }}}}`", value)
       }
-      TemplateError::UnknownHelper { name } => write!(f, "Helper not found {}", name),
-      TemplateError::MissingValue { name } => write!(f, "Missing value for `{}`", name),
-      TemplateError::TemplateNotFound { name } => write!(f, "Template `{}` not found", name),
+      TemplateError::UnknownHelper { name } => write!(f, "invalid helper \"{}\"", name),
+      TemplateError::MissingValue { name } => write!(f, "missing value for `{}`", name),
+      TemplateError::TemplateNotFound { name } => write!(f, "template `{}` not found", name),
     }
   }
 }
@@ -60,13 +60,14 @@ impl<'a> Template<'a> {
       }
 
       let tag_start = start + 2;
-      let end = find_subsequence(s, tag_start, "}}")
-        .ok_or(TemplateError::UnclosedTag { position: start })?;
+      let end = find_subsequence(s, tag_start, "}}").ok_or(TemplateError::UnclosedTag {
+        value: input.to_string(),
+      })?;
 
       let expression = input[tag_start..end].trim();
       if expression.is_empty() {
-        return Err(TemplateError::InvalidExpression {
-          expression: expression.to_string(),
+        return Err(TemplateError::InvalidTemplateString {
+          value: expression.to_string(),
         });
       }
 
@@ -127,14 +128,14 @@ impl<'a> Value<'a> {
     let mut parts = expression.split_whitespace();
     let first = parts
       .next()
-      .ok_or_else(|| TemplateError::InvalidExpression {
-        expression: expression.to_string(),
+      .ok_or_else(|| TemplateError::InvalidTemplateString {
+        value: expression.to_string(),
       })?;
     let second = parts.next();
 
     if parts.next().is_some() {
-      return Err(TemplateError::InvalidExpression {
-        expression: expression.to_string(),
+      return Err(TemplateError::InvalidTemplateString {
+        value: expression.to_string(),
       });
     }
 
@@ -275,7 +276,7 @@ mod tests {
     let result = Template::parse("{{ }}");
     assert!(matches!(
       result,
-      Err(TemplateError::InvalidExpression { .. })
+      Err(TemplateError::InvalidTemplateString { .. })
     ));
   }
 }
