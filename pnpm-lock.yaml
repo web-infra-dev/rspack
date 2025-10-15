@@ -19,9 +19,6 @@ importers:
       '@biomejs/biome':
         specifier: ^2.2.6
         version: 2.2.6
-      '@continuous-auth/client':
-        specifier: ^2.3.2
-        version: 2.3.2
       '@microsoft/api-extractor':
         specifier: 7.52.15
         version: 7.52.15(@types/node@20.19.21)
@@ -1616,9 +1613,6 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0
       vitest: '>=1.2.2'
-
-  '@continuous-auth/client@2.3.2':
-    resolution: {integrity: sha512-/QG87OYqFbNkM7fxEf53QN6KKvXQF4SyBp4eQk4uCM2O24dNj2fBfEUNS2NYgEoGCtu9YHGn3dcCLrgNAcBaGw==}
 
   '@cspell/cspell-bundled-dicts@9.2.1':
     resolution: {integrity: sha512-85gHoZh3rgZ/EqrHIr1/I4OLO53fWNp6JZCqCdgaT7e3sMDaOOG6HoSxCvOnVspXNIf/1ZbfTCDMx9x79Xq0AQ==}
@@ -9309,12 +9303,6 @@ snapshots:
       '@codspeed/core': 4.0.1
       vite: 7.1.7(@types/node@20.19.21)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.93.2)(sass@1.93.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)
       vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.21)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.93.2)(sass@1.93.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)
-    transitivePeerDependencies:
-      - debug
-
-  '@continuous-auth/client@2.3.2':
-    dependencies:
-      axios: 1.12.2
     transitivePeerDependencies:
       - debug
 

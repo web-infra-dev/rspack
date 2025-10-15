@@ -62,7 +62,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",
-    "@continuous-auth/client": "^2.3.2",
     "@microsoft/api-extractor": "7.52.15",
     "@microsoft/api-extractor-model": "7.31.1",
     "@rslint/core": "0.1.13",
