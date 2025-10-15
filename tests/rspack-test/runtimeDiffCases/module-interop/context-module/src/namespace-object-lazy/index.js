@@ -1,11 +1,15 @@
-it("should receive a namespace object when importing commonjs", async function() {
-	const result = await import("./cjs");
-	expect(result).toEqual(nsObj({ named: "named", default: { named: "named", default: "default" } }));
+it("should receive a namespace object when importing commonjs", function(done) {
+	import("./cjs").then(function(result) {
+		expect(result).toEqual(nsObj({ named: "named", default: { named: "named", default: "default" } }));
+		done();
+	}).catch(done);
 });
 
-it("should receive a namespace object when importing commonjs with __esModule", async function() {
-	const result = await import("./cjs-esmodule");
-	expect(result).toEqual({ __esModule: true, named: "named", default: "default" });
+it("should receive a namespace object when importing commonjs with __esModule", function(done) {
+	import("./cjs-esmodule").then(function(result) {
+		expect(result).toEqual({ __esModule: true, named: "named", default: "default" });
+		done();
+	}).catch(done);
 });
 
 function contextCJS(name) {
