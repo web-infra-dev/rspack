@@ -25,7 +25,7 @@ async fn handle_html_plugin_assets(
   let normalized_integrities = get_normalized_integrities(compilation_integrities.clone()).await;
 
   let js_integrity = join_all(data.assets.js.iter().map(|asset| {
-    get_integrity_chechsum_for_asset(
+    get_integrity_checksum_for_asset(
       asset,
       compilation_integrities.clone(),
       &normalized_integrities,
@@ -34,7 +34,7 @@ async fn handle_html_plugin_assets(
   .await;
 
   let css_integrity = join_all(data.assets.css.iter().map(|asset| {
-    get_integrity_chechsum_for_asset(
+    get_integrity_checksum_for_asset(
       asset,
       compilation_integrities.clone(),
       &normalized_integrities,
@@ -172,7 +172,7 @@ async fn process_tag(
 
   let src = get_asset_path(&tag_src, public_path);
   if let Some(integrity) =
-    get_integrity_chechsum_for_asset(&src, integrities, normalized_integrities).await
+    get_integrity_checksum_for_asset(&src, integrities, normalized_integrities).await
   {
     return Ok(Some(integrity));
   }
@@ -200,7 +200,7 @@ fn get_asset_path(src: &str, public_path: &str) -> String {
     .unwrap_or_else(|| decoded_src.to_string())
 }
 
-async fn get_integrity_chechsum_for_asset(
+async fn get_integrity_checksum_for_asset(
   src: &str,
   integrities: Arc<RwLock<HashMap<String, String>>>,
   normalized_integrities: &HashMap<String, String>,

@@ -187,7 +187,7 @@ impl Module {
       let mut reference: Reference<Module> =
         unsafe { Reference::from_napi_value(raw_env, this.raw())? };
       let new_build_info = BuildInfo::new(reference.downgrade());
-      let mut new_instrance = new_build_info.get_jsobject(env)?;
+      let mut new_instance = new_build_info.get_jsobject(env)?;
 
       let names = input_object.get_all_property_names(
         napi::KeyCollectionMode::OwnOnly,
@@ -205,7 +205,7 @@ impl Module {
             continue;
           } else {
             let value = input_object.get_property::<Unknown, Unknown>(name)?;
-            new_instrance.set_property::<Unknown, Unknown>(name, value)?;
+            new_instance.set_property::<Unknown, Unknown>(name, value)?;
           }
         }
       }
@@ -216,9 +216,9 @@ impl Module {
           let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
           JsSymbol::from_napi_value(env.raw(), napi_val)
         };
-        this.set_property(sym, new_instrance)
+        this.set_property(sym, new_instance)
       })?;
-      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instrance)?);
+      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
       Ok(())
     }
 
