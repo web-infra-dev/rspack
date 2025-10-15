@@ -489,9 +489,6 @@ importers:
       fs-extra:
         specifier: ^11.3.2
         version: 11.3.2
-      glob:
-        specifier: ^11.0.3
-        version: 11.0.3
       graceful-fs:
         specifier: ^4.2.11
         version: 4.2.11(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
@@ -510,9 +507,6 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
-      loader-utils:
-        specifier: ^2.0.4
-        version: 2.0.4
       memfs:
         specifier: 4.48.1
         version: 4.48.1
@@ -541,30 +535,9 @@ importers:
         specifier: 3.3.3
         version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
     devDependencies:
-      '@rspack/binding-testing':
-        specifier: workspace:*
-        version: link:../../crates/rspack_binding_builder_testing
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../rspack-cli
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
-      '@rspack/plugin-preact-refresh':
-        specifier: 1.1.3
-        version: 1.1.3(@prefresh/core@1.5.7(preact@10.27.2))(@prefresh/utils@1.2.1)
-      '@rspack/plugin-react-refresh':
-        specifier: ^1.5.1
-        version: 1.5.1(react-refresh@0.17.0)
-      '@rspack/test-tools':
-        specifier: workspace:*
-        version: 'link:'
-      '@swc/helpers':
-        specifier: 0.5.17
-        version: 0.5.17
-      '@swc/plugin-remove-console':
-        specifier: ^9.1.0
-        version: 9.1.0
       '@types/babel__generator':
         specifier: 7.27.0
         version: 7.27.0
@@ -577,90 +550,15 @@ importers:
       '@types/jsdom':
         specifier: ^21.1.7
         version: 21.1.7
-      '@types/react':
-        specifier: ^19.1.13
-        version: 19.1.15
-      '@types/react-dom':
-        specifier: ^19.1.9
-        version: 19.1.9(@types/react@19.1.15)
-      '@webdiscus/pug-loader':
-        specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.18.3)(pug@3.0.3)(webpack@5.99.9)
-      acorn:
-        specifier: ^8.15.0
-        version: 8.15.0
-      babel-loader:
-        specifier: ^10.0.0
-        version: 10.0.0(@babel/core@7.28.4)(webpack@5.99.9)
-      babel-plugin-import:
-        specifier: ^1.13.8
-        version: 1.13.8
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
-      core-js:
-        specifier: 3.45.1
-        version: 3.45.1
-      css-loader:
-        specifier: ^7.1.2
-        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.99.9)
-      exports-loader:
-        specifier: ^5.0.0
-        version: 5.0.0(webpack@5.99.9)
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0(webpack@5.99.9)
-      html-loader:
-        specifier: ^5.1.0
-        version: 5.1.0(webpack@5.99.9)
-      html-webpack-plugin:
-        specifier: ^5.6.4
-        version: 5.6.4(@rspack/core@packages+rspack)(webpack@5.99.9)
-      less-loader:
-        specifier: ^12.3.0
-        version: 12.3.0(@rspack/core@packages+rspack)(less@4.4.2)(webpack@5.99.9)
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      postcss-loader:
-        specifier: ^8.2.0
-        version: 8.2.0(@rspack/core@packages+rspack)(postcss@8.5.6)(typescript@5.9.3)(webpack@5.99.9)
-      postcss-pxtorem:
-        specifier: ^6.1.0
-        version: 6.1.0(postcss@8.5.6)
-      raw-loader:
-        specifier: ^4.0.2
-        version: 4.0.2(webpack@5.99.9)
-      react:
-        specifier: ^19.1.1
-        version: 19.1.1
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.1.1(react@19.1.1)
-      react-refresh:
-        specifier: ^0.17.0
-        version: 0.17.0
-      sass-loader:
-        specifier: ^16.0.5
-        version: 16.0.5(@rspack/core@packages+rspack)(sass-embedded@1.93.2)(sass@1.93.2)(webpack@5.99.9)
-      source-map-loader:
-        specifier: ^5.0.0
-        version: 5.0.0(webpack@5.99.9)
-      style-loader:
-        specifier: ^4.0.0
-        version: 4.0.0(webpack@5.99.9)
       terser:
         specifier: 5.43.1
         version: 5.43.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      wast-loader:
-        specifier: ^1.14.1
-        version: 1.14.1
-      worker-rspack-loader:
-        specifier: ^3.1.2
-        version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.99.9)
 
   scripts:
     devDependencies:
