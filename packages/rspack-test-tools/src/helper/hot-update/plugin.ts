@@ -83,10 +83,10 @@ export class HotUpdatePlugin {
 		this.initialized = true;
 		try {
 			await fs.rmdir(this.tempDir, { recursive: true });
+			await fs.cp(this.projectDir, this.tempDir, { recursive: true });
 		} catch (_e) {
 			// empty
 		}
-		await fs.cp(this.projectDir, this.tempDir, { recursive: true });
 		await loopFile(this.tempDir, (filePath, content) => {
 			const contents = content.split(/---+\r?\n/g);
 			if (contents.length > 1) {

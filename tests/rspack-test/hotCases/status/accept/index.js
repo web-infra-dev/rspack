@@ -1,7 +1,6 @@
 var value = require("./file");
 
-it("should wait until promises returned by status handlers are fulfilled", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should wait until promises returned by status handlers are fulfilled", async () => {
 	var handler = jest.fn(status => {
 		var test = jest.fn(() => {
 			expect(module.hot.status()).toBe(status == "dispose" ? "apply" : status);
@@ -13,16 +12,13 @@ it("should wait until promises returned by status handlers are fulfilled", () =>
 		return promise;
 	});
 	module.hot.addStatusHandler(handler);
-	module.hot.accept("./file", () => {
-		value = require("./file");
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, undefined, () => {
-		expect(handler.mock.calls).toStrictEqual([['check'], ['prepare'], ['dispose'], ['apply'], ['idle']]);
-		for (let result of handler.mock.results)
-			expect(result.value.test).toHaveBeenCalledTimes(1);
+	await NEXT_HMR();
+	expect(handler.mock.calls).toStrictEqual([['check'], ['prepare'], ['dispose'], ['apply'], ['idle']]);
+	for (let result of handler.mock.results)
+		expect(result.value.test).toHaveBeenCalledTimes(1);
+	expect(module.hot.status()).toBe("idle");
+});
 
-		expect(module.hot.status()).toBe("idle");
-
-		done();
-	}));
-}));
+module.hot.accept("./file", () => {
+	value = require("./file");
+});

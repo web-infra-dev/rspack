@@ -99,7 +99,6 @@ Accepted Callback:
 - ./data.json
 - ./data.json
 - ./module1.js
-- ./module2.js
 
 Disposed Callback:
 - ./module1.js

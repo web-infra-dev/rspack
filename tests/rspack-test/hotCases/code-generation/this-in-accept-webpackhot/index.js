@@ -1,16 +1,15 @@
 import x from "./module";
 
-it("should have correct this context", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should have correct this context in accept handler", async () => {
 	expect(x).toEqual("ok1");
-
+	let value;
 	(function () {
 		import.meta.webpackHot.accept("./module", () => {
-			expect(x).toEqual("ok2");
-			expect(this).toEqual({ ok: true });
-			done();
+			value = this;
 		});
 	}).call({ ok: true });
 
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+	await NEXT_HMR();
+	expect(x).toEqual("ok2");
+	expect(value).toEqual({ ok: true });
+});
