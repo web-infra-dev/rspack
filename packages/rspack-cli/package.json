@@ -42,7 +42,7 @@
     "pirates": "^4.0.7"
   },
   "devDependencies": {
-    "@rslib/core": "0.15.0",
+    "@rslib/core": "0.15.1",
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",
