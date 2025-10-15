@@ -559,6 +559,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      wast-loader:
+        specifier: ^1.14.1
+        version: 1.14.1
 
   scripts:
     devDependencies:
