@@ -13,9 +13,9 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": true,
+    "cpu": ["wasm32"]
   },
-  "cpu": ["wasm32"],
   "files": [
     "rspack.wasm32-wasi.wasm",
     "rspack.wasi.cjs",
