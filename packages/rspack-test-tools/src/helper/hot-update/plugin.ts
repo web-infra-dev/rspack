@@ -1,6 +1,7 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { Compiler } from "@rspack/core";
+import fs from "fs-extra";
+import { rimrafSync } from "rimraf";
 
 async function loopFile(
 	dir: string,
@@ -81,12 +82,15 @@ export class HotUpdatePlugin {
 			return;
 		}
 		this.initialized = true;
+		rimrafSync(this.tempDir);
 		try {
-			await fs.rmdir(this.tempDir, { recursive: true });
-			await fs.cp(this.projectDir, this.tempDir, { recursive: true });
-		} catch (_e) {
-			// empty
+			fs.existsSync(this.tempDir);
+			fs.copySync(this.projectDir, this.tempDir);
+		} catch (e) {
+			console.error(this.tempDir, this.projectDir, e);
+			throw e;
 		}
+
 		await loopFile(this.tempDir, (filePath, content) => {
 			const contents = content.split(/---+\r?\n/g);
 			if (contents.length > 1) {
