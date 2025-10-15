@@ -727,7 +727,7 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
-		get: () => (cacheable: boolean) => {
+		get: () => (cacheable?: boolean) => {
 			if (cacheable === false) {
 				context.cacheable = cacheable;
 			}

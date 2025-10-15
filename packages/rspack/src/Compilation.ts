@@ -218,7 +218,7 @@ export class Compilation {
 		log: liteTapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
 		optimizeTree: liteTapable.AsyncSeriesHook<
 			[Iterable<Chunk>, Iterable<Module>]
 		>;
@@ -227,38 +227,33 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+		chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
 		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
-		succeedModule: liteTapable.SyncHook<[Module], void>;
-		stillValidModule: liteTapable.SyncHook<[Module], void>;
+		succeedModule: liteTapable.SyncHook<[Module]>;
+		stillValidModule: liteTapable.SyncHook<[Module]>;
 
 		statsPreset: liteTapable.HookMap<
-			liteTapable.SyncHook<
-				[Partial<StatsOptions>, CreateStatsOptionsContext],
-				void
-			>
+			liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>
 		>;
 		statsNormalize: liteTapable.SyncHook<
-			[Partial<StatsOptions>, CreateStatsOptionsContext],
-			void
+			[Partial<StatsOptions>, CreateStatsOptionsContext]
 		>;
-		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
 
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
-			[Chunk, Set<string>],
-			void
+			[Chunk, Set<string>]
 		>;
 		runtimeRequirementInTree: liteTapable.HookMap<
 			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-		seal: liteTapable.SyncHook<[], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+		seal: liteTapable.SyncHook<[]>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
 	}>;
@@ -1237,9 +1232,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.entries();
 	}
 
-	get [Symbol.toStringTag](): string {
-		return "Map";
-	}
+	readonly [Symbol.toStringTag] = "Map";
 
 	has(key: string): boolean {
 		return this.#data.has(key);
