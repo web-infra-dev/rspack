@@ -170,7 +170,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						cb(e);
 					});
 				},
-				options.timeout || 10000
+				options.timeout || 300000
 			);
 
 			chain = chain.then(
