@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
   JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
@@ -57,9 +59,9 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   compiler
     .transform(
       source,
-      Some(swc_core::common::FileName::Real(
+      Some(Arc::new(swc_core::common::FileName::Real(
         options.filename.clone().into(),
-      )),
+      ))),
       options,
       Some(module_source_map_kind),
       |_| {},

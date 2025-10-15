@@ -1,2 +1,3 @@
 mod plugin;
-mod server_component_loader;
+
+pub use plugin::ReactServerComponentPlugin;
