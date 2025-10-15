@@ -1,7 +1,6 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "@actions/core";
-import { getOtp } from "@continuous-auth/client";
 import { parse } from "semver";
 
 import { getLastVersion, getPkgName } from "./version.mjs";
@@ -38,11 +37,7 @@ export async function publish_handler(mode, options) {
 		);
 	}
 
-	if (options.otp) {
-		await otpPublish(options);
-	} else {
-		await normalPublish(options);
-	}
+	await publish(options);
 
 	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);
@@ -63,28 +58,8 @@ export async function publish_handler(mode, options) {
 	}
 }
 
-async function normalPublish(options) {
+async function publish(options) {
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
 		options.tag
 	} --no-git-checks --provenance`;
-}
-
-async function otpPublish(options) {
-	let tries = 4;
-
-	while (tries > 0) {
-		try {
-			const otp = await getOtp();
-			console.log("opt:", `${otp.slice(0, 2)}****`);
-			await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
-				options.tag
-			} --no-git-checks --provenance --otp ${otp}`;
-			return;
-		} catch (e) {
-			console.error(e);
-			tries--;
-		}
-	}
-
-	throw new Error("Failed to publish with OTP");
 }
