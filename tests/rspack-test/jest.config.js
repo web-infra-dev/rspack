@@ -17,6 +17,7 @@ const wasmConfig = process.env.WASM && {
 		"StatsOutput.test.js",
 
 		// Skip temporarily and should investigate in the future
+		"RuntimeDiff.difftest.js",
 		"HotSnapshot.hottest.js",
 		"Defaults.test.js",
 		"Cache.test.js",
