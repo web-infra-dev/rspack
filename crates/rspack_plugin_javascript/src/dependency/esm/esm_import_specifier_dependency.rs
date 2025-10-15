@@ -339,6 +339,7 @@ impl ESMImportSpecifierDependencyTemplate {
       compilation,
       runtime,
       concatenation_scope,
+      module,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -375,7 +376,13 @@ impl ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
-      let import_var = compilation.get_import_var(&dep.id, *runtime);
+      let import_var = compilation.get_import_var(
+        module.identifier(),
+        connection.map(|c| *c.module_identifier()),
+        dep.user_request(),
+        dep.phase,
+        *runtime,
+      );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       export_from_import(
         code_generatable_context,

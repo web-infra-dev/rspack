@@ -232,7 +232,7 @@ fn compute_affected_modules_with_module_graph(
 ) -> IdentifierSet {
   fn reduce_affect_type(
     module_graph: &ModuleGraph,
-    connections: &[ModuleGraphConnection],
+    connections: &[&ModuleGraphConnection],
   ) -> AffectType {
     let mut affected = AffectType::False;
     for connection in connections {

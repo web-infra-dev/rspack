@@ -159,7 +159,13 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     RuntimeCondition::Boolean(true)
   };
 
-  let import_var = compilation.get_import_var(module_dependency.id(), *runtime);
+  let import_var = compilation.get_import_var(
+    module.identifier(),
+    ref_module.copied(),
+    module_dependency.user_request(),
+    phase,
+    *runtime,
+  );
   let content: (String, String) = import_statement(
     *module,
     compilation,
@@ -181,7 +187,14 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_key = ref_module
     .map(|i| i.as_str())
     .unwrap_or(module_dependency.request());
-  let key = format!("ESM import {module_key}");
+  let key = format!(
+    "{}ESM import {module_key}",
+    match phase {
+      ImportPhase::Evaluation => "",
+      ImportPhase::Source => "",
+      ImportPhase::Defer => "deferred ",
+    }
+  );
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map()
@@ -490,7 +503,7 @@ fn find_type_exports_from_outgoings(
       .expect("should have dependency");
     if !matches!(
       dependency.dependency_type(),
-      DependencyType::EsmImport | DependencyType::EsmExport
+      DependencyType::EsmImport | DependencyType::EsmExportImport
     ) {
       continue;
     }

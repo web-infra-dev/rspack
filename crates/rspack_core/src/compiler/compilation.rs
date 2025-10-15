@@ -41,7 +41,7 @@ use crate::{
   CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
   DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  Filename, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  Filename, ImportPhase, ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
   ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
   RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
@@ -586,20 +586,15 @@ impl Compilation {
   }
 
   // TODO move out from compilation
-  pub fn get_import_var(&self, dep_id: &DependencyId, runtime: Option<&RuntimeSpec>) -> String {
-    let module_graph = self.get_module_graph();
-    let parent_module_id = module_graph
-      .get_parent_module(dep_id)
-      .expect("should have parent module");
-    let module_id = module_graph
-      .module_identifier_by_dependency_id(dep_id)
-      .copied();
-    let module_dep = module_graph
-      .dependency_by_id(dep_id)
-      .and_then(|dep| dep.as_module_dependency())
-      .expect("should be module dependency");
-    let user_request = to_identifier(module_dep.user_request());
-    let mut runtime_map = self.import_var_map.entry(*parent_module_id).or_default();
+  pub fn get_import_var(
+    &self,
+    module: ModuleIdentifier,
+    target_module: Option<ModuleIdentifier>,
+    user_request: &str,
+    phase: ImportPhase,
+    runtime: Option<&RuntimeSpec>,
+  ) -> String {
+    let mut runtime_map = self.import_var_map.entry(module).or_default();
     let import_var_map_of_module = runtime_map
       .entry(
         runtime
@@ -609,13 +604,18 @@ impl Compilation {
       .or_default();
     let len = import_var_map_of_module.len();
 
-    match import_var_map_of_module.entry(module_id) {
+    match import_var_map_of_module.entry((target_module, phase)) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
         let mut b = itoa::Buffer::new();
         let import_var = format!(
-          "{}__WEBPACK_IMPORTED_MODULE_{}__",
-          user_request,
+          "{}__WEBPACK_{}IMPORTED_MODULE_{}__",
+          to_identifier(user_request),
+          match phase {
+            ImportPhase::Evaluation => "",
+            ImportPhase::Source => "",
+            ImportPhase::Defer => "DEFERRED_",
+          },
           b.format(len)
         );
         vac.insert(import_var.clone());

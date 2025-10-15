@@ -51,7 +51,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       source.clone(),
       parser.last_esm_import_order,
       statement.span().into(),
-      DependencyType::EsmExport,
+      DependencyType::EsmExportImport,
       ImportPhase::Evaluation,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),

@@ -1,12 +1,12 @@
 use itertools::Itertools;
-use rspack_util::json_stringify;
+use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
+  DependencyId, DependencyType, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
   NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
@@ -433,6 +433,69 @@ pub fn module_id(
   }
 }
 
+fn get_outgoing_async_modules(
+  compilation: &Compilation,
+  module: &dyn Module,
+) -> FxIndexSet<ModuleId> {
+  fn helper(
+    compilation: &Compilation,
+    mg: &ModuleGraph,
+    module: &dyn Module,
+    set: &mut FxIndexSet<ModuleId>,
+    visited: &mut HashSet<ModuleIdentifier>,
+  ) {
+    let module_identifier = module.identifier();
+    if !ModuleGraph::is_async(compilation, &module_identifier) {
+      return;
+    }
+    if !visited.insert(module_identifier) {
+      return;
+    }
+    if module.build_meta().has_top_level_await {
+      set.insert(
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+          .expect("should have module_id")
+          .clone(),
+      );
+    } else {
+      for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
+        let is_esm = connections.iter().any(|connection| {
+          mg.dependency_by_id(&connection.dependency_id)
+            .map(|dep| {
+              matches!(
+                dep.dependency_type(),
+                DependencyType::EsmImport | DependencyType::EsmExportImport
+              )
+            })
+            .unwrap_or_default()
+        });
+        if is_esm {
+          helper(
+            compilation,
+            mg,
+            &**mg
+              .module_by_identifier(&module)
+              .expect("should have module"),
+            set,
+            visited,
+          );
+        }
+      }
+    }
+  }
+
+  let mut set = FxIndexSet::default();
+  let mut visited = HashSet::default();
+  helper(
+    compilation,
+    &compilation.get_module_graph(),
+    module,
+    &mut set,
+    &mut visited,
+  );
+  set
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn import_statement(
   module: &dyn Module,
@@ -444,11 +507,8 @@ pub fn import_statement(
   phase: ImportPhase,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  if compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(id)
-    .is_none()
-  {
+  let mg = compilation.get_module_graph();
+  let Some(target_module) = mg.get_module_by_dependency_id(id) else {
     return (missing_module_statement(request), String::new());
   };
 
@@ -459,16 +519,17 @@ pub fn import_statement(
   let opt_declaration = if update { "" } else { "var " };
 
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    &mg,
     &compilation.module_graph_cache_artifact,
     id,
     &module.identifier(),
   );
 
   if matches!(phase, ImportPhase::Defer) && !module.build_meta().has_top_level_await {
+    let async_deps = get_outgoing_async_modules(compilation, &**target_module);
     let import_content = format!(
       "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",
-      get_property_accessed_deferred_module(exports_type, &module_id_expr)
+      get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
     );
     return (import_content, String::new());
   }
@@ -873,9 +934,10 @@ pub fn define_es_module_flag_statement(
 pub fn get_property_accessed_deferred_module(
   exports_type: ExportsType,
   module_id_expr: &str,
+  async_deps: FxIndexSet<ModuleId>,
 ) -> String {
-  let is_async = false;
-  let mut content = "{\n  get a() {\n    ".to_string();
+  let is_async = !async_deps.is_empty();
+  let mut content = "{\nget a() {\n  ".to_string();
   let namespace_or_dynamic = matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
   if namespace_or_dynamic {
     content += "var exports = ";
@@ -889,20 +951,21 @@ pub fn get_property_accessed_deferred_module(
     content += RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL.name();
     content += "]";
   }
-  content += ";\n    ";
+  content += ";\n  ";
   if namespace_or_dynamic {
     if matches!(exports_type, ExportsType::Dynamic) {
       content += "if (exports.__esModule) ";
     }
-    content += "Object.defineProperty(this, \"a\", { value: exports });\n    ";
-    content += "return exports;\n  ";
+    content += "Object.defineProperty(this, \"a\", { value: exports });\n  ";
+    content += "return exports;\n";
   }
   content += "},\n";
   if is_async {
-    content += "  [";
+    content += "[";
     content += RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL.name();
     content += "]: ";
-    content += "[]";
+    content += &json_stringify(&async_deps);
+    content += ",\n";
   }
   content += "}";
   content

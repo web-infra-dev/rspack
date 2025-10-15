@@ -1072,7 +1072,11 @@ impl ModuleConcatenationPlugin {
           })
           .collect::<Vec<_>>();
 
-        let incomings = module_graph.get_incoming_connections_by_origin_module(&module_id);
+        let incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = module_graph
+          .get_incoming_connections_by_origin_module(&module_id)
+          .into_iter()
+          .map(|(k, v)| (k, v.into_iter().cloned().collect()))
+          .collect();
         let mut active_incomings = HashMap::default();
         for connection in incomings.values().flatten() {
           active_incomings.insert(

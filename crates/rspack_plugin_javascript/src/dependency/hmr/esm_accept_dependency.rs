@@ -76,15 +76,19 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 
     let mut content = String::default();
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
-      let dependency = module_graph.dependency_by_id(id);
-      let runtime_condition =
-        match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
-          Some(ref_module) => {
-            import_emitted_runtime::get_runtime(&module.identifier(), &ref_module.identifier())
-          }
-          None => RuntimeCondition::Boolean(false),
-        };
+      let dependency = module_graph
+        .dependency_by_id(id)
+        .expect("should have dependency");
+      let ref_module = module_graph.get_module_by_dependency_id(dependency.id());
+      let ref_module_identifier = ref_module.map(|m| m.identifier());
+      let runtime_condition = match ref_module_identifier {
+        Some(ref_module_identifier) => {
+          import_emitted_runtime::get_runtime(&module_identifier, &ref_module_identifier)
+        }
+        None => RuntimeCondition::Boolean(false),
+      };
 
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         return;
@@ -99,34 +103,35 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         )
       };
 
-      let request = if let Some(dependency) = dependency.and_then(|d| d.as_module_dependency()) {
-        Some(dependency.request())
+      let module_dependency = dependency
+        .as_module_dependency()
+        .expect("should be module dependency");
+      let phase = ImportPhase::Evaluation;
+      let import_var = compilation.get_import_var(
+        module_identifier,
+        ref_module_identifier,
+        module_dependency.user_request(),
+        phase,
+        *runtime,
+      );
+      let stmts = import_statement(
+        *module,
+        compilation,
+        runtime_requirements,
+        id,
+        &import_var,
+        module_dependency.request(),
+        phase,
+        true,
+      );
+      if condition == "true" {
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
       } else {
-        dependency
-          .and_then(|d| d.as_context_dependency())
-          .map(|d| d.request())
-      };
-      if let Some(request) = request {
-        let import_var = compilation.get_import_var(id, *runtime);
-        let stmts = import_statement(
-          *module,
-          compilation,
-          runtime_requirements,
-          id,
-          &import_var,
-          request,
-          ImportPhase::Evaluation,
-          true,
-        );
-        if condition == "true" {
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-        } else {
-          content.push_str(format!("if ({condition}) {{\n").as_str());
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-          content.push_str("\n}\n");
-        }
+        content.push_str(format!("if ({condition}) {{\n").as_str());
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
+        content.push_str("\n}\n");
       }
     });
 

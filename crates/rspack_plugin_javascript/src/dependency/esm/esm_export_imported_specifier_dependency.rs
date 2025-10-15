@@ -506,7 +506,14 @@ impl ESMExportImportedSpecifierDependency {
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
     let module_identifier = module.identifier();
-    let import_var = compilation.get_import_var(&self.id, *runtime);
+    let target_module_identifier = mg.module_identifier_by_dependency_id(&self.id);
+    let import_var = compilation.get_import_var(
+      module_identifier,
+      target_module_identifier.copied(),
+      self.user_request(),
+      self.phase,
+      *runtime,
+    );
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
         fragments.push(
