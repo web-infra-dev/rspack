@@ -20,7 +20,7 @@ it("should work", async function (done) {
 		});
 	});
 
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });
 
 module.hot.accept();

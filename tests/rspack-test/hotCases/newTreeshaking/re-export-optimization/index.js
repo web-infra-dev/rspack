@@ -8,7 +8,7 @@ module.hot.accept('./entry', () => {
 it("should auto-reexport an ES6 imported value on accept with newTreeshaking", async function (done) {
 	expect(v).toBe("foo");
 	NEXT(
-		require("../../update")(done, true, () => {
+		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			expect(v).toBe("foobar");
 			done();
 		})

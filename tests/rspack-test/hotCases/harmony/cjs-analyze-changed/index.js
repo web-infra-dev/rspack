@@ -6,5 +6,5 @@ it("should generate code correctly when outgoing module changes its exports type
 		expect(value).toBe(1);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

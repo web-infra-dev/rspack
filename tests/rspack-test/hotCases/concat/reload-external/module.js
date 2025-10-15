@@ -6,11 +6,11 @@ it("should allow to hot replace modules in a ConcatenatedModule", (done) => {
 	expect(value2).toBe(10);
 	module.hot.accept("./a", () => {
 		expect(value1).toBe(2);
-		NEXT(require("../../update")(done));
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 	});
 	module.hot.accept("./b", () => {
 		expect(value2).toBe(20);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

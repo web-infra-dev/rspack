@@ -1,5 +1,4 @@
 const { DefinePlugin } = require("@rspack/core");
-const currentWatchStep = require("../../../helpers/currentWatchStep");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

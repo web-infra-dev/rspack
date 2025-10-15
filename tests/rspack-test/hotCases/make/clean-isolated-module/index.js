@@ -6,5 +6,5 @@ it("should make clean isolated module works", done => {
 		expect(value).toBe("a");
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

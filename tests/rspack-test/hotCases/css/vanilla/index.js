@@ -10,7 +10,7 @@ it("should work", async function (done) {
 	try {
 		const style = getFile("bundle.css");
 		expect(style).toContain("color: red;");
-	} catch (e) {}
+	} catch (e) { }
 
 
 	await import("./style2.css");
@@ -18,18 +18,18 @@ it("should work", async function (done) {
 	try {
 		const style2 = getFile("style2_css.css");
 		expect(style2).toContain("color: red;");
-	} catch (e) {}
+	} catch (e) { }
 
-	NEXT(require("../../update")(done, true, () => {
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 		try {
 			const style = getFile("bundle.css");
 			expect(style).toContain("color: blue;");
-		} catch (e) {}
+		} catch (e) { }
 
 		try {
 			const style2 = getFile("style2_css.css");
 			expect(style2).toContain("color: blue;");
-		} catch (e) {}
+		} catch (e) { }
 
 		done();
 	}));

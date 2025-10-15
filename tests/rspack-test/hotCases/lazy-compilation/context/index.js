@@ -15,7 +15,7 @@ for (const name of ["demo", "module"]) {
 			expect(resolved).toBe(undefined);
 			expect(generation).toBe(start);
 			NEXT(
-				require("../../update")(done, true, () => {
+				require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 					promise.then(result => {
 						try {
 							expect(result).toHaveProperty("default", name);

@@ -9,5 +9,5 @@ it("should not invalidate subject in unrelated locations", done => {
 		expect(value).toBe(41);
 		done();
 	});
-	NEXT(require("../../update")(done));
+	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 });

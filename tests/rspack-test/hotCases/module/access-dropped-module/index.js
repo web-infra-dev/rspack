@@ -2,7 +2,7 @@ import "./a";
 
 it("should create new JsModule when module changed", (done) => {
     NEXT(
-        require('../../update')(done, true, () => {
+        require('@rspack/test-tools/helper/legacy/update')(done, true, () => {
             done();
         }),
     );

@@ -1,4 +1,4 @@
-import update from "../../update.esm";
+import update from "@rspack/test-tools/helper/legacy/update.esm";
 import.meta.webpackHot.accept(["./async-module", "./lazy-module"]);
 
 it("should handle HMR with async chunks in ESM format", (done) => {
@@ -9,7 +9,7 @@ it("should handle HMR with async chunks in ESM format", (done) => {
 	]).then(([asyncModule, lazyModule]) => {
 		expect(asyncModule.message).toBe("Hello from async module!");
 		expect(lazyModule.data.value).toBe(42);
-				
+
 		NEXT(update(done, true, () => {
 			// Re-import after HMR update
 			Promise.all([

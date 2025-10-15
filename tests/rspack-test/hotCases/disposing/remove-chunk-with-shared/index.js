@@ -9,6 +9,6 @@ it("should not dispose shared modules when a chunk is removed", done => {
 			});
 			done();
 		});
-		NEXT(require("../../update")(done));
+		NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 	}, done);
 });
