@@ -1,6 +1,7 @@
 import value from "vendor";
 // if (import.meta.webpackHot.data) throw new Error("Should not be executed again");
-it("should correctly self-accept an entrypoint when chunk loading runtime module is updated", done => {
+it("should correctly self-accept an entrypoint when chunk loading runtime module is updated", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const hash = __webpack_hash__;
 	expect(value).toBe(1);
 	let hmrData;
@@ -18,7 +19,7 @@ it("should correctly self-accept an entrypoint when chunk loading runtime module
 			}, done);
 		})
 	);
-});
+}));
 import.meta.webpackHot.accept();
 ---
 import value from "vendor";

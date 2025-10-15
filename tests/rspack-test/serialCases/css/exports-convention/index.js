@@ -30,7 +30,8 @@ it("concatenation and mangling should work", () => {
 	}
 });
 
-it("should have correct convention for css exports name", (done) => {
+it("should have correct convention for css exports name", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	Promise.all([
 		import("./style.module.css?as-is"),
 		import("./style.module.css?camel-case"),
@@ -47,4 +48,4 @@ it("should have correct convention for css exports name", (done) => {
 		expect(upper).toMatchFileSnapshot(`${__SNAPSHOT__}/upper.txt`);
 		done()
 	}).catch(done)
-});
+}));

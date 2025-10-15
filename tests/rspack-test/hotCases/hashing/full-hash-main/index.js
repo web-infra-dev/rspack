@@ -6,7 +6,8 @@ const getFile = name =>
 		"utf-8"
 	);
 
-it("should generate the main file and change full hash on update", done => {
+it("should generate the main file and change full hash on update", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const hash1 = __webpack_hash__;
 	expect(getFile("bundle.js")).toContain(hash1);
 	module.hot.accept("./module", () => {
@@ -19,4 +20,4 @@ it("should generate the main file and change full hash on update", done => {
 		done();
 	});
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));

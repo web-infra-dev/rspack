@@ -1,7 +1,8 @@
 import update from "@rspack/test-tools/helper/legacy/update.esm";
 import.meta.webpackHot.accept(["./async-module", "./lazy-module"]);
 
-it("should handle HMR with async chunks in ESM format", (done) => {
+it("should handle HMR with async chunks in ESM format", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	// Initial load of async chunks
 	Promise.all([
 		import("./async-module"),
@@ -22,13 +23,14 @@ it("should handle HMR with async chunks in ESM format", (done) => {
 			}).catch(done);
 		}));
 	}).catch(done);
-});
+}));
 
-it("should support dynamic imports with proper ESM chunk loading", (done) => {
+it("should support dynamic imports with proper ESM chunk loading", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	// Test that dynamic imports work correctly with ESM chunk format
 	import("./async-module").then((module) => {
 		expect(module.message).toBeDefined();
 		expect(typeof module.message).toBe("string");
 		done();
 	}).catch(done);
-});
+}));

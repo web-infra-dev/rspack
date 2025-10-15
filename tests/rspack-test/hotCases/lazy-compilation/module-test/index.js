@@ -1,4 +1,5 @@
-it("should not lazily compile configured imports", done => {
+it("should not lazily compile configured imports", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	let resolvedA;
 	let resolvedB;
 	const promiseA = import("./moduleA").then(r => (resolvedA = r));
@@ -19,4 +20,4 @@ it("should not lazily compile configured imports", done => {
 			})
 		);
 	}, 1000);
-});
+}));

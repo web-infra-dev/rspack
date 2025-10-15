@@ -1,6 +1,7 @@
 import * as styles from "./style.module.css";
 
-it("should work", async function (done) {
+it("should work", () => new Promise(async (resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(styles).toMatchObject({ class: "_style_module_css-class" });
 
 	const styles2 = await import("./style2.module.css");
@@ -23,6 +24,6 @@ it("should work", async function (done) {
 	});
 
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));
 
 module.hot.accept();

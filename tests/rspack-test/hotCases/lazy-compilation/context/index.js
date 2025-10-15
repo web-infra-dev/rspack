@@ -4,7 +4,8 @@ import generation from "./generation.js";
 import.meta.webpackHot.accept("./generation.js");
 
 for (const name of ["demo", "module"]) {
-	it("should compile to lazy imported context element " + name, done => {
+	it("should compile to lazy imported context element " + name, () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 		let resolved;
 		const promise = contextImport(name)
 			.then(r => (resolved = r))
@@ -28,5 +29,5 @@ for (const name of ["demo", "module"]) {
 				})
 			);
 		}, 1000);
-	});
+	}));
 }

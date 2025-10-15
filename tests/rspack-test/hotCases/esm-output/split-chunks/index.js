@@ -1,7 +1,8 @@
 import update from "@rspack/test-tools/helper/legacy/update.esm";
 import.meta.webpackHot.accept(["./common/shared", "vendor-lib"]);
 
-it("should handle HMR with split chunks in ESM format", (done) => {
+it("should handle HMR with split chunks in ESM format", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	Promise.all([
 		import("./common/shared"),
 		import("vendor-lib")
@@ -21,4 +22,4 @@ it("should handle HMR with split chunks in ESM format", (done) => {
 			done();
 		}).catch(done);
 	}));
-});
+}));

@@ -1,4 +1,5 @@
-it("load dynamic css chunk", function (done) {
+it("load dynamic css chunk", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	import("./dynamic").then(module => {
 		expect(module.value).toBe("dynamic");
 		// test is only for css loading
@@ -14,4 +15,4 @@ it("load dynamic css chunk", function (done) {
 			done();
 		});
 	});
-});
+}));

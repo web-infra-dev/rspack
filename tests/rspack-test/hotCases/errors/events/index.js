@@ -18,7 +18,8 @@ it("should import modules correctly", () => {
 	expect(l).toBe(1);
 });
 
-it("should fire the correct events", done => {
+it("should fire the correct events", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var events = [];
 	var options = {
 		ignoreUnaccepted: true,
@@ -123,4 +124,4 @@ it("should fire the correct events", done => {
 		]);
 		done();
 	});
-});
+}));

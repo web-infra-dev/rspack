@@ -1,4 +1,5 @@
-it("should import a changed chunk", (done) => {
+it("should import a changed chunk", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	import("./chunk").then((chunk) => {
 		expect(chunk.value).toBe(1);
 		import("./chunk2").then((chunk2) => {
@@ -15,4 +16,4 @@ it("should import a changed chunk", (done) => {
 			});
 		}).catch(done);
 	}).catch(done);
-});
+}));

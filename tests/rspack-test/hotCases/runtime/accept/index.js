@@ -1,6 +1,7 @@
 var value = require("./file");
 
-it("should accept a dependencies and require a new value", (done) => {
+it("should accept a dependencies and require a new value", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
 	module.hot.accept("./file", () => {
 		value = require("./file");
@@ -9,7 +10,7 @@ it("should accept a dependencies and require a new value", (done) => {
 		done();
 	});
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));
 
 function outside() {
 	expect(value).toBe(2);

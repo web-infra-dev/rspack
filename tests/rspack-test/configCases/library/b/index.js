@@ -2,13 +2,14 @@ it("should run", function() {
 
 });
 
-it("should have exported", function(done) {
+it("should have exported", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	setTimeout(function() {
 		expect(exported.object).toBe(module.exports.object);
 		expect(exported.second).toBe(module.exports.second);
 		done();
 	}, 1);
-});
+}));
 
 module.exports = {
 	object: {ok: 1},

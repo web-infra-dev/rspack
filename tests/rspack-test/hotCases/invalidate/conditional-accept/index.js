@@ -3,7 +3,8 @@ import mod1 from "./module1";
 import mod2 from "./module2";
 import { value1, value2 } from "./store";
 
-it("should invalidate a self-accepted module", function (done) {
+it("should invalidate a self-accepted module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(mod1).toBe(1);
 	expect(mod2).toBe(1);
 	expect(value1).toBe(1);
@@ -45,4 +46,4 @@ it("should invalidate a self-accepted module", function (done) {
 		}, 100)
 	);
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));

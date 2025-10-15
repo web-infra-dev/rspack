@@ -3,7 +3,8 @@ import './change'
 const fs = __non_webpack_require__('fs')
 const path = __non_webpack_require__('path')
 
-it("should have correct order", done => {
+it("should have correct order", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const content = fs.readFileSync(path.resolve(__dirname, './bundle.css')).toString()
 	expect(content.replaceAll('\n', '').trim()).toBe('.a{}.b{}')
 
@@ -17,5 +18,5 @@ it("should have correct order", done => {
 			done()
 		})
 	);
-});
+}));
 

@@ -1,6 +1,6 @@
 import * as styles from "./style.modules.css";
 
-it(`should work with URLs in CSS`, done => {
+it(`should work with URLs in CSS`, () => {
 	const links = document.getElementsByTagName("link");
 	const css = [];
 	const path = __non_webpack_require__("path");
@@ -12,5 +12,4 @@ it(`should work with URLs in CSS`, done => {
 
 	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, `css.${__STATS_I__}.txt`));
 	expect(styles).toMatchFileSnapshot(path.join(__SNAPSHOT__, `styles.${__STATS_I__}.txt`));
-	done();
 });

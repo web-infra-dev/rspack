@@ -1,4 +1,4 @@
-it("should compile and work", done => {
+it("should compile and work", () => new Promise(done => {
 	require.ensure(
 		["./foo"],
 		() => {
@@ -11,4 +11,4 @@ it("should compile and work", done => {
 			});
 		}
 	);
-});
+}));

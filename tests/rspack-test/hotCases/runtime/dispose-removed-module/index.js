@@ -1,6 +1,7 @@
 var m = require("./module");
 
-it("should dispose a module which is removed from bundle", (done) => {
+it("should dispose a module which is removed from bundle", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var disposed = [];
 	m.setHandler((id) => {
 		disposed.push(id);
@@ -13,7 +14,7 @@ it("should dispose a module which is removed from bundle", (done) => {
 			done();
 		}));
 	}));
-});
+}));
 
 if (module.hot) {
 	module.hot.accept("./module");

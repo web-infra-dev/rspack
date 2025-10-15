@@ -1,4 +1,5 @@
-it("should work", async function (done) {
+it("should work", () => new Promise(async (resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const styles = await import(/* webpackFetchPriority: "high" */ "./style.module.css");
 
 	expect(styles).toMatchObject({
@@ -21,6 +22,6 @@ it("should work", async function (done) {
 	});
 
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));
 
 module.hot.accept();

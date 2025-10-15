@@ -1,5 +1,6 @@
 var value = require("./file");
-it("should accept a dependencies multiple times", (done) => {
+it("should accept a dependencies multiple times", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
 	module.hot.accept("./file", () => {
 		var oldValue = value;
@@ -11,4 +12,4 @@ it("should accept a dependencies multiple times", (done) => {
 			done();
 	});
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));

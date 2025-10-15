@@ -1,6 +1,7 @@
 import { fn } from "./file";
 
-it("should not panic when context request position change", (done) => {
+it("should not panic when context request position change", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
   (async () => {
     const value = await fn();
     expect(value).toBe(1);
@@ -11,4 +12,4 @@ it("should not panic when context request position change", (done) => {
     });
     NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
   })();
-});
+}));

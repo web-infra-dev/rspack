@@ -1,4 +1,5 @@
-it("should import a changed chunk (dynamic import)", function (done) {
+it("should import a changed chunk (dynamic import)", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	function load(name) {
 		return import("./chunk" + name);
 	}
@@ -12,4 +13,4 @@ it("should import a changed chunk (dynamic import)", function (done) {
 			}).catch(done);
 		}));
 	}).catch(done);
-});
+}));

@@ -3,7 +3,8 @@ import update from "@rspack/test-tools/helper/legacy/update.esm";
 
 import.meta.webpackHot.accept(["./style.module.css", "./style2.module.css"])
 
-it("should work", async function (done) {
+it("should work", () => new Promise(async (resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(styles).toMatchObject({ class: "_style_module_css-class" });
 	const styles2 = await import("./style2.module.css");
 
@@ -27,4 +28,4 @@ it("should work", async function (done) {
 				done();
 			}).catch(done);
 	}));
-});
+}));

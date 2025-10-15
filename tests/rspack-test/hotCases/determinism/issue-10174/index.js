@@ -1,7 +1,8 @@
 import { c } from "./deps/a";
 import hot from "./hot";
 
-it("should only register changes for the changed module", done => {
+it("should only register changes for the changed module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(hot).toBe(1);
 	expect(c()).toBe(42);
 	module.hot.accept("./hot", () => {
@@ -11,4 +12,4 @@ it("should only register changes for the changed module", done => {
 	});
 
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));

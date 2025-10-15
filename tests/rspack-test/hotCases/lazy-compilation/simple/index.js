@@ -1,4 +1,5 @@
-it("should compile to lazy imported module", done => {
+it("should compile to lazy imported module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	let resolved;
 	const promise = import("./module").then(r => (resolved = r));
 	let generation = 0;
@@ -42,4 +43,4 @@ it("should compile to lazy imported module", done => {
 			})
 		);
 	}, 1000);
-});
+}));

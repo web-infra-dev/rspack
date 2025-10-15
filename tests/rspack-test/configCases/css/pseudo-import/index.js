@@ -13,19 +13,11 @@ it("should compile", () => {
 	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, `css.txt`));
 });
 
-it("should re-export", (done) => {
-	import("./reexport.modules.css").then((module) => {
-		try {
-			expect(module).toEqual(nsObj({
-				"className": "_reexport_modules_css-className",
-				"primary-color": "constructor",
+it("should re-export", async () => {
+	const module = await import("./reexport.modules.css");
+	expect(module).toEqual(nsObj({
+		"className": "_reexport_modules_css-className",
+		"primary-color": "constructor",
 				"secondary-color": "toString",
 			}));
-		} catch (e) {
-			done(e);
-			return;
-		}
-
-		done()
-	}, done)
 });

@@ -2,7 +2,8 @@ import value from "./module";
 
 const neverCalled = () => import("./lazy");
 
-it("should compile to lazy imported module", done => {
+it("should compile to lazy imported module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	let generation = 0;
 	module.hot.accept("./module", () => {
 		generation++;
@@ -22,4 +23,4 @@ it("should compile to lazy imported module", done => {
 			);
 		})
 	);
-});
+}));

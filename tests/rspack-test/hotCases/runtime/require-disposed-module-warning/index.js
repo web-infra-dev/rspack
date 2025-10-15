@@ -1,7 +1,8 @@
 const expectWarning = require("@rspack/test-tools/helper/util/expectWarningFactory")();
 const getInner = require("./module");
 
-it("should print correct warning messages when a disposed module is required", done => {
+it("should print correct warning messages when a disposed module is required", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	NEXT(
 		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 			getInner();
@@ -15,7 +16,7 @@ it("should print correct warning messages when a disposed module is required", d
 			done();
 		})
 	);
-});
+}));
 
 if (module.hot) {
 	module.hot.accept("./module");

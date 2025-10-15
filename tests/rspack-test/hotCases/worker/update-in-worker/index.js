@@ -1,4 +1,5 @@
-it("should support hot module replacement in WebWorkers", done => {
+it("should support hot module replacement in WebWorkers", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const worker = new Worker(new URL("worker.js", import.meta.url));
 	worker.onmessage = ({ data: msg }) => {
 		switch (msg) {
@@ -15,4 +16,4 @@ it("should support hot module replacement in WebWorkers", done => {
 		}
 	};
 	worker.postMessage("test");
-});
+}));

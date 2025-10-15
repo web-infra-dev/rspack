@@ -1,6 +1,5 @@
-afterEach(done => {
+afterEach(() => {
 	(function() { delete this.EXTERNAL_TEST_GLOBAL; })();
-	done();
 });
 
 it("should import an external value assigned to global this", function() {

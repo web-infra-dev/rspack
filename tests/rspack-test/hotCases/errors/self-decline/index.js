@@ -1,6 +1,7 @@
 import a from "./a";
 
-it("should abort when module is declined by itself", (done) => {
+it("should abort when module is declined by itself", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(a).toBe(1);
 	NEXT(require("@rspack/test-tools/helper/legacy/update")((err) => {
 		try {
@@ -11,4 +12,4 @@ it("should abort when module is declined by itself", (done) => {
 			done(e);
 		}
 	}));
-});
+}));

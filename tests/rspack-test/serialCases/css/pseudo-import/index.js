@@ -12,7 +12,8 @@ it("should compile", () => {
 	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
 });
 
-it("should re-export", (done) => {
+it("should re-export", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	import("./reexport.modules.css").then((module) => {
 		try {
 			expect(module).toEqual(nsObj({
@@ -27,4 +28,4 @@ it("should re-export", (done) => {
 
 		done()
 	}, done)
-});
+}));

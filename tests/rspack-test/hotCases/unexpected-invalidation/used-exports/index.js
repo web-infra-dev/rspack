@@ -1,7 +1,8 @@
 import { ghi } from "./subject";
 import value from "./module";
 
-it("should not invalidate subject in unrelated locations", done => {
+it("should not invalidate subject in unrelated locations", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(ghi).toBe(42);
 	expect(value).toBe(40);
 	import.meta.webpackHot.accept("./module", () => {
@@ -10,4 +11,4 @@ it("should not invalidate subject in unrelated locations", done => {
 		done();
 	});
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));

@@ -1,6 +1,7 @@
 import m from "./module";
 
-it("should add and remove chunks", done => {
+it("should add and remove chunks", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	return m()
 		.then(chunk => {
 			expect(chunk.value).toBe(1);
@@ -25,4 +26,4 @@ it("should add and remove chunks", done => {
 			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
 		})
 		.catch(done);
-});
+}));

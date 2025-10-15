@@ -10,7 +10,8 @@ function check() {
 	prevFullhash = __webpack_hash__;
 }
 
-it("should not have hot-update.map file when hmr", (done) => {
+it("should not have hot-update.map file when hmr", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
 	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
 		check()
@@ -22,6 +23,6 @@ it("should not have hot-update.map file when hmr", (done) => {
 			}))
 		}));
 	}));
-});
+}));
 
 module.hot.accept("./file");

@@ -1,7 +1,8 @@
 import x from "./module";
 
-it("should have correct this context in accept handler", (done) => {
-    expect(x).toEqual("ok1");
+it("should have correct this context in accept handler", () => new Promise((resolve, reject) => {
+  const done = err => (err ? reject(err) : resolve());
+  expect(x).toEqual("ok1");
 
     (function () {
         module.hot.accept("./module", () => {
@@ -12,4 +13,4 @@ it("should have correct this context in accept handler", (done) => {
     }).call({ ok: true });
 
     NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-});
+}));
