@@ -17,3 +17,5 @@ it("should snapshot unmanaged-paths work", async () => {
 		expect(changed).toBe(4);
 	}
 });
+
+module.hot.accept("./test_lib");

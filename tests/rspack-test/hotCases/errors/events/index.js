@@ -18,8 +18,7 @@ it("should import modules correctly", () => {
 	expect(l).toBe(1);
 });
 
-it("should fire the correct events", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should fire the correct events", async () => {
 	var events = [];
 	var options = {
 		ignoreUnaccepted: true,
@@ -38,90 +37,75 @@ it("should fire the correct events", () => new Promise((resolve, reject) => {
 			events.push(data);
 		}
 	};
-
-	function waitForUpdate(fn) {
-		NEXT(
-			require("@rspack/test-tools/helper/legacy/update")(done, options, () => {
-				try {
-					fn();
-				} catch (e) {
-					done(e);
-				}
-			})
-		);
-	}
-
-	waitForUpdate(() => {
-		const error = msg =>
-			expect.objectContaining({
-				message: msg
-			});
-		expect(events).toEqual([
-			{
-				type: "unaccepted",
-				moduleId: "./index.js",
-				chain: ["./a.js", "./index.js"]
-			},
-			{
-				type: "accepted",
-				moduleId: "./c.js",
-				outdatedDependencies: { "./b.js": ["./c.js"] },
-				outdatedModules: ["./c.js"]
-			},
-			{
-				type: "self-declined",
-				moduleId: "./d.js",
-				chain: ["./e.js", "./d.js"]
-			},
-			{
-				type: "declined",
-				moduleId: "./g.js",
-				parentId: "./f.js",
-				chain: ["./g.js", "./f.js"]
-			},
-			{
-				type: "accepted",
-				moduleId: "./i.js",
-				outdatedDependencies: { "./h.js": ["./i.js"], "./k.js": ["./i.js"] },
-				outdatedModules: ["./i.js"]
-			},
-			{
-				type: "accepted",
-				moduleId: "./j.js",
-				outdatedDependencies: {},
-				outdatedModules: ["./j.js"]
-			},
-			{
-				type: "accepted",
-				moduleId: "./l.js",
-				outdatedDependencies: {},
-				outdatedModules: ["./l.js"]
-			},
-			{
-				type: "accept-errored",
-				moduleId: "./h.js",
-				dependencyId: "./i.js",
-				error: error("Error while loading module i")
-			},
-			{
-				type: "accept-error-handler-errored",
-				moduleId: "./k.js",
-				dependencyId: "./i.js",
-				error: error("Error in accept error handler: ./k.js -> ./i.js"),
-				originalError: error("Error while loading module i")
-			},
-			{
-				type: "self-accept-errored",
-				moduleId: "./j.js",
-				error: error("Error while loading module j")
-			},
-			{
-				type: "self-accept-error-handler-errored",
-				moduleId: "./l.js",
-				error: error("Error in accept error handler: ./l.js"),
-				originalError: error("Error while loading module l")
-			}
-		]);
-		done();
-	});
-}));
+	await NEXT_HMR(options);
+	const error = msg =>
+		expect.objectContaining({
+			message: msg
+		});
+	expect(events).toEqual([
+		{
+			type: "unaccepted",
+			moduleId: "./index.js",
+			chain: ["./a.js", "./index.js"]
+		},
+		{
+			type: "accepted",
+			moduleId: "./c.js",
+			outdatedDependencies: { "./b.js": ["./c.js"] },
+			outdatedModules: ["./c.js"]
+		},
+		{
+			type: "self-declined",
+			moduleId: "./d.js",
+			chain: ["./e.js", "./d.js"]
+		},
+		{
+			type: "declined",
+			moduleId: "./g.js",
+			parentId: "./f.js",
+			chain: ["./g.js", "./f.js"]
+		},
+		{
+			type: "accepted",
+			moduleId: "./i.js",
+			outdatedDependencies: { "./h.js": ["./i.js"], "./k.js": ["./i.js"] },
+			outdatedModules: ["./i.js"]
+		},
+		{
+			type: "accepted",
+			moduleId: "./j.js",
+			outdatedDependencies: {},
+			outdatedModules: ["./j.js"]
+		},
+		{
+			type: "accepted",
+			moduleId: "./l.js",
+			outdatedDependencies: {},
+			outdatedModules: ["./l.js"]
+		},
+		{
+			type: "accept-errored",
+			moduleId: "./h.js",
+			dependencyId: "./i.js",
+			error: error("Error while loading module i")
+		},
+		{
+			type: "accept-error-handler-errored",
+			moduleId: "./k.js",
+			dependencyId: "./i.js",
+			error: error("Error in accept error handler: ./k.js -> ./i.js"),
+			originalError: error("Error while loading module i")
+		},
+		{
+			type: "self-accept-errored",
+			moduleId: "./j.js",
+			error: error("Error while loading module j")
+		},
+		{
+			type: "self-accept-error-handler-errored",
+			moduleId: "./l.js",
+			error: error("Error in accept error handler: ./l.js"),
+			originalError: error("Error while loading module l")
+		}
+	]);
+});
