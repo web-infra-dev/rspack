@@ -7,11 +7,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 
-const defaultRustTraceLayer = "perfetto";
+const DEFAULT_RUST_TRACE_LAYER = "perfetto";
 
 export async function applyProfile(
 	filterValue: string,
-	traceLayer: string = defaultRustTraceLayer,
+	traceLayer: string = DEFAULT_RUST_TRACE_LAYER,
 	traceOutput?: string
 ) {
 	const { asyncExitHook } = await import("exit-hook");
