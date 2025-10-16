@@ -25,9 +25,3 @@ it('should re-export esm correctly', async () => {
 export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib };
 
 ```
-
-```mjs title=runtime.mjs
-
-
-
-```
