@@ -39,7 +39,7 @@ export { NormalModule } from "./NormalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
 export {
 	type RspackError,
-	type RspackSeverity, 
+	type RspackSeverity,
 	ValidationError
 } from "./RspackError";
 export { RuntimeGlobals } from "./RuntimeGlobals";
