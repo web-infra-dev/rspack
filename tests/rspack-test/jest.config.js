@@ -15,6 +15,10 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"HotWeb.test.js",
+		"HotWorker.test.js",
+		"HotNode.test.js",
 
 		// Skip temporarily and should investigate in the future
 		"RuntimeDiff.difftest.js",
