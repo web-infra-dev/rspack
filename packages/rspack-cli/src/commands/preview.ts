@@ -5,62 +5,56 @@ import {
 	type RspackOptions,
 	rspack
 } from "@rspack/core";
-import type { Command } from "cac";
-
 import type { RspackCLI } from "../cli";
 import type { RspackCommand, RspackPreviewCLIOptions } from "../types";
 import { commonOptions, setDefaultNodeEnv } from "../utils/options";
 
-const previewOptions = (command: Command): Command =>
-	commonOptions(command)
-		.option("--public-path <path>", "static resource server path")
-		.option("--port <port>", "preview server port")
-		.option("--host <host>", "preview server host")
-		.option("--open", "open browser")
-		// same as devServer.server
-		.option("--server <config>", "Configuration items for the server.");
-
 export class PreviewCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
-		previewOptions(
-			cli.program.command(
-				"preview [dir]",
-				"run the Rspack server for build output"
-			)
-		)
-			.alias("p")
-			.action(
-				async (dir: string | undefined, options: RspackPreviewCLIOptions) => {
-					setDefaultNodeEnv(options, "production");
+		const command = cli.program
+			.command("preview [dir]", "run the Rspack server for build output")
+			.alias("p");
 
-					const rspackOptions = { ...options, argv: { ...options } };
-					const { RspackDevServer } = await import("@rspack/dev-server");
+		commonOptions(command)
+			.option("--public-path <path>", "static resource server path")
+			.option("--port <port>", "preview server port")
+			.option("--host <host>", "preview server host")
+			.option("--open", "open browser")
+			// same as devServer.server
+			.option("--server <config>", "Configuration items for the server.");
 
-					let { config } = await cli.loadConfig(rspackOptions);
-					config = await getPreviewConfig(config, options, dir);
-					if (!Array.isArray(config)) {
-						config = [config as RspackOptions];
-					}
+		command.action(
+			async (dir: string | undefined, options: RspackPreviewCLIOptions) => {
+				setDefaultNodeEnv(options, "production");
 
-					// find the possible devServer config
-					const singleConfig = config.find(item => item.devServer) || config[0];
+				const rspackOptions = { ...options, argv: { ...options } };
+				const { RspackDevServer } = await import("@rspack/dev-server");
 
-					const devServerOptions = singleConfig.devServer as DevServer;
-
-					try {
-						const compiler = rspack({ entry: {} });
-						if (!compiler) return;
-						const server = new RspackDevServer(devServerOptions, compiler);
-
-						await server.start();
-					} catch (error) {
-						const logger = cli.getLogger();
-						logger.error(error);
-
-						process.exit(2);
-					}
+				let { config } = await cli.loadConfig(rspackOptions);
+				config = await getPreviewConfig(config, options, dir);
+				if (!Array.isArray(config)) {
+					config = [config as RspackOptions];
 				}
-			);
+
+				// find the possible devServer config
+				const singleConfig = config.find(item => item.devServer) || config[0];
+
+				const devServerOptions = singleConfig.devServer as DevServer;
+
+				try {
+					const compiler = rspack({ entry: {} });
+					if (!compiler) return;
+					const server = new RspackDevServer(devServerOptions, compiler);
+
+					await server.start();
+				} catch (error) {
+					const logger = cli.getLogger();
+					logger.error(error);
+
+					process.exit(2);
+				}
+			}
+		);
 	}
 }
 
