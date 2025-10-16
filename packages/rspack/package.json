@@ -57,9 +57,7 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "watchpack": "^2.4.4",
-    "webpack-sources": "3.3.3",
-    "zod": "^4.1.12",
-    "zod-validation-error": "^4.0.2"
+    "webpack-sources": "3.3.3"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.20.0",

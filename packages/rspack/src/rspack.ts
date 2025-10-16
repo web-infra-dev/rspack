@@ -28,9 +28,7 @@ import MultiStats from "./MultiStats";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { Stats } from "./Stats";
-import { getRspackOptionsSchema } from "./schema/config";
-import { validate } from "./schema/validate";
-import { asArray, isNil } from "./util";
+import { isNil } from "./util";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -103,17 +101,6 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	try {
-		for (const o of asArray(options)) {
-			validate(o, getRspackOptionsSchema);
-		}
-	} catch (e) {
-		if (e instanceof Error && callback) {
-			callback(e);
-			return null;
-		}
-		throw e;
-	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);

@@ -7,13 +7,10 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
 import type { JsBuildMeta } from "@rspack/binding";
 import { DllReferenceAgencyPlugin } from "../builtin-plugin";
 import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { getDllReferencePluginOptionsSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
 import { makePathsRelative } from "../util/identifier";
 import WebpackError from "./WebpackError";
 
@@ -143,8 +140,6 @@ export class DllReferencePlugin {
 	private errors: WeakMap<CompilationParams, DllManifestError>;
 
 	constructor(options: DllReferencePluginOptions) {
-		validate(options, getDllReferencePluginOptionsSchema);
-
 		this.options = options;
 		this.errors = new WeakMap();
 	}

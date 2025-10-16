@@ -49,16 +49,6 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 Rspack 命令与 webpack 命令相同，均可通过 `-c` 或 `--config` 指定配置文件。但与 webpack 不同的是，如果你未显式指定配置文件，Rspack 默认使用 `rspack.config.js`。
 :::
 
-Rspack 目前并不支持所有 webpack 配置，有些配置会影响构建产物，为保证构建产物的正确性，Rspack 默认开启了对配置的严格校验。
-不过，Rspack 也提供了宽松模式，方便进行渐进式迁移。你可以通过设置 `RSPACK_CONFIG_VALIDATE` 环境变量来开启宽松模式：
-
-```bash
-# 开启宽松校验模式，会打印错误的配置但不会抛出错误
-RSPACK_CONFIG_VALIDATE=loose rspack build
-# 开启宽松校验模式，不打印错误也不抛出错误
-RSPACK_CONFIG_VALIDATE=loose-silent rspack build
-```
-
 Rspack 正在积极推动 webpack 的下一个版本的功能，因此在部分配置项上与 webpack 5 的默认值不同，如下：
 
 | 配置              | webpack 默认值 | Rspack 默认值 |
