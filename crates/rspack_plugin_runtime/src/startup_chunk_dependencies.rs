@@ -17,6 +17,29 @@ pub struct StartupChunkDependenciesPlugin {
 }
 
 impl StartupChunkDependenciesPlugin {
+  #[inline]
+  fn should_enable_async_startup(
+    mf_async_startup_enabled: bool,
+    has_federation_runtime: bool,
+    has_federation_handlers: bool,
+    has_remote_modules: bool,
+    has_consume_modules: bool,
+  ) -> bool {
+    if !mf_async_startup_enabled {
+      return false;
+    }
+
+    if has_federation_runtime && has_federation_handlers {
+      return true;
+    }
+
+    if has_federation_runtime {
+      return true;
+    }
+
+    has_remote_modules || has_consume_modules
+  }
+
   pub fn new(chunk_loading: ChunkLoading, async_chunk_loading: bool) -> Self {
     Self::new_inner(chunk_loading, async_chunk_loading)
   }
@@ -33,35 +56,23 @@ impl StartupChunkDependenciesPlugin {
     let has_federation_handlers =
       runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
-    if has_federation_runtime && has_federation_handlers {
-      return true;
-    }
-
-    if !compilation.options.experiments.mf_async_startup {
-      return false;
-    }
-
-    if has_federation_runtime {
-      return true;
-    }
-
     let module_graph = compilation.get_module_graph();
     let has_remote_modules = !compilation
       .chunk_graph
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Remote, &module_graph)
       .is_empty();
-    if has_remote_modules {
-      return true;
-    }
     let has_consume_modules = !compilation
       .chunk_graph
       .get_chunk_modules_by_source_type(chunk_ukey, SourceType::ConsumeShared, &module_graph)
       .is_empty();
-    if has_consume_modules {
-      return true;
-    }
 
-    false
+    Self::should_enable_async_startup(
+      compilation.options.experiments.mf_async_startup,
+      has_federation_runtime,
+      has_federation_handlers,
+      has_remote_modules,
+      has_consume_modules,
+    )
   }
 }
 
@@ -129,5 +140,43 @@ impl Plugin for StartupChunkDependenciesPlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::StartupChunkDependenciesPlugin;
+
+  #[test]
+  fn respects_experiment_flag_before_enabling_async_startup() {
+    assert!(
+      !StartupChunkDependenciesPlugin::should_enable_async_startup(false, true, true, false, false)
+    );
+  }
+
+  #[test]
+  fn enables_when_flag_and_runtime_requirements_present() {
+    assert!(StartupChunkDependenciesPlugin::should_enable_async_startup(
+      true, true, true, false, false
+    ));
+  }
+
+  #[test]
+  fn enables_when_flag_and_remote_or_consume_modules_present() {
+    assert!(StartupChunkDependenciesPlugin::should_enable_async_startup(
+      true, false, false, true, false
+    ));
+    assert!(StartupChunkDependenciesPlugin::should_enable_async_startup(
+      true, false, false, false, true
+    ));
+  }
+
+  #[test]
+  fn remains_disabled_when_no_async_signals() {
+    assert!(
+      !StartupChunkDependenciesPlugin::should_enable_async_startup(
+        true, false, false, false, false
+      )
+    );
   }
 }

@@ -254,13 +254,29 @@ async fn render_chunk(
       )
       .await?;
     if compilation.options.experiments.mf_async_startup {
+      let startup_code = render_source.source.source();
+      let default_bindings = collect_default_export_binding_names(startup_code.as_ref());
+      let has_default_export = has_default_export_statement(startup_code.as_ref());
+
       sources.add(render_source.source.clone());
       sources.add(RawStringSource::from_static(
         "const __webpack_exports__Promise = Promise.resolve(__webpack_exports__);\n",
       ));
       sources.add(RawStringSource::from_static(
-        "\nexport default await __webpack_exports__Promise;\n",
+        "__webpack_exports__ = await __webpack_exports__Promise;\n",
       ));
+
+      for binding in default_bindings {
+        sources.add(RawStringSource::from(format!(
+          "{binding} = await __webpack_exports__Promise;\n",
+        )));
+      }
+
+      if !has_default_export {
+        sources.add(RawStringSource::from_static(
+          "export default await __webpack_exports__Promise;\n",
+        ));
+      }
     } else {
       sources.add(render_source.source);
     }
@@ -285,5 +301,58 @@ impl Plugin for ModuleChunkFormatPlugin {
       .dependent_full_hash
       .tap(compilation_dependent_full_hash::new(self));
     Ok(())
+  }
+}
+
+fn collect_default_export_binding_names(startup_code: &str) -> Vec<String> {
+  startup_code
+    .lines()
+    .filter_map(|line| {
+      let trimmed = line.trim();
+      if !trimmed.starts_with("var ") {
+        return None;
+      }
+      let trimmed = trimmed.trim_start_matches("var ").trim();
+      let trimmed = trimmed.strip_suffix(';')?;
+      let (name, value) = trimmed.split_once('=')?;
+      if value.trim() == "__webpack_exports__" {
+        Some(name.trim().to_string())
+      } else {
+        None
+      }
+    })
+    .collect()
+}
+
+fn has_default_export_statement(startup_code: &str) -> bool {
+  startup_code.contains("export default")
+    || startup_code.contains(" as default")
+    || startup_code.contains("__webpack_exports__default")
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{collect_default_export_binding_names, has_default_export_statement};
+
+  #[test]
+  fn detects_default_binding_assignment() {
+    let source = r#"
+      var __webpack_exports__default = __webpack_exports__;
+      var __webpack_exports__foo = __webpack_exports__.foo;
+    "#;
+    let bindings = collect_default_export_binding_names(source);
+    assert_eq!(bindings, vec!["__webpack_exports__default"]);
+  }
+
+  #[test]
+  fn detects_default_export_statements() {
+    let source = "export { __webpack_exports__default as default };";
+    assert!(has_default_export_statement(source));
+    assert!(has_default_export_statement(
+      "var __webpack_exports__default__ = { foo: 'bar' }; export default __webpack_exports__default__;"
+    ));
+    assert!(!has_default_export_statement(
+      "export const value = __webpack_exports__;"
+    ));
   }
 }
