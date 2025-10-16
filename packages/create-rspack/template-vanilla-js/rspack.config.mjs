@@ -1,8 +1,9 @@
+// @ts-check
 import { defineConfig } from "@rspack/cli";
 import { rspack } from "@rspack/core";
 
 // Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ["last 2 versions", "> 0.2%",  "not dead",  "Firefox ESR"];
+const targets = ["last 2 versions", "> 0.2%", "not dead", "Firefox ESR"];
 
 export default defineConfig({
 	entry: {
@@ -19,6 +20,7 @@ export default defineConfig({
 				use: [
 					{
 						loader: "builtin:swc-loader",
+						/** @type {import('@rspack/core').SwcLoaderOptions} */
 						options: {
 							jsc: {
 								parser: {

@@ -1,3 +1,4 @@
+// @ts-check
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@rspack/cli";
@@ -29,6 +30,7 @@ export default defineConfig({
 				use: [
 					{
 						loader: "builtin:swc-loader",
+						/** @type {import('@rspack/core').SwcLoaderOptions} */
 						options: {
 							jsc: {
 								parser: {
