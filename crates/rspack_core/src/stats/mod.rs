@@ -376,12 +376,12 @@ impl Stats<'_> {
         let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
         let chunk_filter = |_: &ChunkUkey, __: &Compilation| true;
         for order in &orders {
-          if let Some(order_chlidren) =
+          if let Some(order_children) =
             c.get_child_ids_by_order(order, self.compilation, &chunk_filter)
           {
             children_by_order.insert(
               order.clone(),
-              order_chlidren
+              order_children
                 .into_iter()
                 .map(|id| id.to_string())
                 .collect(),

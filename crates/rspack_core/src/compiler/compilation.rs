@@ -1376,7 +1376,7 @@ impl Compilation {
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
   }
 
-  #[instrument("Compilation:after_process_asssets", skip_all)]
+  #[instrument("Compilation:after_process_assets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .compilation_hooks
