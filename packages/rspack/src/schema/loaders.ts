@@ -22,7 +22,7 @@ import type {
 	UmdConfig
 } from "@swc/types";
 import type { Assumptions } from "@swc/types/assumptions";
-import * as z from "zod/v4";
+import * as z from "zod";
 import type { CollectTypeScriptInfoOptions } from "../builtin-loader/swc/collectTypeScriptInfo";
 import type { PluginImportOptions } from "../builtin-loader/swc/pluginImport";
 import type {

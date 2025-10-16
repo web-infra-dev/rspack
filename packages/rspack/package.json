@@ -58,8 +58,8 @@
     "typescript": "^5.9.3",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.3",
-    "zod": "^3.25.76",
-    "zod-validation-error": "3.5.3"
+    "zod": "^4.1.12",
+    "zod-validation-error": "^4.0.2"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.20.0",
