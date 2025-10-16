@@ -5,7 +5,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { rspack } from "@rspack/core";
+import { rspack } from "./rspcakCore";
 
 const DEFAULT_RUST_TRACE_LAYER = "perfetto";
 

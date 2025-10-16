@@ -1,17 +1,12 @@
 import path from "node:path";
 import util from "node:util";
-import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
-import {
-	type Compiler,
-	type MultiCompiler,
-	type MultiRspackOptions,
-	type MultiStats,
-	type RspackOptions,
-	rspack,
-	type Stats,
-	ValidationError
-} from "@rspack/core";
+import type { 
+	Compiler,
+	MultiCompiler,
+	MultiRspackOptions,
+	MultiStats,
+	RspackOptions,RspackPluginFunction, RspackPluginInstance, 
+	Stats} from "@rspack/core";
 import cac, { type CAC } from "cac";
 import { createColors, isColorSupported } from "colorette";
 import { BuildCommand } from "./commands/build";
@@ -23,6 +18,7 @@ import type {
 	CommonOptions,
 	CommonOptionsForBuildAndServe
 } from "./utils/options";
+import { rspack } from "./utils/rspcakCore";
 
 type Command = "serve" | "build";
 
@@ -62,7 +58,7 @@ export class RspackCLI {
 		} catch (e) {
 			// Aligned with webpack-cli
 			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
-			if (e instanceof ValidationError) {
+			if (e instanceof rspack.ValidationError) {
 				this.getLogger().error(e.message);
 				process.exit(2);
 			} else if (e instanceof Error) {
@@ -181,10 +177,10 @@ export class RspackCLI {
 
 			if (isServe) {
 				const installed = (item.plugins ||= []).find(
-					item => item instanceof rspackCore.ProgressPlugin
+					item => item instanceof rspack.ProgressPlugin
 				);
 				if (!installed) {
-					(item.plugins ??= []).push(new rspackCore.ProgressPlugin());
+					(item.plugins ??= []).push(new rspack.ProgressPlugin());
 				}
 			}
 
@@ -249,7 +245,10 @@ export class RspackCLI {
 		let { loadedConfig, configPath } = config;
 
 		if (typeof loadedConfig === "function") {
-			let functionResult = loadedConfig(options.env, options);
+			let functionResult = loadedConfig(
+				options.env as Record<string, unknown>,
+				options
+			);
 			// if return promise we should await its result
 			if (
 				typeof (functionResult as unknown as Promise<unknown>).then ===

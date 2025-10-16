@@ -1,13 +1,26 @@
 import path from "node:path";
-import {
-	type DevServer,
-	type MultiRspackOptions,
-	type RspackOptions,
-	rspack
+import type {
+	DevServer,
+	MultiRspackOptions,
+	RspackOptions
 } from "@rspack/core";
 import type { RspackCLI } from "../cli";
-import type { RspackCommand, RspackPreviewCLIOptions } from "../types";
-import { commonOptions, setDefaultNodeEnv } from "../utils/options";
+import type { RspackCommand } from "../types";
+import {
+	type CommonOptions,
+	commonOptions,
+	normalizeCommonOptions,
+	setDefaultNodeEnv
+} from "../utils/options";
+import { rspack } from "../utils/rspcakCore";
+
+type PreviewOptions = CommonOptions & {
+	port?: string;
+	host?: string;
+	open?: boolean;
+	server?: string;
+	publicPath?: string;
+};
 
 export class PreviewCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -23,45 +36,43 @@ export class PreviewCommand implements RspackCommand {
 			// same as devServer.server
 			.option("--server <config>", "Configuration items for the server.");
 
-		command.action(
-			async (dir: string | undefined, options: RspackPreviewCLIOptions) => {
-				setDefaultNodeEnv(options, "production");
+		command.action(async (dir: string | undefined, options: PreviewOptions) => {
+			setDefaultNodeEnv(options, "production");
+			normalizeCommonOptions(options, "preview");
 
-				const rspackOptions = { ...options, argv: { ...options } };
-				const { RspackDevServer } = await import("@rspack/dev-server");
+			const { RspackDevServer } = await import("@rspack/dev-server");
 
-				let { config } = await cli.loadConfig(rspackOptions);
-				config = await getPreviewConfig(config, options, dir);
-				if (!Array.isArray(config)) {
-					config = [config as RspackOptions];
-				}
-
-				// find the possible devServer config
-				const singleConfig = config.find(item => item.devServer) || config[0];
-
-				const devServerOptions = singleConfig.devServer as DevServer;
-
-				try {
-					const compiler = rspack({ entry: {} });
-					if (!compiler) return;
-					const server = new RspackDevServer(devServerOptions, compiler);
-
-					await server.start();
-				} catch (error) {
-					const logger = cli.getLogger();
-					logger.error(error);
-
-					process.exit(2);
-				}
+			let { config } = await cli.loadConfig(options);
+			config = await getPreviewConfig(config, options, dir);
+			if (!Array.isArray(config)) {
+				config = [config as RspackOptions];
 			}
-		);
+
+			// find the possible devServer config
+			const singleConfig = config.find(item => item.devServer) || config[0];
+
+			const devServerOptions = singleConfig.devServer as DevServer;
+
+			try {
+				const compiler = rspack({ entry: {} });
+				if (!compiler) return;
+				const server = new RspackDevServer(devServerOptions, compiler);
+
+				await server.start();
+			} catch (error) {
+				const logger = cli.getLogger();
+				logger.error(error);
+
+				process.exit(2);
+			}
+		});
 	}
 }
 
 // get the devServerOptions from the config
 async function getPreviewConfig(
 	item: RspackOptions | MultiRspackOptions,
-	options: RspackPreviewCLIOptions,
+	options: PreviewOptions,
 	dir?: string
 ): Promise<RspackOptions | MultiRspackOptions> {
 	const DEFAULT_ROOT = "dist";
