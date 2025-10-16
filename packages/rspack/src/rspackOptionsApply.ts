@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import assert from "node:assert";
-import fs from "graceful-fs";
+import fs from "node:fs";
 
 import type {
 	Compiler,

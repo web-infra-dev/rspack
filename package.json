@@ -89,7 +89,6 @@
   "packageManager": "pnpm@10.18.3",
   "pnpm": {
     "patchedDependencies": {
-      "graceful-fs": "patches/graceful-fs.patch",
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
     },
     "onlyBuiltDependencies": [
