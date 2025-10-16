@@ -83,13 +83,7 @@ export class HotUpdatePlugin {
 		}
 		this.initialized = true;
 		rimrafSync(this.tempDir);
-		try {
-			fs.existsSync(this.tempDir);
-			fs.copySync(this.projectDir, this.tempDir);
-		} catch (e) {
-			console.error(this.tempDir, this.projectDir, e);
-			throw e;
-		}
+		fs.copySync(this.projectDir, this.tempDir);
 
 		await loopFile(this.tempDir, (filePath, content) => {
 			const contents = content.split(/---+\r?\n/g);
