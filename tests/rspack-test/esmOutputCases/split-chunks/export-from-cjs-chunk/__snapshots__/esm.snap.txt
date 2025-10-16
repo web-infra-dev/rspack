@@ -1,39 +1,38 @@
-```mjs title=main.mjs
-import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
-import {dirname as __webpack_dirname__} from "node:path";
-import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+```mjs title=cjs-chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-// node:fs
-const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
-
-var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
-const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
-
-var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
-var index_dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
-
+__webpack_require__.add({
+"./cjs.js": 
+/*!****************!*\
+  !*** ./cjs.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
+exports.value = 42
 
 
-it('should support dynamic import', async () => {
-	const shared = external_node_path_default().resolve(index_dirname, 'shared.mjs')
-	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
+}),
+});
 
-	expect(content).toContain('// ./m1.js')
-	expect(content).toContain('// ./m2.js')
+```
 
-	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1,value: mod.value }))
-	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2,value: mod.m2_value }))
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./cjs-chunk.mjs";
 
-	expect(value).toHaveProperty('default', 42)
-	expect(value).toHaveProperty('value', 1)
-	expect(value2).toHaveProperty('default', 42)
-	expect(value2).toHaveProperty('value', 2)
-})
+// ./index.js
+const cjs = __webpack_require__("./cjs.js");
+var cjs_default = /*#__PURE__*/__webpack_require__.n(cjs);
+var cjs_default_0 = cjs_default();
 
+
+
+
+export { cjs_default_0 as value };
 
 ```
 
 ```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
 // The module cache
 var __webpack_module_cache__ = {};
 // The require function
@@ -53,6 +52,8 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
 return module.exports;
 }
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
 
 // esm library register module runtime
 (() => {
@@ -87,18 +88,5 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 })();
 
 export { __webpack_require__ };
-
-```
-
-```mjs title=shared.mjs
-// ./m1.js
-/* ESM default export */ const m1 = (42);
-const value = 1
-
-// ./m2.js
-/* ESM default export */ const m2 = (42);
-const m2_value = 2
-
-export { m1, m2, m2_value, value };
 
 ```
