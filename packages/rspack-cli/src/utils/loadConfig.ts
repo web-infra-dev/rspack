@@ -54,6 +54,7 @@ const registerLoader = (configPath: string) => {
 	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
+
 	addHook(
 		(code, filename) => {
 			try {

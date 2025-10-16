@@ -407,15 +407,9 @@ importers:
       '@rspack/dev-server':
         specifier: ~1.1.4
         version: 1.1.4(@rspack/core@packages+rspack)(@types/express@4.17.23)(webpack@5.99.9)
-      colorette:
-        specifier: 2.0.20
-        version: 2.0.20
       exit-hook:
         specifier: ^4.0.0
         version: 4.0.0
-      pirates:
-        specifier: ^4.0.7
-        version: 4.0.7
       webpack-bundle-analyzer:
         specifier: 4.10.2
         version: 4.10.2
@@ -435,6 +429,9 @@ importers:
       cac:
         specifier: ^6.7.14
         version: 6.7.14
+      colorette:
+        specifier: 2.0.20
+        version: 2.0.20
       concat-stream:
         specifier: ^2.0.0
         version: 2.0.0
@@ -444,6 +441,9 @@ importers:
       execa:
         specifier: ^5.1.1
         version: 5.1.1
+      pirates:
+        specifier: ^4.0.7
+        version: 4.0.7
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.21)(typescript@5.9.3)

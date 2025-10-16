@@ -23,7 +23,10 @@
   "bin": {
     "rspack": "./bin/rspack.js"
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
@@ -32,10 +35,8 @@
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/dev-server": "~1.1.4",
-    "colorette": "2.0.20",
     "exit-hook": "^4.0.0",
-    "webpack-bundle-analyzer": "4.10.2",
-    "pirates": "^4.0.7"
+    "webpack-bundle-analyzer": "4.10.2"
   },
   "devDependencies": {
     "@rslib/core": "0.15.1",
@@ -43,9 +44,11 @@
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "cac": "^6.7.14",
+    "colorette": "2.0.20",
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
+    "pirates": "^4.0.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
