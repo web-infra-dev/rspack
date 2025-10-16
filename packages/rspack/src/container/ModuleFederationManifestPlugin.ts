@@ -68,8 +68,8 @@ function getBuildInfo(isDev: boolean, root?: string): StatsBuildInfo {
 	const buildVersion = isDev ? LOCAL_BUILD_VERSION : pkg?.version;
 
 	return {
-		buildVersion: process.env.MF_BUILD_VERSION || buildVersion,
-		buildName: process.env.MF_BUILD_NAME || pkg?.name || ""
+		buildVersion: process.env.MF_BUILD_VERSION || buildVersion || "UNKNOWN",
+		buildName: process.env.MF_BUILD_NAME || pkg?.name || "UNKNOWN"
 	};
 }
 
