@@ -41,7 +41,6 @@ export interface RspackBuildCLIOptions extends RspackCLIOptions {
 }
 
 export interface RspackPreviewCLIOptions extends RspackCLIOptions {
-	dir?: string;
 	port?: number;
 	host?: string;
 	open?: boolean;

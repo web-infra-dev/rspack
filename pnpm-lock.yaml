@@ -419,9 +419,6 @@ importers:
       webpack-bundle-analyzer:
         specifier: 4.10.2
         version: 4.10.2
-      yargs:
-        specifier: 17.7.2
-        version: 17.7.2
     devDependencies:
       '@rslib/core':
         specifier: 0.15.1
@@ -435,9 +432,9 @@ importers:
       '@types/webpack-bundle-analyzer':
         specifier: ^4.7.0
         version: 4.7.0
-      '@types/yargs':
-        specifier: 17.0.33
-        version: 17.0.33
+      cac:
+        specifier: ^6.7.14
+        version: 6.7.14
       concat-stream:
         specifier: ^2.0.0
         version: 2.0.0

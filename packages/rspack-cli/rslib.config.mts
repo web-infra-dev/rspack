@@ -6,6 +6,9 @@ export default defineConfig({
 		{ format: "esm", syntax: ["node 18.12"] }
 	],
 	source: {
-		tsconfigPath: "./tsconfig.build.json"
+		tsconfigPath: "./tsconfig.build.json",
+		define: {
+			RSPACK_CLI_VERSION: JSON.stringify(require("./package.json").version)
+		}
 	}
 });

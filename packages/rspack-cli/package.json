@@ -23,10 +23,7 @@
   "bin": {
     "rspack": "./bin/rspack.js"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
@@ -38,7 +35,6 @@
     "colorette": "2.0.20",
     "exit-hook": "^4.0.0",
     "webpack-bundle-analyzer": "4.10.2",
-    "yargs": "17.7.2",
     "pirates": "^4.0.7"
   },
   "devDependencies": {
@@ -46,7 +42,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",
-    "@types/yargs": "17.0.33",
+    "cac": "^6.7.14",
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",

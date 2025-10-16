@@ -252,7 +252,8 @@ export async function loadRspackConfig(
 	cwd = process.cwd()
 ): Promise<{ loadedConfig: LoadedRspackConfig; configPath: string } | null> {
 	// calc config path.
-	let configPath: string = "";
+	let configPath = "";
+
 	if (options.config) {
 		configPath = path.resolve(cwd, options.config);
 		if (!fs.existsSync(configPath)) {
@@ -263,6 +264,7 @@ export async function loadRspackConfig(
 		if (!defaultConfig) {
 			return null;
 		}
+
 		configPath = defaultConfig;
 	}
 
