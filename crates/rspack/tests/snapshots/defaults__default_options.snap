@@ -1520,6 +1520,7 @@ CompilerOptions {
         inline_enum: false,
         type_reexports_presence: false,
         lazy_barrel: false,
+        mf_async_startup: false,
     },
     node: Some(
         NodeOption {

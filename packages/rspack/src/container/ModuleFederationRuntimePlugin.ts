@@ -4,6 +4,7 @@ import { create } from "../builtin-plugin/base";
 
 export interface ModuleFederationRuntimeOptions {
 	entryRuntime?: string;
+	asyncStartup?: boolean;
 }
 
 export const ModuleFederationRuntimePlugin = create(

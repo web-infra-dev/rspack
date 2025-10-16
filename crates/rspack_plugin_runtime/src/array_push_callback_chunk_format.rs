@@ -167,13 +167,28 @@ async fn render_chunk(
             &mut render_source,
           )
           .await?;
-        source.add(render_source.source);
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
-        if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-          source.add(RawStringSource::from_static(
-            "return __webpack_exports__;\n",
+        if compilation.options.experiments.mf_async_startup {
+          let mut async_wrapper = ConcatSource::default();
+          async_wrapper.add(RawStringSource::from_static(
+            "return Promise.resolve().then(function() {\n",
           ));
+          async_wrapper.add(render_source.source);
+          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+            async_wrapper.add(RawStringSource::from_static(
+              "return __webpack_exports__;\n",
+            ));
+          }
+          async_wrapper.add(RawStringSource::from_static("});\n"));
+          source.add(async_wrapper.boxed());
+        } else {
+          source.add(render_source.source);
+          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+            source.add(RawStringSource::from_static(
+              "return __webpack_exports__;\n",
+            ));
+          }
         }
       }
       source.add(RawStringSource::from_static("\n}\n"));

@@ -171,7 +171,19 @@ async fn render_chunk(
         &mut startup_render_source,
       )
       .await?;
-    sources.add(startup_render_source.source);
+    if compilation.options.experiments.mf_async_startup {
+      let mut async_wrapper = ConcatSource::default();
+      async_wrapper.add(RawStringSource::from_static(
+        "module.exports = Promise.resolve().then(function() {\n",
+      ));
+      async_wrapper.add(startup_render_source.source);
+      async_wrapper.add(RawStringSource::from_static(
+        "return __webpack_exports__;\n});\n",
+      ));
+      sources.add(async_wrapper.boxed());
+    } else {
+      sources.add(startup_render_source.source);
+    }
     render_source.source = ConcatSource::new([
       RawStringSource::from_static("(function() {\n").boxed(),
       sources.boxed(),

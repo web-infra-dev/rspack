@@ -2112,6 +2112,7 @@ inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
+mfAsyncStartup: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2424,6 +2425,7 @@ export interface RawLimitChunkCountPluginOptions {
 
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
+  asyncStartup?: boolean | undefined
 }
 
 export interface RawModuleFilenameTemplateFnCtx {

@@ -253,7 +253,22 @@ async fn render_chunk(
         &mut render_source,
       )
       .await?;
-    sources.add(render_source.source);
+    if compilation.options.experiments.mf_async_startup {
+      let mut async_wrapper = ConcatSource::default();
+      async_wrapper.add(RawStringSource::from_static(
+        "const __webpack_exports__Promise = Promise.resolve().then(async () => {\n",
+      ));
+      async_wrapper.add(render_source.source);
+      async_wrapper.add(RawStringSource::from_static(
+        "return __webpack_exports__;\n});\n",
+      ));
+      async_wrapper.add(RawStringSource::from_static(
+        "export default await __webpack_exports__Promise;\n",
+      ));
+      sources.add(async_wrapper.boxed());
+    } else {
+      sources.add(render_source.source);
+    }
   }
   render_source.source = sources.boxed();
   Ok(())

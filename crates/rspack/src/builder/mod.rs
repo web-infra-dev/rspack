@@ -3668,6 +3668,8 @@ pub struct ExperimentsBuilder {
   parallel_code_splitting: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
+  /// Whether to enable module federation async startup.
+  mf_async_startup: Option<bool>,
   // TODO: lazy compilation
 }
 
@@ -3683,6 +3685,7 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
+      mf_async_startup: Some(value.mf_async_startup),
     }
   }
 }
@@ -3699,6 +3702,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       css: value.css.take(),
       parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
+      mf_async_startup: value.mf_async_startup.take(),
     }
   }
 }
@@ -3746,6 +3750,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable module federation async startup.
+  pub fn mf_async_startup(&mut self, mf_async_startup: bool) -> &mut Self {
+    self.mf_async_startup = Some(mf_async_startup);
+    self
+  }
+
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3783,6 +3793,7 @@ impl ExperimentsBuilder {
     w!(self.output_module, false);
 
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
+    let mf_async_startup = d!(self.mf_async_startup, false);
 
     Ok(Experiments {
       incremental,
@@ -3795,6 +3806,7 @@ impl ExperimentsBuilder {
       inline_enum: false,
       type_reexports_presence: false,
       lazy_barrel: false,
+      mf_async_startup,
     })
   }
 }

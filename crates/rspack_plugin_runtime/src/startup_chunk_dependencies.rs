@@ -1,6 +1,6 @@
 use rspack_core::{
-  ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModuleExt,
+  ChunkGraph, ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -19,6 +19,49 @@ pub struct StartupChunkDependenciesPlugin {
 impl StartupChunkDependenciesPlugin {
   pub fn new(chunk_loading: ChunkLoading, async_chunk_loading: bool) -> Self {
     Self::new_inner(chunk_loading, async_chunk_loading)
+  }
+
+  fn is_async_enabled(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+    if self.async_chunk_loading {
+      return true;
+    }
+
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+    let has_federation_runtime = runtime_requirements.contains(RuntimeGlobals::INITIALIZE_SHARING)
+      || runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP)
+      || runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
+    let has_federation_handlers =
+      runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+
+    if has_federation_runtime && has_federation_handlers {
+      return true;
+    }
+
+    if !compilation.options.experiments.mf_async_startup {
+      return false;
+    }
+
+    if has_federation_runtime {
+      return true;
+    }
+
+    let module_graph = compilation.get_module_graph();
+    let has_remote_modules = !compilation
+      .chunk_graph
+      .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Remote, &module_graph)
+      .is_empty();
+    if has_remote_modules {
+      return true;
+    }
+    let has_consume_modules = !compilation
+      .chunk_graph
+      .get_chunk_modules_by_source_type(chunk_ukey, SourceType::ConsumeShared, &module_graph)
+      .is_empty();
+    if has_consume_modules {
+      return true;
+    }
+
+    false
   }
 }
 
@@ -40,7 +83,8 @@ async fn additional_tree_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
+      StartupChunkDependenciesRuntimeModule::new(self.is_async_enabled(compilation, chunk_ukey))
+        .boxed(),
     )?;
   }
   Ok(())
@@ -63,7 +107,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
+      StartupEntrypointRuntimeModule::new(self.is_async_enabled(compilation, chunk_ukey)).boxed(),
     )?;
   }
 
