@@ -6,25 +6,31 @@ const getFile = name =>
 		"utf-8"
 	);
 
-it("should generate the main file and change full hash on update", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should generate the main file and change full hash on update", async () => {
 	const hash1 = __webpack_hash__;
 	expect(getFile("bundle.js")).toContain(hash1);
-	import.meta.webpackHot.accept("./module", () => {
-		const hash2 = __webpack_hash__;
-		expect(hash1).toBeTypeOf("string");
-		expect(hash2).toBeTypeOf("string");
-		expect(hash2).not.toBe(hash1);
-		expect(getFile("bundle.js")).toContain(hash2);
-		expect(getFile("bundle.js")).not.toContain(hash1);
-		done();
-	});
-	NEXT(err => {
-		if (err) return done(err);
-		NEXT((err, stats) => {
-			if (err) return done(err);
-			expect(stats.hash).toBe(hash1);
-			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-		});
-	});
-}));
+	await NEXT_HMR();
+	const hash2 = __webpack_hash__;
+	expect(hash1).toBeTypeOf("string");
+	expect(hash2).toBeTypeOf("string");
+	expect(hash2).not.toBe(hash1);
+	expect(getFile("bundle.js")).toContain(hash2);
+	expect(getFile("bundle.js")).not.toContain(hash1);
+	const stats = await NEXT_HMR();
+	const hash3 = __webpack_hash__;
+	expect(hash1).toBeTypeOf("string");
+	expect(hash3).toBeTypeOf("string");
+	expect(hash3).not.toBe(hash1);
+	expect(getFile("bundle.js")).toContain(hash3);
+	expect(getFile("bundle.js")).not.toContain(hash1);
+	expect(stats.hash).toBe(hash1);
+	await NEXT_HMR();
+	const hash4 = __webpack_hash__;
+	expect(hash4).toBeTypeOf("string");
+	expect(hash4).not.toBe(hash1);
+	expect(getFile("bundle.js")).toContain(hash4);
+	expect(getFile("bundle.js")).not.toContain(hash1);
+	expect(stats.hash).toBe(hash1);
+});
+
+import.meta.webpackHot.accept("./module");

@@ -1,13 +1,14 @@
 import nodePath from "node:path";
-import * as z from "zod/v4";
-import { createErrorMap, fromZodError } from "zod-validation-error/v4";
+import * as z from "zod";
+import { createErrorMap, fromZodError } from "zod-validation-error";
 import type * as t from "../config/types";
 import { memoize } from "../util/memoize";
 import { getZodSwcLoaderOptionsSchema } from "./loaders";
 import { anyFunction, intOrInfinity, numberOrInfinity } from "./utils";
 
 z.config({
-	jitless: true
+	jitless: true,
+	customError: createErrorMap()
 });
 
 export const getExternalsTypeSchema = memoize(
@@ -524,10 +525,7 @@ export const getRspackOptionsSchema = memoize(() => {
 
 		if (!res.success) {
 			const validationErr = fromZodError(res.error, {
-				prefix: "Invalid options for 'builtin:swc-loader'",
-				error: createErrorMap({
-					issuesInTitleCase: false
-				})
+				prefix: "Invalid options for 'builtin:swc-loader'"
 			});
 			ctx.issues.push({
 				code: "custom",

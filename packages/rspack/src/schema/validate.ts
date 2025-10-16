@@ -1,5 +1,5 @@
-import type { z } from "zod/v4";
-import { createErrorMap, fromZodError } from "zod-validation-error/v4";
+import type { z } from "zod";
+import { fromZodError } from "zod-validation-error";
 
 export class ValidationError extends Error {
 	constructor(message: string) {
@@ -82,17 +82,12 @@ export function validate<T extends z.ZodType>(
 }
 
 function toValidationError(error: z.ZodError): ValidationError {
-	// Instead of using `z.config({ customError: createErrorMap() })` to customize the error message,
-	// we use `createErrorMap` to customize the error message.
-	// This gives us fine-grained control over the error messages.
-	const customErrorMap = createErrorMap();
 	const separator = "\n- ";
 	const validationErr = fromZodError(error, {
 		prefix:
 			"Invalid configuration object. Rspack has been initialized using a configuration object that does not match the API schema.",
 		prefixSeparator: separator,
-		issueSeparator: separator,
-		error: customErrorMap
+		issueSeparator: separator
 	});
 	return new ValidationError(validationErr.message);
 }

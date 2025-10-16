@@ -26,7 +26,7 @@ use swc_core::common::sync::Lazy;
 
 use crate::{
   chunk_link::{ChunkLinkContext, Ref},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS},
+  plugin::{CONCATENATED_MODULES_MAP, LINKS, RSPACK_ESM_RUNTIME_CHUNK},
   runtime::RegisterModuleRuntime,
 };
 
@@ -186,6 +186,9 @@ impl EsmLibraryPlugin {
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      asset_info
+        .extras
+        .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
       // render chunk needs to render *all* runtimes in the whole tree
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);

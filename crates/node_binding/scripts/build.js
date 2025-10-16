@@ -70,12 +70,9 @@ async function build() {
 		if (!values.profile || values.profile === "dev") {
 			features.push("color-backtrace");
 		}
-		if (values.profile === "release-debug" &&
-			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
-		) {
+		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
-			rustflags.push("-Csymbol-mangling-version=v0");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");

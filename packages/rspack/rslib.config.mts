@@ -86,12 +86,12 @@ const fixZodTypePlugin: rsbuild.RsbuildPlugin = {
 				const content = await fs.promises.readFile(filePath, "utf-8");
 				const newContent = content
 					.replace(
-						`import * as z from "zod/v4";`,
-						`// @ts-ignore\nimport * as z from "zod/v4";`
+						`import * as z from "zod";`,
+						`// @ts-ignore\nimport * as z from "zod";`
 					)
 					.replace(
-						`import type { z } from "zod/v4";`,
-						`// @ts-ignore\nimport type { z } from "zod/v4";`
+						`import type { z } from "zod";`,
+						`// @ts-ignore\nimport type { z } from "zod";`
 					);
 
 				if (content !== newContent) {

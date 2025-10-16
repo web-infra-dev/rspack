@@ -4,25 +4,25 @@ import {dirname as __webpack_dirname__} from "node:path";
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
 import { __webpack_require__ } from "./runtime.mjs";
 // node:fs
-const external_node_fs___WEBPACK_NAMESPACE_OBJECT__ = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
+const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
 
-var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs___WEBPACK_NAMESPACE_OBJECT__);// node:path
-const external_node_path___WEBPACK_NAMESPACE_OBJECT__ = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
+const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
 
-var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path___WEBPACK_NAMESPACE_OBJECT__);// ./index.js
-var index__dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
+var index_dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
 
 
 
 it('should support dynamic import', async () => {
-	const shared = external_node_path_default().resolve(index__dirname, 'shared.mjs')
+	const shared = external_node_path_default().resolve(index_dirname, 'shared.mjs')
 	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
 
 	expect(content).toContain('// ./m1.js')
 	expect(content).toContain('// ./m2.js')
 
-	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1__WEBPACK_DEFAULT_EXPORT__,value: mod.value }))
-	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2__WEBPACK_DEFAULT_EXPORT__,value: mod.m2_value }))
+	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1,value: mod.value }))
+	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2,value: mod.m2_value }))
 
 	expect(value).toHaveProperty('default', 42)
 	expect(value).toHaveProperty('value', 1)
@@ -92,13 +92,13 @@ export { __webpack_require__ };
 
 ```mjs title=shared.mjs
 // ./m1.js
-/* ESM default export */ const m1__WEBPACK_DEFAULT_EXPORT__ = (42);
+/* ESM default export */ const m1 = (42);
 const value = 1
 
 // ./m2.js
-/* ESM default export */ const m2__WEBPACK_DEFAULT_EXPORT__ = (42);
+/* ESM default export */ const m2 = (42);
 const m2_value = 2
 
-export { m1__WEBPACK_DEFAULT_EXPORT__, m2__WEBPACK_DEFAULT_EXPORT__, m2_value, value };
+export { m1, m2, m2_value, value };
 
 ```

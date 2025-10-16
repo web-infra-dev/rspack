@@ -34,9 +34,3 @@ const value = foo_value
 export { value };
 
 ```
-
-```mjs title=runtime.mjs
-
-
-
-```

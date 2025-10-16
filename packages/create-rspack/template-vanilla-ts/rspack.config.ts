@@ -1,8 +1,8 @@
 import { defineConfig } from "@rspack/cli";
-import { rspack } from "@rspack/core";
+import { rspack, type SwcLoaderOptions } from "@rspack/core";
 
 // Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ["last 2 versions", "> 0.2%",  "not dead",  "Firefox ESR"];
+const targets = ["last 2 versions", "> 0.2%", "not dead", "Firefox ESR"];
 
 export default defineConfig({
 	entry: {
@@ -29,7 +29,7 @@ export default defineConfig({
 								}
 							},
 							env: { targets }
-						}
+						} satisfies SwcLoaderOptions
 					}
 				]
 			},
@@ -45,7 +45,7 @@ export default defineConfig({
 								}
 							},
 							env: { targets }
-						}
+						} satisfies SwcLoaderOptions
 					}
 				]
 			}

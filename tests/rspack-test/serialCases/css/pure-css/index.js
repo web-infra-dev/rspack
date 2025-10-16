@@ -1,6 +1,6 @@
 import "./style.css";
 
-it("should compile", () => new Promise(done => {
+it("should compile", () => {
 	const links = document.getElementsByTagName("link");
 	const css = [];
 
@@ -10,5 +10,4 @@ it("should compile", () => new Promise(done => {
 	}
 
 	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
-	done();
-}));
+});
