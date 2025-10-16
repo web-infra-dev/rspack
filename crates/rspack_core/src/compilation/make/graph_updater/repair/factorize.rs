@@ -117,17 +117,35 @@ impl Task<TaskContext> for FactorizeTask {
       current_profile.mark_factory_end();
     }
 
-    let factorize_info = FactorizeInfo::new(
-      create_data.diagnostics,
-      create_data
-        .dependencies
-        .iter()
-        .map(|dep| *dep.id())
-        .collect(),
-      create_data.file_dependencies,
-      create_data.context_dependencies,
-      create_data.missing_dependencies,
-    );
+    let factorize_info = if let Some(unsafe_cache_predicate) = &self.options.module.unsafe_cache
+      && let Some(result) = &factory_result
+      && let Some(module) = &result.module
+      && unsafe_cache_predicate(module).await?
+    {
+      FactorizeInfo::new(
+        create_data.diagnostics,
+        create_data
+          .dependencies
+          .iter()
+          .map(|dep| *dep.id())
+          .collect(),
+        Default::default(),
+        Default::default(),
+        Default::default(),
+      )
+    } else {
+      FactorizeInfo::new(
+        create_data.diagnostics,
+        create_data
+          .dependencies
+          .iter()
+          .map(|dep| *dep.id())
+          .collect(),
+        create_data.file_dependencies,
+        create_data.context_dependencies,
+        create_data.missing_dependencies,
+      )
+    };
     let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,

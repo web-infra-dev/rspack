@@ -827,7 +827,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			rules: ruleSetRules,
 			parser: parserOptionsByModuleType,
 			generator: generatorOptionsByModuleType,
-			noParse: noParseOption
+			noParse: noParseOption,
+			unsafeCache: z.boolean().optional()
 		})
 		.partial() satisfies z.ZodType<t.ModuleOptions>;
 	//#endregion

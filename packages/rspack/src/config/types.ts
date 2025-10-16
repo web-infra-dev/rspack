@@ -1382,6 +1382,11 @@ export type ModuleOptions = {
 
 	/** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
 	noParse?: NoParseOption;
+
+	/**
+	 * Cache the resolving of module requests.
+	 */
+	unsafeCache?: boolean;
 };
 
 //#endregion

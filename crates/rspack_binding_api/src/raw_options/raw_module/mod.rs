@@ -1,11 +1,16 @@
-use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
+use std::{
+  fmt::Formatter,
+  ptr::NonNull,
+  sync::{Arc, LazyLock},
+};
 
-use derive_more::with_trait::Debug;
+use derive_more::Debug;
 use napi::{
   Either,
   bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
+use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -51,7 +56,7 @@ pub enum RawRuleSetCondition {
   func(ThreadsafeFunction<serde_json::Value, bool>),
 }
 
-impl Debug for RawRuleSetCondition {
+impl std::fmt::Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({s:?})"),
@@ -808,6 +813,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
 }
 
 #[napi(object, object_to_js = false)]
+#[derive(Debug)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
@@ -815,18 +821,9 @@ pub struct RawModuleOptions {
   #[napi(
     ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
   )]
+  #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-}
-
-impl Debug for RawModuleOptions {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleOptions")
-      .field("rules", &self.rules)
-      .field("parser", &self.parser)
-      .field("generator", &self.generator)
-      .field("no_parse", &"...")
-      .finish()
-  }
+  pub unsafe_cache: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -979,6 +976,10 @@ impl TryFrom<RawModuleRule> for ModuleRule {
   }
 }
 
+#[allow(clippy::unwrap_used)]
+static NODE_MODULES_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\\/]node_modules[\\/]"#).unwrap());
+
 impl TryFrom<RawModuleOptions> for ModuleOptions {
   type Error = rspack_error::Error;
 
@@ -1009,6 +1010,20 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
+      unsafe_cache: if value.unsafe_cache.unwrap_or(false) {
+        Some(Box::new(|module| {
+          let name = module.name_for_condition();
+          Box::pin(async move {
+            Ok(if let Some(name) = name {
+              NODE_MODULES_REGEXP.is_match(name.as_ref())
+            } else {
+              false
+            })
+          })
+        }))
+      } else {
+        None
+      },
     })
   }
 }
