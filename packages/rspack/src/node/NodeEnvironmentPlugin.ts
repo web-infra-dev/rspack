@@ -8,8 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 // @ts-expect-error we directly import from enhanced-resolve inner js file to improve performance
+
+import fs from "node:fs";
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
-import fs from "graceful-fs";
 
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
