@@ -9,7 +9,7 @@ import {
 	normalizeCommonOptions,
 	setDefaultNodeEnv
 } from "../utils/options";
-import { rspack } from "../utils/rspcakCore";
+import { rspack } from "../utils/rspackCore";
 
 type ServerOptions = CommonOptionsForBuildAndServe & {
 	hot?: boolean | "only";

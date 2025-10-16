@@ -116,7 +116,7 @@ export type CommonOptionsForBuildAndServe = CommonOptions & {
 };
 
 /**
- * set builtin env from cli - like `RSPACK_BUNDLE=true
+ * set builtin env from cli - like `RSPACK_BUNDLE=true`
  * @param env the `argv.env` object
  * @param envNameSuffix the added env will be `RSPACK_${envNameSuffix}`
  * @param value

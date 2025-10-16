@@ -1,12 +1,15 @@
 import path from "node:path";
 import util from "node:util";
-import type { 
+import type {
 	Compiler,
 	MultiCompiler,
 	MultiRspackOptions,
 	MultiStats,
-	RspackOptions,RspackPluginFunction, RspackPluginInstance, 
-	Stats} from "@rspack/core";
+	RspackOptions,
+	RspackPluginFunction,
+	RspackPluginInstance,
+	Stats
+} from "@rspack/core";
 import cac, { type CAC } from "cac";
 import { createColors, isColorSupported } from "colorette";
 import { BuildCommand } from "./commands/build";
@@ -18,7 +21,7 @@ import type {
 	CommonOptions,
 	CommonOptionsForBuildAndServe
 } from "./utils/options";
-import { rspack } from "./utils/rspcakCore";
+import { rspack } from "./utils/rspackCore";
 
 type Command = "serve" | "build";
 

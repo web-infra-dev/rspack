@@ -3,7 +3,7 @@ import type { MultiStats, Stats } from "@rspack/core";
 import type { RspackCLI } from "../cli";
 import type { RspackCommand } from "../types";
 import {
-	type CommonOptionsForBuildAndServe, 
+	type CommonOptionsForBuildAndServe,
 	commonOptions,
 	commonOptionsForBuildAndServe,
 	normalizeCommonOptions,

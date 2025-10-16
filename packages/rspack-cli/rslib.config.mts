@@ -1,4 +1,7 @@
+import { createRequire } from "node:module";
 import { defineConfig } from "@rslib/core";
+
+const require = createRequire(import.meta.url);
 
 export default defineConfig({
 	lib: [

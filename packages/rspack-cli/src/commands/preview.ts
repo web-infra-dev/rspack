@@ -12,7 +12,7 @@ import {
 	normalizeCommonOptions,
 	setDefaultNodeEnv
 } from "../utils/options";
-import { rspack } from "../utils/rspcakCore";
+import { rspack } from "../utils/rspackCore";
 
 type PreviewOptions = CommonOptions & {
 	port?: string;

@@ -7,14 +7,12 @@ import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
 import isTsFile, { TS_EXTENSION } from "./isTsFile";
 import type { CommonOptions } from "./options";
-import { rspack } from "./rspcakCore";
+import { rspack } from "./rspackCore";
 
 const injectInlineSourceMap = ({
-	filename,
 	code,
 	map
 }: {
-	filename: string;
 	code: string;
 	map: string | undefined;
 }): string => {
@@ -25,6 +23,7 @@ const injectInlineSourceMap = ({
 	}
 	return code;
 };
+
 export function compile(sourcecode: string, filename: string) {
 	const { code, map } = rspack.experiments.swc.transformSync(sourcecode, {
 		jsc: {
@@ -40,9 +39,11 @@ export function compile(sourcecode: string, filename: string) {
 		sourceMaps: true,
 		isModule: true
 	});
-	return injectInlineSourceMap({ filename, code, map });
+	return injectInlineSourceMap({ code, map });
 }
+
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
+
 // modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
 const registerLoader = (configPath: string) => {
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
