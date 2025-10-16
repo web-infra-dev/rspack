@@ -39,9 +39,3 @@ export { external_fs_readFile as r, external_fs_readFile as readFile, fs_0 as fs
 export * from "fs";
 
 ```
-
-```mjs title=runtime.mjs
-
-
-
-```
