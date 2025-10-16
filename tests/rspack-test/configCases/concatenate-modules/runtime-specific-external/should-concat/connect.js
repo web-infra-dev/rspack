@@ -4,4 +4,4 @@ export function connect() {
   value;
 }
 
-console.log('')
+console.log.bind(console);

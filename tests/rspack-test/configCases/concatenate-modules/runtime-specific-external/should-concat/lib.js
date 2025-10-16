@@ -3,7 +3,7 @@ export { connect } from "./connect";
 import { value } from "./value";
 
 
-console.log('')
+console.log.bind(console);
 
 export function Provide() {
   value;
