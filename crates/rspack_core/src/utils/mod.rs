@@ -15,6 +15,7 @@ mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
+pub mod incremental_info;
 pub use fs_trim::*;
 mod hash;
 mod identifier;

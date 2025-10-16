@@ -505,9 +505,8 @@ impl Compilation {
       .make_artifact
       .file_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.file_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.file_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -527,13 +526,8 @@ impl Compilation {
       .make_artifact
       .context_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .context_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.context_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -553,13 +547,8 @@ impl Compilation {
       .make_artifact
       .missing_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .missing_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.missing_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -579,9 +568,8 @@ impl Compilation {
       .make_artifact
       .build_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.build_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.build_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
