@@ -128,9 +128,8 @@ pub fn export_from_import(
 
   let target_module_identifier = target_module.identifier();
 
-  let is_deferred =
-    matches!(phase, ImportPhase::Defer) && !target_module.build_meta().has_top_level_await;
-  dbg!(target_module_identifier, is_deferred);
+  let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await;
+
   let mut exclude_default_export_name = None;
   if default_interop {
     if !export_name.is_empty()
@@ -306,21 +305,43 @@ pub fn export_from_import(
       access
     }
   } else if is_deferred {
+    let cache_var = format!("var {import_var}_deferred_namespace_cache;\n");
     init_fragments.push(
       NormalInitFragment::new(
-        format!("var {import_var}_deferred_namespace_cache;\n"),
+        cache_var.clone(),
         InitFragmentStage::StageConstants,
         -1,
-        InitFragmentKey::ESMDeferImportNamespaceObjectFragment(format!(
-          "{import_var}_deferred_namespace_cache"
-        )),
+        InitFragmentKey::ESMDeferImportNamespaceObjectFragment(cache_var),
         None,
       )
       .boxed(),
     );
-    todo!()
+    runtime_requirements.insert(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let module_id =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module_identifier);
+    let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+    format!(
+      "/*#__PURE__*/ {}({import_var}_deferred_namespace_cache || ({import_var}_deferred_namespace_cache = {}({}, {})))",
+      match asi_safe {
+        Some(true) => "Object",
+        Some(false) => ";",
+        None => "",
+      },
+      RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+      json_stringify(&module_id),
+      mode,
+    )
   } else {
     import_var.to_string()
+  }
+}
+
+pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: ExportsType) -> String {
+  match exports_type {
+    ExportsType::Namespace => "1".to_string(),
+    ExportsType::DefaultOnly => "0".to_string(),
+    ExportsType::DefaultWithNamed => "2".to_string(),
+    ExportsType::Dynamic => "3".to_string(),
   }
 }
 
@@ -525,7 +546,7 @@ pub fn import_statement(
     &module.identifier(),
   );
 
-  if matches!(phase, ImportPhase::Defer) && !module.build_meta().has_top_level_await {
+  if phase.is_defer() && !module.build_meta().has_top_level_await {
     let async_deps = get_outgoing_async_modules(compilation, &**target_module);
     let import_content = format!(
       "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",

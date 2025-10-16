@@ -133,7 +133,7 @@ impl ESMImportSpecifierDependency {
         name: v.to_vec(),
         can_mangle: true,
         // Need access the export value to trigger side effects for deferred module
-        can_inline: !matches!(self.phase, ImportPhase::Defer),
+        can_inline: !self.phase.is_defer(),
       })]
     } else {
       create_exports_object_referenced()

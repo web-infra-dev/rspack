@@ -187,6 +187,20 @@ pub enum ImportPhase {
   Defer,
 }
 
+impl ImportPhase {
+  pub fn is_evaluation(&self) -> bool {
+    matches!(self, ImportPhase::Evaluation)
+  }
+
+  pub fn is_source(&self) -> bool {
+    matches!(self, ImportPhase::Source)
+  }
+
+  pub fn is_defer(&self) -> bool {
+    matches!(self, ImportPhase::Defer)
+  }
+}
+
 impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
   fn from(phase: swc_core::ecma::ast::ImportPhase) -> Self {
     match phase {

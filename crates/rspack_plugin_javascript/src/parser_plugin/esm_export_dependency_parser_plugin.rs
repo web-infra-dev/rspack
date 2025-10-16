@@ -109,6 +109,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
+        settings.phase,
         settings.attributes,
         Some(parser.source_map.clone()),
       );
@@ -188,7 +189,8 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       star_exports,
       statement.span().into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      None,
+      ImportPhase::Evaluation,
+      statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
     if export_name.is_none() {
