@@ -350,6 +350,7 @@ const applyModuleDefaults = (
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
 
+	// IGNORE(module.unsafeCache): Rspack defaults to true
 	if (cache) {
 		D(module, "unsafeCache", true);
 	} else {

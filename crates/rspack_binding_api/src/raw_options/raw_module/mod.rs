@@ -823,7 +823,8 @@ pub struct RawModuleOptions {
   )]
   #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-  pub unsafe_cache: Option<bool>,
+  #[napi(ts_type = "boolean | RegExp")]
+  pub unsafe_cache: Option<Either<bool, RspackRegex>>,
 }
 
 #[derive(Debug, Clone)]
@@ -1010,19 +1011,42 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-      unsafe_cache: if value.unsafe_cache.unwrap_or(false) {
-        Some(Box::new(|module| {
-          let name = module.name_for_condition();
-          Box::pin(async move {
-            Ok(if let Some(name) = name {
-              NODE_MODULES_REGEXP.is_match(name.as_ref())
+      unsafe_cache: match value.unsafe_cache {
+        Some(either) => match either {
+          Either::A(bool) => {
+            if bool {
+              Some(Box::new(|module| {
+                let name = module.name_for_condition();
+                Box::pin(async move {
+                  Ok(if let Some(name) = name {
+                    NODE_MODULES_REGEXP.is_match(name.as_ref())
+                  } else {
+                    false
+                  })
+                })
+              }))
             } else {
-              false
-            })
-          })
-        }))
-      } else {
-        None
+              None
+            }
+          }
+          Either::B(regex) => {
+            let regex = Arc::from(regex);
+
+            Some(Box::new(move |module| {
+              let name = module.name_for_condition();
+              let regex = regex.clone();
+
+              Box::pin(async move {
+                Ok(if let Some(name) = name {
+                  regex.clone().test(name.as_ref())
+                } else {
+                  false
+                })
+              })
+            }))
+          }
+        },
+        None => None,
       },
     })
   }

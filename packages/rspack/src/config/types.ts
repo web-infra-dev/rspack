@@ -1386,7 +1386,7 @@ export type ModuleOptions = {
 	/**
 	 * Cache the resolving of module requests.
 	 */
-	unsafeCache?: boolean;
+	unsafeCache?: boolean | RegExp;
 };
 
 //#endregion
