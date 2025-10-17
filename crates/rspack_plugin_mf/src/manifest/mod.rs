@@ -259,31 +259,31 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if matches!(module_type, ModuleType::ConsumeShared) {
-        if let Some((pkg, required)) = parse_consume_shared_identifier(&identifier) {
-          let mut target_ids: Vec<ModuleIdentifier> = Vec::new();
-          if let Some(issuer_module) = module_graph.get_issuer(&module_identifier) {
-            target_ids.push(issuer_module.identifier());
-          }
-          if target_ids.is_empty() {
-            target_ids.push(module_identifier);
-          }
-          consume_module_ids
-            .entry(pkg.clone())
-            .or_default()
-            .extend(target_ids);
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
-          if entry.requiredVersion.is_none() && required.is_some() {
-            entry.requiredVersion = required;
-          }
-          record_shared_usage(
-            &mut shared_usage_links,
-            &pkg,
-            &module_identifier,
-            &module_graph,
-            compilation,
-          );
+      if matches!(module_type, ModuleType::ConsumeShared)
+        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
+      {
+        let mut target_ids: Vec<ModuleIdentifier> = Vec::new();
+        if let Some(issuer_module) = module_graph.get_issuer(&module_identifier) {
+          target_ids.push(issuer_module.identifier());
         }
+        if target_ids.is_empty() {
+          target_ids.push(module_identifier);
+        }
+        consume_module_ids
+          .entry(pkg.clone())
+          .or_default()
+          .extend(target_ids);
+        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        if entry.requiredVersion.is_none() && required.is_some() {
+          entry.requiredVersion = required;
+        }
+        record_shared_usage(
+          &mut shared_usage_links,
+          &pkg,
+          &module_identifier,
+          &module_graph,
+          compilation,
+        );
       }
     }
 
@@ -324,20 +324,19 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    if let Some(module_id) = container_entry_module {
-      if let Some(mut entry_assets) =
+    if let Some(module_id) = container_entry_module
+      && let Some(mut entry_assets) =
         collect_assets_for_module(compilation, &module_id, &entry_point_names)
-      {
-        remove_assets(&mut entry_assets, &shared_asset_files);
-        promote_primary_assets_to_sync(&mut entry_assets);
-        for expose in exposes_map.values_mut() {
-          let is_empty = expose.assets.js.sync.is_empty()
-            && expose.assets.js.r#async.is_empty()
-            && expose.assets.css.sync.is_empty()
-            && expose.assets.css.r#async.is_empty();
-          if is_empty {
-            expose.assets = entry_assets.clone();
-          }
+    {
+      remove_assets(&mut entry_assets, &shared_asset_files);
+      promote_primary_assets_to_sync(&mut entry_assets);
+      for expose in exposes_map.values_mut() {
+        let is_empty = expose.assets.js.sync.is_empty()
+          && expose.assets.js.r#async.is_empty()
+          && expose.assets.css.sync.is_empty()
+          && expose.assets.css.r#async.is_empty();
+        if is_empty {
+          expose.assets = entry_assets.clone();
         }
       }
     }
@@ -389,8 +388,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let exposes = exposes_map.values().cloned().collect::<Vec<_>>();
     let shared = shared_map
-      .into_iter()
-      .map(|(_k, mut v)| {
+      .into_values()
+      .map(|mut v| {
         v.usedIn.sort();
         v.usedIn.dedup();
         v
