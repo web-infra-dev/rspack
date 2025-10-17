@@ -11,7 +11,9 @@ module.exports = {
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							myFn: () => {}
+							jsc: {
+								syntax: "unknown"
+							}
 						}
 					}
 				],

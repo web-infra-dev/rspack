@@ -21,7 +21,10 @@ impl From<&str> for HashFunction {
       "xxhash64" => HashFunction::Xxhash64,
       "md4" => HashFunction::MD4,
       "sha256" => HashFunction::SHA256,
-      _ => unimplemented!("{}", value),
+      _ => panic!(
+        "Unsupported hash function: '{}'. Expected one of: xxhash64, md4, sha256",
+        value
+      ),
     }
   }
 }
@@ -35,7 +38,7 @@ impl From<&str> for HashDigest {
   fn from(value: &str) -> Self {
     match value {
       "hex" => HashDigest::Hex,
-      _ => unimplemented!(),
+      _ => panic!("Unsupported hash digest: '{}'. Expected: hex", value),
     }
   }
 }
