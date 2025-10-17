@@ -5,15 +5,11 @@ import {
 	BuiltinPluginName,
 	type RawModuleFederationManifestPluginOptions
 } from "@rspack/binding";
-import type { Source } from "webpack-sources";
-import { RawSource } from "webpack-sources";
 import {
 	createBuiltinPlugin,
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
-import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import type { LibraryType } from "../config";
 
 const MANIFEST_FILE_NAME = "mf-manifest.json";
 const STATS_FILE_NAME = "mf-stats.json";
@@ -73,49 +69,9 @@ function getBuildInfo(isDev: boolean, root?: string): StatsBuildInfo {
 	};
 }
 
-interface RemoteWithEntry {
-	name: string;
-	entry: string;
-}
-
-interface RemoteWithVersion {
-	name: string;
-	version: string;
-}
-
-interface ResourceInfo {
-	path: string;
-	name: string;
-	type: LibraryType;
-}
-
 interface StatsBuildInfo {
 	buildVersion: string;
 	buildName?: string;
-}
-
-interface BasicStatsMetaData {
-	name: string;
-	globalName: string;
-	buildInfo: StatsBuildInfo;
-	remoteEntry: ResourceInfo;
-	type: string;
-}
-
-type StatsMetaDataWithPublicPath = BasicStatsMetaData & {
-	publicPath: string;
-};
-
-type StatsMetaData = StatsMetaDataWithPublicPath;
-
-interface StatsAssets {
-	js: StatsAssetsInfo;
-	css: StatsAssetsInfo;
-}
-
-interface StatsAssetsInfo {
-	sync: string[];
-	async: string[];
 }
 
 export type RemoteAliasMap = Record<string, { name: string; entry?: string }>;
@@ -132,111 +88,6 @@ export type ManifestSharedOption = {
 	singleton?: boolean;
 };
 
-interface StatsShared {
-	id: string;
-	name: string;
-	version: string;
-	singleton: boolean;
-	requiredVersion: string;
-	hash: string;
-	assets: StatsAssets;
-	deps: string[];
-	usedIn: string[];
-}
-interface StatsRemoteVal {
-	moduleName: string;
-	federationContainerName: string;
-	consumingFederationContainerName: string;
-	alias: string;
-	usedIn: string[];
-}
-
-type StatsRemoteWithEntry = StatsRemoteVal & Omit<RemoteWithEntry, "name">;
-type StatsRemoteWithVersion = StatsRemoteVal & Omit<RemoteWithVersion, "name">;
-
-type StatsRemote = StatsRemoteWithEntry | StatsRemoteWithVersion;
-
-interface StatsExpose {
-	id: string;
-	name: string;
-	path?: string;
-	file: string;
-	requires: string[];
-	assets: StatsAssets;
-}
-
-interface Stats {
-	id: string;
-	name: string;
-	metaData: StatsMetaData;
-	shared: StatsShared[];
-	remotes: StatsRemote[];
-	exposes: StatsExpose[];
-}
-
-interface ManifestShared {
-	id: string;
-	name: string;
-	version: string;
-	singleton: boolean;
-	requiredVersion: string;
-	hash: string;
-	assets: StatsAssets;
-}
-
-interface ManifestRemoteCommonInfo {
-	federationContainerName: string;
-	moduleName: string;
-	alias: string;
-}
-
-type ManifestRemote =
-	| (Omit<RemoteWithEntry, "name"> & ManifestRemoteCommonInfo)
-	| (Omit<RemoteWithVersion, "name"> & ManifestRemoteCommonInfo);
-
-type ManifestExpose = Pick<StatsExpose, "assets" | "id" | "name" | "path">;
-
-interface Manifest {
-	id: string;
-	name: string;
-	metaData: StatsMetaData;
-	shared: ManifestShared[];
-	remotes: ManifestRemote[];
-	exposes: ManifestExpose[];
-}
-
-interface AdditionalDataOptions {
-	stats: Stats;
-	manifest?: Manifest;
-	compiler: Compiler;
-	compilation: Compilation;
-	bundler: "webpack" | "rspack";
-}
-
-function isStats(value: unknown): value is Stats {
-	if (!isPlainObject(value)) return false;
-	if (typeof value.id !== "string" || typeof value.name !== "string") {
-		return false;
-	}
-	if (!isPlainObject(value.metaData)) return false;
-	if (!Array.isArray(value.shared)) return false;
-	if (!Array.isArray(value.remotes)) return false;
-	if (!Array.isArray(value.exposes)) return false;
-	return true;
-}
-
-function isManifest(value: unknown): value is Manifest {
-	if (!isPlainObject(value)) return false;
-	if (typeof value.id !== "string" || typeof value.name !== "string") {
-		return false;
-	}
-	if (!isPlainObject(value.metaData)) return false;
-	if (!Array.isArray(value.shared)) return false;
-	if (!Array.isArray(value.remotes)) return false;
-	if (!Array.isArray(value.exposes)) return false;
-	return true;
-}
-
 export type ModuleFederationManifestPluginOptions = {
 	name?: string;
 	globalName?: string;
@@ -246,16 +97,7 @@ export type ModuleFederationManifestPluginOptions = {
 	remoteAliasMap?: RemoteAliasMap;
 	exposes?: ManifestExposeOption[];
 	shared?: ManifestSharedOption[];
-	additionalData?: (options: AdditionalDataOptions) => Promise<void> | void;
 };
-
-function toStringSource(source: Source | void): string | undefined {
-	if (!source) return undefined;
-	const content = source.source();
-	if (typeof content === "string") return content;
-	if (Buffer.isBuffer(content)) return content.toString("utf-8");
-	return String(content);
-}
 
 function getFileName(manifestOptions: ModuleFederationManifestPluginOptions): {
 	statsFileName: string;
@@ -303,47 +145,6 @@ export class ModuleFederationManifestPlugin extends RspackBuiltinPlugin {
 	constructor(opts: ModuleFederationManifestPluginOptions) {
 		super();
 		this.opts = opts;
-	}
-
-	apply(compiler: Compiler) {
-		super.apply(compiler);
-		const { statsFileName, manifestFileName } = getFileName(this.opts);
-
-		compiler.hooks.thisCompilation.tap(this.name, compilation => {
-			compilation.hooks.processAssets.tapPromise(this.name, async () => {
-				if (typeof this.opts.additionalData !== "function") return;
-
-				const manifestAsset = compilation.getAsset(manifestFileName);
-				const statsAsset = compilation.getAsset(statsFileName);
-				if (!manifestAsset || !statsAsset) {
-					return;
-				}
-				const manifestStr = toStringSource(manifestAsset.source);
-				const statsStr = toStringSource(statsAsset.source);
-				if (!manifestStr || !statsStr) return;
-
-				const manifest = parseJSON(manifestStr, isManifest);
-				const stats = parseJSON(statsStr, isStats);
-				if (!manifest || !stats) return;
-
-				await this.opts.additionalData({
-					stats,
-					manifest,
-					compilation,
-					compiler,
-					bundler: "rspack"
-				});
-
-				compilation.updateAsset(
-					manifestFileName,
-					new RawSource(JSON.stringify(manifest, null, 2))
-				);
-				compilation.updateAsset(
-					statsFileName,
-					new RawSource(JSON.stringify(stats, null, 2))
-				);
-			});
-		});
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {

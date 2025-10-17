@@ -1,4 +1,6 @@
-use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
+use std::path::Path;
+
+use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{
@@ -17,17 +19,25 @@ pub fn collect_assets_from_chunk(
   let mut css_async = HashSet::<String>::default();
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_key);
 
+  for file in chunk.files() {
+    if file.ends_with(".css") {
+      css_sync.insert(file.clone());
+    } else if !is_hot_file(file) {
+      js_sync.insert(file.clone());
+    }
+  }
+
   for cg in chunk.groups() {
     let group = compilation.chunk_group_by_ukey.expect_get(cg);
-    if group
-      .name()
-      .is_some_and(|name| !entry_point_names.contains(name))
-    {
-      for file in group.get_files(&compilation.chunk_by_ukey) {
-        if file.ends_with(".css") {
-          css_sync.insert(file.to_string());
-        } else if !is_hot_file(&file) {
-          js_sync.insert(file);
+    if let Some(name) = group.name() {
+      let skip = entry_point_names.contains(name);
+      if !skip {
+        for file in group.get_files(&compilation.chunk_by_ukey) {
+          if file.ends_with(".css") {
+            css_sync.insert(file.to_string());
+          } else if !is_hot_file(&file) {
+            js_sync.insert(file);
+          }
         }
       }
     }
@@ -37,22 +47,22 @@ pub fn collect_assets_from_chunk(
     let async_chunk = compilation.chunk_by_ukey.expect_get(&async_chunk_key);
     for file in async_chunk.files() {
       if file.ends_with(".css") {
-        css_async.insert(file.to_string());
+        css_async.insert(file.clone());
       } else if !is_hot_file(file) {
-        js_async.insert(file.to_string());
+        js_async.insert(file.clone());
       }
     }
     for cg in async_chunk.groups() {
       let group = compilation.chunk_group_by_ukey.expect_get(cg);
-      if group
-        .name()
-        .is_some_and(|name| !entry_point_names.contains(name))
-      {
-        for file in group.get_files(&compilation.chunk_by_ukey) {
-          if file.ends_with(".css") {
-            css_async.insert(file.to_string());
-          } else if !is_hot_file(&file) {
-            js_async.insert(file);
+      if let Some(name) = group.name() {
+        let skip = entry_point_names.contains(name);
+        if !skip {
+          for file in group.get_files(&compilation.chunk_by_ukey) {
+            if file.ends_with(".css") {
+              css_async.insert(file.to_string());
+            } else if !is_hot_file(&file) {
+              js_async.insert(file);
+            }
           }
         }
       }
@@ -114,24 +124,6 @@ pub fn collect_assets_for_module(
   Some(result)
 }
 
-pub fn remove_assets(group: &mut StatsAssetsGroup, exclude: &HashSet<String>) {
-  group.js.sync.retain(|asset| !exclude.contains(asset));
-  group.js.r#async.retain(|asset| !exclude.contains(asset));
-  group.css.sync.retain(|asset| !exclude.contains(asset));
-  group.css.r#async.retain(|asset| !exclude.contains(asset));
-  normalize_assets_group(group);
-}
-
-pub fn promote_primary_assets_to_sync(group: &mut StatsAssetsGroup) {
-  if group.js.sync.is_empty() {
-    group.js.sync.append(&mut group.js.r#async);
-  }
-  if group.css.sync.is_empty() {
-    group.css.sync.append(&mut group.css.r#async);
-  }
-  normalize_assets_group(group);
-}
-
 pub fn collect_usage_files_for_module(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
@@ -146,6 +138,13 @@ pub fn collect_usage_files_for_module(
     let Some(origin) = origin_identifier else {
       continue;
     };
+    if let Some(path) = module_graph
+      .module_by_identifier(&origin)
+      .and_then(|module| module_source_path(module, compilation))
+    {
+      files.insert(path);
+      continue;
+    }
     if let Some(assets) = collect_assets_for_module(compilation, &origin, entry_point_names) {
       files.extend(assets.js.sync);
       files.extend(assets.js.r#async);
@@ -156,4 +155,63 @@ pub fn collect_usage_files_for_module(
   let mut collected: Vec<String> = files.into_iter().collect();
   collected.sort();
   collected
+}
+
+pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Option<String> {
+  if let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>()
+    && let Some(path) = normal_module.resource_resolved_data().path()
+  {
+    let context_path = compilation.options.context.as_path();
+    let relative = Path::new(path.as_str())
+      .strip_prefix(context_path)
+      .unwrap_or_else(|_| Path::new(path.as_str()));
+    let mut display = relative.to_string_lossy().into_owned();
+    if display.is_empty() {
+      display = path.as_str().to_string();
+    }
+    if display.starts_with("./") {
+      display.drain(..2);
+    } else if display.starts_with('/') {
+      display = display.trim_start_matches('/').to_string();
+    }
+    if display.is_empty() {
+      return None;
+    }
+    let normalized: String = display
+      .chars()
+      .map(|c| if c == '\\' { '/' } else { c })
+      .collect();
+    if normalized.is_empty() {
+      return None;
+    }
+    return Some(normalized);
+  }
+
+  let mut identifier = module
+    .readable_identifier(&compilation.options.context)
+    .to_string();
+  if identifier.is_empty() {
+    return None;
+  }
+  if let Some(pos) = identifier.rfind('!') {
+    identifier = identifier.split_off(pos + 1);
+  }
+  if let Some(pos) = identifier.find('?') {
+    identifier.truncate(pos);
+  }
+  if identifier.starts_with("./") {
+    identifier.drain(..2);
+  }
+  if identifier.is_empty() {
+    return None;
+  }
+  let normalized: String = identifier
+    .chars()
+    .map(|c| if c == '\\' { '/' } else { c })
+    .collect();
+  if normalized.is_empty() {
+    None
+  } else {
+    Some(normalized)
+  }
 }

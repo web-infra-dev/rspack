@@ -31,10 +31,6 @@ it("should omit asset details from manifest when disableAssetsAnalyze is true", 
 	expect(manifest.exposes[0].assets.js.async).toEqual([]);
 });
 
-it("should still allow additionalData to augment manifest", () => {
-	expect(manifest.extra).toBe(true);
-});
-
 it("should mark remote usage locations as UNKNOWN", () => {
 	expect(stats.remotes).toEqual(
 		expect.arrayContaining([

@@ -25,10 +25,7 @@ module.exports = {
 				react: {}
 			},
 			manifest: {
-				disableAssetsAnalyze: true,
-				additionalData({ manifest }) {
-					manifest.extra = true
-				}
+				disableAssetsAnalyze: true
 			}
 		})
 	]
