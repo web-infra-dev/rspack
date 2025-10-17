@@ -63,7 +63,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport,
+    DependencyType::EsmExportImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(

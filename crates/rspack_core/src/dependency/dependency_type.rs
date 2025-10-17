@@ -13,11 +13,10 @@ pub enum DependencyType {
   Unknown,
   ExportInfoApi,
   Entry,
-  // ESM import
+  // ESM
   EsmImport,
   EsmImportSpecifier,
-  // ESM export
-  EsmExport,
+  EsmExportImport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   EsmExportExpression,
@@ -128,7 +127,7 @@ impl DependencyType {
       DependencyType::Unknown => "unknown",
       DependencyType::Entry => "entry",
       DependencyType::EsmImport => "esm import",
-      DependencyType::EsmExport => "esm export",
+      DependencyType::EsmExportImport => "esm export import",
       DependencyType::EsmExportSpecifier => "esm export specifier",
       DependencyType::EsmExportImportedSpecifier => "esm export import specifier",
       DependencyType::EsmImportSpecifier => "esm import specifier",

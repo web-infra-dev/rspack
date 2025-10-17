@@ -3795,6 +3795,7 @@ impl ExperimentsBuilder {
       inline_enum: false,
       type_reexports_presence: false,
       lazy_barrel: false,
+      defer_import: false,
     })
   }
 }

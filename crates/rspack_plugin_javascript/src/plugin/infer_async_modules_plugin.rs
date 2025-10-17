@@ -132,7 +132,7 @@ fn set_sync_modules(
             .map(|dep| {
               matches!(
                 dep.dependency_type(),
-                DependencyType::EsmImport | DependencyType::EsmExport
+                DependencyType::EsmImport | DependencyType::EsmExportImport
               )
             })
             .unwrap_or_default()
@@ -169,7 +169,7 @@ fn set_async_modules(
           .map(|dep| {
             matches!(
               dep.dependency_type(),
-              DependencyType::EsmImport | DependencyType::EsmExport
+              DependencyType::EsmImport | DependencyType::EsmExportImport
             )
           })
           .unwrap_or_default()

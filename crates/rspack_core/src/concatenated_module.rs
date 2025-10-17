@@ -2758,7 +2758,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
     DependencyType::EsmImportSpecifier
       | DependencyType::EsmExportImportedSpecifier
       | DependencyType::EsmImport
-      | DependencyType::EsmExport
+      | DependencyType::EsmExportImport
   )
 }
 

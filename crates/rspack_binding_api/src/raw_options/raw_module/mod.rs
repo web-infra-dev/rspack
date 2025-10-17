@@ -306,6 +306,7 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[napi(object)]
@@ -384,6 +385,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,
       jsx: value.jsx,
+      defer_import: value.defer_import,
     }
   }
 }

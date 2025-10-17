@@ -1,0 +1,82 @@
+<%- MAKE_DEFERRED_NAMESPACE_OBJECT %> = <%- basicFunction("moduleId, mode") %> {
+  // mode: 0 => namespace (esm)
+  // mode: 1 => default-only (esm strict cjs)
+  // mode: 2 => default-with-named (esm-cjs compat)
+  // mode: 3 => dynamic (if exports has __esModule, then esm, otherwise default-with-named)
+  var cachedModule = __webpack_module_cache__[moduleId];
+  if (cachedModule && cachedModule.error === undefined) {
+    var exports = cachedModule.exports;
+    <%- cached_get_async_module_export %>
+    if (mode == 0) return exports;
+    if (mode == 1) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports);
+    if (mode == 2) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, 2);
+    if (mode == 3) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, 6);
+  }
+  var init = <%- basicFunction("") %> {
+    ns = <%- REQUIRE %>(moduleId);
+    <%- get_async_module_export %>
+    init = null;
+    if (mode == 0 || mode == 3 && ns.__esModule && typeof ns === 'object') {
+      delete handler.defineProperty;
+      delete handler.deleteProperty;
+      delete handler.set;
+      delete handler.get;
+      delete handler.has;
+      delete handler.ownKeys;
+      delete handler.getOwnPropertyDescriptor;
+    } else if (mode == 1) {
+      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns);
+    } else if (mode == 2) {
+      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 2);
+    } else if (mode == 3) {
+      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 6);
+    }
+  };
+  var ns = __webpack_module_deferred_exports__[moduleId] || (__webpack_module_deferred_exports__[moduleId] = { __proto__: null });
+  var handler = {
+    __proto__: null,
+    get: <%- basicFunction("_, name") %> {
+      switch (name) {
+        case "__esModule": return true;
+        case Symbol.toStringTag: return "Deferred Module";
+        case "then": return undefined;
+      }
+      if (init) init();
+      return ns[name];
+    },
+    has: <%- basicFunction("_, name") %> {
+    	switch (name) {
+    		case "__esModule":
+    		case Symbol.toStringTag: return true;
+    		case "then": return false;
+    	}
+    	if (init) init();
+    	return name in ns;
+    },
+    ownKeys: <%- basicFunction("_") %> {
+    	if (init) init();
+    	var keys = Reflect.ownKeys(ns).filter((x) => (x !== "then" && x !== Symbol.toStringTag)).concat([Symbol.toStringTag]);
+    	return keys;
+    },
+    getOwnPropertyDescriptor: <%- basicFunction("_, name") %> {
+    	switch (name) {
+    		case "__esModule": return { value: true, configurable: !!mode };
+    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !!mode };
+    		case "then": return undefined;
+    	}
+    	if (init) init();
+    	var desc = Reflect.getOwnPropertyDescriptor(ns, name);
+    	if (mode == 2 && name == "default" && !desc) {
+    		desc = { value: ns, configurable: true };
+    	}
+    	return desc;
+    },
+    defineProperty: <%- basicFunction("_, name") %> {
+    	if (init) init();
+    	return false;
+    },
+    deleteProperty: <%- returningFunction("false", "") %>,
+    set: <%- returningFunction("false", "") %>,
+  };
+  return new Proxy(ns, handler);
+}

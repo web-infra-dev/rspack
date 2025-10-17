@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes};
+use rspack_core::{
+  ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
+};
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -26,6 +28,7 @@ pub struct ESMSpecifierData {
   pub source: Atom,
   pub ids: Vec<Atom>,
   pub source_order: i32,
+  pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
 }
 
@@ -38,11 +41,24 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
+    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
+      import_decl.phase.into()
+    } else {
+      ImportPhase::Evaluation
+    };
+    if !parser.compiler_options.experiments.defer_import && phase == ImportPhase::Defer {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+    }
+    if phase == ImportPhase::Source {
+      parser
+        .add_error(rspack_error::error!("Source phase imports is not supported in Rspack.").into());
+    }
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
       import_decl.span.into(),
       DependencyType::EsmImport,
+      phase,
       attributes,
       Some(parser.source_map.clone()),
       false,
@@ -71,6 +87,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
+    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
+      statement.phase.into()
+    } else {
+      ImportPhase::Evaluation
+    };
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,
@@ -79,6 +100,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
         source: source.clone(),
         ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
         source_order: parser.last_esm_import_order,
+        phase,
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
@@ -125,6 +147,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       direct_import,
       ExportPresenceMode::None,
       None,
+      settings.phase,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -194,6 +217,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       true,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
+      settings.phase,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -261,6 +285,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       // we don't need to pass destructuring properties here, since this is a call expr,
       // pass destructuring properties here won't help for tree shaking.
       None,
+      settings.phase,
       settings.attributes,
       Some(parser.source_map.clone()),
     );
@@ -327,6 +352,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false, // x.xx()
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
+      settings.phase,
       settings.attributes,
       Some(parser.source_map.clone()),
     );

@@ -2112,6 +2112,7 @@ inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
+deferImport: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2348,6 +2349,7 @@ typeReexportsPresence?: string
  * @experimental
  */
 jsx?: boolean
+deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {

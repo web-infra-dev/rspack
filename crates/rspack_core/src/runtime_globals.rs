@@ -257,6 +257,11 @@ bitflags! {
     // amd module support
     const AMD_DEFINE = 1 << 67;
     const AMD_OPTIONS = 1 << 68;
+
+    // defer import support
+    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
   }
 }
 
@@ -310,6 +315,7 @@ impl RuntimeGlobals {
       R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
       R::INSTANTIATE_WASM => "__webpack_require__.v",
       R::ASYNC_MODULE => "__webpack_require__.a",
+      R::ASYNC_MODULE_EXPORT_SYMBOL => "__webpack_require__.aE",
       R::BASE_URI => "__webpack_require__.b",
       R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
       R::CREATE_SCRIPT_URL => "__webpack_require__.tu",
@@ -321,6 +327,8 @@ impl RuntimeGlobals {
       R::ENSURE_CHUNK_INCLUDE_ENTRIES => "__webpack_require__.f (include entries)",
       R::STARTUP => "__webpack_require__.x",
       R::MAKE_NAMESPACE_OBJECT => "__webpack_require__.r",
+      R::MAKE_DEFERRED_NAMESPACE_OBJECT => "__webpack_require__.z",
+      R::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => "__webpack_require__.zS",
       R::EXPORTS => "__webpack_exports__",
       R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
