@@ -84,7 +84,13 @@ export class Tester implements ITester {
 				await i.afterAll(this.context);
 			}
 		}
-		await this.context.closeCompiler(this.config.name);
+		try {
+			await this.context.closeCompiler(this.config.name);
+		} catch (e: any) {
+			console.warn(
+				`Error occured while closing compilers of '${this.config.name}':\n${e.stack}`
+			);
+		}
 	}
 
 	private async runStepMethods(
