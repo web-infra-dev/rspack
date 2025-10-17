@@ -668,6 +668,7 @@ export interface ExperimentsNormalized {
 	typeReexportsPresence?: boolean;
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
+	mfAsyncStartup?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

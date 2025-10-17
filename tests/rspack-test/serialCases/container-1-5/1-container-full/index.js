@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		const rendered = App();
@@ -12,4 +15,20 @@ it("should load the component from container", () => {
 			);
 		});
 	});
+});
+
+it("should emit promise-based bootstrap in CommonJS bundle", () => {
+	const content = fs.readFileSync(path.join(__dirname, "main.js"), "utf-8");
+	expect(content).toContain("Promise.resolve().then(function() {");
+});
+
+it("should emit awaited bootstrap in ESM bundle", () => {
+	const content = fs.readFileSync(
+		path.join(__dirname, "module", "main.mjs"),
+		"utf-8"
+	);
+	expect(content).toContain(
+		"const __webpack_exports__Promise = Promise.resolve().then(async () =>"
+	);
+	expect(content).toContain("export default await __webpack_exports__Promise;");
 });

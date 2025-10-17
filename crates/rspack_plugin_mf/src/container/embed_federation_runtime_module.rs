@@ -92,17 +92,42 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;
-{startup} = function() {{
+if (typeof __webpack_require__.g !== "undefined") {{
+	if (typeof __webpack_require__.g.importScripts === "undefined") {{
+		__webpack_require__.g.importScripts = function() {{ return false; }};
+	}}
+	if (typeof __webpack_require__.g.location === "undefined") {{
+		__webpack_require__.g.location = {{
+			href: "http://localhost/_rspack_placeholder_.js",
+			toString: function() {{ return this.href; }}
+		}};
+	}}
+	if (typeof __webpack_require__.g.document === "undefined") {{
+		__webpack_require__.g.document = {{
+			currentScript: {{ tagName: "script", src: "http://localhost/_rspack_placeholder_.js" }},
+			getElementsByTagName: function() {{ return [{{ src: "http://localhost/_rspack_placeholder_.js" }}]; }}
+		}};
+	}}
+}}
+function runFederationRuntime() {{
 	if (!hasRun) {{
 		hasRun = true;
 {module_executions}
 	}}
+}}
+__webpack_require__.federation = __webpack_require__.federation || {{}};
+__webpack_require__.federation.installRuntime = runFederationRuntime;
+{startup} = function() {{
+	runFederationRuntime();
 	if (typeof prevStartup === 'function') {{
-		return prevStartup();
-	}} else {{
-		console.warn('[MF] Invalid prevStartup');
+		return prevStartup.apply(this, arguments);
 	}}
-}};"#
+	if (typeof prevStartup !== 'undefined') {{
+		return prevStartup;
+	}}
+	console.warn('[MF] Invalid prevStartup');
+}};
+"#
     );
 
     Ok(result)

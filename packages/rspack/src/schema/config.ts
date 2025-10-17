@@ -1446,7 +1446,8 @@ export const getRspackOptionsSchema = memoize(() => {
 			inlineEnum: z.boolean(),
 			typeReexportsPresence: z.boolean(),
 			lazyBarrel: z.boolean(),
-			nativeWatcher: z.boolean()
+			nativeWatcher: z.boolean(),
+			mfAsyncStartup: z.boolean()
 		})
 		.partial() satisfies z.ZodType<t.Experiments>;
 	//#endregion

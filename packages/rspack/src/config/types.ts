@@ -2797,6 +2797,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	lazyBarrel?: boolean;
+	/**
+	 * Enable Module Federation async startup
+	 * @default false
+	 */
+	mfAsyncStartup?: boolean;
 };
 //#endregion
 
