@@ -11,8 +11,8 @@ module.exports = {
 
                 // With unsafeCache disabled, expect package.json and other node_modules 
                 // dependency files to be included in fileDependencies
-                const packageJsonDependencies = fileDependencies.filter(dependency => dependency.includes('package.json'));
-                expect(packageJsonDependencies.length).toBeGreaterThan(0)
+                const packageJsonDependencies = fileDependencies.filter(dependency => dependency.includes('node_modules/foo/package.json'));
+                expect(packageJsonDependencies.length).toBe(0)
 
                 // Module files themselves are still tracked (added in module.build())
                 // This ensures user modifications to node_modules are detected
