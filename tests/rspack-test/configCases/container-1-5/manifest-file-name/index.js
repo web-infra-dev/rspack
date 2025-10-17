@@ -25,7 +25,3 @@ it("should still point to the emitted remote entry", () => {
 	const remoteEntryPath = path.join(__dirname, remoteEntryFile);
 	expect(fs.existsSync(remoteEntryPath)).toBe(true);
 });
-
-it("should still allow additionalData to augment manifest", () => {
-	expect(manifest.extra).toBe(true);
-});

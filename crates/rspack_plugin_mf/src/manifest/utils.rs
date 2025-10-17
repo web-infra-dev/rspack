@@ -113,14 +113,20 @@ pub fn collect_expose_requirements(
   shared_map: &mut HashMap<String, StatsShared>,
   exposes_map: &mut HashMap<String, StatsExpose>,
   links: Vec<(String, String)>,
+  expose_module_paths: &HashMap<String, String>,
 ) {
+  #[cfg(debug_assertions)]
   for (pkg, expose_key) in links {
     if let Some(expose) = exposes_map.get_mut(&expose_key) {
       if !expose.requires.contains(&pkg) {
         expose.requires.push(pkg.clone());
       }
       if let Some(shared) = shared_map.get_mut(&pkg) {
-        shared.usedIn.push(expose.path.clone());
+        let target = expose_module_paths
+          .get(&expose_key)
+          .cloned()
+          .unwrap_or_else(|| expose.path.clone());
+        shared.usedIn.push(target);
       }
     }
   }
