@@ -540,6 +540,7 @@ export declare enum BuiltinPluginName {
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
@@ -2422,6 +2423,32 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawManifestExposeOption {
+  path: string
+  name: string
+}
+
+export interface RawManifestSharedOption {
+  name: string
+  version?: string
+  requiredVersion?: string
+  singleton?: boolean
+}
+
+export interface RawModuleFederationManifestPluginOptions {
+  name?: string
+  globalName?: string
+  fileName?: string
+  filePath?: string
+  statsFileName?: string
+  manifestFileName?: string
+  disableAssetsAnalyze?: boolean
+  remoteAliasMap?: Record<string, RawRemoteAliasTarget>
+  exposes?: Array<RawManifestExposeOption>
+  shared?: Array<RawManifestSharedOption>
+  buildInfo?: RawStatsBuildInfo
+}
+
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
 }
@@ -2643,6 +2670,11 @@ export interface RawRelated {
   sourceMap?: string
 }
 
+export interface RawRemoteAliasTarget {
+  name: string
+  entry?: string
+}
+
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
@@ -2806,6 +2838,11 @@ export interface RawSplitChunksOptions {
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
+}
+
+export interface RawStatsBuildInfo {
+  buildVersion: string
+  buildName?: string
 }
 
 export interface RawStatsOptions {

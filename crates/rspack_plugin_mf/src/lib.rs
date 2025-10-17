@@ -1,4 +1,5 @@
 mod container;
+mod manifest;
 mod sharing;
 
 pub use container::{
@@ -9,6 +10,10 @@ pub use container::{
   module_federation_runtime_plugin::{
     ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
   },
+};
+pub use manifest::{
+  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPlugin,
+  ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
 };
 pub use sharing::{
   consume_shared_module::ConsumeSharedModule,
