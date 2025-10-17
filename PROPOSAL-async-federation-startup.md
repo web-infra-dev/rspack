@@ -43,6 +43,13 @@
 2. **Bindings** – add `async_startup: Option<bool>` to `RawModuleFederationRuntimePluginOptions` and to `ModuleFederationRuntimePluginOptions` so Rust receives the signal. Regenerate the napi typings.
 3. **Registry** – inside `ModuleFederationRuntimePlugin`, record the flag against the current `CompilationId` (e.g. using a `LazyLock<FxDashMap<CompilationId, bool>>`). When using the global `mfAsyncStartup` fallback, treat the federation flag as `federationFlag || globalFlag`. Register a small hook on `compilation.finish` (or similar) to remove the entry once we’re done.
 
+> **Implementation gap surfaced during prototyping**
+>
+> The async flag alone is not sufficient—Remote runtime metadata is stored in `remotesLoadingData` and only consumed when `__webpack_require__.f.remotes` runs. Remote modules rarely appear in the normal “entry dependent chunk” graph, so simply flipping the async template still skips the remote loader. The startup path must explicitly fold the bundler runtime’s handlers into the startup promise chain (the way `@module-federation/enhanced`’s `generateEntryStartup` does with `ensureChunkHandlers.remotes/consumes`). Without that, `__webpack_require__(moduleId)` (e.g. `146` for `containerA/ComponentA`) executes before the remote stub is registered and we throw. Any final design must include:
+>
+> - Reducing over `__webpack_require__.f.remotes` / `.consumes` for the current chunk id so the bundler runtime patches `__webpack_require__.m[id]` before the entry runs. A plain `Promise.all([...RuntimeGlobals.ensureChunk...])` is not enough.
+> - Guaranteeing `RemoteRuntimeModule` executes before the entry so those handlers exist (runtime-module ordering matters when async startup is enabled).
+
 ### 4.2 Chunk-level detection and caching
 1. Augment `StartupChunkDependenciesPlugin` with a `requires_async_startup(compilation, chunk_ukey)` helper that:
    - Returns `true` immediately when the chunk loading strategy is already async (`Import`, `Jsonp`, `ImportScripts`, `AsyncNode`).
