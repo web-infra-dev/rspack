@@ -60,7 +60,7 @@ Rspack internally uses a dedicated thread pool to handle blocking operations suc
 
 By default, the pool size is set to `4`, matching Node.js's [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) behavior, which provides stable performance across most development and CI environments.
 
-If your build environment uses high-speed storage, you can adjust the thread count via the `RSPACK_BLOCKING_THREADS` environment variable, for example:
+If your build environment uses high-speed storage, you can adjust the thread count via the `RSPACK_BLOCKING_THREADS` environment variable to improve parallelism and potentially reduce build time, for example:
 
 ```bash
 # Need to install cross-env package to set environment variables

@@ -62,7 +62,7 @@ Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻�
 
 默认情况下，这个线程池的大小是 `4`，与 Node.js 的 [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) 保持一致，能在大多数开发与 CI 环境中提供稳定性能。
 
-如果你的构建环境使用高速存储，可以通过设置 `RSPACK_BLOCKING_THREADS` 环境变量来修改线程数，例如：
+如果你的构建环境使用高速存储，可以通过设置 `RSPACK_BLOCKING_THREADS` 环境变量来修改线程数，以获得更高的并发度和潜在的性能提升，例如：
 
 ```bash
 # 需要安装 cross-env 包来设置环境变量
