@@ -10,7 +10,7 @@ const setupFilesAfterEnv = [
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
-	include: [
+	include: process.env.WASM ? [] : [
 		"<rootDir>/Config.test.js",
 	],
 	slowTestThreshold: 5000,
