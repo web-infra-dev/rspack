@@ -175,6 +175,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			Symbol,
 			Buffer,
 			setImmediate,
+			self: this.globalContext,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			Worker: createFakeWorker(this._options.env, {

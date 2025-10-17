@@ -18,8 +18,10 @@ export class JSDOMWebRunner<
 	constructor(protected _webOptions: INodeRunnerOptions<T>) {
 		super(_webOptions);
 
-		const virtualConsole = new VirtualConsole();
-		virtualConsole.sendTo(console);
+		const virtualConsole = new VirtualConsole({});
+		virtualConsole.sendTo(console, {
+			omitJSDOMErrors: true
+		});
 		this.dom = new JSDOM(
 			`
       <!doctype html>
@@ -75,22 +77,14 @@ export class JSDOMWebRunner<
 	}
 
 	getGlobal(name: string): unknown {
-		return this.dom.window[name];
+		return this.globalContext![name];
 	}
 
 	protected createResourceLoader() {
-		const urlToPath = (url: string) => {
-			return path
-				.resolve(
-					this._webOptions.dist,
-					`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
-				)
-				.split("?")[0];
-		};
 		const that = this;
 		class CustomResourceLoader extends ResourceLoader {
 			fetch(url: string, _: { element: HTMLScriptElement }) {
-				const filePath = urlToPath(url);
+				const filePath = that.urlToPath(url);
 				let finalCode: string | Buffer | void;
 				if (path.extname(filePath) === ".js") {
 					const currentDirectory = path.dirname(filePath);
@@ -99,13 +93,15 @@ export class JSDOMWebRunner<
 						throw new Error(`File not found: ${filePath}`);
 					}
 
-					const [_scope, _m, code] = that.getModuleContent(file);
+					const [_m, code] = that.getModuleContent(file);
 					finalCode = code;
 				} else {
 					finalCode = fs.readFileSync(filePath);
 				}
 
 				try {
+					that.dom.window["__LINK_SHEET__"] ??= {};
+					that.dom.window["__LINK_SHEET__"][url] = finalCode!.toString();
 					return Promise.resolve(finalCode!) as any;
 				} catch (err) {
 					console.error(err);
@@ -120,19 +116,22 @@ export class JSDOMWebRunner<
 		return new CustomResourceLoader();
 	}
 
+	private urlToPath(url: string) {
+		return path
+			.resolve(
+				this._webOptions.dist,
+				`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url.startsWith("https://example.com/public/path/") ? url.slice(32) : url}`
+			)
+			.split("?")[0];
+	}
+
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope.EventSource = EventSource;
-		const urlToPath = (url: string) => {
-			return path.resolve(
-				this._webOptions.dist,
-				`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
-			);
-		};
 		moduleScope.fetch = async (url: string) => {
 			try {
 				const buffer: Buffer = await new Promise((resolve, reject) =>
-					fs.readFile(urlToPath(url), (err, b) =>
+					fs.readFile(this.urlToPath(url), (err, b) =>
 						err ? reject(err) : resolve(b)
 					)
 				);
@@ -156,8 +155,8 @@ export class JSDOMWebRunner<
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
-		moduleScope.getComputedStyle = function () {
-			const computedStyle = this.dom.window.getComputedStyle(this.dom.window);
+		moduleScope.getComputedStyle = (element: HTMLElement) => {
+			const computedStyle = this.dom.window.getComputedStyle(element);
 			const getPropertyValue =
 				computedStyle.getPropertyValue.bind(computedStyle);
 			return {
@@ -167,11 +166,12 @@ export class JSDOMWebRunner<
 				}
 			};
 		};
+		moduleScope.window = this.dom.window;
+		moduleScope.document = this.dom.window.document;
 		return moduleScope;
 	}
 
 	protected getModuleContent(file: TRunnerFile): [
-		Record<string, unknown>,
 		{
 			exports: Record<string, unknown>;
 		},
@@ -194,6 +194,16 @@ export class JSDOMWebRunner<
 			);
 		}
 
+		if (file.content.includes("__STATS__")) {
+			currentModuleScope.__STATS__ = this._options.stats?.();
+		}
+		if (file.content.includes("__STATS_I__")) {
+			const statsIndex = this._options.stats?.()?.__index__;
+			if (typeof statsIndex === "number") {
+				currentModuleScope.__STATS_I__ = statsIndex;
+			}
+		}
+
 		const scopeKey = escapeSep(file!.path);
 		const args = Object.keys(currentModuleScope).filter(
 			arg => !["window", "self", "globalThis", "console"].includes(arg)
@@ -202,8 +212,8 @@ export class JSDOMWebRunner<
 			.map(arg => `window["${scopeKey}"]["${arg}"]`)
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
+		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
 		return [
-			this.dom.window[scopeKey],
 			m,
 			`
 			// hijack document.currentScript for auto public path
@@ -222,11 +232,25 @@ export class JSDOMWebRunner<
 						});
 					}
 					return Reflect.get(target, prop, receiver);
+				},
+			});
+			var $$self$$ = new Proxy(window, {
+				get(target, prop, receiver) {
+				  if (prop === "__HMR_UPDATED_RUNTIME__") {
+					  return window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"];
+					}
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value, receiver) {
+					if (prop === "__HMR_UPDATED_RUNTIME__") {
+						window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"] = value;
+					}
+					return Reflect.set(target, prop, value, receiver);
 				}
 			});
 			(function(window, self, globalThis, console, ${args.join(", ")}) {
 				${file.content}
-			})($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
+			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});
 		`
 		];
 	}
@@ -242,21 +266,10 @@ export class JSDOMWebRunner<
 				return this.requireCache[file.path].exports;
 			}
 
-			const [scope, m, code] = this.getModuleContent(file);
-
-			if (code.includes("__STATS__")) {
-				scope.__STATS__ = this._options.stats?.();
-			}
-			if (code.includes("__STATS_I__")) {
-				const statsIndex = this._options.stats?.()?.__index__;
-				if (typeof statsIndex === "number") {
-					scope.__STATS_I__ = statsIndex;
-				}
-			}
+			const [m, code] = this.getModuleContent(file);
 
 			this.preExecute(code, file);
 			this.dom.window.eval(code);
-
 			this.postExecute(m, file);
 
 			this.requireCache[file.path] = m;

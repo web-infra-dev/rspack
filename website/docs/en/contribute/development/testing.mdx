@@ -168,7 +168,7 @@ module.exports = 2; // First hot update
 module.exports = 3; // Second hot update
 ```
 
-In the test case code, use the `NEXT` method to control the timing of file changes and add test code within it:
+In the test case code, use the `NEXT_HMR` method to control the timing of file changes and add test code within it:
 
 ```js title="index.js"
 import value from './file';
@@ -176,17 +176,10 @@ import value from './file';
 it('should hot update', done => {
   expect(value).toBe(1);
   // Use tests/rspack-test/hotCases/update.js to trigger update
-  NEXT(
-    require('../../update')(done, true, () => {
-      expect(value).toBe(2);
-      NEXT(
-        require('../../update')(done, true, () => {
-          expect(value).toBe(3);
-          done();
-        }),
-      );
-    }),
-  );
+  await NEXT_HMR();
+  expect(value).toBe(2);
+  await NEXT_HMR();
+  expect(value).toBe(3);
 });
 
 module.hot.accept('./file');

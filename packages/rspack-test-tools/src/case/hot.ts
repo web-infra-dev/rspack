@@ -4,7 +4,7 @@ import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update/plugin";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import { LazyCompilationTestPlugin } from "../plugin";
-import { WebRunner } from "../runner";
+import { NodeRunner, WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import {
 	type ECompilerType,
@@ -258,75 +258,50 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		"hotUpdatePlugin"
 	)!;
 
-	const next = async (
-		callback?: (
-			error: Error | null,
-			stats?: TCompilerStatsCompilation<T>
-		) => void
-	) => {
-		const usePromise = typeof callback === "function";
-		try {
-			await updatePlugin.goNext();
-			const stats = await compiler.build();
-			if (!stats) {
-				throw new Error("Should generate stats during build");
-			}
-			const jsonStats = stats.toJson({
-				// errorDetails: true
-			});
-			const compilerOptions = compiler.getOptions();
-
-			const checker = context.getValue(
-				name,
-				jsonStats.errors?.length
-					? "hotUpdateStepErrorChecker"
-					: "hotUpdateStepChecker"
-			) as (
-				updateIndex: number,
-				stats: TCompilerStats<T>,
-				runtime: THotStepRuntimeData
-			) => void;
-			if (checker) {
-				checker(
-					updatePlugin.getUpdateIndex(),
-					stats as TCompilerStats<T>,
-					runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
-				);
-			}
-			await checkArrayExpectation(
-				source,
-				jsonStats,
-				"error",
-				`errors${updatePlugin.getUpdateIndex()}`,
-				"Error",
-				compilerOptions
-			);
-			await checkArrayExpectation(
-				source,
-				jsonStats,
-				"warning",
-				`warnings${updatePlugin.getUpdateIndex()}`,
-				"Warning",
-				compilerOptions
-			);
-			if (usePromise) {
-				// old callback style hmr cases
-				callback(null, jsonStats as StatsCompilation);
-			} else {
-				// new promise style hmr cases
-				return jsonStats as StatsCompilation;
-			}
-		} catch (e) {
-			if (usePromise) {
-				callback(e as Error);
-			} else {
-				throw e;
-			}
-		}
-	};
-
 	const nextHMR = async (m: any, options?: any) => {
-		const jsonStats = await next();
+		await updatePlugin.goNext();
+		const stats = await compiler.build();
+		if (!stats) {
+			throw new Error("Should generate stats during build");
+		}
+		const jsonStats = stats.toJson({
+			// errorDetails: true
+		});
+		const compilerOptions = compiler.getOptions();
+
+		const checker = context.getValue(
+			name,
+			jsonStats.errors?.length
+				? "hotUpdateStepErrorChecker"
+				: "hotUpdateStepChecker"
+		) as (
+			updateIndex: number,
+			stats: TCompilerStats<T>,
+			runtime: THotStepRuntimeData
+		) => void;
+		if (checker) {
+			checker(
+				updatePlugin.getUpdateIndex(),
+				stats as TCompilerStats<T>,
+				runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
+			);
+		}
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"error",
+			`errors${updatePlugin.getUpdateIndex()}`,
+			"Error",
+			compilerOptions
+		);
+		await checkArrayExpectation(
+			source,
+			jsonStats,
+			"warning",
+			`warnings${updatePlugin.getUpdateIndex()}`,
+			"Warning",
+			compilerOptions
+		);
 		const updatedModules = await m.hot.check(options || true);
 		if (!updatedModules) {
 			throw new Error("No update available");
@@ -334,14 +309,13 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		return jsonStats as StatsCompilation;
 	};
 
-	const runner = new WebRunner({
-		dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+	const commonOptions = {
 		env,
 		stats: cachedStats(context, name),
 		name: name,
 		runInNewContext: false,
 		testConfig: {
-			documentType: testConfig.documentType || EDocumentType.Fake,
+			documentType: testConfig.documentType || EDocumentType.JSDOM,
 			...testConfig,
 			moduleScope(
 				ms: IModuleScope,
@@ -352,7 +326,6 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 				if (typeof testConfig.moduleScope === "function") {
 					testConfig.moduleScope(moduleScope, stats, compilerOptions);
 				}
-				moduleScope.NEXT = next;
 				moduleScope.NEXT_HMR = nextHMR;
 				return moduleScope;
 			}
@@ -361,7 +334,18 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		source,
 		dist,
 		compilerOptions
-	});
-
+	};
+	let runner: ITestRunner;
+	if (
+		compilerOptions.target === "web" ||
+		compilerOptions.target === "webworker"
+	) {
+		runner = new WebRunner({
+			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+			...commonOptions
+		});
+	} else {
+		runner = new NodeRunner(commonOptions);
+	}
 	return runner;
 }

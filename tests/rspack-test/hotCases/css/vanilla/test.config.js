@@ -1,5 +1,4 @@
 module.exports = {
-	documentType: "fake",
 	moduleScope(scope) {
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";

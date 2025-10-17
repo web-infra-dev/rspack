@@ -23,7 +23,9 @@ const creator = new BasicCaseCreator({
 				const custom = readConfigFile<ECompilerType.Rspack>(
 					["rspack.config.js", "webpack.config.js"].map(i =>
 						context.getSource(i)
-					)
+					),
+					context,
+					options
 				)[0];
 				if (custom) {
 					options = merge(options, custom);
