@@ -165,8 +165,10 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						: "should pass";
 			it(
 				description,
-				async () => {
-					await stepSignal;
+				cb => {
+					stepSignal.then((e: Error | void) => {
+						cb(e);
+					});
 				},
 				options.timeout || 300000
 			);
@@ -330,7 +332,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect(typeof fn === "function");
 				afterTasks.push(fn);
 			},
-			jest: global.jest || global.rstest
+			jest
 		};
 	}
 

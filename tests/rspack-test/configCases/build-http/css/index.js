@@ -1,7 +1,8 @@
 import "./style.css";
 const path = __non_webpack_require__("path");
 
-it(`should work with URLs in CSS`, () => {
+it(`should work with URLs in CSS`, () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const links = document.getElementsByTagName("link");
 	const css = [];
 
@@ -11,4 +12,5 @@ it(`should work with URLs in CSS`, () => {
 	}
 
 	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
-});
+	done();
+}));
