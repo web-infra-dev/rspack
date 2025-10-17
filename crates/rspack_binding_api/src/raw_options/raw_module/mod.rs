@@ -5,6 +5,7 @@ use std::{
 };
 
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use napi::{
   Either,
   bindgen_prelude::{Buffer, Either3, FnArgs},
@@ -996,17 +997,18 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         Either::A(true) => Some(Box::new(|module: &dyn rspack_core::Module| {
           let name = module.name_for_condition();
           Box::pin(async move {
-            Ok(name.map_or(false, |name| NODE_MODULES_REGEXP.is_match(name.as_ref())))
-          })
-        })),
+            Ok(name.is_some_and(|name| NODE_MODULES_REGEXP.is_match(name.as_ref())))
+          }) as BoxFuture<'static, rspack_error::Result<bool>>
+        }) as UnsafeCachePredicate),
         Either::A(false) => None,
         Either::B(regex) => {
           let regex = Arc::from(regex);
-          Some(Box::new(move |module| {
+          Some(Box::new(move |module: &dyn rspack_core::Module| {
             let name = module.name_for_condition();
             let regex = regex.clone();
-            Box::pin(async move { Ok(name.map_or(false, |name| regex.test(name.as_ref()))) })
-          }))
+            Box::pin(async move { Ok(name.is_some_and(|name| regex.test(name.as_ref()))) })
+              as BoxFuture<'static, rspack_error::Result<bool>>
+          }) as UnsafeCachePredicate)
         }
       });
 
