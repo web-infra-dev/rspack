@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ImportPhase, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -23,8 +23,7 @@ use crate::{
 };
 
 // TODO Here request can be used Atom
-pub type ImportVarMap =
-  HashMap<(Option<ModuleIdentifier>, ImportPhase), String /* import_var */>;
+pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
 
 pub type BuildDependency = (
   DependencyId,

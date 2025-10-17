@@ -323,9 +323,9 @@ pub fn export_from_import(
     format!(
       "/*#__PURE__*/ {}({import_var}_deferred_namespace_cache || ({import_var}_deferred_namespace_cache = {}({}, {})))",
       match asi_safe {
-        Some(true) => "Object",
+        Some(true) => "",
         Some(false) => ";",
-        None => "",
+        None => "Object",
       },
       RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
       json_stringify(&module_id),
@@ -338,8 +338,8 @@ pub fn export_from_import(
 
 pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: ExportsType) -> String {
   match exports_type {
-    ExportsType::Namespace => "1".to_string(),
-    ExportsType::DefaultOnly => "0".to_string(),
+    ExportsType::Namespace => "0".to_string(),
+    ExportsType::DefaultOnly => "1".to_string(),
     ExportsType::DefaultWithNamed => "2".to_string(),
     ExportsType::Dynamic => "3".to_string(),
   }
@@ -546,7 +546,7 @@ pub fn import_statement(
     &module.identifier(),
   );
 
-  if phase.is_defer() && !module.build_meta().has_top_level_await {
+  if phase.is_defer() && !target_module.build_meta().has_top_level_await {
     let async_deps = get_outgoing_async_modules(compilation, &**target_module);
     let import_content = format!(
       "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",
@@ -962,6 +962,8 @@ pub fn get_property_accessed_deferred_module(
   let namespace_or_dynamic = matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
   if namespace_or_dynamic {
     content += "var exports = ";
+  } else {
+    content += "return ";
   }
   content += RuntimeGlobals::REQUIRE.name();
   content += "(";
@@ -972,8 +974,9 @@ pub fn get_property_accessed_deferred_module(
     content += RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL.name();
     content += "]";
   }
-  content += ";\n  ";
+  content += ";\n";
   if namespace_or_dynamic {
+    content += "  ";
     if matches!(exports_type, ExportsType::Dynamic) {
       content += "if (exports.__esModule) ";
     }

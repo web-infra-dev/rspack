@@ -511,7 +511,7 @@ impl ESMExportImportedSpecifierDependency {
     let target_module = mg.get_module_by_dependency_id(&self.id);
     let import_var = compilation.get_import_var(
       module_identifier,
-      target_module.map(|m| m.identifier()),
+      target_module,
       self.user_request(),
       self.phase,
       *runtime,

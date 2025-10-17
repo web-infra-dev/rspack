@@ -134,15 +134,16 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
-  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
+  let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
   if module_dependency.weak() {
     // lazy
-    if ref_module.is_none() {
+    if target_module.is_none() {
       return;
     }
     // weak
-    if let Some(ref_module) = ref_module
-      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, *ref_module).is_none()
+    if let Some(target_module) = target_module
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+        .is_none()
     {
       return;
     }
@@ -161,7 +162,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
 
   let import_var = compilation.get_import_var(
     module.identifier(),
-    ref_module.copied(),
+    target_module,
     module_dependency.user_request(),
     phase,
     *runtime,
@@ -184,8 +185,8 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = ref_module
-    .map(|i| i.as_str())
+  let module_key = target_module
+    .map(|m| m.identifier().as_str())
     .unwrap_or(module_dependency.request());
   let key = format!(
     "{}ESM import {module_key}",
@@ -198,11 +199,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map()
-    && let Some(ref_module) = ref_module
+    && let Some(target_module) = target_module
   {
+    let target_module = target_module.identifier();
     let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
-    let old_runtime_condition = match emitted_modules.get(ref_module) {
+    let old_runtime_condition = match emitted_modules.get(&target_module) {
       Some(v) => v.to_owned(),
       None => RuntimeCondition::Boolean(false),
     };
@@ -222,11 +224,10 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
           .extend(old_runtime_condition.as_spec().expect("should be spec"));
       }
     }
-    emitted_modules.insert(*ref_module, merged_runtime_condition);
+    emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
-  let is_async_module =
-    matches!(ref_module, Some(ref_module) if ModuleGraph::is_async(compilation, ref_module));
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(compilation, &target_module.identifier()));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,

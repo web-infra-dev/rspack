@@ -376,9 +376,11 @@ impl ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
+      let mg = compilation.get_module_graph();
+      let target_module = mg.get_module_by_dependency_id(&dep.id);
       let import_var = compilation.get_import_var(
         module.identifier(),
-        connection.map(|c| *c.module_identifier()),
+        target_module,
         dep.user_request(),
         dep.phase,
         *runtime,

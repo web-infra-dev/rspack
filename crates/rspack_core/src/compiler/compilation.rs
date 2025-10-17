@@ -589,7 +589,7 @@ impl Compilation {
   pub fn get_import_var(
     &self,
     module: ModuleIdentifier,
-    target_module: Option<ModuleIdentifier>,
+    target_module: Option<&BoxModule>,
     user_request: &str,
     phase: ImportPhase,
     runtime: Option<&RuntimeSpec>,
@@ -603,8 +603,12 @@ impl Compilation {
       )
       .or_default();
     let len = import_var_map_of_module.len();
+    let is_deferred = phase.is_defer()
+      && !target_module
+        .map(|m| m.build_meta().has_top_level_await)
+        .unwrap_or_default();
 
-    match import_var_map_of_module.entry((target_module, phase)) {
+    match import_var_map_of_module.entry((target_module.map(|m| m.identifier()), is_deferred)) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
         let mut b = itoa::Buffer::new();

@@ -81,11 +81,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       let dependency = module_graph
         .dependency_by_id(id)
         .expect("should have dependency");
-      let ref_module = module_graph.get_module_by_dependency_id(dependency.id());
-      let ref_module_identifier = ref_module.map(|m| m.identifier());
-      let runtime_condition = match ref_module_identifier {
-        Some(ref_module_identifier) => {
-          import_emitted_runtime::get_runtime(&module_identifier, &ref_module_identifier)
+      let target_module = module_graph.get_module_by_dependency_id(dependency.id());
+      let runtime_condition = match target_module {
+        Some(target_module) => {
+          import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier())
         }
         None => RuntimeCondition::Boolean(false),
       };
@@ -109,7 +108,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       let phase = ImportPhase::Evaluation;
       let import_var = compilation.get_import_var(
         module_identifier,
-        ref_module_identifier,
+        target_module,
         module_dependency.user_request(),
         phase,
         *runtime,
