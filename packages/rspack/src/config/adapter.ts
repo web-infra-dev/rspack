@@ -226,7 +226,8 @@ function getRawModule(
 		rules,
 		parser: getRawParserOptionsMap(module.parser),
 		generator: getRawGeneratorOptionsMap(module.generator),
-		noParse: module.noParse
+		noParse: module.noParse,
+		unsafeCache: module.unsafeCache
 	};
 }
 

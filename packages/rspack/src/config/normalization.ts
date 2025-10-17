@@ -267,7 +267,8 @@ export const getNormalizedRspackOptions = (
 				{}
 			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
-			rules: nestedArray(module.rules, r => [...r])
+			rules: nestedArray(module.rules, r => [...r]),
+			unsafeCache: module.unsafeCache
 		})),
 		target: config.target,
 		externals: config.externals,
@@ -618,6 +619,7 @@ export interface ModuleOptionsNormalized {
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
 	noParse?: NoParseOption;
+	unsafeCache?: boolean | RegExp;
 }
 
 export type ExperimentCacheNormalized =
