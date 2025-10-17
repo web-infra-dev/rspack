@@ -84,7 +84,7 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
  * Performs configuration validation that cannot be covered by TypeScript types.
  */
 function validateRspackOptions(options: RspackOptions) {
-	const prefix = `Invalid Rspack configration:`;
+	const prefix = `Invalid Rspack configuration:`;
 	const { context, optimization } = options;
 
 	if (context && !isAbsolute(context)) {
