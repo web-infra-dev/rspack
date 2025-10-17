@@ -34,7 +34,7 @@ impl MakeOccasion {
       module_graph_partial,
       module_to_lazy_make,
       affected_modules,
-      affected_dependencies,
+      affected_dependencies: _,
       issuer_update_modules,
       // skip
       entry_dependencies: _,
