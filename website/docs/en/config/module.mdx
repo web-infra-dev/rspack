@@ -68,6 +68,36 @@ export default {
 };
 ```
 
+## module.unsafeCache
+
+- **Type:** `boolean | RegExp`
+
+Optimizes build performance by controlling the dependency tracking mechanism during the **module resolution phase**. When enabled, Rspack assumes that matched module files remain stable (paths unchanged and not deleted), thus skipping file watching to improve build speed.
+
+`module.unsafeCache` has the following default behavior:
+
+- If cache is disabled, the value is `false`
+- If cache is enabled:
+  - Value is `true` if the module comes from the `node_modules` directory
+  - Value is `false` in all other cases
+
+This configuration is particularly suitable for stable third-party dependencies. In actual development, module paths in `node_modules` are typically not modified, so this optimization can be safely enabled to reduce file system watching overhead.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    unsafeCache: false,
+  },
+};
+```
+
+:::tip Difference from Webpack
+Even when `module.unsafeCache: false`, Rspack still caches the relationship between `Dependency` and `Module`, because Rspack uses incremental algorithms for module graph reconstruction.
+
+When set to `false`, Rspack tracks all files required for module resolution, ensuring that module resolution can be re-executed when related files change, thereby obtaining the correct module file paths.
+:::
+
 ## module.parser
 
 - **Type:** `Object`
