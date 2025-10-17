@@ -37,11 +37,13 @@ export class ModuleFederationPlugin {
 		const asyncStartupFromGlobal =
 			compiler.options?.experiments?.mfAsyncStartup === true;
 		const enableAsyncStartup = asyncStartupFromMf || asyncStartupFromGlobal;
-		if (enableAsyncStartup) {
-			compiler.options.experiments =
-				compiler.options.experiments ||
-				({} as typeof compiler.options.experiments);
-			compiler.options.experiments.mfAsyncStartup = true;
+
+		if (asyncStartupFromMf && !asyncStartupFromGlobal) {
+			compiler.options.experiments = {
+				...(compiler.options.experiments ||
+					({} as typeof compiler.options.experiments)),
+				mfAsyncStartup: true
+			};
 		}
 
 		// Pass only the entry runtime to the Rust-side plugin

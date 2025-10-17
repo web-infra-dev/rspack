@@ -87,6 +87,15 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.pop();
     }
 
+    let compat_helper = r#"if (typeof __webpack_require__.n !== "function") {
+	__webpack_require__.n = function (module) {
+		var getter = module && module.__esModule ? function () { return module["default"]; } : function () { return module; };
+		getter.a = getter;
+		return getter;
+	};
+}
+"#;
+
     // Generate prevStartup wrapper pattern with defensive checks
     let startup = RuntimeGlobals::STARTUP.name();
     let result = format!(
@@ -112,6 +121,7 @@ if (typeof __webpack_require__.g !== "undefined") {{
 function runFederationRuntime() {{
 	if (!hasRun) {{
 		hasRun = true;
+{compat_helper}
 {module_executions}
 	}}
 }}

@@ -3,9 +3,11 @@
 //! Main orchestration plugin for Module Federation runtime functionality.
 //! Coordinates federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
 
+use std::sync::{Arc, Mutex};
+
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilerFinishMake, EntryOptions, Plugin, RuntimeGlobals,
+  CompilerFinishMake, DependencyId, EntryOptions, Plugin, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,6 +15,7 @@ use serde::Deserialize;
 
 use super::{
   embed_federation_runtime_plugin::EmbedFederationRuntimePlugin,
+  entry_runtime_module::EntryFederationRuntimeModule,
   federation_data_runtime_module::FederationDataRuntimeModule,
   federation_modules_plugin::FederationModulesPlugin,
   federation_runtime_dependency::FederationRuntimeDependency,
@@ -29,11 +32,12 @@ pub struct ModuleFederationRuntimePluginOptions {
 #[derive(Debug)]
 pub struct ModuleFederationRuntimePlugin {
   options: ModuleFederationRuntimePluginOptions,
+  entry_runtime_dependency: Arc<Mutex<Option<DependencyId>>>,
 }
 
 impl ModuleFederationRuntimePlugin {
   pub fn new(options: ModuleFederationRuntimePluginOptions) -> Self {
-    Self::new_inner(options)
+    Self::new_inner(options, Arc::new(Mutex::new(None)))
   }
 }
 
@@ -45,9 +49,26 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
-  compilation.add_runtime_module(chunk_ukey, Box::<FederationDataRuntimeModule>::default())?;
+  let entry_dep = {
+    let guard = self.entry_runtime_dependency.lock().expect("lock poisoned");
+    *guard
+  };
+  compilation.add_runtime_module(chunk_ukey, FederationDataRuntimeModule::default().boxed())?;
 
-  if compilation.options.experiments.mf_async_startup {
+  if let Some(dep_id) = entry_dep {
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    compilation.add_runtime_module(
+      chunk_ukey,
+      EntryFederationRuntimeModule::new(dep_id).boxed(),
+    )?;
+  }
+
+  let async_startup_enabled = self
+    .options
+    .async_startup
+    .unwrap_or(compilation.options.experiments.mf_async_startup);
+
+  if async_startup_enabled {
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
@@ -68,6 +89,14 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       .await
       .call(&federation_runtime_dep)
       .await?;
+
+    {
+      let mut guard = self
+        .entry_runtime_dependency
+        .lock()
+        .expect("Failed to lock entry runtime dependency");
+      *guard = Some(federation_runtime_dep.id);
+    }
 
     let boxed_dep: BoxDependency = Box::new(federation_runtime_dep);
     let entry_options = EntryOptions::default();

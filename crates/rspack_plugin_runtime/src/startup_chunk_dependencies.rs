@@ -5,8 +5,11 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime_module::{
-  StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule, is_enabled_for_chunk,
+use crate::{
+  chunk_needs_mf_async_startup,
+  runtime_module::{
+    StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule, is_enabled_for_chunk,
+  },
 };
 
 #[plugin]
@@ -45,7 +48,11 @@ impl StartupChunkDependenciesPlugin {
   }
 
   fn is_async_enabled(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
-    if self.async_chunk_loading {
+    if chunk_needs_mf_async_startup(compilation, chunk_ukey) {
+      return true;
+    }
+
+    if self.async_chunk_loading && compilation.options.experiments.mf_async_startup {
       return true;
     }
 

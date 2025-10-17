@@ -6,6 +6,9 @@ module.exports = {
 		filename: "[name].js",
 		uniqueName: "async-startup-no-dynamic"
 	},
+	experiments: {
+		mfAsyncStartup: true
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			name: "container",

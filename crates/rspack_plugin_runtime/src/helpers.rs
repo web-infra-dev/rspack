@@ -45,6 +45,12 @@ pub fn update_hash_for_entry_startup(
       }
     }
   }
+
+  if chunk_needs_mf_async_startup(compilation, chunk) {
+    if let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) {
+      chunk_ref.id(&compilation.chunk_ids_artifact).hash(hasher);
+    }
+  }
 }
 
 pub fn get_all_chunks(
@@ -178,6 +184,47 @@ pub async fn runtime_chunk_has_hash(
   Ok(false)
 }
 
+pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
+  let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) else {
+    return false;
+  };
+
+  let Some(runtime_requirements) = compilation.cgc_runtime_requirements_artifact.get(chunk) else {
+    return false;
+  };
+
+  let async_enabled = compilation.options.experiments.mf_async_startup
+    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+
+  if !async_enabled {
+    return false;
+  }
+
+  if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
+    && chunk_id.as_str() == "build time chunk"
+  {
+    return false;
+  }
+
+  if compilation.chunk_graph.get_number_of_entry_modules(chunk) == 0 {
+    return false;
+  }
+
+  let module_graph = compilation.get_module_graph();
+  let has_container_entry = compilation
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+    .keys()
+    .any(|identifier| {
+      module_graph
+        .module_by_identifier(identifier)
+        .map(|module| module.identifier().as_str().starts_with("container entry"))
+        .unwrap_or(false)
+    });
+
+  !has_container_entry
+}
+
 pub fn generate_entry_startup(
   compilation: &Compilation,
   chunk: &ChunkUkey,
@@ -222,6 +269,14 @@ pub fn generate_entry_startup(
     }
   }
 
+  // Remove current chunk ID if it somehow ended up in chunks_ids
+  // This ensures we don't use the wrapper for simple entries with no dependencies
+  if let Some(current_chunk) = compilation.chunk_by_ukey.get(chunk) {
+    if let Some(current_id) = current_chunk.id(&compilation.chunk_ids_artifact) {
+      chunks_ids.remove(current_id);
+    }
+  }
+
   let mut source = String::default();
   source.push_str(&format!(
     "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
@@ -233,31 +288,80 @@ pub fn generate_entry_startup(
     .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
     .collect::<Vec<_>>()
     .join(", ");
-  if chunks_ids.is_empty() {
+  let mf_async_startup = chunk_needs_mf_async_startup(compilation, chunk);
+
+  if chunks_ids.is_empty() && !mf_async_startup {
     source.push_str("var __webpack_exports__ = (");
     source.push_str(module_ids_code);
     source.push_str(");\n");
   } else {
-    if !passive {
-      source.push_str("var __webpack_exports__ = ");
-    }
-    source.push_str(&format!(
-      "{}(0, {}, function() {{
+    let chunk_ids_literal = stringify_chunks_to_array(&chunks_ids);
+    if mf_async_startup {
+      let startup_global = RuntimeGlobals::STARTUP.name();
+      let ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name();
+
+      source.push_str(&format!("var chunkIds = {};\n", chunk_ids_literal));
+      source.push_str("var promises = [];\n");
+      source.push_str(&format!(
+        "if (typeof {startup} === \"function\") {{\n  {startup}();\n}} else {{\n  console.warn(\"[Module Federation] {startup} is not a function, skipping startup extension\");\n}}\n",
+        startup = startup_global
+      ));
+      source.push_str(
+        "var __federation__ = __webpack_require__.federation;\nif (__federation__ && typeof __federation__.installRuntime === \"function\") {\n  __federation__.installRuntime();\n}\n",
+      );
+      source.push_str(&format!(
+        "var __chunk_handlers__ = {};\n",
+        ensure_chunk_handlers
+      ));
+      source.push_str(
+        "var __handler_chunk_ids__ = chunkIds.slice();\nif (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {\n  for (var __chunk_key__ in __webpack_require__.remotesLoadingData.chunkMapping) {\n    if (__handler_chunk_ids__.indexOf(__chunk_key__) < 0) __handler_chunk_ids__.push(__chunk_key__);\n  }\n}\nif (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {\n  for (var __consume_chunk__ in __webpack_require__.consumesLoadingData.chunkMapping) {\n    if (__handler_chunk_ids__.indexOf(__consume_chunk__) < 0) __handler_chunk_ids__.push(__consume_chunk__);\n  }\n}\n"
+      );
+      source.push_str("if (__chunk_handlers__) {\n");
+      source.push_str("  var __handler_list__ = [\n");
+      source.push_str("    __chunk_handlers__.consumes || function(chunkId, promises) {},\n");
+      source.push_str("    __chunk_handlers__.remotes || function(chunkId, promises) {}\n");
+      source.push_str("  ];\n");
+      source.push_str(
+        "  promises = __handler_list__.reduce(function(p, handler) {\n    if (typeof handler === \"function\") {\n      for (var idx = 0; idx < __handler_chunk_ids__.length; idx++) {\n        handler(__handler_chunk_ids__[idx], p);\n      }\n    }\n    return p;\n  }, promises);\n"
+      );
+      source.push_str("}\n");
+      source.push_str("var __webpack_exports__ = Promise.all(promises).then(function() {\n");
+      if passive {
+        source.push_str(&format!(
+          "  {on_chunks}(0, chunkIds, function() {{\n    return {modules};\n  }});\n  return {on_chunks}();\n",
+          on_chunks = RuntimeGlobals::ON_CHUNKS_LOADED.name(),
+          modules = module_ids_code
+        ));
+      } else {
+        source.push_str(&format!(
+          "  return {startup_entry}(0, chunkIds, function() {{\n    return {modules};\n  }});\n",
+          startup_entry = RuntimeGlobals::STARTUP_ENTRYPOINT.name(),
+          modules = module_ids_code
+        ));
+      }
+      source.push_str("});\n");
+    } else {
+      if !passive {
+        source.push_str("var __webpack_exports__ = ");
+      }
+      source.push_str(&format!(
+        "{}(0, {}, function() {{
         return {};
       }});\n",
-      if passive {
-        RuntimeGlobals::ON_CHUNKS_LOADED
-      } else {
-        RuntimeGlobals::STARTUP_ENTRYPOINT
-      },
-      stringify_chunks_to_array(&chunks_ids),
-      module_ids_code
-    ));
-    if passive {
-      source.push_str(&format!(
-        "var __webpack_exports__ = {}();\n",
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        if passive {
+          RuntimeGlobals::ON_CHUNKS_LOADED
+        } else {
+          RuntimeGlobals::STARTUP_ENTRYPOINT
+        },
+        chunk_ids_literal,
+        module_ids_code
       ));
+      if passive {
+        source.push_str(&format!(
+          "var __webpack_exports__ = {}();\n",
+          RuntimeGlobals::ON_CHUNKS_LOADED
+        ));
+      }
     }
   }
 

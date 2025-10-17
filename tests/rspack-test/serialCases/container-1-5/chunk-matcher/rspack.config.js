@@ -25,6 +25,9 @@ const commonMF = {
 module.exports = [
 	{
 		...common,
+		experiments: {
+			mfAsyncStartup: true
+		},
 		output: {
 			filename: "[name].js",
 			uniqueName: "1-container-full"

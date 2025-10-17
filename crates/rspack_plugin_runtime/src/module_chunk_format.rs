@@ -17,8 +17,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
-  get_runtime_chunk_output_name, runtime_chunk_has_hash,
+  chunk_has_js, chunk_needs_mf_async_startup, get_all_chunks, get_chunk_output_name,
+  get_relative_path, get_runtime_chunk_output_name, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -49,7 +49,9 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey)
+    && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
+  {
     return Ok(());
   }
 
@@ -74,7 +76,9 @@ async fn js_chunk_hash(
   hasher: &mut RspackHash,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey)
+    && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
+  {
     return Ok(());
   }
 
@@ -124,6 +128,7 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let needs_async_startup = chunk_needs_mf_async_startup(compilation, chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
   let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
@@ -253,14 +258,14 @@ async fn render_chunk(
         &mut render_source,
       )
       .await?;
-    if compilation.options.experiments.mf_async_startup {
+    if needs_async_startup {
       let startup_code = render_source.source.source();
       let default_bindings = collect_default_export_binding_names(startup_code.as_ref());
       let has_default_export = has_default_export_statement(startup_code.as_ref());
 
       sources.add(render_source.source.clone());
       sources.add(RawStringSource::from_static(
-        "const __webpack_exports__Promise = Promise.resolve(__webpack_exports__);\n",
+        "const __webpack_exports__Promise = Promise.resolve().then(async () => {\n  return __webpack_exports__;\n});\n",
       ));
       sources.add(RawStringSource::from_static(
         "__webpack_exports__ = await __webpack_exports__Promise;\n",

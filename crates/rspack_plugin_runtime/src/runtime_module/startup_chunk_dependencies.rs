@@ -2,9 +2,7 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
-};
+use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -30,10 +28,6 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.id
   }
 
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Trigger
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -43,7 +37,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
-      let mut chunk_ids = compilation
+      let chunk_ids = compilation
         .chunk_graph
         .get_chunk_entry_dependent_chunks_iterable(
           &chunk_ukey,
@@ -60,59 +54,26 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
         .collect::<Vec<_>>();
 
       let body = if self.async_chunk_loading {
-        if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          let chunk_id = chunk
-            .id(&compilation.chunk_ids_artifact)
-            .expect("should have chunkId for async startup")
-            .to_string();
-          if !chunk_ids.iter().any(|id| id == &chunk_id) {
-            chunk_ids.push(chunk_id);
-          }
+        match chunk_ids.len() {
+          1 => format!(
+            r#"return {}("{}").then(next);"#,
+            RuntimeGlobals::ENSURE_CHUNK,
+            chunk_ids.first().expect("Should has at least one chunk")
+          ),
+          2 => format!(
+            r#"return Promise.all([{}]).then(next);"#,
+            chunk_ids
+              .iter()
+              .map(|cid| format!(r#"{}("{}")"#, RuntimeGlobals::ENSURE_CHUNK, cid))
+              .join(",\n")
+          ),
+          _ => format!(
+            r#"return Promise.all({}.map({}, {})).then(next);"#,
+            serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
+            RuntimeGlobals::ENSURE_CHUNK,
+            RuntimeGlobals::REQUIRE
+          ),
         }
-
-        let chunk_ids_literal =
-          serde_json::to_string(&chunk_ids).expect("Invalid chunk ids serialization");
-        format!(
-          r#"
-var chunkIds = {chunk_ids_literal};
-var promises = [];
-var installFederationRuntime = __webpack_require__.federation && __webpack_require__.federation.installRuntime;
-if (typeof installFederationRuntime === "function") {{
-	var installResult = installFederationRuntime();
-	if (installResult && typeof installResult.then === "function") {{
-		promises.push(installResult);
-	}}
-}}
-var __federation_handlers__ = __webpack_require__.f;
-if (__federation_handlers__) {{
-  var __federation_handler_list__ = [
-    __federation_handlers__.remotes,
-    __federation_handlers__.consumes
-  ];
-  for (var i = 0; i < __federation_handler_list__.length; i++) {{
-    var handler = __federation_handler_list__[i];
-    if (!handler) continue;
-    for (var j = 0; j < chunkIds.length; j++) {{
-      handler(chunkIds[j], promises);
-    }}
-  }}
-}}
-for (var k = 0; k < chunkIds.length; k++) {{
-  var chunkId = chunkIds[k];
-  var promise = {ensure_chunk}(chunkId);
-  if (promise !== undefined) {{
-    promises.push(promise);
-  }}
-}}
-return Promise.all(promises).then(function() {{
-	if (typeof next === "function") {{
-		return next();
-	}}
-	return next;
-}});
-"#,
-          ensure_chunk = RuntimeGlobals::ENSURE_CHUNK
-        )
       } else {
         chunk_ids
           .iter()
