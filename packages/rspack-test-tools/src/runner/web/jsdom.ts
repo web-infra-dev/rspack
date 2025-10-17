@@ -77,7 +77,7 @@ export class JSDOMWebRunner<
 	}
 
 	getGlobal(name: string): unknown {
-		return this.dom.window[name];
+		return this.globalContext![name];
 	}
 
 	protected createResourceLoader() {
@@ -212,6 +212,7 @@ export class JSDOMWebRunner<
 			.map(arg => `window["${scopeKey}"]["${arg}"]`)
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
+		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
 		return [
 			m,
 			`
@@ -233,9 +234,23 @@ export class JSDOMWebRunner<
 					return Reflect.get(target, prop, receiver);
 				},
 			});
+			var $$self$$ = new Proxy(window, {
+				get(target, prop, receiver) {
+				  if (prop === "__HMR_UPDATED_RUNTIME__") {
+					  return window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"];
+					}
+					return Reflect.get(target, prop, receiver);
+				},
+				set(target, prop, value, receiver) {
+					if (prop === "__HMR_UPDATED_RUNTIME__") {
+						window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"] = value;
+					}
+					return Reflect.set(target, prop, value, receiver);
+				}
+			});
 			(function(window, self, globalThis, console, ${args.join(", ")}) {
 				${file.content}
-			})($$g$$, $$g$$, $$g$$, window["console"], ${argValues});
+			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});
 		`
 		];
 	}

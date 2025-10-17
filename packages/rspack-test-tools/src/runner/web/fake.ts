@@ -118,7 +118,6 @@ export class FakeDocumentWebRunner<
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
 		moduleScope.window = this.globalContext;
-		moduleScope.self = this.globalContext;
 		moduleScope.globalThis = this.globalContext;
 		moduleScope.document = this.globalContext!.document;
 
