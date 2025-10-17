@@ -6,8 +6,8 @@ it("should stop if policy fails to be created", function () {
 		}
 	};
 
-	const createPolicySpy = jest.spyOn(window.trustedTypes, "createPolicy");
-	const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
+	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
+	const consoleWarn = rstest.spyOn(console, "warn").mockImplementation(() => {});
 
 	let promise;
 	try {
