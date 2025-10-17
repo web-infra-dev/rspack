@@ -49,9 +49,7 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
 						item.options ? item.options.stats : undefined
 					)
 				}
-			: compiler.options
-				? compiler.options.stats
-				: undefined;
+			: compiler.options?.stats;
 
 		if (options.json && createJsonStringifyStream) {
 			const handleWriteError = (error: Error) => {
