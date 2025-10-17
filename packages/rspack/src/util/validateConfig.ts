@@ -1,7 +1,11 @@
 import { isAbsolute } from "node:path";
-import type { Configuration, ExternalItem, ExternalItemUmdValue } from "../config";
+import type {
+	Configuration,
+	ExternalItem,
+	ExternalItemUmdValue
+} from "../config";
 
-const ERROR_PREFIX = `Invalid Rspack configuration:`;
+const ERROR_PREFIX = "Invalid Rspack configuration:";
 
 const validateContext = ({ context }: Configuration) => {
 	if (context && !isAbsolute(context)) {
