@@ -40,7 +40,10 @@ const validateExternalUmd = ({
 		isLibraryUmd = output?.libraryTarget === "umd";
 	}
 
-	if (!isLibraryUmd || externalsType !== "umd") {
+	if (
+		!isLibraryUmd ||
+		(externalsType !== undefined && externalsType !== "umd")
+	) {
 		return;
 	}
 
@@ -60,7 +63,7 @@ const validateExternalUmd = ({
 		const requiredKeys = ["root", "commonjs", "commonjs2", "amd"] as const;
 		if (requiredKeys.some(key => value[key] === undefined)) {
 			throw new Error(
-				`${ERROR_PREFIX} External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd", get ${JSON.stringify(
+				`${ERROR_PREFIX} External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd", get: ${JSON.stringify(
 					value,
 					null,
 					2
