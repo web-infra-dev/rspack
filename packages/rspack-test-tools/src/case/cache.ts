@@ -3,17 +3,16 @@ import rspack, { type StatsCompilation } from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import { WebRunner } from "../runner";
+import { NodeRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type IModuleScope,
-	type ITestContext,
-	type ITestEnv,
-	type ITestProcessor,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
+import type {
+	ECompilerType,
+	IModuleScope,
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { build, check, compiler, config, getCompiler, run } from "./common";
 import { cachedStats } from "./runner";
@@ -229,8 +228,7 @@ function createRunner<T extends ECompilerType.Rspack>(
 		"hotUpdateContext"
 	)!;
 	const getWebRunner = () => {
-		return new WebRunner<T>({
-			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+		return new NodeRunner({
 			env,
 			stats: cachedStats(context, name),
 			cachable: false,
