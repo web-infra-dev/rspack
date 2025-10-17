@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "../rspack-browser/dist",
     "rootDir": "src",
+    "lib": ["es2022", "dom"],
     "resolveJsonModule": true,
     "emitDeclarationOnly": true,
     "sourceMap": false,
