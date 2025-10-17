@@ -7,8 +7,8 @@ it("should load chunk using trusted types with custom policy name", function () 
 	window.trustedTypes = {
 		createPolicy: () => rules
 	};
-	const createScriptURLSpy = jest.spyOn(rules, "createScriptURL");
-	const createPolicySpy = jest.spyOn(window.trustedTypes, "createPolicy");
+	const createScriptURLSpy = rstest.spyOn(rules, "createScriptURL");
+	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
 
 	const promise = import("./empty?b" /* webpackChunkName: "trusted-types" */);
 	var script = document.head._children.pop();

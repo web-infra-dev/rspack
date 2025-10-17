@@ -56,10 +56,14 @@ const config = {
 		"<rootDir>/*.test.js",
 		"<rootDir>/legacy-test/*.test.js"
 	],
+	testPathIgnorePatterns: [
+		// use rstest
+		"<rootDir>/Config.test.js",
+	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: "@rspack/test-tools/jest/slash",
-		// disable sourcmap remapping for ts file
+		// disable sourcemap remapping for ts file
 		"source-map-support/register": "identity-obj-proxy"
 	},
 	cache: !process.env.CI,

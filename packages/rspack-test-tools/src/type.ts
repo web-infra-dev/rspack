@@ -109,6 +109,7 @@ export interface ITester {
 	prepare(): Promise<void>;
 	compile(): Promise<void>;
 	check(env: ITestEnv): Promise<void>;
+	after(): Promise<void>;
 	next(): boolean;
 	resume(): Promise<void>;
 }

@@ -12,7 +12,15 @@ import type {
 	TCompiler,
 	TCompilerOptions
 } from "../type";
-import { build, check, compiler, config, getCompiler, run } from "./common";
+import {
+	afterExecute,
+	build,
+	check,
+	compiler,
+	config,
+	getCompiler,
+	run
+} from "./common";
 import { createRunner } from "./runner";
 
 const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, "normalCases");
@@ -55,6 +63,9 @@ const createCaseOptions = (
 				},
 				check: async (env: ITestEnv, context: ITestContext) => {
 					await check(env, context, name);
+				},
+				after: async (context: ITestContext) => {
+					await afterExecute(context, name);
 				}
 			}
 		],

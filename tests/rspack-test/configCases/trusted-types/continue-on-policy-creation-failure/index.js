@@ -6,8 +6,8 @@ it("can continue on policy creation failure", function () {
 		}
 	};
 
-	const createPolicySpy = jest.spyOn(window.trustedTypes, "createPolicy");
-	const consoleWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
+	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
+	const consoleWarn = rstest.spyOn(console, "warn").mockImplementation(() => {});
 
 	const promise = import(
 		"./empty?b" /* webpackChunkName: "continue-on-policy-creation-failure" */
