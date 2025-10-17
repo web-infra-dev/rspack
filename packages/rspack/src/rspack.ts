@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import assert from "node:assert";
-import { isAbsolute } from "node:path";
 import util from "node:util";
 import type { Callback } from "@rspack/lite-tapable";
 import { Compiler } from "./Compiler";
@@ -29,6 +28,7 @@ import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { Stats } from "./Stats";
 import { isNil } from "./util";
+import { validateRspackConfig } from "./util/validateConfig";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -80,29 +80,6 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
 }
 
-/**
- * Performs configuration validation that cannot be covered by TypeScript types.
- */
-function validateRspackOptions(options: RspackOptions) {
-	const prefix = `Invalid Rspack configuration:`;
-	const { context, optimization } = options;
-
-	if (context && !isAbsolute(context)) {
-		throw new Error(
-			`${prefix} "context" must be an absolute path, get "${context}".`
-		);
-	}
-
-	if (optimization?.splitChunks) {
-		const { minChunks } = optimization.splitChunks;
-		if (minChunks !== undefined && minChunks < 1) {
-			throw new Error(
-				`${prefix} "optimization.splitChunks.minChunks" must be greater than or equal to 1, get \`${minChunks}\`.`
-			);
-		}
-	}
-}
-
 function rspack(options: MultiRspackOptions): MultiCompiler;
 function rspack(options: RspackOptions): Compiler;
 function rspack(
@@ -127,10 +104,10 @@ function rspack(
 	try {
 		if (isMultiRspackOptions(options)) {
 			for (const option of options) {
-				validateRspackOptions(option);
+				validateRspackConfig(option);
 			}
 		} else {
-			validateRspackOptions(options);
+			validateRspackConfig(options);
 		}
 	} catch (err) {
 		if (err instanceof Error && callback) {
