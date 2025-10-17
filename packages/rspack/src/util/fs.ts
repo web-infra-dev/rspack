@@ -566,9 +566,9 @@ export type IntermediateFileSystemExtras = {
 		arg2: (arg0: null | NodeJS.ErrnoException) => void
 	) => void;
 	mkdirSync: MkdirSync;
-	write: Write<Buffer>;
+	write: Write;
 	open: Open;
-	read: Read<Buffer>;
+	read: Read;
 	close: (
 		arg0: number,
 		arg1: (arg0: null | NodeJS.ErrnoException) => void

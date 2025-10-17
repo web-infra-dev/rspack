@@ -1,10 +1,6 @@
-it("module and its loader-referencing module should update in right order", done => {
+it("module and its loader-referencing module should update in right order", async () => {
 	expect(require("./loader.js!./a")).toBe(2);
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(require("./loader.js!./a")).toBe(3);
-			done();
-		})
-	);
+	await NEXT_HMR();
+	expect(require("./loader.js!./a")).toBe(3);
 });
 module.hot.accept("./loader.js!./a");

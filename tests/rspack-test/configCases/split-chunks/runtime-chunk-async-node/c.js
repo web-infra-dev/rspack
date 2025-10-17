@@ -1,10 +1,8 @@
-beforeEach(done => {
+beforeEach(() => {
 	global.it = it;
-	done();
 });
-afterEach(done => {
+afterEach(() => {
 	delete global.it;
-	done();
 });
 
 it("should be able to load the other entry on demand", () => import("./a"));

@@ -251,8 +251,7 @@ impl ImportPlugin<'_> {
     let should_ignore = &config
       .ignore_es_component
       .as_ref()
-      .map(|list| list.iter().any(|c| c == &name))
-      .unwrap_or(false);
+      .is_some_and(|list| list.iter().any(|c| c == &name));
 
     if *should_ignore {
       return (None, None);
@@ -261,8 +260,7 @@ impl ImportPlugin<'_> {
     let should_ignore_css = &config
       .ignore_style_component
       .as_ref()
-      .map(|list| list.iter().any(|c| c == &name))
-      .unwrap_or(false);
+      .is_some_and(|list| list.iter().any(|c| c == &name));
 
     let transformed_name = if config.camel_to_dash_component_name.unwrap_or(true) {
       name.to_kebab_case()
@@ -297,8 +295,7 @@ impl ImportPlugin<'_> {
       HANDLER.with(|handler| {
         handler.err(&format!(
           "[builtin:swc-loader] Failed to parse option \
-       \"rspackExperiments.import[i].customName\".\nReason: {}",
-          err
+       \"rspackExperiments.import[i].customName\".\nReason: {err}"
         ));
       });
       None
@@ -324,8 +321,7 @@ impl ImportPlugin<'_> {
               HANDLER.with(|handler| {
                 handler.err(&format!(
                   "[builtin:swc-loader] Failed to parse option \
-                  \"rspackExperiments.import[i].customStyleName\".\nReason: {}",
-                  err
+                  \"rspackExperiments.import[i].customStyleName\".\nReason: {err}"
                 ));
               });
               None
@@ -352,8 +348,7 @@ impl ImportPlugin<'_> {
                 HANDLER.with(|handler| {
                   handler.err(&format!(
                     "[builtin:swc-loader] Failed to parse option \
-                     \"rspackExperiments.import[i].style\".\nReason: {}",
-                    err
+                     \"rspackExperiments.import[i].style\".\nReason: {err}"
                   ));
                 });
                 None
@@ -441,7 +436,6 @@ impl VisitMut for ImportPlugin<'_> {
                   }
                 } else if type_ident_referenced(&s.local) {
                   // type referenced
-                  continue;
                 } else {
                   // not referenced, should tree shaking
                   rm_specifier.insert(specifier_idx);

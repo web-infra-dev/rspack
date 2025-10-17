@@ -1,14 +1,12 @@
 import "./app.css";
 
-it("should compile", done => {
+it("should compile", () => {
 	const links = document.getElementsByTagName("link");
-	const css = [];
 
 	// Skip first because import it by default
 	for (const link of links.slice(1)) {
-		css.push(link.sheet.css);
+		expect(link.sheet.css).toContain(".row");
+		expect(link.sheet.css).toContain(".col-inner");
+		expect(link.sheet.css).toContain("/*# sourceMappingURL=bundle0.css.map*/");
 	}
-
-	expect(css).toMatchSnapshot();
-	done();
 });

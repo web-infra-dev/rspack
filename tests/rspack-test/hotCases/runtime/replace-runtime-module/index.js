@@ -1,17 +1,11 @@
 import m from "./module";
 
-it("should dispose a chunk which is removed from bundle", (done) => {
-	m.then(a => {
-		expect(a.default).toEqual("a");
-		NEXT(require("../../update")(done, true, () => {
-			m.then(b => {
-				expect(b.default).toEqual("b");
-				done();
-			}).catch(done);
-		}));
-	}).catch(done);
+it("should dispose a chunk which is removed from bundle", async () => {
+	let a = await m;
+	expect(a.default).toEqual("a");
+	await NEXT_HMR();
+	let b = await m;
+	expect(b.default).toEqual("b");
 });
 
-if(module.hot) {
-	module.hot.accept("./module");
-}
+module.hot.accept("./module");

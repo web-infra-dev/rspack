@@ -1,4 +1,4 @@
-it("should load script with nonce 'nonce1234'", function(done) {
+it("should load script with nonce 'nonce1234'", () => new Promise(done => {
 	__webpack_nonce__ = 'nonce1234';
 	require.ensure([], function(require) {
 		require("./empty?a");
@@ -12,9 +12,9 @@ it("should load script with nonce 'nonce1234'", function(done) {
 	}
 	__webpack_nonce__ = undefined;
 	done();
-});
+}));
 
-it("should load script without nonce", function(done) {
+it("should load script without nonce", () => new Promise(done => {
 	require.ensure([], function(require) {
 		require("./empty?b");
 	}, "chunk-without-nonce");
@@ -26,4 +26,4 @@ it("should load script without nonce", function(done) {
 	}
 	__webpack_nonce__ = undefined;
 	done();
-});
+}));

@@ -34,14 +34,14 @@ impl fmt::Display for TemplateError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       TemplateError::UnclosedTag { value } => {
-        write!(f, "unclosed tag in template string \"{}\"", value)
+        write!(f, "unclosed tag in template string \"{value}\"")
       }
       TemplateError::InvalidTemplateString { value } => {
-        write!(f, "invalid template string `{{{{ {} }}}}`", value)
+        write!(f, "invalid template string `{{{{ {value} }}}}`")
       }
-      TemplateError::UnknownHelper { name } => write!(f, "invalid helper \"{}\"", name),
-      TemplateError::MissingValue { name } => write!(f, "missing value for `{}`", name),
-      TemplateError::TemplateNotFound { name } => write!(f, "template `{}` not found", name),
+      TemplateError::UnknownHelper { name } => write!(f, "invalid helper \"{name}\""),
+      TemplateError::MissingValue { name } => write!(f, "missing value for `{name}`"),
+      TemplateError::TemplateNotFound { name } => write!(f, "template `{name}` not found"),
     }
   }
 }

@@ -37,6 +37,8 @@ pub static CONCATENATED_MODULES_MAP: LazyLock<
 pub static LINKS: LazyLock<RwLock<FxHashMap<u32, UkeyMap<ChunkUkey, ChunkLinkContext>>>> =
   LazyLock::new(Default::default);
 
+pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
+
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {}
@@ -355,12 +357,25 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut replaced = vec![];
+  let mut removed = vec![];
 
   for (asset_name, asset) in compilation.assets() {
     if asset.get_info().javascript_module.unwrap_or_default() {
       let Some(source) = asset.get_source() else {
         continue;
       };
+
+      if asset
+        .get_info()
+        .extras
+        .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
+        && source.source().trim().is_empty()
+      {
+        // remove empty runtime chunk
+        removed.push(asset_name.to_string());
+        continue;
+      }
+
       let mut replace_source = ReplaceSource::new(source.clone());
       let output_path = compilation.options.output.path.as_std_path();
       let mut self_path = output_path.join(asset_name);
@@ -424,6 +439,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .get_mut(&replace_name)
       .expect("should have asset")
       .set_source(Some(Arc::new(replace_source)));
+  }
+  for remove_name in removed {
+    compilation.assets_mut().remove(&remove_name);
   }
 
   Ok(())

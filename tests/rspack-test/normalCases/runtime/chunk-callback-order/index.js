@@ -1,4 +1,5 @@
-it("should fire multiple code load callbacks in the correct order", function(done) {
+it("should fire multiple code load callbacks in the correct order", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var calls = [];
 	require.ensure([], function(require) {
 		require("./duplicate");
@@ -12,4 +13,4 @@ it("should fire multiple code load callbacks in the correct order", function(don
 		expect(calls).toEqual([1,2]);
 		done();
 	});
-});
+}));

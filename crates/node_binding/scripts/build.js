@@ -61,7 +61,7 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
-		if (process.env.BROWSER) {
+		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 			// Strip debug format to reduce wasm size of @rspack/browser
 			rustflags.push("-Zfmt-debug=none");
@@ -70,12 +70,9 @@ async function build() {
 		if (!values.profile || values.profile === "dev") {
 			features.push("color-backtrace");
 		}
-		if (values.profile === "release-debug" &&
-			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
-		) {
+		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
-			rustflags.push("-Csymbol-mangling-version=v0");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
@@ -138,7 +135,7 @@ async function build() {
 				);
 
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
-				if (process.env.BROWSER) {
+				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
 				}

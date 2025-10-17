@@ -26,7 +26,7 @@ module.exports = {
 		expect(Array.isArray(errors)).toBeTruthy();
 		expect(errors.length).toBe(1);
 		expect(errors[0].toString()).toContain(
-			'Number must be greater or equal to 1 at "optimization.splitChunks.minChunks"'
+			'Number must be greater than or equal to 1 at "optimization.splitChunks.minChunks"'
 		);
 		context.clearError(name);
 	}

@@ -1,6 +1,7 @@
-const chunkLoadingSpy = jest.spyOn(__webpack_require__, "e");
+const chunkLoadingSpy = rstest.spyOn(__webpack_require__, "e");
 
-it("should not have duplicate chunks in blocks", function (done) {
+it("should not have duplicate chunks in blocks", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	let i = 0;
 	const d = () => {
 		if (i++ >= 3) done();
@@ -55,4 +56,4 @@ it("should not have duplicate chunks in blocks", function (done) {
 		["a+b+c" /* == c */]
 	]);
 	d();
-});
+}));

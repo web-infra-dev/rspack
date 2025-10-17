@@ -88,3 +88,6 @@ var __webpack_exports__ = __webpack_require__("./entry.js");
 var __webpack_exports__entry1 = __webpack_exports__.entry1;
 var __webpack_exports__entry2 = __webpack_exports__.entry2;
 export { __webpack_exports__entry1 as entry1, __webpack_exports__entry2 as entry2 };
+
+var __webpack_exports_default__ = { entry1: __webpack_exports__entry1, entry2: __webpack_exports__entry2 };
+export default __webpack_exports_default__;

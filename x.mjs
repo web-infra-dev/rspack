@@ -371,7 +371,6 @@ program
 	.option("--no-dry-run", "negative dry-run")
 	.option("--push-tags", "push tags to github")
 	.option("--no-push-tags", "don't push tags to github")
-	.option("--otp", "use npm OTP auth")
 	.description("publish package after version bump")
 	.action(publish_handler);
 let argv = process.argv.slice(2); // remove the `node` and script call

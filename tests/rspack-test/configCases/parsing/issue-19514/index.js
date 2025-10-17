@@ -1,4 +1,4 @@
-it("should compile and work", done => {
+it("should compile and work", () => {
 	function main() {
 		if (!import.meta.webpackHot) {
 			return;
@@ -8,5 +8,4 @@ it("should compile and work", done => {
 		}
 	}
 	main();
-	done();
 });

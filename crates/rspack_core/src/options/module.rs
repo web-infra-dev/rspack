@@ -1018,6 +1018,7 @@ pub struct ModuleRule {
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,
   pub effect: ModuleRuleEffect,
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -1031,6 +1032,7 @@ pub struct ModuleRuleEffect {
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
+  pub extract_source_map: Option<bool>,
 }
 
 pub enum ModuleRuleUse {

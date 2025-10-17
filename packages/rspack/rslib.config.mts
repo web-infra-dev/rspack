@@ -86,12 +86,12 @@ const fixZodTypePlugin: rsbuild.RsbuildPlugin = {
 				const content = await fs.promises.readFile(filePath, "utf-8");
 				const newContent = content
 					.replace(
-						`import * as z from "zod/v4";`,
-						`// @ts-ignore\nimport * as z from "zod/v4";`
+						`import * as z from "zod";`,
+						`// @ts-ignore\nimport * as z from "zod";`
 					)
 					.replace(
-						`import type { z } from "zod/v4";`,
-						`// @ts-ignore\nimport type { z } from "zod/v4";`
+						`import type { z } from "zod";`,
+						`// @ts-ignore\nimport type { z } from "zod";`
 					);
 
 				if (content !== newContent) {
@@ -142,10 +142,12 @@ const codmodPlugin: rsbuild.RsbuildPlugin = {
 		 * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
 		 */
 		function replaceBinding(root): Edit[] {
-			const binding = root.find(`module.exports = require("@rspack/binding");`);
+			const binding = root.find(
+				`module1.exports = require("@rspack/binding");`
+			);
 			return [
 				binding.replace(
-					`module.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
+					`module1.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
 				)
 			];
 		}

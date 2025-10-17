@@ -1,4 +1,5 @@
-it("should include a chunk nested in an empty chunk", (done) => {
+it("should include a chunk nested in an empty chunk", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require.ensure(["./a"], () => {
 		require.ensure([], () => {
 			require.ensure(["./a"], () => {
@@ -10,4 +11,4 @@ it("should include a chunk nested in an empty chunk", (done) => {
 			});
 		});
 	});
-});
+}));

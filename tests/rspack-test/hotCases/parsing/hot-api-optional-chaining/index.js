@@ -1,12 +1,9 @@
 import value from "./a";
 
-it("should run module.hot.accept(…)", function (done) {
+it("should run module.hot.accept(…)", async () => {
 	expect(value).toBe(1);
-	module?.hot?.accept("./a", function () {});
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(value).toBe(2);
-			done();
-		})
-	);
+	await NEXT_HMR();
+	expect(value).toBe(2);
 });
+
+module.hot.accept("./a");

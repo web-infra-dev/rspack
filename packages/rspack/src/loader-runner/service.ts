@@ -256,8 +256,9 @@ export const run = async (
 				}
 			});
 			mainPort.on("messageerror", handleError);
+			// eslint-disable-next-line @typescript-eslint/no-misused-promises
 			mainSyncPort.on("message", async (message: WorkerRequestSyncMessage) => {
-				const sharedBuffer = message.sharedBuffer;
+				const { sharedBuffer } = message;
 				const sharedBufferView = new Int32Array(sharedBuffer);
 
 				let result: any;

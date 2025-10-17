@@ -35,7 +35,8 @@ it("should parse fancy AMD calls with arrow functions", function() {
 	});
 });
 
-it("should be able to use AMD-style require with arrow functions", function(done) {
+it("should be able to use AMD-style require with arrow functions", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var template = "b";
 	require(["./circular", "./templates/" + template, true ? "./circular" : "fail"], (circular, testTemplate, circular2) => {
 		expect(circular).toBe(1);
@@ -43,49 +44,56 @@ it("should be able to use AMD-style require with arrow functions", function(done
 		expect(testTemplate).toBe("b");
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define with arrow functions", function(done) {
+it("should be able to use require.js-style define with arrow functions", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	define("name", ["./circular"], (circular) => {
 		expect(circular).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, optional dependencies, not exist, with arrow function", function(done) {
+it("should be able to use require.js-style define, optional dependencies, not exist, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	define("name", ["./optional"], (optional) => {
 		expect(optional.b).toBeFalsy();
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, special string, with arrow function", function(done) {
+it("should be able to use require.js-style define, special string, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	define(["require"], (require) => {
 		expect(require("./circular")).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, without name, with arrow function", function(done) {
+it("should be able to use require.js-style define, without name, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	true && define(["./circular"], (circular) => {
 		expect(circular).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, with empty dependencies, with arrow function", function(done) {
+it("should be able to use require.js-style define, with empty dependencies, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	define("name", [], () => {
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, without dependencies, with arrow function", function(done) {
+it("should be able to use require.js-style define, without dependencies, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	true && define("name", () => {
 		done();
 	});
-});
+}));
 
-it("should offer AMD-style define for CommonJs with arrow function", function(done) {
+it("should offer AMD-style define for CommonJs with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var _test_exports = exports;
 	var _test_module = module;
 	define((require, exports, module) => {
@@ -95,16 +103,18 @@ it("should offer AMD-style define for CommonJs with arrow function", function(do
 		expect(require("./circular")).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should pull in all dependencies of an AMD module with arrow function", function(done) {
+it("should pull in all dependencies of an AMD module with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	define((require) => {
 		expect(require("./amdmodule")).toBe("a");
 		done();
 	});
-});
+}));
 
-it("should create a chunk for require.js require, with arrow function", function(done) {
+it("should create a chunk for require.js require, with arrow function", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sameTick = true;
 	require(["./c"], (c) => {
 		expect(sameTick).toBe(false);
@@ -113,4 +123,4 @@ it("should create a chunk for require.js require, with arrow function", function
 		done();
 	});
 	sameTick = false;
-});
+}));

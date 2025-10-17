@@ -1,11 +1,8 @@
 import vendor from "vendor";
-module.hot.accept("vendor");
-it("should hot update a splitted initial chunk", function (done) {
+it("should hot update a splitted initial chunk", async () => {
 	expect(vendor).toBe("1");
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(vendor).toBe("2");
-			done();
-		})
-	);
+	await NEXT_HMR();
+	expect(vendor).toBe("2");
 });
+
+module.hot.accept(["vendor"]);

@@ -17,9 +17,3 @@ it('should have deconflicted symbol', () => {
 
 
 ```
-
-```mjs title=runtime.mjs
-
-
-
-```

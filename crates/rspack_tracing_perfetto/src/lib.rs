@@ -1,6 +1,6 @@
 // Modified base on https://github.com/csmoe/tracing-perfetto
 // 1. use micromegas_perfetto to avoid manually updating the perfetto proto file
-// 2. use Custom-scoped slices to mangae custom scope
+// 2. use Custom-scoped slices to manage custom scope
 #![forbid(unsafe_code)]
 use std::io::Write;
 

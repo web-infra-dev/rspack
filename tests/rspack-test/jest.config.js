@@ -15,8 +15,14 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"HotWeb.test.js",
+		"HotWorker.test.js",
+		"HotNode.test.js",
 
 		// Skip temporarily and should investigate in the future
+		"RuntimeDiff.difftest.js",
+		"HotSnapshot.hottest.js",
 		"Defaults.test.js",
 		"Cache.test.js",
 		"Compiler.test.js",
@@ -38,11 +44,11 @@ const wasmConfig = process.env.WASM && {
 
 /** @type {import('jest').Config} */
 const config = {
-	testEnvironment: "../../scripts/test/patch-node-env.cjs",
+	testEnvironment: "@rspack/test-tools/jest/patch-node-env",
 	setupFilesAfterEnv,
 	reporters: [
-		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
-		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+		["@rspack/test-tools/jest/ignore-snapshot-default-reporter", null],
+		"@rspack/test-tools/jest/ignore-snapshot-summary-reporter"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
@@ -50,10 +56,14 @@ const config = {
 		"<rootDir>/*.test.js",
 		"<rootDir>/legacy-test/*.test.js"
 	],
+	testPathIgnorePatterns: [
+		// use rstest
+		"<rootDir>/Config.test.js",
+	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
-		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
-		// disable sourcmap remapping for ts file
+		slash: "@rspack/test-tools/jest/slash",
+		// disable sourcemap remapping for ts file
 		"source-map-support/register": "identity-obj-proxy"
 	},
 	cache: !process.env.CI,

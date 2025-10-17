@@ -176,6 +176,8 @@ pub struct RawModuleRule {
   /// Specifies the category of the loader. No value means normal loader.
   #[napi(ts_type = "'pre' | 'post'")]
   pub enforce: Option<String>,
+  /// Whether to extract source maps from the module.
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -972,7 +974,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
+        extract_source_map: value.extract_source_map,
       },
+      extract_source_map: value.extract_source_map,
     })
   }
 }
