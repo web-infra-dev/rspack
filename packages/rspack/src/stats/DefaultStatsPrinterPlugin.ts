@@ -12,6 +12,7 @@ import type { Compiler } from "../Compiler";
 import type { StatsColorOptions } from "../config";
 import { compareIds } from "../util/comparators";
 import { formatSize } from "../util/SizeFormatHelpers";
+import { SHARED_ITEM_NAMES } from "./DefaultStatsFactoryPlugin";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import type { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
@@ -671,16 +672,9 @@ const ITEM_NAMES: Record<
 	string,
 	string | ((args_0: any, args_1: StatsPrinterContext) => string)
 > = {
-	"compilation.assets[]": "asset",
-	"compilation.modules[]": "module",
-	"compilation.chunks[]": "chunk",
-	"compilation.entrypoints[]": "chunkGroup",
-	"compilation.namedChunkGroups[]": "chunkGroup",
-	"compilation.errors[]": "error",
+	...SHARED_ITEM_NAMES,
 	"compilation.warnings[]": "error",
 	"compilation.logging[]": "loggingGroup",
-	"compilation.children[]": "compilation",
-	"asset.related[]": "asset",
 	"asset.children[]": "asset",
 	"asset.chunks[]": "assetChunk",
 	"asset.auxiliaryChunks[]": "assetChunk",
@@ -694,13 +688,7 @@ const ITEM_NAMES: Record<
 	"chunkGroupChild.auxiliaryAssets[]": "chunkGroupAsset",
 	"chunkGroup.children[]": "chunkGroupChildGroup",
 	"chunkGroupChildGroup.children[]": "chunkGroupChild",
-	"module.modules[]": "module",
-	"module.children[]": "module",
-	"module.reasons[]": "moduleReason",
 	"moduleReason.children[]": "moduleReason",
-	"module.issuerPath[]": "moduleIssuer",
-	"chunk.origins[]": "chunkOrigin",
-	"chunk.modules[]": "module",
 	"loggingGroup.entries[]": (logEntry: any) =>
 		`loggingEntry(${logEntry.type}).loggingEntry`,
 	"loggingEntry.children[]": (logEntry: any) =>
@@ -1288,14 +1276,9 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		if (message.includes("\u001b[")) return message;
 		const highlights = [
 			{ regExp: /(Did you mean .+)/g, format: green },
-			{
-				regExp: /(Set 'mode' option to 'development' or 'production')/g,
-				format: green
-			},
 			{ regExp: /(\(module has no exports\))/g, format: red },
 			{ regExp: /\(possible exports: (.+)\)/g, format: green },
 			{ regExp: /(?:^|\n)(.* doesn't exist)/g, format: red },
-			{ regExp: /('\w+' option has not been set)/g, format: red },
 			{
 				regExp: /(Emitted value instead of an instance of Error)/g,
 				format: yellow
