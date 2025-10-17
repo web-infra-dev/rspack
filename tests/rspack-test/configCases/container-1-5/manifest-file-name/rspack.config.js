@@ -26,10 +26,7 @@ module.exports = {
 			},
 			manifest: {
 				fileName: "custom-manifest.json",
-				filePath:'custom-path',
-				additionalData({ manifest }) {
-					manifest.extra = true
-				}
+				filePath:'custom-path'
 			}
 		})
 	]

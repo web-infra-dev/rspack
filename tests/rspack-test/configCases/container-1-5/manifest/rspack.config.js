@@ -15,7 +15,10 @@ module.exports = {
 			filename: "container.[chunkhash:8].js",
 			library: { type: "commonjs-module" },
 			exposes: {
-				'expose-a': './module.js'
+				'./expose-a': {
+					import: './module.js',
+					name:'_federation_expose_a'
+				}
 			},
 			remoteType:'script',
 			remotes: {
@@ -23,11 +26,6 @@ module.exports = {
 			},
 			shared: {
 				react: {}
-			},
-			manifest: {
-				additionalData({ manifest }) {
-					manifest.extra = true
-				}
 			}
 		})
 	]

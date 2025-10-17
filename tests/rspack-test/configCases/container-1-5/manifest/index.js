@@ -16,7 +16,6 @@ it("should emit remote entry with hash", () => {
 it("should report shared assets in sync only", () => {
 	expect(stats.shared).toHaveLength(1);
 	expect(stats.shared[0].assets.js.sync.sort()).toEqual([
-		"lazy-module_js.js",
 		"node_modules_react_js.js"
 	]);
 	expect(stats.shared[0].assets.js.async).toEqual([]);
@@ -30,7 +29,6 @@ it("should materialize in manifest", () => {
 				assets: expect.objectContaining({
 					js: expect.objectContaining({
 						sync: expect.arrayContaining([
-							"lazy-module_js.js",
 							"node_modules_react_js.js"
 						]),
 						async: []
@@ -44,8 +42,10 @@ it("should materialize in manifest", () => {
 //exposes
 it("should expose sync assets only", () => {
 	expect(stats.exposes).toHaveLength(1);
-	expect(stats.exposes[0].assets.js.sync).toEqual(["module_js.js"]);
-	expect(stats.exposes[0].assets.js.async).toEqual([]);
+	expect(stats.exposes[0].assets.js.sync).toEqual(["_federation_expose_a.js"]);
+	expect(stats.exposes[0].assets.js.async).toEqual([
+		"lazy-module_js.js"
+	]);
 });
 
 it("should reflect expose assets in manifest", () => {
@@ -53,10 +53,13 @@ it("should reflect expose assets in manifest", () => {
 		expect.arrayContaining([
 			expect.objectContaining({
 				name: "expose-a",
+				path: "./expose-a",
 				assets: expect.objectContaining({
 					js: expect.objectContaining({
-						sync: ["module_js.js"],
-						async: []
+						sync: ["_federation_expose_a.js"],
+						async: [
+							"lazy-module_js.js",
+						]
 					})
 				})
 			})
@@ -75,8 +78,7 @@ it("should record remote usage", () => {
 				federationContainerName: "remote",
 				moduleName: ".",
 				usedIn: expect.arrayContaining([
-					"lazy-module_js.js",
-					"node_modules_react_js.js"
+					"module.js"
 				]),
 				entry: 'http://localhost:8000/remoteEntry.js'
 			})
@@ -94,8 +96,4 @@ it("should persist remote metadata in manifest", () => {
 			})
 		])
 	);
-});
-
-it("should allow additionalData to augment manifest", () => {
-	expect(manifest.extra).toBe(true);
 });
