@@ -181,6 +181,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						await tester.compile();
 						await tester.check(env);
 						await env.run();
+						await tester.after();
 						const context = tester.getContext();
 						if (!tester.next() && context.hasError()) {
 							const errors = context

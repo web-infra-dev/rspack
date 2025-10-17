@@ -17,7 +17,13 @@ import {
 	type TCompilerOptions,
 	type TCompilerStatsCompilation
 } from "../type";
-import { compiler, findMultiCompilerBundle, getCompiler, run } from "./common";
+import {
+	afterExecute,
+	compiler,
+	findMultiCompilerBundle,
+	getCompiler,
+	run
+} from "./common";
 
 type TWatchContext = {
 	currentTriggerFilename: string | null;
@@ -243,6 +249,9 @@ export function createWatchInitialProcessor(
 					path.join(context.getDist(), `stats.${watchContext.step}.json`)
 				);
 			}
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		}
 	};
 }
