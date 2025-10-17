@@ -163,7 +163,6 @@ webpack-dist
 # os
 .DS_Store
 
-
 # Do not ignore this for binding test
 # crates/node_binding/binding.d.ts
 
@@ -174,19 +173,11 @@ tests/e2e/temp
 packages/*/tests/js
 tests/rspack-test/js
 
-
 # Benchmark
 /github/
 
 # profile
 profile.json
-
-# esbuild trace
-esbuild.trace
-
-# esbuild cpuprofile
-esbuild.cpuprofile
-
 
 # this node_modules is used for tree-shaking snapshot
 !tests/rspack-test/treeShakingCases/node_modules
@@ -209,9 +200,6 @@ npm/**/*.node
 !npm/win32-arm64-msvc
 !npm/win32-ia32-msvc
 !npm/win32-x64-msvc/
-
-## Angular Incremental Build Cache
-**/.angular/
 
 smoke-example
 diff_output
