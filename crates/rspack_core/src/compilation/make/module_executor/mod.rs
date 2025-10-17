@@ -102,9 +102,8 @@ impl ModuleExecutor {
     // clean removed entries
     let removed_module = compilation
       .make_artifact
-      .revoked_modules
-      .iter()
-      .chain(self.make_artifact.revoked_modules.iter())
+      .revoked_modules()
+      .chain(self.make_artifact.revoked_modules())
       .collect::<HashSet<_>>();
     self.entries.retain(|k, v| {
       !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
