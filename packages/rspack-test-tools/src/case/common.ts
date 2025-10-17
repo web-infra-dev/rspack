@@ -35,7 +35,9 @@ export async function config<T extends ECompilerType = ECompilerType.Rspack>(
 	compiler.setOptions(defaultOptions);
 	if (Array.isArray(configFiles)) {
 		const fileOptions = readConfigFile<T>(
-			configFiles.map(i => context.getSource(i))
+			configFiles.map(i => context.getSource(i)),
+			context,
+			defaultOptions
 		)[0];
 		compiler.mergeOptions(fileOptions);
 	}
@@ -351,6 +353,8 @@ export function configMultiCompiler<
 	const caseOptions: TCompilerOptions<T>[] = Array.isArray(configFiles)
 		? readConfigFile(
 				configFiles!.map(i => context.getSource(i)),
+				context,
+				{},
 				configs => {
 					return configs.flatMap(c => {
 						if (typeof c === "function") {
