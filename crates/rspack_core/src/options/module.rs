@@ -16,7 +16,7 @@ use rspack_util::{MergeFrom, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::OnceCell;
 
-use crate::{BoxModule, Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -1116,7 +1116,7 @@ pub enum ModuleRuleEnforce {
 }
 
 pub type UnsafeCachePredicate =
-  Box<dyn Fn(&BoxModule) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+  Box<dyn Fn(&dyn Module) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.

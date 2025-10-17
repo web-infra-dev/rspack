@@ -619,7 +619,7 @@ export interface ModuleOptionsNormalized {
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
 	noParse?: NoParseOption;
-	unsafeCache?: boolean;
+	unsafeCache?: boolean | RegExp;
 }
 
 export type ExperimentCacheNormalized =

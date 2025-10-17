@@ -22,7 +22,7 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
   ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
   ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode, UnsafeCachePredicate,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -990,6 +990,26 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .into_iter()
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
+
+    let unsafe_cache: Option<UnsafeCachePredicate> =
+      value.unsafe_cache.and_then(|either| match either {
+        Either::A(true) => Some(Box::new(|module: &dyn rspack_core::Module| {
+          let name = module.name_for_condition();
+          Box::pin(async move {
+            Ok(name.map_or(false, |name| NODE_MODULES_REGEXP.is_match(name.as_ref())))
+          })
+        })),
+        Either::A(false) => None,
+        Either::B(regex) => {
+          let regex = Arc::from(regex);
+          Some(Box::new(move |module| {
+            let name = module.name_for_condition();
+            let regex = regex.clone();
+            Box::pin(async move { Ok(name.map_or(false, |name| regex.test(name.as_ref()))) })
+          }))
+        }
+      });
+
     Ok(ModuleOptions {
       rules,
       parser: value
@@ -1011,43 +1031,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-      unsafe_cache: match value.unsafe_cache {
-        Some(either) => match either {
-          Either::A(bool) => {
-            if bool {
-              Some(Box::new(|module| {
-                let name = module.name_for_condition();
-                Box::pin(async move {
-                  Ok(if let Some(name) = name {
-                    NODE_MODULES_REGEXP.is_match(name.as_ref())
-                  } else {
-                    false
-                  })
-                })
-              }))
-            } else {
-              None
-            }
-          }
-          Either::B(regex) => {
-            let regex = Arc::from(regex);
-
-            Some(Box::new(move |module| {
-              let name = module.name_for_condition();
-              let regex = regex.clone();
-
-              Box::pin(async move {
-                Ok(if let Some(name) = name {
-                  regex.clone().test(name.as_ref())
-                } else {
-                  false
-                })
-              })
-            }))
-          }
-        },
-        None => None,
-      },
+      unsafe_cache,
     })
   }
 }

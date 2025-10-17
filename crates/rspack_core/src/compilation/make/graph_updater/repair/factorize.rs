@@ -120,7 +120,7 @@ impl Task<TaskContext> for FactorizeTask {
     let factorize_info = if let Some(unsafe_cache_predicate) = &self.options.module.unsafe_cache
       && let Some(result) = &factory_result
       && let Some(module) = &result.module
-      && unsafe_cache_predicate(module).await?
+      && unsafe_cache_predicate(module.as_ref()).await?
     {
       FactorizeInfo::new(
         create_data.diagnostics,
