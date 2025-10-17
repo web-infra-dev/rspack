@@ -1,5 +1,5 @@
 module.exports = [
   [
-    /Invalid options for 'builtin:swc-loader'/
+    /Failed to create Rspack compiler instance, check the Rspack configuration/
   ],
 ];
