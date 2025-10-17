@@ -210,9 +210,6 @@ npm/**/*.node
 !npm/win32-ia32-msvc
 !npm/win32-x64-msvc/
 
-# Precompiled config schema
-packages/rspack/src/config/schema.check.js
-
 ## Angular Incremental Build Cache
 **/.angular/
 
