@@ -50,9 +50,6 @@ const SELF_HANDLER = (
 	global.self[hotUpdateGlobalKey] = hotUpdateGlobal;
 	require(file);
 	delete global.self[hotUpdateGlobalKey];
-	if (!Object.keys(global.self).length) {
-		delete global.self;
-	}
 	return res;
 };
 

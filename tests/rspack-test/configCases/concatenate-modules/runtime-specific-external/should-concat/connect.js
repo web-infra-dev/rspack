@@ -4,5 +4,4 @@ export function connect() {
   value;
 }
 
-// add side effect
-console.log.bind(console);
+console.log('')
