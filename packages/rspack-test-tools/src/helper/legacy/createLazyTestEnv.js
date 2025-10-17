@@ -119,8 +119,6 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 			});
 		},
 		expect,
-		jest,
-		// Compatible with rstest
-		rstest: global.rstest || global.jest
+		jest
 	};
 };
