@@ -1441,22 +1441,25 @@ impl Compilation {
       mutations.extend(
         self
           .make_artifact
-          .revoked_modules
-          .difference(&self.make_artifact.built_modules)
+          .affected_modules
+          .removed()
+          .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .intersection(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .updated()
+          .iter()
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .difference(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .added()
+          .iter()
           .map(|&module| Mutation::ModuleAdd { module }),
       );
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
@@ -2819,10 +2822,6 @@ impl Compilation {
     dep
       .dependency_template()
       .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
-  }
-
-  pub fn built_modules(&self) -> &IdentifierSet {
-    &self.make_artifact.built_modules
   }
 }
 

@@ -778,10 +778,14 @@ impl Stats<'_> {
         .compilation
         .module_executor
         .as_ref()
-        .map(|executor| executor.make_artifact.built_modules.contains(&identifier))
+        .map(|executor| executor.make_artifact.built_modules().contains(&identifier))
         .unwrap_or_default()
     } else {
-      self.compilation.built_modules().contains(&identifier)
+      self
+        .compilation
+        .make_artifact
+        .built_modules()
+        .contains(&identifier)
     };
 
     let code_generated = self

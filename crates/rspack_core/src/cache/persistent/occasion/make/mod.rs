@@ -33,8 +33,8 @@ impl MakeOccasion {
       // for module graph
       module_graph_partial,
       module_to_lazy_make,
-      revoked_modules,
-      built_modules,
+      affected_modules,
+      affected_dependencies,
       issuer_update_modules,
       // skip
       entry_dependencies: _,
@@ -47,13 +47,13 @@ impl MakeOccasion {
       make_failed_module: _,
     } = artifact;
 
-    let mut need_update_modules = built_modules.clone();
-    need_update_modules.extend(issuer_update_modules);
+    let mut need_update_modules = issuer_update_modules.clone();
+    need_update_modules.extend(affected_modules.active());
 
     module_graph::save_module_graph(
       module_graph_partial,
       module_to_lazy_make,
-      revoked_modules,
+      affected_modules.removed(),
       &need_update_modules,
       &self.storage,
       &self.context,
@@ -103,8 +103,8 @@ impl MakeOccasion {
     Ok(MakeArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
-      built_modules: Default::default(),
-      revoked_modules: Default::default(),
+      affected_modules: Default::default(),
+      affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
 
       state: MakeArtifactState::Initialized,
