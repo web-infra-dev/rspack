@@ -991,6 +991,9 @@ export class Compilation {
         seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+        addEntry: liteTapable.SyncHook<[binding.Module]>;
+        succeedEntry: liteTapable.SyncHook<[binding.Module]>;
+        failedEntry: liteTapable.SyncHook<[string]>;
     }>;
     // (undocumented)
     inputFileSystem: InputFileSystem | null;
