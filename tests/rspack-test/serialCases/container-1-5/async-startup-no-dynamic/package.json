@@ -1,9 +1,0 @@
-{
-  "private": true,
-  "engines": {
-    "node": ">=10.13.0"
-  },
-  "dependencies": {
-    "react": "*"
-  }
-}
