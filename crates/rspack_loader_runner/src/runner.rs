@@ -247,7 +247,6 @@ impl LoaderResult {
 mod test {
   use std::{cell::RefCell, sync::Arc};
 
-  use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
   use rspack_error::Result;
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
@@ -286,10 +285,7 @@ mod test {
       static IDENTS: RefCell<Vec<String>> = RefCell::default();
     }
 
-    #[cacheable]
     struct Pitching;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Pitching {
       fn identifier(&self) -> Identifier {
@@ -302,10 +298,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct Pitching2;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Pitching2 {
       fn identifier(&self) -> Identifier {
@@ -318,10 +311,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct Normal;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
@@ -334,10 +324,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct Normal2;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
@@ -350,10 +337,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct PitchNormalBase;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormalBase {
       fn identifier(&self) -> Identifier {
@@ -371,10 +355,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct PitchNormal;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormal {
       fn identifier(&self) -> Identifier {
@@ -393,10 +374,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct PitchNormal2;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for PitchNormal2 {
       fn identifier(&self) -> Identifier {
@@ -473,10 +451,7 @@ mod test {
 
   #[tokio::test]
   async fn should_able_to_consume_additional_data() {
-    #[cacheable]
     struct Normal;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
@@ -496,10 +471,7 @@ mod test {
       }
     }
 
-    #[cacheable]
     struct Normal2;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
@@ -534,10 +506,7 @@ mod test {
 
   #[tokio::test]
   async fn should_override_data_if_finish_with_is_not_called() {
-    #[cacheable]
     struct Normal;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal {
       fn identifier(&self) -> Identifier {
@@ -555,10 +524,7 @@ mod test {
       "/rspack/main.js?abc=123#efg".to_owned(),
     ));
 
-    #[cacheable]
     struct Normal2;
-
-    #[cacheable_dyn]
     #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
       fn identifier(&self) -> Identifier {
