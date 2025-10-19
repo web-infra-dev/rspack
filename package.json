@@ -83,7 +83,7 @@
     "rimraf": "^5.0.10",
     "ts-jest": "29.4.5",
     "typescript": "^5.9.3",
-    "webpack": "5.99.9",
+    "webpack": "5.102.1",
     "zx": "8.8.4"
   },
   "packageManager": "pnpm@10.18.3",

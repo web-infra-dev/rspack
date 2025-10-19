@@ -1612,7 +1612,7 @@ impl Module for ConcatenatedModule {
                 result.add(RawStringSource::from(format!(
                   "\n// non-deferred import to a deferred module ({})\nvar {} = {}.a;",
                   get_cached_readable_identifier(
-                    &target_module,
+                    target_module,
                     &module_graph,
                     &compilation.module_static_cache_artifact,
                     &context,
@@ -2353,6 +2353,7 @@ impl ConcatenatedModule {
   }
 
   #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::fn_params_excessive_bools)]
   fn get_final_name(
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
@@ -2597,7 +2598,7 @@ impl ConcatenatedModule {
                 .as_ref()
                 .expect("should have deferred_name");
               return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-                raw_name: format!("{}.a", deferred_name).into(),
+                raw_name: format!("{deferred_name}.a").into(),
                 ids: export_name.clone(),
                 export_name,
                 info_id: *info_id,
