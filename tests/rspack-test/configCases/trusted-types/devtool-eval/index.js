@@ -1,6 +1,6 @@
 it("should pass TrustedScript to eval", function () {
 	var policy = __webpack_require__.tt();
-	policy.createScript = rstest.fn(script => {
+	policy.createScript = jest.fn(script => {
 		expect(typeof script).toEqual("string");
 		return new TrustedScript(script);
 	});
@@ -31,7 +31,7 @@ let globalEval;
 beforeEach(() => {
 	globalEval = eval;
 	window.module = {};
-	window.eval = rstest.fn(x => {
+	window.eval = jest.fn(x => {
 		expect(x).toBeInstanceOf(TrustedScript);
 		return globalEval(x._script);
 	});

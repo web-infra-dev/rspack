@@ -849,11 +849,12 @@ class Compiler {
 			return callback(null, this.#instance);
 		}
 
-		const options = this.options;
+		const { options } = this;
 		const rawOptions = getRawOptions(options, this);
 		rawOptions.__references = Object.fromEntries(
 			this.#ruleSet.builtinReferences.entries()
 		);
+
 		rawOptions.__virtual_files =
 			VirtualModulesPlugin.__internal__take_virtual_files(this);
 
@@ -867,20 +868,35 @@ class Compiler {
 				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined;
 
-		this.#instance = new instanceBinding.JsCompiler(
-			this.compilerPath,
-			rawOptions,
-			this.#builtinPlugins,
-			this.#registers,
-			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-			this.intermediateFileSystem
-				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
-				: undefined,
-			inputFileSystem,
-			ResolverFactory.__to_binding(this.resolverFactory)
-		);
+		try {
+			this.#instance = new instanceBinding.JsCompiler(
+				this.compilerPath,
+				rawOptions,
+				this.#builtinPlugins,
+				this.#registers,
+				ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
+				this.intermediateFileSystem
+					? ThreadsafeIntermediateNodeFS.__to_binding(
+							this.intermediateFileSystem
+						)
+					: undefined,
+				inputFileSystem,
+				ResolverFactory.__to_binding(this.resolverFactory)
+			);
 
-		callback(null, this.#instance);
+			callback(null, this.#instance);
+		} catch (err) {
+			if (err instanceof Error) {
+				// hide unnecessary stack trace
+				delete err.stack;
+			}
+			callback(
+				new Error(
+					"Failed to create Rspack compiler instance, check the Rspack configuration.",
+					{ cause: err }
+				)
+			);
+		}
 	}
 
 	#createHooksRegisters(): binding.RegisterJsTaps {
