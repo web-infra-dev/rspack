@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	BuiltinPluginName,
 	type JsHtmlPluginTag,
@@ -137,7 +138,7 @@ const HtmlRspackPluginImpl = create(
 						const renderer = (
 							IS_BROWSER
 								? this.__internal_browser_require(templateFilePath)
-								: require(templateFilePath)
+								: await import(pathToFileURL(templateFilePath).href)
 						) as (data: Record<string, unknown>) => Promise<string> | string;
 						if (c.templateParameters === false) {
 							return await renderer({});

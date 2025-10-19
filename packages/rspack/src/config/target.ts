@@ -1,4 +1,5 @@
 import binding from "@rspack/binding";
+import { findConfig } from "browserslist-load-config";
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/target.js
@@ -14,7 +15,6 @@ import * as browserslistTargetHandler from "./browserslistTargetHandler";
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 
 const hasBrowserslistConfig = (context: string) => {
-	const { findConfig } = require("browserslist-load-config");
 	return Boolean(findConfig(context));
 };
 

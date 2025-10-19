@@ -1,5 +1,8 @@
 import type { IncomingMessage } from "node:http";
+import http from "node:http";
+import https from "node:https";
 import path from "node:path";
+import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
@@ -8,6 +11,7 @@ import {
 import type { Compiler } from "../Compiler";
 import { memoize } from "../util/memoize";
 import { createBuiltinPlugin, RspackBuiltinPlugin } from "./base";
+
 export type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
 
 export type HttpUriPluginOptions = {
@@ -41,21 +45,16 @@ export type HttpUriPluginOptions = {
 	httpClient?: RawHttpUriPluginOptions["httpClient"];
 };
 
-const getHttp = memoize(() => require("node:http"));
-const getHttps = memoize(() => require("node:https"));
+const getHttp = memoize(() => http);
+const getHttps = memoize(() => https);
 
 function compatibleFetch(
 	url: string,
 	options: { headers: Record<string, string> }
 ) {
 	const parsedURL = new URL(url);
-	const send: typeof import("node:http") =
+	const send: typeof import("node:http") | typeof import("node:https") =
 		parsedURL.protocol === "https:" ? getHttps() : getHttp();
-	const {
-		createBrotliDecompress,
-		createGunzip,
-		createInflate
-	} = require("node:zlib");
 
 	return new Promise<{ res: IncomingMessage; body: Buffer }>(
 		(resolve, reject) => {
@@ -66,11 +65,13 @@ function compatibleFetch(
 					/** @type {Readable} */
 					let stream = res;
 					if (contentEncoding === "gzip") {
-						stream = stream.pipe(createGunzip()) as IncomingMessage;
+						stream = stream.pipe(createGunzip()) as unknown as IncomingMessage;
 					} else if (contentEncoding === "br") {
-						stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
+						stream = stream.pipe(
+							createBrotliDecompress()
+						) as unknown as IncomingMessage;
 					} else if (contentEncoding === "deflate") {
-						stream = stream.pipe(createInflate()) as IncomingMessage;
+						stream = stream.pipe(createInflate()) as unknown as IncomingMessage;
 					}
 					const chunks: Buffer[] = [];
 					stream.on("data", chunk => {

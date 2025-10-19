@@ -9,7 +9,7 @@
  */
 
 import util from "node:util";
-import type Watchpack from "watchpack";
+import Watchpack from "watchpack";
 
 import type {
 	FileSystemInfoEntry,
@@ -68,7 +68,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		}
 
 		const oldWatcher = this.watcher;
-		const Watchpack = require("watchpack");
+
 		this.watcher = new Watchpack(options);
 
 		if (callbackUndelayed) {

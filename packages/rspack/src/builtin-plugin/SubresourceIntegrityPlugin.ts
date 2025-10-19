@@ -279,7 +279,8 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 			try {
 				const htmlPlugin = IS_BROWSER
 					? compiler.__internal_browser_require(this.options.htmlPlugin)
-					: require(this.options.htmlPlugin);
+					: // eslint-disable-next-line @typescript-eslint/no-require-imports
+						require(this.options.htmlPlugin);
 				bindingHtmlHooks(htmlPlugin);
 			} catch (e) {
 				if (

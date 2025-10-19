@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type binding from "@rspack/binding";
+import instanceBinding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
@@ -857,8 +858,6 @@ class Compiler {
 
 		rawOptions.__virtual_files =
 			VirtualModulesPlugin.__internal__take_virtual_files(this);
-
-		const instanceBinding: typeof binding = require("@rspack/binding");
 
 		this.#registers = this.#createHooksRegisters();
 

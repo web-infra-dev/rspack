@@ -206,7 +206,8 @@ function getDefaultEntryRuntime(
 		)}`,
 		IS_BROWSER
 			? MF_RUNTIME_CODE
-			: compiler.webpack.Template.getFunctionContent(
+			: // eslint-disable-next-line @typescript-eslint/no-require-imports
+				compiler.webpack.Template.getFunctionContent(
 					require("./moduleFederationDefaultRuntime.js")
 				)
 	].join(";");

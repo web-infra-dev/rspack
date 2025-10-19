@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-import type Url from "node:url";
+import url from "node:url";
 import type { LoaderDefinitionFunction } from "../config";
 import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
 import type { Compiler } from "../exports";
@@ -21,8 +21,6 @@ type ModuleObject = {
 	raw?: boolean;
 };
 type LoaderModule = ModuleObject | Function;
-
-let url: undefined | typeof Url;
 
 export default function loadLoader(
 	loader: LoaderObject,
@@ -41,8 +39,7 @@ export default function loadLoader(
 
 	if (loader.type === "module") {
 		try {
-			if (url === undefined) url = require("node:url");
-			const loaderUrl = url!.pathToFileURL(loader.path);
+			const loaderUrl = url.pathToFileURL(loader.path);
 			const modulePromise = import(loaderUrl.toString());
 			modulePromise.then((module: LoaderModule) => {
 				handleResult(loader, module, callback);
@@ -54,6 +51,7 @@ export default function loadLoader(
 	} else {
 		let module: LoaderModule;
 		try {
+			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			module = require(loader.path);
 		} catch (e) {
 			// it is possible for node to choke on a require if the FD descriptor

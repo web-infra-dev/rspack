@@ -63,11 +63,9 @@ export { Template } from "./Template";
 
 export const WebpackError = Error;
 
+
+export { default as sources } from "webpack-sources";
 export type { Watching } from "./Watching";
-
-import sources = require("webpack-sources");
-
-export { sources };
 
 import {
 	applyRspackOptionsDefaults,

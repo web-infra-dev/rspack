@@ -1,3 +1,4 @@
+import { cpus } from "node:os";
 import path from "node:path";
 import { MessageChannel } from "node:worker_threads";
 // biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
@@ -9,8 +10,7 @@ const ensureLoaderWorkerPool = async () => {
 		return pool;
 	}
 	return (pool = import("tinypool").then(({ Tinypool }) => {
-		const cpus = require("node:os").cpus().length;
-		const availableThreads = Math.max(cpus - 1, 1);
+		const availableThreads = Math.max(cpus().length - 1, 1);
 
 		const pool = new Tinypool({
 			filename: path.resolve(__dirname, "worker.js"),

@@ -42,7 +42,6 @@
         }
       ],
       "@typescript-eslint/no-var-requires": "warn",
-      "@typescript-eslint/no-require-imports": "warn",
       "@typescript-eslint/no-empty-function": "warn",
       "@typescript-eslint/no-empty-interface": "warn"
     },
