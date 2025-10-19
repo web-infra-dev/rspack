@@ -46,10 +46,10 @@ pub fn update_hash_for_entry_startup(
     }
   }
 
-  if chunk_needs_mf_async_startup(compilation, chunk) {
-    if let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) {
-      chunk_ref.id(&compilation.chunk_ids_artifact).hash(hasher);
-    }
+  if chunk_needs_mf_async_startup(compilation, chunk)
+    && let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk)
+  {
+    chunk_ref.id(&compilation.chunk_ids_artifact).hash(hasher);
   }
 }
 
