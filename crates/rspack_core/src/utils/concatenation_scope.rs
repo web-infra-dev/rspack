@@ -21,7 +21,7 @@ pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 
 static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
-    r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$",
+    r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(_deferredImport)?(?:_asiSafe(\d))?__$",
   )
   .expect("should initialized regex")
 });
@@ -36,6 +36,7 @@ pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
+  pub deferred_import: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
 }
@@ -164,11 +165,13 @@ impl ConcatenationScope {
       };
       let call = captures.get(3).is_some();
       let direct_import = captures.get(4).is_some();
-      let asi_safe = captures.get(5).map(|s| s.as_str() == "1");
+      let deferred_import = captures.get(5).is_some();
+      let asi_safe = captures.get(6).map(|s| s.as_str() == "1");
       Some(ModuleReferenceOptions {
         ids,
         call,
         direct_import,
+        deferred_import,
         asi_safe,
         index,
       })

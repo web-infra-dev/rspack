@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, DependencyType, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -953,6 +953,28 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
     compilation.async_modules_artifact.contains(module_id)
+  }
+
+  pub fn is_deferred(&self, module_id: &ModuleIdentifier) -> bool {
+    let module = self
+      .module_by_identifier(module_id)
+      .expect("should have module");
+    if module.build_meta().has_top_level_await {
+      return false;
+    }
+    for connection in self.get_incoming_connections(module_id) {
+      let dep = self
+        .dependency_by_id(&connection.dependency_id)
+        .expect("should have dependency");
+      if matches!(
+        dep.dependency_type(),
+        DependencyType::EsmImport | DependencyType::EsmExportImport
+      ) && dep.get_phase().is_defer()
+      {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn set_async(

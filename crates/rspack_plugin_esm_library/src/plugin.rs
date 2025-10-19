@@ -183,6 +183,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           runtime_requirements: RuntimeGlobals::default(),
           name: None,
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         }),
       );
     }
@@ -229,6 +233,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           name: None,
           runtime_requirements: RuntimeGlobals::default(),
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         });
         stack.push(*dep_module);
       }

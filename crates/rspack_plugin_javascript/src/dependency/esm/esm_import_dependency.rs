@@ -541,6 +541,10 @@ impl Dependency for ESMImportSideEffectDependency {
     &self.dependency_type
   }
 
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
   }
@@ -605,30 +609,6 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 }
 
-struct ESMImportSideEffectDependencyCondition;
-
-impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
-  fn get_connection_state(
-    &self,
-    conn: &rspack_core::ModuleGraphConnection,
-    _runtime: Option<&RuntimeSpec>,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> ConnectionState {
-    let id = *conn.module_identifier();
-    if let Some(module) = module_graph.module_by_identifier(&id) {
-      module.get_side_effects_connection_state(
-        module_graph,
-        module_graph_cache,
-        &mut IdentifierSet::default(),
-        &mut IdentifierMap::default(),
-      )
-    } else {
-      ConnectionState::Active(true)
-    }
-  }
-}
-
 #[cacheable_dyn]
 impl ModuleDependency for ESMImportSideEffectDependency {
   fn request(&self) -> &str {
@@ -655,6 +635,30 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 }
 
 impl AsContextDependency for ESMImportSideEffectDependency {}
+
+struct ESMImportSideEffectDependencyCondition;
+
+impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &rspack_core::ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
+  }
+}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSideEffectDependency {

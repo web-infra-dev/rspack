@@ -174,6 +174,10 @@ impl Dependency for ESMImportSpecifierDependency {
     Some(self.source_order)
   }
 
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
   }
