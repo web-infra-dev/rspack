@@ -1,5 +1,4 @@
 import * as styles from "./style.module.css";
-import update from "@rspack/test-tools/helper/legacy/update.esm";
 
 import.meta.webpackHot.accept(["./style.module.css", "./style2.module.css"])
 

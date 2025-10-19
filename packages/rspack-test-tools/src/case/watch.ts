@@ -52,7 +52,11 @@ export function createWatchInitialProcessor(
 			const testConfig = context.getTestConfig();
 			const multiCompilerOptions = [];
 			const caseOptions: TCompilerOptions<T>[] = readConfigFile(
-				["rspack.config.js", "webpack.config.js"].map(i => context.getSource(i))
+				["rspack.config.js", "webpack.config.js"].map(i =>
+					context.getSource(i)
+				),
+				context,
+				{}
 			);
 
 			for (const [index, options] of caseOptions.entries()) {
@@ -469,7 +473,7 @@ export function createWatchRunner<
 
 	const testConfig = context.getTestConfig();
 	const documentType: EDocumentType =
-		context.getValue(name, "documentType") || EDocumentType.Fake;
+		context.getValue(name, "documentType") || EDocumentType.JSDOM;
 	return new WebRunner({
 		dom: documentType,
 		env,

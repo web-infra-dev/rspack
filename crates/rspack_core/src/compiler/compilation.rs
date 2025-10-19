@@ -505,9 +505,8 @@ impl Compilation {
       .make_artifact
       .file_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.file_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.file_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -527,13 +526,8 @@ impl Compilation {
       .make_artifact
       .context_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .context_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.context_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -553,13 +547,8 @@ impl Compilation {
       .make_artifact
       .missing_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .missing_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.missing_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -579,9 +568,8 @@ impl Compilation {
       .make_artifact
       .build_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.build_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.build_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -1453,22 +1441,25 @@ impl Compilation {
       mutations.extend(
         self
           .make_artifact
-          .revoked_modules
-          .difference(&self.make_artifact.built_modules)
+          .affected_modules
+          .removed()
+          .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .intersection(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .updated()
+          .iter()
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .difference(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .added()
+          .iter()
           .map(|&module| Mutation::ModuleAdd { module }),
       );
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
@@ -2831,10 +2822,6 @@ impl Compilation {
     dep
       .dependency_template()
       .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
-  }
-
-  pub fn built_modules(&self) -> &IdentifierSet {
-    &self.make_artifact.built_modules
   }
 }
 

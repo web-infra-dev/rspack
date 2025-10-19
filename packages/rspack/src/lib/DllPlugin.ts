@@ -12,8 +12,6 @@ import { LibManifestPlugin } from "../builtin-plugin";
 import { DllEntryPlugin } from "../builtin-plugin/DllEntryPlugin";
 import { FlagAllModulesAsUsedPlugin } from "../builtin-plugin/FlagAllModulesAsUsedPlugin";
 import type { Compiler } from "../Compiler";
-import { getDllPluginOptionsSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
 
 export type DllPluginOptions = {
 	/**
@@ -52,7 +50,6 @@ export class DllPlugin {
 	private options: DllPluginOptions;
 
 	constructor(options: DllPluginOptions) {
-		validate(options, getDllPluginOptionsSchema);
 		this.options = {
 			...options,
 			entryOnly: options.entryOnly !== false

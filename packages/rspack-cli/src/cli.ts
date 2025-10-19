@@ -46,8 +46,6 @@ export class RspackCLI {
 		rspackCommand: Command,
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
-		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
-
 		let { config, pathMap } = await this.loadConfig(options);
 		config = await this.buildConfig(config, pathMap, options, rspackCommand);
 

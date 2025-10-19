@@ -59,13 +59,6 @@ export function stringifyLoaderObject(o: LoaderObject): string {
 	return o.path + o.query + o.fragment;
 }
 
-export function asArray<T>(item: T[]): T[];
-export function asArray<T>(item: readonly T[]): readonly T[];
-export function asArray<T>(item: T): T[];
-export function asArray<T>(item: T | T[]): T[] {
-	return Array.isArray(item) ? item : [item];
-}
-
 export const unsupported = (name: string, issue?: string) => {
 	let s = `${name} is not supported by rspack.`;
 	if (issue) {
