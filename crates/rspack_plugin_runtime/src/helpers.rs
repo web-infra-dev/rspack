@@ -269,14 +269,6 @@ pub fn generate_entry_startup(
     }
   }
 
-  // Remove current chunk ID if it somehow ended up in chunks_ids
-  // This ensures we don't use the wrapper for simple entries with no dependencies
-  if let Some(current_chunk) = compilation.chunk_by_ukey.get(chunk) {
-    if let Some(current_id) = current_chunk.id(&compilation.chunk_ids_artifact) {
-      chunks_ids.remove(current_id);
-    }
-  }
-
   let mut source = String::default();
   source.push_str(&format!(
     "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
