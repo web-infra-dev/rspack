@@ -102,7 +102,7 @@ async fn additional_tree_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading || async_enabled).boxed(),
+      StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
     )?;
   }
   Ok(())
@@ -119,16 +119,17 @@ async fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
   let async_enabled = self.is_async_enabled(compilation, chunk_ukey);
+  let has_entry_deps = compilation
+    .chunk_graph
+    .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey);
 
-  if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-    && (is_enabled_for_chunk || async_enabled)
-  {
+  if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) && is_enabled_for_chunk {
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupEntrypointRuntimeModule::new(self.async_chunk_loading || async_enabled).boxed(),
+      StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
     )?;
   }
 
