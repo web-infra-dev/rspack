@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import { addHook } from "pirates";
-import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
 import isTsFile, { TS_EXTENSION } from "./isTsFile";
@@ -84,6 +84,12 @@ export type LoadedRspackConfig =
 const checkIsMultiRspackOptions = (
 	config: RspackOptions | MultiRspackOptions
 ): config is MultiRspackOptions => Array.isArray(config);
+
+export const crossImport = async <T = any>(path: string): Promise<T> => {
+	const configFileURL = pathToFileURL(path).href;
+	const exportModule = await import(configFileURL);
+	return exportModule.default ? exportModule.default : exportModule;
+};
 
 /**
  * Loads and merges configurations from the 'extends' property
@@ -215,7 +221,7 @@ export async function loadExtendedConfig(
 		}
 
 		// Load the extended configuration
-		let loadedConfig = await crossImport(resolvedPath, cwd);
+		let loadedConfig = await crossImport(resolvedPath);
 
 		// If the extended config is a function, execute it
 		if (typeof loadedConfig === "function") {
@@ -270,7 +276,7 @@ export async function loadRspackConfig(
 	if (isTsFile(configPath) && options.configLoader === "register") {
 		registerLoader(configPath);
 	}
-	const loadedConfig = await crossImport(configPath, cwd);
+	const loadedConfig = await crossImport(configPath);
 
 	return { loadedConfig, configPath };
 }
