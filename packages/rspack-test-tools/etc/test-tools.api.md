@@ -923,6 +923,9 @@ export type TTestConfig<T extends ECompilerType> = {
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
+    esmLibPluginOptions?: {
+        preserveModules?: string;
+    };
 };
 
 // @public (undocumented)

@@ -228,6 +228,10 @@ export type TTestConfig<T extends ECompilerType> = {
 	checkSteps?: boolean;
 	// Only valid for Watch tests
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;
+	// Only valid for ESM library tests
+	esmLibPluginOptions?: {
+		preserveModules?: string;
+	};
 };
 
 export type TTestFilter<T extends ECompilerType> = (
