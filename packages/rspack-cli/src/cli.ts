@@ -57,6 +57,7 @@ export class RspackCLI {
 		try {
 			compiler = rspack(config, isWatch ? callback : undefined);
 			if (!isWatch && compiler) {
+				// unsafeFastDrop is an internal option api and not shown in types
 				compiler.unsafeFastDrop = true;
 			}
 		} catch (e) {

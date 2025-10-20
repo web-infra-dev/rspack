@@ -174,6 +174,13 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	options: RspackOptionsNormalized;
+	/**
+	 * Whether to skip dropping Rust compiler instance to improve performance.
+	 * This is an internal option api and could be removed or changed at any time.
+	 * @internal
+	 * true: Skip dropping Rust compiler instance.
+	 * false: Drop Rust compiler instance when Compiler is garbage collected.
+	 */
 	unsafeFastDrop: boolean = false;
 
 	/**
