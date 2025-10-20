@@ -596,7 +596,7 @@ export function rmrf(
 				} else {
 					for (const file of files!) {
 						if (typeof file !== "string") {
-							continue;
+							throw new Error("file should be a string");
 						}
 						const fullPath = join(fs, p, file);
 						rmrf(fs, fullPath, err => {
