@@ -1,8 +1,5 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	resolve: {
-		extensions: ["..."]
-	},
 	module: {
 		rules: [
 			{
@@ -11,13 +8,10 @@ module.exports = {
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							jsc: {
-								syntax: "unknown"
-							}
+							unknownOption: () => {}
 						}
 					}
 				],
-				type: "javascript/auto"
 			}
 		]
 	}
