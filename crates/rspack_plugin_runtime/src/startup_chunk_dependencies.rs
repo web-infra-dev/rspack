@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
-  chunk_needs_mf_async_startup,
+  chunk_contains_container_entry, chunk_needs_mf_async_startup,
   runtime_module::{
     StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule, is_enabled_for_chunk,
   },
@@ -95,8 +95,9 @@ async fn additional_tree_runtime_requirements(
     .chunk_graph
     .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey);
   let async_enabled = self.is_async_enabled(compilation, chunk_ukey);
+  let is_container_entry = chunk_contains_container_entry(compilation, chunk_ukey);
 
-  if (has_entry_deps && is_enabled_for_chunk) || async_enabled {
+  if ((has_entry_deps && is_enabled_for_chunk) || async_enabled) && !is_container_entry {
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
@@ -119,9 +120,11 @@ async fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
   let async_enabled = self.is_async_enabled(compilation, chunk_ukey);
+  let is_container_entry = chunk_contains_container_entry(compilation, chunk_ukey);
 
   if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
     && (is_enabled_for_chunk || async_enabled)
+    && !is_container_entry
   {
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);

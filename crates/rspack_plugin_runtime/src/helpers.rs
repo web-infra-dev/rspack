@@ -184,6 +184,44 @@ pub async fn runtime_chunk_has_hash(
   Ok(false)
 }
 
+pub fn chunk_contains_container_entry(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
+  let module_graph = compilation.get_module_graph();
+  let has_container_entry = compilation
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+    .keys()
+    .any(|identifier| {
+      module_graph
+        .module_by_identifier(identifier)
+        .map(|module| module.identifier().as_str().starts_with("container entry"))
+        .unwrap_or(false)
+    });
+  #[cfg(debug_assertions)]
+  {
+    if has_container_entry {
+      if let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) {
+        if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
+          let ids: Vec<_> = compilation
+            .chunk_graph
+            .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+            .keys()
+            .filter_map(|identifier| {
+              module_graph
+                .module_by_identifier(identifier)
+                .map(|module| module.identifier().as_str().to_string())
+            })
+            .collect();
+          eprintln!(
+            "[mf-debug] chunk {} detected container entries: {:?}",
+            chunk_id, ids
+          );
+        }
+      }
+    }
+  }
+  has_container_entry
+}
+
 pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
   let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) else {
     return false;
@@ -214,22 +252,49 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   }
 
+  let module_graph = compilation.get_module_graph();
+  #[cfg(debug_assertions)]
+  {
+    if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
+      && chunk_id.as_str().contains("container")
+    {
+      let entries: Vec<_> = compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+        .keys()
+        .filter_map(|identifier| {
+          module_graph
+            .module_by_identifier(identifier)
+            .map(|module| module.identifier().as_str().to_string())
+        })
+        .collect();
+      eprintln!("[mf-debug] chunk {} entry modules {:?}", chunk_id, entries);
+    }
+  }
+
   // Check if this chunk contains a container entry module
   // Container entries should NOT have async startup - only host applications should
-  let module_graph = compilation.get_module_graph();
-  let has_container_entry = compilation
+  let has_container_entry = chunk_contains_container_entry(compilation, chunk);
+  let has_expose_modules = !compilation
     .chunk_graph
-    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-    .keys()
-    .any(|identifier| {
-      module_graph
-        .module_by_identifier(identifier)
-        .map(|module| module.identifier().as_str().starts_with("container entry"))
-        .unwrap_or(false)
-    });
+    .get_chunk_modules_identifier_by_source_type(chunk, SourceType::Expose, &module_graph)
+    .is_empty();
 
   // Return false for container entries (they should not have async startup)
-  !has_container_entry
+  if has_container_entry || has_expose_modules {
+    #[cfg(debug_assertions)]
+    {
+      if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
+        eprintln!(
+          "[mf-debug] disabling async startup for chunk {} (container_entry={}, expose_modules={})",
+          chunk_id, has_container_entry, has_expose_modules
+        );
+      }
+    }
+    return false;
+  }
+
+  true
 }
 
 pub fn generate_entry_startup(

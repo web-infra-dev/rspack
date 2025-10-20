@@ -5,11 +5,9 @@ var __module_federation_bundler_runtime__,
 	__module_federation_container_name__,
 	__module_federation_share_strategy__;
 module.exports = function () {
-	if (
-		(__webpack_require__.initializeSharingData ||
-			__webpack_require__.initializeExposesData) &&
-		__webpack_require__.federation
-	) {
+	__webpack_require__.federation = __webpack_require__.federation || {};
+	if (__webpack_require__.federation) {
+		__webpack_require__.f ??= {};
 		const override = (obj, key, value) => {
 			if (!obj) return;
 			if (obj[key]) obj[key] = value;
