@@ -590,7 +590,8 @@ function getRawJavascriptParserOptions(
 		commonjsMagicComments: parser.commonjsMagicComments,
 		inlineConst: parser.inlineConst,
 		typeReexportsPresence: parser.typeReexportsPresence,
-		jsx: parser.jsx
+		jsx: parser.jsx,
+		deferImport: parser.deferImport
 	};
 }
 

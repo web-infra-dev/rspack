@@ -850,24 +850,23 @@ impl ModuleConcatenationPlugin {
           .get_number_of_module_chunks(module_id);
         let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
         let module_graph = compilation.get_module_graph();
-        let m = module_graph.module_by_identifier(&module_id);
+        let m = module_graph
+          .module_by_identifier(&module_id)
+          .expect("should have module");
 
-        if let Some(reason) = m
-          .expect("should have module")
-          .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+        if let Some(reason) =
+          m.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
         {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
         }
-
-        let m = module_graph.module_by_identifier(&module_id);
 
         if ModuleGraph::is_async(compilation, &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m.expect("should have module").build_info().strict {
+        if !m.build_info().strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -953,6 +952,12 @@ impl ModuleConcatenationPlugin {
           can_be_inner = false;
           bailout_reason.push("Module is an entry point".into());
         }
+
+        if module_graph.is_deferred(&module_id) {
+          bailout_reason.push("Module is deferred".into());
+          can_be_inner = false;
+        }
+
         (can_be_root, can_be_inner, module_id, bailout_reason)
         // if can_be_root {
         //   relevant_modules.push(module_id);
@@ -1072,7 +1077,11 @@ impl ModuleConcatenationPlugin {
           })
           .collect::<Vec<_>>();
 
-        let incomings = module_graph.get_incoming_connections_by_origin_module(&module_id);
+        let incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = module_graph
+          .get_incoming_connections_by_origin_module(&module_id)
+          .into_iter()
+          .map(|(k, v)| (k, v.into_iter().cloned().collect()))
+          .collect();
         let mut active_incomings = HashMap::default();
         for connection in incomings.values().flatten() {
           active_incomings.insert(

@@ -670,6 +670,7 @@ export interface ExperimentsNormalized {
 	typeReexportsPresence?: boolean;
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
+	deferImport?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

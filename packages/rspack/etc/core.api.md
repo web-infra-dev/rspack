@@ -2391,6 +2391,7 @@ export type Experiments = {
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -2449,6 +2450,8 @@ export interface ExperimentsNormalized {
     cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
+    // (undocumented)
+    deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
@@ -3405,6 +3408,7 @@ export type JavascriptParserOptions = {
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -6937,6 +6941,9 @@ export const RuntimeGlobals: {
     readonly baseURI: "__webpack_require__.b";
     readonly relativeUrl: "__webpack_require__.U";
     readonly asyncModule: "__webpack_require__.a";
+    readonly asyncModuleExportSymbol: "__webpack_require__.aE";
+    readonly makeDeferredNamespaceObject: "__webpack_require__.z";
+    readonly makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS";
 };
 
 // @public (undocumented)

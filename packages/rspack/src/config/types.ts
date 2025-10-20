@@ -1139,6 +1139,9 @@ export type JavascriptParserOptions = {
 
 	/** Whether to enable JSX parsing */
 	jsx?: boolean;
+
+	/** Whether to enable defer import */
+	deferImport?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -2802,6 +2805,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	lazyBarrel?: boolean;
+	/**
+	 * Enable defer import feature
+	 * @default false
+	 */
+	deferImport?: boolean;
 };
 //#endregion
 
