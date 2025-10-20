@@ -161,7 +161,7 @@ export function findBundle(
 					`bundle${index}.css`
 			);
 			if (fs.existsSync(cssOutputPath)) {
-				bundlePath.push(`./bundle${index}.css`);
+				bundlePath.push(path.relative(options.output.path!, cssOutputPath));
 			}
 		}
 

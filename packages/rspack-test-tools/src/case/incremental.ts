@@ -2,11 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type TCompilerOptions
+import type {
+	ECompilerType,
+	ITestContext,
+	TCompilerOptions
 } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import {
@@ -30,28 +29,7 @@ function createHotIncrementalProcessor(
 	target: TTarget,
 	webpackCases: boolean
 ) {
-	const processor = createHotProcessor(name, src, temp, target, true);
-	const originalBefore = processor.before;
-	processor.before = async context => {
-		await originalBefore?.(context);
-		context.setValue(
-			name,
-			"documentType",
-			webpackCases ? EDocumentType.JSDOM : EDocumentType.JSDOM
-		);
-	};
-	const originalAfterAll = processor.afterAll;
-	processor.afterAll = async function (context) {
-		try {
-			await originalAfterAll?.(context);
-		} catch (e: any) {
-			const isFake =
-				context.getValue(name, "documentType") === EDocumentType.Fake;
-			if (isFake && /Should run all hot steps/.test(e.message)) return;
-			throw e;
-		}
-	};
-	return processor;
+	return createHotProcessor(name, src, temp, target, true);
 }
 
 function getHotCreator(target: TTarget, webpackCases: boolean) {

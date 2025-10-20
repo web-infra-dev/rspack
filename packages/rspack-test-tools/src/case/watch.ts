@@ -7,15 +7,14 @@ import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import copyDiff from "../helper/legacy/copyDiff";
 import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type IModuleScope,
-	type ITestContext,
-	type ITestEnv,
-	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
+import type {
+	ECompilerType,
+	IModuleScope,
+	ITestContext,
+	ITestEnv,
+	ITestRunner,
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import {
 	afterExecute,
@@ -481,10 +480,7 @@ export function createWatchRunner<
 			compilerOptions.target === "webworker";
 
 	const testConfig = context.getTestConfig();
-	const documentType: EDocumentType =
-		context.getValue(name, "documentType") || EDocumentType.JSDOM;
 	return new WebRunner({
-		dom: documentType,
 		env,
 		stats: cachedWatchStats(context, name),
 		name: name,
@@ -507,6 +503,7 @@ export function createWatchRunner<
 		},
 		source: context.getSource(),
 		dist: context.getDist(),
-		compilerOptions
+		compilerOptions,
+		location: testConfig.location || "https://test.cases/path/index.html"
 	});
 }

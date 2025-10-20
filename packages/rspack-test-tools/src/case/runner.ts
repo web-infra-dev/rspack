@@ -1,12 +1,11 @@
 import { NodeRunner, WebRunner } from "../runner";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type ITestEnv,
-	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
+import type {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	ITestRunner,
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { getCompiler } from "./common";
 
@@ -54,6 +53,7 @@ export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
 	env: ITestEnv
 ): ITestRunner {
 	const compiler = getCompiler(context, name);
+	const testConfig = context.getTestConfig();
 	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
 	const runnerOptions = {
 		runInNewContext: false,
@@ -73,7 +73,7 @@ export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		return new WebRunner<T>({
 			...runnerOptions,
 			runInNewContext: true,
-			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM
+			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	}
 	return new NodeRunner<T>(runnerOptions);
@@ -121,6 +121,7 @@ export function createMultiCompilerRunner<
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
+	const testConfig = context.getTestConfig();
 	const { getIndex, flagIndex } = getFileIndexHandler(context, name, file);
 	const multiCompilerOptions: TCompilerOptions<T>[] =
 		context.getValue(name, "multiCompilerOptions") || [];
@@ -152,7 +153,7 @@ export function createMultiCompilerRunner<
 		runner = new WebRunner<T>({
 			...runnerOptions,
 			runInNewContext: true,
-			dom: context.getValue(name, "documentType") || EDocumentType.Fake
+			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	} else {
 		runner = new NodeRunner<T>(runnerOptions);

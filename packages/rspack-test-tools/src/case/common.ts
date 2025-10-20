@@ -74,10 +74,6 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	const testConfig = context.getTestConfig();
 	if (testConfig.noTests) return;
 
-	if (testConfig.documentType) {
-		context.setValue(name, "documentType", testConfig.documentType);
-	}
-
 	const compiler = getCompiler(context, name);
 	if (typeof testConfig.beforeExecute === "function") {
 		testConfig.beforeExecute(compiler.getOptions());

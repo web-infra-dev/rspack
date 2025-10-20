@@ -65,7 +65,7 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	// Run the script
 	import(/* webpackIgnore: true */ "./chunk1.js");
 
-	script.onload();
+	// script.onload();
 
 	return promise.then(() => {
 		expect(document.head._children).toHaveLength(8);
