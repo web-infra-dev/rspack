@@ -189,6 +189,10 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   };
 
+  if !compilation.options.experiments.mf_async_startup {
+    return false;
+  }
+
   let Some(runtime_requirements) = compilation.cgc_runtime_requirements_artifact.get(chunk) else {
     return false;
   };
