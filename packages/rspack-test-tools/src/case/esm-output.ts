@@ -2,6 +2,7 @@ import rspack, { type RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
 import {
+	afterExecute,
 	build,
 	check,
 	checkSnapshot,
@@ -61,6 +62,9 @@ const creator = new BasicCaseCreator({
 			check: async (env: ITestEnv, context: ITestContext) => {
 				await check(env, context, name);
 				await checkSnapshot(env, context, name, "esm.snap.txt");
+			},
+			after: async (context: ITestContext) => {
+				await afterExecute(context, name);
 			}
 		}
 	],

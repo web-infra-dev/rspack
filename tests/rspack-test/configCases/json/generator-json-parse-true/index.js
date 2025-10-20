@@ -1,5 +1,5 @@
 it("should use JSON.parse", () => {
-	const JSONParse = jest.spyOn(JSON, 'parse');
+	const JSONParse = rstest.spyOn(JSON, 'parse');
 	JSONParse.mockClear();
 
 	const data = require('./data.json');
@@ -14,7 +14,7 @@ it("should use JSON.parse", () => {
 });
 
 it("should not call JSON.parse when resourceQuery is JSONParse=false", () => {
-	const JSONParse = jest.spyOn(JSON, 'parse');
+	const JSONParse = rstest.spyOn(JSON, 'parse');
 	JSONParse.mockClear();
 
 	const data = require('./data.json?JSONParse=false');
