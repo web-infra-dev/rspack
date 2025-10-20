@@ -21,16 +21,16 @@ export interface ModuleFederationPluginOptions
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
 	manifest?:
-	| boolean
-	| Omit<
-		ModuleFederationManifestPluginOptions,
-		"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
-	>;
+		| boolean
+		| Omit<
+				ModuleFederationManifestPluginOptions,
+				"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
+		  >;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 export class ModuleFederationPlugin {
-	constructor(private _options: ModuleFederationPluginOptions) { }
+	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		const { webpack } = compiler;
@@ -348,8 +348,8 @@ function getDefaultEntryRuntime(
 		IS_BROWSER
 			? MF_RUNTIME_CODE
 			: compiler.webpack.Template.getFunctionContent(
-				require("./moduleFederationDefaultRuntime.js")
-			)
+					require("./moduleFederationDefaultRuntime.js")
+				)
 	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }
