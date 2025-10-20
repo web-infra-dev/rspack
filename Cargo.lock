@@ -3376,6 +3376,7 @@ name = "rspack"
 version = "0.6.0-beta.0"
 dependencies = [
  "bitflags 2.9.1",
+ "derive_more",
  "enum-tag",
  "indexmap",
  "insta",

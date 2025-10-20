@@ -56,6 +56,10 @@ export class RspackCLI {
 		let compiler: MultiCompiler | Compiler | null;
 		try {
 			compiler = rspack(config, isWatch ? callback : undefined);
+			if (!isWatch && compiler) {
+				// unsafeFastDrop is an internal option api and not shown in types
+				compiler.unsafeFastDrop = true;
+			}
 		} catch (e) {
 			// Aligned with webpack-cli
 			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
