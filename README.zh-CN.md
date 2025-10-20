@@ -87,7 +87,7 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 
 ## 基准测试
 
-看 [基准测试](https://ecosystem-benchmark.rspack.rs/)。
+参考 [基准测试](https://ecosystem-benchmark.rspack.rs/)。
 
 ## 致谢
 
