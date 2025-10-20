@@ -34,6 +34,7 @@ module.exports = [
 				name: "container",
 				library: { type: "commonjs-module" },
 				filename: "container.js",
+				manifest: false,
 				remotes: {
 					containerA: "../0-container-full/container.js",
 					containerB: "./container.js"
@@ -60,6 +61,7 @@ module.exports = [
 					containerA: "../../0-container-full/module/container.mjs",
 					containerB: "./container.mjs"
 				},
+				manifest: false,
 				...commonMF
 			})
 		],

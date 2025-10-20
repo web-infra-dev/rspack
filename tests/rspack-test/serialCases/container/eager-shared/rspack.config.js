@@ -13,6 +13,7 @@ module.exports = {
 			remotes: {
 				service: "../0-eager-shared/container.js"
 			},
+			manifest: false,
 			shared: {
 				"tiny-emitter": {
 					eager: true,

@@ -6,6 +6,7 @@ module.exports = {
 	plugins: [
 		new ModuleFederationPlugin({
 			remoteType: "commonjs-module",
+			manifest: false,
 			remotes: {
 				containerB: "../1-container-full/container.js"
 			},
