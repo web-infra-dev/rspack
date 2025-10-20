@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "node:assert";
 import fs from "node:fs";
 
 import type {
@@ -78,19 +77,23 @@ import { assertNotNill } from "./util/assertNotNil";
 
 export class RspackOptionsApply {
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
-		assert(
-			options.output.path,
-			"options.output.path should have value after `applyRspackOptionsDefaults`"
-		);
+		if (!options.output.path) {
+			throw new Error(
+				"options.output.path should have value after `applyRspackOptionsDefaults`"
+			);
+		}
+
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
 
 		if (options.externals) {
-			assert(
-				options.externalsType,
-				"options.externalsType should have value after `applyRspackOptionsDefaults`"
-			);
+			if (!options.externalsType) {
+				throw new Error(
+					"options.externalsType should have value after `applyRspackOptionsDefaults`"
+				);
+			}
+
 			new ExternalsPlugin(
 				options.externalsType,
 				options.externals,

@@ -7,8 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -60,7 +58,10 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	const { mode, target } = options;
-	assert(!isNil(target));
+
+	if (isNil(target)) {
+		throw new Error("target should not be nil after defaults");
+	}
 
 	const targetProperties =
 		target === false

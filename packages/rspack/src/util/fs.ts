@@ -7,8 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
 import type { Abortable } from "node:events";
 import path from "node:path";
 
@@ -597,7 +595,9 @@ export function rmrf(
 					fs.rmdir(p, callback);
 				} else {
 					for (const file of files!) {
-						assert(typeof file === "string");
+						if (typeof file !== "string") {
+							continue;
+						}
 						const fullPath = join(fs, p, file);
 						rmrf(fs, fullPath, err => {
 							if (err) {

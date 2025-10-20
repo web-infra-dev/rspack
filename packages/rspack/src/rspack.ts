@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "node:assert";
 import util from "node:util";
 import type { Callback } from "@rspack/lite-tapable";
 import { Compiler } from "./Compiler";
@@ -51,7 +50,11 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 function createCompiler(userOptions: RspackOptions): Compiler {
 	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
-	assert(!isNil(options.context));
+
+	if (isNil(options.context)) {
+		throw new Error("options.context is required");
+	}
+
 	const compiler = new Compiler(options.context, options);
 
 	new NodeEnvironmentPlugin({
