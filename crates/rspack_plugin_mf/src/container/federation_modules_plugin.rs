@@ -104,4 +104,12 @@ impl Plugin for FederationModulesPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
+
+  fn clear_cache(&self, id: CompilationId) {
+    if let Some(map) = FEDERATION_MODULES_PLUGIN_HOOKS_MAP.get()
+      && let Ok(mut map) = map.lock()
+    {
+      map.remove(&id);
+    }
+  }
 }
