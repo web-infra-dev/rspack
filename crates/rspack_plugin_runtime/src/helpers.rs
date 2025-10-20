@@ -197,9 +197,8 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   };
 
-  let mf_async_startup_explicit = compilation.options.experiments.mf_async_startup;
-  let has_chunk_handlers = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-  let async_enabled = mf_async_startup_explicit || has_chunk_handlers;
+  let async_enabled = compilation.options.experiments.mf_async_startup
+    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
   if !async_enabled {
     return false;
@@ -215,27 +214,22 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   }
 
-  // Only check for container entry if mfAsyncStartup was NOT explicitly enabled
-  // If the user explicitly set mfAsyncStartup: true, honor that even for containers
-  if !mf_async_startup_explicit {
-    let module_graph = compilation.get_module_graph();
-    let has_container_entry = compilation
-      .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-      .keys()
-      .any(|identifier| {
-        module_graph
-          .module_by_identifier(identifier)
-          .map(|module| module.identifier().as_str().starts_with("container entry"))
-          .unwrap_or(false)
-      });
+  // Check if this chunk contains a container entry module
+  // Container entries should NOT have async startup - only host applications should
+  let module_graph = compilation.get_module_graph();
+  let has_container_entry = compilation
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+    .keys()
+    .any(|identifier| {
+      module_graph
+        .module_by_identifier(identifier)
+        .map(|module| module.identifier().as_str().starts_with("container entry"))
+        .unwrap_or(false)
+    });
 
-    if has_container_entry {
-      return false;
-    }
-  }
-
-  true
+  // Return false for container entries (they should not have async startup)
+  !has_container_entry
 }
 
 pub fn generate_entry_startup(
