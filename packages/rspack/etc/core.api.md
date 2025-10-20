@@ -1181,6 +1181,8 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // @internal
+    unsafeFastDrop: boolean;
     // (undocumented)
     watch(watchOptions: Watchpack.WatchOptions, handler: liteTapable.Callback<Error, Stats>): Watching;
     // (undocumented)
@@ -4762,6 +4764,7 @@ export type ModuleOptions = {
     parser?: ParserOptionsByModuleType;
     generator?: GeneratorOptionsByModuleType;
     noParse?: NoParseOption;
+    unsafeCache?: boolean | RegExp;
 };
 
 // @public (undocumented)
@@ -4776,6 +4779,8 @@ export interface ModuleOptionsNormalized {
     parser: ParserOptionsByModuleType;
     // (undocumented)
     rules: RuleSetRules;
+    // (undocumented)
+    unsafeCache?: boolean | RegExp;
 }
 
 // @public (undocumented)
@@ -4826,6 +4831,8 @@ export class MultiCompiler {
     running: boolean;
     // (undocumented)
     setDependencies(compiler: Compiler, dependencies: string[]): void;
+    // (undocumented)
+    set unsafeFastDrop(value: boolean);
     // (undocumented)
     validateDependencies(callback: liteTapable.Callback<Error, MultiStats>): boolean;
     // (undocumented)

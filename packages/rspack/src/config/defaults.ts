@@ -107,6 +107,7 @@ export const applyRspackOptionsDefaults = (
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
+		cache: !!options.cache,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
 		css: options.experiments.css,
 		targetProperties,
@@ -334,6 +335,7 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
+		cache,
 		asyncWebAssembly,
 		css,
 		targetProperties,
@@ -343,6 +345,7 @@ const applyModuleDefaults = (
 		inlineConst,
 		deferImport
 	}: {
+		cache: boolean;
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
@@ -355,6 +358,13 @@ const applyModuleDefaults = (
 ) => {
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
+
+	// IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
+	if (cache) {
+		D(module, "unsafeCache", /[\\/]node_modules[\\/]/);
+	} else {
+		D(module, "unsafeCache", false);
+	}
 
 	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));

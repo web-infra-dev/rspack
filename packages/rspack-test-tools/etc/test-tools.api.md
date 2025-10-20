@@ -466,6 +466,8 @@ export interface ITestEnv {
 // @public (undocumented)
 export interface ITester {
     // (undocumented)
+    after(): Promise<void>;
+    // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
@@ -800,6 +802,8 @@ export class TestContext implements ITestContext {
 // @public (undocumented)
 export class Tester implements ITester {
     constructor(config: ITesterConfig);
+    // (undocumented)
+    after(): Promise<void>;
     // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)

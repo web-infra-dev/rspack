@@ -1,11 +1,12 @@
 use std::{
-  fmt::{self, Debug},
+  fmt,
   ops::{Deref, DerefMut},
   sync::Arc,
 };
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
@@ -377,7 +378,7 @@ pub enum ParseOption {
   None,
 }
 
-impl Debug for ParseOption {
+impl fmt::Debug for ParseOption {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Func(_) => write!(f, "ParseOption::Func(...)"),
@@ -1046,7 +1047,7 @@ impl Default for ModuleRuleUse {
   }
 }
 
-impl Debug for ModuleRuleUse {
+impl fmt::Debug for ModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
     match self {
       ModuleRuleUse::Array(array_use) => write!(
@@ -1072,7 +1073,7 @@ pub enum ModuleNoParseRule {
   TestFn(ModuleNoParseTestFn),
 }
 
-impl Debug for ModuleNoParseRule {
+impl fmt::Debug for ModuleNoParseRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::TestFn(_) => "Fn(...)".fmt(f),
@@ -1115,6 +1116,9 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
+pub type UnsafeCachePredicate =
+  Box<dyn Fn(&dyn Module) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
@@ -1124,4 +1128,6 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  pub unsafe_cache: Option<UnsafeCachePredicate>,
 }

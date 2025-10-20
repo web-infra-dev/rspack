@@ -11,6 +11,7 @@ import type {
 	TTestConfig
 } from "../type";
 import {
+	afterExecute,
 	build,
 	check,
 	compiler,
@@ -49,6 +50,9 @@ export function createConfigProcessor(name: string): ITestProcessor {
 		},
 		check: async (env: ITestEnv, context: ITestContext) => {
 			await check(env, context, name);
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		}
 	};
 }

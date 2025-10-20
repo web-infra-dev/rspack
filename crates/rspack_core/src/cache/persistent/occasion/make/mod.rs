@@ -34,7 +34,7 @@ impl MakeOccasion {
       module_graph_partial,
       module_to_lazy_make,
       affected_modules,
-      affected_dependencies: _,
+      affected_dependencies,
       issuer_update_modules,
       // skip
       entry_dependencies: _,
@@ -49,6 +49,14 @@ impl MakeOccasion {
 
     let mut need_update_modules = issuer_update_modules.clone();
     need_update_modules.extend(affected_modules.active());
+
+    // The updated dependencies should be synced to persistent cache.
+    let mg = ModuleGraph::new([Some(module_graph_partial), None], None);
+    for dep_id in affected_dependencies.updated() {
+      if let Some(m) = mg.get_parent_module(dep_id) {
+        need_update_modules.insert(*m);
+      }
+    }
 
     module_graph::save_module_graph(
       module_graph_partial,

@@ -14,7 +14,15 @@ import type {
 	TCompilerOptions,
 	TCompilerStatsCompilation
 } from "../type";
-import { build, check, compiler, config, getCompiler, run } from "./common";
+import {
+	afterExecute,
+	build,
+	check,
+	compiler,
+	config,
+	getCompiler,
+	run
+} from "./common";
 import { cachedStats } from "./runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
@@ -60,6 +68,9 @@ function createCacheProcessor(
 		},
 		check: async (env: ITestEnv, context: ITestContext) => {
 			await check(env, context, name);
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		},
 		afterAll: async (context: ITestContext) => {
 			const updateIndex = updatePlugin.getUpdateIndex();
