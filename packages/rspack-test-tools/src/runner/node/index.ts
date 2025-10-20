@@ -410,6 +410,13 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				esmContext.__STATS__ = this._options.stats?.();
 			}
 
+			if (file.content.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					esmContext.__STATS_I__ = statsIndex;
+				}
+			}
+
 			let esm = esmCache.get(file.path);
 			if (!esm) {
 				esm = new SourceTextModule(file.content, {

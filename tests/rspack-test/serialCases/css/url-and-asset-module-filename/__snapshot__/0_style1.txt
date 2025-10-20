@@ -1,6 +1,0 @@
-Object {
-  getPropertyValue: [Function],
-  nested-dir: url(../../bundle0/assets/img2.png),
-  nested-nested-dir: url(../../bundle0/assets/img3.png),
-  same-dir: url(../../bundle0/assets/img1.png),
-}

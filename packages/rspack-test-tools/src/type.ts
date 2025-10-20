@@ -187,13 +187,8 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
-export enum EDocumentType {
-	Fake = "fake",
-	JSDOM = "jsdom"
-}
-
 export type TTestConfig<T extends ECompilerType> = {
-	documentType?: EDocumentType;
+	location?: string;
 	validate?: (
 		stats: TCompilerStats<T> | TCompilerMultiStats<T>,
 		stderr?: string
