@@ -352,7 +352,7 @@ const applyModuleDefaults = (
 
 	// IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
 	if (cache) {
-		D(module, "unsafeCache", true);
+		D(module, "unsafeCache", /[\\/]node_modules[\\/]/);
 	} else {
 		D(module, "unsafeCache", false);
 	}

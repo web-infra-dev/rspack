@@ -3,9 +3,7 @@ const path = require("path")
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
     mode: "development",
-    module: {
-        unsafeCache: true
-    },
+    cache: true,
     plugins: [
         compiler => {
             compiler.hooks.done.tap("PLUGIN", stats => {

@@ -978,10 +978,6 @@ impl TryFrom<RawModuleRule> for ModuleRule {
   }
 }
 
-#[allow(clippy::unwrap_used)]
-static NODE_MODULES_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#"[\\/]node_modules[\\/]"#).unwrap());
-
 impl TryFrom<RawModuleOptions> for ModuleOptions {
   type Error = rspack_error::Error;
 
@@ -996,9 +992,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       value.unsafe_cache.and_then(|either| match either {
         Either::A(true) => Some(Box::new(|module: &dyn rspack_core::Module| {
           let name = module.name_for_condition();
-          Box::pin(async move {
-            Ok(name.is_some_and(|name| NODE_MODULES_REGEXP.is_match(name.as_ref())))
-          }) as BoxFuture<'static, rspack_error::Result<bool>>
+          Box::pin(async move { Ok(true) }) as BoxFuture<'static, rspack_error::Result<bool>>
         }) as UnsafeCachePredicate),
         Either::A(false) => None,
         Either::B(regex) => {
