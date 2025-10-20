@@ -85,10 +85,21 @@ const checkIsMultiRspackOptions = (
 	config: RspackOptions | MultiRspackOptions
 ): config is MultiRspackOptions => Array.isArray(config);
 
-export const crossImport = async <T = any>(path: string): Promise<T> => {
+const interopDefault = (input: unknown): unknown => {
+	if (input && typeof input === "object" && "default" in input) {
+		return input.default || input;
+	}
+	return input;
+};
+
+const crossImport = async <T = any>(path: string): Promise<T> => {
 	const configFileURL = pathToFileURL(path).href;
-	const exportModule = await import(configFileURL);
-	return exportModule.default ? exportModule.default : exportModule;
+	try {
+		const exportModule = await import(configFileURL);
+		return interopDefault(exportModule) as T;
+	} catch {
+		return interopDefault(require(path)) as T;
+	}
 };
 
 /**
