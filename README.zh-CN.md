@@ -95,6 +95,8 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 - [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) 项目（由 [@sokra](https://github.com/sokra) 创建），它启发了 Rspack 内的 CssExtractPlugin 实现。
 - [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) 项目（由 [@kevlened](https://github.com/kevlened) 创建），它启发了 Rspack 内的 CopyPlugin 实现。
 - [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) 项目（由 [@jscheid](https://github.com/jscheid) 创建），它启发了 Rspack 内的 SubresourceIntegrityPlugin 实现。
+- [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) 项目（由 [@aackerman](https://github.com/aackerman) 创建），它启发 Rspack 中循环依赖插件的实现。
+- [tracing-chrome](https://github.com/thoren-d/tracing-chrome) 项目（由 [thoren-d](https://github.com/thoren-d) 创建），它启发 Rspack tracing 功能的实现。
 
 ## License
 
