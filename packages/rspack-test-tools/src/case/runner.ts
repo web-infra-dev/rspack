@@ -73,7 +73,7 @@ export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		return new WebRunner<T>({
 			...runnerOptions,
 			runInNewContext: true,
-			dom: context.getValue(name, "documentType") || EDocumentType.Fake
+			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM
 		});
 	}
 	return new NodeRunner<T>(runnerOptions);

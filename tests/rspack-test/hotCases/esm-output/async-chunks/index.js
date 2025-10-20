@@ -1,36 +1,26 @@
-import update from "@rspack/test-tools/helper/legacy/update.esm";
 import.meta.webpackHot.accept(["./async-module", "./lazy-module"]);
 
-it("should handle HMR with async chunks in ESM format", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should handle HMR with async chunks in ESM format", async () => {
 	// Initial load of async chunks
-	Promise.all([
+	const [asyncModule, lazyModule] = await Promise.all([
 		import("./async-module"),
 		import("./lazy-module")
-	]).then(([asyncModule, lazyModule]) => {
-		expect(asyncModule.message).toBe("Hello from async module!");
-		expect(lazyModule.data.value).toBe(42);
+	]);
+	expect(asyncModule.message).toBe("Hello from async module!");
+	expect(lazyModule.data.value).toBe(42);
 
-		NEXT(update(done, true, () => {
-			// Re-import after HMR update
-			Promise.all([
-				import("./async-module"),
-				import("./lazy-module")
-			]).then(([updatedAsyncModule, updatedLazyModule]) => {
-				expect(updatedAsyncModule.message).toBe("Updated async module!");
-				expect(updatedLazyModule.data.value).toBe(100);
-				done();
-			}).catch(done);
-		}));
-	}).catch(done);
-}));
+	await NEXT_HMR();
+	const [updatedAsyncModule, updatedLazyModule] = await Promise.all([
+		import("./async-module"),
+		import("./lazy-module")
+	]);
+	expect(updatedAsyncModule.message).toBe("Updated async module!");
+	expect(updatedLazyModule.data.value).toBe(100);
+});
 
-it("should support dynamic imports with proper ESM chunk loading", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should support dynamic imports with proper ESM chunk loading", async () => {
 	// Test that dynamic imports work correctly with ESM chunk format
-	import("./async-module").then((module) => {
-		expect(module.message).toBeDefined();
-		expect(typeof module.message).toBe("string");
-		done();
-	}).catch(done);
-}));
+	const module = await import("./async-module");
+	expect(module.message).toBeDefined();
+	expect(typeof module.message).toBe("string");
+});

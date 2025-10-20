@@ -1,13 +1,10 @@
 import style from './index.module.css';
 
-module.hot.accept('./index.module.css')
-
-it("css modules hmr", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("css modules hmr", async () => {
 	expect(style.div).toBeDefined();
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-		expect(style.a).toBeDefined();
-		expect(style).not.toContain('div');
-		done();
-	}));
-}));
+	await NEXT_HMR();
+	expect(style.a).toBeDefined();
+	expect(style).not.toContain('div');
+});
+
+module.hot.accept('./index.module.css')

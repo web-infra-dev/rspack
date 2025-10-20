@@ -37,7 +37,7 @@ function createHotIncrementalProcessor(
 		context.setValue(
 			name,
 			"documentType",
-			webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
+			webpackCases ? EDocumentType.JSDOM : EDocumentType.JSDOM
 		);
 	};
 	const originalAfterAll = processor.afterAll;

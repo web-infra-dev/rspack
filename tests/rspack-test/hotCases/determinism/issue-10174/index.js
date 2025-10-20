@@ -1,15 +1,13 @@
 import { c } from "./deps/a";
 import hot from "./hot";
 
-it("should only register changes for the changed module", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should only register changes for the changed module", async () => {
 	expect(hot).toBe(1);
 	expect(c()).toBe(42);
-	module.hot.accept("./hot", () => {
-		expect(hot).toBe(2);
-		expect(c()).toBe(42);
-		done();
-	});
+	module.hot.accept("./hot");
+	await NEXT_HMR();
+	expect(hot).toBe(2);
+	expect(c()).toBe(42);
+});
 
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+module.hot.accept("./hot");

@@ -3,11 +3,11 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "lib": ["es2022", "dom"],
     "emitDeclarationOnly": true,
     "paths": {
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
-      "graceful-fs": ["./compiled/graceful-fs"],
       "browserslist-load-config": ["./compiled/browserslist-load-config"],
       "webpack-sources": ["./compiled/webpack-sources"],
       "tinypool": ["./compiled/tinypool"]

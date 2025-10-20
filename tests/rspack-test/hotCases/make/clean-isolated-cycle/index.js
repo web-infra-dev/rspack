@@ -9,3 +9,5 @@ it("should clean isolated cycle", async () => {
 	await NEXT_HMR();
 	expect(num).toBe(4);
 });
+
+module.hot.accept("./file");

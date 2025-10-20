@@ -205,8 +205,9 @@ impl Task<TaskContext> for FactorizeResultTask {
       .missing_dependencies
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
-    // write factorize_info to dependencies[0] and set success factorize_info to others
     for dep in &mut dependencies {
+      artifact.affected_dependencies.mark_as_add(dep.id());
+
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
       } else if let Some(d) = dep.as_module_dependency_mut() {
@@ -214,6 +215,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
+      // write factorize_info to dependencies[0] and set success factorize_info to others
       *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 

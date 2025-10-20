@@ -1,12 +1,10 @@
 var value = require("./parent-file");
 
-it("should update multiple modules at the same time", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should update multiple modules at the same time", async () => {
 	expect(value).toBe(2);
-	module.hot.accept("./parent-file", () => {
-		value = require("./parent-file");
-		expect(value).toBe(4);
-		done();
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+	await NEXT_HMR();
+	value = require("./parent-file");
+	expect(value).toBe(4);
+});
+
+module.hot.accept("./parent-file");

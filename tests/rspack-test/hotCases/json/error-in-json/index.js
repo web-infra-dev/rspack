@@ -1,9 +1,7 @@
-it("should be able to recover from json error", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should be able to recover from json error", async () => {
 	expect(() => require("./data.json")).toThrowError();
-	module.hot.accept("./data.json", function () {
-		expect(require("./data.json")).toBe(42);
-		done();
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+	await NEXT_HMR();
+	expect(require("./data.json")).toBe(42);
+});
+
+module.hot.accept("./data.json");

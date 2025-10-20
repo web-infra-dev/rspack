@@ -1,16 +1,14 @@
 import { value } from "./file";
 
-it("should auto-import an ES6 imported value on accept", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should auto-import an ES6 imported value on accept", async () => {
 	expect(value).toBe(1);
-	module.hot.accept("./file", function () {
-		expect(value).toBe(2);
-		outside();
-		done();
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+	await NEXT_HMR();
+	expect(value).toBe(2);
+	outside();
+});
 
 function outside() {
 	expect(value).toBe(2);
 }
+
+module.hot.accept(["./file"]);

@@ -13,11 +13,8 @@ it("should hot.accept the module located at the defined file path without breaki
 	module.hot.accept(DEFINE_PATH);
 });
 
-it("should hot.accept the module located at the defined file path without breaking the compiler, when multiple arguments are passed to hot.accept", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
-	module.hot.accept(DEFINE_PATH, () => {
-		expect(DEFINE_PATH).toBe("./a");
-		done();
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+it("should hot.accept the module located at the defined file path without breaking the compiler, when multiple arguments are passed to hot.accept", async () => {
+	module.hot.accept(DEFINE_PATH);
+	await NEXT_HMR();
+	expect(DEFINE_PATH).toBe("./a");
+});

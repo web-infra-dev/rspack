@@ -1,21 +1,11 @@
 import ok from "./module";
 
-it("should abort when module is not accepted", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should abort when module is not accepted", async () => {
 	expect(ok).toBe("ok1-inner");
-	NEXT(
-		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-			expect(ok).toBe("ok2");
-			NEXT(
-				require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-					expect(ok).toBe("ok3-inner");
-					done();
-				})
-			);
-		})
-	);
-}));
+	await NEXT_HMR();
+	expect(ok).toBe("ok2");
+	await NEXT_HMR();
+	expect(ok).toBe("ok3-inner");
+});
 
-if (module.hot) {
-	module.hot.accept("./module");
-}
+module.hot.accept("./module");
