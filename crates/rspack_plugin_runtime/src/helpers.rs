@@ -197,8 +197,9 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   };
 
-  let async_enabled = compilation.options.experiments.mf_async_startup
-    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+  let mf_async_startup_explicit = compilation.options.experiments.mf_async_startup;
+  let has_chunk_handlers = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+  let async_enabled = mf_async_startup_explicit || has_chunk_handlers;
 
   if !async_enabled {
     return false;
@@ -214,19 +215,27 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   }
 
-  let module_graph = compilation.get_module_graph();
-  let has_container_entry = compilation
-    .chunk_graph
-    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-    .keys()
-    .any(|identifier| {
-      module_graph
-        .module_by_identifier(identifier)
-        .map(|module| module.identifier().as_str().starts_with("container entry"))
-        .unwrap_or(false)
-    });
+  // Only check for container entry if mfAsyncStartup was NOT explicitly enabled
+  // If the user explicitly set mfAsyncStartup: true, honor that even for containers
+  if !mf_async_startup_explicit {
+    let module_graph = compilation.get_module_graph();
+    let has_container_entry = compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+      .keys()
+      .any(|identifier| {
+        module_graph
+          .module_by_identifier(identifier)
+          .map(|module| module.identifier().as_str().starts_with("container entry"))
+          .unwrap_or(false)
+      });
 
-  !has_container_entry
+    if has_container_entry {
+      return false;
+    }
+  }
+
+  true
 }
 
 pub fn generate_entry_startup(

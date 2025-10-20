@@ -20,7 +20,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, RuntimeSpec, incremental::Mutation,
+  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeSpec, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -232,6 +232,20 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .copied()
       .collect::<Vec<_>>();
     for chunk in non_runtime_chunks {
+      let preserve_chunk = compilation
+        .cgc_runtime_requirements_artifact
+        .get(&chunk)
+        .map(|req| {
+          req.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+            || req.contains(RuntimeGlobals::REQUIRE)
+            || req.contains(RuntimeGlobals::ENSURE_CHUNK)
+        })
+        .unwrap_or(false);
+
+      if preserve_chunk {
+        continue;
+      }
+
       compilation
         .chunk_graph
         .disconnect_chunk_and_module(&chunk, module);
