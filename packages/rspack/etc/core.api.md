@@ -1756,8 +1756,7 @@ type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMe
 };
 
 // @public
-export interface DevServer extends DevServerOptions {
-}
+export type DevServer = DevServerOptions;
 
 // @public (undocumented)
 export type DevServerMiddleware<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = MiddlewareObject<RequestInternal, ResponseInternal> | MiddlewareHandler<RequestInternal, ResponseInternal>;
