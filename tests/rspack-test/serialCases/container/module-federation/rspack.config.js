@@ -11,6 +11,7 @@ function createConfig() {
 				filename: "container.js",
 				library: { type: "system" },
 				exposes: ["./other", "./self", "./dep"],
+				manifest: false,
 				remotes: {
 					abc: "ABC",
 					def: "DEF",
@@ -22,6 +23,7 @@ function createConfig() {
 				name: "container2",
 				filename: "container2.js",
 				library: { type: "system" },
+				manifest: false,
 				exposes: ["./other", "./self", "./dep"],
 				remotes: {
 					abc: "ABC",

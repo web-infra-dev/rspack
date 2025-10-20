@@ -27,6 +27,7 @@ module.exports = [
 			new ModuleFederationPlugin({
 				library: { type: "commonjs-module" },
 				filename: "container.js",
+				manifest: false,
 				remotes: {
 					containerA: {
 						external: "./container.js"
@@ -48,6 +49,7 @@ module.exports = [
 			new ModuleFederationPlugin({
 				library: { type: "module" },
 				filename: "module/container.mjs",
+				manifest: false,
 				remotes: {
 					containerA: {
 						external: "./container.mjs"
