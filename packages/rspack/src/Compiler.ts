@@ -174,6 +174,7 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	options: RspackOptionsNormalized;
+	unsafeFastDrop: boolean = false;
 
 	/**
 	 * Note: This is not a webpack public API, maybe removed in future.
@@ -881,7 +882,8 @@ class Compiler {
 						)
 					: undefined,
 				inputFileSystem,
-				ResolverFactory.__to_binding(this.resolverFactory)
+				ResolverFactory.__to_binding(this.resolverFactory),
+				this.unsafeFastDrop
 			);
 
 			callback(null, this.#instance);
