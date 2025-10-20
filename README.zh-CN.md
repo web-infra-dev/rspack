@@ -67,7 +67,6 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 ## 社区
 
 - 可以在 [Discord](https://discord.gg/79ZZ66GH9E) 上和 Rspack Team 以及 Rspack 用户交流
-
 - 也可以在 [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4) 上和我们交流
 
 ## 链接
