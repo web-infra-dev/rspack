@@ -1,8 +1,5 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	resolve: {
-		extensions: ["..."]
-	},
 	module: {
 		rules: [
 			{
@@ -17,7 +14,6 @@ module.exports = {
 						}
 					}
 				],
-				type: "javascript/auto"
 			}
 		]
 	}
