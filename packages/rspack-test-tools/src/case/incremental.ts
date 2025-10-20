@@ -2,11 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	TCompilerOptions
-} from "../type";
+import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import {
 	createWatchInitialProcessor,
