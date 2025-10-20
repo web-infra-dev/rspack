@@ -79,7 +79,7 @@ export class RspackOptionsApply {
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		if (!options.output.path) {
 			throw new Error(
-				"options.output.path should have value after `applyRspackOptionsDefaults`"
+				"options.output.path should have a value after `applyRspackOptionsDefaults`"
 			);
 		}
 
