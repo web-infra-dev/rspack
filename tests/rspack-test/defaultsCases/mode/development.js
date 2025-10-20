@@ -24,7 +24,7 @@ module.exports = {
 		+         "exportsDepth": 1,
 		@@ ... @@
 		-     "unsafeCache": false,
-		+     "unsafeCache": true,
+		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 		@@ ... @@
 		-     "chunkIds": "natural",
 		+     "chunkIds": "named",

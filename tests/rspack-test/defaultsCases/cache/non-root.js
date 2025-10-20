@@ -20,6 +20,6 @@ module.exports = {
 		+   },
 		@@ ... @@
 		-     "unsafeCache": false,
-		+     "unsafeCache": true,
+		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 	`)
 };
