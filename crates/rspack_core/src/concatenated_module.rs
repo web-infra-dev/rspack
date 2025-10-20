@@ -1103,7 +1103,6 @@ impl Module for ConcatenatedModule {
 
       if exports_type == BuildMetaExportsType::Default
         && !matches!(default_object, BuildMetaDefaultObject::Redirect)
-        && info.get_interop_namespace_object2_used()
       {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject2",
@@ -1162,7 +1161,7 @@ impl Module for ConcatenatedModule {
                 .collect::<Vec<_>>(),
               match_info.call,
               !match_info.direct_import,
-              !match_info.deferred_import,
+              match_info.deferred_import,
               build_meta.strict_esm_module,
               match_info.asi_safe,
             ));
@@ -1189,9 +1188,9 @@ impl Module for ConcatenatedModule {
             export_name,
             &module_to_info_map,
             runtime,
+            deferred_import,
             call,
             call_context,
-            deferred_import,
             strict_esm_module,
             asi_safe,
             &context,
@@ -1569,7 +1568,7 @@ impl Module for ConcatenatedModule {
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
     for (module_info_id, item_runtime_condition) in modules_with_info {
-      let name;
+      let mut name = None;
       let mut is_conditional = false;
       let info = module_to_info_map
         .get(&module_info_id)
@@ -1639,40 +1638,38 @@ impl Module for ConcatenatedModule {
         }
         ModuleInfo::External(info) => {
           // Deferred case is handled in "Define required namespace objects" above
-          if info.deferred {
-            continue;
+          if !info.deferred {
+            result.add(RawStringSource::from(format!(
+              "\n// EXTERNAL MODULE: {module_readable_identifier}\n"
+            )));
+
+            runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+
+            let condition = runtime_condition_expression(
+              &compilation.chunk_graph,
+              item_runtime_condition.as_ref(),
+              runtime,
+              &mut runtime_requirements,
+            );
+
+            if condition != "true" {
+              is_conditional = true;
+              result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
+            }
+
+            result.add(RawStringSource::from(format!(
+              "var {} = {}({});",
+              info.name.as_ref().expect("should have name"),
+              RuntimeGlobals::REQUIRE,
+              serde_json::to_string(
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
+                  .expect("should have module id")
+              )
+              .expect("should json stringify module id")
+            )));
+
+            name = info.name.clone();
           }
-
-          result.add(RawStringSource::from(format!(
-            "\n// EXTERNAL MODULE: {module_readable_identifier}\n"
-          )));
-
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-
-          let condition = runtime_condition_expression(
-            &compilation.chunk_graph,
-            item_runtime_condition.as_ref(),
-            runtime,
-            &mut runtime_requirements,
-          );
-
-          if condition != "true" {
-            is_conditional = true;
-            result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
-          }
-
-          result.add(RawStringSource::from(format!(
-            "var {} = {}({});",
-            info.name.as_ref().expect("should have name"),
-            RuntimeGlobals::REQUIRE,
-            serde_json::to_string(
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
-                .expect("should have module id")
-            )
-            .expect("should json stringify module id")
-          )));
-
-          name = info.name.clone();
         }
       }
 

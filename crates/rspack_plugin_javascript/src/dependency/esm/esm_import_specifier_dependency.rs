@@ -355,6 +355,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
@@ -364,6 +365,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         ) + property_access(ids, 0).as_str()
@@ -375,6 +377,7 @@ impl ESMImportSpecifierDependencyTemplate {
             ids: ids.to_vec(),
             call: dep.call,
             direct_import: dep.direct_import,
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
