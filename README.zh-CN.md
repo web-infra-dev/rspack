@@ -6,7 +6,8 @@
 
 <p>
   <a href="https://discord.gg/79ZZ66GH9E"><img src="https://img.shields.io/badge/chat-discord-blue?style=flat-square&logo=discord&colorA=564341&colorB=EDED91" alt="discord channel" /></a>
-  <a href="https://www.npmjs.com/package/@rspack/core?activeTab=versions"><img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@rspack/core?activeTab=readme"><img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>
+  <a href="https://crates.io/crates/rspack_core"><img src="https://img.shields.io/crates/v/rspack_core?style=flat-square&colorA=564341&colorB=EDED91" alt="crates version" /></a>
   <a href="https://npmcharts.com/compare/@rspack/core?minimal=true"><img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" /></a>
   <a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="node version"></a>
   <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
@@ -53,15 +54,20 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
   </a>
 </p>
 
-请阅读[快速上手](https://rspack.rs/zh/guide/start/quick-start)。
+请阅读 [快速上手](https://rspack.rs/zh/guide/start/quick-start)。
 
 ## 参与贡献
 
-请阅读[贡献指南](./CONTRIBUTING.md)来共同参与 Rspack 的建设。
+请阅读 [贡献指南](./CONTRIBUTING.md) 来共同参与 Rspack 的建设。
 
 ### 行为准则
 
-本仓库采纳了字节跳动的开源项目行为准则。请点击[行为准则](./CODE_OF_CONDUCT.md)查看更多的信息。
+本仓库采纳了字节跳动的开源项目行为准则。请点击 [行为准则](./CODE_OF_CONDUCT.md) 查看更多的信息。
+
+## 社区
+
+- 可以在 [Discord](https://discord.gg/79ZZ66GH9E) 上和 Rspack Team 以及 Rspack 用户交流
+- 也可以在 [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4) 上和我们交流
 
 ## 链接
 
@@ -74,6 +80,14 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 | [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 的示例项目                                                            |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rstack 的设计资源                                                            |
+
+## 贡献者
+
+<a href="https://github.com/web-infra-dev/rspack/graphs/contributors"><img src="https://opencollective.com/rspack/contributors.svg?width=890&button=false" /></a>
+
+## 基准测试
+
+参考 [基准测试](https://ecosystem-benchmark.rspack.rs/)。
 
 ## 致谢
 
@@ -101,9 +115,3 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 ## License
 
 Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/main/LICENSE)，请自由地享受和参与开源。
-
-## Community
-
-- 可以在 [Discord](https://discord.gg/79ZZ66GH9E) 上和 Rspack Team 以及 Rspack 用户交流
-
-- 也可以在 [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4) 上和我们交流
