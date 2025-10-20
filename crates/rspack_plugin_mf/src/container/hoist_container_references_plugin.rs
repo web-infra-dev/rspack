@@ -20,7 +20,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeSpec, incremental::Mutation,
+  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -193,23 +193,48 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .collect::<FxHashSet<_>>();
 
   // Hoist referenced modules to their runtime chunk
-  let entries = compilation
+  let mut runtime_chunk_map: FxHashMap<RuntimeSpec, ChunkUkey> = compilation
     .get_chunk_graph_entries()
     .filter_map(|entry| {
       compilation
         .chunk_by_ukey
         .get(&entry)
-        .map(|chunk| (chunk.runtime(), entry))
+        .and_then(|chunk| chunk.runtime().cloned().map(|runtime| (runtime, entry)))
     })
-    .collect::<FxHashMap<_, _>>();
+    .collect();
+
+  for (chunk_ukey, chunk) in compilation.chunk_by_ukey.iter() {
+    if let Some(runtime) = chunk.runtime() {
+      runtime_chunk_map
+        .entry(runtime.clone())
+        .or_insert(*chunk_ukey);
+    }
+  }
   for module in &all_modules_to_hoist {
-    let runtime_chunks = compilation
+    let mut connected = FxHashSet::default();
+    for runtime_spec in compilation
       .chunk_graph
       .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
-      .flat_map(|runtime| runtime.iter())
-      .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
-      .collect::<Vec<_>>();
-    for runtime_chunk in runtime_chunks {
+    {
+      if let Some(runtime_chunk) = runtime_chunk_map.get(&runtime_spec).copied() {
+        connected.insert(runtime_chunk);
+      } else {
+        for runtime_key in runtime_spec.iter() {
+          if let Some(runtime_chunk) = runtime_chunk_map
+            .get(&RuntimeSpec::from_iter([*runtime_key]))
+            .copied()
+          {
+            connected.insert(runtime_chunk);
+          }
+        }
+      }
+    }
+
+    if connected.is_empty() {
+      connected.extend(runtime_chunk_map.values().copied());
+    }
+
+    for runtime_chunk in connected {
       if !compilation
         .chunk_graph
         .is_module_in_chunk(module, runtime_chunk)
@@ -222,7 +247,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Disconnect hoisted modules from non-runtime chunks, this is safe since we already hoist them to runtime chunk
-  let runtime_chunks = entries.values().copied().collect::<FxHashSet<_>>();
+  let runtime_chunks = runtime_chunk_map
+    .values()
+    .copied()
+    .collect::<FxHashSet<_>>();
   for module in all_modules_to_hoist {
     let non_runtime_chunks = compilation
       .chunk_graph
@@ -252,22 +280,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
       if compilation.chunk_graph.get_number_of_chunk_modules(&chunk) == 0
         && compilation.chunk_graph.get_number_of_entry_modules(&chunk) == 0
-        && let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk)
-      {
-        compilation
-          .chunk_graph
-          .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
-        compilation.chunk_graph.remove_chunk(&chunk);
-
-        // Remove from named chunks if it has a name
-        if let Some(name) = removed_chunk.name() {
-          compilation.named_chunks.remove(name);
-        }
-        // Record mutation
-        if let Some(mutations) = compilation.incremental.mutations_write() {
-          mutations.add(Mutation::ChunkRemove { chunk });
-        }
-      }
+      {}
     }
   }
 
