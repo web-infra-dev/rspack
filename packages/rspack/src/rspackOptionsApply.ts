@@ -90,7 +90,7 @@ export class RspackOptionsApply {
 		if (options.externals) {
 			if (!options.externalsType) {
 				throw new Error(
-					"options.externalsType should have value after `applyRspackOptionsDefaults`"
+					"options.externalsType should have a value after `applyRspackOptionsDefaults`"
 				);
 			}
 
