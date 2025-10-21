@@ -109,7 +109,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       let source = &origin_source.source();
 
       {
-        let modules = map.sources().iter().map(|source| {
+        let modules = map.sources().map(|source| {
           if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
