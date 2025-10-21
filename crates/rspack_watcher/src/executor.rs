@@ -10,7 +10,7 @@ use tokio::sync::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::watcher::EventBatch;
+use crate::EventBatch;
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;

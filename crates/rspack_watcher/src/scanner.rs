@@ -4,7 +4,7 @@ use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
-use crate::watcher::EventBatch;
+use crate::EventBatch;
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {

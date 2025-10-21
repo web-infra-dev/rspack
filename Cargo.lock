@@ -3590,6 +3590,7 @@ dependencies = [
  "rspack_tracing",
  "rspack_tracing_perfetto",
  "rspack_util",
+ "rspack_watcher",
  "rspack_workspace",
  "rustc-hash",
  "serde",
@@ -3812,7 +3813,6 @@ dependencies = [
  "dashmap 6.1.0",
  "dunce",
  "fast-glob",
- "notify",
  "pnp",
  "rspack_error",
  "rspack_paths",
@@ -5065,6 +5065,21 @@ dependencies = [
  "unicase",
  "wasi-common",
  "wasmtime",
+]
+
+[[package]]
+name = "rspack_watcher"
+version = "0.6.0-beta.0"
+dependencies = [
+ "cow-utils",
+ "dashmap 6.1.0",
+ "fast-glob",
+ "notify",
+ "rspack_error",
+ "rspack_paths",
+ "rspack_regex",
+ "rspack_util",
+ "tokio",
 ]
 
 [[package]]
