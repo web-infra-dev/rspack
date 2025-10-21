@@ -105,8 +105,8 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
 
-      - name: Debug
-        uses: ./.github/actions/debugger
+      # - name: Debug
+      #   uses: ./.github/actions/debugger
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
