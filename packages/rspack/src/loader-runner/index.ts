@@ -50,8 +50,7 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import ModuleError from "./ModuleError";
-import ModuleWarning from "./ModuleWarning";
+import { ModuleError, ModuleWarning } from "./ModuleError";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {

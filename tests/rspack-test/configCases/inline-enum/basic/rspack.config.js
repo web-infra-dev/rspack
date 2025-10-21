@@ -21,7 +21,8 @@ function config(index, { concatenateModules } = {}) {
 								jsc: {
 									parser: {
 										syntax: "typescript"
-									}
+									},
+									target: "es2022"
 								},
 								rspackExperiments: {
 									collectTypeScriptInfo: {
