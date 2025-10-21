@@ -36,4 +36,4 @@ tracing     = { workspace = true }
 ustr = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash"]
+ignored = ["tracing", "rspack_hash", "ustr-fxhash"]
