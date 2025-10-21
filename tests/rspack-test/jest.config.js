@@ -53,7 +53,8 @@ const config = {
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [
-		"<rootDir>Serial.test.js",
+		"<rootDir>/*.test.js",
+		"<rootDir>/legacy-test/*.test.js"
 	],
 	testPathIgnorePatterns: [
 		// use rstest
