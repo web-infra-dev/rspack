@@ -2390,6 +2390,7 @@ export type Experiments = {
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
+    mfAsyncStartup?: boolean;
     deferImport?: boolean;
 };
 
@@ -2465,6 +2466,8 @@ export interface ExperimentsNormalized {
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
+    // (undocumented)
+    mfAsyncStartup?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
@@ -4669,6 +4672,10 @@ class ModuleFederationPlugin {
 
 // @public (undocumented)
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+    // (undocumented)
+    experiments?: {
+        asyncStartup?: boolean;
+    };
     // (undocumented)
     implementation?: string;
     // (undocumented)

@@ -198,25 +198,24 @@ pub fn chunk_contains_container_entry(compilation: &Compilation, chunk: &ChunkUk
     });
   #[cfg(debug_assertions)]
   {
-    if has_container_entry {
-      if let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) {
-        if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
-          let ids: Vec<_> = compilation
-            .chunk_graph
-            .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-            .keys()
-            .filter_map(|identifier| {
-              module_graph
-                .module_by_identifier(identifier)
-                .map(|module| module.identifier().as_str().to_string())
-            })
-            .collect();
-          eprintln!(
-            "[mf-debug] chunk {} detected container entries: {:?}",
-            chunk_id, ids
-          );
-        }
-      }
+    if has_container_entry
+      && let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk)
+      && let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
+    {
+      let ids: Vec<_> = compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
+        .keys()
+        .filter_map(|identifier| {
+          module_graph
+            .module_by_identifier(identifier)
+            .map(|module| module.identifier().as_str().to_string())
+        })
+        .collect();
+      eprintln!(
+        "[mf-debug] chunk {} detected container entries: {:?}",
+        chunk_id, ids
+      );
     }
   }
   has_container_entry
