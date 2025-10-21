@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import {
@@ -339,6 +338,7 @@ function computeIntegrity(
 	hashFuncNames: SubresourceIntegrityHashFunction[],
 	source: string | Buffer
 ): string {
+	const { createHash } = require("node:crypto");
 	const result = hashFuncNames
 		.map(
 			hashFuncName =>

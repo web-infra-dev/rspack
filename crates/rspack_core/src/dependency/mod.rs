@@ -177,3 +177,36 @@ impl ImportAttributes {
     self.0.insert(k, v)
   }
 }
+
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum ImportPhase {
+  #[default]
+  Evaluation,
+  Source,
+  Defer,
+}
+
+impl ImportPhase {
+  pub fn is_evaluation(&self) -> bool {
+    matches!(self, ImportPhase::Evaluation)
+  }
+
+  pub fn is_source(&self) -> bool {
+    matches!(self, ImportPhase::Source)
+  }
+
+  pub fn is_defer(&self) -> bool {
+    matches!(self, ImportPhase::Defer)
+  }
+}
+
+impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
+  fn from(phase: swc_core::ecma::ast::ImportPhase) -> Self {
+    match phase {
+      swc_core::ecma::ast::ImportPhase::Evaluation => Self::Evaluation,
+      swc_core::ecma::ast::ImportPhase::Source => Self::Source,
+      swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
+    }
+  }
+}

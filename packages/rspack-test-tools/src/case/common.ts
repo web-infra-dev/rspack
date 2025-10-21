@@ -74,10 +74,6 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	const testConfig = context.getTestConfig();
 	if (testConfig.noTests) return;
 
-	if (testConfig.documentType) {
-		context.setValue(name, "documentType", testConfig.documentType);
-	}
-
 	const compiler = getCompiler(context, name);
 	if (typeof testConfig.beforeExecute === "function") {
 		testConfig.beforeExecute(compiler.getOptions());
@@ -114,14 +110,6 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	const results =
 		context.getValue<Array<Promise<unknown>>>(name, "modules") || [];
 	await Promise.all(results);
-
-	if (typeof testConfig.afterExecute === "function") {
-		let options = compiler.getOptions();
-		if (Array.isArray(options) && options.length === 1) {
-			options = options[0];
-		}
-		testConfig.afterExecute(options);
-	}
 }
 
 export async function check<T extends ECompilerType = ECompilerType.Rspack>(
@@ -286,6 +274,18 @@ export async function checkSnapshot<
 				);
 
 		env.expect(content).toMatchFileSnapshot(snapshotPath);
+	}
+}
+
+export async function afterExecute(context: ITestContext, name: string) {
+	const compiler = getCompiler(context, name);
+	const testConfig = context.getTestConfig();
+	if (typeof testConfig.afterExecute === "function") {
+		let options = compiler.getOptions();
+		if (Array.isArray(options) && options.length === 1) {
+			options = options[0];
+		}
+		testConfig.afterExecute(options);
 	}
 }
 

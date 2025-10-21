@@ -1,4 +1,4 @@
-import * as ns from /* webpackDefer: true */ "./deferred.js";
+import defer * as ns from "./deferred.js";
 import { data, setData } from "./side-effect-counter.js";
 
 if (data !== undefined)

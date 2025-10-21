@@ -135,6 +135,8 @@ impl JsPlugin {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
+    let need_module_defer =
+      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let mut sources: Vec<Cow<str>> = Vec::new();
 
     sources.push(
@@ -166,7 +168,11 @@ impl JsPlugin {
       sources.push("loaded: false,".into());
     }
 
-    sources.push("exports: {}".into());
+    if need_module_defer {
+      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+    } else {
+      sources.push("exports: {}".into());
+    }
     sources.push("});\n// Execute the module function".into());
 
     let module_execution = if runtime_requirements
@@ -192,10 +198,16 @@ impl JsPlugin {
       sources.push("try {\n".into());
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
+      if need_module_defer {
+        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+      }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
+      if need_module_defer {
+        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+      }
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
@@ -220,6 +232,8 @@ impl JsPlugin {
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
+    let need_module_defer =
+      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let use_require = require_function || intercept_module_execution || module_used;
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
@@ -240,6 +254,16 @@ impl JsPlugin {
 
     if use_require || module_cache {
       header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
+    }
+
+    if need_module_defer {
+      // in order to optimize of DeferredNamespaceObject, we remove all proxy handlers after the module initialize
+      // (see MakeDeferredNamespaceObjectRuntimeModule)
+      // This requires all deferred imports to a module can get the module export object before the module
+      // is evaluated.
+      header.push(
+        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
+      );
     }
 
     if use_require {

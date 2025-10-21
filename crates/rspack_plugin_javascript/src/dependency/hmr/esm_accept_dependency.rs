@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeCondition, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, ImportPhase, RuntimeCondition, SharedSourceMap, TemplateContext,
   TemplateReplaceSource, import_statement, runtime_condition_expression,
 };
 
@@ -76,15 +76,18 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 
     let mut content = String::default();
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
-      let dependency = module_graph.dependency_by_id(id);
-      let runtime_condition =
-        match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
-          Some(ref_module) => {
-            import_emitted_runtime::get_runtime(&module.identifier(), &ref_module.identifier())
-          }
-          None => RuntimeCondition::Boolean(false),
-        };
+      let dependency = module_graph
+        .dependency_by_id(id)
+        .expect("should have dependency");
+      let target_module = module_graph.get_module_by_dependency_id(dependency.id());
+      let runtime_condition = match target_module {
+        Some(target_module) => {
+          import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier())
+        }
+        None => RuntimeCondition::Boolean(false),
+      };
 
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         return;
@@ -99,33 +102,35 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         )
       };
 
-      let request = if let Some(dependency) = dependency.and_then(|d| d.as_module_dependency()) {
-        Some(dependency.request())
+      let module_dependency = dependency
+        .as_module_dependency()
+        .expect("should be module dependency");
+      let phase = ImportPhase::Evaluation;
+      let import_var = compilation.get_import_var(
+        module_identifier,
+        target_module,
+        module_dependency.user_request(),
+        phase,
+        *runtime,
+      );
+      let stmts = import_statement(
+        *module,
+        compilation,
+        runtime_requirements,
+        id,
+        &import_var,
+        module_dependency.request(),
+        phase,
+        true,
+      );
+      if condition == "true" {
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
       } else {
-        dependency
-          .and_then(|d| d.as_context_dependency())
-          .map(|d| d.request())
-      };
-      if let Some(request) = request {
-        let import_var = compilation.get_import_var(id, *runtime);
-        let stmts = import_statement(
-          *module,
-          compilation,
-          runtime_requirements,
-          id,
-          &import_var,
-          request,
-          true,
-        );
-        if condition == "true" {
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-        } else {
-          content.push_str(format!("if ({condition}) {{\n").as_str());
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-          content.push_str("\n}\n");
-        }
+        content.push_str(format!("if ({condition}) {{\n").as_str());
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
+        content.push_str("\n}\n");
       }
     });
 

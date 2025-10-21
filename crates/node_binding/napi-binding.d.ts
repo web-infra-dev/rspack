@@ -321,7 +321,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -2112,7 +2112,7 @@ inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
-mfAsyncStartup: boolean
+deferImport: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2349,6 +2349,7 @@ typeReexportsPresence?: string
  * @experimental
  */
 jsx?: boolean
+deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2425,7 +2426,6 @@ export interface RawLimitChunkCountPluginOptions {
 
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
-  asyncStartup?: boolean | undefined
 }
 
 export interface RawModuleFilenameTemplateFnCtx {
@@ -2453,6 +2453,7 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+  unsafeCache?: boolean | RegExp
 }
 
 export interface RawModuleRule {

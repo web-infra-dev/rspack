@@ -24,6 +24,7 @@ module.exports = {
 		    buildHttp: undefined,
 		    cache: false,
 		    css: undefined,
+		    deferImport: false,
 		    futureDefaults: false,
 		    incremental: Object {
 		      buildChunkGraph: false,
@@ -194,6 +195,7 @@ module.exports = {
 		      },
 		      javascript: Object {
 		        commonjs: true,
+		        deferImport: false,
 		        dynamicImportMode: lazy,
 		        dynamicImportPrefetch: false,
 		        dynamicImportPreload: false,
@@ -220,6 +222,7 @@ module.exports = {
 		      },
 		    },
 		    rules: Array [],
+		    unsafeCache: false,
 		  },
 		  name: undefined,
 		  node: Object {

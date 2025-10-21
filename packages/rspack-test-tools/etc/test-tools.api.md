@@ -196,14 +196,6 @@ export enum ECompilerType {
 }
 
 // @public (undocumented)
-export enum EDocumentType {
-    // (undocumented)
-    Fake = "fake",
-    // (undocumented)
-    JSDOM = "jsdom"
-}
-
-// @public (undocumented)
 export enum EEsmMode {
     // (undocumented)
     Evaluated = 1,
@@ -466,6 +458,8 @@ export interface ITestEnv {
 // @public (undocumented)
 export interface ITester {
     // (undocumented)
+    after(): Promise<void>;
+    // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
@@ -560,7 +554,7 @@ export interface ITestRunner {
 // @public (undocumented)
 export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends INodeRunnerOptions<T> {
     // (undocumented)
-    dom: EDocumentType;
+    location: string;
 }
 
 // @public (undocumented)
@@ -801,6 +795,8 @@ export class TestContext implements ITestContext {
 export class Tester implements ITester {
     constructor(config: ITesterConfig);
     // (undocumented)
+    after(): Promise<void>;
+    // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
     compile(): Promise<void>;
@@ -905,7 +901,7 @@ export type TStatsAPICaseConfig = {
 
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {
-    documentType?: EDocumentType;
+    location?: string;
     validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
     noTests?: boolean;
     writeStatsOuptut?: boolean;
@@ -961,14 +957,29 @@ export class WebpackModulePlaceholderPlugin {
 }
 
 // @public (undocumented)
-export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
+export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> extends NodeRunner<T> {
     constructor(_webOptions: IWebRunnerOptions<T>);
+    // (undocumented)
+    protected createBaseModuleScope(): IModuleScope;
+    // (undocumented)
+    protected createJSDOMRequirer(): TRunnerRequirer;
+    // (undocumented)
+    protected createResourceLoader(): {
+        fetch(url: string, _: {
+            element: HTMLScriptElement;
+        }): any;
+    };
+    // (undocumented)
+    protected createRunner(): void;
     // (undocumented)
     getGlobal(name: string): unknown;
     // (undocumented)
-    getRequire(): TRunnerRequirer;
-    // (undocumented)
-    protected originMethods: Partial<NodeRunner<T>>;
+    protected getModuleContent(file: TRunnerFile): [
+        {
+        exports: Record<string, unknown>;
+    },
+    string
+    ];
     // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)

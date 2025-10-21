@@ -1,4 +1,4 @@
-@import url(https://test.cases/path/../../../../serialCases/css/import/external.css);
+@import url(https://test.cases/root/serialCases/css/import/external.css);
 @import "style-imported.css";
 
 body {

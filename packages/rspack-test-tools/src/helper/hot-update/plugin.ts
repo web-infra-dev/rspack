@@ -57,7 +57,7 @@ export class HotUpdatePlugin {
 				);
 				// match command
 				if (command === "delete") {
-					await fs.unlink(filePath);
+					await fs.remove(filePath);
 					return;
 				}
 				if (command === "force_write") {

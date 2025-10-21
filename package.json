@@ -33,7 +33,7 @@
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
     "lint:rs": "cargo clippy --workspace --all-targets",
-    "lint:type": "rslint --config rslint.json --max-warnings=2456",
+    "lint:type": "rslint --config rslint.json --max-warnings=2278",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
@@ -83,7 +83,7 @@
     "rimraf": "^5.0.10",
     "ts-jest": "29.4.5",
     "typescript": "^5.9.3",
-    "webpack": "5.99.9",
+    "webpack": "5.102.1",
     "zx": "8.8.4"
   },
   "packageManager": "pnpm@10.18.3",
