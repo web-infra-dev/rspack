@@ -91,6 +91,8 @@ function assertWebpackConfig(config) {
 	filterObjectPaths(webpackBaseConfig, rspackSupportedConfig);
 	// PATCH DIFF
 	delete rspackBaseConfig.experiments.topLevelAwait;
+	delete rspackBaseConfig.experiments.deferImport;
+	delete webpackBaseConfig.experiments.topLevelAwait;
 	expect(rspackBaseConfig).toEqual(webpackBaseConfig);
 }
 

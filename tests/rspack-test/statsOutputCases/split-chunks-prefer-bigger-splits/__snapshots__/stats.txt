@@ -7,4 +7,3 @@ cacheable modules 138 bytes
   ./modules/a.js 22 bytes [built] [code generated]
   ./modules/b.js 22 bytes [built] [code generated]
   ./modules/c.js 22 bytes [built] [code generated]
-Rspack x.x.x compiled successfully in X s
