@@ -351,7 +351,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			it,
 			beforeEach,
 			afterEach,
-			jest
+			jest: global.jest || global.rstest,
+			rstest: global.rstest
 		};
 	}
 
