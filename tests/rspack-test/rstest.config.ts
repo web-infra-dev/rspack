@@ -35,7 +35,7 @@ export default defineConfig({
 		printBasicPrototype: true
 	},
 	pool: {
-		maxWorkers: 5,
+		maxWorkers: "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	},
 	env: {
