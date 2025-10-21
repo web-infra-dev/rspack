@@ -61,5 +61,6 @@ export default defineConfig({
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 	},
 	reporters: ["verbose"],
+	hideSkippedTests: true,
 });
 
