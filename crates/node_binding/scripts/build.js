@@ -44,6 +44,10 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
+		const use_build_std = values.profile === "release"
+				|| values.profile === "release-debug"
+				|| values.profile === "release-wasi"
+				|| values.profile === "profiling";
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -81,12 +85,7 @@ async function build() {
 			args.push("--features " + features.join(","));
 		}
 
-		if (positionals.length > 0
-			|| values.profile === "release"
-			|| values.profile === "release-debug"
-			|| values.profile === "release-wasi"
-			|| values.profile === "profiling"
-		) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
 
@@ -96,11 +95,7 @@ async function build() {
 				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
 			}
 
-			if (values.profile === "release"
-				|| values.profile === "release-debug"
-				|| values.profile === "release-wasi"
-				|| values.profile === "profiling"
-			) {
+			if (use_build_std) {
 				// allows to optimize std with current compile arguments
 				// and avoids std code generate unwind table to save size.
 				args.push("-Zbuild-std=panic_abort,std");
