@@ -3802,6 +3802,7 @@ impl ExperimentsBuilder {
       type_reexports_presence: false,
       lazy_barrel: false,
       defer_import: false,
+      mf_async_startup: false,
     })
   }
 }
