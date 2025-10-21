@@ -11,7 +11,7 @@ import type {
 	Stats
 } from "@rspack/core";
 import cac, { type CAC } from "cac";
-import { createColors, isColorSupported } from "colorette";
+import { createColors, isColorSupported } from "picocolors";
 import { BuildCommand } from "./commands/build";
 import { PreviewCommand } from "./commands/preview";
 import { ServeCommand } from "./commands/serve";
@@ -82,7 +82,7 @@ export class RspackCLI {
 	createColors(useColor?: boolean): RspackCLIColors {
 		const shouldUseColor = useColor || isColorSupported;
 		return {
-			...createColors({ useColor: shouldUseColor }),
+			...createColors(shouldUseColor),
 			isColorSupported: shouldUseColor
 		};
 	}
