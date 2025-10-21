@@ -5,7 +5,7 @@ export const isEsmFile = (filePath: string) => {
 	if (/\.(mjs|mts)$/.test(filePath)) {
 		return true;
 	}
-	if (/\.(cjs|cts)/.test(filePath)) {
+	if (/\.(cjs|cts)$/.test(filePath)) {
 		return false;
 	}
 	// package.json should be find from configPath root
