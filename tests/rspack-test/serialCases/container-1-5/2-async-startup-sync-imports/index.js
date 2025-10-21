@@ -4,8 +4,9 @@ const path = require("path");
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		const rendered = App();
-		// CJS build (main.js) gets react 3.2.1 from previous test (1-container-full)
-		// ESM build (module/main.mjs) starts fresh with react 2.1.0
+		// Serial tests run CJS first, then ESM in separate process
+		// CJS: gets react 3.2.1 from previous test (1-container-full)
+		// ESM: runs in separate jest worker, starts fresh with react 2.1.0
 		const isESM = __dirname.endsWith("module");
 		const initialVersion = isESM ? "2.1.0" : "3.2.1";
 		const upgradedVersion = isESM ? "3.2.1" : "4.3.2";

@@ -1,7 +1,10 @@
 const path = require("path");
 const webpack = require("@rspack/core");
+const ignoreExternalWarning = warning =>
+	/Can't resolve 'external(-named)?'/.test(warning.message || "");
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
-module.exports = (env, { testPath }) => [
+module.exports = (env, { testPath }) => {
+	const configs = [
 	{
 		output: {
 			uniqueName: "esm",
@@ -520,4 +523,18 @@ module.exports = (env, { testPath }) => [
 			}
 		}
 	}
-];
+	];
+	return configs.map(config => {
+		const current = config.ignoreWarnings;
+		const ignoreWarnings = Array.isArray(current)
+			? [...current]
+			: current
+				? [current]
+				: [];
+		ignoreWarnings.push(ignoreExternalWarning);
+		return {
+			...config,
+			ignoreWarnings
+		};
+	});
+};
