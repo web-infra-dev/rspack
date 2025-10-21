@@ -426,7 +426,13 @@ export const RuntimeGlobals = {
 	 * hasAwaitAfterDependencies?: boolean
 	 * ) =\> void
 	 */
-	asyncModule: "__webpack_require__.a"
+	asyncModule: "__webpack_require__.a",
+
+	asyncModuleExportSymbol: "__webpack_require__.aE",
+
+	makeDeferredNamespaceObject: "__webpack_require__.z",
+
+	makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS"
 } as const;
 
 for (const entry of Object.entries(RuntimeGlobals)) {

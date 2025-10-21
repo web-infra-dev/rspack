@@ -1139,6 +1139,9 @@ export type JavascriptParserOptions = {
 
 	/** Whether to enable JSX parsing */
 	jsx?: boolean;
+
+	/** Whether to enable defer import */
+	deferImport?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -1382,6 +1385,11 @@ export type ModuleOptions = {
 
 	/** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
 	noParse?: NoParseOption;
+
+	/**
+	 * Cache the resolving of module requests.
+	 */
+	unsafeCache?: boolean | RegExp;
 };
 
 //#endregion
@@ -2797,6 +2805,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	lazyBarrel?: boolean;
+	/**
+	 * Enable defer import feature
+	 * @default false
+	 */
+	deferImport?: boolean;
 };
 //#endregion
 
@@ -2843,7 +2856,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends DevServerOptions {}
+export type DevServer = DevServerOptions;
 
 export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion

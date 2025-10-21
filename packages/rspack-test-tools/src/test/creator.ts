@@ -165,10 +165,11 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						: "should pass";
 			it(
 				description,
-				cb => {
-					stepSignal.then((e: Error | void) => {
-						cb(e);
-					});
+				async () => {
+					const e = await stepSignal;
+					if (e) {
+						throw e;
+					}
 				},
 				options.timeout || 300000
 			);
@@ -180,6 +181,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						await tester.compile();
 						await tester.check(env);
 						await env.run();
+						await tester.after();
 						const context = tester.getContext();
 						if (!tester.next() && context.hasError()) {
 							const errors = context
@@ -308,10 +310,11 @@ export class BasicCaseCreator<T extends ECompilerType> {
 					}
 					try {
 						await runFn(fn);
-					} catch (e) {
-						throw new Error(
-							`Error: ${description} failed\n${(e as Error).stack}`
-						);
+					} catch (err) {
+						const e = err as Error;
+						const message = `Error: ${description} failed:\n${e.message}`;
+						e.message = message;
+						throw e;
 					}
 					for (const after of afterTasks) {
 						await runFn(after);
@@ -332,7 +335,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect(typeof fn === "function");
 				afterTasks.push(fn);
 			},
-			jest
+			jest: global.jest || global.rstest,
+			rstest: global.rstest
 		};
 	}
 

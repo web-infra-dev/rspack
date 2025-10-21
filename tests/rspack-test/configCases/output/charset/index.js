@@ -11,6 +11,6 @@ it("should not add charset attribute", () => {
 
 	expect(script._type).toBe("script");
 	expect(script.src).toBe("https://example.com/public/path/chunk1.js");
-	expect(script.getAttribute("charset")).toBeUndefined();
+	expect(script.getAttribute("charset")).toBeNull();
 	return promise;
 });

@@ -340,7 +340,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			this.requireCache[file.path] = m;
 
 			if (!this._options.runInNewContext) {
-				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
+				file.content = `Object.assign(global, _globalAssign);${file.content}`;
 			}
 
 			const currentModuleScope = this.createModuleScope(
@@ -410,6 +410,13 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				esmContext.__STATS__ = this._options.stats?.();
 			}
 
+			if (file.content.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					esmContext.__STATS_I__ = statsIndex;
+				}
+			}
+
 			let esm = esmCache.get(file.path);
 			if (!esm) {
 				esm = new SourceTextModule(file.content, {
@@ -461,7 +468,6 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 					});
 				}
 
-				if ((esm as any).instantiate) (esm as any).instantiate();
 				await esm.evaluate();
 				if (context.esmMode === EEsmMode.Evaluated) {
 					return esm;

@@ -1181,6 +1181,8 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // @internal
+    unsafeFastDrop: boolean;
     // (undocumented)
     watch(watchOptions: Watchpack.WatchOptions, handler: liteTapable.Callback<Error, Stats>): Watching;
     // (undocumented)
@@ -1754,8 +1756,7 @@ type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMe
 };
 
 // @public
-export interface DevServer extends DevServerOptions {
-}
+export type DevServer = DevServerOptions;
 
 // @public (undocumented)
 export type DevServerMiddleware<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = MiddlewareObject<RequestInternal, ResponseInternal> | MiddlewareHandler<RequestInternal, ResponseInternal>;
@@ -2396,6 +2397,7 @@ export type Experiments = {
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -2454,6 +2456,8 @@ export interface ExperimentsNormalized {
     cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
+    // (undocumented)
+    deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
@@ -3410,6 +3414,7 @@ export type JavascriptParserOptions = {
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -4765,6 +4770,7 @@ export type ModuleOptions = {
     parser?: ParserOptionsByModuleType;
     generator?: GeneratorOptionsByModuleType;
     noParse?: NoParseOption;
+    unsafeCache?: boolean | RegExp;
 };
 
 // @public (undocumented)
@@ -4779,6 +4785,8 @@ export interface ModuleOptionsNormalized {
     parser: ParserOptionsByModuleType;
     // (undocumented)
     rules: RuleSetRules;
+    // (undocumented)
+    unsafeCache?: boolean | RegExp;
 }
 
 // @public (undocumented)
@@ -4829,6 +4837,8 @@ export class MultiCompiler {
     running: boolean;
     // (undocumented)
     setDependencies(compiler: Compiler, dependencies: string[]): void;
+    // (undocumented)
+    set unsafeFastDrop(value: boolean);
     // (undocumented)
     validateDependencies(callback: liteTapable.Callback<Error, MultiStats>): boolean;
     // (undocumented)
@@ -6937,6 +6947,9 @@ export const RuntimeGlobals: {
     readonly baseURI: "__webpack_require__.b";
     readonly relativeUrl: "__webpack_require__.U";
     readonly asyncModule: "__webpack_require__.a";
+    readonly asyncModuleExportSymbol: "__webpack_require__.aE";
+    readonly makeDeferredNamespaceObject: "__webpack_require__.z";
+    readonly makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS";
 };
 
 // @public (undocumented)

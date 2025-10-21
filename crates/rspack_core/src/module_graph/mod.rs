@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, DependencyType, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 mod module;
 pub use module::*;
@@ -23,8 +23,7 @@ use crate::{
 };
 
 // TODO Here request can be used Atom
-pub type ImportVarMap =
-  HashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
 
 pub type BuildDependency = (
   DependencyId,
@@ -196,26 +195,54 @@ impl<'a> ModuleGraph<'a> {
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
+  pub fn get_outcoming_connections_by_module(
+    &self,
+    module_id: &ModuleIdentifier,
+  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+    let connections = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have mgm")
+      .outgoing_connections();
+
+    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    for dep_id in connections {
+      let con = self
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      match map.entry(*con.module_identifier()) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().push(con);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(vec![con]);
+        }
+      }
+    }
+    map
+  }
+
+  // #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
+      HashMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
       match map.entry(con.original_module_identifier) {
         Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con.clone());
+          occ.get_mut().push(con);
         }
         Entry::Vacant(vac) => {
-          vac.insert(vec![con.clone()]);
+          vac.insert(vec![con]);
         }
       }
     }
@@ -926,6 +953,28 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
     compilation.async_modules_artifact.contains(module_id)
+  }
+
+  pub fn is_deferred(&self, module_id: &ModuleIdentifier) -> bool {
+    let module = self
+      .module_by_identifier(module_id)
+      .expect("should have module");
+    if module.build_meta().has_top_level_await {
+      return false;
+    }
+    for connection in self.get_incoming_connections(module_id) {
+      let dep = self
+        .dependency_by_id(&connection.dependency_id)
+        .expect("should have dependency");
+      if matches!(
+        dep.dependency_type(),
+        DependencyType::EsmImport | DependencyType::EsmExportImport
+      ) && dep.get_phase().is_defer()
+      {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn set_async(

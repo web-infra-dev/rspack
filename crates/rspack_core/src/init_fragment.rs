@@ -39,6 +39,7 @@ pub enum InitFragmentKey {
   ESMCompatibility,
   ModuleDecorator(String /* module_id */),
   ESMFakeNamespaceObjectFragment(String),
+  ESMDeferImportNamespaceObjectFragment(String),
   Const(String),
 }
 
@@ -134,6 +135,7 @@ impl InitFragmentKey {
         res
       }
       InitFragmentKey::ESMFakeNamespaceObjectFragment(_)
+      | InitFragmentKey::ESMDeferImportNamespaceObjectFragment(_)
       | InitFragmentKey::ESMExportStar(_)
       | InitFragmentKey::ModuleExternal(_)
       | InitFragmentKey::ModuleDecorator(_)

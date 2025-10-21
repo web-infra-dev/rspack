@@ -64,6 +64,11 @@ export class Tester implements ITester {
 			env,
 			this.context.hasError() ? ["check"] : ["run", "check"]
 		);
+	}
+
+	async after() {
+		const currentStep = this.steps[this.step];
+		if (!currentStep) return;
 		await this.runStepMethods(currentStep, ["after"], true);
 	}
 

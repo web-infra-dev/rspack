@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -1480,6 +1481,7 @@ CompilerOptions {
                             jsx: Some(
                                 false,
                             ),
+                            defer_import: None,
                         },
                     ),
                 },
@@ -1499,6 +1501,7 @@ CompilerOptions {
             ),
         ),
         no_parse: None,
+        ..
     },
     stats: StatsOptions {
         colors: true,
@@ -1520,6 +1523,7 @@ CompilerOptions {
         inline_enum: false,
         type_reexports_presence: false,
         lazy_barrel: false,
+        defer_import: false,
     },
     node: Some(
         NodeOption {

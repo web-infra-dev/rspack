@@ -7,17 +7,22 @@ import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import copyDiff from "../helper/legacy/copyDiff";
 import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type IModuleScope,
-	type ITestContext,
-	type ITestEnv,
-	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
+import type {
+	ECompilerType,
+	IModuleScope,
+	ITestContext,
+	ITestEnv,
+	ITestRunner,
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
-import { compiler, findMultiCompilerBundle, getCompiler, run } from "./common";
+import {
+	afterExecute,
+	compiler,
+	findMultiCompilerBundle,
+	getCompiler,
+	run
+} from "./common";
 
 type TWatchContext = {
 	currentTriggerFilename: string | null;
@@ -243,6 +248,9 @@ export function createWatchInitialProcessor(
 					path.join(context.getDist(), `stats.${watchContext.step}.json`)
 				);
 			}
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		}
 	};
 }
@@ -472,10 +480,7 @@ export function createWatchRunner<
 			compilerOptions.target === "webworker";
 
 	const testConfig = context.getTestConfig();
-	const documentType: EDocumentType =
-		context.getValue(name, "documentType") || EDocumentType.JSDOM;
 	return new WebRunner({
-		dom: documentType,
 		env,
 		stats: cachedWatchStats(context, name),
 		name: name,
@@ -498,6 +503,7 @@ export function createWatchRunner<
 		},
 		source: context.getSource(),
 		dist: context.getDist(),
-		compilerOptions
+		compilerOptions,
+		location: testConfig.location || "https://test.cases/path/index.html"
 	});
 }

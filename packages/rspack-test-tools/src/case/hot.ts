@@ -6,19 +6,26 @@ import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import { LazyCompilationTestPlugin } from "../plugin";
 import { NodeRunner, WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type IModuleScope,
-	type ITestContext,
-	type ITestEnv,
-	type ITestProcessor,
-	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStats,
-	type TCompilerStatsCompilation
+import type {
+	ECompilerType,
+	IModuleScope,
+	ITestContext,
+	ITestEnv,
+	ITestProcessor,
+	ITestRunner,
+	TCompilerOptions,
+	TCompilerStats,
+	TCompilerStatsCompilation
 } from "../type";
-import { build, check, compiler, config, getCompiler, run } from "./common";
+import {
+	afterExecute,
+	build,
+	check,
+	compiler,
+	config,
+	getCompiler,
+	run
+} from "./common";
 import { cachedStats, type THotStepRuntimeData } from "./runner";
 
 type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
@@ -71,6 +78,9 @@ export function createHotProcessor(
 		},
 		check: async (env: ITestEnv, context: ITestContext) => {
 			await check(env, context, name);
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		},
 		afterAll: async (context: ITestContext) => {
 			if (context.getTestConfig().checkSteps === false) {
@@ -315,7 +325,6 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		name: name,
 		runInNewContext: false,
 		testConfig: {
-			documentType: testConfig.documentType || EDocumentType.JSDOM,
 			...testConfig,
 			moduleScope(
 				ms: IModuleScope,
@@ -341,7 +350,7 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		compilerOptions.target === "webworker"
 	) {
 		runner = new WebRunner({
-			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+			location: testConfig.location || "https://test.cases/path/index.html",
 			...commonOptions
 		});
 	} else {

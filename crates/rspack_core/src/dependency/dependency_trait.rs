@@ -13,8 +13,8 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ForwardId,
-  ImportAttributes, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec,
-  create_exports_object_referenced,
+  ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  RuntimeSpec, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -53,6 +53,10 @@ pub trait Dependency:
   // get issuer layer
   fn get_layer(&self) -> Option<&ModuleLayer> {
     None
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    ImportPhase::Evaluation
   }
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {

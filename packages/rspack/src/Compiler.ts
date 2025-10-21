@@ -174,6 +174,14 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	options: RspackOptionsNormalized;
+	/**
+	 * Whether to skip dropping Rust compiler instance to improve performance.
+	 * This is an internal option api and could be removed or changed at any time.
+	 * @internal
+	 * true: Skip dropping Rust compiler instance.
+	 * false: Drop Rust compiler instance when Compiler is garbage collected.
+	 */
+	unsafeFastDrop: boolean = false;
 
 	/**
 	 * Note: This is not a webpack public API, maybe removed in future.
@@ -729,16 +737,12 @@ class Compiler {
 			});
 			return;
 		}
+
 		this.hooks.shutdown.callAsync(err => {
 			if (err) return callback(err);
 			this.cache.shutdown(() => {
-				this.#getInstance((error, instance) => {
-					if (error) {
-						return callback(error);
-					}
-					instance!.close();
-					callback();
-				});
+				this.#instance?.close();
+				callback();
 			});
 		});
 	}
@@ -881,7 +885,8 @@ class Compiler {
 						)
 					: undefined,
 				inputFileSystem,
-				ResolverFactory.__to_binding(this.resolverFactory)
+				ResolverFactory.__to_binding(this.resolverFactory),
+				this.unsafeFastDrop
 			);
 
 			callback(null, this.#instance);
