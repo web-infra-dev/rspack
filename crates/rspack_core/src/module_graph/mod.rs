@@ -773,9 +773,10 @@ impl<'a> ModuleGraph<'a> {
     }
 
     // set to origin module outgoing connection
-    if let Some(identifier) = origin_module_id
-      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
-    {
+    if let Some(identifier) = origin_module_id {
+      let original_mgm = self
+        .module_graph_module_by_identifier_mut(&identifier)
+        .expect("should mgm exist");
       original_mgm.add_outgoing_connection(dependency_id);
     };
   }

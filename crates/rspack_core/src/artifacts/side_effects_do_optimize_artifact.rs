@@ -16,4 +16,4 @@ pub struct SideEffectsDoOptimizeMoveTarget {
   pub target_export: Option<Vec<Atom>>,
 }
 
-pub type SideEffectsOptimizeArtifact = UkeyMap<DependencyId, Option<SideEffectsDoOptimize>>;
+pub type SideEffectsOptimizeArtifact = UkeyMap<DependencyId, SideEffectsDoOptimize>;
