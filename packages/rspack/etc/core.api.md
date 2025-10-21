@@ -2239,8 +2239,15 @@ interface Es6Config extends BaseModuleConfig {
 
 // @public (undocumented)
 class EsmLibraryPlugin {
+    constructor(options?: {
+        preserveModules?: string;
+    });
     // (undocumented)
     apply(compiler: Compiler): void;
+    // (undocumented)
+    options?: {
+        preserveModules?: string;
+    };
     // (undocumented)
     static PLUGIN_NAME: string;
 }

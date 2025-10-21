@@ -1,36 +1,58 @@
-```mjs title=lib.mjs
-import "./lib_js.mjs";
+```mjs title=demo/index.mjs
+import { __webpack_require__ } from "../runtime.mjs";
+import "../main.mjs";
 
+// ./src/demo/index.js
+__webpack_require__("./other2/index.js");
+const demo = () => 'demo'
+;
+/* ESM default export */ const src_demo = (demo);
+
+export default src_demo;
 
 ```
 
-```mjs title=lib_js.mjs
+```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-__webpack_require__.add({
-"./lib.js": 
-/*!****************!*\
-  !*** ./lib.js ***!
-  \****************/
-(function () {
-// side effect
-console.log.bind(console)
+import "./main.mjs";
+import { default as src_demo } from "./demo/index.mjs";
+
+// ./src/index.js
+__webpack_require__("./other1/index.js");
 
 
-}),
-});
-const lib = __webpack_require__("./lib.js");
+
+it('should preserve modules', () => {
+  expect(src_demo()).toBe('demo')
+})
 
 
 ```
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./lib_js.mjs";
+__webpack_require__.add({
+"./other1/index.js": 
+/*!*************************!*\
+  !*** ./other1/index.js ***!
+  \*************************/
+(function () {
+// other1
+console.log.bind(console)
 
-// ./index.js
-__webpack_require__("./lib.js");
+
+}),
+"./other2/index.js": 
+/*!*************************!*\
+  !*** ./other2/index.js ***!
+  \*************************/
+(function () {
+// other2
+console.log.bind(console)
 
 
+}),
+});
 
 ```
 

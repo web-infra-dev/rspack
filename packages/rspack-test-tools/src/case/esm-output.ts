@@ -35,7 +35,28 @@ const creator = new BasicCaseCreator({
 					name,
 					["rspack.config.cjs", "rspack.config.js", "webpack.config.js"],
 					defaultOptions,
-					() => {}
+					(_index, context, options) => {
+						const testConfig = context.getTestConfig();
+						if (testConfig.esmLibPluginOptions) {
+							let target;
+							const otherPlugins = options.plugins?.filter(plugin => {
+								const isTarget =
+									plugin instanceof rspack.experiments.EsmLibraryPlugin;
+								if (isTarget) {
+									target = plugin;
+								}
+								return !isTarget;
+							})!;
+
+							options.plugins = [
+								...otherPlugins,
+								new rspack.experiments.EsmLibraryPlugin({
+									...target!.options,
+									...testConfig.esmLibPluginOptions
+								})
+							];
+						}
+					}
 				);
 			},
 			compiler: async (context: ITestContext) => {
@@ -46,17 +67,17 @@ const creator = new BasicCaseCreator({
 			},
 			run: async (env: ITestEnv, context: ITestContext) => {
 				await run(env, context, name, (context: ITestContext) =>
-					findMultiCompilerBundle(
-						context,
-						name,
-						(_index, _context, options) => {
-							if (options.output?.filename === "[name].mjs") {
-								return ["main.mjs"];
-							} else {
-								return [options.output!.filename as string];
-							}
+					findMultiCompilerBundle(context, name, (_index, context, options) => {
+						const testConfig = context.getTestConfig();
+						if (typeof testConfig.findBundle === "function") {
+							return testConfig.findBundle(_index, options);
 						}
-					)
+						if (options.output?.filename === "[name].mjs") {
+							return ["main.mjs"];
+						} else {
+							return [options.output!.filename as string];
+						}
+					})
 				);
 			},
 			check: async (env: ITestEnv, context: ITestContext) => {
