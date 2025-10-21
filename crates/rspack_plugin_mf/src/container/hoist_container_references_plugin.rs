@@ -12,8 +12,6 @@
 //! The plugin coordinates with FederationModulesPlugin through a hook-based system
 //! to collect and manage federation-specific dependencies across the compilation.
 
-#![allow(dead_code)]
-
 use std::{
   collections::VecDeque,
   sync::{Arc, Mutex},

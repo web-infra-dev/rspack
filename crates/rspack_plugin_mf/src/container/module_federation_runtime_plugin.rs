@@ -19,6 +19,7 @@ use super::{
   federation_data_runtime_module::FederationDataRuntimeModule,
   federation_modules_plugin::FederationModulesPlugin,
   federation_runtime_dependency::FederationRuntimeDependency,
+  hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
 
 #[derive(Debug, Default, Deserialize, Clone)]
@@ -122,8 +123,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
 
     // Apply supporting plugins
     EmbedFederationRuntimePlugin::default().apply(ctx)?;
-    // Temporarily disable hoisting while worker runtime support is incomplete
-    // HoistContainerReferencesPlugin::default().apply(ctx)?;
+    HoistContainerReferencesPlugin::default().apply(ctx)?;
 
     Ok(())
   }
