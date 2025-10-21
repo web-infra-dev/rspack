@@ -14,7 +14,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::json_stringify;
 
-use super::{generate_entry_startup, update_hash_for_entry_startup};
+use super::{chunk_needs_mf_async_startup, generate_entry_startup, update_hash_for_entry_startup};
 
 const PLUGIN_NAME: &str = "rspack.ArrayPushCallbackChunkFormatPlugin";
 
@@ -169,7 +169,7 @@ async fn render_chunk(
           .await?;
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
-        if compilation.options.experiments.mf_async_startup {
+        if chunk_needs_mf_async_startup(compilation, chunk_ukey) {
           let mut async_wrapper = ConcatSource::default();
           async_wrapper.add(RawStringSource::from_static(
             "return Promise.resolve().then(function() {\n",
