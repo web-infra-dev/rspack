@@ -9,7 +9,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@babel/preset-react": "^7.27.1",
-    "@playwright/test": "1.56.0",
+    "@playwright/test": "1.56.1",
     "core-js": "3.45.1",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",
