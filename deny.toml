@@ -242,7 +242,7 @@ skip = [
     { crate = "windows_x86_64_msvc", reason = "external dependency"},
     { crate = "windows-sys", reason = "external dependency"},
     { crate = "bitflags", reason = "external dependency"},
-    
+    { crate = "foldhash", reason = "external dependency" },
     { crate = "wasmparser", reason = "external dependency"},
     { crate = "windows_i686_gnullvm", reason = "external dependency"},
 
