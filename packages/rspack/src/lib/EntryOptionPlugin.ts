@@ -7,9 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
-
 import type { Compiler, EntryDescriptionNormalized, EntryNormalized } from "..";
 import type { EntryOptions } from "../builtin-plugin";
 import { DynamicEntryPlugin, EntryPlugin } from "../builtin-plugin";
@@ -47,10 +44,13 @@ export class EntryOptionPlugin {
 					name,
 					desc
 				);
-				assert(
-					desc.import !== undefined,
-					"desc.import should not be `undefined` once `EntryOptionPlugin.applyEntryOption` is called"
-				);
+
+				if (desc.import === undefined) {
+					throw new Error(
+						"desc.import should not be `undefined` once `EntryOptionPlugin.applyEntryOption` is called"
+					);
+				}
+
 				for (const entry of desc.import) {
 					new EntryPlugin(context, entry, options).apply(compiler);
 				}
