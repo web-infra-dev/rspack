@@ -340,7 +340,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			this.requireCache[file.path] = m;
 
 			if (!this._options.runInNewContext) {
-				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
+				file.content = `Object.assign(global, _globalAssign);${file.content}`;
 			}
 
 			const currentModuleScope = this.createModuleScope(
