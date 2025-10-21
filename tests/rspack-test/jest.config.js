@@ -57,7 +57,7 @@ const config = {
 		"<rootDir>/legacy-test/*.test.js"
 	] : [
 		"<rootDir>/legacy-test/*.test.js",
-		'<rootDir>/Cache.test.js',
+		"<rootDir>/Cache.test.js",
 		"<rootDir>/Incremental-async-node.test.js",
 		"<rootDir>/Incremental-node.test.js",
 		"<rootDir>/Incremental-watch-webpack.test.js",
