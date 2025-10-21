@@ -1,6 +1,5 @@
-use std::{fmt::format, hash::Hash};
+use std::hash::Hash;
 
-use itertools::enumerate;
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
@@ -314,7 +313,7 @@ async fn render_startup(
       )));
     }
 
-    if dependent_load.source().len() > 0 {
+    if !dependent_load.source().is_empty() {
       let mut sources = ConcatSource::default();
       sources.add(dependent_load);
       sources.add(render_source.source.clone());
