@@ -39,6 +39,7 @@ pub struct HoistContainerReferencesPlugin {
   federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
+#[allow(dead_code)]
 struct ContainerEntryDepCollector {
   set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
@@ -57,6 +58,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
   }
 }
 
+#[allow(dead_code)]
 struct FederationRuntimeDepCollector {
   set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
@@ -75,6 +77,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
   }
 }
 
+#[allow(dead_code)]
 struct RemoteDepCollector {
   set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
@@ -100,6 +103,7 @@ impl super::federation_modules_plugin::AddRemoteDependencyHook for RemoteDepColl
   }
 }
 
+#[allow(dead_code)]
 #[plugin_hook(CompilerCompilation for HoistContainerReferencesPlugin)]
 async fn compilation(
   &self,
@@ -135,6 +139,7 @@ async fn compilation(
   Ok(())
 }
 
+#[allow(dead_code)]
 #[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let debug_hoist = std::env::var("RSPACK_DEBUG_HOIST").is_ok();
@@ -233,7 +238,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .chunk_graph
       .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
     {
-      if let Some(runtime_chunk) = runtime_chunk_map.get(&runtime_spec).copied() {
+      if let Some(runtime_chunk) = runtime_chunk_map.get(runtime_spec).copied() {
         connected.insert(runtime_chunk);
       } else {
         for runtime_key in runtime_spec.iter() {
