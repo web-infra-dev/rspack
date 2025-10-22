@@ -2,18 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
+import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import asModule from "../../helper/legacy/asModule";
 import createFakeWorker from "../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import {
-	type ECompilerType,
 	EEsmMode,
 	type IGlobalContext,
 	type IModuleScope,
 	type ITestEnv,
 	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation,
 	type TModuleObject,
 	type TRunnerFile,
 	type TRunnerRequirer,
@@ -48,26 +46,24 @@ const getSubPath = (p: string) => {
 
 const cached = new Map<string, TRunnerFile>();
 
-export interface INodeRunnerOptions<T extends ECompilerType> {
+export interface INodeRunnerOptions {
 	env: ITestEnv;
-	stats?: () => TCompilerStatsCompilation<T>;
+	stats?: () => StatsCompilation;
 	name: string;
 	runInNewContext?: boolean;
-	testConfig: TTestConfig<T>;
+	testConfig: TTestConfig;
 	source: string;
 	dist: string;
-	compilerOptions: TCompilerOptions<T>;
+	compilerOptions: RspackOptions;
 	cachable?: boolean;
 }
-export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
-	implements ITestRunner
-{
+export class NodeRunner implements ITestRunner {
 	protected requireCache = Object.create(null);
 
 	protected globalContext: IGlobalContext | null = null;
 	protected baseModuleScope: IModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
-	constructor(protected _options: INodeRunnerOptions<T>) {}
+	constructor(protected _options: INodeRunnerOptions) {}
 
 	run(file: string): Promise<unknown> {
 		if (!this.globalContext) {
