@@ -83,8 +83,10 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 		}
 		this.createRunner();
 		const res = this.getRequire()(
-			this._options.dist,
-			file.startsWith("./") || file.startsWith("https://test.cases/")
+			path.isAbsolute(file) ? path.dirname(file) : this._options.dist,
+			file.startsWith("./") ||
+				file.startsWith("https://test.cases/") ||
+				path.isAbsolute(file)
 				? file
 				: `./${file}`
 		);

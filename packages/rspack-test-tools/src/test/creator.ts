@@ -364,12 +364,10 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	}
 
 	protected skip(name: string, reason: string | boolean) {
-		describe.skip(name, () => {
-			it(
-				typeof reason === "string" ? `filtered by ${reason}` : "filtered",
-				() => {}
-			);
-		});
+		it(
+			typeof reason === "string" ? `filtered by ${reason}` : "filtered",
+			() => {}
+		);
 	}
 
 	protected readTestConfig(src: string): TTestConfig<T> {
