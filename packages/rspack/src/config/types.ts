@@ -1945,7 +1945,7 @@ export type StatsOptions = {
 	 * Enables or disables the display of children modules.
 	 * @default true
 	 */
-	children?: boolean;
+	children?: boolean | StatsOptions | StatsPresets | StatsValue[];
 	/**
 	 * Enables or disables the display of used exports.
 	 * @default false

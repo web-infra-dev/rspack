@@ -7451,7 +7451,7 @@ export type StatsOptions = {
     loggingDebug?: boolean | FilterTypes;
     loggingTrace?: boolean;
     runtimeModules?: boolean;
-    children?: boolean;
+    children?: boolean | StatsOptions | StatsPresets | StatsValue[];
     usedExports?: boolean;
     providedExports?: boolean;
     optimizationBailout?: boolean;
