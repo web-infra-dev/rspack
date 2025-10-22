@@ -1,20 +1,20 @@
 let globalId = 0;
 
-const buildModule = jest.fn();
-const succeedModule = jest.fn();
-const finishModules = jest.fn();
-const optimizeModules = jest.fn();
-const afterOptimizeModules = jest.fn();
-const optimizeTree = jest.fn();
-const optimizeChunkModules = jest.fn();
-const additionalTreeRuntimeRequirements = jest.fn();
-const runtimeModule = jest.fn();
-const chunkHash = jest.fn();
-const chunkAsset = jest.fn();
-const processAssets = jest.fn();
-const afterProcessAssets = jest.fn();
-const seal = jest.fn();
-const afterSeal = jest.fn();
+const buildModule = rstest.fn();
+const succeedModule = rstest.fn();
+const finishModules = rstest.fn();
+const optimizeModules = rstest.fn();
+const afterOptimizeModules = rstest.fn();
+const optimizeTree = rstest.fn();
+const optimizeChunkModules = rstest.fn();
+const additionalTreeRuntimeRequirements = rstest.fn();
+const runtimeModule = rstest.fn();
+const chunkHash = rstest.fn();
+const chunkAsset = rstest.fn();
+const processAssets = rstest.fn();
+const afterProcessAssets = rstest.fn();
+const seal = rstest.fn();
+const afterSeal = rstest.fn();
 
 class MyPlugin {
     apply(compiler) {

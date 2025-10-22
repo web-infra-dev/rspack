@@ -8,7 +8,6 @@ export type { TDefaultsCaseConfig } from "./defaults";
 export { createDefaultsCase, getRspackDefaultConfig } from "./defaults";
 export type { TDiagnosticOptions } from "./diagnostic";
 export { createDiagnosticCase } from "./diagnostic";
-export { createDiffCase } from "./diff";
 export type { TErrorCaseConfig } from "./error";
 export { createErrorCase } from "./error";
 export { createEsmOutputCase } from "./esm-output";

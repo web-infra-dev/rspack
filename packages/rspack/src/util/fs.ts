@@ -77,6 +77,36 @@ interface IDirent {
 	name: string | Buffer;
 }
 
+export interface StreamOptions {
+	flags?: string;
+	encoding?: NodeJS.BufferEncoding;
+	fd?: any;
+	mode?: number;
+	autoClose?: boolean;
+	emitClose?: boolean;
+	start?: number;
+	signal?: null | AbortSignal;
+}
+
+export interface FSImplementation {
+	open?: (...args: any[]) => any;
+	close?: (...args: any[]) => any;
+}
+
+export type CreateReadStreamFSImplementation = FSImplementation & {
+	read: (...args: any[]) => any;
+};
+
+export type ReadStreamOptions = StreamOptions & {
+	fs?: null | CreateReadStreamFSImplementation;
+	end?: number;
+};
+
+export type CreateReadStream = (
+	path: PathLike,
+	options?: NodeJS.BufferEncoding | ReadStreamOptions
+) => NodeJS.ReadableStream;
+
 export interface OutputFileSystem {
 	writeFile: (
 		arg0: string | number,
@@ -122,6 +152,7 @@ export interface OutputFileSystem {
 	join?: (arg0: string, arg1: string) => string;
 	relative?: (arg0: string, arg1: string) => string;
 	dirname?: (arg0: string) => string;
+	createReadStream?: CreateReadStream;
 }
 
 export type JsonPrimitive = string | number | boolean | null;

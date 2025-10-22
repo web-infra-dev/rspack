@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-wasm32-wasi",
-  "version": "1.6.0-beta.0",
+  "version": "1.6.0-beta.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.wasi.cjs",
@@ -14,7 +14,9 @@
   "publishConfig": {
     "access": "public",
     "provenance": true,
-    "cpu": ["wasm32"]
+    "cpu": [
+      "wasm32"
+    ]
   },
   "files": [
     "rspack.wasm32-wasi.wasm",
