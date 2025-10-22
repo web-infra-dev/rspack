@@ -3,13 +3,12 @@ const path = require("path");
 
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
-		const rendered = App();
-		// Both the CJS and ESM builds start from the local fallback version.
-		const initialVersion = "2.1.0";
+		const initialHostVersion = "2.1.0";
+		const initialRemoteVersion = "3.2.1";
 		const upgradedVersion = "3.2.1";
 
 		expect(rendered).toBe(
-			`App rendered with [This is react ${initialVersion}] and [ComponentA rendered with [This is react ${initialVersion}]] and [ComponentB rendered with [This is react ${initialVersion}]]`
+			`App rendered with [This is react ${initialHostVersion}] and [ComponentA rendered with [This is react ${initialRemoteVersion}]] and [ComponentB rendered with [This is react ${initialHostVersion}]]`
 		);
 		return import("./upgrade-react").then(({ default: upgrade }) => {
 			upgrade();
