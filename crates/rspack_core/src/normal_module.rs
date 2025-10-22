@@ -186,13 +186,13 @@ impl NormalModule {
   #[inline]
   async fn with_ownership<R>(
     &mut self,
-    operation: impl FnOnce(Self) -> BoxFuture<'static, rspack_error::Result<R>>,
+    operation: impl FnOnce(Self) -> BoxFuture<'static, R>,
     extract_module: impl FnOnce(&mut R) -> Self,
-  ) -> rspack_error::Result<R> {
+  ) -> R {
     let module = std::mem::replace(self, NormalModule::Transferred);
-    let mut result = operation(module).await?;
+    let mut result = operation(module).await;
     *self = extract_module(&mut result);
-    Ok(result)
+    result
   }
 
   fn create_id<'request>(
@@ -477,14 +477,14 @@ impl Module for NormalModule {
             )
             .instrument(info_span!("NormalModule:run_loaders",))
             .await;
-            Ok((loader_result, err))
+            (loader_result, err)
           })
         },
         |(loader_result, _)| {
           std::mem::replace(&mut loader_result.context.module, NormalModule::Transferred)
         },
       )
-      .await?;
+      .await;
 
     let inner = self.inner_mut();
     if let Some(err) = err {
