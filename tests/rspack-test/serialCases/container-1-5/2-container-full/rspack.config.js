@@ -20,7 +20,7 @@ module.exports = {
 			},
 			exposes: ["./Self"],
 			shared: {
-				mocked-react: "mocked-react",
+				"mocked-react": "mocked-react",
 				"old-react": {
 					import: false,
 					shareKey: "mocked-react",

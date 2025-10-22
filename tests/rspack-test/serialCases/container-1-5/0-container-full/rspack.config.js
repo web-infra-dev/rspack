@@ -9,7 +9,7 @@ const common = {
 		}
 	},
 	shared: {
-		mocked-react: {
+		"mocked-react": {
 			version: false,
 			requiredVersion: false
 		}
