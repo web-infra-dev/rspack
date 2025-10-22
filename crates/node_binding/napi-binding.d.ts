@@ -2087,6 +2087,10 @@ export interface RawEnvironment {
   dynamicImportInWorker?: boolean
 }
 
+export interface RawEsmLibraryPlugin {
+  preserveModules?: string
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
