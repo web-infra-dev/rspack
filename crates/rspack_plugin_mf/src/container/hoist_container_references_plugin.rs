@@ -137,7 +137,6 @@ async fn compilation(
 
 #[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let debug_hoist = std::env::var("RSPACK_DEBUG_HOIST").is_ok();
   // Helper: recursively collect all referenced modules
   fn get_all_referenced_modules(
     compilation: &Compilation,
@@ -182,7 +181,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   let mg = compilation.get_module_graph();
-  const BUNDLER_RUNTIME_MARKER: &str = "__module_federation_bundler_runtime__";
 
   // Early exit if there are no federation dependencies
   let has_federation_deps = {
@@ -194,10 +192,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   };
 
   // Also check if there are any bundler runtime modules in the compilation
-  let has_bundler_runtime = mg
-    .modules()
-    .keys()
-    .any(|module_id| module_id.as_str().contains(BUNDLER_RUNTIME_MARKER));
+  let has_bundler_runtime = mg.modules().keys().any(|module_id| {
+    module_id
+      .as_str()
+      .contains("@module-federation/webpack-bundler-runtime")
+  });
 
   // If there are no federation dependencies and no bundler runtime modules, skip hoisting
   if !has_federation_deps && !has_bundler_runtime {
@@ -221,8 +220,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .flat_map(|module| get_all_referenced_modules(compilation, module, "initial"))
     .collect::<FxHashSet<_>>();
 
-  let is_bundler_runtime_module =
-    |module_id: &ModuleIdentifier| module_id.as_str().contains(BUNDLER_RUNTIME_MARKER);
+  let is_bundler_runtime_module = |module_id: &ModuleIdentifier| {
+    module_id
+      .as_str()
+      .contains("@module-federation/webpack-bundler-runtime")
+  };
 
   // Ensure the bundler runtime helper is always hoisted, even when it is not reachable
   // via tracked federation dependencies (for example, when injected via runtime plugins).
@@ -323,23 +325,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       if compilation.chunk_graph.get_number_of_chunk_modules(&chunk) == 0
         && compilation.chunk_graph.get_number_of_entry_modules(&chunk) == 0
       {}
-    }
-  }
-
-  if debug_hoist {
-    for (chunk_ukey, chunk) in compilation.chunk_by_ukey.iter() {
-      let modules = compilation
-        .chunk_graph
-        .get_ordered_chunk_modules_identifier(chunk_ukey)
-        .into_iter()
-        .map(|id| id.to_string())
-        .collect::<Vec<_>>();
-      eprintln!(
-        "[hoist] chunk {:?} ({:?}) modules {:?}",
-        chunk_ukey,
-        chunk.name(),
-        modules
-      );
     }
   }
 
