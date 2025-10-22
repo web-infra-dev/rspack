@@ -67,6 +67,7 @@ jobs:
           chmod +x  target/codspeed/instrumentation/rspack_benchmark/benches
 
       - name: Pnpm Setup
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
