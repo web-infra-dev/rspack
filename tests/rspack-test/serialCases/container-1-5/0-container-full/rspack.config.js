@@ -9,7 +9,7 @@ const common = {
 		}
 	},
 	shared: {
-		react: {
+		xreact: {
 			version: false,
 			requiredVersion: false
 		}

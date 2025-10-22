@@ -1,4 +1,4 @@
-import React from "react";
+import React from "xreact";
 import ComponentA from "containerA/ComponentA";
 import ComponentB from "containerB/ComponentB";
 
