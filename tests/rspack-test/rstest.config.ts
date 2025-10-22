@@ -11,8 +11,9 @@ export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: process.env.WASM ? [] : [
-		"<rootDir>/Config.test.js",
+		"<rootDir>/*.test.js",
 	],
+	exclude: ["Cache.test.js", "Incremental-*.test.js", "Hot*.test.js", "Serial.test.js", "NativeWatcher*.test.js", "Diagnostics.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,
 	resolve: {
 		alias: {

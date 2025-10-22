@@ -130,7 +130,7 @@ async function run(name: string, processor: ITestProcessor) {
 		context.emitError(name, e as Error);
 	} finally {
 		await processor.check?.(
-			{ expect, it, beforeEach, afterEach, jest },
+			{ expect, it, beforeEach, afterEach, jest: global.jest || global.rstest },
 			context
 		);
 		await processor.after?.(context);
