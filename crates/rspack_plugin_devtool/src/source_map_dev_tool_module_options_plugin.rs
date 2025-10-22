@@ -37,7 +37,8 @@ async fn build_module(
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
   }
   if self.cheap {
-    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
+    let next_kind = *module.get_source_map_kind() | SourceMapKind::Cheap;
+    module.set_source_map_kind(next_kind)
   }
   Ok(())
 }
@@ -58,7 +59,8 @@ async fn runtime_module(
     module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
   }
   if self.cheap {
-    module.set_source_map_kind(*module.get_source_map_kind() | SourceMapKind::Cheap)
+    let next_kind = *module.get_source_map_kind() | SourceMapKind::Cheap;
+    module.set_source_map_kind(next_kind)
   }
   Ok(())
 }
