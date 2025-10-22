@@ -1,8 +1,6 @@
 import path from "node:path";
-import rspack, {
-	type RspackOptions,
-	type StatsCompilation
-} from "@rspack/core";
+
+import rspack, { type RspackOptions, type StatsCompilation } from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";

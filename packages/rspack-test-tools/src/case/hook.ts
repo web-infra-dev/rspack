@@ -1,10 +1,5 @@
 import path from "node:path";
-import {
-	Compilation,
-	Compiler,
-	type RspackOptions,
-	sources
-} from "@rspack/core";
+import { Compilation, Compiler, type RspackOptions, sources } from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import {
@@ -200,9 +195,9 @@ export class HookCasesContext extends TestContext {
 		const normalizedContent = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
-					escapeString: true,
-					printBasicPrototype: true
-				}).replace(/\r\n/g, "\n");
+				escapeString: true,
+				printBasicPrototype: true
+			}).replace(/\r\n/g, "\n");
 
 		(this.snapshots[group] = this.snapshots[group] || []).push([
 			normalizedContent,
