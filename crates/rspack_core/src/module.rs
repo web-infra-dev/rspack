@@ -3,12 +3,17 @@ use std::{
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
+  ops::{Deref, DerefMut},
   sync::Arc,
 };
 
 use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
+  __private::rkyv::{
+    Archive as RkyvArchive, Deserialize as RkyvDeserialize, Place, Serialize as RkyvSerialize,
+    rancor::Fallible,
+  },
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
@@ -522,22 +527,113 @@ pub fn module_update_hash(
 }
 
 pub trait ModuleExt {
-  fn boxed(self) -> Box<dyn Module>;
+  fn boxed(self) -> BoxModule;
 }
 
 impl<T: Module> ModuleExt for T {
-  fn boxed(self) -> Box<dyn Module> {
-    Box::new(self)
+  fn boxed(self) -> BoxModule {
+    BoxModule::new(Box::new(self))
   }
 }
 
-pub type BoxModule = Box<dyn Module>;
+pub struct BoxModule(Box<dyn Module>);
 
-impl Identifiable for Box<dyn Module> {
+impl BoxModule {
+  pub fn new(module: Box<dyn Module>) -> Self {
+    Self(module)
+  }
+
+  pub fn into_inner(self) -> Box<dyn Module> {
+    self.0
+  }
+
+  pub fn as_module(&self) -> &dyn Module {
+    self.0.as_ref()
+  }
+
+  pub fn as_module_mut(&mut self) -> &mut dyn Module {
+    self.0.as_mut()
+  }
+}
+
+impl From<Box<dyn Module>> for BoxModule {
+  fn from(module: Box<dyn Module>) -> Self {
+    BoxModule::new(module)
+  }
+}
+
+impl From<BoxModule> for Box<dyn Module> {
+  fn from(module: BoxModule) -> Self {
+    module.into_inner()
+  }
+}
+
+impl Deref for BoxModule {
+  type Target = dyn Module;
+
+  fn deref(&self) -> &Self::Target {
+    self.as_module()
+  }
+}
+
+impl DerefMut for BoxModule {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.as_module_mut()
+  }
+}
+
+impl Debug for BoxModule {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    Debug::fmt(&self.0, f)
+  }
+}
+
+impl AsRef<dyn Module> for BoxModule {
+  fn as_ref(&self) -> &dyn Module {
+    self.as_module()
+  }
+}
+
+impl AsMut<dyn Module> for BoxModule {
+  fn as_mut(&mut self) -> &mut dyn Module {
+    self.as_module_mut()
+  }
+}
+
+impl Identifiable for BoxModule {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
-    self.as_ref().identifier()
+    self.0.identifier()
+  }
+}
+
+impl RkyvArchive for BoxModule {
+  type Archived = <Box<dyn Module> as RkyvArchive>::Archived;
+  type Resolver = <Box<dyn Module> as RkyvArchive>::Resolver;
+
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    RkyvArchive::resolve(&self.0, resolver, out)
+  }
+}
+
+impl<S> RkyvSerialize<S> for BoxModule
+where
+  S: Fallible + ?Sized,
+  Box<dyn Module>: RkyvSerialize<S>,
+{
+  fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    RkyvSerialize::serialize(&self.0, serializer)
+  }
+}
+
+impl<D> RkyvDeserialize<BoxModule, D> for <BoxModule as RkyvArchive>::Archived
+where
+  D: Fallible + ?Sized,
+  <Box<dyn Module> as RkyvArchive>::Archived: RkyvDeserialize<Box<dyn Module>, D>,
+{
+  fn deserialize(&self, deserializer: &mut D) -> Result<BoxModule, D::Error> {
+    RkyvDeserialize::<Box<dyn Module>, D>::deserialize(self, deserializer).map(BoxModule::from)
   }
 }
 
@@ -776,8 +872,8 @@ mod test {
 
   #[test]
   fn should_downcast_successfully() {
-    let a: Box<dyn Module> = ExternalModule(String::from("a")).boxed();
-    let b: Box<dyn Module> = RawModule(String::from("a")).boxed();
+    let a: BoxModule = ExternalModule(String::from("a")).boxed();
+    let b: BoxModule = RawModule(String::from("a")).boxed();
 
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());

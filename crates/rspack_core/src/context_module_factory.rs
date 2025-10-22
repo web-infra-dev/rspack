@@ -304,10 +304,7 @@ impl ContextModuleFactory {
           context_options: dependency.options().clone(),
           type_prefix: dependency.type_prefix(),
         };
-        let module = Box::new(ContextModule::new(
-          self.resolve_dependencies.clone(),
-          options.clone(),
-        ));
+        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
@@ -383,9 +380,10 @@ impl ContextModuleFactory {
         let module = ContextModule::new(
           after_resolve_data.resolve_dependencies,
           context_module_options.clone(),
-        );
+        )
+        .boxed();
 
-        Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
+        Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
     }
   }
