@@ -184,6 +184,26 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mg = compilation.get_module_graph();
   const BUNDLER_RUNTIME_MARKER: &str = "__module_federation_bundler_runtime__";
 
+  // Early exit if there are no federation dependencies
+  let has_federation_deps = {
+    let deps = self
+      .federation_deps
+      .lock()
+      .expect("Failed to lock federation deps");
+    !deps.is_empty()
+  };
+
+  // Also check if there are any bundler runtime modules in the compilation
+  let has_bundler_runtime = mg
+    .modules()
+    .keys()
+    .any(|module_id| module_id.as_str().contains(BUNDLER_RUNTIME_MARKER));
+
+  // If there are no federation dependencies and no bundler runtime modules, skip hoisting
+  if !has_federation_deps && !has_bundler_runtime {
+    return Ok(None);
+  }
+
   // Collect all federation (container, runtime, and remote) referenced modules
   let mut all_modules_to_hoist = self
     .federation_deps
