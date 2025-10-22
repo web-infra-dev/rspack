@@ -102,7 +102,13 @@ async fn additional_tree_runtime_requirements(
   let async_enabled = self.is_async_enabled(compilation, chunk_ukey);
   let is_container_entry = chunk_contains_container_entry(compilation, chunk_ukey);
 
-  if ((has_entry_deps && is_enabled_for_chunk) || async_enabled) && !is_container_entry {
+  // Main branch behavior: add runtime module if has entry deps
+  let should_add_for_entry_deps = has_entry_deps && is_enabled_for_chunk;
+
+  // MF async startup: only add if async enabled and NOT a container entry
+  let should_add_for_async = async_enabled && !is_container_entry;
+
+  if should_add_for_entry_deps || should_add_for_async {
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
@@ -127,9 +133,14 @@ async fn runtime_requirements_in_tree(
   let async_enabled = self.is_async_enabled(compilation, chunk_ukey);
   let is_container_entry = chunk_contains_container_entry(compilation, chunk_ukey);
 
+  // Main branch behavior: add runtime module if enabled for chunk
+  let should_add_for_main = is_enabled_for_chunk;
+
+  // MF async startup: only add if async enabled and NOT a container entry
+  let should_add_for_async = async_enabled && !is_container_entry;
+
   if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-    && (is_enabled_for_chunk || async_enabled)
-    && !is_container_entry
+    && (should_add_for_main || should_add_for_async)
   {
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);
