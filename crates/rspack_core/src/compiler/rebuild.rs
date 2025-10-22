@@ -77,6 +77,9 @@ impl Compiler {
         self.compiler_context.clone(),
       );
       new_compilation.hot_index = self.compilation.hot_index + 1;
+      new_compilation
+        .incremental
+        .inherit_reported(&self.compilation.incremental);
 
       if new_compilation
         .incremental

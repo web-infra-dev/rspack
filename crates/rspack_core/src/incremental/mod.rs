@@ -5,6 +5,7 @@ use std::fmt;
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
 use rspack_error::{Diagnostic, Error};
+use rustc_hash::FxHashSet;
 
 pub const TRACING_TARGET: &str = "rspack_incremental";
 
@@ -106,6 +107,7 @@ pub struct Incremental {
   silent: bool,
   passes: IncrementalPasses,
   state: IncrementalState,
+  reported: FxHashSet<&'static str>,
 }
 
 impl Incremental {
@@ -114,6 +116,7 @@ impl Incremental {
       silent: options.silent,
       passes: options.passes,
       state: IncrementalState::Cold,
+      reported: FxHashSet::default(),
     }
   }
 
@@ -124,6 +127,7 @@ impl Incremental {
       state: IncrementalState::Hot {
         mutations: Mutations::default(),
       },
+      reported: FxHashSet::default(),
     }
   }
 
@@ -138,7 +142,8 @@ impl Incremental {
       && !passes.is_empty()
     {
       self.passes.remove(passes);
-      if self.silent {
+      let first_report = self.reported.insert(thing);
+      if self.silent || !first_report {
         return Some(None);
       }
       return Some(Some(
@@ -151,6 +156,12 @@ impl Incremental {
       ));
     }
     None
+  }
+
+  pub fn inherit_reported(&mut self, other: &Self) {
+    if !other.reported.is_empty() {
+      self.reported.extend(other.reported.iter().copied());
+    }
   }
 
   pub fn enabled(&self) -> bool {
