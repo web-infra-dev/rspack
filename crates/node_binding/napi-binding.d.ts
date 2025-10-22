@@ -321,7 +321,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -2087,6 +2087,10 @@ export interface RawEnvironment {
   dynamicImportInWorker?: boolean
 }
 
+export interface RawEsmLibraryPlugin {
+  preserveModules?: string
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
@@ -2112,6 +2116,7 @@ inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
+deferImport: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2348,6 +2353,7 @@ typeReexportsPresence?: string
  * @experimental
  */
 jsx?: boolean
+deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2451,6 +2457,7 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+  unsafeCache?: boolean | RegExp
 }
 
 export interface RawModuleRule {
@@ -2488,6 +2495,8 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
+  /** Whether to extract source maps from the module. */
+  extractSourceMap?: boolean
 }
 
 /**

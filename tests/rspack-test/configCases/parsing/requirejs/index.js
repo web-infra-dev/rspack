@@ -9,7 +9,7 @@ it("should ignore require.config", function() {
 it("should have a require.version", function() {
 	expect(require.version).toBeTypeOf("string");
 });
-it("should have a requirejs.onError function", function(done) {
+it("should have a requirejs.onError function", () => new Promise(done => {
 	function f(){}
 	expect(requirejs.onError).toBeTypeOf("undefined"); // has no default handler
 	var org = requirejs.onError;
@@ -17,4 +17,4 @@ it("should have a requirejs.onError function", function(done) {
 	expect(requirejs.onError).toBe(f);
 	requirejs.onError = org;
 	require(["./file.js"], function() { done() });
-});
+}));

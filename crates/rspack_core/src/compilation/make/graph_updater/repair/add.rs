@@ -66,7 +66,10 @@ impl Task<TaskContext> for AddTask {
 
       if context.compiler_options.experiments.lazy_barrel {
         if self.from_unlazy {
-          context.artifact.built_modules.insert(module_identifier);
+          context
+            .artifact
+            .affected_modules
+            .mark_as_add(&module_identifier);
         }
 
         if module_graph
@@ -106,8 +109,10 @@ impl Task<TaskContext> for AddTask {
     )?;
 
     tracing::trace!("Module added: {}", self.module.identifier());
-
-    context.artifact.built_modules.insert(module_identifier);
+    context
+      .artifact
+      .affected_modules
+      .mark_as_add(&module_identifier);
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,

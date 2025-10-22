@@ -1,8 +1,4 @@
-it("should handle indirect children with multiple parents correctly", function(done) {
-  import('./pageB').then(b => {
-    expect(b.default).toBe("reuse");
-    done()
-  }).catch(e => {
-		done();
-	})
+it("should handle indirect children with multiple parents correctly", async () => {
+  const b = await import('./pageB');
+  expect(b.default).toBe("reuse");
 })

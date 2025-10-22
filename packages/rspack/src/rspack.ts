@@ -7,10 +7,8 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "node:assert";
 import util from "node:util";
 import type { Callback } from "@rspack/lite-tapable";
-
 import { Compiler } from "./Compiler";
 import {
 	applyRspackOptionsBaseDefaults,
@@ -28,9 +26,8 @@ import MultiStats from "./MultiStats";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { Stats } from "./Stats";
-import { getRspackOptionsSchema } from "./schema/config";
-import { validate } from "./schema/validate";
-import { asArray, isNil } from "./util";
+import { isNil } from "./util";
+import { validateRspackConfig } from "./util/validateConfig";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -53,7 +50,11 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 function createCompiler(userOptions: RspackOptions): Compiler {
 	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
-	assert(!isNil(options.context));
+
+	if (isNil(options.context)) {
+		throw new Error("options.context is required");
+	}
+
 	const compiler = new Compiler(options.context, options);
 
 	new NodeEnvironmentPlugin({
@@ -104,16 +105,21 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	try {
-		for (const o of asArray(options)) {
-			validate(o, getRspackOptionsSchema);
+		if (isMultiRspackOptions(options)) {
+			for (const option of options) {
+				validateRspackConfig(option);
+			}
+		} else {
+			validateRspackConfig(options);
 		}
-	} catch (e) {
-		if (e instanceof Error && callback) {
-			callback(e);
+	} catch (err) {
+		if (err instanceof Error && callback) {
+			callback(err);
 			return null;
 		}
-		throw e;
+		throw err;
 	}
+
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);

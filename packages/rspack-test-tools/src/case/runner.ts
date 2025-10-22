@@ -1,13 +1,6 @@
+import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import { NodeRunner, WebRunner } from "../runner";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type ITestEnv,
-	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
-} from "../type";
+import type { ITestContext, ITestEnv, ITestRunner } from "../type";
 import { getCompiler } from "./common";
 
 export type THotStepRuntimeLangData = {
@@ -27,13 +20,13 @@ export type THotStepRuntimeData = {
 	statusPath: string[];
 };
 
-export function cachedStats<T extends ECompilerType = ECompilerType.Rspack>(
+export function cachedStats(
 	context: ITestContext,
 	name: string
-): () => TCompilerStatsCompilation<T> {
-	const compiler = context.getCompiler<T>(name);
+): () => StatsCompilation {
+	const compiler = context.getCompiler(name);
 	const statsGetter = (() => {
-		let cached: TCompilerStatsCompilation<T> | null = null;
+		let cached: StatsCompilation | null = null;
 		return () => {
 			if (cached) {
 				return cached;
@@ -47,14 +40,15 @@ export function cachedStats<T extends ECompilerType = ECompilerType.Rspack>(
 	return statsGetter;
 }
 
-export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
+export function createRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
 	const compiler = getCompiler(context, name);
-	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
+	const testConfig = context.getTestConfig();
+	const compilerOptions = compiler.getOptions() as RspackOptions;
 	const runnerOptions = {
 		runInNewContext: false,
 		cachable: true,
@@ -70,13 +64,13 @@ export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		compilerOptions.target === "web" ||
 		compilerOptions.target === "webworker"
 	) {
-		return new WebRunner<T>({
+		return new WebRunner({
 			...runnerOptions,
 			runInNewContext: true,
-			dom: context.getValue(name, "documentType") || EDocumentType.Fake
+			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	}
-	return new NodeRunner<T>(runnerOptions);
+	return new NodeRunner(runnerOptions);
 }
 
 function getFileIndexHandler(
@@ -113,16 +107,15 @@ export function getMultiCompilerRunnerKey(
 	return `${name}-${index}[${seq}]`;
 }
 
-export function createMultiCompilerRunner<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export function createMultiCompilerRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
+	const testConfig = context.getTestConfig();
 	const { getIndex, flagIndex } = getFileIndexHandler(context, name, file);
-	const multiCompilerOptions: TCompilerOptions<T>[] =
+	const multiCompilerOptions: RspackOptions[] =
 		context.getValue(name, "multiCompilerOptions") || [];
 	const [index] = getIndex();
 	const compilerOptions = multiCompilerOptions[index];
@@ -149,13 +142,13 @@ export function createMultiCompilerRunner<
 		compilerOptions.target === "web" ||
 		compilerOptions.target === "webworker"
 	) {
-		runner = new WebRunner<T>({
+		runner = new WebRunner({
 			...runnerOptions,
 			runInNewContext: true,
-			dom: context.getValue(name, "documentType") || EDocumentType.Fake
+			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	} else {
-		runner = new NodeRunner<T>(runnerOptions);
+		runner = new NodeRunner(runnerOptions);
 	}
 	flagIndex();
 	return runner;

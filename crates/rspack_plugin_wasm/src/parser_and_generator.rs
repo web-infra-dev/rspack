@@ -11,9 +11,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationData, Compilation,
-  Dependency, DependencyId, DependencyType, Filename, GenerateContext, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
+  Dependency, DependencyId, DependencyType, Filename, GenerateContext, ImportPhase, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
   StaticExportsSpec, TemplateContext, export_from_import, import_statement,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
@@ -216,6 +216,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               &dep_module.deps[0].0,
               &dep_module.import_var,
               dep_module.request,
+              ImportPhase::Evaluation,
               false,
             )
           })
@@ -249,6 +250,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   false,
                   false,
                   Some(true),
+                  ImportPhase::Evaluation,
                 );
                 let name = json_stringify(&export_name);
                 format!("{name}: {export}")

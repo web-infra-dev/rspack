@@ -13,3 +13,5 @@ it("should work", async () => {
 		expect(value).toBe('b');
 	}
 });
+
+module.hot.accept("./test");

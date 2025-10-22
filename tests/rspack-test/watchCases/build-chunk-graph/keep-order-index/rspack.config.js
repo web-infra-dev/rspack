@@ -1,6 +1,6 @@
 const { rspack } = require("@rspack/core");
 
-/** @type {import("webpack").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [new rspack.CssExtractRspackPlugin({ ignoreOrder: true })],
 	module: {

@@ -60,7 +60,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 // extracted by css-extract-rspack-plugin
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"bar":"_Alo8UbXpU8DX8Ym"});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"bar":"zoa6yw2O_pwF_LuS"});
 
 }),
 

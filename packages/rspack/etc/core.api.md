@@ -955,7 +955,7 @@ export class Compilation {
         log: liteTapable.SyncBailHook<[string, LogEntry], true>;
         additionalAssets: any;
         optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-        afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+        afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
         optimizeTree: liteTapable.AsyncSeriesHook<[
         Iterable<Chunk>,
         Iterable<Module>
@@ -965,21 +965,18 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-        chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+        chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
         processWarnings: liteTapable.SyncWaterfallHook<[WebpackError_2[]]>;
-        succeedModule: liteTapable.SyncHook<[Module], void>;
-        stillValidModule: liteTapable.SyncHook<[Module], void>;
-        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[
-        Partial<StatsOptions>,
-        CreateStatsOptionsContext
-        ], void>>;
+        succeedModule: liteTapable.SyncHook<[Module]>;
+        stillValidModule: liteTapable.SyncHook<[Module]>;
+        statsPreset: liteTapable.HookMap<liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>>;
         statsNormalize: liteTapable.SyncHook<[
         Partial<StatsOptions>,
         CreateStatsOptionsContext
-        ], void>;
-        statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-        statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+        ]>;
+        statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+        statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
         buildModule: liteTapable.SyncHook<[Module]>;
         executeModule: liteTapable.SyncHook<[
         ExecuteModuleArgument,
@@ -988,10 +985,10 @@ export class Compilation {
         additionalTreeRuntimeRequirements: liteTapable.SyncHook<[
         Chunk,
         Set<string>
-        ], void>;
+        ]>;
         runtimeRequirementInTree: liteTapable.HookMap<liteTapable.SyncBailHook<[Chunk, Set<string>], void>>;
-        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-        seal: liteTapable.SyncHook<[], void>;
+        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+        seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
     }>;
@@ -1184,6 +1181,8 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // @internal
+    unsafeFastDrop: boolean;
     // (undocumented)
     watch(watchOptions: Watchpack.WatchOptions, handler: liteTapable.Callback<Error, Stats>): Watching;
     // (undocumented)
@@ -1541,6 +1540,14 @@ function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve:
 };
 
 // @public (undocumented)
+type CreateReadStream = (path: PathLike, options?: NodeJS.BufferEncoding | ReadStreamOptions) => NodeJS.ReadableStream;
+
+// @public (undocumented)
+type CreateReadStreamFSImplementation = FSImplementation & {
+    read: (...args: any[]) => any;
+};
+
+// @public (undocumented)
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext & Record<string, any>;
 
 // @public
@@ -1757,8 +1764,7 @@ type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMe
 };
 
 // @public
-export interface DevServer extends DevServerOptions {
-}
+export type DevServer = DevServerOptions;
 
 // @public (undocumented)
 export type DevServerMiddleware<RequestInternal extends Request_2 = Request_2, ResponseInternal extends Response_2 = Response_2> = MiddlewareObject<RequestInternal, ResponseInternal> | MiddlewareHandler<RequestInternal, ResponseInternal>;
@@ -1784,7 +1790,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     open?: string | boolean | Open_2 | (string | Open_2)[] | undefined;
     setupExitSignals?: boolean | undefined;
     client?: boolean | ClientConfiguration | undefined;
-    headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext<Request_2, Response_2> | undefined) => Headers_2) | undefined;
+    headers?: Headers_2 | ((req: Request_2, res: Response_2, context: DevMiddlewareContext | undefined) => Headers_2) | undefined;
     onListening?: ((devServer: Server_4) => void) | undefined;
     setupMiddlewares?: ((middlewares: DevServerMiddleware[], devServer: Server_4) => DevServerMiddleware[]) | undefined;
 };
@@ -2241,8 +2247,15 @@ interface Es6Config extends BaseModuleConfig {
 
 // @public (undocumented)
 class EsmLibraryPlugin {
+    constructor(options?: {
+        preserveModules?: string;
+    });
     // (undocumented)
     apply(compiler: Compiler): void;
+    // (undocumented)
+    options?: {
+        preserveModules?: string;
+    };
     // (undocumented)
     static PLUGIN_NAME: string;
 }
@@ -2392,6 +2405,7 @@ export type Experiments = {
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -2450,6 +2464,8 @@ export interface ExperimentsNormalized {
     cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
+    // (undocumented)
+    deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
@@ -2793,6 +2809,14 @@ interface ForStatement extends Node_4, HasSpan {
     type: "ForStatement";
     // (undocumented)
     update?: Expression;
+}
+
+// @public (undocumented)
+interface FSImplementation {
+    // (undocumented)
+    close?: (...args: any[]) => any;
+    // (undocumented)
+    open?: (...args: any[]) => any;
 }
 
 // @public (undocumented)
@@ -3281,9 +3305,9 @@ type IntermediateFileSystem = InputFileSystem & OutputFileSystem & IntermediateF
 type IntermediateFileSystemExtras = {
     rename: (arg0: PathLike, arg1: PathLike, arg2: (arg0: null | NodeJS.ErrnoException) => void) => void;
     mkdirSync: MkdirSync;
-    write: Write<Buffer>;
+    write: Write;
     open: Open;
-    read: Read<Buffer>;
+    read: Read;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
 };
 
@@ -3406,6 +3430,7 @@ export type JavascriptParserOptions = {
     inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
+    deferImport?: boolean;
 };
 
 // @public (undocumented)
@@ -4761,6 +4786,7 @@ export type ModuleOptions = {
     parser?: ParserOptionsByModuleType;
     generator?: GeneratorOptionsByModuleType;
     noParse?: NoParseOption;
+    unsafeCache?: boolean | RegExp;
 };
 
 // @public (undocumented)
@@ -4775,6 +4801,8 @@ export interface ModuleOptionsNormalized {
     parser: ParserOptionsByModuleType;
     // (undocumented)
     rules: RuleSetRules;
+    // (undocumented)
+    unsafeCache?: boolean | RegExp;
 }
 
 // @public (undocumented)
@@ -4825,6 +4853,8 @@ export class MultiCompiler {
     running: boolean;
     // (undocumented)
     setDependencies(compiler: Compiler, dependencies: string[]): void;
+    // (undocumented)
+    set unsafeFastDrop(value: boolean);
     // (undocumented)
     validateDependencies(callback: liteTapable.Callback<Error, MultiStats>): boolean;
     // (undocumented)
@@ -5366,6 +5396,8 @@ export type Output = {
 export interface OutputFileSystem {
     // (undocumented)
     chmod: (arg0: string, arg1: number, arg2: (arg0?: NodeJS.ErrnoException | null) => void) => void;
+    // (undocumented)
+    createReadStream?: CreateReadStream;
     // (undocumented)
     dirname?: (arg0: string) => string;
     // (undocumented)
@@ -5958,6 +5990,12 @@ type ReadlinkSync = {
 type ReadStream = ReadStream_2;
 
 // @public (undocumented)
+type ReadStreamOptions = StreamOptions & {
+    fs?: null | CreateReadStreamFSImplementation;
+    end?: number;
+};
+
+// @public (undocumented)
 type RealPath = {
     (path: PathLike, options: EncodingOption, callback: StringCallback): void;
     (path: PathLike, options: BufferEncodingOption, callback: BufferCallback): void;
@@ -6297,6 +6335,7 @@ declare namespace rspackExports {
         NormalModuleFactory,
         RspackError,
         RspackSeverity,
+        ValidationError,
         RuntimeGlobals,
         RuntimeModule,
         StatsAsset,
@@ -6312,7 +6351,6 @@ declare namespace rspackExports {
         Watching,
         sources,
         config,
-        ValidationError,
         util,
         BannerPluginArgument,
         DefinePluginOptions,
@@ -6838,6 +6876,7 @@ export type RuleSetRule = {
     enforce?: "pre" | "post";
     oneOf?: (RuleSetRule | Falsy)[];
     rules?: (RuleSetRule | Falsy)[];
+    extractSourceMap?: boolean;
 };
 
 // @public
@@ -6932,6 +6971,9 @@ export const RuntimeGlobals: {
     readonly baseURI: "__webpack_require__.b";
     readonly relativeUrl: "__webpack_require__.U";
     readonly asyncModule: "__webpack_require__.a";
+    readonly asyncModuleExportSymbol: "__webpack_require__.aE";
+    readonly makeDeferredNamespaceObject: "__webpack_require__.z";
+    readonly makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS";
 };
 
 // @public (undocumented)
@@ -7547,6 +7589,26 @@ type StatSyncOptions = {
     bigint?: boolean;
     throwIfNoEntry?: boolean;
 };
+
+// @public (undocumented)
+interface StreamOptions {
+    // (undocumented)
+    autoClose?: boolean;
+    // (undocumented)
+    emitClose?: boolean;
+    // (undocumented)
+    encoding?: NodeJS.BufferEncoding;
+    // (undocumented)
+    fd?: any;
+    // (undocumented)
+    flags?: string;
+    // (undocumented)
+    mode?: number;
+    // (undocumented)
+    signal?: null | AbortSignal;
+    // (undocumented)
+    start?: number;
+}
 
 // @public
 export type StrictModuleErrorHandling = boolean;

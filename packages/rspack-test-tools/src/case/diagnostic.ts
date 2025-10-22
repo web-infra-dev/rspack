@@ -1,15 +1,11 @@
 import assert from "node:assert";
 import path from "node:path";
+import type { RspackOptions } from "@rspack/core";
 import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv } from "../type";
 import { getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
@@ -20,10 +16,12 @@ const creator = new BasicCaseCreator({
 			config: async (context: ITestContext) => {
 				const compiler = getCompiler(context, name);
 				let options = defaultOptions(context);
-				const custom = readConfigFile<ECompilerType.Rspack>(
+				const custom = readConfigFile(
 					["rspack.config.js", "webpack.config.js"].map(i =>
 						context.getSource(i)
-					)
+					),
+					context,
+					options
 				)[0];
 				if (custom) {
 					options = merge(options, custom);
@@ -73,9 +71,7 @@ export type TDiagnosticOptions = {
 	format?: (output: string) => string;
 };
 
-function defaultOptions<T extends ECompilerType.Rspack>(
-	context: ITestContext
-): TCompilerOptions<T> {
+function defaultOptions(context: ITestContext): RspackOptions {
 	return {
 		target: "node",
 		context: context.getSource(),
@@ -101,7 +97,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 			},
 			inlineConst: true
 		}
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 }
 
 async function check(

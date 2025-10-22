@@ -1,4 +1,4 @@
-var rootPath = "../../../../";
+var rootPath = "@rspack/core";
 var webpack = require(rootPath);
 var path = require("path");
 

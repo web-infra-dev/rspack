@@ -1,5 +1,10 @@
 import path from "node:path";
-import { Compilation, Compiler, sources } from "@rspack/core";
+import {
+	Compilation,
+	Compiler,
+	type RspackOptions,
+	sources
+} from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import {
@@ -9,24 +14,11 @@ import {
 import merge from "webpack-merge";
 import { TestContext, type TTestContextOptions } from "../test/context";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITesterConfig,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv, ITesterConfig } from "../type";
 import { build, checkSnapshot, compiler, config, getCompiler } from "./common";
 
-const srcDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/fixtures"
-);
-const distDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/js/hook"
-);
+const srcDir = __TEST_FIXTURES_PATH__;
+const distDir = path.resolve(__TEST_DIST_PATH__, "hook");
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -251,11 +243,8 @@ export class HookCasesContext extends TestContext {
 }
 
 export type THookCaseConfig = {
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: (context: ITestContext) => Promise<void>;
 	snapshotFileFilter?: (file: string) => boolean;
 	description: string;
@@ -263,7 +252,7 @@ export type THookCaseConfig = {
 
 function defaultOptions(
 	context: ITestContext,
-	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
+	custom?: (context: ITestContext) => RspackOptions
 ) {
 	let defaultOptions = {
 		context: context.getSource(),
@@ -287,7 +276,7 @@ function defaultOptions(
 			},
 			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 	if (custom) {
 		defaultOptions = merge(defaultOptions, custom(context));
 	}

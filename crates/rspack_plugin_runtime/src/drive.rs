@@ -2,6 +2,8 @@ use std::ptr::NonNull;
 
 use rspack_core::{ChunkUkey, Compilation, CompilationId};
 use rspack_hook::define_hook;
+#[cfg(allocative)]
+use rspack_util::allocative;
 
 #[derive(Debug, Clone)]
 pub struct CreateScriptData {
@@ -35,8 +37,12 @@ define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(data: LinkPreloadData) ->
 define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
 
 #[derive(Debug, Default)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimePluginHooks {
+  #[cfg_attr(allocative, allocative(skip))]
   pub create_script: RuntimePluginCreateScriptHook,
+  #[cfg_attr(allocative, allocative(skip))]
   pub link_preload: RuntimePluginLinkPreloadHook,
+  #[cfg_attr(allocative, allocative(skip))]
   pub link_prefetch: RuntimePluginLinkPrefetchHook,
 }

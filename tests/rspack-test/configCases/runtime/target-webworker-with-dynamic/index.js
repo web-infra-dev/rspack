@@ -1,7 +1,5 @@
-it("should compile and run", done => {
+it("should compile and run", async () => {
 	expect(true).toBe(true);
-	import("./async").then(module => {
-		expect(module.default).toBe("async");
-		done();
-	}, done);
+	const module = await import("./async");
+	expect(module.default).toBe("async");
 });

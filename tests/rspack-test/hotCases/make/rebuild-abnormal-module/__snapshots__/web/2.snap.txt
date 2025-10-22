@@ -88,17 +88,13 @@ check => prepare => dispose => apply => fail
 
 Outdated Modules:
 - ./file.js
+- ./index.js
 - ./loader.js!./a.js
 
 
 Outdated Dependencies:
 ```json
-{
-  "./index.js": [
-    "./file.js",
-    "./loader.js!./a.js"
-  ]
-}
+{}
 ```
 
 #### Updated
@@ -114,6 +110,6 @@ Updated Runtime:
 #### Callback
 
 Accepted Callback:
-- ./file.js
+
 
 Disposed Callback:

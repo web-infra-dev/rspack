@@ -14,7 +14,7 @@ if (globalThis.__FEDERATION__) {
 let warnings = [];
 let nativeLog;
 
-beforeEach(done => {
+beforeEach(() => {
 	nativeLog = console.log;
 	console.log = (...args) => {
 		const m = args.join(' ');
@@ -28,13 +28,11 @@ beforeEach(done => {
 			warnings.push(m);
 		}
 	}
-	done();
 });
 
-afterEach(done => {
+afterEach(() => {
 	expectWarning();
 	console.log = nativeLog;
-	done();
 });
 
 const expectWarning = (regexp, index) => {

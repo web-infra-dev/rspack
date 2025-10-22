@@ -1,11 +1,17 @@
-use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
+use std::{
+  fmt::Formatter,
+  ptr::NonNull,
+  sync::{Arc, LazyLock},
+};
 
-use derive_more::with_trait::Debug;
+use derive_more::Debug;
+use futures::future::BoxFuture;
 use napi::{
   Either,
   bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
+use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -17,7 +23,7 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
   ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
   ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode, UnsafeCachePredicate,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -51,7 +57,7 @@ pub enum RawRuleSetCondition {
   func(ThreadsafeFunction<serde_json::Value, bool>),
 }
 
-impl Debug for RawRuleSetCondition {
+impl std::fmt::Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({s:?})"),
@@ -176,6 +182,8 @@ pub struct RawModuleRule {
   /// Specifies the category of the loader. No value means normal loader.
   #[napi(ts_type = "'pre' | 'post'")]
   pub enforce: Option<String>,
+  /// Whether to extract source maps from the module.
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -304,6 +312,7 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[napi(object)]
@@ -382,6 +391,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       inline_const: value.inline_const,
       jsx: value.jsx,
+      defer_import: value.defer_import,
     }
   }
 }
@@ -806,6 +816,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
 }
 
 #[napi(object, object_to_js = false)]
+#[derive(Debug)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
@@ -813,18 +824,10 @@ pub struct RawModuleOptions {
   #[napi(
     ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
   )]
+  #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-}
-
-impl Debug for RawModuleOptions {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleOptions")
-      .field("rules", &self.rules)
-      .field("parser", &self.parser)
-      .field("generator", &self.generator)
-      .field("no_parse", &"...")
-      .finish()
-  }
+  #[napi(ts_type = "boolean | RegExp")]
+  pub unsafe_cache: Option<Either<bool, RspackRegex>>,
 }
 
 #[derive(Debug, Clone)]
@@ -970,7 +973,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
+        extract_source_map: value.extract_source_map,
       },
+      extract_source_map: value.extract_source_map,
     })
   }
 }
@@ -984,6 +989,25 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .into_iter()
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
+
+    let unsafe_cache: Option<UnsafeCachePredicate> =
+      value.unsafe_cache.and_then(|either| match either {
+        Either::A(true) => Some(Box::new(|module: &dyn rspack_core::Module| {
+          let name = module.name_for_condition();
+          Box::pin(async move { Ok(true) }) as BoxFuture<'static, rspack_error::Result<bool>>
+        }) as UnsafeCachePredicate),
+        Either::A(false) => None,
+        Either::B(regex) => {
+          let regex = Arc::from(regex);
+          Some(Box::new(move |module: &dyn rspack_core::Module| {
+            let name = module.name_for_condition();
+            let regex = regex.clone();
+            Box::pin(async move { Ok(name.is_some_and(|name| regex.test(name.as_ref()))) })
+              as BoxFuture<'static, rspack_error::Result<bool>>
+          }) as UnsafeCachePredicate)
+        }
+      });
+
     Ok(ModuleOptions {
       rules,
       parser: value
@@ -1005,6 +1029,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
+      unsafe_cache,
     })
   }
 }

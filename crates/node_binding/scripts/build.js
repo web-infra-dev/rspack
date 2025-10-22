@@ -44,6 +44,10 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
+		const use_build_std = values.profile === "release"
+				|| values.profile === "release-debug"
+				|| values.profile === "release-wasi"
+				|| values.profile === "profiling";
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -61,7 +65,7 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
-		if (process.env.BROWSER) {
+		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 			// Strip debug format to reduce wasm size of @rspack/browser
 			rustflags.push("-Zfmt-debug=none");
@@ -70,12 +74,13 @@ async function build() {
 		if (!values.profile || values.profile === "dev") {
 			features.push("color-backtrace");
 		}
-		if (values.profile === "release-debug" &&
-			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
-		) {
+		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
-			rustflags.push("-Csymbol-mangling-version=v0");
+		}
+		if (process.env.ALLOCATIVE) {
+			features.push("allocative");
+			rustflags.push("--cfg=allocative");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
@@ -84,12 +89,7 @@ async function build() {
 			args.push("--features " + features.join(","));
 		}
 
-		if (positionals.length > 0
-			|| values.profile === "release"
-			|| values.profile === "release-debug"
-			|| values.profile === "release-wasi"
-			|| values.profile === "profiling"
-		) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
 
@@ -99,11 +99,7 @@ async function build() {
 				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
 			}
 
-			if (values.profile === "release"
-				|| values.profile === "release-debug"
-				|| values.profile === "release-wasi"
-				|| values.profile === "profiling"
-			) {
+			if (use_build_std) {
 				// allows to optimize std with current compile arguments
 				// and avoids std code generate unwind table to save size.
 				args.push("-Zbuild-std=panic_abort,std");
@@ -138,7 +134,7 @@ async function build() {
 				);
 
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
-				if (process.env.BROWSER) {
+				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
 				}

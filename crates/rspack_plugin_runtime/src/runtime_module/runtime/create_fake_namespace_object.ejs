@@ -17,7 +17,7 @@ var leafPrototypes;
   <%- MAKE_NAMESPACE_OBJECT %>(ns);
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-	for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
 		Object.getOwnPropertyNames(current).forEach(<%- basicFunction("key") %> { def[key] = <%- returningFunction("value[key]", "") %> });
 	}
 	def['default'] = <%- returningFunction("value", "") %>;

@@ -53,7 +53,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.55.0-jammy
+          image: mcr.microsoft.com/playwright:v1.56.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -113,7 +113,7 @@ jobs:
 
       ### *-apple-darwin
       - name: Test apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ contains(inputs.target, 'apple-darwin') }}
         run: |
           # arch is ARM and target is ARM

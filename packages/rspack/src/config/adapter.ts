@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import {
 	type RawAssetGeneratorDataUrlFnCtx,
 	type RawAssetGeneratorOptions,
@@ -178,10 +177,10 @@ function getRawResolveByDependency(
 function getRawTsConfig(
 	tsConfig: Resolve["tsConfig"]
 ): RawOptions["resolve"]["tsconfig"] {
-	assert(
-		typeof tsConfig !== "string",
-		"should resolve string tsConfig in normalization"
-	);
+	if (typeof tsConfig === "string") {
+		throw new Error("should resolve string tsConfig in normalization");
+	}
+
 	if (tsConfig === undefined) return tsConfig;
 	const { configFile, references } = tsConfig;
 	return {
@@ -210,10 +209,10 @@ function getRawModule(
 	module: ModuleOptionsNormalized,
 	options: ComposeJsUseOptions
 ): RawOptions["module"] {
-	assert(
-		!isNil(module.defaultRules),
-		"module.defaultRules should not be nil after defaults"
-	);
+	if (isNil(module.defaultRules)) {
+		throw new Error("module.defaultRules should not be nil after defaults");
+	}
+
 	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." in rules is empty, so it's safe to use `as RuleSetRule[]` at here
 	const ruleSet = [
 		{ rules: module.defaultRules as RuleSetRule[] },
@@ -226,7 +225,8 @@ function getRawModule(
 		rules,
 		parser: getRawParserOptionsMap(module.parser),
 		generator: getRawGeneratorOptionsMap(module.generator),
-		noParse: module.noParse
+		noParse: module.noParse,
+		unsafeCache: module.unsafeCache
 	};
 }
 
@@ -368,7 +368,8 @@ const getRawModuleRule = (
 						)
 					)
 			: undefined,
-		enforce: rule.enforce
+		enforce: rule.enforce,
+		extractSourceMap: rule.extractSourceMap
 	};
 
 	// Function calls may contain side-effects when interoperating with single-threaded environment.
@@ -588,7 +589,8 @@ function getRawJavascriptParserOptions(
 		commonjsMagicComments: parser.commonjsMagicComments,
 		inlineConst: parser.inlineConst,
 		typeReexportsPresence: parser.typeReexportsPresence,
-		jsx: parser.jsx
+		jsx: parser.jsx,
+		deferImport: parser.deferImport
 	};
 }
 
@@ -788,9 +790,13 @@ function getRawNode(node: Node): RawOptions["node"] {
 	if (node === false) {
 		return undefined;
 	}
-	assert(
-		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
-	);
+
+	if (isNil(node.__dirname) || isNil(node.global) || isNil(node.__filename)) {
+		throw new Error(
+			"node.__dirname, node.global, node.__filename should not be nil"
+		);
+	}
+
 	return {
 		dirname: String(node.__dirname),
 		filename: String(node.__filename),

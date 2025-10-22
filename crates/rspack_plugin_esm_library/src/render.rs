@@ -26,7 +26,7 @@ use swc_core::common::sync::Lazy;
 
 use crate::{
   chunk_link::{ChunkLinkContext, Ref},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS},
+  plugin::{CONCATENATED_MODULES_MAP, LINKS, RSPACK_ESM_RUNTIME_CHUNK},
   runtime::RegisterModuleRuntime,
 };
 
@@ -133,14 +133,9 @@ impl EsmLibraryPlugin {
     let mut decl_source = ConcatSource::default();
 
     if !chunk_link.decl_modules.is_empty() {
-      // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
-      decl_source.add(RawSource::from(format!(
-        "{}({{\n",
-        RegisterModuleRuntime::runtime_id()
-      )));
-
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
       let hooks = hooks.read().await;
+      let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
@@ -162,10 +157,16 @@ impl EsmLibraryPlugin {
 
         chunk_init_fragments.extend(init_frags);
         chunk_init_fragments.extend(init_frags2);
-        decl_source.add(module_source.clone());
+        decl_inner.add(module_source.clone());
       }
       drop(hooks);
 
+      // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
+      decl_source.add(RawSource::from(format!(
+        "{}({{\n",
+        RegisterModuleRuntime::runtime_id()
+      )));
+      decl_source.add(decl_inner);
       decl_source.add(RawSource::from_static("});\n"));
     }
 
@@ -186,6 +187,9 @@ impl EsmLibraryPlugin {
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      asset_info
+        .extras
+        .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
       // render chunk needs to render *all* runtimes in the whole tree
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
@@ -208,7 +212,12 @@ impl EsmLibraryPlugin {
     }
 
     // render namespace object before render module contents
-    for namespace in chunk_link.namespace_object_sources.values() {
+    let mut namespace_object_sources = chunk_link
+      .namespace_object_sources
+      .iter()
+      .collect::<Vec<_>>();
+    namespace_object_sources.sort_by(|(a, _), (b, _)| a.cmp(b));
+    for (_, namespace) in namespace_object_sources {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
 

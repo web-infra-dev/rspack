@@ -1,11 +1,11 @@
 const styles = require('./entry').default
 require('./entry2')
 
-it("css hmr", (done) => {
+it("css hmr", async () => {
 	expect(styles).toHaveProperty('foo')
-	NEXT(require("../../update")(done, true, () => {
-		const updatedStyles = require('./entry').default
-		expect(updatedStyles).toHaveProperty('bar')
-		done()
-	}));
+	await NEXT_HMR();
+	const updatedStyles = require('./entry').default
+	expect(updatedStyles).toHaveProperty('bar')
 });
+
+module.hot.accept('./entry');

@@ -13,3 +13,5 @@ it("should snapshot managed-paths work", async () => {
 		expect(value).toBe(4);
 	}
 });
+
+module.hot.accept("./test_lib");

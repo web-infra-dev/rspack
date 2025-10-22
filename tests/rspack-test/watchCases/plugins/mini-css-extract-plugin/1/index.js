@@ -9,8 +9,8 @@ it("should load a chunk with css", () => {
 	const scriptStart = document.getElementsByTagName("script").length;
 	const promise = import("./chunk");
 
-	const links = document.getElementsByTagName("link").slice(linkStart);
-	const scripts = document.getElementsByTagName("script").slice(scriptStart);
+	const links = Array.from(document.getElementsByTagName("link")).slice(linkStart);
+	const scripts = Array.from(document.getElementsByTagName("script")).slice(scriptStart);
 
 	expect(links.length).toBe(1);
 	expect(scripts.length).toBe(1);

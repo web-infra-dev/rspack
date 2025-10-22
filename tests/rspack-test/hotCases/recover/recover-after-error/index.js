@@ -1,20 +1,15 @@
 import a from "./a";
 
-it("should abort when module is not accepted", (done) => {
+it("should abort when module is not accepted", async () => {
 	expect(a).toBe(1);
-	NEXT(require("../../update")(done, {
+	await NEXT_HMR({
 		ignoreErrored: true
-	}, () => {
-		expect(a).toBe(1);
-		NEXT(require("../../update")(done, {
-			ignoreErrored: true
-		}, () => {
-			expect(a).toBe(3);
-			done();
-		}));
-	}));
+	});
+	expect(a).toBe(1);
+	await NEXT_HMR({
+		ignoreErrored: true
+	});
+	expect(a).toBe(3);
 });
 
-if(module.hot) {
-	module.hot.accept("./a");
-}
+module.hot.accept("./a");

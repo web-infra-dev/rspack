@@ -5,12 +5,8 @@ module.hot.accept('./entry', () => {
 	v = value
 });
 
-it("should auto-reexport an ES6 imported value on accept with newTreeshaking", async function (done) {
+it("should auto-reexport an ES6 imported value on accept with newTreeshaking", async () => {
 	expect(v).toBe("foo");
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(v).toBe("foobar");
-			done();
-		})
-	);
+	await NEXT_HMR();
+	expect(v).toBe("foobar");
 });

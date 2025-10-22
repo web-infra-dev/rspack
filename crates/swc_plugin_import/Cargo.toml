@@ -8,7 +8,6 @@ version.workspace = true
 
 [dependencies]
 cow-utils  = { workspace = true }
-handlebars = { workspace = true }
 heck       = { workspace = true }
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
@@ -16,3 +15,6 @@ swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"]
 
 [package.metadata.cargo-machete]
 ignored = ["Inflector"]
+
+[lints]
+workspace = true

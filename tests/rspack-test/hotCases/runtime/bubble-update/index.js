@@ -1,11 +1,10 @@
 var value = require("./parent-file");
 
-it("should bubble update from a nested dependency", (done) => {
+it("should bubble update from a nested dependency", async () => {
 	expect(value).toBe(1);
-	module.hot.accept("./parent-file", () => {
-		value = require("./parent-file");
-		expect(value).toBe(2);
-		done();
-	});
-	NEXT(require("../../update")(done));
+	await NEXT_HMR();
+	value = require("./parent-file");
+	expect(value).toBe(2);
 });
+
+module.hot.accept("./parent-file");

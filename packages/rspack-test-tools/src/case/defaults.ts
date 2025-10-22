@@ -1,15 +1,9 @@
 import path from "node:path";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
+import type { RspackOptions } from "@rspack/core";
 import { diff as jestDiff } from "jest-diff";
-
 import { TestContext } from "../test/context";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 import { getCompiler } from "./common";
 
 const CURRENT_CWD = process.cwd();
@@ -41,8 +35,8 @@ export function createDefaultsCase(name: string, src: string) {
 
 export function getRspackDefaultConfig(
 	cwd: string,
-	config: TCompilerOptions<ECompilerType>
-): TCompilerOptions<ECompilerType> {
+	config: RspackOptions
+): RspackOptions {
 	process.chdir(cwd);
 	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 		require("@rspack/core").config;
@@ -56,11 +50,11 @@ export function getRspackDefaultConfig(
 }
 
 export type TDefaultsCaseConfig = {
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+	options?: (context: ITestContext) => RspackOptions;
 	cwd?: string;
 	diff: (
 		diff: jest.JestMatchers<RspackTestDiff>,
-		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+		defaults: jest.JestMatchers<RspackOptions>
 	) => Promise<void>;
 	description: string;
 };
@@ -75,9 +69,9 @@ const context = new TestContext({
 
 function options(
 	context: ITestContext,
-	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
+	custom?: (context: ITestContext) => RspackOptions
 ) {
-	let res: TCompilerOptions<ECompilerType.Rspack>;
+	let res: RspackOptions;
 	if (typeof custom === "function") {
 		res = custom(context);
 	} else {
@@ -101,7 +95,7 @@ async function check(
 		cwd?: string;
 		diff: (
 			diff: jest.JestMatchers<RspackTestDiff>,
-			defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+			defaults: jest.JestMatchers<RspackOptions>
 		) => Promise<void>;
 	}
 ) {
@@ -130,7 +124,7 @@ async function run(name: string, processor: ITestProcessor) {
 		context.emitError(name, e as Error);
 	} finally {
 		await processor.check?.(
-			{ expect, it, beforeEach, afterEach, jest },
+			{ expect, it, beforeEach, afterEach, jest: global.jest || global.rstest },
 			context
 		);
 		await processor.after?.(context);

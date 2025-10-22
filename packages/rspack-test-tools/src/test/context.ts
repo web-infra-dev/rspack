@@ -1,22 +1,20 @@
 import path from "node:path";
 
 import { TestCompilerManager } from "../compiler";
-import {
-	ECompilerType,
-	type ITestCompilerManager,
-	type ITestContext,
-	type ITestEnv,
-	type ITesterConfig,
-	type ITestRunner,
-	type TTestConfig
+import type {
+	ITestCompilerManager,
+	ITestContext,
+	ITestEnv,
+	ITesterConfig,
+	ITestRunner,
+	TTestConfig
 } from "../type";
 
 export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
 
 export class TestContext implements ITestContext {
 	protected errors: Map<string, Error[]> = new Map();
-	protected compilers: Map<string, ITestCompilerManager<ECompilerType>> =
-		new Map();
+	protected compilers: Map<string, ITestCompilerManager> = new Map();
 	protected store: Map<string, Record<string, unknown>> = new Map();
 	protected runners: Map<string, ITestRunner> = new Map();
 
@@ -44,16 +42,10 @@ export class TestContext implements ITestContext {
 		return this.config.temp;
 	}
 
-	getCompiler<T extends ECompilerType>(
-		name: string,
-		type: T | void
-	): ITestCompilerManager<T> {
+	getCompiler(name: string): ITestCompilerManager {
 		let compiler = this.compilers.get(name);
 		if (!compiler) {
-			if (!type) {
-				throw new Error("Compiler does not exists");
-			}
-			compiler = new TestCompilerManager(type, this.config.compilerFactories);
+			compiler = new TestCompilerManager();
 			this.compilers.set(name, compiler);
 		}
 		return compiler;
@@ -74,7 +66,7 @@ export class TestContext implements ITestContext {
 		return runner;
 	}
 
-	getTestConfig<T extends ECompilerType>(): TTestConfig<T> {
+	getTestConfig(): TTestConfig {
 		return this.config.testConfig || {};
 	}
 
@@ -125,13 +117,9 @@ export class TestContext implements ITestContext {
 		}
 	}
 	async closeCompiler(name: string) {
-		const rspackCompiler = this.getCompiler(name, ECompilerType.Rspack);
-		if (rspackCompiler) {
-			await rspackCompiler.close();
-		}
-		const webpackCompiler = this.getCompiler(name, ECompilerType.Webpack);
-		if (webpackCompiler) {
-			await webpackCompiler.close();
+		const compiler = this.getCompiler(name);
+		if (compiler) {
+			await compiler.close();
 		}
 	}
 }
