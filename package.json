@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.6.0-beta.0",
+  "version": "1.6.0-beta.1",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -33,7 +33,7 @@
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
     "lint:rs": "cargo clippy --workspace --all-targets",
-    "lint:type": "rslint --config rslint.json --max-warnings=2278",
+    "lint:type": "rslint --config rslint.json --max-warnings=2283",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",

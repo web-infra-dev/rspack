@@ -1,15 +1,9 @@
 import type fs from "node:fs";
 import path from "node:path";
-import type { StatsError } from "@rspack/core";
+import type { Compiler, RspackOptions, StatsError } from "@rspack/core";
 import merge from "webpack-merge";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv } from "../type";
 import { getCompiler } from "./common";
 
 let addedSerializer = false;
@@ -79,13 +73,10 @@ export function createErrorCase(
 	}
 }
 
-function options<T extends ECompilerType.Rspack>(
+function options(
 	context: ITestContext,
-	custom?: (
-		context: ITestContext,
-		options: TCompilerOptions<T>
-	) => TCompilerOptions<T>
-): TCompilerOptions<T> {
+	custom?: (context: ITestContext, options: RspackOptions) => RspackOptions
+): RspackOptions {
 	let options = {
 		context: path.resolve(__TEST_FIXTURES_PATH__, "errors"),
 		mode: "none",
@@ -103,7 +94,7 @@ function options<T extends ECompilerType.Rspack>(
 				}
 			}
 		}
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 	if (typeof custom === "function") {
 		options = merge(options, custom(context, options));
 	}
@@ -114,10 +105,10 @@ function options<T extends ECompilerType.Rspack>(
 	return options;
 }
 
-async function compiler<T extends ECompilerType.Rspack>(
+async function compiler(
 	context: ITestContext,
-	compiler: TCompiler<T>,
-	custom?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>
+	compiler: Compiler,
+	custom?: (context: ITestContext, compiler: Compiler) => Promise<void>
 ) {
 	if (compiler) {
 		compiler.outputFileSystem = {
@@ -184,14 +175,8 @@ async function check(
 export type TErrorCaseConfig = {
 	description: string;
 	skip?: boolean;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 };

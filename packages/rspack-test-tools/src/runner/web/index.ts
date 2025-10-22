@@ -6,13 +6,11 @@ import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import { escapeSep } from "../../helper";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
-import type { ECompilerType, TRunnerFile, TRunnerRequirer } from "../../type";
+import type { TRunnerFile, TRunnerRequirer } from "../../type";
 import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
-export interface IWebRunnerOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends INodeRunnerOptions<T> {
+export interface IWebRunnerOptions extends INodeRunnerOptions {
 	location: string;
 }
 
@@ -29,11 +27,9 @@ const FAKE_HOSTS = [
 
 const FAKE_TEST_ROOT_HOST = "https://test.cases/root/";
 
-export class WebRunner<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends NodeRunner<T> {
+export class WebRunner extends NodeRunner {
 	private dom: JSDOM;
-	constructor(protected _webOptions: IWebRunnerOptions<T>) {
+	constructor(protected _webOptions: IWebRunnerOptions) {
 		super(_webOptions);
 
 		const virtualConsole = new VirtualConsole({});
