@@ -4511,7 +4511,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
- "ustr-fxhash",
 ]
 
 [[package]]
