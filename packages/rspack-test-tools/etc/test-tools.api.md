@@ -13,8 +13,8 @@ import type { MultiStats } from '@rspack/core';
 import { RspackOptions } from '@rspack/core';
 import type { RspackOptionsNormalized } from '@rspack/core';
 import type { RspackPluginInstance } from '@rspack/core';
-import { Stats } from '@rspack/core';
-import { StatsCompilation } from '@rspack/core';
+import type { Stats } from '@rspack/core';
+import type { StatsCompilation } from '@rspack/core';
 import type { StatsError } from '@rspack/core';
 import type { WebpackOptionsNormalized } from 'webpack';
 
