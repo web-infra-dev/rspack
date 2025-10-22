@@ -322,15 +322,13 @@ impl ConsumeSharedPlugin {
       None => None,
       Some(import) => {
         let resolver = self.get_resolver();
-
+        let x = if direct_fallback {
+          self.get_context()
+        } else {
+          context.clone()
+        };
         println!(
-          "consume shared module resolving import: {import} in context: {}",
-          if direct_fallback {
-            self.get_context()
-          } else {
-            context.clone()
-          }
-          .as_ref()
+          "consume shared module resolving import: {import} in context: {}", x.as_str()
         );
 
         resolver

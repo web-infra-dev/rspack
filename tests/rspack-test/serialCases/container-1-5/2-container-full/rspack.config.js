@@ -20,15 +20,15 @@ module.exports = {
 			},
 			exposes: ["./Self"],
 			shared: {
-				react: "react",
+				xreact: "xreact",
 				"old-react": {
 					import: false,
-					shareKey: "react",
+					shareKey: "xreact",
 					requiredVersion: "^2"
 				},
 				"old-react-singleton": {
 					import: false,
-					shareKey: "react",
+					shareKey: "xreact",
 					requiredVersion: "^2",
 					singleton: true
 				}
