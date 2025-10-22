@@ -1,74 +1,60 @@
+import type { Compilation, Compiler, RspackOptions, Stats } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import {
-	ECompilerType,
-	type ITestCompilerManager,
-	type ITestContext,
-	type ITestEnv,
-	type TCompilation,
-	type TCompiler,
-	type TCompilerOptions,
-	type TCompilerStats
-} from "../type";
+import type { ITestCompilerManager, ITestContext, ITestEnv } from "../type";
 
-export function getCompiler<T extends ECompilerType = ECompilerType.Rspack>(
-	context: ITestContext,
-	name: string
-) {
-	return context.getCompiler(
-		name,
-		ECompilerType.Rspack
-	) as ITestCompilerManager<T>;
+export function getCompiler(context: ITestContext, name: string) {
+	return context.getCompiler(name) as ITestCompilerManager;
 }
 
-export async function config<T extends ECompilerType = ECompilerType.Rspack>(
+export async function config(
 	context: ITestContext,
 	name: string,
 	configFiles: string[],
-	defaultOptions: TCompilerOptions<T> = {}
-): Promise<TCompilerOptions<T>> {
-	const compiler = getCompiler<T>(context, name);
+	defaultOptions: RspackOptions = {}
+): Promise<RspackOptions> {
+	const compiler = getCompiler(context, name);
 	compiler.setOptions(defaultOptions);
 	if (Array.isArray(configFiles)) {
-		const fileOptions = readConfigFile<T>(
+		const fileOptions = readConfigFile(
 			configFiles.map(i => context.getSource(i)),
 			context,
 			defaultOptions
 		)[0];
 		compiler.mergeOptions(fileOptions);
 	}
-	return compiler.getOptions() as TCompilerOptions<T>;
+	return compiler.getOptions() as RspackOptions;
 }
 
-export async function compiler<T extends ECompilerType = ECompilerType.Rspack>(
+export async function compiler(
 	context: ITestContext,
 	name: string
-): Promise<TCompiler<T>> {
+): Promise<Compiler> {
 	const compiler = getCompiler(context, name);
 	compiler.createCompiler();
-	return compiler.getCompiler()! as TCompiler<T>;
+	return compiler.getCompiler()! as Compiler;
 }
 
-export async function build<T extends ECompilerType = ECompilerType.Rspack>(
+export async function build(
 	context: ITestContext,
 	name: string
-): Promise<TCompiler<T>> {
+): Promise<Compiler> {
 	const compiler = getCompiler(context, name);
 	await compiler.build();
-	return compiler.getCompiler()! as TCompiler<T>;
+	return compiler.getCompiler()! as Compiler;
 }
 
-export async function run<T extends ECompilerType = ECompilerType.Rspack>(
+export async function run(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string,
 	findBundle: (
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: RspackOptions
 	) => string[] | string | void
 ) {
 	const testConfig = context.getTestConfig();
@@ -83,7 +69,7 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	if (testConfig.bundlePath) {
 		bundles = testConfig.bundlePath;
 	} else if (typeof findBundle === "function") {
-		bundles = findBundle(context, compiler.getOptions() as TCompilerOptions<T>);
+		bundles = findBundle(context, compiler.getOptions() as RspackOptions);
 	} else {
 		bundles = [];
 	}
@@ -112,7 +98,7 @@ export async function run<T extends ECompilerType = ECompilerType.Rspack>(
 	await Promise.all(results);
 }
 
-export async function check<T extends ECompilerType = ECompilerType.Rspack>(
+export async function check(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string
@@ -131,7 +117,7 @@ export async function check<T extends ECompilerType = ECompilerType.Rspack>(
 	const warnings: Array<{ message: string; stack?: string }> = [];
 
 	const stats = compiler.getStats();
-	const options = compiler.getOptions() as TCompilerOptions<T>;
+	const options = compiler.getOptions() as RspackOptions;
 	if (stats) {
 		if (testConfig.writeStatsOuptut) {
 			fs.writeFileSync(
@@ -196,9 +182,7 @@ export async function check<T extends ECompilerType = ECompilerType.Rspack>(
 	}
 }
 
-export async function checkSnapshot<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export async function checkSnapshot(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string,
@@ -216,14 +200,12 @@ export async function checkSnapshot<
 	const compiler = compilerManager.getCompiler();
 	if (!stats || !compiler) return;
 
-	const compilers: TCompiler<T>[] =
+	const compilers: Compiler[] =
 		"compilers" in compiler
-			? (compiler.compilers as unknown as TCompiler<T>[])
-			: [compiler as unknown as TCompiler<T>];
-	const totalStats: TCompilerStats<T>[] =
-		"stats" in stats
-			? (stats.stats as unknown as TCompilerStats<T>[])
-			: [stats as TCompilerStats<T>];
+			? (compiler.compilers as unknown as Compiler[])
+			: [compiler as unknown as Compiler];
+	const totalStats: Stats[] =
+		"stats" in stats ? (stats.stats as unknown as Stats[]) : [stats as Stats];
 	const total = compilers.length;
 	for (let i = 0; i < compilers.length; i++) {
 		const c = compilers[i];
@@ -239,10 +221,10 @@ export async function checkSnapshot<
 			);
 		}
 		const compilation =
-			(c as unknown as TCompiler<ECompilerType.Rspack>)._lastCompilation ||
+			(c as unknown as Compiler)._lastCompilation ||
 			(
-				c as unknown as TCompiler<ECompilerType.Webpack> & {
-					_lastCompilation: TCompilation<T>;
+				c as unknown as Compiler & {
+					_lastCompilation: Compilation;
 				}
 			)._lastCompilation;
 
@@ -290,15 +272,13 @@ export async function afterExecute(context: ITestContext, name: string) {
 	}
 }
 
-export function findMultiCompilerBundle<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export function findMultiCompilerBundle(
 	context: ITestContext,
 	name: string,
 	multiFindBundle: (
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: RspackOptions
 	) => string[] | string | void
 ) {
 	if (typeof multiFindBundle !== "function") {
@@ -308,7 +288,7 @@ export function findMultiCompilerBundle<
 	const multiCompilerOptions = (context.getValue(
 		name,
 		"multiCompilerOptions"
-	) || []) as TCompilerOptions<T>[];
+	) || []) as RspackOptions[];
 	const result: string[] = [];
 	const multiFileIndexMap: Record<string, number[]> =
 		context.getValue(name, "multiFileIndexMap") || {};
@@ -337,21 +317,19 @@ export function findMultiCompilerBundle<
 	return result;
 }
 
-export function configMultiCompiler<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export function configMultiCompiler(
 	context: ITestContext,
 	name: string,
 	configFiles: string[],
-	defaultOptions: (index: number, context: ITestContext) => TCompilerOptions<T>,
+	defaultOptions: (index: number, context: ITestContext) => RspackOptions,
 	overrideOptions: (
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<T>
+		options: RspackOptions
 	) => void
 ) {
-	const multiCompilerOptions: TCompilerOptions<T>[] = [];
-	const caseOptions: TCompilerOptions<T>[] = Array.isArray(configFiles)
+	const multiCompilerOptions: RspackOptions[] = [];
+	const caseOptions: RspackOptions[] = Array.isArray(configFiles)
 		? readConfigFile(
 				configFiles!.map(i => context.getSource(i)),
 				context,
@@ -364,10 +342,10 @@ export function configMultiCompiler<
 								env: undefined
 							};
 
-							return c(options.env, options) as TCompilerOptions<T>;
+							return c(options.env, options) as RspackOptions;
 						}
 
-						return c as TCompilerOptions<T>;
+						return c as RspackOptions;
 					});
 				}
 			)

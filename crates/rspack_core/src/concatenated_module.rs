@@ -44,9 +44,9 @@ use crate::{
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
   DependencyType, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, IdentCollector, InitFragment, InitFragmentStage, LibIdentOptions,
-  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  GetUsedNameParam, IdentCollector, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, define_es_module_flag_statement,
@@ -757,6 +757,7 @@ impl Module for ConcatenatedModule {
       &compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       runtime,
+      &compilation.imported_by_defer_modules_artifact,
     );
 
     // Set with modules that need a generated namespace object
@@ -1606,7 +1607,10 @@ impl Module for ConcatenatedModule {
               };
               if let Some(deferred_info) = module_to_info_map.get(target_module)
                 && let Some(deferred_info) = deferred_info.try_as_external()
-                && module_graph.is_deferred(target_module)
+                && module_graph.is_deferred(
+                  &compilation.imported_by_defer_modules_artifact,
+                  target_module,
+                )
               {
                 result.add(RawStringSource::from(format!(
                   "\n// non-deferred import to a deferred module ({})\nvar {} = {}.a;",
@@ -1913,6 +1917,7 @@ impl ConcatenatedModule {
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
+    imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
   ) -> (
     Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
     IdentifierIndexMap<ModuleInfo>,
@@ -1959,7 +1964,7 @@ impl ConcatenatedModule {
                 interop_default_access_used: false,
                 interop_default_access_name: None,
                 name: None,
-                deferred: mg.is_deferred(&module_id),
+                deferred: mg.is_deferred(imported_by_defer_modules_artifact, &module_id),
                 deferred_namespace_object_name: None,
                 deferred_namespace_object_used: false,
                 deferred_name: None,
