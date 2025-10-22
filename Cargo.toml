@@ -113,6 +113,17 @@ wasmparser          = { version = "0.222.0", default-features = false }
 winnow              = { version = "0.7.12", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.14", default-features = false }
 
+allocative       = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = [
+  "camino",
+  "dashmap",
+  "hashbrown",
+  "indexmap",
+  "tokio",
+  "once_cell",
+  "ustr",
+  "atomic_refcell",
+] }
+
 # Pinned
 napi        = { version = "3.1.6", default-features = false }
 napi-build  = { version = "2.2.3", default-features = false }
@@ -417,6 +428,10 @@ trivial_numeric_casts                  = "warn"
 unused_import_braces                   = "warn"
 unused_lifetimes                       = "warn"
 unused_macro_rules                     = "warn"
+
+[workspace.lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']
 
 [workspace.lints.clippy]
 cargo_common_metadata   = "allow"

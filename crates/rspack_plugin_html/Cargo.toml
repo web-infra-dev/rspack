@@ -5,6 +5,7 @@ license           = "MIT"
 name              = "rspack_plugin_html"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
 [features]
 default = []
 
@@ -34,3 +35,7 @@ urlencoding       = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']

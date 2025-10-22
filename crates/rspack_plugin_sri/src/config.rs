@@ -6,6 +6,8 @@ use rspack_core::CrossOriginLoading;
 use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8PathBuf;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::integrity::SubresourceIntegrityHashFunction;
@@ -40,7 +42,10 @@ pub struct SubresourceIntegrityPluginOptions {
 }
 
 pub type ArcFs = Arc<dyn WritableFileSystem + Send + Sync>;
+
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SRICompilationContext {
+  #[cfg_attr(allocative, allocative(skip))]
   pub fs: ArcFs,
   pub output_path: Utf8PathBuf,
   pub cross_origin_loading: CrossOriginLoading,

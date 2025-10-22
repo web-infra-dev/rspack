@@ -1107,6 +1107,16 @@ dependencies = [
 
 [[package]]
 name = "ctor"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d2301688392eb071b0bf1a37be05c469d3cc4dbbd95df672fe28ab021e6a096"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ctor"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e9666f4a9a948d4f1dff0c08a4512b0f7c86414b23960104c243c10d79f4c3"
@@ -2493,7 +2503,7 @@ checksum = "3f995fe29e20a4d5bf5af93d3c8384fd53772bbbc1bf3b03e38dce2b1b0425e3"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
- "ctor",
+ "ctor 0.4.1",
  "napi-build",
  "napi-sys",
  "nohash-hasher",
@@ -2516,7 +2526,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e6d190d5e09d449b2b38127cdcdb7aed860599e492a15c73f977d5d87df69a5"
 dependencies = [
  "convert_case 0.8.0",
- "ctor",
+ "ctor 0.4.1",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -3427,6 +3437,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack-allocative"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "942dd788eb5b967d155baa21e4699e4a164e2b217a236ded02f22d86564730a4"
+dependencies = [
+ "atomic_refcell",
+ "camino",
+ "ctor 0.1.26",
+ "dashmap 6.1.0",
+ "hashbrown 0.14.5",
+ "indexmap",
+ "once_cell",
+ "rspack-allocative_derive",
+ "tokio",
+ "ustr-fxhash",
+]
+
+[[package]]
+name = "rspack-allocative_derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "125d6c4fea52a20e2baaa381c122e111a825ac4c3cccdbb50605805f025d7197"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.95",
+]
+
+[[package]]
 name = "rspack-libmimalloc-sys"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3549,6 +3588,7 @@ dependencies = [
  "rspack_resolver",
  "rspack_tasks",
  "rspack_tracing",
+ "rspack_tracing_perfetto",
  "rspack_util",
  "rspack_workspace",
  "rustc-hash",
@@ -3626,6 +3666,7 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "rkyv 0.8.8",
+ "rspack-allocative",
  "rspack_macros",
  "rspack_resolver",
  "rspack_sources",
@@ -3663,6 +3704,7 @@ dependencies = [
  "hashlink",
  "indexmap",
  "rayon",
+ "rspack-allocative",
  "rspack_cacheable",
  "serde",
  "ustr-fxhash",
@@ -4987,6 +5029,7 @@ dependencies = [
  "bytes",
  "micromegas-perfetto",
  "prost",
+ "rspack-allocative",
  "tracing",
  "tracing-subscriber",
 ]
@@ -5006,6 +5049,7 @@ dependencies = [
  "once_cell",
  "regex",
  "ropey",
+ "rspack-allocative",
  "rspack_cacheable",
  "rspack_paths",
  "rspack_regex",
