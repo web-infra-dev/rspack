@@ -14,20 +14,19 @@ export interface ITestContext {
 	getDist(sub?: string): string;
 	getTemp(sub?: string): string | null;
 
-	getCompiler(name: string): ITestCompilerManager;
-	closeCompiler(name: string): Promise<void>;
+	getCompiler(): ITestCompilerManager;
+	closeCompiler(): Promise<void>;
 
 	getTestConfig(): TTestConfig;
-	getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
+	getRunner(file: string, env: ITestEnv): ITestRunner;
 
-	setValue<T>(name: string, key: string, value: T): void;
-	getValue<T>(name: string, key: string): T | void;
-	getNames(): string[];
+	setValue<T>(key: string, value: T): void;
+	getValue<T>(key: string): T | void;
 
-	hasError(name?: string): boolean;
-	emitError(name: string, err: Error | string): void;
-	getError(name?: string): Error[];
-	clearError(name?: string): void;
+	hasError(): boolean;
+	emitError(err: Error | string): void;
+	getError(): Error[];
+	clearError(): void;
 }
 
 export interface ITestCompilerManager {

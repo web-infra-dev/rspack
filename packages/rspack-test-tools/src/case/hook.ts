@@ -15,7 +15,7 @@ import merge from "webpack-merge";
 import { TestContext, type TTestContextOptions } from "../test/context";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv, ITesterConfig } from "../type";
-import { build, checkSnapshot, compiler, config, getCompiler } from "./common";
+import { build, checkSnapshot, compiler, config } from "./common";
 
 const srcDir = __TEST_FIXTURES_PATH__;
 const distDir = path.resolve(__TEST_DIST_PATH__, "hook");
@@ -30,7 +30,7 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					const options = await config(
 						context,
 						name,
@@ -88,7 +88,8 @@ export function createHookCase(
 		createContext: (config: ITesterConfig) =>
 			new HookCasesContext(src, testName, {
 				src: source,
-				dist: dist
+				dist: dist,
+				name: name
 			})
 	});
 }

@@ -5,7 +5,7 @@ import { merge } from "webpack-merge";
 import { isJavaScript } from "../helper";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { build, checkSnapshot, compiler, getCompiler } from "./common";
+import { build, checkSnapshot, compiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -19,7 +19,7 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					compiler.setOptions(defaultOptions(context));
 				},
 				compiler: async (context: ITestContext) => {

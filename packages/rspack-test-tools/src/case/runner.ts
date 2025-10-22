@@ -1,7 +1,6 @@
 import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import { NodeRunner, WebRunner } from "../runner";
 import type { ITestContext, ITestEnv, ITestRunner } from "../type";
-import { getCompiler } from "./common";
 
 export type THotStepRuntimeLangData = {
 	outdatedModules: string[];
@@ -24,7 +23,7 @@ export function cachedStats(
 	context: ITestContext,
 	name: string
 ): () => StatsCompilation {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	const statsGetter = (() => {
 		let cached: StatsCompilation | null = null;
 		return () => {
@@ -46,7 +45,7 @@ export function createRunner(
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const testConfig = context.getTestConfig();
 	const compilerOptions = compiler.getOptions() as RspackOptions;
 	const runnerOptions = {
@@ -79,8 +78,8 @@ function getFileIndexHandler(
 	file: string
 ) {
 	const multiFileIndexMap: Record<string, number[]> =
-		context.getValue(name, "multiFileIndexMap") || {};
-	const runned = (context.getValue(name, "runned") as Set<string>) || new Set();
+		context.getValue("multiFileIndexMap") || {};
+	const runned = (context.getValue("runned") as Set<string>) || new Set();
 	if (typeof multiFileIndexMap[file] === "undefined") {
 		throw new Error("Unexpect file in multiple runner");
 	}
@@ -93,7 +92,7 @@ function getFileIndexHandler(
 	}
 	const getIndex = () => [indexList[seq], seq];
 	const flagIndex = () => runned.add(`${name}:${file}[${seq}]`);
-	context.setValue(name, "runned", runned);
+	context.setValue("runned", runned);
 	return { getIndex, flagIndex };
 }
 
@@ -116,7 +115,7 @@ export function createMultiCompilerRunner(
 	const testConfig = context.getTestConfig();
 	const { getIndex, flagIndex } = getFileIndexHandler(context, name, file);
 	const multiCompilerOptions: RspackOptions[] =
-		context.getValue(name, "multiCompilerOptions") || [];
+		context.getValue("multiCompilerOptions") || [];
 	const [index] = getIndex();
 	const compilerOptions = multiCompilerOptions[index];
 	let runner;
