@@ -4,7 +4,7 @@ use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind};
-use crate::watcher::{EventBatch, paths::PathManager};
+use crate::{EventBatch, paths::PathManager};
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
 ///

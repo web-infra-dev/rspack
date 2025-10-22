@@ -6,7 +6,7 @@ use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
-use crate::watcher::paths::PathAccessor;
+use crate::paths::PathAccessor;
 
 #[derive(Default)]
 /// The `WatcherRootAnalyzer` is an implementation of the `Analyzer` trait that
@@ -152,7 +152,7 @@ mod tests {
   use rspack_paths::ArcPath;
 
   use super::*;
-  use crate::watcher::paths::PathManager;
+  use crate::paths::PathManager;
 
   #[test]
   fn test_find_watch_root() {

@@ -3,7 +3,7 @@ use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use super::{Analyzer, WatchPattern};
-use crate::watcher::paths::PathAccessor;
+use crate::paths::PathAccessor;
 
 /// `WatcherDirectoriesAnalyzer` analyzes the path register and determines
 ///
@@ -66,7 +66,7 @@ impl WatcherDirectoriesAnalyzer {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::watcher::paths::PathManager;
+  use crate::paths::PathManager;
 
   #[test]
   fn test_find_watch_directories() {

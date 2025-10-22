@@ -236,6 +236,7 @@ rspack_tasks                           = { version = "=0.6.0-beta.0", path = "cr
 rspack_tracing                         = { version = "=0.6.0-beta.0", path = "crates/rspack_tracing", default-features = false }
 rspack_tracing_perfetto                = { version = "=0.6.0-beta.0", path = "crates/rspack_tracing_perfetto", default-features = false }
 rspack_util                            = { version = "=0.6.0-beta.0", path = "crates/rspack_util", default-features = false }
+rspack_watcher                         = { version = "=0.6.0-beta.0", path = "crates/rspack_watcher", default-features = false }
 rspack_workspace                       = { version = "=0.6.0-beta.0", path = "crates/rspack_workspace", default-features = false }
 
 [workspace.metadata.release]
