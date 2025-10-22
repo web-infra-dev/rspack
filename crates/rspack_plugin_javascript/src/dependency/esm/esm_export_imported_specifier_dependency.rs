@@ -1323,7 +1323,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     let ids = self.get_ids(module_graph);
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(&**module)
+      .get_effective_export_presence(&***module)
     {
       let mut diagnostics = Vec::new();
       // don't need to check the import specifier is existed or not when name is None (export *)

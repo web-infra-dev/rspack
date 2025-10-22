@@ -249,7 +249,7 @@ fn collect_module_exports_specs(
     }
   }
 
-  let block = &**mg.module_by_identifier(module_id)?;
+  let block = &***mg.module_by_identifier(module_id)?;
   let mut dep_ids = FxIndexSet::default();
   walk_block(block, &mut dep_ids, mg);
 

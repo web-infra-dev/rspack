@@ -1,7 +1,7 @@
 use rspack_core::{
   BoxModule, Compilation, CompilationParams, CompilerCompilation, Context, DependencyType,
-  LibIdentOptions, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryFactorize,
-  NormalModuleFactoryModule, Plugin,
+  LibIdentOptions, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -87,7 +87,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
       );
 
       if let Some(resolved) = self.options.content.get(&inner_request) {
-        return Ok(Some(Box::new(DelegatedModule::new(
+        return Ok(Some(DelegatedModule::new(
           self.options.source.clone(),
           resolved.clone(),
           self.options.r#type.clone(),
@@ -100,7 +100,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         let request_plus_ext = format!("{inner_request}{extension}");
 
         if let Some(resolved) = self.options.content.get(&request_plus_ext) {
-          return Ok(Some(Box::new(DelegatedModule::new(
+          return Ok(Some(DelegatedModule::new(
             self.options.source.clone(),
             resolved.clone(),
             self.options.r#type.clone(),
@@ -132,7 +132,7 @@ async fn nmf_module(
       context: &self.options.compilation_context,
     });
 
-    *module = Box::new(DelegatedModule::new(
+    *module = DelegatedModule::new(
       self.options.source.clone(),
       resolved.clone(),
       self.options.r#type.clone(),
