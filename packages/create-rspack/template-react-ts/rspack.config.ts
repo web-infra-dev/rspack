@@ -51,7 +51,7 @@ export default defineConfig({
 			template: "./index.html"
 		}),
 		isDev ? new ReactRefreshRspackPlugin() : null
-	].filter(Boolean),
+	],
 	optimization: {
 		minimizer: [
 			new rspack.SwcJsMinimizerRspackPlugin(),
