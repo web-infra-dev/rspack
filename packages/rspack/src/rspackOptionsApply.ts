@@ -44,7 +44,6 @@ import {
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
 	JsonModulesPlugin,
-	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
 	ModuleConcatenationPlugin,
@@ -58,6 +57,7 @@ import {
 	OccurrenceChunkIdsPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
+	RenameExportsPlugin,
 	RuntimeChunkPlugin,
 	RuntimePlugin,
 	SideEffectsFlagPlugin,
@@ -278,10 +278,14 @@ export class RspackOptionsApply {
 		if (options.optimization.concatenateModules) {
 			new ModuleConcatenationPlugin().apply(compiler);
 		}
-		if (options.optimization.mangleExports) {
-			new MangleExportsPlugin(
-				options.optimization.mangleExports !== "size"
-			).apply(compiler);
+		// TODO: add optimization.inlineExports when inlineConst and inlineEnum is stable
+		const inlineExports =
+			options.experiments.inlineConst || options.experiments.inlineEnum;
+		if (options.optimization.mangleExports || inlineExports) {
+			new RenameExportsPlugin({
+				mangleExports: options.optimization.mangleExports ?? false,
+				inlineExports: inlineExports ?? false
+			}).apply(compiler);
 		}
 
 		if (

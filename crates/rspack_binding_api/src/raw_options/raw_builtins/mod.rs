@@ -17,6 +17,7 @@ mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_normal_replacement;
 mod raw_progress;
+mod raw_rename_exports;
 mod raw_runtime_chunk;
 mod raw_size_limits;
 mod raw_sri;
@@ -65,7 +66,7 @@ use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
+  ModuleConcatenationPlugin, RenameExportsPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
   define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
@@ -129,7 +130,10 @@ use crate::{
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
-    SourceMapDevToolPluginOptions, raw_builtins::raw_esm_lib::RawEsmLibraryPlugin,
+    SourceMapDevToolPluginOptions,
+    raw_builtins::{
+      raw_esm_lib::RawEsmLibraryPlugin, raw_rename_exports::RawRenameExportsPluginOptions,
+    },
   },
   rslib::RawRslibPluginOptions,
 };
@@ -196,7 +200,7 @@ pub enum BuiltinPluginName {
   SideEffectsFlagPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
-  MangleExportsPlugin,
+  RenameExportsPlugin,
   ModuleConcatenationPlugin,
   CssModulesPlugin,
   APIPlugin,
@@ -609,10 +613,11 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      BuiltinPluginName::MangleExportsPlugin => plugins.push(
-        MangleExportsPlugin::new(
-          downcast_into::<bool>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+      BuiltinPluginName::RenameExportsPlugin => plugins.push(
+        RenameExportsPlugin::new(
+          downcast_into::<RawRenameExportsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed(),
       ),

@@ -46,7 +46,7 @@ use rspack_core::{
   GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  MangleExportsOptions, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
   OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
   RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
@@ -3190,7 +3190,9 @@ pub struct OptimizationOptionsBuilder {
   /// Whether to enable inner graph.
   inner_graph: Option<bool>,
   /// Whether to enable mangle exports.
-  mangle_exports: Option<MangleExportsOption>,
+  mangle_exports: Option<MangleExportsOptions>,
+  /// Whether to enable inline exports.
+  inline_exports: Option<bool>,
   /// Whether to enable concatenate modules.
   concatenate_modules: Option<bool>,
   /// Whether to enable real content hash.
@@ -3215,6 +3217,7 @@ impl From<Optimization> for OptimizationOptionsBuilder {
       used_exports: Some(value.used_exports),
       inner_graph: Some(value.inner_graph),
       mangle_exports: Some(value.mangle_exports),
+      inline_exports: Some(value.inline_exports),
       concatenate_modules: Some(value.concatenate_modules),
       avoid_entry_iife: Some(value.avoid_entry_iife),
       remove_empty_chunks: None,
@@ -3246,6 +3249,7 @@ impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
       used_exports: value.used_exports.take(),
       inner_graph: value.inner_graph.take(),
       mangle_exports: value.mangle_exports.take(),
+      inline_exports: value.inline_exports.take(),
       concatenate_modules: value.concatenate_modules.take(),
       real_content_hash: value.real_content_hash.take(),
       avoid_entry_iife: value.avoid_entry_iife.take(),
@@ -3543,16 +3547,22 @@ impl OptimizationOptionsBuilder {
 
     let mangle_exports = f!(self.mangle_exports.take(), || {
       if production {
-        MangleExportsOption::Deterministic
+        MangleExportsOptions::Enabled {
+          deterministic: true,
+        }
       } else {
-        MangleExportsOption::False
+        MangleExportsOptions::Disabled
       }
     });
-    if mangle_exports.is_enable() {
+    let inline_exports = d!(self.inline_exports.take(), false);
+    if matches!(mangle_exports, MangleExportsOptions::Enabled { .. }) || inline_exports {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::MangleExportsPlugin(
-          mangle_exports != MangleExportsOption::Size,
+        .push(BuiltinPluginOptions::RenameExportsPlugin(
+          RenameExportsPluginOptions {
+            inline_exports,
+            mangle_exports,
+          },
         ));
     }
     let provided_exports = d!(self.provided_exports, true);
@@ -3644,6 +3654,7 @@ impl OptimizationOptionsBuilder {
       used_exports,
       inner_graph,
       mangle_exports,
+      inline_exports,
       concatenate_modules,
       avoid_entry_iife,
       real_content_hash,

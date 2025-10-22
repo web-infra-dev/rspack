@@ -565,7 +565,7 @@ export declare enum BuiltinPluginName {
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
-  MangleExportsPlugin = 'MangleExportsPlugin',
+  RenameExportsPlugin = 'RenameExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
   APIPlugin = 'APIPlugin',
@@ -2539,7 +2539,7 @@ export interface RawOptimizationOptions {
   providedExports: boolean
   innerGraph: boolean
   realContentHash: boolean
-  mangleExports: boolean | string
+  mangleExports: boolean | "size" | "deterministic"
   concatenateModules: boolean
   avoidEntryIife: boolean
 }
@@ -2654,6 +2654,11 @@ export interface RawRemoteOptions {
   key: string
   external: Array<string>
   shareScope: string
+}
+
+export interface RawRenameExportsPluginOptions {
+  mangleExports: boolean | "size" | "deterministic"
+  inlineExports: boolean
 }
 
 export interface RawResolveOptions {

@@ -60,7 +60,7 @@ pub(super) enum BuiltinPluginOptions {
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin(bool),
   ModuleConcatenationPlugin,
-  MangleExportsPlugin(bool),
+  RenameExportsPlugin(rspack_plugin_javascript::RenameExportsPluginOptions),
 
   // Experiments
   // TODO: support lazy compilation
@@ -260,8 +260,8 @@ impl BuilderContext {
       BuiltinPluginOptions::ModuleConcatenationPlugin => {
         plugins.push(rspack_plugin_javascript::ModuleConcatenationPlugin::default().boxed());
       }
-      BuiltinPluginOptions::MangleExportsPlugin(value) => {
-        plugins.push(rspack_plugin_javascript::MangleExportsPlugin::new(value).boxed())
+      BuiltinPluginOptions::RenameExportsPlugin(options) => {
+        plugins.push(rspack_plugin_javascript::RenameExportsPlugin::new(options).boxed())
       }
 
       // Experiments

@@ -93,30 +93,13 @@ impl UsedExportsOption {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum MangleExportsOption {
+#[derive(Debug, Clone, Copy, Default)]
+pub enum MangleExportsOptions {
   #[default]
-  False,
-  True,
-  Deterministic,
-  Size,
-}
-
-impl MangleExportsOption {
-  pub fn is_enable(&self) -> bool {
-    !matches!(self, Self::False)
-  }
-}
-
-impl From<&str> for MangleExportsOption {
-  fn from(value: &str) -> Self {
-    match value {
-      "true" => Self::True,
-      "size" => Self::Size,
-      "deterministic" => Self::Deterministic,
-      _ => Self::False,
-    }
-  }
+  Disabled,
+  Enabled {
+    deterministic: bool,
+  },
 }
 
 // BE CAREFUL:
@@ -129,7 +112,8 @@ pub struct Optimization {
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
   pub inner_graph: bool,
-  pub mangle_exports: MangleExportsOption,
+  pub mangle_exports: MangleExportsOptions,
+  pub inline_exports: bool,
   pub concatenate_modules: bool,
   pub avoid_entry_iife: bool,
   pub real_content_hash: bool,

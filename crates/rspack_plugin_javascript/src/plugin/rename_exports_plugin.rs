@@ -4,9 +4,10 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, incremental::IncrementalPasses,
+  BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, EvaluatedInlinableValue,
+  ExportInfo, ExportProvided, ExportsInfo, ExportsInfoGetter, MangleExportsOptions, ModuleGraph,
+  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -18,51 +19,67 @@ use crate::utils::mangle_exports::{
   NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
-fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
+fn can_rename(
+  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  inline_exports: bool,
+  mangle_exports: bool,
+) -> bool {
   if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
     return false;
   }
-  let mut has_something_to_mangle = false;
+  let mut has_something_to_rename = false;
   for (_, export_info) in exports_info.exports() {
-    if export_info.can_mangle() == Some(true) {
-      has_something_to_mangle = true;
+    if inline_exports && export_info.can_inline() == Some(true) {
+      has_something_to_rename = true;
+      break;
+    }
+    if mangle_exports && export_info.can_mangle() == Some(true) {
+      has_something_to_rename = true;
+      break;
     }
   }
-  has_something_to_mangle
+  has_something_to_rename
+}
+
+#[derive(Debug)]
+pub struct RenameExportsPluginOptions {
+  pub inline_exports: bool,
+  pub mangle_exports: MangleExportsOptions,
 }
 
 /// Struct to represent the mangle exports plugin.
 #[plugin]
 #[derive(Debug)]
-pub struct MangleExportsPlugin {
-  deterministic: bool,
+pub struct RenameExportsPlugin {
+  options: RenameExportsPluginOptions,
 }
 
-impl MangleExportsPlugin {
-  pub fn new(deterministic: bool) -> Self {
-    Self::new_inner(deterministic)
+impl RenameExportsPlugin {
+  pub fn new(options: RenameExportsPluginOptions) -> Self {
+    Self::new_inner(options)
   }
 }
 
 #[derive(Debug)]
-enum Manglable {
-  CanNotMangle(Atom),
+enum Renameable {
+  CanNotRename(Atom),
+  CanInline(EvaluatedInlinableValue),
   CanMangle(Atom),
-  Mangled,
+  Renamed,
 }
 
 #[derive(Debug)]
 struct ExportInfoCache {
   id: ExportInfo,
   exports_info: Option<ExportsInfo>,
-  can_mangle: Manglable,
+  can_rename: Renameable,
 }
 
-#[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
+#[plugin_hook(CompilationOptimizeCodeGeneration for RenameExportsPlugin)]
 async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
-    "MangleExportsPlugin (optimization.mangleExports = true)",
+    "RenameExportsPlugin (optimization.mangleExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
     if let Some(diagnostic) = diagnostic {
@@ -75,6 +92,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
   // We don't do that cause we don't have this option
   let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
+  let deterministic = matches!(self.options.mangle_exports, MangleExportsOptions::Enabled { deterministic } if deterministic);
 
   let mut exports_info_cache = FxHashMap::default();
 
@@ -96,11 +114,17 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
       .par_iter()
       .filter_map(|(exports_info, is_namespace)| {
         let mut avoid_mangle_non_provided = !is_namespace;
-        let deterministic = self.deterministic;
         let exports_info_data =
           ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
         let export_list = {
-          if !can_mangle(&exports_info_data) {
+          if !can_rename(
+            &exports_info_data,
+            self.options.inline_exports,
+            matches!(
+              self.options.mangle_exports,
+              MangleExportsOptions::Enabled { .. }
+            ),
+          ) {
             return None;
           }
           if !avoid_mangle_non_provided && deterministic {
@@ -113,35 +137,34 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
           }
           exports_info_data
             .exports()
-            .map(|(_, export_info)| export_info)
-            .collect::<Vec<_>>()
-        };
-
-        Some((
-          *exports_info,
-          export_list
-            .iter()
-            .map(|export_info_data| {
-              let can_mangle = if !export_info_data.has_used_name() {
-                let name = export_info_data
-                  .name()
-                  .expect("the name of export_info inserted in exports_info can not be `None`")
-                  .clone();
-                let can_not_mangle = export_info_data.can_mangle() != Some(true)
-                  || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
-                  || (deterministic
-                    && name.len() == 2
-                    && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
-                  || (avoid_mangle_non_provided
-                    && !matches!(export_info_data.provided(), Some(ExportProvided::Provided)));
-
-                if can_not_mangle {
-                  Manglable::CanNotMangle(name)
+            .map(|(_, export_info_data)| {
+              let can_rename = if !export_info_data.has_used_name() {
+                if self.options.inline_exports && export_info_data.can_inline() == Some(true) {
+                  let inlined = export_info_data
+                    .can_inline_provide()
+                    .expect("should provide inlined value");
+                  Renameable::CanInline(inlined.clone())
                 } else {
-                  Manglable::CanMangle(name)
+                  let name = export_info_data
+                    .name()
+                    .expect("the name of export_info inserted in exports_info can not be `None`")
+                    .clone();
+                  let can_not_mangle = export_info_data.can_mangle() != Some(true)
+                    || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
+                    || (deterministic
+                      && name.len() == 2
+                      && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
+                    || (avoid_mangle_non_provided
+                      && !matches!(export_info_data.provided(), Some(ExportProvided::Provided)));
+
+                  if can_not_mangle {
+                    Renameable::CanNotRename(name)
+                  } else {
+                    Renameable::CanMangle(name)
+                  }
                 }
               } else {
-                Manglable::Mangled
+                Renameable::Renamed
               };
 
               let nested_exports_info = if export_info_data.exports_info_owned() {
@@ -158,11 +181,13 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
               ExportInfoCache {
                 id: export_info_data.id(),
                 exports_info: nested_exports_info,
-                can_mangle,
+                can_rename,
               }
             })
-            .collect_vec(),
-        ))
+            .collect_vec()
+        };
+
+        Some((*exports_info, export_list))
       })
       .collect::<Vec<_>>();
 
@@ -190,7 +215,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     let batch = tasks
       .into_par_iter()
       .map(|exports_info| {
-        mangle_exports_info(&mg, self.deterministic, exports_info, &exports_info_cache)
+        rename_exports_info(&mg, deterministic, exports_info, &exports_info_cache)
       })
       .collect::<Vec<_>>();
 
@@ -206,8 +231,15 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
   Ok(())
 }
 
-impl Plugin for MangleExportsPlugin {
+impl Plugin for RenameExportsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    if !matches!(
+      self.options.mangle_exports,
+      MangleExportsOptions::Enabled { .. }
+    ) && !self.options.inline_exports
+    {
+      return Ok(());
+    }
     ctx
       .compilation_hooks
       .optimize_code_generation
@@ -227,12 +259,12 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Function to mangle exports information.
-fn mangle_exports_info(
+fn rename_exports_info(
   mg: &ModuleGraph,
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
-) -> (Vec<(ExportInfo, Atom)>, Vec<ExportsInfo>) {
+) -> (Vec<(ExportInfo, UsedNameItem)>, Vec<ExportsInfo>) {
   let mut changes = vec![];
   let mut nested_exports = vec![];
   let mut used_names = FxHashSet::default();
@@ -244,16 +276,22 @@ fn mangle_exports_info(
   let mut mangleable_export_names = FxHashMap::default();
 
   for export_info in export_list {
-    match &export_info.can_mangle {
-      Manglable::CanNotMangle(name) => {
-        changes.push((export_info.id.clone(), name.clone()));
+    match &export_info.can_rename {
+      Renameable::CanNotRename(name) => {
+        changes.push((export_info.id.clone(), UsedNameItem::Str(name.clone())));
         used_names.insert(name.to_string());
       }
-      Manglable::CanMangle(name) => {
+      Renameable::CanInline(inlined) => {
+        changes.push((
+          export_info.id.clone(),
+          UsedNameItem::Inlined(inlined.clone()),
+        ));
+      }
+      Renameable::CanMangle(name) => {
         mangleable_export_names.insert(export_info.id.clone(), name.clone());
         mangleable_exports.push(export_info.id.clone());
       }
-      Manglable::Mangled => {}
+      Renameable::Renamed => {}
     }
 
     if let Some(nested_exports_info) = export_info.exports_info {
@@ -298,7 +336,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      changes.push((export_info, name.into()));
+      changes.push((export_info, UsedNameItem::Str(name.into())));
     }
   } else {
     let mut used_exports = Vec::new();
@@ -337,7 +375,7 @@ fn mangle_exports_info(
           }
           i += 1;
         }
-        changes.push((export_info, name.into()));
+        changes.push((export_info, UsedNameItem::Str(name.into())));
       }
     }
   }

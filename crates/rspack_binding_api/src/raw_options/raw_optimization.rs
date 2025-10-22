@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{MangleExportsOption, Optimization, SideEffectOption, UsedExportsOption};
+use rspack_core::{MangleExportsOptions, Optimization, SideEffectOption, UsedExportsOption};
 
 use super::WithBool;
 
@@ -14,8 +14,8 @@ pub struct RawOptimizationOptions {
   pub provided_exports: bool,
   pub inner_graph: bool,
   pub real_content_hash: bool,
-  #[napi(ts_type = "boolean | string")]
-  pub mangle_exports: WithBool<String>,
+  #[napi(ts_type = r#"boolean | "size" | "deterministic""#)]
+  pub mangle_exports: RawMangleExportsOptions,
   pub concatenate_modules: bool,
   pub avoid_entry_iife: bool,
 }
@@ -35,7 +35,6 @@ macro_rules! impl_from_with_bool {
 }
 
 impl_from_with_bool!(UsedExportsOption);
-impl_from_with_bool!(MangleExportsOption);
 impl_from_with_bool!(SideEffectOption);
 
 impl TryFrom<RawOptimizationOptions> for Optimization {
@@ -49,9 +48,26 @@ impl TryFrom<RawOptimizationOptions> for Optimization {
       used_exports: value.used_exports.into(),
       inner_graph: value.inner_graph,
       mangle_exports: value.mangle_exports.into(),
+      inline_exports: false, // Pass from RawOptimization.inline_exports when inlineConst and inlineEnum is stable
       concatenate_modules: value.concatenate_modules,
       avoid_entry_iife: value.avoid_entry_iife,
       real_content_hash: value.real_content_hash,
     })
+  }
+}
+
+pub type RawMangleExportsOptions = WithBool<String>;
+
+impl From<RawMangleExportsOptions> for MangleExportsOptions {
+  fn from(value: RawMangleExportsOptions) -> Self {
+    match value {
+      WithBool::True => Self::Enabled {
+        deterministic: true,
+      },
+      WithBool::False => Self::Disabled,
+      WithBool::Value(value) => Self::Enabled {
+        deterministic: value != "size",
+      },
+    }
   }
 }

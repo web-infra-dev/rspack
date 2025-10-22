@@ -13,8 +13,8 @@ mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
-mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
+mod rename_exports_plugin;
 mod side_effects_flag_plugin;
 pub mod url_plugin;
 
@@ -22,8 +22,8 @@ pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
-pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
+pub use rename_exports_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
