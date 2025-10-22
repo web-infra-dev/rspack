@@ -448,7 +448,7 @@ impl Module for NormalModule {
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
       current_loader: Default::default(),
-      extract_source_map: self.extract_source_map,
+      extract_source_map: self.inner().extract_source_map,
     });
 
     let compiler_id = build_context.compiler_id;
