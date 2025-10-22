@@ -41,11 +41,11 @@ use crate::{
   CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
   EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
-  ImportVarMap, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats, ValueCacheVersions,
+  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
@@ -261,6 +261,7 @@ pub struct Compilation {
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -373,6 +374,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       async_modules_artifact: Default::default(),
+      imported_by_defer_modules_artifact: Default::default(),
       dependencies_diagnostics_artifact: Default::default(),
       side_effects_optimize_artifact: Default::default(),
       module_ids_artifact: Default::default(),
