@@ -35,6 +35,7 @@ jobs:
           path: crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 20
