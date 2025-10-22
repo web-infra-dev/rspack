@@ -1,5 +1,10 @@
 import path from "node:path";
-import { Compilation, Compiler, type RspackOptions, sources } from "@rspack/core";
+import {
+	Compilation,
+	Compiler,
+	type RspackOptions,
+	sources
+} from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import {

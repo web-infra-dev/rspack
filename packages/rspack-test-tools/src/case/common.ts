@@ -5,11 +5,7 @@ import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import type {
-	ITestCompilerManager,
-	ITestContext,
-	ITestEnv
-} from "../type";
+import type { ITestCompilerManager, ITestContext, ITestEnv } from "../type";
 
 export function getCompiler(context: ITestContext, name: string) {
 	return context.getCompiler(name) as ITestCompilerManager;
