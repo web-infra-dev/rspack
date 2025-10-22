@@ -21,6 +21,7 @@ declare module "@rspack/binding" {
 Object.defineProperty(binding.KnownBuildInfo.prototype, util.inspect.custom, {
 	enumerable: true,
 	configurable: true,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 'this' is used via spread operator
 	value(this: binding.KnownBuildInfo): any {
 		return {
 			...this,
