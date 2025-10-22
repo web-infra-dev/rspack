@@ -1,4 +1,4 @@
-import React from "react";
+import React from "xreact";
 import ComponentC from "containerB/ComponentC";
 
 export default () => {
