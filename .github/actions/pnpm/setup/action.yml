@@ -15,7 +15,7 @@ runs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: ${{ inputs.node-version }}
-        mirror: ${{ runner.environment == 'self-hosted' && runner.os == 'Darwin' && 'https://npmmirror.com/mirrors/node' || '' }}
+        mirror: ${{ runner.environment == 'self-hosted' && runner.os == 'macOS' && 'https://npmmirror.com/mirrors/node' || '' }}
 
     - name: Enable corepack
       if: ${{ inputs.node-version != '16' }}
