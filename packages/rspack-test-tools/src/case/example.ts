@@ -52,7 +52,7 @@ function createExampleProcessor(name: string): ITestProcessor {
 						all: false,
 						errors: true,
 						errorDetails: true,
-						errorStacks: true
+						errorStack: true
 					})
 				);
 			}

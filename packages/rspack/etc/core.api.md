@@ -4870,10 +4870,15 @@ export class MultiStats {
     // (undocumented)
     stats: Stats[];
     // (undocumented)
-    toJson(options: any): StatsCompilation;
+    toJson(options: boolean | StatsPresets | MultiStatsOptions): StatsCompilation;
     // (undocumented)
-    toString(options: any): string;
+    toString(options: boolean | StatsPresets | MultiStatsOptions): string;
 }
+
+// @public (undocumented)
+export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+    children?: StatsValue | (StatsValue | undefined)[];
+};
 
 // @public (undocumented)
 class MultiWatching {
@@ -6596,8 +6601,10 @@ declare namespace rspackExports {
         Loader,
         SnapshotOptions,
         CacheOptions,
+        StatsPresets,
         StatsColorOptions,
         StatsOptions,
+        MultiStatsOptions,
         StatsValue,
         RspackPluginInstance,
         RspackPluginFunction,
@@ -7451,7 +7458,7 @@ export type StatsOptions = {
     loggingDebug?: boolean | FilterTypes;
     loggingTrace?: boolean;
     runtimeModules?: boolean;
-    children?: boolean | StatsOptions | StatsPresets | StatsValue[];
+    children?: boolean;
     usedExports?: boolean;
     providedExports?: boolean;
     optimizationBailout?: boolean;
@@ -7504,7 +7511,7 @@ export type StatsOptions = {
 type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
 
 // @public (undocumented)
-type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
+export type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
 
 // @public (undocumented)
 class StatsPrinter {

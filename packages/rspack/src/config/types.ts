@@ -1742,7 +1742,7 @@ export type CacheOptions = boolean;
 
 //#region Stats
 
-type StatsPresets =
+export type StatsPresets =
 	| "normal"
 	| "none"
 	| "verbose"
@@ -1945,7 +1945,7 @@ export type StatsOptions = {
 	 * Enables or disables the display of children modules.
 	 * @default true
 	 */
-	children?: boolean | StatsOptions | StatsPresets | StatsValue[];
+	children?: boolean;
 	/**
 	 * Enables or disables the display of used exports.
 	 * @default false
@@ -2160,6 +2160,10 @@ export type StatsOptions = {
 	 * @default 5
 	 */
 	warningsSpace?: number;
+};
+
+export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+	children?: StatsValue | (StatsValue | undefined)[];
 };
 
 /**

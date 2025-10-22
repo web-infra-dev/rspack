@@ -9,6 +9,7 @@
  */
 
 import type { KnownCreateStatsOptionsContext } from "./Compilation";
+import type { MultiStatsOptions, StatsPresets } from "./config";
 import type { Stats } from "./Stats";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 import { indent } from "./util";
@@ -34,16 +35,19 @@ export default class MultiStats {
 	}
 
 	#createChildOptions(
-		options: { [x: string]: any; children?: any },
+		options: boolean | StatsPresets | MultiStatsOptions = {},
 		context: (KnownCreateStatsOptionsContext & Record<string, any>) | undefined
 	) {
 		const { children: childrenOptions = undefined, ...baseOptions } =
-			typeof options === "string" ? { preset: options } : options;
+			typeof options === "string" || typeof options === "boolean"
+				? { preset: options }
+				: options;
 
 		const children = this.stats.map((stat, idx) => {
 			const childOptions = Array.isArray(childrenOptions)
 				? childrenOptions[idx]
 				: childrenOptions;
+
 			return stat.compilation.createStatsOptions(
 				{
 					...baseOptions,
@@ -68,8 +72,8 @@ export default class MultiStats {
 		};
 	}
 
-	toJson(options: any) {
-		const childOptions = this.#createChildOptions(options || {}, {
+	toJson(options: boolean | StatsPresets | MultiStatsOptions) {
+		const childOptions = this.#createChildOptions(options, {
 			forToString: false
 		});
 
@@ -133,8 +137,8 @@ export default class MultiStats {
 		return obj;
 	}
 
-	toString(options: any) {
-		const childOptions = this.#createChildOptions(options || {}, {
+	toString(options: boolean | StatsPresets | MultiStatsOptions) {
+		const childOptions = this.#createChildOptions(options, {
 			forToString: true
 		});
 
