@@ -48,11 +48,16 @@ impl StartupChunkDependenciesPlugin {
   }
 
   fn is_async_enabled(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+    // Early return if MF async startup experiment is not enabled
+    if !compilation.options.experiments.mf_async_startup {
+      return false;
+    }
+
     if chunk_needs_mf_async_startup(compilation, chunk_ukey) {
       return true;
     }
 
-    if self.async_chunk_loading && compilation.options.experiments.mf_async_startup {
+    if self.async_chunk_loading {
       return true;
     }
 
@@ -74,7 +79,7 @@ impl StartupChunkDependenciesPlugin {
       .is_empty();
 
     Self::should_enable_async_startup(
-      compilation.options.experiments.mf_async_startup,
+      true, // We already checked mf_async_startup is true above
       has_federation_runtime,
       has_federation_handlers,
       has_remote_modules,
