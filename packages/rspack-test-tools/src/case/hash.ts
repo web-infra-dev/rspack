@@ -1,30 +1,21 @@
+import type { RspackOptions } from "@rspack/core";
 import {
 	BasicCaseCreator,
 	type IBasicCaseCreatorOptions
 } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITester,
-	TCompilerOptions,
-	TTestConfig
-} from "../type";
+import type { ITestContext, ITestEnv, ITester, TTestConfig } from "../type";
 import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
-export type THashCaseConfig = Pick<
-	TTestConfig<ECompilerType.Rspack>,
-	"validate"
->;
+export type THashCaseConfig = Pick<TTestConfig, "validate">;
 
-class HashCaseCreator<T extends ECompilerType> extends BasicCaseCreator<T> {
+class HashCaseCreator extends BasicCaseCreator {
 	protected describe(
 		name: string,
 		tester: ITester,
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	) {
 		it(`should print correct hash for ${name}`, async () => {
 			await tester.prepare();
@@ -69,10 +60,7 @@ export function createHashCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
 
-function defaultOptions(
-	index: number,
-	context: ITestContext
-): TCompilerOptions<ECompilerType.Rspack> {
+function defaultOptions(index: number, context: ITestContext): RspackOptions {
 	return {
 		context: context.getSource(),
 		output: {
@@ -93,7 +81,7 @@ function defaultOptions(
 function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	if (!options.entry) {
 		options.entry = "./index.js";

@@ -1,15 +1,7 @@
 import EventEmitter from "node:events";
+import type { Compiler, RspackOptions, Stats } from "@rspack/core";
 import merge from "webpack-merge";
-
-import {
-	ECompilerType,
-	type ITestCompilerManager,
-	type TCompiler,
-	type TCompilerFactories,
-	type TCompilerFactory,
-	type TCompilerOptions,
-	type TCompilerStats
-} from "./type";
+import type { ITestCompilerManager } from "./type";
 
 export enum ECompilerEvent {
 	Build = "build",
@@ -18,88 +10,63 @@ export enum ECompilerEvent {
 	Close = "close"
 }
 
-export const COMPILER_FACTORIES: TCompilerFactories<ECompilerType> = {
-	[ECompilerType.Rspack]: ((
-		options: TCompilerOptions<ECompilerType.Rspack>,
-		callback?: (
-			error: Error | null,
-			stats: TCompilerStats<ECompilerType.Rspack> | null
-		) => void
-	) =>
-		require("@rspack/core")(
-			options,
-			callback
-		)) as TCompilerFactory<ECompilerType>,
-	[ECompilerType.Webpack]: ((
-		options: TCompilerOptions<ECompilerType.Webpack>,
-		callback?: (
-			error: Error | null,
-			stats: TCompilerStats<ECompilerType.Webpack> | null
-		) => void
-	) => require("webpack")(options, callback)) as TCompilerFactory<ECompilerType>
-};
-export class TestCompilerManager<T extends ECompilerType>
-	implements ITestCompilerManager<T>
-{
-	protected compilerOptions: TCompilerOptions<T> = {} as TCompilerOptions<T>;
-	protected compilerInstance: TCompiler<T> | null = null;
-	protected compilerStats: TCompilerStats<T> | null = null;
+export class TestCompilerManager implements ITestCompilerManager {
+	protected compilerOptions: RspackOptions = {} as RspackOptions;
+	protected compilerInstance: Compiler | null = null;
+	protected compilerStats: Stats | null = null;
 	protected emitter: EventEmitter = new EventEmitter();
 
-	constructor(
-		protected type: T,
-		protected factories: TCompilerFactories<T> = COMPILER_FACTORIES
-	) {}
+	constructor() {}
 
-	getOptions(): TCompilerOptions<T> {
+	getOptions(): RspackOptions {
 		return this.compilerOptions;
 	}
 
-	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+	setOptions(newOptions: RspackOptions): RspackOptions {
 		this.compilerOptions = newOptions;
 		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
 		return this.compilerOptions;
 	}
 
-	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+	mergeOptions(newOptions: RspackOptions): RspackOptions {
 		this.compilerOptions = merge(this.compilerOptions, newOptions);
 		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
 		return this.compilerOptions;
 	}
 
-	getCompiler(): TCompiler<T> | null {
+	getCompiler(): Compiler | null {
 		return this.compilerInstance;
 	}
 
-	createCompiler(): TCompiler<T> {
-		this.compilerInstance = this.factories[this.type](
+	createCompiler(): Compiler {
+		this.compilerInstance = require("@rspack/core")(
 			this.compilerOptions
-		) as TCompiler<T>;
+		) as Compiler;
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
 		return this.compilerInstance;
 	}
 
 	createCompilerWithCallback(
-		callback: (error: Error | null, stats: TCompilerStats<T> | null) => void
-	): TCompiler<T> {
-		this.compilerInstance = this.factories[this.type](
+		callback: (error: Error | null, stats: Stats | null) => void
+	): Compiler {
+		this.compilerInstance = require("@rspack/core")(
 			this.compilerOptions,
 			callback
-		) as TCompiler<T>;
+		) as Compiler;
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
 		return this.compilerInstance;
 	}
 
-	build(): Promise<TCompilerStats<T>> {
+	build(): Promise<Stats> {
 		if (!this.compilerInstance)
 			throw new Error("Compiler should be created before build");
-		return new Promise<TCompilerStats<T>>((resolve, reject) => {
+		return new Promise<Stats>((resolve, reject) => {
 			try {
 				this.compilerInstance!.run((error, newStats) => {
 					this.emitter.emit(ECompilerEvent.Build, error, newStats);
 					if (error) return reject(error);
-					this.compilerStats = newStats as TCompilerStats<T>;
-					resolve(newStats as TCompilerStats<T>);
+					this.compilerStats = newStats as Stats;
+					resolve(newStats as Stats);
 				});
 			} catch (e) {
 				reject(e);
@@ -125,7 +92,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.emitter.emit(ECompilerEvent.Build, error, newStats);
 				if (error) return error;
 				if (newStats) {
-					this.compilerStats = newStats as TCompilerStats<T>;
+					this.compilerStats = newStats as Stats;
 				}
 				return newStats;
 			}

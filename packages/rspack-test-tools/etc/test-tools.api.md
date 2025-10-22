@@ -5,48 +5,46 @@
 ```ts
 
 import type { Compilation } from '@rspack/core';
-import type { Compilation as Compilation_2 } from 'webpack';
 import { Compiler } from '@rspack/core';
 import type { Compiler as Compiler_2 } from 'webpack';
-import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
 import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
-import type { MultiStats as MultiStats_2 } from 'webpack';
-import type { RspackOptions } from '@rspack/core';
-import type { Stats } from '@rspack/core';
-import type { Stats as Stats_2 } from 'webpack';
-import type { StatsCompilation } from '@rspack/core';
-import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
+import { RspackOptions } from '@rspack/core';
+import type { RspackOptionsNormalized } from '@rspack/core';
+import type { RspackPluginInstance } from '@rspack/core';
+import { Stats } from '@rspack/core';
+import { StatsCompilation } from '@rspack/core';
 import type { StatsError } from '@rspack/core';
+import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
-export class BasicCaseCreator<T extends ECompilerType> {
-    constructor(_options: IBasicCaseCreatorOptions<T>);
+export class BasicCaseCreator {
+    constructor(_options: IBasicCaseCreatorOptions);
     // (undocumented)
-    protected checkSkipped(src: string, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): boolean | string;
+    protected checkSkipped(src: string, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): boolean | string;
     // (undocumented)
     protected clean(folders: string[]): void;
     // (undocumented)
-    create(name: string, src: string, dist: string, temp?: string, caseOptions?: Partial<IBasicCaseCreatorOptions<T>>): ITester | undefined;
+    create(name: string, src: string, dist: string, temp?: string, caseOptions?: Partial<IBasicCaseCreatorOptions>): ITester | undefined;
     // (undocumented)
     protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv;
     // (undocumented)
-    protected createEnv(testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): ITestEnv;
+    protected createEnv(testConfig: TTestConfig, options: IBasicCaseCreatorOptions): ITestEnv;
     // (undocumented)
-    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): ITester;
+    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): ITester;
     // (undocumented)
     protected currentConcurrent: number;
     // (undocumented)
-    protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): void;
+    protected describe(name: string, tester: ITester, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): void;
     // (undocumented)
-    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>, options: IBasicCaseCreatorOptions<T>): void;
+    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): void;
     // (undocumented)
     protected getMaxConcurrent(concurrent?: number): number;
     // (undocumented)
-    protected _options: IBasicCaseCreatorOptions<T>;
+    protected _options: IBasicCaseCreatorOptions;
     // (undocumented)
-    protected readTestConfig(src: string): TTestConfig<T>;
+    protected readTestConfig(src: string): TTestConfig;
     // (undocumented)
     protected registerConcurrentTask(name: string, starter: () => void, concurrent?: number): () => void;
     // (undocumented)
@@ -63,10 +61,19 @@ export class BasicCaseCreator<T extends ECompilerType> {
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
+export function compareContent(sourceContent: string | false, distContent: string | false, compareOptions: ICompareOptions): TCompareResult;
+
+// @public (undocumented)
+export function compareFile(sourceFile: string, distFile: string, compareOptions: ICompareOptions): TFileCompareResult;
+
+// @public (undocumented)
+export function compareModules(modules: string[], sourceModules: Record<string, string>, distModules: Record<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
+
+// @public (undocumented)
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], temp: string): void;
+export function createCacheCase(name: string, src: string, dist: string, target: RspackOptions["target"], temp: string): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -84,6 +91,9 @@ export function createDevNormalCase(name: string, src: string, dist: string): vo
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createDiffCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
@@ -99,16 +109,16 @@ export function createHashCase(name: string, src: string, dist: string): void;
 export function createHookCase(name: string, src: string, dist: string, source: string): void;
 
 // @public (undocumented)
-export function createHotCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
-export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
 export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -152,6 +162,13 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
 }): void;
 
 // @public (undocumented)
+export class DiffComparator {
+    constructor(options: IDiffComparatorOptions);
+    // (undocumented)
+    compare(): Promise<void>;
+}
+
+// @public (undocumented)
 export enum ECompareResultType {
     // (undocumented)
     Different = "different",
@@ -163,14 +180,6 @@ export enum ECompareResultType {
     OnlySource = "only-source",
     // (undocumented)
     Same = "same"
-}
-
-// @public (undocumented)
-export enum ECompilerType {
-    // (undocumented)
-    Rspack = "rspack",
-    // (undocumented)
-    Webpack = "webpack"
 }
 
 // @public (undocumented)
@@ -187,10 +196,13 @@ export enum EEsmMode {
 export function escapeSep(str: string): string;
 
 // @public (undocumented)
-export function getRspackDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
+export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
-export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
+export function getRspackDefaultConfig(cwd: string, config: RspackOptions): RspackOptions;
+
+// @public (undocumented)
+export interface IBasicCaseCreatorOptions {
     // (undocumented)
     [key: string]: unknown;
     // (undocumented)
@@ -208,16 +220,34 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     runner?: TTestRunnerCreator;
     // (undocumented)
-    steps: (creatorConfig: IBasicCaseCreatorOptions<T> & {
+    steps: (creatorConfig: IBasicCaseCreatorOptions & {
         name: string;
         src: string;
         dist: string;
         temp: string | void;
     }) => ITestProcessor[];
     // (undocumented)
-    testConfig?: (testConfig: TTestConfig<T>) => void;
+    testConfig?: (testConfig: TTestConfig) => void;
     // (undocumented)
     timeout?: number;
+}
+
+// @public (undocumented)
+export interface ICompareOptions {
+    // (undocumented)
+    bootstrap?: boolean;
+    // (undocumented)
+    detail?: boolean;
+    // (undocumented)
+    format: IFormatCodeOptions;
+    // (undocumented)
+    modules?: TCompareModules;
+    // (undocumented)
+    renameModule?: (name: string) => string;
+    // (undocumented)
+    runtimeModules?: TCompareModules;
+    // (undocumented)
+    snapshot?: string;
 }
 
 // @public (undocumented)
@@ -226,6 +256,56 @@ interface IConcurrentTestEnv {
     clear: () => void;
     // (undocumented)
     run: () => Promise<void>;
+}
+
+// @public (undocumented)
+export interface IDiffComparatorOptions {
+    // (undocumented)
+    bootstrap?: boolean;
+    // (undocumented)
+    files: string[];
+    // (undocumented)
+    formatOptions?: IFormatCodeOptions;
+    // (undocumented)
+    modules?: TCompareModules;
+    // (undocumented)
+    reporters: ITestReporter<unknown>[];
+    // (undocumented)
+    rspackDist: string;
+    // (undocumented)
+    runtimeModules?: TCompareModules;
+    // (undocumented)
+    webpackDist: string;
+}
+
+// @public (undocumented)
+export interface IFormatCodeOptions {
+    // (undocumented)
+    ignoreBlockOnlyStatement: boolean;
+    // (undocumented)
+    ignoreCssFilePath: boolean;
+    // (undocumented)
+    ignoreIfCertainCondition: boolean;
+    // (undocumented)
+    ignoreModuleArguments: boolean;
+    // (undocumented)
+    ignoreModuleId: boolean;
+    // (undocumented)
+    ignoreObjectPropertySequence: boolean;
+    // (undocumented)
+    ignorePropertyQuotationMark: boolean;
+    // (undocumented)
+    ignoreSwcHelpersPath: boolean;
+    // (undocumented)
+    replacements?: IFormatCodeReplacement[];
+}
+
+// @public (undocumented)
+export interface IFormatCodeReplacement {
+    // (undocumented)
+    from: string | RegExp;
+    // (undocumented)
+    to: string | ((substring: string, ...args: any[]) => string);
 }
 
 // @public (undocumented)
@@ -251,11 +331,11 @@ export interface IModuleScope extends ITestEnv {
 }
 
 // @public (undocumented)
-export interface INodeRunnerOptions<T extends ECompilerType> {
+export interface INodeRunnerOptions {
     // (undocumented)
     cachable?: boolean;
     // (undocumented)
-    compilerOptions: TCompilerOptions<T>;
+    compilerOptions: RspackOptions;
     // (undocumented)
     dist: string;
     // (undocumented)
@@ -267,9 +347,9 @@ export interface INodeRunnerOptions<T extends ECompilerType> {
     // (undocumented)
     source: string;
     // (undocumented)
-    stats?: () => TCompilerStatsCompilation<T>;
+    stats?: () => StatsCompilation;
     // (undocumented)
-    testConfig: TTestConfig<T>;
+    testConfig: TTestConfig;
 }
 
 // @public (undocumented)
@@ -291,27 +371,27 @@ export function isUpdateSnapshot(): boolean;
 export const isValidCaseDirectory: (name: string) => boolean;
 
 // @public (undocumented)
-export interface ITestCompilerManager<T extends ECompilerType> {
+export interface ITestCompilerManager {
     // (undocumented)
-    build(): Promise<TCompilerStats<T>>;
+    build(): Promise<Stats>;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createCompiler(): TCompiler<T>;
+    createCompiler(): Compiler;
     // (undocumented)
-    createCompilerWithCallback(callback: (error: Error | null, stats: TCompilerStats<T> | null) => void): TCompiler<T>;
+    createCompilerWithCallback(callback: (error: Error | null, stats: Stats | null) => void): Compiler;
     // (undocumented)
-    getCompiler(): TCompiler<T> | null;
+    getCompiler(): Compiler | null;
     // (undocumented)
     getEmitter(): EventEmitter;
     // (undocumented)
-    getOptions(): TCompilerOptions<T>;
+    getOptions(): RspackOptions;
     // (undocumented)
-    getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
+    getStats(): Stats | MultiStats | null;
     // (undocumented)
-    mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+    mergeOptions(newOptions: RspackOptions): RspackOptions;
     // (undocumented)
-    setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+    setOptions(newOptions: RspackOptions): RspackOptions;
     // (undocumented)
     watch(timeout?: number): void;
 }
@@ -325,7 +405,7 @@ export interface ITestContext {
     // (undocumented)
     emitError(name: string, err: Error | string): void;
     // (undocumented)
-    getCompiler<T extends ECompilerType>(name: string, type: T | void): ITestCompilerManager<T>;
+    getCompiler(name: string): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
@@ -339,7 +419,7 @@ export interface ITestContext {
     // (undocumented)
     getTemp(sub?: string): string | null;
     // (undocumented)
-    getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+    getTestConfig(): TTestConfig;
     // (undocumented)
     getValue<T>(name: string, key: string): T | void;
     // (undocumented)
@@ -387,8 +467,6 @@ export interface ITester {
 // @public (undocumented)
 export interface ITesterConfig {
     // (undocumented)
-    compilerFactories?: TCompilerFactories<ECompilerType>;
-    // (undocumented)
     contextValue?: Record<string, unknown>;
     // (undocumented)
     createContext?: (config: ITesterConfig) => ITestContext;
@@ -405,7 +483,7 @@ export interface ITesterConfig {
     // (undocumented)
     temp?: string;
     // (undocumented)
-    testConfig?: TTestConfig<ECompilerType>;
+    testConfig?: TTestConfig;
 }
 
 // @public (undocumented)
@@ -437,13 +515,13 @@ export interface ITestProcessor {
 }
 
 // @public (undocumented)
-export interface ITestReporter<T> {
+export interface ITestReporter {
     // (undocumented)
     failure(id: string): Promise<void>;
     // (undocumented)
-    increment(id: string, data: T): Promise<void>;
+    increment<T>(id: string, data: T): Promise<void>;
     // (undocumented)
-    init(data?: T): Promise<void>;
+    init<T>(data?: T): Promise<void>;
     // (undocumented)
     output(): Promise<void>;
 }
@@ -459,7 +537,7 @@ export interface ITestRunner {
 }
 
 // @public (undocumented)
-export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends INodeRunnerOptions<T> {
+export interface IWebRunnerOptions extends INodeRunnerOptions {
     // (undocumented)
     location: string;
 }
@@ -471,8 +549,8 @@ export class LazyCompilationTestPlugin {
 }
 
 // @public (undocumented)
-export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
-    constructor(_options: INodeRunnerOptions<T>);
+export class NodeRunner implements ITestRunner {
+    constructor(_options: INodeRunnerOptions);
     // (undocumented)
     protected baseModuleScope: IModuleScope | null;
     // (undocumented)
@@ -500,7 +578,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack> implemen
     // (undocumented)
     protected globalContext: IGlobalContext | null;
     // (undocumented)
-    protected _options: INodeRunnerOptions<T>;
+    protected _options: INodeRunnerOptions;
     // (undocumented)
     protected postExecute(m: Object, file: TRunnerFile): void;
     // (undocumented)
@@ -523,7 +601,22 @@ export function parseModules(content: string, options?: {
 };
 
 // @public (undocumented)
-export function readConfigFile<T extends ECompilerType>(files: string[], context: ITestContext, prevOption?: TCompilerOptions<T>, functionApply?: (config: (TCompilerOptions<T> | ((...args: unknown[]) => TCompilerOptions<T>))[]) => TCompilerOptions<T>[]): TCompilerOptions<T>[];
+export function readConfigFile(files: string[], context: ITestContext, prevOption?: RspackOptions, functionApply?: (config: (RspackOptions | ((...args: unknown[]) => RspackOptions))[]) => RspackOptions[]): RspackOptions[];
+
+// @public (undocumented)
+export function replaceModuleArgument(raw: string): string;
+
+// @public (undocumented)
+export function replaceRuntimeModuleName(content: string): string;
+
+// @public (undocumented)
+export class RspackDiffConfigPlugin implements RspackPluginInstance {
+    constructor(modifier?: ((options: RspackOptionsNormalized) => RspackOptionsNormalized) | undefined);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    name: string;
+}
 
 // @public (undocumented)
 class RspackStatsDiagnostics {
@@ -558,55 +651,34 @@ export type TCompareResult = {
 };
 
 // @public (undocumented)
-export type TCompilation<T> = T extends ECompilerType.Rspack ? Compilation : Compilation_2;
-
-// @public (undocumented)
-export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
-
-// @public (undocumented)
 export type TCompilerCaseConfig = {
     description: string;
     error?: boolean;
     skip?: boolean;
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
-    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     check?: ({ context, stats, files, compiler, compilation }: {
         context: ITestContext;
-        stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+        stats?: StatsCompilation;
         files?: Record<string, string>;
-        compiler: TCompiler<ECompilerType.Rspack>;
-        compilation?: TCompilation<ECompilerType.Rspack>;
+        compiler: Compiler;
+        compilation?: Compilation;
     }) => Promise<void>;
-    compilerCallback?: (error: Error | null, stats: TCompilerStats<ECompilerType.Rspack> | null) => void;
+    compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };
 
 // @public (undocumented)
-export type TCompilerFactories<T extends ECompilerType> = Record<T, TCompilerFactory<T>>;
+export type TCompilerFactory = (options: RspackOptions | RspackOptions[], callback?: (error: Error | null, stats: Stats | null) => void) => Compiler;
 
 // @public (undocumented)
-export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[], callback?: (error: Error | null, stats: TCompilerStats<T> | null) => void) => TCompiler<T>;
-
-// @public (undocumented)
-export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack ? MultiStats : MultiStats_2;
-
-// @public (undocumented)
-export type TCompilerOptions<T> = T extends ECompilerType.Rspack ? RspackOptions : Configuration;
-
-// @public (undocumented)
-export type TCompilerStats<T> = T extends ECompilerType.Rspack ? Stats : Stats_2;
-
-// @public (undocumented)
-export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? StatsCompilation : StatsCompilation_2;
-
-// @public (undocumented)
-export type TConfigCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
+export type TConfigCaseConfig = Omit<TTestConfig, "validate">;
 
 // @public (undocumented)
 export type TDefaultsCaseConfig = {
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    options?: (context: ITestContext) => RspackOptions;
     cwd?: string;
-    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>) => Promise<void>;
+    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<RspackOptions>) => Promise<void>;
     description: string;
 };
 
@@ -636,9 +708,9 @@ export type TDiffStatsItem = {
 export type TErrorCaseConfig = {
     description: string;
     skip?: boolean;
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
-    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 };
 
@@ -650,13 +722,13 @@ export class TestContext implements ITestContext {
     // (undocumented)
     closeCompiler(name: string): Promise<void>;
     // (undocumented)
-    protected compilers: Map<string, ITestCompilerManager<ECompilerType>>;
+    protected compilers: Map<string, ITestCompilerManager>;
     // (undocumented)
     emitError(name: string, err: Error | string): void;
     // (undocumented)
     protected errors: Map<string, Error[]>;
     // (undocumented)
-    getCompiler<T extends ECompilerType>(name: string, type: T | void): ITestCompilerManager<T>;
+    getCompiler(name: string): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
@@ -670,7 +742,7 @@ export class TestContext implements ITestContext {
     // (undocumented)
     getTemp(sub?: string): string | null;
     // (undocumented)
-    getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+    getTestConfig(): TTestConfig;
     // (undocumented)
     getValue<T>(name: string, key: string): T | void;
     // (undocumented)
@@ -716,12 +788,12 @@ export type TFileCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
-export type THashCaseConfig = Pick<TTestConfig<ECompilerType.Rspack>, "validate">;
+export type THashCaseConfig = Pick<TTestConfig, "validate">;
 
 // @public (undocumented)
 export type THookCaseConfig = {
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     check?: (context: ITestContext) => Promise<void>;
     snapshotFileFilter?: (file: string) => boolean;
     description: string;
@@ -749,23 +821,23 @@ export type TMultiCompilerCaseConfig = {
     description: string;
     error?: boolean;
     skip?: boolean;
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
-    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     check?: ({ context, stats, files, compiler, compilation }: {
         context: ITestContext;
-        stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+        stats?: StatsCompilation;
         files?: Record<string, string>;
-        compiler: TCompiler<ECompilerType.Rspack>;
-        compilation?: TCompilation<ECompilerType.Rspack>;
+        compiler: Compiler;
+        compilation?: Compilation;
     }) => Promise<void>;
-    compilerCallback?: (error: Error | null, stats: TCompilerStats<ECompilerType.Rspack> | null) => void;
+    compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };
 
 // @public (undocumented)
-export interface TRunnerFactory<T extends ECompilerType> {
+export interface TRunnerFactory {
     // (undocumented)
-    create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    create(file: string, compilerOptions: RspackOptions, env: ITestEnv): ITestRunner;
 }
 
 // @public (undocumented)
@@ -784,25 +856,25 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
 // @public (undocumented)
 export type TStatsAPICaseConfig = {
     description: string;
-    options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+    options?: (context: ITestContext) => RspackOptions;
     snapshotName?: string;
-    compiler?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
-    build?: (context: ITestContext, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
-    check?: (stats: TCompilerStats<ECompilerType.Rspack>, compiler: TCompiler<ECompilerType.Rspack>) => Promise<void>;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: (stats: Stats, compiler: Compiler) => Promise<void>;
 };
 
 // @public (undocumented)
-export type TTestConfig<T extends ECompilerType> = {
+export type TTestConfig = {
     location?: string;
-    validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
+    validate?: (stats: Stats | MultiStats, stderr?: string) => void;
     noTests?: boolean;
     writeStatsOuptut?: boolean;
     writeStatsJson?: boolean;
-    beforeExecute?: (options: TCompilerOptions<T>) => void;
-    afterExecute?: (options: TCompilerOptions<T>) => void;
-    moduleScope?: (ms: IModuleScope, stats?: TCompilerStatsCompilation<T>, options?: TCompilerOptions<T>) => IModuleScope;
-    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T> | undefined, stringStats: String) => boolean;
-    findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
+    beforeExecute?: (options: RspackOptions) => void;
+    afterExecute?: (options: RspackOptions) => void;
+    moduleScope?: (ms: IModuleScope, stats?: StatsCompilation, options?: RspackOptions) => IModuleScope;
+    checkStats?: (stepName: string, jsonStats: StatsCompilation | undefined, stringStats: String) => boolean;
+    findBundle?: (index: number, options: RspackOptions, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
     modules?: Record<string, Object>;
@@ -820,7 +892,7 @@ export type TTestConfig<T extends ECompilerType> = {
 export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
 
 // @public (undocumented)
-export type TTestFilter<T extends ECompilerType> = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig<T>) => boolean | string;
+export type TTestFilter = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig) => boolean | string;
 
 // @public (undocumented)
 export type TTestRunnerCreator = {
@@ -837,8 +909,23 @@ type WatchIncrementalOptions = {
 };
 
 // @public (undocumented)
-export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> extends NodeRunner<T> {
-    constructor(_webOptions: IWebRunnerOptions<T>);
+export class WebpackDiffConfigPlugin {
+    constructor(modifier?: ((options: WebpackOptionsNormalized) => WebpackOptionsNormalized) | undefined);
+    // (undocumented)
+    apply(compiler: Compiler_2): void;
+    // (undocumented)
+    name: string;
+}
+
+// @public (undocumented)
+export class WebpackModulePlaceholderPlugin {
+    // (undocumented)
+    apply(compiler: any): void;
+}
+
+// @public (undocumented)
+export class WebRunner extends NodeRunner {
+    constructor(_webOptions: IWebRunnerOptions);
     // (undocumented)
     protected createBaseModuleScope(): IModuleScope;
     // (undocumented)
@@ -863,7 +950,7 @@ export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> extends N
     // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)
-    protected _webOptions: IWebRunnerOptions<T>;
+    protected _webOptions: IWebRunnerOptions;
 }
 
 // (No @packageDocumentation comment for this package)
