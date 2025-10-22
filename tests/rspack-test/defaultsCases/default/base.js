@@ -48,7 +48,6 @@ module.exports = {
 		    inlineEnum: false,
 		    lazyBarrel: true,
 		    lazyCompilation: false,
-		    mfAsyncStartup: false,
 		    parallelCodeSplitting: false,
 		    parallelLoader: false,
 		    rspackFuture: Object {
