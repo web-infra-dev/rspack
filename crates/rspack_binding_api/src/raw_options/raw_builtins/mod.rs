@@ -6,6 +6,7 @@ mod raw_copy;
 mod raw_css_chunking;
 mod raw_css_extract;
 mod raw_dll;
+mod raw_esm_lib;
 mod raw_html;
 mod raw_http_uri;
 mod raw_ids;
@@ -128,7 +129,7 @@ use crate::{
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
-    SourceMapDevToolPluginOptions,
+    SourceMapDevToolPluginOptions, raw_builtins::raw_esm_lib::RawEsmLibraryPlugin,
   },
   rslib::RawRslibPluginOptions,
 };
@@ -410,7 +411,10 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::EsmLibraryPlugin => {
-        plugins.push(EsmLibraryPlugin::default().boxed());
+        let options = downcast_into::<RawEsmLibraryPlugin>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins
+          .push(EsmLibraryPlugin::new(options.preserve_modules.as_deref().map(Into::into)).boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
         plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());

@@ -310,10 +310,11 @@ export class BasicCaseCreator<T extends ECompilerType> {
 					}
 					try {
 						await runFn(fn);
-					} catch (e) {
-						throw new Error(
-							`Error: ${description} failed\n${(e as Error).stack}`
-						);
+					} catch (err) {
+						const e = err as Error;
+						const message = `Error: ${description} failed:\n${e.message}`;
+						e.message = message;
+						throw e;
 					}
 					for (const after of afterTasks) {
 						await runFn(after);

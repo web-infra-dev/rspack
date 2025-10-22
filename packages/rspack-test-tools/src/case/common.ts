@@ -261,8 +261,9 @@ export async function checkSnapshot<
 				if (testConfig.snapshotContent) {
 					content = testConfig.snapshotContent(content);
 				}
+				const filePath = file.replaceAll(path.sep, "/");
 
-				return `\`\`\`${tag} title=${file}\n${content}\n\`\`\``;
+				return `\`\`\`${tag} title=${filePath}\n${content}\n\`\`\``;
 			});
 		fileContents.sort();
 		const content = fileContents.join("\n\n");
@@ -270,7 +271,7 @@ export async function checkSnapshot<
 			? snapshot
 			: path.resolve(
 					context.getSource(),
-					`./__snapshots__/${snapshot}${total > 1 ? `-${i}` : ""}`
+					path.join("__snapshots__", `${snapshot}${total > 1 ? `-${i}` : ""}`)
 				);
 
 		env.expect(content).toMatchFileSnapshot(snapshotPath);
