@@ -9,7 +9,7 @@ module.exports = {
 			remotes: {
 				containerB: "../1-container-full/container.js"
 			},
-			shared: ["xreact"]
+			shared: ["mocked-react"]
 		})
 	]
 };

@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "xreact": "*"
+    "mocked-react": "*"
   }
 }

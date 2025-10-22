@@ -1,4 +1,4 @@
-import { setVersion } from "xreact";
+import { setVersion } from "mocked-react";
 
 export default function upgrade() {
 	setVersion("9");

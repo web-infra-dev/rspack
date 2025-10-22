@@ -16,7 +16,7 @@ const commonMF = {
 		"./ComponentB": "./ComponentB",
 		"./ComponentC": "./ComponentC"
 	},
-	shared: ["xreact"],
+	shared: ["mocked-react"],
 	shareScope: "test-scope"
 };
 

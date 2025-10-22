@@ -17,7 +17,7 @@ const commonMF = {
 		"./ComponentB": "./ComponentB",
 		"./ComponentC": "./ComponentC"
 	},
-	shared: ["xreact"]
+	shared: ["mocked-react"]
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
