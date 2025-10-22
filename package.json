@@ -63,13 +63,13 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",
     "@microsoft/api-extractor": "7.52.15",
-    "@microsoft/api-extractor-model": "7.31.1",
+    "@microsoft/api-extractor-model": "7.31.2",
     "@rslint/core": "0.1.13",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/jest": "29.5.14",
-    "@types/node": "^20.19.21",
+    "@types/node": "^20.19.23",
     "check-dependency-version-consistency": "^5.0.1",
     "commander": "13.1.0",
     "cross-env": "^10.1.0",
@@ -84,7 +84,7 @@
     "ts-jest": "29.4.5",
     "typescript": "^5.9.3",
     "webpack": "5.102.1",
-    "zx": "8.8.4"
+    "zx": "8.8.5"
   },
   "packageManager": "pnpm@10.18.3",
   "pnpm": {
