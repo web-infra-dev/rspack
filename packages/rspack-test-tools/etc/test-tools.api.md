@@ -6,17 +6,13 @@
 
 import type { Compilation } from '@rspack/core';
 import { Compiler } from '@rspack/core';
-import type { Compiler as Compiler_2 } from 'webpack';
 import type EventEmitter from 'node:events';
 import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
 import { RspackOptions } from '@rspack/core';
-import type { RspackOptionsNormalized } from '@rspack/core';
-import type { RspackPluginInstance } from '@rspack/core';
 import type { Stats } from '@rspack/core';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsError } from '@rspack/core';
-import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
 export class BasicCaseCreator {
@@ -61,15 +57,6 @@ export class BasicCaseCreator {
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
-export function compareContent(sourceContent: string | false, distContent: string | false, compareOptions: ICompareOptions): TCompareResult;
-
-// @public (undocumented)
-export function compareFile(sourceFile: string, distFile: string, compareOptions: ICompareOptions): TFileCompareResult;
-
-// @public (undocumented)
-export function compareModules(modules: string[], sourceModules: Record<string, string>, distModules: Record<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
-
-// @public (undocumented)
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
@@ -89,9 +76,6 @@ export function createDevNormalCase(name: string, src: string, dist: string): vo
 
 // @public (undocumented)
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
-
-// @public (undocumented)
-export function createDiffCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -162,13 +146,6 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
 }): void;
 
 // @public (undocumented)
-export class DiffComparator {
-    constructor(options: IDiffComparatorOptions);
-    // (undocumented)
-    compare(): Promise<void>;
-}
-
-// @public (undocumented)
 export enum ECompareResultType {
     // (undocumented)
     Different = "different",
@@ -194,9 +171,6 @@ export enum EEsmMode {
 
 // @public (undocumented)
 export function escapeSep(str: string): string;
-
-// @public (undocumented)
-export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
 
 // @public (undocumented)
 export function getRspackDefaultConfig(cwd: string, config: RspackOptions): RspackOptions;
@@ -233,79 +207,11 @@ export interface IBasicCaseCreatorOptions {
 }
 
 // @public (undocumented)
-export interface ICompareOptions {
-    // (undocumented)
-    bootstrap?: boolean;
-    // (undocumented)
-    detail?: boolean;
-    // (undocumented)
-    format: IFormatCodeOptions;
-    // (undocumented)
-    modules?: TCompareModules;
-    // (undocumented)
-    renameModule?: (name: string) => string;
-    // (undocumented)
-    runtimeModules?: TCompareModules;
-    // (undocumented)
-    snapshot?: string;
-}
-
-// @public (undocumented)
 interface IConcurrentTestEnv {
     // (undocumented)
     clear: () => void;
     // (undocumented)
     run: () => Promise<void>;
-}
-
-// @public (undocumented)
-export interface IDiffComparatorOptions {
-    // (undocumented)
-    bootstrap?: boolean;
-    // (undocumented)
-    files: string[];
-    // (undocumented)
-    formatOptions?: IFormatCodeOptions;
-    // (undocumented)
-    modules?: TCompareModules;
-    // (undocumented)
-    reporters: ITestReporter<unknown>[];
-    // (undocumented)
-    rspackDist: string;
-    // (undocumented)
-    runtimeModules?: TCompareModules;
-    // (undocumented)
-    webpackDist: string;
-}
-
-// @public (undocumented)
-export interface IFormatCodeOptions {
-    // (undocumented)
-    ignoreBlockOnlyStatement: boolean;
-    // (undocumented)
-    ignoreCssFilePath: boolean;
-    // (undocumented)
-    ignoreIfCertainCondition: boolean;
-    // (undocumented)
-    ignoreModuleArguments: boolean;
-    // (undocumented)
-    ignoreModuleId: boolean;
-    // (undocumented)
-    ignoreObjectPropertySequence: boolean;
-    // (undocumented)
-    ignorePropertyQuotationMark: boolean;
-    // (undocumented)
-    ignoreSwcHelpersPath: boolean;
-    // (undocumented)
-    replacements?: IFormatCodeReplacement[];
-}
-
-// @public (undocumented)
-export interface IFormatCodeReplacement {
-    // (undocumented)
-    from: string | RegExp;
-    // (undocumented)
-    to: string | ((substring: string, ...args: any[]) => string);
 }
 
 // @public (undocumented)
@@ -604,21 +510,6 @@ export function parseModules(content: string, options?: {
 export function readConfigFile(files: string[], context: ITestContext, prevOption?: RspackOptions, functionApply?: (config: (RspackOptions | ((...args: unknown[]) => RspackOptions))[]) => RspackOptions[]): RspackOptions[];
 
 // @public (undocumented)
-export function replaceModuleArgument(raw: string): string;
-
-// @public (undocumented)
-export function replaceRuntimeModuleName(content: string): string;
-
-// @public (undocumented)
-export class RspackDiffConfigPlugin implements RspackPluginInstance {
-    constructor(modifier?: ((options: RspackOptionsNormalized) => RspackOptionsNormalized) | undefined);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    name: string;
-}
-
-// @public (undocumented)
 class RspackStatsDiagnostics {
     constructor(errors: StatsError[], warnings: StatsError[]);
     // (undocumented)
@@ -907,21 +798,6 @@ export type TTestRunResult = Record<string, any>;
 type WatchIncrementalOptions = {
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
-
-// @public (undocumented)
-export class WebpackDiffConfigPlugin {
-    constructor(modifier?: ((options: WebpackOptionsNormalized) => WebpackOptionsNormalized) | undefined);
-    // (undocumented)
-    apply(compiler: Compiler_2): void;
-    // (undocumented)
-    name: string;
-}
-
-// @public (undocumented)
-export class WebpackModulePlaceholderPlugin {
-    // (undocumented)
-    apply(compiler: any): void;
-}
 
 // @public (undocumented)
 export class WebRunner extends NodeRunner {
