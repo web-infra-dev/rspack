@@ -8,7 +8,6 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-/// Struct to represent the mangle exports plugin.
 #[plugin]
 #[derive(Debug, Default)]
 pub struct InlineExportsPlugin;
@@ -94,7 +93,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
               data.set_used_name(UsedNameItem::Inlined(
                 data
                   .can_inline_provide()
-                  .expect("should have provieded inline value")
+                  .expect("should have provided inline value")
                   .clone(),
               ));
             }
