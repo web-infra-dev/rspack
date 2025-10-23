@@ -26,14 +26,14 @@ pub struct TempModule {
 impl TempModule {
   pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
     let m = module.as_ref();
-    OwnedOrRef::Owned(Box::new(Self {
+    OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),
       build_info: m.build_info().clone(),
       build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
       blocks: vec![],
-    }))
+    })))
   }
 }
 

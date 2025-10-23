@@ -246,7 +246,7 @@ export class BasicCaseCreator {
 						await tester.compile();
 					} catch (e) {
 						bailout = true;
-						context.emitError(name, e as Error);
+						context.emitError(e as Error);
 					}
 					await tester.check(env);
 					if (!tester.next() && context.hasError()) {

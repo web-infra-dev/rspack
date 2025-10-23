@@ -4,7 +4,6 @@ import type { Compiler, RspackOptions, StatsError } from "@rspack/core";
 import merge from "webpack-merge";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { getCompiler } from "./common";
 
 let addedSerializer = false;
 
@@ -16,16 +15,16 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					compiler.setOptions(options(context, config.options));
 				},
 				compiler: async (context: ITestContext) => {
-					const compilerManager = getCompiler(context, name);
+					const compilerManager = context.getCompiler();
 					compilerManager.createCompiler();
 					compiler(context, compilerManager.getCompiler()!, config.compiler);
 				},
 				build: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					if (typeof config.build === "function") {
 						await config.build(context, compiler.getCompiler()!);
 					} else {
@@ -150,15 +149,15 @@ async function check(
 	name: string,
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>
 ) {
-	if (context.getError(name).length > 0) {
+	if (context.getError().length > 0) {
 		await check?.(
-			new RspackStatsDiagnostics(context.getError(name) as StatsError[], [])
+			new RspackStatsDiagnostics(context.getError() as StatsError[], [])
 		);
-		context.clearError(name);
+		context.clearError();
 		return;
 	}
 
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const stats = compiler.getStats();
 	env.expect(typeof stats).toBe("object");
 	const statsResult = stats!.toJson({ errorDetails: false });

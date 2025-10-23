@@ -2,7 +2,7 @@ import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
 import { defaultOptions } from "./builtin";
-import { build, checkSnapshot, compiler, getCompiler } from "./common";
+import { build, checkSnapshot, compiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -13,7 +13,7 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		{
 			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				const options = defaultOptions(context);
 				overrideOptions(context, options);
 				compiler.setOptions(options);

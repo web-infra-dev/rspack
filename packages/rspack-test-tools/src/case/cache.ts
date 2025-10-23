@@ -14,15 +14,7 @@ import type {
 	ITestEnv,
 	ITestProcessor
 } from "../type";
-import {
-	afterExecute,
-	build,
-	check,
-	compiler,
-	config,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { cachedStats } from "./runner";
 
 type TTarget = RspackOptions["target"];
@@ -39,10 +31,10 @@ function createCacheProcessor(
 	return {
 		before: async (context: ITestContext) => {
 			await updatePlugin.initialize();
-			context.setValue(name, "hotUpdateContext", updatePlugin);
+			context.setValue("hotUpdateContext", updatePlugin);
 		},
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			let options = defaultOptions(context, temp, target);
 			options = await config(
 				context,
@@ -195,7 +187,7 @@ function findBundle(
 ): string[] {
 	const files: string[] = [];
 	const prefiles: string[] = [];
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	if (!compiler) throw new Error("Compiler should exists when find bundle");
 	const stats = compiler.getStats();
 	if (!stats) throw new Error("Stats should exists when find bundle");
@@ -226,16 +218,13 @@ function createRunner(
 	file: string,
 	env: ITestEnv
 ) {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	const options = compiler.getOptions() as RspackOptions;
 	let compilerIndex = 0;
 	const testConfig = context.getTestConfig();
 	const source = context.getSource();
 	const dist = context.getDist();
-	const updatePlugin = context.getValue<HotUpdatePlugin>(
-		name,
-		"hotUpdateContext"
-	)!;
+	const updatePlugin = context.getValue<HotUpdatePlugin>("hotUpdateContext")!;
 	const getWebRunner = () => {
 		return new NodeRunner({
 			env,
