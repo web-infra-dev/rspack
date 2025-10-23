@@ -1,15 +1,11 @@
 import path from "node:path";
+import type { RspackOptions } from "@rspack/core";
 import fs from "fs-extra";
 import { merge } from "webpack-merge";
 import { isJavaScript } from "../helper";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions
-} from "../type";
-import { build, checkSnapshot, compiler, getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
+import { build, checkSnapshot, compiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -23,7 +19,7 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					compiler.setOptions(defaultOptions(context));
 				},
 				compiler: async (context: ITestContext) => {
@@ -48,9 +44,7 @@ export function createBuiltinCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
 
-export function defaultOptions<T extends ECompilerType.Rspack>(
-	context: ITestContext
-): TCompilerOptions<T> {
+export function defaultOptions(context: ITestContext): RspackOptions {
 	let defaultOptions = {
 		entry: {
 			main: {
@@ -158,7 +152,7 @@ export function defaultOptions<T extends ECompilerType.Rspack>(
 		devtool: false,
 		context: context.getSource(),
 		plugins: []
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 
 	const testConfigFile = context.getSource("rspack.config.js");
 	if (fs.existsSync(testConfigFile)) {

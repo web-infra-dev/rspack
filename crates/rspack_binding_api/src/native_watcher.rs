@@ -6,9 +6,9 @@ use std::{
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
+use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -195,7 +195,7 @@ impl JsEventHandler {
   }
 }
 
-impl rspack_fs::EventAggregateHandler for JsEventHandler {
+impl rspack_watcher::EventAggregateHandler for JsEventHandler {
   fn on_event_handle(
     &self,
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
@@ -249,7 +249,7 @@ impl JsEventHandlerUndelayed {
   }
 }
 
-impl rspack_fs::EventHandler for JsEventHandlerUndelayed {
+impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
     self.inner.call(
       changed_file,

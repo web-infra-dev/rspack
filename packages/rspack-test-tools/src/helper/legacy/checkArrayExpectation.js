@@ -1,6 +1,6 @@
 // @ts-nocheck
 "use strict";
-const fs = require("graceful-fs");
+const fs = require("fs-extra");
 const path = require("node:path");
 
 const check = (expected, actual) => {

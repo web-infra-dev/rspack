@@ -1,30 +1,21 @@
 import path from "node:path";
-import type { Compiler, Stats } from "@rspack/core";
+import type { Compiler, RspackOptions, Stats } from "@rspack/core";
 import fs from "fs-extra";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import captureStdio from "../helper/legacy/captureStdio";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
-import { build, compiler, configMultiCompiler, getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
+import { build, compiler, configMultiCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
 export function createStatsProcessor(
 	name: string,
-	defaultOptions: (
-		index: number,
-		context: ITestContext
-	) => TCompilerOptions<ECompilerType.Rspack>,
+	defaultOptions: (index: number, context: ITestContext) => RspackOptions,
 	overrideOptions: (
 		index: number,
 		context: ITestContext,
-		options: TCompilerOptions<ECompilerType.Rspack>
+		options: RspackOptions
 	) => void
 ) {
 	const writeStatsOuptut = false;
@@ -75,10 +66,7 @@ export function createStatsOutputCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
 
-function defaultOptions(
-	index: number,
-	context: ITestContext
-): TCompilerOptions<ECompilerType.Rspack> {
+function defaultOptions(index: number, context: ITestContext): RspackOptions {
 	if (
 		fs.existsSync(path.join(context.getSource(), "rspack.config.js")) ||
 		fs.existsSync(path.join(context.getSource(), "webpack.config.js"))
@@ -92,7 +80,7 @@ function defaultOptions(
 					}
 				}
 			}
-		} as TCompilerOptions<ECompilerType.Rspack>;
+		} as RspackOptions;
 	}
 	return {
 		context: context.getSource(),
@@ -114,13 +102,13 @@ function defaultOptions(
 			},
 			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 }
 
 function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	if (!options.context) options.context = context.getSource();
 	if (!options.output) options.output = options.output || {};
@@ -149,9 +137,8 @@ async function check(
 	snapshot: string,
 	stderr: any
 ) {
-	const compiler = getCompiler(context, name);
-	const options =
-		compiler.getOptions() as TCompilerOptions<ECompilerType.Rspack>;
+	const compiler = context.getCompiler();
+	const options = compiler.getOptions() as RspackOptions;
 	const stats = compiler.getStats();
 	if (!stats || !compiler) return;
 
@@ -235,10 +222,7 @@ async function check(
 	}
 }
 
-async function statsCompiler(
-	context: ITestContext,
-	compiler: TCompiler<ECompilerType.Rspack>
-) {
+async function statsCompiler(context: ITestContext, compiler: Compiler) {
 	const compilers: Compiler[] = (compiler as any).compilers
 		? (compiler as any).compilers
 		: [compiler as any];

@@ -1,5 +1,9 @@
 import path from "node:path";
-import rspack, { type StatsCompilation } from "@rspack/core";
+import rspack, {
+	type RspackOptions,
+	type Stats,
+	type StatsCompilation
+} from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update/plugin";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
@@ -7,33 +11,18 @@ import { LazyCompilationTestPlugin } from "../plugin";
 import { NodeRunner, WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import type {
-	ECompilerType,
 	IModuleScope,
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStats,
-	TCompilerStatsCompilation
+	ITestRunner
 } from "../type";
-import {
-	afterExecute,
-	build,
-	check,
-	compiler,
-	config,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { cachedStats, type THotStepRuntimeData } from "./runner";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-const creators: Map<
-	TTarget,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const creators: Map<TTarget, BasicCaseCreator> = new Map();
 
 export function createHotProcessor(
 	name: string,
@@ -47,10 +36,10 @@ export function createHotProcessor(
 	const processor = {
 		before: async (context: ITestContext) => {
 			await updatePlugin.initialize();
-			context.setValue(name, "hotUpdatePlugin", updatePlugin);
+			context.setValue("hotUpdatePlugin", updatePlugin);
 		},
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			let options = defaultOptions(context, target);
 			options = await config(
 				context,
@@ -132,7 +121,7 @@ export function createHotCase(
 	src: string,
 	dist: string,
 	temp: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+	target: RspackOptions["target"]
 ) {
 	const creator = getCreator(target);
 	creator.create(name, src, dist, temp);
@@ -165,10 +154,10 @@ function defaultOptions(context: ITestContext, target: TTarget) {
 			},
 			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 
 	options.plugins ??= [];
-	(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+	(options as RspackOptions).plugins!.push(
 		new rspack.HotModuleReplacementPlugin()
 	);
 	return options;
@@ -176,7 +165,7 @@ function defaultOptions(context: ITestContext, target: TTarget) {
 
 function overrideOptions(
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>,
+	options: RspackOptions,
 	target: TTarget,
 	updatePlugin: HotUpdatePlugin
 ) {
@@ -192,19 +181,15 @@ function overrideOptions(
 			target === "async-node";
 	}
 	options.plugins ??= [];
-	(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-		updatePlugin
-	);
+	(options as RspackOptions).plugins!.push(updatePlugin);
 	if (!global.printLogger) {
 		options.infrastructureLogging = {
 			level: "error"
 		};
 	}
 
-	if ((options as TCompilerOptions<ECompilerType.Rspack>).lazyCompilation) {
-		(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-			new LazyCompilationTestPlugin()
-		);
+	if ((options as RspackOptions).lazyCompilation) {
+		(options as RspackOptions).plugins!.push(new LazyCompilationTestPlugin());
 	}
 }
 
@@ -214,7 +199,7 @@ function findBundle(
 	target: TTarget,
 	updatePlugin: HotUpdatePlugin
 ): string | string[] {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	if (!compiler) throw new Error("Compiler should exists when find bundle");
 
 	const testConfig = context.getTestConfig();
@@ -252,21 +237,18 @@ type THotProcessor = ITestProcessor & {
 	updatePlugin: HotUpdatePlugin;
 };
 
-export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
+export function createHotRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = context.getCompiler(name);
-	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
+	const compiler = context.getCompiler();
+	const compilerOptions = compiler.getOptions() as RspackOptions;
 	const testConfig = context.getTestConfig();
 	const source = context.getSource();
 	const dist = context.getDist();
-	const updatePlugin = context.getValue<HotUpdatePlugin>(
-		name,
-		"hotUpdatePlugin"
-	)!;
+	const updatePlugin = context.getValue<HotUpdatePlugin>("hotUpdatePlugin")!;
 
 	const nextHMR = async (m: any, options?: any) => {
 		await updatePlugin.goNext();
@@ -280,19 +262,18 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		const compilerOptions = compiler.getOptions();
 
 		const checker = context.getValue(
-			name,
 			jsonStats.errors?.length
 				? "hotUpdateStepErrorChecker"
 				: "hotUpdateStepChecker"
 		) as (
 			updateIndex: number,
-			stats: TCompilerStats<T>,
+			stats: Stats,
 			runtime: THotStepRuntimeData
 		) => void;
 		if (checker) {
 			checker(
 				updatePlugin.getUpdateIndex(),
-				stats as TCompilerStats<T>,
+				stats as Stats,
 				runner.getGlobal("__HMR_UPDATED_RUNTIME__") as THotStepRuntimeData
 			);
 		}
@@ -328,8 +309,8 @@ export function createHotRunner<T extends ECompilerType = ECompilerType.Rspack>(
 			...testConfig,
 			moduleScope(
 				ms: IModuleScope,
-				stats?: TCompilerStatsCompilation<T>,
-				options?: TCompilerOptions<T>
+				stats?: StatsCompilation,
+				options?: RspackOptions
 			) {
 				const moduleScope = ms;
 				if (typeof testConfig.moduleScope === "function") {

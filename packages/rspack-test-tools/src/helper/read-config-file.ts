@@ -1,18 +1,15 @@
+import type { RspackOptions } from "@rspack/core";
 import fs from "fs-extra";
+import type { ITestContext } from "../type";
 
-import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-
-export function readConfigFile<T extends ECompilerType>(
+export function readConfigFile(
 	files: string[],
 	context: ITestContext,
-	prevOption?: TCompilerOptions<T>,
+	prevOption?: RspackOptions,
 	functionApply?: (
-		config: (
-			| TCompilerOptions<T>
-			| ((...args: unknown[]) => TCompilerOptions<T>)
-		)[]
-	) => TCompilerOptions<T>[]
-): TCompilerOptions<T>[] {
+		config: (RspackOptions | ((...args: unknown[]) => RspackOptions))[]
+	) => RspackOptions[]
+): RspackOptions[] {
 	const existsFile = files.find(i => fs.existsSync(i));
 	let fileConfig = existsFile ? require(existsFile) : {};
 	if (typeof fileConfig === "function") {
