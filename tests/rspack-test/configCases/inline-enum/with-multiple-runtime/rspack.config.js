@@ -1,6 +1,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "production",
+	entry: {
+		a: "./a",
+		b: "./b",
+	},
+	output: {
+		filename: "[name].js",
+	},
 	resolve: {
 		extensions: [".ts", "..."]
 	},
@@ -28,6 +34,21 @@ module.exports = {
 				]
 			}
 		]
+	},
+	optimization: {
+		concatenateModules: false,
+		splitChunks: {
+			cacheGroups: {
+				lib: {
+					test: /lib/,
+					name: 'lib',
+					priority: 100,
+					chunks: 'all',
+					enforce: true,
+					minSize: 0,
+				},
+			}
+		}
 	},
 	experiments: {
 		inlineEnum: true

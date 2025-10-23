@@ -109,7 +109,7 @@ pub enum CanInlineUse {
   No,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),

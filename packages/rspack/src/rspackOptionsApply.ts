@@ -42,6 +42,7 @@ import {
 	HttpExternalsRspackPlugin,
 	HttpUriPlugin,
 	InferAsyncModulesPlugin,
+	InlineExportsPlugin,
 	JavascriptModulesPlugin,
 	JsonModulesPlugin,
 	MangleExportsPlugin,
@@ -277,6 +278,10 @@ export class RspackOptionsApply {
 		}
 		if (options.optimization.concatenateModules) {
 			new ModuleConcatenationPlugin().apply(compiler);
+		}
+		// Move inlineConst and inlineEnum to optimization.inlineExports once them are stable
+		if (options.experiments.inlineConst || options.experiments.inlineEnum) {
+			new InlineExportsPlugin().apply(compiler);
 		}
 		if (options.optimization.mangleExports) {
 			new MangleExportsPlugin(
