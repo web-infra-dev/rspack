@@ -22,6 +22,7 @@ pub use module_static_cache_artifact::*;
 pub use side_effects_do_optimize_artifact::*;
 
 pub type AsyncModulesArtifact = IdentifierSet;
+pub type ImportedByDeferModulesArtifact = IdentifierSet;
 pub type DependenciesDiagnosticsArtifact = IdentifierMap<Vec<Diagnostic>>;
 pub type ModuleIdsArtifact = IdentifierMap<ModuleId>;
 pub type ChunkIdsArtifact = UkeyMap<ChunkUkey, ChunkId>;

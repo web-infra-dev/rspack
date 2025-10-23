@@ -163,7 +163,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get(&ident.span())
     {
       let mut refs = Vec::new();
-      keys.traverse_on_left(&mut |stack| {
+      keys.traverse_on_leaf(&mut |stack| {
         refs.push(stack.iter().map(|p| p.id.clone()).collect());
       });
       for ids in refs {
@@ -306,7 +306,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
     if let Some(keys) = referenced_in_destructuring {
       let mut refs = Vec::new();
-      keys.traverse_on_left(&mut |stack| {
+      keys.traverse_on_leaf(&mut |stack| {
         refs.push(stack.iter().map(|p| p.id.clone()).collect());
       });
       exports = Some(refs);
@@ -574,7 +574,7 @@ fn walk_import_then_fulfilled_callback(
             .dynamic_import_references
             .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
-          keys.traverse_on_left(&mut |stack| {
+          keys.traverse_on_leaf(&mut |stack| {
             refs.push(stack.iter().map(|p| p.id.clone()).collect());
           });
           for ids in refs {

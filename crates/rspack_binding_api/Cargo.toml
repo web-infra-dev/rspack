@@ -16,6 +16,12 @@ color-backtrace = ["dep:color-backtrace"]
 debug_tool      = ["rspack_core/debug_tool"]
 plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+allocative      = [
+  "rspack_util/allocative",
+  "rspack_collections/allocative",
+  "rspack_cacheable/allocative",
+  "rspack_tracing_perfetto/allocative",
+]
 
 [dependencies]
 anyhow                    = { workspace = true }
@@ -39,9 +45,11 @@ rspack_plugin_rstest      = { workspace = true }
 rspack_plugin_runtime     = { workspace = true }
 rspack_tasks              = { workspace = true }
 rspack_util               = { workspace = true }
+rspack_watcher            = { workspace = true }
 rspack_workspace          = { workspace = true }
 
-rspack_tracing = { workspace = true }
+rspack_tracing          = { workspace = true }
+rspack_tracing_perfetto = { workspace = true }
 
 async-trait        = { workspace = true }
 cow-utils          = { workspace = true }
@@ -120,7 +128,7 @@ tokio                                  = { workspace = true, features = ["rt", "
 ustr                                   = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["parking_lot"]
+ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 # Pin parking_lot version to the same version within the workspace

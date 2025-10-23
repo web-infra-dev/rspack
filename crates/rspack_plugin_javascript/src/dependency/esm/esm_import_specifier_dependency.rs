@@ -113,7 +113,7 @@ impl ESMImportSpecifierDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
-      referenced_properties.traverse_on_left(&mut |stack| {
+      referenced_properties.traverse_on_leaf(&mut |stack| {
         let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
         if let Some(ids) = ids {
           let mut ids = ids.to_vec();

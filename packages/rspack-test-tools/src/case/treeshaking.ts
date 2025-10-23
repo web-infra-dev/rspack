@@ -1,10 +1,6 @@
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv } from "../type";
 import { defaultOptions } from "./builtin";
 import { build, checkSnapshot, compiler, getCompiler } from "./common";
 
@@ -42,10 +38,7 @@ export function createTreeShakingCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
 
-function overrideOptions(
-	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
-) {
+function overrideOptions(context: ITestContext, options: RspackOptions) {
 	options.target = options.target || ["web", "es2022"];
 	options.optimization ??= {};
 	options.optimization.providedExports = true;

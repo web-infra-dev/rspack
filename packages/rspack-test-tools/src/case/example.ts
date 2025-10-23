@@ -1,18 +1,13 @@
 import path from "node:path";
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilerOptions
-} from "../type";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 import { build, compiler, configMultiCompiler, getCompiler } from "./common";
 
 function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	options.context = context.getSource();
 	options.output = options.output || {};

@@ -1,18 +1,16 @@
 import path from "node:path";
-import type { OutputFileSystem, WatchFileSystem } from "@rspack/core";
+import type {
+	Compilation,
+	Compiler,
+	OutputFileSystem,
+	RspackOptions,
+	Stats,
+	StatsCompilation,
+	WatchFileSystem
+} from "@rspack/core";
 import { createFsFromVolume, Volume } from "memfs";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilation,
-	TCompiler,
-	TCompilerOptions,
-	TCompilerStats,
-	TCompilerStatsCompilation
-} from "../type";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 import { getCompiler } from "./common";
 
 function createMultiCompilerProcessor(
@@ -121,15 +119,9 @@ export type TMultiCompilerCaseConfig = {
 	description: string;
 	error?: boolean;
 	skip?: boolean;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: ({
 		context,
 		stats,
@@ -138,13 +130,10 @@ export type TMultiCompilerCaseConfig = {
 		compilation
 	}: {
 		context: ITestContext;
-		stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+		stats?: StatsCompilation;
 		files?: Record<string, string>;
-		compiler: TCompiler<ECompilerType.Rspack>;
-		compilation?: TCompilation<ECompilerType.Rspack>;
+		compiler: Compiler;
+		compilation?: Compilation;
 	}) => Promise<void>;
-	compilerCallback?: (
-		error: Error | null,
-		stats: TCompilerStats<ECompilerType.Rspack> | null
-	) => void;
+	compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };

@@ -1,16 +1,13 @@
-import type { OutputFileSystem } from "@rspack/core";
-import { BasicCaseCreator } from "../test/creator";
 import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilation,
-	TCompiler,
-	TCompilerOptions,
-	TCompilerStats,
-	TCompilerStatsCompilation
-} from "../type";
+	Compilation,
+	Compiler,
+	OutputFileSystem,
+	RspackOptions,
+	Stats,
+	StatsCompilation
+} from "@rspack/core";
+import { BasicCaseCreator } from "../test/creator";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 import { getCompiler } from "./common";
 
 function createCompilerProcessor(
@@ -99,7 +96,7 @@ function createCompilerProcessor(
 		check: async (env: ITestEnv, context: ITestContext) => {
 			const compiler = getCompiler(context, name);
 			const c = compiler.getCompiler()!;
-			const stats = compiler.getStats() as TCompilerStats<ECompilerType.Rspack>;
+			const stats = compiler.getStats() as Stats;
 			if (caseConfig.error) {
 				const statsJson = stats?.toJson({
 					modules: true,
@@ -187,15 +184,9 @@ export type TCompilerCaseConfig = {
 	description: string;
 	error?: boolean;
 	skip?: boolean;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: ({
 		context,
 		stats,
@@ -204,13 +195,10 @@ export type TCompilerCaseConfig = {
 		compilation
 	}: {
 		context: ITestContext;
-		stats?: TCompilerStatsCompilation<ECompilerType.Rspack>;
+		stats?: StatsCompilation;
 		files?: Record<string, string>;
-		compiler: TCompiler<ECompilerType.Rspack>;
-		compilation?: TCompilation<ECompilerType.Rspack>;
+		compiler: Compiler;
+		compilation?: Compilation;
 	}) => Promise<void>;
-	compilerCallback?: (
-		error: Error | null,
-		stats: TCompilerStats<ECompilerType.Rspack> | null
-	) => void;
+	compilerCallback?: (error: Error | null, stats: Stats | null) => void;
 };

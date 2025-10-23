@@ -1,13 +1,12 @@
+import type { RspackOptions } from "@rspack/core";
 import fs from "fs-extra";
 import path from "path";
 import { parseResource } from "../helper/legacy/parseResource";
 import { BasicCaseCreator } from "../test/creator";
 import type {
-	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	ITestProcessor,
-	TCompilerOptions,
 	TTestConfig
 } from "../type";
 import {
@@ -21,10 +20,7 @@ import {
 } from "./common";
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
-export type TConfigCaseConfig = Omit<
-	TTestConfig<ECompilerType.Rspack>,
-	"validate"
->;
+export type TConfigCaseConfig = Omit<TTestConfig, "validate">;
 
 export function createConfigProcessor(name: string): ITestProcessor {
 	return {
@@ -86,7 +82,7 @@ export function createConfigCase(name: string, src: string, dist: string) {
 export function defaultOptions(
 	index: number,
 	context: ITestContext
-): TCompilerOptions<ECompilerType.Rspack> {
+): RspackOptions {
 	return {
 		context: context.getSource(),
 		mode: "production",
@@ -114,7 +110,7 @@ export function defaultOptions(
 export function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	if (!options.entry) {
 		options.entry = "./index.js";
@@ -139,7 +135,7 @@ export function overrideOptions(
 export function findBundle(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	const testConfig = context.getTestConfig();
 
