@@ -1,5 +1,6 @@
 import type { RspackOptions } from "@rspack/core";
 import fs from "fs-extra";
+import { DEBUG_SCOPES } from "../test/debug";
 import type { ITestContext } from "../type";
 
 export function readConfigFile(
@@ -12,6 +13,7 @@ export function readConfigFile(
 ): RspackOptions[] {
 	const existsFile = files.find(i => fs.existsSync(i));
 	let fileConfig = existsFile ? require(existsFile) : {};
+
 	if (typeof fileConfig === "function") {
 		fileConfig = fileConfig(
 			{ config: prevOption },
@@ -19,5 +21,11 @@ export function readConfigFile(
 		);
 	}
 	const configArr = Array.isArray(fileConfig) ? fileConfig : [fileConfig];
+	if (existsFile) {
+		context.setValue(DEBUG_SCOPES.CompilerOptionsReadConfigFile, {
+			file: existsFile,
+			config: fileConfig
+		});
+	}
 	return functionApply ? functionApply(configArr) : configArr;
 }
