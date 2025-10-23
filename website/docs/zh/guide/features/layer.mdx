@@ -1,0 +1,143 @@
+# Layer
+
+Layer 是 Rspack 提供的一个强大特性，允许你对模块进行分类管理。通过为模块分配不同的 layer，你可以针对不同类型的模块执行差异化处理，比如：
+
+- 根据不同的 layer 使用不同的编译目标
+- 将不同 layer 的模块拆分到不同的输出目录
+- 为不同环境（如服务端和客户端）的代码应用不同的编译策略
+
+## 指定 Layer 的方式
+
+你可以通过以下几种方式为模块指定 layer：
+
+### 1. 通过 Entry 指定
+
+在入口配置中直接为[不同的入口点指定 `layer`](/config/entry#entrydescriptionlayer)：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    server: {
+      import: './src/server.js',
+      layer: 'server',
+    },
+    client: {
+      import: './src/client.js',
+      layer: 'client',
+    },
+  },
+};
+```
+
+### 2. 通过 Loader 规则指定
+
+你可以使用 [`rule.layer`](/config/module#rulelayer) 选项为所有匹配规则的模块指定 layer：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'yourLayer',
+      },
+    ],
+  },
+};
+```
+
+使用 [`rule.layer`](/config/module#rulelayer) 分配的 layer 将覆盖模块本身的 layer，例如某个模块被 Entry 指定了 layer，通过 Rule 分配的 layer 会覆盖 Entry 指定的 layer。
+
+## Layer 的传递性
+
+为了便于理解 Layer 的工作机制，我们将模块分为两类：
+
+- **普通模块**：未被显式指定 layer 的模块
+- **Layer 模块**：已被指定 layer 的模块
+
+### Layer 传递规则
+
+**1. 向下传递**
+
+Layer 模块的所有依赖模块都会继承相同的 layer。例如，当你为入口模块指定 layer 为 `'client'` 时，从该入口开始的整个依赖树中的所有模块都会被分配到 `'client'` layer。
+
+**2. 中途覆盖**
+
+如果依赖链中某个模块通过 Loader 规则被重新指定为其他 layer（如 `'server'`），那么从该模块开始的所有后续依赖都会跟随新的 layer。
+
+当一个普通模块被多个不同 layer 的模块依赖时，该模块会在构建产物中生成多个副本，每个副本对应一个 layer。
+
+**示例：** 如果 `'client'` layer 和 `'server'` layer 都依赖同一个 `lib.js` 模块，那么：
+
+- 构建产物中会包含两份 `lib.js`：一份属于 `'client'` layer，另一份属于 `'server'` layer
+- 这两份副本的依赖模块也会按照相同规则进行复制和分配
+
+## 给不同的 Layer 应用不同的处理规则
+
+你可以使用 [`issuerLayer`](/config/module#ruleissuerlayer) 来筛选特定 layer 的模块，并为它们应用不同的处理规则。以下示例展示了如何为不同 layer 使用不同的编译目标：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        oneOf: [
+          {
+            issuerLayer: 'client',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es5',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            issuerLayer: 'server',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es2020',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## 基于 Layer 的代码分割
+
+在构建优化阶段，你可以根据不同的 layer 将模块分配到不同的 chunk 中：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        server: {
+          layer: 'server',
+          filename: 'server/[name].js',
+        },
+        client: {
+          layer: 'client',
+          filename: 'client/[name].js',
+        },
+      },
+    },
+  },
+};
+```
+
+通过上述配置，我们成功地将 server 和 client 代码分别输出到了不同的目录中，实现了基于 layer 的代码分离。
