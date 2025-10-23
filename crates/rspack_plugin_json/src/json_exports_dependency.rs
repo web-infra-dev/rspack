@@ -39,7 +39,7 @@ impl Dependency for JsonExportsDependency {
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data, self.exports_depth, 1)
-        .map(|exports| ExportsOfExportsSpec::Names(exports))
+        .map(ExportsOfExportsSpec::Names)
         .unwrap_or(ExportsOfExportsSpec::NoExports),
       ..Default::default()
     })
@@ -88,7 +88,7 @@ fn get_exports_from_data(
           name: k.into(),
           can_mangle: Some(true),
           exports: get_exports_from_data(v, exports_depth, cur_depth + 1)
-            .map(|exports| ExportSpecExports::new(exports)),
+            .map(ExportSpecExports::new),
           ..Default::default()
         })
       })
@@ -107,7 +107,7 @@ fn get_exports_from_data(
             name: i_str.into(),
             can_mangle: Some(true),
             exports: get_exports_from_data(item, exports_depth, cur_depth + 1)
-              .map(|exports| ExportSpecExports::new(exports)),
+              .map(ExportSpecExports::new),
             ..Default::default()
           })
         })
