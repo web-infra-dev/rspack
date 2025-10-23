@@ -72,7 +72,7 @@ impl SwcLoader {
           .merge(MergingOption::from(Some(transform)));
       }
 
-      if loader_context.context.module_source_map_kind.enabled() {
+      if loader_context.context.source_map_kind.enabled() {
         if let Some(pre_source_map) = loader_context.source_map().cloned()
           && let Ok(source_map) = pre_source_map.to_json()
         {
@@ -120,7 +120,7 @@ impl SwcLoader {
       source,
       Some(filename),
       swc_options,
-      Some(loader_context.context.module_source_map_kind),
+      Some(loader_context.context.source_map_kind),
       |program, unresolved_mark| {
         if !is_typescript {
           return;

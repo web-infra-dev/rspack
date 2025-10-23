@@ -280,7 +280,7 @@ fn deterministic_grouping_for_modules(
     .get_chunk_modules(chunk, &module_graph);
 
   let nodes = items.into_iter().map(|module| {
-    let module: &dyn Module = &**module;
+    let module: &dyn Module = module.as_ref();
 
     GroupItem {
       module: module.identifier(),
