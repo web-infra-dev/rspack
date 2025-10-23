@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use rspack_core::{ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
+use rspack_core::{
+  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+};
 use rspack_error::{Diagnosable, Diagnostic, Result};
 
 use super::{
@@ -19,7 +21,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
     let dep = data.dependencies[0]
       .downcast_ref::<ProvideSharedDependency>()
       .expect("dependency of ProvideSharedModuleFactory should be ProvideSharedDependency");
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
+    Ok(ModuleFactoryResult::new_with_module(
       ProvideSharedModule::new(
         dep.share_scope.clone(),
         dep.name.clone(),
@@ -29,8 +31,9 @@ impl ModuleFactory for ProvideSharedModuleFactory {
         dep.singleton,
         dep.required_version.clone(),
         dep.strict_version,
-      ),
-    )))
+      )
+      .boxed(),
+    ))
   }
 }
 
