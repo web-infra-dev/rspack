@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import type { ITestContext } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import {
 	createWatchInitialProcessor,
@@ -11,12 +11,9 @@ import {
 	getWatchRunnerKey
 } from "./watch";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-const hotCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const hotCreators: Map<string, BasicCaseCreator> = new Map();
 
 function createHotIncrementalProcessor(
 	name: string,
@@ -62,17 +59,14 @@ export function createHotIncrementalCase(
 	src: string,
 	dist: string,
 	temp: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	target: RspackOptions["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
 	creator.create(name, src, dist, temp);
 }
 
-const watchCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const watchCreators: Map<string, BasicCaseCreator> = new Map();
 
 export type WatchIncrementalOptions = {
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;

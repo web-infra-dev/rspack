@@ -87,58 +87,58 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleError",
-			      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
-			      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.<anonymous>.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
-			    },
-			    Object {
-			      "code": "ModuleError",
-			      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
-			      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.<anonymous>.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
-			    },
-			    Object {
-			      "code": "ModuleBuildError",
-			      "message": "  × Module build failed:  ╰─▶   × TypeError: Cannot use 'in' operator to search for 'hideStack' in a string error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-			      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [
-			    Object {
-			      "code": "ModuleWarning",
-			      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
-			      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.<anonymous>.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
-			    },
-			    Object {
-			      "code": "ModuleWarning",
-			      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
-			      "moduleId": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./irregular-error-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.<anonymous>.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
-			    },
-			  ],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleError",
+				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
+				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				    },
+				    Object {
+				      "code": "ModuleError",
+				      "message": "  × Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
+				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": "ModuleError: Module Error (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitError (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				    },
+				    Object {
+				      "code": "ModuleBuildError",
+				      "message": "  × Module build failed:  ╰─▶   × TypeError: Cannot use 'in' operator to search for 'hideStack' in a string error        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [
+				    Object {
+				      "code": "ModuleWarning",
+				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ (Emitted value instead of an instance of Error) null",
+				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):(Emitted value instead of an instance of Error) null    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				    },
+				    Object {
+				      "code": "ModuleWarning",
+				      "message": "  ⚠ Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):  │ Error",
+				      "moduleId": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/irregular-error-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./irregular-error-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": "ModuleWarning: Module Warning (from <TEST_ROOT>/fixtures/errors/irregular-error-loader.js):Error    at Object.loaderContext.emitWarning (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.module.exports (<TEST_ROOT>/fixtures/errors/irregular-error-loader.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at node:internal/util<LINE_COL>    at new Promise (<anonymous>)    at node:internal/util<LINE_COL>    at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				    },
+				  ],
+				}
+			`);
 		}
 	},
 	{

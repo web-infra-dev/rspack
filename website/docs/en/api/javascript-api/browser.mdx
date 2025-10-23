@@ -85,14 +85,16 @@ const files = builtinMemFs.volume.toJSON();
 Please note that, currently in the `@rspack/browser`, `experiments.useInputFileSystem` can only intercept project files that will be ultimately bundled, and cannot intercept files relied upon during the build process, such as those used by Loaders (see also [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules) below).
 
 ```js title="rspack.config.mjs"
-const projectFs = memfs(filteredFiles);
+import { builtinMemFs } from '@rspack/browser';
+
+const projectFs = builtinMemFs.memfs(filteredFiles);
 export default {
   plugins: [
     {
       apply: compiler => {
         compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
-          compiler.inputFileSystem = projectFs;
-          compiler.outputFileSystem = projectFs;
+          compiler.inputFileSystem = projectFs.fs;
+          compiler.outputFileSystem = projectFs.fs;
         });
       },
     },

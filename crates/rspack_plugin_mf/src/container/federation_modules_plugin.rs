@@ -14,6 +14,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{define_hook, plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use tokio::sync::Mutex as TokioMutex;
 
 use super::{
@@ -25,11 +27,16 @@ define_hook!(AddContainerEntryDependencyHook: Series(dependency: &ContainerEntry
 define_hook!(AddFederationRuntimeDependencyHook: Series(dependency: &FederationRuntimeDependency));
 define_hook!(AddRemoteDependencyHook: Series(dependency: &dyn Dependency));
 
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct FederationModulesPluginCompilationHooks {
+  #[cfg_attr(allocative, allocative(skip))]
   pub add_container_entry_dependency: Arc<TokioMutex<AddContainerEntryDependencyHookHook>>,
+  #[cfg_attr(allocative, allocative(skip))]
   pub add_federation_runtime_dependency: Arc<TokioMutex<AddFederationRuntimeDependencyHookHook>>,
+  #[cfg_attr(allocative, allocative(skip))]
   pub add_remote_dependency: Arc<TokioMutex<AddRemoteDependencyHookHook>>,
 }
+
 impl Default for FederationModulesPluginCompilationHooks {
   fn default() -> Self {
     Self {
@@ -44,6 +51,7 @@ impl Default for FederationModulesPluginCompilationHooks {
   }
 }
 
+#[cfg_attr(allocative, allocative::root)]
 static FEDERATION_MODULES_PLUGIN_HOOKS_MAP: OnceLock<
   Mutex<HashMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
 > = OnceLock::new();
@@ -103,5 +111,13 @@ impl Plugin for FederationModulesPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
+  }
+
+  fn clear_cache(&self, id: CompilationId) {
+    if let Some(map) = FEDERATION_MODULES_PLUGIN_HOOKS_MAP.get()
+      && let Ok(mut map) = map.lock()
+    {
+      map.remove(&id);
+    }
   }
 }

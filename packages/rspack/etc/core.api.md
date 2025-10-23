@@ -1540,6 +1540,14 @@ function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve:
 };
 
 // @public (undocumented)
+type CreateReadStream = (path: PathLike, options?: NodeJS.BufferEncoding | ReadStreamOptions) => NodeJS.ReadableStream;
+
+// @public (undocumented)
+type CreateReadStreamFSImplementation = FSImplementation & {
+    read: (...args: any[]) => any;
+};
+
+// @public (undocumented)
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext & Record<string, any>;
 
 // @public
@@ -2239,8 +2247,15 @@ interface Es6Config extends BaseModuleConfig {
 
 // @public (undocumented)
 class EsmLibraryPlugin {
+    constructor(options?: {
+        preserveModules?: string;
+    });
     // (undocumented)
     apply(compiler: Compiler): void;
+    // (undocumented)
+    options?: {
+        preserveModules?: string;
+    };
     // (undocumented)
     static PLUGIN_NAME: string;
 }
@@ -2794,6 +2809,14 @@ interface ForStatement extends Node_4, HasSpan {
     type: "ForStatement";
     // (undocumented)
     update?: Expression;
+}
+
+// @public (undocumented)
+interface FSImplementation {
+    // (undocumented)
+    close?: (...args: any[]) => any;
+    // (undocumented)
+    open?: (...args: any[]) => any;
 }
 
 // @public (undocumented)
@@ -5374,6 +5397,8 @@ export interface OutputFileSystem {
     // (undocumented)
     chmod: (arg0: string, arg1: number, arg2: (arg0?: NodeJS.ErrnoException | null) => void) => void;
     // (undocumented)
+    createReadStream?: CreateReadStream;
+    // (undocumented)
     dirname?: (arg0: string) => string;
     // (undocumented)
     join?: (arg0: string, arg1: string) => string;
@@ -5963,6 +5988,12 @@ type ReadlinkSync = {
 
 // @public (undocumented)
 type ReadStream = ReadStream_2;
+
+// @public (undocumented)
+type ReadStreamOptions = StreamOptions & {
+    fs?: null | CreateReadStreamFSImplementation;
+    end?: number;
+};
 
 // @public (undocumented)
 type RealPath = {
@@ -7558,6 +7589,26 @@ type StatSyncOptions = {
     bigint?: boolean;
     throwIfNoEntry?: boolean;
 };
+
+// @public (undocumented)
+interface StreamOptions {
+    // (undocumented)
+    autoClose?: boolean;
+    // (undocumented)
+    emitClose?: boolean;
+    // (undocumented)
+    encoding?: NodeJS.BufferEncoding;
+    // (undocumented)
+    fd?: any;
+    // (undocumented)
+    flags?: string;
+    // (undocumented)
+    mode?: number;
+    // (undocumented)
+    signal?: null | AbortSignal;
+    // (undocumented)
+    start?: number;
+}
 
 // @public
 export type StrictModuleErrorHandling = boolean;

@@ -1,16 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Script } from "node:vm";
 import { JSDOM, ResourceLoader, VirtualConsole } from "jsdom";
 import { escapeSep } from "../../helper";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
-import type { ECompilerType, TRunnerFile, TRunnerRequirer } from "../../type";
+import type { TRunnerFile, TRunnerRequirer } from "../../type";
 import { type INodeRunnerOptions, NodeRunner } from "../node";
 
-export interface IWebRunnerOptions<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends INodeRunnerOptions<T> {
+const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
+export interface IWebRunnerOptions extends INodeRunnerOptions {
 	location: string;
 }
 
@@ -27,11 +27,9 @@ const FAKE_HOSTS = [
 
 const FAKE_TEST_ROOT_HOST = "https://test.cases/root/";
 
-export class WebRunner<
-	T extends ECompilerType = ECompilerType.Rspack
-> extends NodeRunner<T> {
+export class WebRunner extends NodeRunner {
 	private dom: JSDOM;
-	constructor(protected _webOptions: IWebRunnerOptions<T>) {
+	constructor(protected _webOptions: IWebRunnerOptions) {
 		super(_webOptions);
 
 		const virtualConsole = new VirtualConsole({});
@@ -236,6 +234,41 @@ export class WebRunner<
 			}
 		}
 
+		const createLocatedError = (e: Error, file: TRunnerFile) => {
+			const match = (e.stack || e.message).match(EVAL_LOCATION_REGEX);
+			if (match) {
+				const [, line] = match;
+				const realLine = Number(line) - 34;
+				const codeLines = file.content.split("\n");
+				const lineContents = [
+					...codeLines
+						.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
+						.map(line => `│  ${line}`),
+					`│> ${codeLines[realLine - 1]}`,
+					...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
+				];
+				const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
+				const finalError = new Error(message);
+				finalError.stack = undefined;
+				return finalError;
+			} else {
+				return e;
+			}
+		};
+		const originIt = currentModuleScope.it;
+		currentModuleScope.it = (
+			description: string,
+			fn: () => Promise<void> | void
+		) => {
+			originIt(description, async () => {
+				try {
+					await fn();
+				} catch (err) {
+					throw createLocatedError(err as Error, file);
+				}
+			});
+		};
+
 		const scopeKey = escapeSep(file!.path);
 		const args = Object.keys(currentModuleScope).filter(
 			arg => !["window", "self", "globalThis", "console"].includes(arg)
@@ -245,10 +278,12 @@ export class WebRunner<
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
 		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
+		this.dom.window["__FILE__"] = file;
+		this.dom.window["__CREATE_LOCATED_ERROR__"] = createLocatedError;
+
 		return [
 			m,
-			`
-			// hijack document.currentScript for auto public path
+			`// hijack document.currentScript for auto public path
 			var $$g$$ = new Proxy(window, {
 				get(target, prop, receiver) {
 					if (prop === "document") {
@@ -281,9 +316,12 @@ export class WebRunner<
 				}
 			});
 			(function(window, self, globalThis, console, ${args.join(", ")}) {
-				${file.content}
-			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});
-		`
+				try {
+				  ${file.content}
+				} catch (err) {
+					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
+				}
+			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});`
 		];
 	}
 
@@ -301,7 +339,11 @@ export class WebRunner<
 			const [m, code] = this.getModuleContent(file);
 
 			this.preExecute(code, file);
-			this.dom.window.eval(code);
+
+			const script = new Script(code);
+			const vmContext = this.dom.getInternalVMContext();
+			script.runInContext(vmContext);
+
 			this.postExecute(m, file);
 
 			this.requireCache[file.path] = m;

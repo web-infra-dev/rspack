@@ -2,34 +2,22 @@
 
 import type EventEmitter from "node:events";
 import type {
-	Compilation as RspackCompilation,
-	Compiler as RspackCompiler,
-	MultiStats as RspackMultiStats,
+	Compiler,
+	MultiStats,
 	RspackOptions,
-	Stats as RspackStats,
-	StatsCompilation as RspackStatsCompilation
+	Stats,
+	StatsCompilation
 } from "@rspack/core";
-import type {
-	Compilation as WebpackCompilation,
-	Compiler as WebpackCompiler,
-	MultiStats as WebpackMultiStats,
-	Configuration as WebpackOptions,
-	Stats as WebpackStats,
-	StatsCompilation as WebpackStatsCompilation
-} from "webpack";
 
 export interface ITestContext {
 	getSource(sub?: string): string;
 	getDist(sub?: string): string;
 	getTemp(sub?: string): string | null;
 
-	getCompiler<T extends ECompilerType>(
-		name: string,
-		type: T | void
-	): ITestCompilerManager<T>;
+	getCompiler(name: string): ITestCompilerManager;
 	closeCompiler(name: string): Promise<void>;
 
-	getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+	getTestConfig(): TTestConfig;
 	getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
 
 	setValue<T>(name: string, key: string, value: T): void;
@@ -42,43 +30,18 @@ export interface ITestContext {
 	clearError(name?: string): void;
 }
 
-export enum ECompilerType {
-	Rspack = "rspack",
-	Webpack = "webpack"
-}
-
-export type TCompilerOptions<T> = T extends ECompilerType.Rspack
-	? RspackOptions
-	: WebpackOptions;
-export type TCompiler<T> = T extends ECompilerType.Rspack
-	? RspackCompiler
-	: WebpackCompiler;
-export type TCompilation<T> = T extends ECompilerType.Rspack
-	? RspackCompilation
-	: WebpackCompilation;
-export type TCompilerStats<T> = T extends ECompilerType.Rspack
-	? RspackStats
-	: WebpackStats;
-export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack
-	? RspackMultiStats
-	: WebpackMultiStats;
-
-export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack
-	? RspackStatsCompilation
-	: WebpackStatsCompilation;
-
-export interface ITestCompilerManager<T extends ECompilerType> {
-	getOptions(): TCompilerOptions<T>;
-	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
-	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
-	getCompiler(): TCompiler<T> | null;
-	createCompiler(): TCompiler<T>;
+export interface ITestCompilerManager {
+	getOptions(): RspackOptions;
+	setOptions(newOptions: RspackOptions): RspackOptions;
+	mergeOptions(newOptions: RspackOptions): RspackOptions;
+	getCompiler(): Compiler | null;
+	createCompiler(): Compiler;
 	createCompilerWithCallback(
-		callback: (error: Error | null, stats: TCompilerStats<T> | null) => void
-	): TCompiler<T>;
-	build(): Promise<TCompilerStats<T>>;
+		callback: (error: Error | null, stats: Stats | null) => void
+	): Compiler;
+	build(): Promise<Stats>;
 	watch(timeout?: number): void;
-	getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
+	getStats(): Stats | MultiStats | null;
 	getEmitter(): EventEmitter;
 	close(): Promise<void>;
 }
@@ -95,8 +58,7 @@ export interface ITesterConfig {
 	dist: string;
 	temp?: string;
 	steps?: ITestProcessor[];
-	testConfig?: TTestConfig<ECompilerType>;
-	compilerFactories?: TCompilerFactories<ECompilerType>;
+	testConfig?: TTestConfig;
 	contextValue?: Record<string, unknown>;
 	runnerCreator?: TTestRunnerCreator;
 	createContext?: (config: ITesterConfig) => ITestContext;
@@ -127,9 +89,9 @@ export interface ITestProcessor {
 	check(env: ITestEnv, context: ITestContext): Promise<unknown>;
 }
 
-export interface ITestReporter<T> {
-	init(data?: T): Promise<void>;
-	increment(id: string, data: T): Promise<void>;
+export interface ITestReporter {
+	init<T>(data?: T): Promise<void>;
+	increment<T>(id: string, data: T): Promise<void>;
 	failure(id: string): Promise<void>;
 	output(): Promise<void>;
 }
@@ -187,30 +149,27 @@ export interface ITestEnv {
 	[key: string]: unknown;
 }
 
-export type TTestConfig<T extends ECompilerType> = {
+export type TTestConfig = {
 	location?: string;
-	validate?: (
-		stats: TCompilerStats<T> | TCompilerMultiStats<T>,
-		stderr?: string
-	) => void;
+	validate?: (stats: Stats | MultiStats, stderr?: string) => void;
 	noTests?: boolean;
 	writeStatsOuptut?: boolean;
 	writeStatsJson?: boolean;
-	beforeExecute?: (options: TCompilerOptions<T>) => void;
-	afterExecute?: (options: TCompilerOptions<T>) => void;
+	beforeExecute?: (options: RspackOptions) => void;
+	afterExecute?: (options: RspackOptions) => void;
 	moduleScope?: (
 		ms: IModuleScope,
-		stats?: TCompilerStatsCompilation<T>,
-		options?: TCompilerOptions<T>
+		stats?: StatsCompilation,
+		options?: RspackOptions
 	) => IModuleScope;
 	checkStats?: (
 		stepName: string,
-		jsonStats: TCompilerStatsCompilation<T> | undefined,
+		jsonStats: StatsCompilation | undefined,
 		stringStats: String
 	) => boolean;
 	findBundle?: (
 		index: number,
-		options: TCompilerOptions<T>,
+		options: RspackOptions,
 		stepName?: string
 	) => string | string[];
 	bundlePath?: string[];
@@ -224,11 +183,15 @@ export type TTestConfig<T extends ECompilerType> = {
 	checkSteps?: boolean;
 	// Only valid for Watch tests
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;
+	// Only valid for ESM library tests
+	esmLibPluginOptions?: {
+		preserveModules?: string;
+	};
 };
 
-export type TTestFilter<T extends ECompilerType> = (
+export type TTestFilter = (
 	creatorConfig: Record<string, unknown>,
-	testConfig: TTestConfig<T>
+	testConfig: TTestConfig
 ) => boolean | string;
 
 export interface ITestRunner {
@@ -237,15 +200,15 @@ export interface ITestRunner {
 	getGlobal(name: string): unknown;
 }
 
-export type TCompilerFactory<T extends ECompilerType> = (
-	options: TCompilerOptions<T> | TCompilerOptions<T>[],
-	callback?: (error: Error | null, stats: TCompilerStats<T> | null) => void
-) => TCompiler<T>;
+export type TCompilerFactory = (
+	options: RspackOptions | RspackOptions[],
+	callback?: (error: Error | null, stats: Stats | null) => void
+) => Compiler;
 
-export interface TRunnerFactory<T extends ECompilerType> {
+export interface TRunnerFactory {
 	create(
 		file: string,
-		compilerOptions: TCompilerOptions<T>,
+		compilerOptions: RspackOptions,
 		env: ITestEnv
 	): ITestRunner;
 }
@@ -255,11 +218,6 @@ export type THotUpdateContext = {
 	totalUpdates: number;
 	changedFiles: string[];
 };
-
-export type TCompilerFactories<T extends ECompilerType> = Record<
-	T,
-	TCompilerFactory<T>
->;
 
 export type TRunnerRequirer = (
 	currentDirectory: string,

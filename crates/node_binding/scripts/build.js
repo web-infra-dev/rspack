@@ -78,6 +78,10 @@ async function build() {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
 		}
+		if (process.env.ALLOCATIVE) {
+			features.push("allocative");
+			rustflags.push("--cfg=allocative");
+		}
 		if (values.profile === "release") {
 			features.push("info-level");
 		}
