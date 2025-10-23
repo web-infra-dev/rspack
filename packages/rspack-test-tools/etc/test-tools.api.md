@@ -105,6 +105,9 @@ export function createHotNormalCase(name: string, src: string, dist: string): vo
 export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
+export const createLocatedError: (collectedErrors: Error[], offset: number) => (e: Error, file: TRunnerFile) => Error;
+
+// @public (undocumented)
 export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
@@ -246,6 +249,10 @@ export interface INodeRunnerOptions {
     dist: string;
     // (undocumented)
     env: ITestEnv;
+    // (undocumented)
+    errors?: Error[];
+    // (undocumented)
+    logs?: string[];
     // (undocumented)
     name: string;
     // (undocumented)
@@ -481,6 +488,8 @@ export class NodeRunner implements ITestRunner {
     getRequire(): TRunnerRequirer;
     // (undocumented)
     protected globalContext: IGlobalContext | null;
+    // (undocumented)
+    protected log(message: string): void;
     // (undocumented)
     protected _options: INodeRunnerOptions;
     // (undocumented)
@@ -819,6 +828,8 @@ export class WebRunner extends NodeRunner {
     },
     string
     ];
+    // (undocumented)
+    protected log(message: string): void;
     // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)

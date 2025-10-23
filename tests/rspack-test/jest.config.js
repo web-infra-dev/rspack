@@ -103,6 +103,7 @@ const config = {
 		__ROOT_PATH__: root,
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
+		__DEBUG__: process.env.DEBUG === "test",
 	},
 	...(wasmConfig || {}),
 	verbose: true,

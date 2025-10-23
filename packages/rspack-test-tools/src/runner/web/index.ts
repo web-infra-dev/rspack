@@ -7,9 +7,12 @@ import { escapeSep } from "../../helper";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import type { TRunnerFile, TRunnerRequirer } from "../../type";
-import { type INodeRunnerOptions, NodeRunner } from "../node";
+import {
+	createLocatedError,
+	type INodeRunnerOptions,
+	NodeRunner
+} from "../node";
 
-const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
 export interface IWebRunnerOptions extends INodeRunnerOptions {
 	location: string;
 }
@@ -83,6 +86,7 @@ export class WebRunner extends NodeRunner {
 
 	run(file: string) {
 		if (!file.endsWith(".js") && !file.endsWith(".mjs")) {
+			this.log(`css: ${file}`);
 			const cssElement = this.dom.window.document.createElement("link");
 			cssElement.href = file;
 			cssElement.rel = "stylesheet";
@@ -96,11 +100,16 @@ export class WebRunner extends NodeRunner {
 		return this.globalContext![name];
 	}
 
+	protected log(message: string) {
+		this._options.logs?.push(`[WebRunner] ${message}`);
+	}
+
 	protected createResourceLoader() {
 		const that = this;
 		class CustomResourceLoader extends ResourceLoader {
 			fetch(url: string, _: { element: HTMLScriptElement }) {
 				const filePath = that.urlToPath(url);
+				that.log(`resource loader: ${url} -> ${filePath}`);
 				let finalCode: string | Buffer | void;
 				if (path.extname(filePath) === ".js") {
 					const currentDirectory = path.dirname(filePath);
@@ -157,10 +166,10 @@ export class WebRunner extends NodeRunner {
 		moduleScope.EventSource = EventSource;
 		moduleScope.fetch = async (url: string) => {
 			try {
+				const filePath = this.urlToPath(url);
+				this.log(`fetch: ${url} -> ${filePath}`);
 				const buffer: Buffer = await new Promise((resolve, reject) =>
-					fs.readFile(this.urlToPath(url), (err, b) =>
-						err ? reject(err) : resolve(b)
-					)
+					fs.readFile(filePath, (err, b) => (err ? reject(err) : resolve(b)))
 				);
 				return {
 					status: 200,
@@ -179,8 +188,9 @@ export class WebRunner extends NodeRunner {
 		};
 		moduleScope.URL = URL;
 		moduleScope.importScripts = (url: string) => {
-			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
-			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
+			const path = urlToRelativePath(url);
+			this.log(`importScripts: ${url} -> ${path}`);
+			this.requirers.get("entry")!(this._options.dist, path);
 		};
 		moduleScope.getComputedStyle = (element: HTMLElement) => {
 			const computedStyle = this.dom.window.getComputedStyle(element);
@@ -234,56 +244,7 @@ export class WebRunner extends NodeRunner {
 			}
 		}
 
-		const createLocatedError = (e: Error, file: TRunnerFile) => {
-			const match = (e.stack || e.message).match(EVAL_LOCATION_REGEX);
-			if (match) {
-				const [, line] = match;
-				const realLine = Number(line) - 34;
-				const codeLines = file.content.split("\n");
-				const lineContents = [
-					...codeLines
-						.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
-						.map(line => `│  ${line}`),
-					`│> ${codeLines[realLine - 1]}`,
-					...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
-				];
-				const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
-				const finalError = new Error(message);
-				finalError.stack = undefined;
-				return finalError;
-			} else {
-				return e;
-			}
-		};
-		const originIt = currentModuleScope.it;
-		currentModuleScope.it = (
-			description: string,
-			fn: () => Promise<void> | void
-		) => {
-			originIt(description, async () => {
-				try {
-					await fn();
-				} catch (err) {
-					throw createLocatedError(err as Error, file);
-				}
-			});
-		};
-
-		const scopeKey = escapeSep(file!.path);
-		const args = Object.keys(currentModuleScope).filter(
-			arg => !["window", "self", "globalThis", "console"].includes(arg)
-		);
-		const argValues = args
-			.map(arg => `window["${scopeKey}"]["${arg}"]`)
-			.join(", ");
-		this.dom.window[scopeKey] = currentModuleScope;
-		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
-		this.dom.window["__FILE__"] = file;
-		this.dom.window["__CREATE_LOCATED_ERROR__"] = createLocatedError;
-
-		return [
-			m,
-			`// hijack document.currentScript for auto public path
+		const proxyCode = `// hijack document.currentScript for auto public path
 			var $$g$$ = new Proxy(window, {
 				get(target, prop, receiver) {
 					if (prop === "document") {
@@ -314,7 +275,40 @@ export class WebRunner extends NodeRunner {
 					}
 					return Reflect.set(target, prop, value, receiver);
 				}
+			});`;
+		const createJSDOMLocatedError = createLocatedError(
+			this._options.errors || ([] as Error[]),
+			proxyCode.split("\n").length + 2
+		);
+		const originIt = currentModuleScope.it;
+		currentModuleScope.it = (
+			description: string,
+			fn: () => Promise<void> | void
+		) => {
+			originIt(description, async () => {
+				try {
+					await fn();
+				} catch (err) {
+					throw createJSDOMLocatedError(err as Error, file);
+				}
 			});
+		};
+
+		const scopeKey = escapeSep(file!.path);
+		const args = Object.keys(currentModuleScope).filter(
+			arg => !["window", "self", "globalThis", "console"].includes(arg)
+		);
+		const argValues = args
+			.map(arg => `window["${scopeKey}"]["${arg}"]`)
+			.join(", ");
+		this.dom.window[scopeKey] = currentModuleScope;
+		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
+		this.dom.window["__FILE__"] = file;
+		this.dom.window["__CREATE_LOCATED_ERROR__"] = createJSDOMLocatedError;
+
+		return [
+			m,
+			`${proxyCode}
 			(function(window, self, globalThis, console, ${args.join(", ")}) {
 				try {
 				  ${file.content}
@@ -328,6 +322,7 @@ export class WebRunner extends NodeRunner {
 	protected createJSDOMRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`jsdom: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}

@@ -7,6 +7,7 @@ import type {
 	ITestProcessor
 } from "../type";
 import { TestContext } from "./context";
+import { generateDebugReport } from "./debug";
 
 export class Tester implements ITester {
 	private context: ITestContext;
@@ -95,6 +96,13 @@ export class Tester implements ITester {
 			console.warn(
 				`Error occured while closing compilers of '${this.config.name}':\n${e.stack}`
 			);
+		}
+		if (__DEBUG__) {
+			try {
+				generateDebugReport(this.context);
+			} catch (e) {
+				console.warn(`Generate debug report failed: ${(e as Error).message}`);
+			}
 		}
 	}
 
