@@ -136,7 +136,7 @@ export enum RequestSyncType {
 export type HandleIncomingRequest = (
 	requestType: RequestType,
 	...args: any[]
-) => Promise<any> | any;
+) => any;
 
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
