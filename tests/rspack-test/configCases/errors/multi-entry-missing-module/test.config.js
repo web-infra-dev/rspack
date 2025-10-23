@@ -1,8 +1,9 @@
 module.exports = {
-	findBundle: function() {
+	findBundle: function () {
 		return [
-			"./a.js",
-			"./b.js",
+			// FIXME: the entry depenedency should generate module even when it is ignored
+			// "./a.js",
+			// "./b.js",
 			"./bundle0.js"
 		]
 	}

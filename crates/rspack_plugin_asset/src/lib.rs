@@ -358,47 +358,39 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
     }
 
-    if source_types.is_empty() {
-      if self
-        .parsed_asset_config
-        .as_ref()
-        .is_some_and(|x| x.is_source() || x.is_inline())
-        || !self.emit
-      {
-        return JS_TYPES;
-      } else {
-        return ASSET_AND_JS_TYPES;
-      }
-    }
-
-    let has_js = source_types.contains(&SourceType::JavaScript);
-    let has_css = source_types.contains(&SourceType::Css);
-
     if self
       .parsed_asset_config
       .as_ref()
       .is_some_and(|x| x.is_source() || x.is_inline())
       || !self.emit
     {
-      return if has_js && has_css {
-        JS_AND_CSS_URL_TYPES
-      } else if has_js {
-        JS_TYPES
-      } else if has_css {
-        CSS_URL_TYPES
+      if source_types.is_empty() {
+        return NO_TYPES;
       } else {
-        NO_TYPES
-      };
+        let has_js = source_types.contains(&SourceType::JavaScript);
+        let has_css = source_types.contains(&SourceType::Css);
+        if has_js && has_css {
+          return JS_AND_CSS_URL_TYPES;
+        } else if has_css {
+          return CSS_URL_TYPES;
+        } else {
+          return JS_TYPES;
+        }
+      }
     }
 
+    if source_types.is_empty() {
+      return ASSET_TYPES;
+    }
+
+    let has_js = source_types.contains(&SourceType::JavaScript);
+    let has_css = source_types.contains(&SourceType::Css);
     if has_js && has_css {
       ASSET_AND_JS_AND_CSS_URL_TYPES
-    } else if has_js {
-      ASSET_AND_JS_TYPES
     } else if has_css {
       ASSET_AND_CSS_URL_TYPES
     } else {
-      ASSET_TYPES
+      ASSET_AND_JS_TYPES
     }
   }
 
@@ -687,6 +679,38 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
+          let contenthash = self.hash_for_source(source, &compilation.options);
+          let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
+          let source_file_name = self.get_source_file_name(normal_module, compilation);
+          let (_, filename, mut asset_info) = self
+            .get_asset_module_filename(
+              normal_module,
+              module_generator_options,
+              compilation,
+              Some(contenthash),
+              &source_file_name,
+              true,
+            )
+            .await?;
+
+          generate_context
+            .data
+            .insert(CodeGenerationDataFilename::new(
+              filename,
+              match module_generator_options
+                .and_then(|x| x.asset_public_path())
+                .unwrap_or_else(|| &compilation.options.output.public_path)
+              {
+                PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
+                PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+              },
+            ));
+
+          asset_info.set_source_filename(source_file_name);
+          generate_context
+            .data
+            .insert(CodeGenerationDataAssetInfo::new(asset_info));
+
           Ok(source.clone().boxed())
         }
       }

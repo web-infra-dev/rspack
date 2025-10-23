@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: generated unexpected main.js";
+module.exports = () => true;
