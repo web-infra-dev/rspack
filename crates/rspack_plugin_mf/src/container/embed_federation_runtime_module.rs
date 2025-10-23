@@ -16,6 +16,7 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
+  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
@@ -98,6 +99,17 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate prevStartup wrapper pattern with defensive checks
     let startup = RuntimeGlobals::STARTUP.name();
+
+    // When async startup is enabled, only expose installRuntime and let the entry startup code call it
+    // When async startup is disabled, call the runtime directly in startup (backwards compat with main)
+    let startup_call = if self.options.async_startup {
+      // Async startup enabled: don't call runtime in startup, expose installRuntime instead
+      ""
+    } else {
+      // Async startup disabled: call runtime directly in startup (backwards compat with main)
+      "\trunFederationRuntime();\n"
+    };
+
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;
@@ -128,8 +140,7 @@ function runFederationRuntime() {{
 __webpack_require__.federation = __webpack_require__.federation || {{}};
 __webpack_require__.federation.installRuntime = runFederationRuntime;
 {startup} = function() {{
-	runFederationRuntime();
-	if (typeof prevStartup === 'function') {{
+{startup_call}	if (typeof prevStartup === 'function') {{
 		return prevStartup.apply(this, arguments);
 	}}
 	if (typeof prevStartup !== 'undefined') {{
