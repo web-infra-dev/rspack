@@ -16,7 +16,7 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: process.env.WASM ? [] : [
+	testMatch: [
 		"<rootDir>/legacy-test/*.test.js",
 		"<rootDir>/Cache.test.js",
 		"<rootDir>/Incremental-async-node.test.js",
@@ -69,4 +69,4 @@ const config = {
 	verbose: true,
 };
 
-module.exports = config;
+module.exports = process.env.WASM ? { testPathIgnorePatterns: [".*"], passWithNoTests: true } : config;
