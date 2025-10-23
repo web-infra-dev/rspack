@@ -26,6 +26,8 @@ pub mod tracing_preset;
 
 use std::future::Future;
 
+#[cfg(allocative)]
+pub use allocative;
 pub use merge::{MergeFrom, merge_from_optional_with};
 pub use span::SpanExt;
 

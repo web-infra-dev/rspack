@@ -11,8 +11,9 @@ export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: process.env.WASM ? [] : [
-		"<rootDir>/Config.test.js",
+		"<rootDir>/*.test.js",
 	],
+	exclude: ["Cache.test.js", "Incremental-*.test.js", "Hot*.test.js", "Serial.test.js", "NativeWatcher*.test.js", "Diagnostics.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,
 	resolve: {
 		alias: {
@@ -35,7 +36,7 @@ export default defineConfig({
 		printBasicPrototype: true
 	},
 	pool: {
-		maxWorkers: 5,
+		maxWorkers: "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	},
 	env: {
@@ -60,6 +61,7 @@ export default defineConfig({
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 	},
-	reporters: ["verbose"],
+	reporters: process.env.CI ? undefined : ["verbose"],
+	hideSkippedTests: true,
 });
 

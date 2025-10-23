@@ -1540,6 +1540,14 @@ function createNativePlugin<T extends any[], R>(name: CustomPluginName, resolve:
 };
 
 // @public (undocumented)
+type CreateReadStream = (path: PathLike, options?: NodeJS.BufferEncoding | ReadStreamOptions) => NodeJS.ReadableStream;
+
+// @public (undocumented)
+type CreateReadStreamFSImplementation = FSImplementation & {
+    read: (...args: any[]) => any;
+};
+
+// @public (undocumented)
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext & Record<string, any>;
 
 // @public
@@ -2801,6 +2809,14 @@ interface ForStatement extends Node_4, HasSpan {
     type: "ForStatement";
     // (undocumented)
     update?: Expression;
+}
+
+// @public (undocumented)
+interface FSImplementation {
+    // (undocumented)
+    close?: (...args: any[]) => any;
+    // (undocumented)
+    open?: (...args: any[]) => any;
 }
 
 // @public (undocumented)
@@ -4870,10 +4886,15 @@ export class MultiStats {
     // (undocumented)
     stats: Stats[];
     // (undocumented)
-    toJson(options: any): StatsCompilation;
+    toJson(options: boolean | StatsPresets | MultiStatsOptions): StatsCompilation;
     // (undocumented)
-    toString(options: any): string;
+    toString(options: boolean | StatsPresets | MultiStatsOptions): string;
 }
+
+// @public (undocumented)
+export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+    children?: StatsValue | (StatsValue | undefined)[];
+};
 
 // @public (undocumented)
 class MultiWatching {
@@ -5380,6 +5401,8 @@ export type Output = {
 export interface OutputFileSystem {
     // (undocumented)
     chmod: (arg0: string, arg1: number, arg2: (arg0?: NodeJS.ErrnoException | null) => void) => void;
+    // (undocumented)
+    createReadStream?: CreateReadStream;
     // (undocumented)
     dirname?: (arg0: string) => string;
     // (undocumented)
@@ -5970,6 +5993,12 @@ type ReadlinkSync = {
 
 // @public (undocumented)
 type ReadStream = ReadStream_2;
+
+// @public (undocumented)
+type ReadStreamOptions = StreamOptions & {
+    fs?: null | CreateReadStreamFSImplementation;
+    end?: number;
+};
 
 // @public (undocumented)
 type RealPath = {
@@ -6596,8 +6625,10 @@ declare namespace rspackExports {
         Loader,
         SnapshotOptions,
         CacheOptions,
+        StatsPresets,
         StatsColorOptions,
         StatsOptions,
+        MultiStatsOptions,
         StatsValue,
         RspackPluginInstance,
         RspackPluginFunction,
@@ -7504,7 +7535,7 @@ export type StatsOptions = {
 type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
 
 // @public (undocumented)
-type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
+export type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
 
 // @public (undocumented)
 class StatsPrinter {
@@ -7565,6 +7596,26 @@ type StatSyncOptions = {
     bigint?: boolean;
     throwIfNoEntry?: boolean;
 };
+
+// @public (undocumented)
+interface StreamOptions {
+    // (undocumented)
+    autoClose?: boolean;
+    // (undocumented)
+    emitClose?: boolean;
+    // (undocumented)
+    encoding?: NodeJS.BufferEncoding;
+    // (undocumented)
+    fd?: any;
+    // (undocumented)
+    flags?: string;
+    // (undocumented)
+    mode?: number;
+    // (undocumented)
+    signal?: null | AbortSignal;
+    // (undocumented)
+    start?: number;
+}
 
 // @public
 export type StrictModuleErrorHandling = boolean;

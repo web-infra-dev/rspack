@@ -1,13 +1,6 @@
+import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import { NodeRunner, WebRunner } from "../runner";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation
-} from "../type";
-import { getCompiler } from "./common";
+import type { ITestContext, ITestEnv, ITestRunner } from "../type";
 
 export type THotStepRuntimeLangData = {
 	outdatedModules: string[];
@@ -26,13 +19,13 @@ export type THotStepRuntimeData = {
 	statusPath: string[];
 };
 
-export function cachedStats<T extends ECompilerType = ECompilerType.Rspack>(
+export function cachedStats(
 	context: ITestContext,
 	name: string
-): () => TCompilerStatsCompilation<T> {
-	const compiler = context.getCompiler<T>(name);
+): () => StatsCompilation {
+	const compiler = context.getCompiler();
 	const statsGetter = (() => {
-		let cached: TCompilerStatsCompilation<T> | null = null;
+		let cached: StatsCompilation | null = null;
 		return () => {
 			if (cached) {
 				return cached;
@@ -46,15 +39,15 @@ export function cachedStats<T extends ECompilerType = ECompilerType.Rspack>(
 	return statsGetter;
 }
 
-export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
+export function createRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const testConfig = context.getTestConfig();
-	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
+	const compilerOptions = compiler.getOptions() as RspackOptions;
 	const runnerOptions = {
 		runInNewContext: false,
 		cachable: true,
@@ -70,13 +63,13 @@ export function createRunner<T extends ECompilerType = ECompilerType.Rspack>(
 		compilerOptions.target === "web" ||
 		compilerOptions.target === "webworker"
 	) {
-		return new WebRunner<T>({
+		return new WebRunner({
 			...runnerOptions,
 			runInNewContext: true,
 			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	}
-	return new NodeRunner<T>(runnerOptions);
+	return new NodeRunner(runnerOptions);
 }
 
 function getFileIndexHandler(
@@ -85,8 +78,8 @@ function getFileIndexHandler(
 	file: string
 ) {
 	const multiFileIndexMap: Record<string, number[]> =
-		context.getValue(name, "multiFileIndexMap") || {};
-	const runned = (context.getValue(name, "runned") as Set<string>) || new Set();
+		context.getValue("multiFileIndexMap") || {};
+	const runned = (context.getValue("runned") as Set<string>) || new Set();
 	if (typeof multiFileIndexMap[file] === "undefined") {
 		throw new Error("Unexpect file in multiple runner");
 	}
@@ -99,7 +92,7 @@ function getFileIndexHandler(
 	}
 	const getIndex = () => [indexList[seq], seq];
 	const flagIndex = () => runned.add(`${name}:${file}[${seq}]`);
-	context.setValue(name, "runned", runned);
+	context.setValue("runned", runned);
 	return { getIndex, flagIndex };
 }
 
@@ -113,9 +106,7 @@ export function getMultiCompilerRunnerKey(
 	return `${name}-${index}[${seq}]`;
 }
 
-export function createMultiCompilerRunner<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export function createMultiCompilerRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
@@ -123,8 +114,8 @@ export function createMultiCompilerRunner<
 ): ITestRunner {
 	const testConfig = context.getTestConfig();
 	const { getIndex, flagIndex } = getFileIndexHandler(context, name, file);
-	const multiCompilerOptions: TCompilerOptions<T>[] =
-		context.getValue(name, "multiCompilerOptions") || [];
+	const multiCompilerOptions: RspackOptions[] =
+		context.getValue("multiCompilerOptions") || [];
 	const [index] = getIndex();
 	const compilerOptions = multiCompilerOptions[index];
 	let runner;
@@ -150,13 +141,13 @@ export function createMultiCompilerRunner<
 		compilerOptions.target === "web" ||
 		compilerOptions.target === "webworker"
 	) {
-		runner = new WebRunner<T>({
+		runner = new WebRunner({
 			...runnerOptions,
 			runInNewContext: true,
 			location: testConfig.location || "https://test.cases/path/index.html"
 		});
 	} else {
-		runner = new NodeRunner<T>(runnerOptions);
+		runner = new NodeRunner(runnerOptions);
 	}
 	flagIndex();
 	return runner;

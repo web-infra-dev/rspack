@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import merge from "webpack-merge";
 import { ECompilerEvent } from "../compiler";
 import { readConfigFile } from "../helper";
@@ -8,21 +9,12 @@ import copyDiff from "../helper/legacy/copyDiff";
 import { WebRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import type {
-	ECompilerType,
 	IModuleScope,
 	ITestContext,
 	ITestEnv,
-	ITestRunner,
-	TCompilerOptions,
-	TCompilerStatsCompilation
+	ITestRunner
 } from "../type";
-import {
-	afterExecute,
-	compiler,
-	findMultiCompilerBundle,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, compiler, findMultiCompilerBundle, run } from "./common";
 
 type TWatchContext = {
 	currentTriggerFilename: string | null;
@@ -51,12 +43,12 @@ export function createWatchInitialProcessor(
 
 	return {
 		before: async (context: ITestContext) => {
-			context.setValue(name, "watchContext", watchContext);
+			context.setValue("watchContext", watchContext);
 		},
-		config: async <T extends ECompilerType.Rspack>(context: ITestContext) => {
+		config: async (context: ITestContext) => {
 			const testConfig = context.getTestConfig();
 			const multiCompilerOptions = [];
-			const caseOptions: TCompilerOptions<T>[] = readConfigFile(
+			const caseOptions: RspackOptions[] = readConfigFile(
 				["rspack.config.js", "webpack.config.js"].map(i =>
 					context.getSource(i)
 				),
@@ -87,9 +79,9 @@ export function createWatchInitialProcessor(
 				multiCompilerOptions.length === 1
 					? multiCompilerOptions[0]
 					: multiCompilerOptions;
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			compiler.setOptions(compilerOptions as any);
-			context.setValue(name, "multiCompilerOptions", multiCompilerOptions);
+			context.setValue("multiCompilerOptions", multiCompilerOptions);
 		},
 		compiler: async (context: ITestContext) => {
 			const c = await compiler(context, name);
@@ -98,7 +90,7 @@ export function createWatchInitialProcessor(
 			});
 		},
 		build: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			fs.mkdirSync(watchContext.tempDir, { recursive: true });
 			copyDiff(
 				path.join(context.getSource(), watchContext.step),
@@ -121,21 +113,18 @@ export function createWatchInitialProcessor(
 				)
 			);
 		},
-		check: async <T extends ECompilerType.Rspack>(
-			env: ITestEnv,
-			context: ITestContext
-		) => {
+		check: async (env: ITestEnv, context: ITestContext) => {
 			const testConfig = context.getTestConfig();
 			if (testConfig.noTests) return;
 
 			const errors: Array<{ message: string; stack?: string }> = (
-				context.getError(name) || []
+				context.getError() || []
 			).map(e => ({
 				message: e.message,
 				stack: e.stack
 			}));
 			const warnings: Array<{ message: string; stack?: string }> = [];
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const stats = compiler.getStats();
 			const options = compiler.getOptions();
 			const checkStats = testConfig.checkStats || (() => true);
@@ -153,7 +142,7 @@ export function createWatchInitialProcessor(
 				}
 
 				const getJsonStats = (() => {
-					let cached: TCompilerStatsCompilation<T> | null = null;
+					let cached: StatsCompilation | null = null;
 					return () => {
 						if (!cached) {
 							cached = stats.toJson({
@@ -232,7 +221,7 @@ export function createWatchInitialProcessor(
 
 			// clear error if checked
 			if (fs.existsSync(context.getSource("errors.js"))) {
-				context.clearError(name);
+				context.clearError();
 			}
 
 			// check hash
@@ -273,7 +262,7 @@ export function createWatchStepProcessor(
 		// do nothing
 	};
 	processor.build = async (context: ITestContext) => {
-		const compiler = getCompiler(context, name);
+		const compiler = context.getCompiler();
 		const task = new Promise((resolve, reject) => {
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);
@@ -338,7 +327,7 @@ export function createWatchCase(
 function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>,
+	options: RspackOptions,
 	tempDir: string,
 	nativeWatcher: boolean
 ) {
@@ -362,24 +351,15 @@ function overrideOptions(
 	options.experiments.css ??= true;
 
 	if (nativeWatcher) {
-		(
-			options as TCompilerOptions<ECompilerType.Rspack>
-		).experiments!.nativeWatcher ??= true;
+		(options as RspackOptions).experiments!.nativeWatcher ??= true;
 	}
 
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture ??= {};
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture!.bundlerInfo ??= {};
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+	(options as RspackOptions).experiments!.rspackFuture ??= {};
+	(options as RspackOptions).experiments!.rspackFuture!.bundlerInfo ??= {};
+	(options as RspackOptions).experiments!.rspackFuture!.bundlerInfo!.force ??=
+		false;
 	// test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-	(
-		options as TCompilerOptions<ECompilerType.Rspack>
-	).experiments!.incremental ??= "safe";
+	(options as RspackOptions).experiments!.incremental ??= "safe";
 
 	if (!global.printLogger) {
 		options.infrastructureLogging = {
@@ -391,7 +371,7 @@ function overrideOptions(
 function findBundle(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>,
+	options: RspackOptions,
 	stepName: string
 ) {
 	const testConfig = context.getTestConfig();
@@ -405,7 +385,7 @@ function findBundle(
 function defaultOptions({
 	incremental = false,
 	ignoreNotFriendlyForIncrementalWarnings = false
-} = {}): TCompilerOptions<ECompilerType.Rspack> {
+} = {}): RspackOptions {
 	if (incremental) {
 		return {
 			experiments: {
@@ -424,20 +404,20 @@ export function getWatchRunnerKey(
 	name: string,
 	file: string
 ): string {
-	const watchContext = context.getValue(name, "watchContext") as any;
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string | void = watchContext?.step;
 	return `${name}-${stepName}`;
 }
 
-function cachedWatchStats<T extends ECompilerType = ECompilerType.Rspack>(
+function cachedWatchStats(
 	context: ITestContext,
 	name: string
-): () => TCompilerStatsCompilation<T> {
-	const compiler = context.getCompiler<T>(name);
-	const watchContext = context.getValue(name, "watchContext") as any;
+): () => StatsCompilation {
+	const compiler = context.getCompiler();
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string = watchContext?.step!;
 	const statsGetter = (() => {
-		const cached: Record<string, TCompilerStatsCompilation<T>> = {};
+		const cached: Record<string, StatsCompilation> = {};
 		return () => {
 			if (cached[stepName]) {
 				return cached[stepName];
@@ -451,17 +431,15 @@ function cachedWatchStats<T extends ECompilerType = ECompilerType.Rspack>(
 	return statsGetter;
 }
 
-export function createWatchRunner<
-	T extends ECompilerType = ECompilerType.Rspack
->(
+export function createWatchRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = context.getCompiler<T>(name);
-	const compilerOptions = compiler.getOptions() as TCompilerOptions<T>;
-	const watchContext = context.getValue(name, "watchContext") as any;
+	const compiler = context.getCompiler();
+	const compilerOptions = compiler.getOptions() as RspackOptions;
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string | void = watchContext?.step;
 	if (!stepName) {
 		throw new Error("Can not get watch step name from context");
@@ -490,8 +468,8 @@ export function createWatchRunner<
 			...(testConfig || {}),
 			moduleScope: (
 				ms: IModuleScope,
-				stats?: TCompilerStatsCompilation<T>,
-				options?: TCompilerOptions<T>
+				stats?: StatsCompilation,
+				options?: RspackOptions
 			) => {
 				ms.STATE = state;
 				ms.WATCH_STEP = stepName;

@@ -1,6 +1,6 @@
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [(() => {
-  const mockPurge = jest.fn();
+  const mockPurge = rstest.fn();
   return {
     description: "invokes purge() if inputFileSystem.purge",
     options(context) {
@@ -19,7 +19,7 @@ module.exports = [(() => {
     }
   }
 })(), (() => {
-  const mockPurge = jest.fn();
+  const mockPurge = rstest.fn();
   return {
     description: "does NOT invoke purge() if !inputFileSystem.purge",
     options(context) {

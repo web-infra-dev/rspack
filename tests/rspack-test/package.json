@@ -11,8 +11,7 @@
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:rstest": "rstest",
     "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js  --passWithNoTests",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
-    "test:diff": "cross-env RSPACK_DIFF=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests"
+    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
@@ -66,7 +65,6 @@
     "@babel/preset-react": "^7.27.1",
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
-    "csv-to-markdown-table": "1.5.0",
     "es5-ext": "^0.10.64",
     "is-ci": "4.1.0",
     "less": "4.4.2",

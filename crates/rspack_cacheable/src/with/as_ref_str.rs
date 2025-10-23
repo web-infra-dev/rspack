@@ -69,7 +69,9 @@ use std::sync::{Arc, LazyLock};
 
 use dashmap::DashSet;
 
+#[cfg_attr(allocative, allocative::root)]
 pub static CACHED_ARC_STR: LazyLock<DashSet<Arc<str>>> = LazyLock::new(Default::default);
+
 impl AsRefStrConverter for Arc<str> {
   fn as_str(&self) -> &str {
     self.as_ref()
