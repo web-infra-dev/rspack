@@ -61,7 +61,7 @@ export default defineConfig({
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 	},
-	reporters: ["verbose"],
+	reporters: process.env.CI ?  undefined: ["verbose"],
 	hideSkippedTests: true,
 });
 
