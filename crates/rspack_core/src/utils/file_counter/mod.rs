@@ -73,11 +73,7 @@ impl FileCounter {
 
   /// Added files compared to the `files()` when call reset_incremental_info
   pub fn added_files(&self) -> impl Iterator<Item = &ArcPath> {
-    self
-      .incremental_info
-      .added()
-      .iter()
-      .chain(self.incremental_info.updated())
+    self.incremental_info.added().iter()
   }
 
   /// Removed files compared to the `files()` when call reset_incremental_info
@@ -172,6 +168,18 @@ mod test {
 
     counter.add_files(&resource_1, &file_list_a);
     assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.reset_incremental_info();
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.remove_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
+
+    counter.add_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
     assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.reset_incremental_info();
