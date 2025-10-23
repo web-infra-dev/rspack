@@ -1,0 +1,117 @@
+# Layer
+
+Layer is a powerful feature provided by Rspack that allows you to categorize and manage modules. By assigning different layers to modules, you can perform differentiated processing for different types of modules, such as:
+
+- Using different compilation targets based on different layers
+- Splitting modules from different layers into different output directories
+- Applying different optimization strategies for code in different environments (such as server-side and client-side)
+
+## Ways to specify layers
+
+You can specify layers for modules in the following ways:
+
+### 1. Specify via entry
+
+Directly specify layers for different entry points in the entry configuration:
+
+```js
+export default {
+  entry: {
+    server: {
+      import: './src/server.js',
+      layer: 'server',
+    },
+    client: {
+      import: './src/client.js',
+      layer: 'client',
+    },
+  },
+};
+```
+
+### 2. Specify via loader rules
+
+You can use the `rule.layer` option to specify a layer for all modules that match the rule:
+
+```js
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'yourLayer',
+      },
+    ],
+  },
+};
+```
+
+## Applying different processing rules to different layers
+
+You can use `issuerLayer` to filter modules from specific layers and apply different processing rules to them. The following example shows how to use different compilation targets for different layers:
+
+```js
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        oneOf: [
+          {
+            issuerLayer: 'client',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es5',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            issuerLayer: 'server',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es2020',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Layer-based Code splitting
+
+During the build optimization phase, you can assign modules to different chunks based on different layers:
+
+```js
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        server: {
+          layer: 'server',
+          filename: 'server/[name].js',
+        },
+        client: {
+          layer: 'client',
+          filename: 'client/[name].js',
+        },
+      },
+    },
+  },
+};
+```
+
+Through the above configuration, we successfully output server and client code to different directories respectively, achieving layer-based code separation.
