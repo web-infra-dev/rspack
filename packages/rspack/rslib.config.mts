@@ -1,23 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
-import { type Edit, Lang, parse } from "@ast-grep/napi";
+import { type Edit, Lang, parse, type SgNode } from "@ast-grep/napi";
+import type { Kinds, TypesMap } from "@ast-grep/napi/types/staticTypes";
 import { defineConfig, type LibConfig, rsbuild, rspack } from "@rslib/core";
 import prebundleConfig from "./prebundle.config.mjs";
 
 const merge = rsbuild.mergeRsbuildConfig;
 
-const externalAlias = ({ request }: { request?: string }, callback) => {
+const externalAlias: rsbuild.Rspack.Externals = ({ request }, callback) => {
 	const { dependencies } = prebundleConfig;
 
 	for (const item of dependencies) {
 		const depName = typeof item === "string" ? item : item.name;
 		if (new RegExp(`^${depName}$`).test(request!)) {
-			return callback(null, `../compiled/${depName}/index.js`);
+			return callback(undefined, `../compiled/${depName}/index.js`);
 		}
 	}
 
 	if (new RegExp(/^tinypool$/).test(request!)) {
-		return callback(null, "../compiled/tinypool/dist/index.js");
+		return callback(undefined, "../compiled/tinypool/dist/index.js");
 	}
 
 	return callback();
@@ -102,10 +103,12 @@ const codmodPlugin: rsbuild.RsbuildPlugin = {
 		/**
 		 * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
 		 */
-		function replaceBinding(root): Edit[] {
-			const binding = root.find(
-				`module1.exports = require("@rspack/binding");`
-			);
+		function replaceBinding(root: SgNode<TypesMap, Kinds<TypesMap>>): Edit[] {
+			const target = `module1.exports = require("@rspack/binding");`;
+			const binding = root.find(target);
+			if (binding === null) {
+				throw new Error("Cannot find binding require statement: " + target);
+			}
 			return [
 				binding.replace(
 					`module1.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
