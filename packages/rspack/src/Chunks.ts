@@ -1,6 +1,27 @@
 import { Chunks } from "@rspack/binding";
 import type { Chunk } from "./Chunk";
 
+Object.defineProperty(Chunks.prototype, "entries", {
+	enumerable: true,
+	configurable: true,
+	value(this: Chunks): SetIterator<[Chunk, Chunk]> {
+		const chunks = this._values();
+		let index = 0;
+		return {
+			[Symbol.iterator]() {
+				return this;
+			},
+			next(): IteratorResult<[Chunk, Chunk]> {
+				if (index < chunks.length) {
+					const chunk = chunks[index++];
+					return { value: [chunk, chunk], done: false };
+				}
+				return { value: undefined, done: true };
+			}
+		};
+	}
+});
+
 Object.defineProperty(Chunks.prototype, "values", {
 	enumerable: true,
 	configurable: true,
