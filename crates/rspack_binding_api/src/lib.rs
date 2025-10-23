@@ -99,6 +99,8 @@ mod trace_event;
 mod utils;
 mod virtual_modules;
 
+#[cfg(feature = "dhat-heap")]
+use std::sync::Once;
 use std::{
   cell::RefCell,
   mem::ManuallyDrop,
@@ -504,7 +506,11 @@ fn init() {
       sftrace_setup::setup();
     }
   }
-
+  #[cfg(feature = "dhat-heap")]
+  if std::env::var_os("DHAT_HEAP").is_some() {
+    eprintln!("DHAT_HEAP is set, initializing dhat heap profiler");
+    init_dhat_profiler();
+  }
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
@@ -566,6 +572,14 @@ pub fn cleanup_global_trace() {
 fn sync_trace_event(events: Vec<RawTraceEvent>) {
   #[cfg(not(feature = "browser"))]
   trace_event::sync_trace_event(events);
+}
+
+#[cfg(feature = "dhat-heap")]
+fn init_dhat_profiler() {
+  static START: Once = Once::new();
+  START.call_once(|| {
+    Box::leak(Box::new(dhat::Profiler::new_heap()));
+  });
 }
 
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {

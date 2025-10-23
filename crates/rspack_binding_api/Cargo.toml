@@ -11,17 +11,18 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-browser         = ["dep:rspack_browser", "rspack_napi/browser"]
-color-backtrace = ["dep:color-backtrace"]
-debug_tool      = ["rspack_core/debug_tool"]
-plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
-allocative      = [
+allocative = [
   "rspack_util/allocative",
   "rspack_collections/allocative",
   "rspack_cacheable/allocative",
   "rspack_tracing_perfetto/allocative",
 ]
+browser = ["dep:rspack_browser", "rspack_napi/browser"]
+color-backtrace = ["dep:color-backtrace"]
+debug_tool = ["rspack_core/debug_tool"]
+dhat-heap = ["dep:dhat", "rspack_allocator/dhat-heap"]
+plugin = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                    = { workspace = true }
@@ -136,5 +137,6 @@ ignored = ["parking_lot", "rspack_tracing_perfetto"]
 parking_lot = { version = "=0.12.3", features = ["nightly"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
+dhat           = { workspace = true, optional = true }
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }

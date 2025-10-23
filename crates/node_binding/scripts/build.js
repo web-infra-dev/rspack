@@ -78,6 +78,9 @@ async function build() {
 			features.push("sftrace-setup");
 			rustflags.push("-Zinstrument-xray=always");
 		}
+		if (process.env.DHAT) {
+			features.push("dhat-heap");
+		}
 		if (process.env.ALLOCATIVE) {
 			features.push("allocative");
 			rustflags.push("--cfg=allocative");
