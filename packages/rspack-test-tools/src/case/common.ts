@@ -5,11 +5,7 @@ import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import type { ITestCompilerManager, ITestContext, ITestEnv } from "../type";
-
-export function getCompiler(context: ITestContext, name: string) {
-	return context.getCompiler(name) as ITestCompilerManager;
-}
+import type { ITestContext, ITestEnv } from "../type";
 
 export async function config(
 	context: ITestContext,
@@ -17,7 +13,7 @@ export async function config(
 	configFiles: string[],
 	defaultOptions: RspackOptions = {}
 ): Promise<RspackOptions> {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	compiler.setOptions(defaultOptions);
 	if (Array.isArray(configFiles)) {
 		const fileOptions = readConfigFile(
@@ -34,7 +30,7 @@ export async function compiler(
 	context: ITestContext,
 	name: string
 ): Promise<Compiler> {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	compiler.createCompiler();
 	return compiler.getCompiler()! as Compiler;
 }
@@ -43,7 +39,7 @@ export async function build(
 	context: ITestContext,
 	name: string
 ): Promise<Compiler> {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	await compiler.build();
 	return compiler.getCompiler()! as Compiler;
 }
@@ -60,7 +56,7 @@ export async function run(
 	const testConfig = context.getTestConfig();
 	if (testConfig.noTests) return;
 
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	if (typeof testConfig.beforeExecute === "function") {
 		testConfig.beforeExecute(compiler.getOptions());
 	}
@@ -85,16 +81,14 @@ export async function run(
 		if (!bundle) {
 			continue;
 		}
-		const runner = context.getRunner(name, bundle, env);
+		const runner = context.getRunner(bundle, env);
 		const mod = runner.run(bundle);
-		const result =
-			context.getValue<Array<Promise<unknown>>>(name, "modules") || [];
+		const result = context.getValue<Array<Promise<unknown>>>("modules") || [];
 		result.push(mod);
-		context.setValue<Array<Promise<unknown>>>(name, "modules", result);
+		context.setValue<Array<Promise<unknown>>>("modules", result);
 	}
 
-	const results =
-		context.getValue<Array<Promise<unknown>>>(name, "modules") || [];
+	const results = context.getValue<Array<Promise<unknown>>>("modules") || [];
 	await Promise.all(results);
 }
 
@@ -106,10 +100,10 @@ export async function check(
 	const testConfig = context.getTestConfig();
 	if (testConfig.noTests) return;
 
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 
 	const errors: Array<{ message: string; stack?: string }> = (
-		context.getError(name) || []
+		context.getError() || []
 	).map(e => ({
 		message: e.message,
 		stack: e.stack
@@ -178,7 +172,7 @@ export async function check(
 
 	// clear error if checked
 	if (fs.existsSync(context.getSource("errors.js"))) {
-		context.clearError(name);
+		context.clearError();
 	}
 }
 
@@ -195,7 +189,7 @@ export async function checkSnapshot(
 		);
 	}
 
-	const compilerManager = getCompiler(context, name);
+	const compilerManager = context.getCompiler();
 	const stats = compilerManager.getStats();
 	const compiler = compilerManager.getCompiler();
 	if (!stats || !compiler) return;
@@ -261,7 +255,7 @@ export async function checkSnapshot(
 }
 
 export async function afterExecute(context: ITestContext, name: string) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const testConfig = context.getTestConfig();
 	if (typeof testConfig.afterExecute === "function") {
 		let options = compiler.getOptions();
@@ -285,13 +279,11 @@ export function findMultiCompilerBundle(
 		return [];
 	}
 
-	const multiCompilerOptions = (context.getValue(
-		name,
-		"multiCompilerOptions"
-	) || []) as RspackOptions[];
+	const multiCompilerOptions = (context.getValue("multiCompilerOptions") ||
+		[]) as RspackOptions[];
 	const result: string[] = [];
 	const multiFileIndexMap: Record<string, number[]> =
-		context.getValue(name, "multiFileIndexMap") || {};
+		context.getValue("multiFileIndexMap") || {};
 	for (const [index, compilerOptions] of multiCompilerOptions.entries()) {
 		const curBundles = multiFindBundle!(index, context, compilerOptions);
 
@@ -312,7 +304,7 @@ export function findMultiCompilerBundle(
 		result.push(...bundles);
 	}
 
-	context.setValue(name, "multiFileIndexMap", multiFileIndexMap);
+	context.setValue("multiFileIndexMap", multiFileIndexMap);
 
 	return result;
 }
@@ -366,7 +358,7 @@ export function configMultiCompiler(
 		multiCompilerOptions.push(compilerOptions);
 	}
 
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	compiler.setOptions(multiCompilerOptions as any);
-	context.setValue(name, "multiCompilerOptions", multiCompilerOptions);
+	context.setValue("multiCompilerOptions", multiCompilerOptions);
 }

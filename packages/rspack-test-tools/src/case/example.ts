@@ -2,7 +2,7 @@ import path from "node:path";
 import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
-import { build, compiler, configMultiCompiler, getCompiler } from "./common";
+import { build, compiler, configMultiCompiler } from "./common";
 
 function overrideOptions(
 	index: number,
@@ -39,7 +39,7 @@ function createExampleProcessor(name: string): ITestProcessor {
 			// no need to run, just check the building
 		},
 		check: async (env: ITestEnv, context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const stats = compiler.getStats();
 			if (stats?.hasErrors()) {
 				console.log(

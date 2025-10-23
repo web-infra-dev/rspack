@@ -10,7 +10,6 @@ import { escapeSep } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { getCompiler } from "./common";
 import { createHotProcessor, createHotRunner } from "./hot";
 import type { THotStepRuntimeData } from "./runner";
 
@@ -317,7 +316,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 	const originRun = processor.run;
 	processor.run = async function (env, context) {
 		context.setValue(
-			name,
 			"hotUpdateStepChecker",
 			(updateIndex: number, stats: Stats, runtime: THotStepRuntimeData) => {
 				const statsJson: StatsCompilation = stats.toJson({
@@ -339,7 +337,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 								: Array.from(entry.runtime);
 					}
 				}
-				const compiler = context.getCompiler(name);
+				const compiler = context.getCompiler();
 				const compilerOptions = compiler.getOptions();
 				matchStepSnapshot(
 					env,
@@ -353,7 +351,6 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			}
 		);
 		context.setValue(
-			name,
 			"hotUpdateStepErrorChecker",
 			(updateIndex: number, stats: Stats, runtime: THotStepRuntimeData) => {
 				hashes.push(stats.hash!);
@@ -364,7 +361,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 	};
 
 	processor.check = async function (env, context) {
-		const compiler = getCompiler(context, name);
+		const compiler = context.getCompiler();
 		const stats = compiler.getStats() as Stats;
 		if (!stats || !stats.hash) {
 			env.expect(false);

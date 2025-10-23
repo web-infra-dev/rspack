@@ -4,7 +4,6 @@ import type { RspackOptions } from "@rspack/core";
 import { diff as jestDiff } from "jest-diff";
 import { TestContext } from "../test/context";
 import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
-import { getCompiler } from "./common";
 
 const CURRENT_CWD = process.cwd();
 
@@ -13,11 +12,11 @@ export function createDefaultsCase(name: string, src: string) {
 	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
 		await run(name, {
 			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.setOptions(options(context, caseConfig.options));
 			},
 			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.createCompiler();
 			},
 			build: async (context: ITestContext) => {
@@ -62,11 +61,6 @@ export type TDefaultsCaseConfig = {
 const srcDir = path.resolve(__dirname, "../../tests/fixtures");
 const distDir = path.resolve(__dirname, "../../tests/js/defaults");
 
-const context = new TestContext({
-	src: srcDir,
-	dist: distDir
-});
-
 function options(
 	context: ITestContext,
 	custom?: (context: ITestContext) => RspackOptions
@@ -99,7 +93,7 @@ async function check(
 		) => Promise<void>;
 	}
 ) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const config = getRspackDefaultConfig(
 		options.cwd || CURRENT_CWD,
 		compiler.getOptions()
@@ -117,11 +111,16 @@ async function check(
 }
 
 async function run(name: string, processor: ITestProcessor) {
+	const context = new TestContext({
+		name: name,
+		src: srcDir,
+		dist: distDir
+	});
 	try {
 		await processor.before?.(context);
 		await processor.config?.(context);
 	} catch (e: unknown) {
-		context.emitError(name, e as Error);
+		context.emitError(e as Error);
 	} finally {
 		await processor.check?.(
 			{ expect, it, beforeEach, afterEach, jest: global.jest || global.rstest },

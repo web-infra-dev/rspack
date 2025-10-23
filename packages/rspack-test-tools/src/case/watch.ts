@@ -14,13 +14,7 @@ import type {
 	ITestEnv,
 	ITestRunner
 } from "../type";
-import {
-	afterExecute,
-	compiler,
-	findMultiCompilerBundle,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, compiler, findMultiCompilerBundle, run } from "./common";
 
 type TWatchContext = {
 	currentTriggerFilename: string | null;
@@ -49,7 +43,7 @@ export function createWatchInitialProcessor(
 
 	return {
 		before: async (context: ITestContext) => {
-			context.setValue(name, "watchContext", watchContext);
+			context.setValue("watchContext", watchContext);
 		},
 		config: async (context: ITestContext) => {
 			const testConfig = context.getTestConfig();
@@ -85,9 +79,9 @@ export function createWatchInitialProcessor(
 				multiCompilerOptions.length === 1
 					? multiCompilerOptions[0]
 					: multiCompilerOptions;
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			compiler.setOptions(compilerOptions as any);
-			context.setValue(name, "multiCompilerOptions", multiCompilerOptions);
+			context.setValue("multiCompilerOptions", multiCompilerOptions);
 		},
 		compiler: async (context: ITestContext) => {
 			const c = await compiler(context, name);
@@ -96,7 +90,7 @@ export function createWatchInitialProcessor(
 			});
 		},
 		build: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			fs.mkdirSync(watchContext.tempDir, { recursive: true });
 			copyDiff(
 				path.join(context.getSource(), watchContext.step),
@@ -124,13 +118,13 @@ export function createWatchInitialProcessor(
 			if (testConfig.noTests) return;
 
 			const errors: Array<{ message: string; stack?: string }> = (
-				context.getError(name) || []
+				context.getError() || []
 			).map(e => ({
 				message: e.message,
 				stack: e.stack
 			}));
 			const warnings: Array<{ message: string; stack?: string }> = [];
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const stats = compiler.getStats();
 			const options = compiler.getOptions();
 			const checkStats = testConfig.checkStats || (() => true);
@@ -227,7 +221,7 @@ export function createWatchInitialProcessor(
 
 			// clear error if checked
 			if (fs.existsSync(context.getSource("errors.js"))) {
-				context.clearError(name);
+				context.clearError();
 			}
 
 			// check hash
@@ -268,7 +262,7 @@ export function createWatchStepProcessor(
 		// do nothing
 	};
 	processor.build = async (context: ITestContext) => {
-		const compiler = getCompiler(context, name);
+		const compiler = context.getCompiler();
 		const task = new Promise((resolve, reject) => {
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);
@@ -410,7 +404,7 @@ export function getWatchRunnerKey(
 	name: string,
 	file: string
 ): string {
-	const watchContext = context.getValue(name, "watchContext") as any;
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string | void = watchContext?.step;
 	return `${name}-${stepName}`;
 }
@@ -419,8 +413,8 @@ function cachedWatchStats(
 	context: ITestContext,
 	name: string
 ): () => StatsCompilation {
-	const compiler = context.getCompiler(name);
-	const watchContext = context.getValue(name, "watchContext") as any;
+	const compiler = context.getCompiler();
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string = watchContext?.step!;
 	const statsGetter = (() => {
 		const cached: Record<string, StatsCompilation> = {};
@@ -443,9 +437,9 @@ export function createWatchRunner(
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	const compilerOptions = compiler.getOptions() as RspackOptions;
-	const watchContext = context.getValue(name, "watchContext") as any;
+	const watchContext = context.getValue("watchContext") as any;
 	const stepName: string | void = watchContext?.step;
 	if (!stepName) {
 		throw new Error("Can not get watch step name from context");
