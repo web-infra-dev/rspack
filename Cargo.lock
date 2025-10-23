@@ -3520,7 +3520,6 @@ dependencies = [
  "rspack_allocator",
  "rspack_browser",
  "rspack_browserslist",
- "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
@@ -3913,7 +3912,6 @@ name = "rspack_loader_preact_refresh"
 version = "0.6.0-beta.1"
 dependencies = [
  "async-trait",
- "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -3926,7 +3924,6 @@ name = "rspack_loader_react_refresh"
 version = "0.6.0-beta.1"
 dependencies = [
  "async-trait",
- "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -3990,7 +3987,6 @@ name = "rspack_loader_testing"
 version = "0.6.0-beta.1"
 dependencies = [
  "async-trait",
- "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",

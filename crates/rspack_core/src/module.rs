@@ -27,9 +27,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
+  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxLoader,
+  BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo,
+  Compilation, CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
@@ -45,6 +45,7 @@ pub struct BuildContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub loaders: Vec<BoxLoader>,
 }
 
 #[cacheable]

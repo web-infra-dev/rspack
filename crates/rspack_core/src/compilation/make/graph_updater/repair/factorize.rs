@@ -249,6 +249,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     Ok(vec![Box::new(AddTask {
       original_module_identifier,
       module,
+      loaders: factory_result.loaders,
       module_graph_module: Box::new(mgm),
       dependencies,
       current_profile,

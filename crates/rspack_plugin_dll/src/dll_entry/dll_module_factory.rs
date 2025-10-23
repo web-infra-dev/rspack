@@ -15,8 +15,8 @@ impl ModuleFactory for DllModuleFactory {
       .downcast_ref::<DllEntryDependency>()
       .expect("unreachable");
 
-    Ok(ModuleFactoryResult {
-      module: Some(Box::new(DllModule::new(dll_entry_dependency))),
-    })
+    Ok(ModuleFactoryResult::new_with_module(Box::new(
+      DllModule::new(dll_entry_dependency),
+    )))
   }
 }

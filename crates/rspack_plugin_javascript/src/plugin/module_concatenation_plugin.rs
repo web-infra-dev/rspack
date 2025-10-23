@@ -735,6 +735,7 @@ impl ModuleConcatenationPlugin {
           plugin_driver: compilation.plugin_driver.clone(),
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
+          loaders: vec![],
         },
         Some(compilation),
       )
@@ -1530,6 +1531,7 @@ async fn create_concatenated_module(
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         fs: compilation.input_filesystem.clone(),
+        loaders: vec![],
       },
       Some(compilation),
     )
