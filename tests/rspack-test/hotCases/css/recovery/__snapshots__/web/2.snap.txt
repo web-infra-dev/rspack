@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7267
+- Update: main.hot-update.js, size: 7115
 
 ## Manifest
 
@@ -54,9 +54,9 @@ __nested_webpack_require_18_37__.d = (exports1, definition)=>{
 };
 var __nested_webpack_exports__ = {};
 function normalizeUrl(url) {
-    var urlString = url.trim();
+    let urlString = url.trim();
     if (/^data:/i.test(urlString)) return urlString;
-    var protocol = -1 !== urlString.indexOf("//") ? "".concat(urlString.split("//")[0], "//") : "", components = urlString.replace(RegExp(protocol, "i"), "").split("/"), host = components[0].toLowerCase().replace(/\.$/, "");
+    let protocol = -1 !== urlString.indexOf("//") ? `${urlString.split("//")[0]}//` : "", components = urlString.replace(RegExp(protocol, "i"), "").split("/"), host = components[0].toLowerCase().replace(/\.$/, "");
     return components[0] = "", protocol + host + components.reduce((accumulator, item)=>{
         switch(item){
             case "..":
@@ -74,29 +74,29 @@ __nested_webpack_require_18_37__.r(__nested_webpack_exports__), __nested_webpack
     cssReload: ()=>cssReload,
     normalizeUrl: ()=>normalizeUrl
 });
-var srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
+const srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
+    let normalizedUrl;
     if (url) normalizedUrl = url;
     else {
-        var normalizedUrl, href = el.getAttribute("href");
+        let href = el.getAttribute("href");
         if (!href) return;
         normalizedUrl = href.split("?")[0];
     }
-    if (isUrlRequest(el.href) && !1 !== el.isLoaded && normalizedUrl && normalizedUrl.indexOf(".css") > -1) {
-        el.visited = !0;
-        var newEl = el.cloneNode();
-        newEl.isLoaded = !1, newEl.addEventListener("load", ()=>{
-            !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
-        }), newEl.addEventListener("error", ()=>{
-            !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
-        }), newEl.href = "".concat(normalizedUrl, "?").concat(Date.now());
-        var parent = el.parentNode;
-        parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
-    }
+    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) return;
+    el.visited = !0;
+    let newEl = el.cloneNode();
+    newEl.isLoaded = !1, newEl.addEventListener("load", ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.addEventListener("error", ()=>{
+        !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
+    }), newEl.href = `${normalizedUrl}?${Date.now()}`;
+    let parent = el.parentNode;
+    parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
 }
 function reloadAll() {
-    var elements = document.querySelectorAll("link");
+    let elements = document.querySelectorAll("link");
     forEach.call(elements, (el)=>{
         !0 !== el.visited && updateCss(el);
     });
@@ -105,39 +105,42 @@ function isUrlRequest(url) {
     return !!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url);
 }
 function cssReload(moduleId, options) {
+    var fn;
+    let timeout;
     if (noDocument) return console.log("[HMR] No `window.document` found, CSS HMR disabled"), noop;
-    var fn, timeout, getScriptSrc = function(moduleId) {
-        var src = srcByModuleId[moduleId];
+    let getScriptSrc = function(moduleId) {
+        let src = srcByModuleId[moduleId];
         if (!src) {
             if (document.currentScript) ({ src } = document.currentScript);
             else {
-                var scripts = document.getElementsByTagName("script"), lastScriptTag = scripts[scripts.length - 1];
+                let scripts = document.getElementsByTagName("script"), lastScriptTag = scripts[scripts.length - 1];
                 lastScriptTag && ({ src } = lastScriptTag);
             }
             srcByModuleId[moduleId] = src;
         }
         return (fileMap)=>{
             if (!src) return null;
-            var splitResult = src.match(/([^\\/]+)\.js$/), filename = splitResult && splitResult[1];
+            let splitResult = src.match(/([^\\/]+)\.js$/), filename = splitResult && splitResult[1];
             return filename && fileMap ? fileMap.split(",").map((mapRule)=>{
-                var reg = RegExp("".concat(filename, "\\.js$"), "g");
-                return normalizeUrl(src.replace(reg, "".concat(mapRule.replace(/{fileName}/g, filename), ".css")));
+                let reg = RegExp(`${filename}\\.js$`, "g");
+                return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
             }) : [
                 src.replace(".js", ".css")
             ];
         };
     }(moduleId);
     return fn = function() {
-        var src = getScriptSrc(options.filename), reloaded = function(src) {
+        let src = getScriptSrc(options.filename), reloaded = function(src) {
             if (!src) return !1;
-            var elements = document.querySelectorAll("link"), loaded = !1;
+            let elements = document.querySelectorAll("link"), loaded = !1;
             return forEach.call(elements, (el)=>{
-                if (el.href) {
-                    var href, ret, normalizedHref, url = (href = el.href, ret = "", normalizedHref = normalizeUrl(href), src.some((url)=>{
-                        normalizedHref.indexOf(src) > -1 && (ret = url);
-                    }), ret);
-                    !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
-                }
+                var href;
+                let ret, normalizedHref;
+                if (!el.href) return;
+                let url = (href = el.href, ret = "", normalizedHref = normalizeUrl(href), src.some((url)=>{
+                    normalizedHref.indexOf(src) > -1 && (ret = url);
+                }), ret);
+                !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
             }), loaded;
         }(src);
         if (options.locals) {
@@ -145,9 +148,8 @@ function cssReload(moduleId, options) {
             return;
         }
         reloaded ? console.log("[HMR] CSS reload %s", src && src.join(" ")) : (console.log("[HMR] Reload all CSS"), reloadAll());
-    }, timeout = 0, function() {
-        for(var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++)args[_key] = arguments[_key];
-        var self = this;
+    }, timeout = 0, function(...args) {
+        let self = this;
         clearTimeout(timeout), timeout = setTimeout(function() {
             return fn.apply(self, args);
         }, 50);
