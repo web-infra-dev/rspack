@@ -16,7 +16,7 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: [
+	testMatch: process.env.WASM ? [] : [
 		"<rootDir>/legacy-test/*.test.js",
 		"<rootDir>/Cache.test.js",
 		"<rootDir>/Incremental-async-node.test.js",
@@ -65,7 +65,6 @@ const config = {
 		__ROOT_PATH__: root,
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
-		__DEBUG__: process.env.DEBUG === "test",
 	},
 	verbose: true,
 };

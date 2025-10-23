@@ -16,25 +16,16 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
 		// Skip because the loader can not be loaded in CI
-		"HotWeb.test.js",
-		"HotWorker.test.js",
-		"HotNode.test.js",
+		"Hot*.test.js",
 
 		// Skip temporarily and should investigate in the future
-		"HotSnapshot.hottest.js",
 		"Defaults.test.js",
 		"Cache.test.js",
 		"Compiler.test.js",
 		"Serial.test.js",
 		"Example.test.js",
-		"Incremental-async-node.test.js",
-		"Incremental-node.test.js",
-		"Incremental-watch-webpack.test.js",
-		"Incremental-watch.test.js",
-		"Incremental-web.test.js",
-		"Incremental-webworker.test.js",
-		"NativeWatcher.test.js",
-		"NativeWatcher-webpack.test.js",
+		"Incremental-*.test.js",
+		"NativeWatcher*.test.js",
 
 		// Rstest ignored
 		"EsmOutput.test.js",
