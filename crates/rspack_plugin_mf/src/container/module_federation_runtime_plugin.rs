@@ -55,10 +55,7 @@ async fn additional_tree_runtime_requirements(
   };
   compilation.add_runtime_module(chunk_ukey, FederationDataRuntimeModule::default().boxed())?;
 
-  let async_startup_enabled = self
-    .options
-    .async_startup
-    .unwrap_or(compilation.options.experiments.mf_async_startup);
+  let async_startup_enabled = compilation.options.experiments.mf_async_startup;
 
   if async_startup_enabled {
     if let Some(dep_id) = entry_dep {

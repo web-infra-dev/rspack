@@ -11,9 +11,6 @@ export interface ModuleFederationPluginOptions
 	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
-	experiments?: {
-		asyncStartup?: boolean;
-	};
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -31,23 +28,9 @@ export class ModuleFederationPlugin {
 
 		// Generate the runtime entry content
 		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
-		const asyncStartupFromMf = this._options.experiments?.asyncStartup === true;
-		const asyncStartupFromGlobal =
-			compiler.options?.experiments?.mfAsyncStartup === true;
-		const enableAsyncStartup = asyncStartupFromMf || asyncStartupFromGlobal;
-
-		if (asyncStartupFromMf && !asyncStartupFromGlobal) {
-			compiler.options.experiments = {
-				...(compiler.options.experiments ||
-					({} as typeof compiler.options.experiments)),
-				mfAsyncStartup: true
-			};
-		}
-
 		// Pass only the entry runtime to the Rust-side plugin
 		new ModuleFederationRuntimePlugin({
-			entryRuntime,
-			asyncStartup: enableAsyncStartup
+			entryRuntime
 		}).apply(compiler);
 
 		new webpack.container.ModuleFederationPluginV1({

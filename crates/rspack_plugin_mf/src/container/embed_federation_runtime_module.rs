@@ -88,7 +88,12 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.pop();
     }
 
-    let compat_helper = r#"if (typeof __webpack_require__.n !== "function") {
+    // Generate prevStartup wrapper pattern with defensive checks
+    let startup = RuntimeGlobals::STARTUP.name();
+
+    let result = if self.options.async_startup {
+      // Async startup mode: expose installRuntime for manual invocation
+      let compat_helper = r#"if (typeof __webpack_require__.n !== "function") {
 	__webpack_require__.n = function (module) {
 		var getter = module && module.__esModule ? function () { return module["default"]; } : function () { return module; };
 		getter.a = getter;
@@ -97,21 +102,8 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 }
 "#;
 
-    // Generate prevStartup wrapper pattern with defensive checks
-    let startup = RuntimeGlobals::STARTUP.name();
-
-    // When async startup is enabled, only expose installRuntime and let the entry startup code call it
-    // When async startup is disabled, call the runtime directly in startup (backwards compat with main)
-    let startup_call = if self.options.async_startup {
-      // Async startup enabled: don't call runtime in startup, expose installRuntime instead
-      ""
-    } else {
-      // Async startup disabled: call runtime directly in startup (backwards compat with main)
-      "\trunFederationRuntime();\n"
-    };
-
-    let result = format!(
-      r#"var prevStartup = {startup};
+      format!(
+        r#"var prevStartup = {startup};
 var hasRun = false;
 if (typeof __webpack_require__.g !== "undefined") {{
 	if (typeof __webpack_require__.g.importScripts === "undefined") {{
@@ -140,7 +132,7 @@ function runFederationRuntime() {{
 __webpack_require__.federation = __webpack_require__.federation || {{}};
 __webpack_require__.federation.installRuntime = runFederationRuntime;
 {startup} = function() {{
-{startup_call}	if (typeof prevStartup === 'function') {{
+	if (typeof prevStartup === 'function') {{
 		return prevStartup.apply(this, arguments);
 	}}
 	if (typeof prevStartup !== 'undefined') {{
@@ -149,7 +141,25 @@ __webpack_require__.federation.installRuntime = runFederationRuntime;
 	console.warn('[MF] Invalid prevStartup');
 }};
 "#
-    );
+      )
+    } else {
+      // Sync startup mode (default): call runtime directly in startup (backwards compat with main)
+      format!(
+        r#"var prevStartup = {startup};
+var hasRun = false;
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[MF] Invalid prevStartup');
+	}}
+}};"#
+      )
+    };
 
     Ok(result)
   }

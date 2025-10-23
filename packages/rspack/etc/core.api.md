@@ -4696,10 +4696,6 @@ class ModuleFederationPlugin {
 // @public (undocumented)
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
-    experiments?: {
-        asyncStartup?: boolean;
-    };
-    // (undocumented)
     implementation?: string;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
