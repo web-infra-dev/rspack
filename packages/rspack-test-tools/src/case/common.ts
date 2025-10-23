@@ -246,9 +246,9 @@ export async function checkSnapshot(
 		const snapshotPath = path.isAbsolute(snapshot)
 			? snapshot
 			: path.resolve(
-				context.getSource(),
-				path.join("__snapshots__", `${snapshot}${total > 1 ? `-${i}` : ""}`)
-			);
+					context.getSource(),
+					path.join("__snapshots__", `${snapshot}${total > 1 ? `-${i}` : ""}`)
+				);
 
 		env.expect(content).toMatchFileSnapshot(snapshotPath);
 	}
@@ -323,24 +323,24 @@ export function configMultiCompiler(
 	const multiCompilerOptions: RspackOptions[] = [];
 	const caseOptions: RspackOptions[] = Array.isArray(configFiles)
 		? readConfigFile(
-			configFiles!.map(i => context.getSource(i)),
-			context,
-			{},
-			configs => {
-				return configs.flatMap(c => {
-					if (typeof c === "function") {
-						const options = {
-							testPath: context.getDist(),
-							env: undefined
-						};
+				configFiles!.map(i => context.getSource(i)),
+				context,
+				{},
+				configs => {
+					return configs.flatMap(c => {
+						if (typeof c === "function") {
+							const options = {
+								testPath: context.getDist(),
+								env: undefined
+							};
 
-						return c(options.env, options) as RspackOptions;
-					}
+							return c(options.env, options) as RspackOptions;
+						}
 
-					return c as RspackOptions;
-				});
-			}
-		)
+						return c as RspackOptions;
+					});
+				}
+			)
 		: [{}];
 
 	for (const [index, options] of caseOptions.entries()) {

@@ -201,9 +201,9 @@ export class HookCasesContext extends TestContext {
 		const normalizedContent = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
-				escapeString: true,
-				printBasicPrototype: true
-			}).replace(/\r\n/g, "\n");
+					escapeString: true,
+					printBasicPrototype: true
+				}).replace(/\r\n/g, "\n");
 
 		(this.snapshots[group] = this.snapshots[group] || []).push([
 			normalizedContent,
