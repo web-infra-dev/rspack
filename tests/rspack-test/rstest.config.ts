@@ -16,14 +16,13 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
 		// Skip because the loader can not be loaded in CI
-		"Hot*.test.js",
+		// "Hot*.test.js",
 
 		// Skip temporarily and should investigate in the future
-		"Defaults.test.js",
 		"Cache.test.js",
 		"Compiler.test.js",
 		"Serial.test.js",
-		"Example.test.js",
+		// "Example.test.js",
 		"Incremental-*.test.js",
 		"NativeWatcher*.test.js",
 
