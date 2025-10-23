@@ -1054,12 +1054,16 @@ impl EsmLibraryPlugin {
             continue;
           }
 
+          let local = match export_info.used_name() {
+            Some(UsedNameItem::Inlined(inlined)) => inlined.render().into(),
+            Some(UsedNameItem::Str(name)) => {
+              required_interop.property_access(name, &mut chunk_link.used_names)
+            }
+            None => required_interop.property_access(name, &mut chunk_link.used_names),
+          };
           Self::add_chunk_export(
             current_chunk,
-            required_interop.property_access(
-              export_info.used_name().unwrap_or(name),
-              &mut chunk_link.used_names,
-            ),
+            local,
             name.clone(),
             exports,
             keep_export_name,

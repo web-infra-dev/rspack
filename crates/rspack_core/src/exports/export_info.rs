@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
   CanInlineUse, DependencyId, EvaluatedInlinableValue, FindTargetResult, ModuleGraph,
-  ModuleIdentifier, ResolveFilterFnTy, find_target_from_export_info,
+  ModuleIdentifier, ResolveFilterFnTy, UsedNameItem, find_target_from_export_info,
   get_target_from_maybe_export_info, get_target_with_filter,
 };
 
@@ -58,7 +58,7 @@ pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
-  used_name: Option<Atom>,
+  used_name: Option<UsedNameItem>,
   target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
@@ -150,7 +150,7 @@ impl ExportInfoData {
     self.name.as_ref()
   }
 
-  pub fn used_name(&self) -> Option<&Atom> {
+  pub fn used_name(&self) -> Option<&UsedNameItem> {
     self.used_name.as_ref()
   }
 
@@ -261,7 +261,7 @@ impl ExportInfoData {
     self.exports_info_owned = value;
   }
 
-  pub fn set_used_name(&mut self, name: Atom) {
+  pub fn set_used_name(&mut self, name: UsedNameItem) {
     self.used_name = Some(name);
   }
 

@@ -10,7 +10,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
   Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
-  RuntimeSpec,
+  RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -1224,7 +1224,7 @@ impl<'a> ModuleGraph<'a> {
     }
   }
 
-  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, UsedNameItem)>) {
     if self.active.is_none() {
       panic!("should have active partial");
     }

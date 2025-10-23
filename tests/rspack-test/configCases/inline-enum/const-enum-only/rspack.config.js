@@ -14,7 +14,8 @@ module.exports = {
 							jsc: {
 								parser: {
 									syntax: "typescript"
-								}
+								},
+								target: "esnext"
 							},
 							rspackExperiments: {
 								collectTypeScriptInfo: {
