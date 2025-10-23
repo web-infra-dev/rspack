@@ -55,20 +55,19 @@ async fn additional_tree_runtime_requirements(
   };
   compilation.add_runtime_module(chunk_ukey, FederationDataRuntimeModule::default().boxed())?;
 
-  if let Some(dep_id) = entry_dep {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    compilation.add_runtime_module(
-      chunk_ukey,
-      EntryFederationRuntimeModule::new(dep_id).boxed(),
-    )?;
-  }
-
   let async_startup_enabled = self
     .options
     .async_startup
     .unwrap_or(compilation.options.experiments.mf_async_startup);
 
   if async_startup_enabled {
+    if let Some(dep_id) = entry_dep {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      compilation.add_runtime_module(
+        chunk_ukey,
+        EntryFederationRuntimeModule::new(dep_id).boxed(),
+      )?;
+    }
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
@@ -78,6 +77,8 @@ async fn additional_tree_runtime_requirements(
 
 #[plugin_hook(CompilerFinishMake for ModuleFederationRuntimePlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  // Only add the federation runtime entry if we have an entry_runtime configured
+  // The entry_runtime should always be provided by ModuleFederationPlugin
   if let Some(entry_request) = self.options.entry_runtime.clone() {
     let federation_runtime_dep = FederationRuntimeDependency::new(entry_request.clone());
 
@@ -90,6 +91,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       .call(&federation_runtime_dep)
       .await?;
 
+    // Store the dependency ID for later use in additional_tree_runtime_requirements
     {
       let mut guard = self
         .entry_runtime_dependency
