@@ -2121,6 +2121,8 @@ export default {
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
 For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
@@ -2525,6 +2527,8 @@ The meanings of all `type` options are as follows:
 - **Type:** `string`
 
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
+
+For more information about layers, see the [Layer guide](/guide/features/layer).
 
 :::warning
 For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
