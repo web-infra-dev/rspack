@@ -87,9 +87,7 @@ export class BasicCaseCreator {
 			testConfig,
 			options
 		);
-		const concurrent = process.env.WASM
-			? false
-			: testConfig.concurrent || options.concurrent;
+		const concurrent = testConfig.concurrent || options.concurrent;
 		if (options.describe) {
 			if (run) {
 				if (concurrent) {
