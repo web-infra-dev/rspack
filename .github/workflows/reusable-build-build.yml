@@ -41,6 +41,7 @@ jobs:
           clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Pnpm Setup
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
