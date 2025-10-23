@@ -60,6 +60,11 @@ async fn additional_chunk_runtime_requirements_tree(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
+  // Only run when async startup is enabled (this plugin didn't exist on main)
+  if !compilation.options.experiments.mf_async_startup {
+    return Ok(());
+  }
+
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks
@@ -94,6 +99,11 @@ async fn runtime_requirement_in_tree(
   _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
+  // Only run when async startup is enabled (this plugin didn't exist on main)
+  if !compilation.options.experiments.mf_async_startup {
+    return Ok(None);
+  }
+
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks
@@ -165,6 +175,11 @@ async fn render_startup(
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
+  // Only run when async startup is enabled (this plugin didn't exist on main)
+  if !compilation.options.experiments.mf_async_startup {
+    return Ok(());
+  }
+
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks

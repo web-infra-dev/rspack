@@ -124,6 +124,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     // Apply supporting plugins
+    // Note: EmbedFederationRuntimePlugin will check async startup flag in its hooks
     EmbedFederationRuntimePlugin::default().apply(ctx)?;
     HoistContainerReferencesPlugin::default().apply(ctx)?;
 
