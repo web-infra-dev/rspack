@@ -10,15 +10,7 @@ import {
 	type IBasicCaseCreatorOptions
 } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import {
-	afterExecute,
-	build,
-	check,
-	compiler,
-	config,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { createRunner } from "./runner";
 
 const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, "normalCases");
@@ -33,7 +25,7 @@ const createCaseOptions = (
 		steps: ({ name }) => [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					let options = defaultOptions(
 						context,
 						{

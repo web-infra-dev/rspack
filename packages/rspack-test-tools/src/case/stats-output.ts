@@ -5,7 +5,7 @@ import { normalizePlaceholder } from "../helper/expect/placeholder";
 import captureStdio from "../helper/legacy/captureStdio";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { build, compiler, configMultiCompiler, getCompiler } from "./common";
+import { build, compiler, configMultiCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
@@ -137,7 +137,7 @@ async function check(
 	snapshot: string,
 	stderr: any
 ) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const options = compiler.getOptions() as RspackOptions;
 	const stats = compiler.getStats();
 	if (!stats || !compiler) return;

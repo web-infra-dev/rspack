@@ -3,7 +3,6 @@ import type { Compiler, RspackOptions, Stats } from "@rspack/core";
 import { createFsFromVolume, Volume } from "memfs";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { getCompiler } from "./common";
 
 let addedSerializer = false;
 
@@ -24,16 +23,16 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					compiler.setOptions(options(context, config.options));
 				},
 				compiler: async (context: ITestContext) => {
-					const compilerManager = getCompiler(context, name);
+					const compilerManager = context.getCompiler();
 					compilerManager.createCompiler();
 					compiler(context, compilerManager.getCompiler()!, config.compiler);
 				},
 				build: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					if (typeof config.build === "function") {
 						await config.build(context, compiler.getCompiler()!);
 					} else {
@@ -107,7 +106,7 @@ async function check(
 	name: string,
 	custom?: (stats: Stats, compiler: Compiler) => Promise<void>
 ) {
-	const manager = getCompiler(context, name);
+	const manager = context.getCompiler();
 	const stats = manager.getStats()! as Stats;
 	env.expect(typeof stats).toBe("object");
 	await custom?.(stats, manager.getCompiler()!);

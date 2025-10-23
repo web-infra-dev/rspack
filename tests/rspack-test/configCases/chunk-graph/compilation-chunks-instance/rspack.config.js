@@ -1,4 +1,7 @@
 class Plugin {
+	/**
+	* @param {import("@rspack/core").Compiler} compiler
+	*/
 	apply(compiler) {
 		compiler.hooks.compilation.tap("Test", compilation => {
 			const chunks = compilation.chunks;
@@ -15,6 +18,10 @@ class Plugin {
 				});
 				chunks.forEach(mockFn);
 				expect(mockFn).toHaveBeenCalledTimes(1);
+
+				const entries = chunks.entries();
+				expect(entries.next()).toStrictEqual({ value: [chunk, chunk], done: false });
+				expect(entries.next()).toStrictEqual({ value: undefined, done: true });
 			});
 		});
 	}

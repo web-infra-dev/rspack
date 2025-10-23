@@ -6,7 +6,6 @@ import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv } from "../type";
-import { getCompiler } from "./common";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -14,7 +13,7 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		{
 			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				let options = defaultOptions(context);
 				const custom = readConfigFile(
 					["rspack.config.js", "webpack.config.js"].map(i =>
@@ -34,11 +33,11 @@ const creator = new BasicCaseCreator({
 				compiler.setOptions(options);
 			},
 			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.createCompiler();
 			},
 			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				await compiler.build();
 			},
 			run: async (env: ITestEnv, context: ITestContext) => {
@@ -106,7 +105,7 @@ async function check(
 	name: string,
 	options: TDiagnosticOptions
 ) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const stats = compiler.getStats();
 	if (!stats) {
 		throw new Error("Stats should exists");

@@ -305,21 +305,19 @@ export interface ITestCompilerManager {
 // @public (undocumented)
 export interface ITestContext {
     // (undocumented)
-    clearError(name?: string): void;
+    clearError(): void;
     // (undocumented)
-    closeCompiler(name: string): Promise<void>;
+    closeCompiler(): Promise<void>;
     // (undocumented)
-    emitError(name: string, err: Error | string): void;
+    emitError(err: Error | string): void;
     // (undocumented)
-    getCompiler(name: string): ITestCompilerManager;
+    getCompiler(): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
-    getError(name?: string): Error[];
+    getError(): Error[];
     // (undocumented)
-    getNames(): string[];
-    // (undocumented)
-    getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
+    getRunner(file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
@@ -327,11 +325,11 @@ export interface ITestContext {
     // (undocumented)
     getTestConfig(): TTestConfig;
     // (undocumented)
-    getValue<T>(name: string, key: string): T | void;
+    getValue<T>(key: string): T | void;
     // (undocumented)
-    hasError(name?: string): boolean;
+    hasError(): boolean;
     // (undocumented)
-    setValue<T>(name: string, key: string, value: T): void;
+    setValue<T>(key: string, value: T): void;
 }
 
 // @public (undocumented)
@@ -609,25 +607,23 @@ export type TErrorCaseConfig = {
 export class TestContext implements ITestContext {
     constructor(config: TTestContextOptions);
     // (undocumented)
-    clearError(name?: string): void;
+    clearError(): void;
     // (undocumented)
-    closeCompiler(name: string): Promise<void>;
+    closeCompiler(): Promise<void>;
     // (undocumented)
-    protected compilers: Map<string, ITestCompilerManager>;
+    protected compiler: ITestCompilerManager | null;
     // (undocumented)
-    emitError(name: string, err: Error | string): void;
+    emitError(err: Error | string): void;
     // (undocumented)
-    protected errors: Map<string, Error[]>;
+    protected errors: Error[];
     // (undocumented)
-    getCompiler(name: string): ITestCompilerManager;
+    getCompiler(): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
-    getError(name?: string): Error[];
+    getError(): Error[];
     // (undocumented)
-    getNames(): string[];
-    // (undocumented)
-    getRunner(name: string, file: string, env: ITestEnv): ITestRunner;
+    getRunner(file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
@@ -635,15 +631,15 @@ export class TestContext implements ITestContext {
     // (undocumented)
     getTestConfig(): TTestConfig;
     // (undocumented)
-    getValue<T>(name: string, key: string): T | void;
+    getValue<T>(key: string): T | void;
     // (undocumented)
-    hasError(name?: string): boolean;
+    hasError(): boolean;
     // (undocumented)
     protected runners: Map<string, ITestRunner>;
     // (undocumented)
-    setValue<T>(name: string, key: string, value: T): void;
+    setValue<T>(key: string, value: T): void;
     // (undocumented)
-    protected store: Map<string, Record<string, unknown>>;
+    protected store: Map<string, unknown>;
 }
 
 // @public (undocumented)
@@ -780,7 +776,7 @@ export type TTestConfig = {
 };
 
 // @public (undocumented)
-export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
+export type TTestContextOptions = Omit<ITesterConfig, "steps">;
 
 // @public (undocumented)
 export type TTestFilter = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig) => boolean | string;

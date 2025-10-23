@@ -11,7 +11,6 @@ import type {
 import { createFsFromVolume, Volume } from "memfs";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
-import { getCompiler } from "./common";
 
 function createMultiCompilerProcessor(
 	name: string,
@@ -19,7 +18,7 @@ function createMultiCompilerProcessor(
 ) {
 	return {
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const options = Object.assign(
 				[
 					{
@@ -38,7 +37,7 @@ function createMultiCompilerProcessor(
 			compiler.setOptions(options);
 		},
 		compiler: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			if (caseConfig.compilerCallback) {
 				compiler.createCompilerWithCallback(caseConfig.compilerCallback);
 			} else {
@@ -67,7 +66,7 @@ function createMultiCompilerProcessor(
 			await caseConfig.compiler?.(context, c);
 		},
 		build: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			if (typeof caseConfig.build === "function") {
 				await caseConfig.build?.(context, compiler.getCompiler()!);
 			} else {

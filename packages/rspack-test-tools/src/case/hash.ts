@@ -4,7 +4,7 @@ import {
 	type IBasicCaseCreatorOptions
 } from "../test/creator";
 import type { ITestContext, ITestEnv, ITester, TTestConfig } from "../type";
-import { build, compiler, configMultiCompiler, getCompiler } from "./common";
+import { build, compiler, configMultiCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
@@ -94,7 +94,7 @@ function overrideOptions(
 }
 
 async function check(env: ITestEnv, context: ITestContext, name: string) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const stats = compiler.getStats();
 	const testConfig = context.getTestConfig();
 	if (!stats) {

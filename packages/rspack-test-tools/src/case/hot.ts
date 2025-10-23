@@ -17,15 +17,7 @@ import type {
 	ITestProcessor,
 	ITestRunner
 } from "../type";
-import {
-	afterExecute,
-	build,
-	check,
-	compiler,
-	config,
-	getCompiler,
-	run
-} from "./common";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { cachedStats, type THotStepRuntimeData } from "./runner";
 
 type TTarget = RspackOptions["target"];
@@ -44,10 +36,10 @@ export function createHotProcessor(
 	const processor = {
 		before: async (context: ITestContext) => {
 			await updatePlugin.initialize();
-			context.setValue(name, "hotUpdatePlugin", updatePlugin);
+			context.setValue("hotUpdatePlugin", updatePlugin);
 		},
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			let options = defaultOptions(context, target);
 			options = await config(
 				context,
@@ -207,7 +199,7 @@ function findBundle(
 	target: TTarget,
 	updatePlugin: HotUpdatePlugin
 ): string | string[] {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	if (!compiler) throw new Error("Compiler should exists when find bundle");
 
 	const testConfig = context.getTestConfig();
@@ -251,15 +243,12 @@ export function createHotRunner(
 	file: string,
 	env: ITestEnv
 ): ITestRunner {
-	const compiler = context.getCompiler(name);
+	const compiler = context.getCompiler();
 	const compilerOptions = compiler.getOptions() as RspackOptions;
 	const testConfig = context.getTestConfig();
 	const source = context.getSource();
 	const dist = context.getDist();
-	const updatePlugin = context.getValue<HotUpdatePlugin>(
-		name,
-		"hotUpdatePlugin"
-	)!;
+	const updatePlugin = context.getValue<HotUpdatePlugin>("hotUpdatePlugin")!;
 
 	const nextHMR = async (m: any, options?: any) => {
 		await updatePlugin.goNext();
@@ -273,7 +262,6 @@ export function createHotRunner(
 		const compilerOptions = compiler.getOptions();
 
 		const checker = context.getValue(
-			name,
 			jsonStats.errors?.length
 				? "hotUpdateStepErrorChecker"
 				: "hotUpdateStepChecker"

@@ -8,7 +8,6 @@ import type {
 } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
 import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
-import { getCompiler } from "./common";
 
 function createCompilerProcessor(
 	name: string,
@@ -21,7 +20,7 @@ function createCompilerProcessor(
 	const files = {} as Record<string, string>;
 	return {
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const options = caseConfig.options?.(context) || {};
 			options.mode ??= "production";
 			options.context ??= context.getSource();
@@ -34,7 +33,7 @@ function createCompilerProcessor(
 			compiler.setOptions(options);
 		},
 		compiler: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			if (caseConfig.compilerCallback) {
 				compiler.createCompilerWithCallback(caseConfig.compilerCallback);
 			} else {
@@ -85,7 +84,7 @@ function createCompilerProcessor(
 			await caseConfig.compiler?.(context, c);
 		},
 		build: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			if (typeof caseConfig.build === "function") {
 				await caseConfig.build?.(context, compiler.getCompiler()!);
 			} else {
@@ -94,7 +93,7 @@ function createCompilerProcessor(
 		},
 		run: async (env: ITestEnv, context: ITestContext) => {},
 		check: async (env: ITestEnv, context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			const c = compiler.getCompiler()!;
 			const stats = compiler.getStats() as Stats;
 			if (caseConfig.error) {
@@ -141,7 +140,7 @@ function createCompilerProcessor(
 			}
 		},
 		after: async (context: ITestContext) => {
-			await context.closeCompiler(name);
+			await context.closeCompiler();
 		}
 	} as ITestProcessor;
 }
