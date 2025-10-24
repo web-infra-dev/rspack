@@ -124,13 +124,17 @@ function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
 				);
 				const workerUrl =
 					// biome-ignore lint/suspicious/noTemplateCurlyInString: we need to escape "${}"
-					"${new URL('@rspack/browser/wasi-worker-browser.mjs', import.meta.url)}";
+					"${new URL('./wasi-worker-browser.mjs', import.meta.url)}";
 				const modifiedRuntimeCode = runtimeCode
 					.toString()
 					.replaceAll(`type: 'module'`, `type: 'classic'`)
 					.replaceAll(
 						`new URL('./wasi-worker-browser.mjs', import.meta.url)`,
 						`URL.createObjectURL(new Blob([\`importScripts("${workerUrl}")\`], { type: 'text/javascript' }))`
+					)
+					.replaceAll(
+						"const __wasmUrl =",
+						"const __wasmUrl = window.RSPACK_WASM_URL ||"
 					);
 
 				await fs.writeFile(
