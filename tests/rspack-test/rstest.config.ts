@@ -11,7 +11,7 @@ export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: process.env.WASM ? [] : [
-		"<rootDir>/*.test.js",
+		"*.test.js",
 	],
 	exclude: ["Cache.test.js", "Incremental-*.test.js", "Hot*.test.js", "Serial.test.js", "NativeWatcher*.test.js", "Diagnostics.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,
@@ -60,8 +60,9 @@ export default defineConfig({
 		__ROOT_PATH__: root,
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
+		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
-	reporters: ["verbose"],
+	reporters: process.env.CI ? undefined : ["verbose"],
 	hideSkippedTests: true,
 });
 

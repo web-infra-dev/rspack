@@ -7,7 +7,14 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack-dev-server/blob/master/LICENSE
  */
-import type { Compiler, MultiCompiler, MultiStats, Stats, Watching } from "..";
+import type {
+	Compiler,
+	LiteralUnion,
+	MultiCompiler,
+	MultiStats,
+	Stats,
+	Watching
+} from "..";
 
 type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
 type MultiWatching = MultiCompiler["watch"];
@@ -51,7 +58,7 @@ type OutputFileSystem = import("..").OutputFileSystem & {
 	readFileSync: typeof import("fs").readFileSync;
 };
 type RspackConfiguration = import("..").Configuration;
-type Port = number | string | "auto";
+type Port = number | LiteralUnion<"auto", string>;
 
 type HistoryContext = {
 	readonly match: RegExpMatchArray;
@@ -108,7 +115,7 @@ type DevMiddlewareOptions<
 };
 
 type BasicApplication = any;
-type BonjourServer = any;
+type BonjourServer = Record<string, any>;
 type ChokidarWatchOptions = { [key: string]: any };
 type ServeIndexOptions = { [key: string]: any };
 type ServeStaticOptions = { [key: string]: any };
@@ -149,11 +156,7 @@ type ServerType<
 		typeof import("http").ServerResponse
 	>
 > =
-	| "http"
-	| "https"
-	| "spdy"
-	| "http2"
-	| string
+	| LiteralUnion<"http" | "https" | "spdy" | "http2", string>
 	| ((arg0: ServerOptions, arg1: A) => S);
 
 type ServerConfiguration<
@@ -173,8 +176,8 @@ type WebSocketServerConfiguration = {
 };
 type NextFunction = (err?: any) => void;
 type ProxyConfigArrayItem = {
-	path?: HttpProxyMiddlewareOptionsFilter | undefined;
-	context?: HttpProxyMiddlewareOptionsFilter | undefined;
+	path?: HttpProxyMiddlewareOptionsFilter;
+	context?: HttpProxyMiddlewareOptionsFilter;
 } & {
 	bypass?: ByPass;
 } & {
@@ -282,7 +285,7 @@ export type DevServerOptions<
 	compress?: boolean | undefined;
 	allowedHosts?: string | string[] | undefined;
 	historyApiFallback?: boolean | HistoryApiFallbackOptions | undefined;
-	bonjour?: boolean | Record<string, never> | BonjourServer | undefined;
+	bonjour?: boolean | BonjourServer | undefined;
 	watchFiles?:
 		| string
 		| string[]

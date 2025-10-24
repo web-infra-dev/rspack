@@ -494,9 +494,9 @@ fn get_outgoing_async_modules(
           helper(
             compilation,
             mg,
-            &**mg
-              .module_by_identifier(&module)
-              .expect("should have module"),
+            mg.module_by_identifier(&module)
+              .expect("should have module")
+              .as_ref(),
             set,
             visited,
           );
@@ -547,7 +547,7 @@ pub fn import_statement(
   );
 
   if phase.is_defer() && !target_module.build_meta().has_top_level_await {
-    let async_deps = get_outgoing_async_modules(compilation, &**target_module);
+    let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
     let import_content = format!(
       "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",
       get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)

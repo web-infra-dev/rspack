@@ -22,7 +22,7 @@ function config(index, { concatenateModules } = {}) {
 									parser: {
 										syntax: "typescript"
 									},
-									target: "es2022"
+									target: "esnext"
 								},
 								rspackExperiments: {
 									collectTypeScriptInfo: {

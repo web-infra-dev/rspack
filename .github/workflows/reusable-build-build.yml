@@ -51,6 +51,7 @@ jobs:
           zstd --version
 
       - name: Pnpm Setup
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies

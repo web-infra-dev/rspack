@@ -265,6 +265,7 @@ export type TTestRunnerCreator = {
 };
 
 declare global {
+	var __DEBUG__: boolean;
 	var __TEST_PATH__: string;
 	var __TEST_FIXTURES_PATH__: string;
 	var __TEST_DIST_PATH__: string;

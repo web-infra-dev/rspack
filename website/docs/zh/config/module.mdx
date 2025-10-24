@@ -2118,6 +2118,8 @@ export default {
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
 
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+
 :::warning
 对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
@@ -2521,6 +2523,8 @@ export default {
 - **默认值：** `undefined`
 
 用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
+
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
 
 :::warning
 对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。

@@ -7,8 +7,9 @@ use super::{
   TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
+  CompilerId, CompilerOptions, DependencyParents, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
   compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
@@ -20,7 +21,7 @@ use crate::{
 pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -88,7 +89,7 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<ModuleProfile>,
