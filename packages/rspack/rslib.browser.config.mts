@@ -10,11 +10,6 @@ const distDir = path.resolve("../rspack-browser/dist");
 const MF_RUNTIME_CODE = await getModuleFederationRuntimeCode();
 
 export default defineConfig({
-	resolve: {
-		alias: {
-			"graceful-fs": "node:fs"
-		}
-	},
 	lib: [
 		{
 			format: "esm",
@@ -26,6 +21,20 @@ export default defineConfig({
 					index: "./src/browser/index.ts"
 				}
 			}
+		},
+		{
+			format: "esm",
+			syntax: "es2021",
+			dts: false,
+			autoExtension: false,
+			source: {
+				entry: {
+					worker: {
+						import: path.resolve(bindingDir, "./wasi-worker-browser.mjs"),
+						filename: "wasi-worker-browser.mjs"
+					}
+				}
+			}
 		}
 	],
 	output: {
@@ -35,8 +44,6 @@ export default defineConfig({
 			root: distDir
 		},
 		externals: [
-			"@napi-rs/wasm-runtime",
-			"@napi-rs/wasm-runtime/fs",
 			"@rspack/lite-tapable",
 			{
 				"@rspack/binding": "./rspack.wasi-browser.js"
@@ -44,9 +51,6 @@ export default defineConfig({
 		],
 		copy: {
 			patterns: [
-				// Copy everything in `@rspack/binding` that is needed in browser
-				path.resolve(bindingDir, "rspack.wasi-browser.js"),
-				path.resolve(bindingDir, "wasi-worker-browser.mjs"),
 				path.resolve(bindingDir, "napi-binding.d.ts"),
 				path.resolve(bindingDir, "binding.d.ts"),
 				{
@@ -72,7 +76,8 @@ export default defineConfig({
 				buffer: path.resolve("./src/browser/buffer")
 			}
 		}),
-		replaceDtsPlugin()
+		replaceDtsPlugin(),
+		copyRspackBrowserRuntimePlugin()
 	],
 	source: {
 		tsconfigPath: "./tsconfig.browser.json",
@@ -108,6 +113,34 @@ export default defineConfig({
 		}
 	}
 });
+
+function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
+	return {
+		name: "copy-rspack-browser-runtime-plugin",
+		setup(api) {
+			api.onAfterBuild(async () => {
+				const runtimeCode = await fs.readFile(
+					path.resolve(bindingDir, "rspack.wasi-browser.js")
+				);
+				const workerUrl =
+					// biome-ignore lint/suspicious/noTemplateCurlyInString: we need to escape "${}"
+					"${new URL('@rspack/browser/wasi-worker-browser.mjs', import.meta.url)}";
+				const modifiedRuntimeCode = runtimeCode
+					.toString()
+					.replaceAll(`type: 'module'`, `type: 'classic'`)
+					.replaceAll(
+						`new URL('./wasi-worker-browser.mjs', import.meta.url)`,
+						`URL.createObjectURL(new Blob([\`importScripts("${workerUrl}")\`], { type: 'text/javascript' }))`
+					);
+
+				await fs.writeFile(
+					path.resolve(distDir, "./rspack.wasi-browser.js"),
+					modifiedRuntimeCode
+				);
+			});
+		}
+	};
+}
 
 /**
  * Since `@rspack/browser` doesn't depend on `@rspack/binding`, we should directly bundle the type declarations to it.
