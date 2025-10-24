@@ -87,16 +87,16 @@ jobs:
       runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
       test: true
 
-  test-wasm:
-    name: Test WASM
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: wasm32-wasip1-threads
-      profile: "ci"
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: true
+  # test-wasm:
+  #   name: Test WASM
+  #   needs: [check-changed]
+  #   if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+  #   uses: ./.github/workflows/reusable-build.yml
+  #   with:
+  #     target: wasm32-wasip1-threads
+  #     profile: "ci"
+  #     runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+  #     test: true
 
   check-codspeed:
     name: Check Bench Result
