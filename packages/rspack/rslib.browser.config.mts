@@ -114,6 +114,14 @@ export default defineConfig({
 	}
 });
 
+/**
+ * This plugin applies a workaround by modifying the napi-generated JavaScript glue code for WebAssembly (rspack.wasi-browser.js).
+ * It enables proper initialization of @rspack/browser workers in CORS-restricted environments,
+ * for example, where users deploy their applications on a CDN (see: https://github.com/web-infra-dev/rspack/discussions/11716)
+ * by performing the following:
+ * 1. Wraps `new Worker("./wasi-worker-browser.mjs", import.meta.url)` inside `importScripts`.
+ * 2. Retrieves the WebAssembly module URL from the global variable `window.RSPACK_WASM_URL`.
+ */
 function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
 	return {
 		name: "copy-rspack-browser-runtime-plugin",
