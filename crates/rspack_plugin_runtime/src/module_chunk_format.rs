@@ -49,14 +49,22 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  if chunk_contains_container_entry(compilation, chunk_ukey) {
-    return Ok(());
-  }
+  // When async startup is enabled, skip container entries and runtime chunks that don't need it
+  if compilation.options.experiments.mf_async_startup {
+    if chunk_contains_container_entry(compilation, chunk_ukey) {
+      return Ok(());
+    }
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-    && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
-  {
-    return Ok(());
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey)
+      && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
+    {
+      return Ok(());
+    }
+  } else {
+    // Main branch behavior: skip runtime chunks
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      return Ok(());
+    }
   }
 
   if compilation
@@ -80,10 +88,19 @@ async fn js_chunk_hash(
   hasher: &mut RspackHash,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-    && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
-  {
-    return Ok(());
+
+  // When async startup is enabled, skip runtime chunks that don't need it
+  if compilation.options.experiments.mf_async_startup {
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey)
+      && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
+    {
+      return Ok(());
+    }
+  } else {
+    // Main branch behavior: skip runtime chunks
+    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      return Ok(());
+    }
   }
 
   PLUGIN_NAME.hash(hasher);
@@ -132,7 +149,14 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let is_container_entry = chunk_contains_container_entry(compilation, chunk_ukey);
+
+  // Container entry handling only when async startup is enabled
+  let is_container_entry = if compilation.options.experiments.mf_async_startup {
+    chunk_contains_container_entry(compilation, chunk_ukey)
+  } else {
+    false
+  };
+
   let needs_async_startup = if is_container_entry {
     false
   } else {
