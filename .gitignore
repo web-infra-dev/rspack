@@ -184,3 +184,4 @@ trace.json
 
 # Claude
 CLAUDE.local.md
+tmp-*/
