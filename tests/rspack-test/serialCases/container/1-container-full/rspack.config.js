@@ -37,7 +37,6 @@ module.exports = [
 					containerA: "../0-container-full/container.js",
 					containerB: "./container.js"
 				},
-				manifest: false,
 				...commonMF
 			})
 		]
@@ -60,7 +59,6 @@ module.exports = [
 					containerA: "../../0-container-full/module/container.mjs",
 					containerB: "./container.mjs"
 				},
-				manifest: false,
 				...commonMF
 			})
 		],
