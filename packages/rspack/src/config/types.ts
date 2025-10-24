@@ -10,6 +10,9 @@ import type ModuleGraph from "../ModuleGraph";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type { DevServerOptions } from "./devServer";
 
+/** https://github.com/microsoft/TypeScript/issues/29729 */
+export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
+
 export type FilenameTemplate = string;
 
 export type Filename =
@@ -48,19 +51,18 @@ export type Falsy = false | "" | 0 | null | undefined;
 
 //#region Entry
 /** The publicPath of the resource referenced by this entry. */
-export type PublicPath = "auto" | Filename;
+export type PublicPath =
+	| LiteralUnion<"auto", string>
+	| Exclude<Filename, string>;
 
 /** The baseURI of the resource referenced by this entry. */
 export type BaseUri = string;
 
 /** How this entry load other chunks. */
-export type ChunkLoadingType =
-	| string
-	| "jsonp"
-	| "import-scripts"
-	| "require"
-	| "async-node"
-	| "import";
+export type ChunkLoadingType = LiteralUnion<
+	"jsonp" | "import-scripts" | "require" | "async-node" | "import",
+	string
+>;
 
 /** How this entry load other chunks. */
 export type ChunkLoading = false | ChunkLoadingType;
@@ -69,11 +71,10 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType =
-	| string
-	| "fetch-streaming"
-	| "fetch"
-	| "async-node";
+export type WasmLoadingType = LiteralUnion<
+	"fetch-streaming" | "fetch" | "async-node",
+	string
+>;
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -106,8 +107,7 @@ export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 export type LibraryExport = string | string[];
 
 /** Configure how the library will be exposed. */
-export type LibraryType =
-	| string
+export type LibraryType = LiteralUnion<
 	| "var"
 	| "module"
 	| "assign"
@@ -125,7 +125,9 @@ export type LibraryType =
 	| "umd"
 	| "umd2"
 	| "jsonp"
-	| "system";
+	| "system",
+	string
+>;
 
 /** When using output.library.type: "umd", setting output.library.umdNamedDefine to true will name the AMD module of the UMD build. */
 export type UmdNamedDefine = boolean;

@@ -35,6 +35,7 @@ jobs:
           path: crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 20
@@ -96,6 +97,7 @@ jobs:
         run: ls -lah crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: ${{ matrix.node }}

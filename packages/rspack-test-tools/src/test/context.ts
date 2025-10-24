@@ -9,6 +9,7 @@ import type {
 	ITestRunner,
 	TTestConfig
 } from "../type";
+import { DEBUG_SCOPES } from "./debug";
 
 export type TTestContextOptions = Omit<ITesterConfig, "steps">;
 
@@ -44,7 +45,7 @@ export class TestContext implements ITestContext {
 
 	getCompiler(): ITestCompilerManager {
 		if (!this.compiler) {
-			this.compiler = new TestCompilerManager();
+			this.compiler = new TestCompilerManager(this);
 		}
 		return this.compiler;
 	}
@@ -61,6 +62,18 @@ export class TestContext implements ITestContext {
 		);
 		let runner = this.runners.get(runnerKey);
 		if (runner) {
+			if (__DEBUG__) {
+				const getRunnerInfo: Record<
+					string,
+					{ runnerKey: string; reused: boolean; runnerType?: string }
+				> = this.getValue(DEBUG_SCOPES.RunGetRunner) || {};
+				getRunnerInfo[file] = {
+					runnerKey,
+					reused: true,
+					runnerType: runner.constructor.name
+				};
+				this.setValue(DEBUG_SCOPES.RunGetRunner, getRunnerInfo);
+			}
 			return runner;
 		}
 		runner = this.config.runnerCreator.runner(
@@ -69,6 +82,19 @@ export class TestContext implements ITestContext {
 			file,
 			env
 		);
+		(runner as any).__key__ = runnerKey;
+		if (__DEBUG__) {
+			const getRunnerInfo: Record<
+				string,
+				{ runnerKey: string; reused: boolean; runnerType?: string }
+			> = this.getValue(DEBUG_SCOPES.RunGetRunner) || {};
+			getRunnerInfo[file] = {
+				runnerKey,
+				reused: false,
+				runnerType: runner.constructor.name
+			};
+			this.setValue(DEBUG_SCOPES.RunGetRunner, getRunnerInfo);
+		}
 		this.runners.set(runnerKey, runner!);
 		return runner;
 	}

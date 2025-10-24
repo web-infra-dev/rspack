@@ -113,7 +113,7 @@ const runWatch = (
 	args: string[] = [],
 	options: Record<string, any> = {},
 	env: Record<string, any> = {}
-): any => {
+): Promise<any> => {
 	return new Promise(async (resolve, reject) => {
 		// For serve commands, automatically add random port if no --port specified
 		if (args.includes("serve") && !args.some(arg => arg.startsWith("--port"))) {
@@ -436,7 +436,9 @@ const portMap = new Map();
  */
 export async function getRandomPort(defaultPort?: number) {
 	// Use Jest workerIndex to assign unique base ports, similar to e2e tests
-	const workerIndex = parseInt(process.env.JEST_WORKER_ID || "1", 10);
+	const workerIndex =
+		parseInt(process.env.RSTEST_WORKER_ID, 10) ||
+		Math.ceil(Math.random() * 100);
 	const basePort = defaultPort || 15000 + (workerIndex - 1) * 100;
 
 	let port = basePort;

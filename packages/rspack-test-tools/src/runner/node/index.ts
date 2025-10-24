@@ -22,6 +22,8 @@ declare global {
 	var printLogger: boolean;
 }
 
+const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
+
 const isRelativePath = (p: string) => /^\.\.?\//.test(p);
 const getSubPath = (p: string) => {
 	const lastSlash = p.lastIndexOf("/");
@@ -56,6 +58,8 @@ export interface INodeRunnerOptions {
 	dist: string;
 	compilerOptions: RspackOptions;
 	cachable?: boolean;
+	logs?: string[];
+	errors?: Error[];
 }
 export class NodeRunner implements ITestRunner {
 	protected requireCache = Object.create(null);
@@ -64,6 +68,10 @@ export class NodeRunner implements ITestRunner {
 	protected baseModuleScope: IModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
 	constructor(protected _options: INodeRunnerOptions) {}
+
+	protected log(message: string) {
+		this._options.logs?.push(`[NodeRunner] ${message}`);
+	}
 
 	run(file: string): Promise<unknown> {
 		if (!this.globalContext) {
@@ -94,7 +102,19 @@ export class NodeRunner implements ITestRunner {
 
 	getRequire(): TRunnerRequirer {
 		const entryRequire = this.requirers.get("entry")!;
-		return (currentDirectory, modulePath, context = {}) => {
+		const runner = this;
+		return function (
+			this: { from: string },
+			currentDirectory,
+			modulePath,
+			context = {}
+		) {
+			const from = this?.from;
+			if (from) {
+				runner.log(`require: ${modulePath} from ${from}`);
+			} else {
+				runner.log(`require: ${modulePath}`);
+			}
 			const p = Array.isArray(modulePath)
 				? modulePath
 				: modulePath.split("?")[0]!;
@@ -190,7 +210,14 @@ export class NodeRunner implements ITestRunner {
 	): IModuleScope {
 		const requirer: TRunnerRequirer & {
 			webpackTestSuiteRequire?: boolean;
-		} = requireFn.bind(null, path.dirname(file.path));
+			from?: string;
+		} = requireFn.bind(
+			{
+				from: file.path,
+				module: m
+			},
+			path.dirname(file.path)
+		);
 		requirer.webpackTestSuiteRequire = true;
 		return {
 			...this.baseModuleScope!,
@@ -262,6 +289,7 @@ export class NodeRunner implements ITestRunner {
 		this.requirers.set("json", this.createJsonRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
 			const file = this.getFile(modulePath, currentDirectory);
+			this.log(`entry: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -289,11 +317,14 @@ export class NodeRunner implements ITestRunner {
 
 	protected createMissRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
+			this.log(`missing: ${modulePath}`);
 			const modulePathStr = modulePath as string;
 			const modules = this._options.testConfig.modules;
 			if (modules && modulePathStr in modules) {
+				this.log(`mock module: ${modulePathStr}`);
 				return modules[modulePathStr];
 			}
+			this.log(`native require: ${modulePathStr}`);
 			return require(
 				modulePathStr.startsWith("node:")
 					? modulePathStr.slice(5)
@@ -308,6 +339,7 @@ export class NodeRunner implements ITestRunner {
 				throw new Error("Array module path is not supported in hot cases");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`json: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -323,11 +355,13 @@ export class NodeRunner implements ITestRunner {
 				return require("@rspack/test-tools");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`cjs: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
 			if (file.path in this.requireCache) {
+				this.log(`cjs cache hit: ${file.path}`);
 				return this.requireCache[file.path].exports;
 			}
 
@@ -363,16 +397,49 @@ export class NodeRunner implements ITestRunner {
 					currentModuleScope.__STATS_I__ = statsIndex;
 				}
 			}
+			const createNodeLocatedError = createLocatedError(
+				this._options.errors || ([] as Error[]),
+				2
+			);
+			const originIt = currentModuleScope.it;
+			currentModuleScope.it = (
+				description: string,
+				fn: () => Promise<void> | void
+			) => {
+				originIt(description, async () => {
+					try {
+						await fn();
+					} catch (err) {
+						throw createNodeLocatedError(err as Error, file);
+					}
+				});
+			};
+			currentModuleScope.__CREATE_LOCATED_ERROR__ = createNodeLocatedError;
+			currentModuleScope.__FILE__ = file;
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {
-        ${file.content}
+				try {
+					${file.content}
+				} catch(err) {
+					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
+				}
       })`;
 
 			this.preExecute(code, file);
+			this.log(
+				`run mode: ${this._options.runInNewContext ? "new context" : "this context"}`
+			);
 			const fn = this._options.runInNewContext
-				? vm.runInNewContext(code, this.globalContext!, file.path)
-				: vm.runInThisContext(code, file.path);
+				? vm.runInNewContext(code, this.globalContext!, {
+						filename: file.path,
+						lineOffset: 1
+					})
+				: vm.runInThisContext(code, {
+						filename: file.path,
+						lineOffset: 1
+					});
+
 			fn.call(
 				this._options.testConfig.nonEsmThis
 					? this._options.testConfig.nonEsmThis(modulePath)
@@ -381,6 +448,7 @@ export class NodeRunner implements ITestRunner {
 			);
 
 			this.postExecute(m, file);
+			this.log(`end cjs: ${modulePath}`);
 			return m.exports;
 		};
 	}
@@ -400,6 +468,7 @@ export class NodeRunner implements ITestRunner {
 			}
 			const _require = this.getRequire();
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`esm: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -434,6 +503,7 @@ export class NodeRunner implements ITestRunner {
 						specifier: any,
 						module: { context: any }
 					) => {
+						this.log(`import: ${specifier} from ${file?.path}`);
 						const result = await _require(path.dirname(file!.path), specifier, {
 							esmMode: EEsmMode.Evaluated
 						});
@@ -473,8 +543,37 @@ export class NodeRunner implements ITestRunner {
 				const ns = esm.namespace as {
 					default: unknown;
 				};
+				this.log(`end esm: ${modulePath}`);
 				return ns.default && ns.default instanceof Promise ? ns.default : ns;
 			})();
 		};
 	}
 }
+
+export const createLocatedError = (
+	collectedErrors: Error[],
+	offset: number
+) => {
+	return (e: Error, file: TRunnerFile) => {
+		const match = (e.stack || e.message).match(EVAL_LOCATION_REGEX);
+		if (match) {
+			const [, line] = match;
+			const realLine = Number(line) - offset;
+			const codeLines = file.content.split("\n");
+			const lineContents = [
+				...codeLines
+					.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
+					.map(line => `│  ${line}`),
+				`│> ${codeLines[realLine - 1]}`,
+				...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
+			];
+			const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
+			const finalError = new Error(message);
+			finalError.stack = undefined;
+			collectedErrors.push(finalError);
+			return finalError;
+		} else {
+			return e;
+		}
+	};
+};

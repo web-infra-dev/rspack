@@ -2,11 +2,11 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { run } from "../../../utils/test-utils";
 
-describe("rspack extends feature", () => {
+describe.concurrent("rspack extends feature", () => {
 	describe("basic extends", () => {
 		const cwd = resolve(__dirname, "./base");
 
-		it.concurrent("should extend from base config", async () => {
+		it("should extend from base config", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 
 			expect(stderr).toBeFalsy();
@@ -28,7 +28,7 @@ describe("rspack extends feature", () => {
 	describe("nested extends", () => {
 		const cwd = resolve(__dirname, "./nested");
 
-		it.concurrent("should extend from nested configs", async () => {
+		it("should extend from nested configs", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 
 			expect(stderr).toBeFalsy();
@@ -50,7 +50,7 @@ describe("rspack extends feature", () => {
 	describe("multiple extends", () => {
 		const cwd = resolve(__dirname, "./multiple");
 
-		it.concurrent("should extend from multiple configs", async () => {
+		it("should extend from multiple configs", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 
 			expect(stderr).toBeFalsy();
@@ -75,7 +75,7 @@ describe("rspack extends feature", () => {
 	describe("function config with extends", () => {
 		const cwd = resolve(__dirname, "./function");
 
-		it.concurrent("should handle extends in function configs", async () => {
+		it("should handle extends in function configs", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 
 			expect(stderr).toBeFalsy();
@@ -97,7 +97,7 @@ describe("rspack extends feature", () => {
 	describe("node module extends", () => {
 		const cwd = resolve(__dirname, "./node-module");
 
-		it.concurrent("should extend from a node module", async () => {
+		it("should extend from a node module", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 
 			expect(stderr).toBeFalsy();
@@ -120,7 +120,7 @@ describe("rspack extends feature", () => {
 		// Use an existing test directory that doesn't use the extends feature
 		const cwd = resolve(__dirname, "../../basic");
 
-		it.concurrent("should not break existing functionality", async () => {
+		it("should not break existing functionality", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"--config",
 				"./entry.config.js"
@@ -144,17 +144,14 @@ describe("rspack extends feature", () => {
 	describe("error handling", () => {
 		const cwd = resolve(__dirname);
 
-		it.concurrent(
-			"should throw an error when extended config file is not found",
-			async () => {
-				const { exitCode, stderr } = await run(cwd, [
-					"-c",
-					"./error/not-found.config.js"
-				]);
+		it("should throw an error when extended config file is not found", async () => {
+			const { exitCode, stderr } = await run(cwd, [
+				"-c",
+				"./error/not-found.config.js"
+			]);
 
-				expect(exitCode).not.toBe(0);
-				expect(stderr).toMatch(/not found/);
-			}
-		);
+			expect(exitCode).not.toBe(0);
+			expect(stderr).toMatch(/not found/);
+		});
 	});
 });

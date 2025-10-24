@@ -483,7 +483,7 @@ interface BlockStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
-type BonjourServer = any;
+type BonjourServer = Record<string, any>;
 
 // @public (undocumented)
 interface BooleanLiteral extends Node_4, HasSpan {
@@ -645,7 +645,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type ChunkLoadingGlobal = string;
 
 // @public
-export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
+export type ChunkLoadingType = LiteralUnion<"jsonp" | "import-scripts" | "require" | "async-node" | "import", string>;
 
 // @public (undocumented)
 export type ChunkPathData = {
@@ -1636,7 +1636,7 @@ export interface CssExtractRspackPluginOptions {
     // (undocumented)
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     // (undocumented)
-    linkType?: string | "text/css" | false;
+    linkType?: LiteralUnion<"text/css", string> | false;
     // (undocumented)
     pathinfo?: boolean;
     // (undocumented)
@@ -1780,7 +1780,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     compress?: boolean | undefined;
     allowedHosts?: string | string[] | undefined;
     historyApiFallback?: boolean | HistoryApiFallbackOptions | undefined;
-    bonjour?: boolean | Record<string, never> | BonjourServer | undefined;
+    bonjour?: boolean | BonjourServer | undefined;
     watchFiles?: string | string[] | WatchFiles | (string | WatchFiles)[] | undefined;
     static?: string | boolean | Static | (string | Static)[] | undefined;
     server?: ServerType<A, S> | ServerConfiguration<A, S> | undefined;
@@ -2893,7 +2893,7 @@ interface GlobalPassOption {
 }
 
 // @public (undocumented)
-type GotHandler = (result: any | null, callback: (error: Error | null) => void) => void;
+type GotHandler<T = any> = (result: T | null, callback: (error: Error | null) => void) => void;
 
 // @public (undocumented)
 type GroupConfig<T, R = T> = {
@@ -4205,7 +4205,7 @@ export type LibraryOptions = {
 };
 
 // @public
-export type LibraryType = string | "var" | "module" | "assign" | "assign-properties" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
+export type LibraryType = LiteralUnion<"var" | "module" | "assign" | "assign-properties" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system", string>;
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
@@ -4298,6 +4298,9 @@ const LimitChunkCountPlugin: {
 
 // @public (undocumented)
 type Literal = StringLiteral | BooleanLiteral | NullLiteral | NumericLiteral | BigIntLiteral | RegExpLiteral | JSXText;
+
+// @public
+export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
 
 // @public (undocumented)
 export type Loader = Record<string, any>;
@@ -5657,7 +5660,7 @@ type PluginImportOptions = PluginImportConfig[];
 export type Plugins = Plugin_2[];
 
 // @public (undocumented)
-type Port = number | string | "auto";
+type Port = number | LiteralUnion<"auto", string>;
 
 // @public (undocumented)
 type PrintedElement = {
@@ -5792,8 +5795,8 @@ type ProxyConfigArray = (ProxyConfigArrayItem | ((req?: Request_2, res?: Respons
 
 // @public (undocumented)
 type ProxyConfigArrayItem = {
-    path?: HttpProxyMiddlewareOptionsFilter | undefined;
-    context?: HttpProxyMiddlewareOptionsFilter | undefined;
+    path?: HttpProxyMiddlewareOptionsFilter;
+    context?: HttpProxyMiddlewareOptionsFilter;
 } & {
     bypass?: ByPass;
 } & {
@@ -5815,7 +5818,7 @@ interface PseudoClasses {
 }
 
 // @public
-export type PublicPath = "auto" | Filename;
+export type PublicPath = LiteralUnion<"auto", string> | Exclude<Filename, string>;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
@@ -6486,6 +6489,7 @@ declare namespace rspackExports {
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
         RspackOptionsNormalized,
+        LiteralUnion,
         FilenameTemplate,
         Filename,
         Name,
@@ -7115,7 +7119,7 @@ type ServerOptions = ServerOptions_2 & {
 type ServerResponse_2 = ServerResponse;
 
 // @public (undocumented)
-type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = "http" | "https" | "spdy" | "http2" | string | ((arg0: ServerOptions, arg1: A) => S);
+type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = LiteralUnion<"http" | "https" | "spdy" | "http2", string> | ((arg0: ServerOptions, arg1: A) => S);
 
 // @public (undocumented)
 type ServeStaticOptions = {
@@ -8091,7 +8095,7 @@ interface TerserCompressOptions_2 {
 type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
 
 // @public (undocumented)
-type TerserEcmaVersion_2 = 5 | 2015 | 2016 | string | number;
+type TerserEcmaVersion_2 = LiteralUnion<5 | 2015 | 2016, number> | string;
 
 // @public (undocumented)
 interface TerserMangleOptions {
@@ -9021,7 +9025,7 @@ export const wasm: Wasm;
 export type WasmLoading = false | WasmLoadingType;
 
 // @public
-export type WasmLoadingType = string | "fetch-streaming" | "fetch" | "async-node";
+export type WasmLoadingType = LiteralUnion<"fetch-streaming" | "fetch" | "async-node", string>;
 
 // @public (undocumented)
 type WasmPlugin = [wasmPackage: string, config: Record<string, any>];

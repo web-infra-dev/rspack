@@ -5,6 +5,7 @@ import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
+import { DEBUG_SCOPES } from "../test/debug";
 import type { ITestContext, ITestEnv } from "../type";
 
 export async function config(
@@ -62,9 +63,7 @@ export async function run(
 	}
 
 	let bundles: string[] | void | string;
-	if (testConfig.bundlePath) {
-		bundles = testConfig.bundlePath;
-	} else if (typeof findBundle === "function") {
+	if (typeof findBundle === "function") {
 		bundles = findBundle(context, compiler.getOptions() as RspackOptions);
 	} else {
 		bundles = [];
@@ -73,8 +72,18 @@ export async function run(
 	if (typeof bundles === "string") {
 		bundles = [bundles];
 	}
+
+	if (__DEBUG__) {
+		context.setValue(DEBUG_SCOPES.RunFindBundle, bundles);
+	}
+
 	if (!bundles || !bundles.length) {
 		return;
+	}
+
+	if (__DEBUG__) {
+		context.setValue(DEBUG_SCOPES.RunLogs, []);
+		context.setValue(DEBUG_SCOPES.RunErrors, []);
 	}
 
 	for (const bundle of bundles!) {
@@ -82,6 +91,14 @@ export async function run(
 			continue;
 		}
 		const runner = context.getRunner(bundle, env);
+		if (__DEBUG__) {
+			const runLogs = context.getValue(DEBUG_SCOPES.RunLogs) as
+				| string[]
+				| undefined;
+			runLogs?.push(
+				`Start running entry: ${bundle} in ${runner.constructor.name}(${(runner as any).__key__})`
+			);
+		}
 		const mod = runner.run(bundle);
 		const result = context.getValue<Array<Promise<unknown>>>("modules") || [];
 		result.push(mod);
