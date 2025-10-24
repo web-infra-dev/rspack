@@ -337,7 +337,6 @@ module.exports = (env, { testPath }) => [
 			libraryTarget: "commonjs2",
 			iife: false
 		},
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
@@ -350,7 +349,6 @@ module.exports = (env, { testPath }) => [
 		optimization: {
 			concatenateModules: false
 		},
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
@@ -360,7 +358,6 @@ module.exports = (env, { testPath }) => [
 			libraryTarget: "commonjs2",
 			iife: true
 		},
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
@@ -370,7 +367,6 @@ module.exports = (env, { testPath }) => [
 			filename: "commonjs2-external-eval.js",
 			libraryTarget: "commonjs2"
 		},
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
@@ -381,7 +377,6 @@ module.exports = (env, { testPath }) => [
 			libraryTarget: "commonjs2"
 		},
 		devtool: "eval-source-map",
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
@@ -391,7 +386,6 @@ module.exports = (env, { testPath }) => [
 			libraryTarget: "commonjs-static",
 			iife: false
 		},
-		externalsType: "commonjs",
 		externals: ["external", "external-named"]
 	},
 	{
