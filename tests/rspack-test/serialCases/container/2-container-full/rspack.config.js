@@ -20,7 +20,6 @@ module.exports = {
 				]
 			},
 			exposes: ["./Self"],
-			manifest: false,
 			shared: {
 				react: "react",
 				"old-react": {

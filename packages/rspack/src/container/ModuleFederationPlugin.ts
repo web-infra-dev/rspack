@@ -54,7 +54,7 @@ export class ModuleFederationPlugin {
 			enhanced: true
 		}).apply(compiler);
 
-		if (this._options.manifest !== false) {
+		if (this._options.manifest) {
 			const manifestOptions: ModuleFederationManifestPluginOptions =
 				this._options.manifest === true ? {} : { ...this._options.manifest };
 			const containerName = manifestOptions.name ?? this._options.name;

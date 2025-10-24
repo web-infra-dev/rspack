@@ -14,6 +14,7 @@ module.exports = {
 			name: "container",
 			filename: "container.[chunkhash:8].js",
 			library: { type: "commonjs-module" },
+			manifest: true,
 			exposes: {
 				'./expose-a': {
 					import: './module.js',
