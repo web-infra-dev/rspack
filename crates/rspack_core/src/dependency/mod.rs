@@ -40,9 +40,15 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExtendedReferencedExport, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
+
+#[derive(Debug, Clone)]
+pub enum ProcessModuleReferencedExports {
+  Map(FxHashMap<String, ExtendedReferencedExport>),
+  ExtendRef(Vec<ExtendedReferencedExport>),
+}
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
