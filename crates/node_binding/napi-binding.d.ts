@@ -544,6 +544,8 @@ export declare enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  CollectShareEntryPlugin = 'CollectShareEntryPlugin',
+  ShareContainerPlugin = 'ShareContainerPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
@@ -1830,6 +1832,11 @@ export interface RawCircularDependencyRspackPluginOptions {
   onEnd?: () => void
 }
 
+export interface RawCollectShareEntryPluginOptions {
+  provides: Array<RawProvideOptions>
+  filename?: string
+}
+
 export interface RawConsumeOptions {
   key: string
   import?: string
@@ -2811,6 +2818,15 @@ export interface RawRuntimeChunkNameFnCtx {
 
 export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
+}
+
+export interface RawShareContainerPluginOptions {
+  name: string
+  shareName: string
+  request: string
+  version: string
+  globalName: string
+  fileName?: string
 }
 
 export interface RawSizeLimitsPluginOptions {

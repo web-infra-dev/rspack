@@ -3,7 +3,8 @@ var __module_federation_bundler_runtime__,
 	__module_federation_runtime_plugins__,
 	__module_federation_remote_infos__,
 	__module_federation_container_name__,
-	__module_federation_share_strategy__;
+	__module_federation_share_strategy__,
+	__module_federation_share_fallbacks__;
 module.exports = function () {
 	if (
 		(__webpack_require__.initializeSharingData ||
@@ -127,6 +128,18 @@ module.exports = function () {
 							shareConfig,
 							get: factory
 						};
+						const fallbackEntry = shareFallbacks[name];
+						if (fallbackEntry) {
+							const fallbackUrl =
+								(__webpack_require__.p || "") + fallbackEntry[1];
+							options.fallbackName = fallbackEntry[0];
+							shareConfig.fallback = fallbackUrl;
+							options.fallback = function () {
+								return __webpack_require__.federation.importExternal(
+									fallbackUrl
+								);
+							};
+						}
 						if (shared[name]) {
 							shared[name].push(options);
 						} else {
@@ -147,6 +160,7 @@ module.exports = function () {
 			"plugins",
 			() => __module_federation_runtime_plugins__
 		);
+		const shareFallbacks = __module_federation_share_fallbacks__ || {};
 
 		early(__webpack_require__.federation, "bundlerRuntimeOptions", () => ({}));
 		early(
@@ -187,6 +201,13 @@ module.exports = function () {
 			"webpackRequire",
 			() => __webpack_require__
 		);
+		if (Object.keys(shareFallbacks).length) {
+			early(
+				__webpack_require__.federation.bundlerRuntimeOptions,
+				"sharedEntries",
+				() => shareFallbacks
+			);
+		}
 		merge(
 			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
 			"idToRemoteMap",

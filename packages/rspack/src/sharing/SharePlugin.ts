@@ -24,7 +24,51 @@ export type SharedConfig = {
 	singleton?: boolean;
 	strictVersion?: boolean;
 	version?: false | string;
+	treeshake?: boolean;
 };
+
+export type NormalizedSharedOptions = [string, SharedConfig][];
+
+export function normalizeSharedOptions(
+	shared: Shared
+): NormalizedSharedOptions {
+	return parseOptions(
+		shared,
+		(item, key) => {
+			if (typeof item !== "string")
+				throw new Error("Unexpected array in shared");
+			const config: SharedConfig =
+				item === key || !isRequiredVersion(item)
+					? {
+							import: item
+						}
+					: {
+							import: key,
+							requiredVersion: item
+						};
+			return config;
+		},
+		item => item
+	);
+}
+
+export function createProvideShareOptions(
+	normalizedSharedOptions: NormalizedSharedOptions
+) {
+	return normalizedSharedOptions
+		.filter(([, options]) => options.import !== false)
+		.map(([key, options]) => ({
+			[options.import || key]: {
+				shareKey: options.shareKey || key,
+				shareScope: options.shareScope,
+				version: options.version,
+				eager: options.eager,
+				singleton: options.singleton,
+				requiredVersion: options.requiredVersion,
+				strictVersion: options.strictVersion
+			}
+		}));
+}
 
 export class SharePlugin {
 	_shareScope;
@@ -33,24 +77,7 @@ export class SharePlugin {
 	_enhanced;
 
 	constructor(options: SharePluginOptions) {
-		const sharedOptions = parseOptions(
-			options.shared,
-			(item, key) => {
-				if (typeof item !== "string")
-					throw new Error("Unexpected array in shared");
-				const config: SharedConfig =
-					item === key || !isRequiredVersion(item)
-						? {
-								import: item
-							}
-						: {
-								import: key,
-								requiredVersion: item
-							};
-				return config;
-			},
-			item => item
-		);
+		const sharedOptions = normalizeSharedOptions(options.shared);
 		const consumes = sharedOptions.map(([key, options]) => ({
 			[key]: {
 				import: options.import,
@@ -63,19 +90,7 @@ export class SharePlugin {
 				eager: options.eager
 			}
 		}));
-		const provides = sharedOptions
-			.filter(([, options]) => options.import !== false)
-			.map(([key, options]) => ({
-				[options.import || key]: {
-					shareKey: options.shareKey || key,
-					shareScope: options.shareScope,
-					version: options.version,
-					eager: options.eager,
-					singleton: options.singleton,
-					requiredVersion: options.requiredVersion,
-					strictVersion: options.strictVersion
-				}
-			}));
+		const provides = createProvideShareOptions(sharedOptions);
 		this._shareScope = options.shareScope;
 		this._consumes = consumes;
 		this._provides = provides;

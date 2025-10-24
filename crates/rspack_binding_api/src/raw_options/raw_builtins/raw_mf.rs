@@ -3,10 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption, ManifestSharedOption,
-  ModuleFederationManifestPluginOptions, ModuleFederationRuntimePluginOptions, ProvideOptions,
-  ProvideVersion, RemoteAliasTarget, RemoteOptions, StatsBuildInfo,
+  CollectShareEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
+  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
+  ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ModuleFederationRuntimePluginOptions, ProvideOptions, ProvideVersion, RemoteAliasTarget,
+  RemoteOptions, ShareContainerEntryOptions, ShareContainerPluginOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -130,6 +131,50 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         strict_version: value.strict_version,
       },
     )
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawCollectShareEntryPluginOptions {
+  pub provides: Vec<RawProvideOptions>,
+  pub filename: Option<String>,
+}
+
+impl From<RawCollectShareEntryPluginOptions> for CollectShareEntryPluginOptions {
+  fn from(value: RawCollectShareEntryPluginOptions) -> Self {
+    Self {
+      provides: value
+        .provides
+        .into_iter()
+        .map(|provide| provide.into())
+        .collect(),
+      filename: value.filename,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawShareContainerPluginOptions {
+  pub name: String,
+  pub share_name: String,
+  pub request: String,
+  pub version: String,
+  pub global_name: String,
+  pub file_name: Option<String>,
+}
+
+impl From<RawShareContainerPluginOptions> for ShareContainerPluginOptions {
+  fn from(value: RawShareContainerPluginOptions) -> Self {
+    ShareContainerPluginOptions {
+      name: value.name,
+      share_name: value.share_name,
+      request: value.request,
+      version: value.version,
+      global_name: value.global_name,
+      file_name: value.file_name.clone().map(Into::into),
+    }
   }
 }
 

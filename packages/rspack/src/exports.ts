@@ -267,10 +267,14 @@ export const container = {
 	ModuleFederationPluginV1
 };
 
+import { CollectShareEntryPlugin } from "./sharing/CollectShareEntryPlugin";
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
+import { IndependentSharePlugin } from "./sharing/IndependentSharePlugin";
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+import { ShareContainerPlugin } from "./sharing/ShareContainerPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
 
+export type { CollectShareEntryPluginOptions } from "./sharing/CollectShareEntryPlugin";
 export type {
 	ConsumeSharedPluginOptions,
 	Consumes,
@@ -278,6 +282,7 @@ export type {
 	ConsumesItem,
 	ConsumesObject
 } from "./sharing/ConsumeSharedPlugin";
+export type { IndependentSharePluginOptions } from "./sharing/IndependentSharePlugin";
 export type {
 	ProvideSharedPluginOptions,
 	Provides,
@@ -285,6 +290,7 @@ export type {
 	ProvidesItem,
 	ProvidesObject
 } from "./sharing/ProvideSharedPlugin";
+export type { ShareContainerPluginOptions } from "./sharing/ShareContainerPlugin";
 export type {
 	Shared,
 	SharedConfig,
@@ -294,6 +300,9 @@ export type {
 } from "./sharing/SharePlugin";
 export const sharing = {
 	ProvideSharedPlugin,
+	CollectShareEntryPlugin,
+	IndependentSharePlugin,
+	ShareContainerPlugin,
 	ConsumeSharedPlugin,
 	SharePlugin
 };

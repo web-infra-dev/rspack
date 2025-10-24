@@ -1,7 +1,5 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
-import type { SharedConfig } from "../sharing/SharePlugin";
-import { isRequiredVersion } from "../sharing/utils";
 import {
 	type ManifestExposeOption,
 	type ManifestSharedOption,
@@ -9,6 +7,9 @@ import {
 	type ModuleFederationManifestPluginOptions,
 	type RemoteAliasMap
 } from "./ModuleFederationManifestPlugin";
+import { IndependentSharePlugin } from "../sharing/IndependentSharePlugin";
+import type { SharedConfig } from "../sharing/SharePlugin";
+import { isRequiredVersion } from "../sharing/utils";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
@@ -21,18 +22,21 @@ export interface ModuleFederationPluginOptions
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
 	manifest?:
-		| boolean
-		| Omit<
-				ModuleFederationManifestPluginOptions,
-				"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
-		  >;
+	| boolean
+	| Omit<
+		ModuleFederationManifestPluginOptions,
+		"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
+	>;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 export class ModuleFederationPlugin {
-	constructor(private _options: ModuleFederationPluginOptions) {}
+	private _independentSharePlugin?: IndependentSharePlugin;
+
+	constructor(private _options: ModuleFederationPluginOptions) { }
 
 	apply(compiler: Compiler) {
+		const { name, shared } = this._options;
 		const { webpack } = compiler;
 		const paths = getPaths(this._options);
 		compiler.options.resolve.alias = {
@@ -41,13 +45,41 @@ export class ModuleFederationPlugin {
 			...compiler.options.resolve.alias
 		};
 
-		// Generate the runtime entry content
-		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
+		const sharedOptions = getSharedOptions(this._options);
+		const treeshakeEntries = sharedOptions.filter(
+			([, config]) => config.treeshake
+		);
+		if (treeshakeEntries.length > 0) {
+			// 传参校验，不是默认使用
+			this._independentSharePlugin = new IndependentSharePlugin({
+				name,
+				shared: shared || {}
+			});
+			this._independentSharePlugin.apply(compiler);
+		}
 
-		// Pass only the entry runtime to the Rust-side plugin
-		new ModuleFederationRuntimePlugin({
-			entryRuntime
-		}).apply(compiler);
+		let runtimePluginApplied = false;
+		compiler.hooks.beforeRun.tapPromise(
+			{
+				name: "ModuleFederationPlugin",
+				stage: 100
+			},
+			async () => {
+				if (runtimePluginApplied) return;
+				runtimePluginApplied = true;
+				const shareFallbacks =
+					(compiler as any).__independentShareBuildAssets ?? {};
+				const entryRuntime = getDefaultEntryRuntime(
+					paths,
+					this._options,
+					compiler,
+					shareFallbacks
+				);
+				new ModuleFederationRuntimePlugin({
+					entryRuntime
+				}).apply(compiler);
+			}
+		);
 
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
@@ -281,6 +313,24 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
 	return options.runtimePlugins ?? [];
 }
 
+function getSharedOptions(
+	options: ModuleFederationPluginOptions
+): [string, SharedConfig][] {
+	if (!options.shared) return [];
+	return parseOptions<SharedConfig, SharedConfig>(
+		options.shared,
+		(item, key) => {
+			if (typeof item !== "string") {
+				throw new Error("Unexpected array in shared");
+			}
+			return item === key || !isRequiredVersion(item)
+				? { import: item }
+				: { import: key, requiredVersion: item };
+		},
+		item => item
+	);
+}
+
 function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
 	if (IS_BROWSER) {
 		return {
@@ -307,10 +357,14 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
 	};
 }
 
+type ShareFallbacks = Record<string, [string, string]>;
+
+// 注入 fallback
 function getDefaultEntryRuntime(
 	paths: RuntimePaths,
 	options: ModuleFederationPluginOptions,
-	compiler: Compiler
+	compiler: Compiler,
+	shareFallbacks: ShareFallbacks
 ) {
 	const runtimePlugins = getRuntimePlugins(options);
 	const remoteInfos = getRemoteInfos(options);
@@ -339,6 +393,9 @@ function getDefaultEntryRuntime(
 			", "
 		)}]`,
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
+		`const __module_federation_share_fallbacks__ = ${JSON.stringify(
+			shareFallbacks
+		)}`,
 		`const __module_federation_container_name__ = ${JSON.stringify(
 			options.name ?? compiler.options.output.uniqueName
 		)}`,
@@ -348,8 +405,8 @@ function getDefaultEntryRuntime(
 		IS_BROWSER
 			? MF_RUNTIME_CODE
 			: compiler.webpack.Template.getFunctionContent(
-					require("./moduleFederationDefaultRuntime.js")
-				)
+				require("./moduleFederationDefaultRuntime.js")
+			)
 	].join(";");
 	return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
 }
