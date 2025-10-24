@@ -214,7 +214,7 @@ impl Dependency for ESMImportSpecifierDependency {
     let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(&**module)
+      .get_effective_export_presence(module.as_ref())
       && let Some(diagnostic) = esm_import_dependency_get_linking_error(
         self,
         self.get_ids(module_graph),

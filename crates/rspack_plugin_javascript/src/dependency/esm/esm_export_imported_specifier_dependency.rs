@@ -14,11 +14,11 @@ use rspack_core::{
   ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportSpecExports,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
   RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
   UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
@@ -1226,13 +1226,15 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: "default".into(),
-              can_mangle: Some(false),
-              from: from.cloned(),
-              export: Some(rspack_core::Nullable::Null),
-              ..Default::default()
-            })]),
+            exports: Some(ExportSpecExports::new(vec![ExportNameOrSpec::ExportSpec(
+              ExportSpec {
+                name: "default".into(),
+                can_mangle: Some(false),
+                from: from.cloned(),
+                export: Some(rspack_core::Nullable::Null),
+                ..Default::default()
+              },
+            )])),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -1323,7 +1325,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     let ids = self.get_ids(module_graph);
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(&**module)
+      .get_effective_export_presence(module.as_ref())
     {
       let mut diagnostics = Vec::new();
       // don't need to check the import specifier is existed or not when name is None (export *)

@@ -4,7 +4,7 @@ import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import { addHook } from "pirates";
 import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
-import isEsmFile from "./isEsmFile";
+import { isEsmFile } from "./isEsmFile";
 import isTsFile, { TS_EXTENSION } from "./isTsFile";
 import type { CommonOptions } from "./options";
 import { rspack } from "./rspackCore";
@@ -215,7 +215,7 @@ export async function loadExtendedConfig(
 		}
 
 		// Load the extended configuration
-		let loadedConfig = await crossImport(resolvedPath, cwd);
+		let loadedConfig = await crossImport(resolvedPath);
 
 		// If the extended config is a function, execute it
 		if (typeof loadedConfig === "function") {
@@ -270,7 +270,7 @@ export async function loadRspackConfig(
 	if (isTsFile(configPath) && options.configLoader === "register") {
 		registerLoader(configPath);
 	}
-	const loadedConfig = await crossImport(configPath, cwd);
+	const loadedConfig = await crossImport(configPath);
 
 	return { loadedConfig, configPath };
 }

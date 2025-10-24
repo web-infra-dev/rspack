@@ -565,6 +565,7 @@ export declare enum BuiltinPluginName {
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  InlineExportsPlugin = 'InlineExportsPlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',

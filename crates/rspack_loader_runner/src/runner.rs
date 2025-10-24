@@ -101,7 +101,7 @@ pub async fn run_loaders<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult, Option<Error>) {
+) -> (LoaderResult<Context>, Option<Error>) {
   let loaders = loaders
     .into_iter()
     .map(|i| i.into())
@@ -211,7 +211,8 @@ async fn run_loaders_impl<Context: Send>(
 }
 
 #[derive(Debug)]
-pub struct LoaderResult {
+pub struct LoaderResult<Context> {
+  pub context: Context,
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -224,9 +225,10 @@ pub struct LoaderResult {
   pub parse_meta: ParseMeta,
 }
 
-impl LoaderResult {
-  pub fn new<T: Send>(loader_context: LoaderContext<T>) -> Self {
+impl<Context: Send> LoaderResult<Context> {
+  pub fn new(loader_context: LoaderContext<Context>) -> Self {
     LoaderResult {
+      context: loader_context.context,
       cacheable: loader_context.cacheable,
       file_dependencies: loader_context.file_dependencies,
       context_dependencies: loader_context.context_dependencies,

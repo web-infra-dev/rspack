@@ -48,7 +48,7 @@
   "devDependencies": {
     "@ast-grep/napi": "^0.39.6",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.16.0",
+    "@rslib/core": "0.16.1",
     "@swc/types": "0.1.25",
     "@types/node": "^20.19.23",
     "@types/watchpack": "^2.4.4",
