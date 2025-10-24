@@ -12,8 +12,6 @@ exports.bar = 2
 }),
 });
 // ./foo.js
-const bar_0 = __webpack_require__("./bar.js");
-var bar_2 = bar_0.bar;
 const foo_foo = 1
 
 
@@ -25,6 +23,9 @@ it('should have correct output for entry re-exports', async () => {
 	expect(foo).toBe(1);
 	expect(bar).toBe(2);
 })
+
+const bar_0 = __webpack_require__("./bar.js");
+var bar_2 = bar_0.bar;
 
 export { bar_2 as bar, foo_foo as foo };
 
