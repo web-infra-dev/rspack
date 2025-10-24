@@ -11,11 +11,11 @@ use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
   empty_assets_group, module_source_path, normalize_assets_group,
 };
-pub use data::StatsBuildInfo;
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
-  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsRoot, StatsShared,
+  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
 };
+pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
   ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   RemoteAliasTarget,
@@ -84,7 +84,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   }
   None
 }
-#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
+#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin, stage = 0)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
   let entry_point_names: HashSet<String> = compilation
@@ -169,6 +169,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         singleton: shared.singleton,
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
+        usedExports: Vec::new(),
       })
       .collect::<Vec<_>>();
     let remote_list = self

@@ -40,6 +40,7 @@ pub struct ProvideSharedModule {
   singleton: Option<bool>,
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
+  treeshake_strategy: Option<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -56,6 +57,7 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    treeshake_strategy: Option<String>,
   ) -> Self {
     let identifier = format!(
       "provide shared module ({}) {}@{} = {}",
@@ -75,6 +77,7 @@ impl ProvideSharedModule {
       singleton,
       required_version,
       strict_version,
+      treeshake_strategy,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -83,6 +86,10 @@ impl ProvideSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn share_key(&self) -> &str {
+    &self.name
   }
 }
 
@@ -205,6 +212,7 @@ impl Module for ProvideSharedModule {
             singleton: self.singleton,
             strict_version: self.strict_version,
             required_version: self.required_version.clone(),
+            treeshake_strategy: self.treeshake_strategy.clone(),
           }),
         }],
       });

@@ -16,6 +16,7 @@ pub use manifest::{
   ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
 };
 pub use sharing::{
+  collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
@@ -26,6 +27,11 @@ pub use sharing::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
+  shared_container_entry_dependency::ShareContainerEntryOptions,
+  shared_container_plugin::{SharedContainerPlugin, SharedContainerPluginOptions},
+  shared_used_exports_optimizer_plugin::{
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+  },
 };
 
 mod utils {

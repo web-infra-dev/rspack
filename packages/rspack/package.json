@@ -60,7 +60,7 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.21.6",
+    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20251208061713",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.1.0"
   },

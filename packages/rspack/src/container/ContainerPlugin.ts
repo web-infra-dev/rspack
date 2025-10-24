@@ -42,7 +42,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 			name: options.name,
 			shareScope: options.shareScope || "default",
 			library: options.library || {
-				type: "var",
+				type: "global",
 				name: options.name
 			},
 			runtime: options.runtime,

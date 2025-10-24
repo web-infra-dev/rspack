@@ -236,6 +236,7 @@ impl Module for ConsumeSharedModule {
         singleton: self.options.singleton,
         eager: self.options.eager,
         fallback: factory,
+        treeshake_strategy: self.options.treeshake_strategy.clone(),
       });
     Ok(code_generation_result)
   }
