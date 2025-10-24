@@ -37,7 +37,7 @@ runs:
 
     - name: Restore rustup cache
       id: restore
-      if: ${{ inputs.save-if == 'true' }}
+      if: ${{ inputs.save-if == 'true' && runner.os != 'Windows' }}
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.rustup/toolchains
@@ -58,7 +58,7 @@ runs:
 
     - name: Save rustup cache
       uses: ./.github/actions/cache/save
-      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       with:
         path: ~/.rustup/toolchains
         key: rustup-cache-v3zstd-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
