@@ -234,12 +234,10 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   };
 
-  let async_enabled = compilation.options.experiments.mf_async_startup
-    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-
-  if !async_enabled {
-    return false;
-  }
+  // Check for MF-specific runtime requirements (not just ENSURE_CHUNK_HANDLERS which is too broad)
+  let has_mf_runtime = runtime_requirements.contains(RuntimeGlobals::INITIALIZE_SHARING)
+    || runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP)
+    || runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
 
   if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
     && chunk_id.as_str() == "build time chunk"
@@ -251,7 +249,22 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
     return false;
   }
 
+  // Check for MF-specific module types
   let module_graph = compilation.get_module_graph();
+  let has_remote_modules = !compilation
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk, SourceType::Remote, &module_graph)
+    .is_empty();
+  let has_consume_modules = !compilation
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk, SourceType::ConsumeShared, &module_graph)
+    .is_empty();
+
+  // Only enable async startup if chunk actually participates in MF
+  if !has_mf_runtime && !has_remote_modules && !has_consume_modules {
+    return false;
+  }
+
   #[cfg(debug_assertions)]
   {
     if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
@@ -291,6 +304,16 @@ pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey
       }
     }
     return false;
+  }
+
+  #[cfg(debug_assertions)]
+  {
+    if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
+      eprintln!(
+        "[mf-debug] enabling async startup for chunk {} (has_mf_runtime={}, has_remote_modules={}, has_consume_modules={})",
+        chunk_id, has_mf_runtime, has_remote_modules, has_consume_modules
+      );
+    }
   }
 
   true
