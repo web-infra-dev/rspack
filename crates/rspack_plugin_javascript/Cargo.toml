@@ -13,6 +13,7 @@ bitflags = { workspace = true }
 cow-utils = { workspace = true }
 either = { workspace = true }
 fast-glob = { workspace = true }
+futures = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
@@ -61,5 +62,5 @@ winnow = { workspace = true }
 ignored = ["tracing"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

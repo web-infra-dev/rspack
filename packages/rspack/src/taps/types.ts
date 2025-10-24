@@ -19,6 +19,7 @@ type RegisterTapKeys<
 	T,
 	L extends string
 > = T extends keyof binding.RegisterJsTaps ? (T extends L ? T : never) : never;
+
 type PartialRegisters<L extends string> = {
 	[K in RegisterTapKeys<
 		keyof binding.RegisterJsTaps,

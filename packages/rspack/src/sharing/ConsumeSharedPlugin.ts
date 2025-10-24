@@ -33,6 +33,57 @@ export type ConsumesConfig = {
 	strictVersion?: boolean;
 };
 
+export function normalizeConsumeShareOptions(
+	consumes: Consumes,
+	shareScope?: string
+) {
+	return parseOptions(
+		consumes,
+		(item, key) => {
+			if (Array.isArray(item)) throw new Error("Unexpected array in options");
+			const result =
+				item === key || !isRequiredVersion(item)
+					? // item is a request/key
+						{
+							import: key,
+							shareScope: shareScope || "default",
+							shareKey: key,
+							requiredVersion: undefined,
+							packageName: undefined,
+							strictVersion: false,
+							singleton: false,
+							eager: false
+						}
+					: // key is a request/key
+						// item is a version
+						{
+							import: key,
+							shareScope: shareScope || "default",
+							shareKey: key,
+							requiredVersion: item,
+							strictVersion: true,
+							packageName: undefined,
+							singleton: false,
+							eager: false
+						};
+			return result;
+		},
+		(item, key) => ({
+			import: item.import === false ? undefined : item.import || key,
+			shareScope: item.shareScope || shareScope || "default",
+			shareKey: item.shareKey || key,
+			requiredVersion: item.requiredVersion,
+			strictVersion:
+				typeof item.strictVersion === "boolean"
+					? item.strictVersion
+					: item.import !== false && !item.singleton,
+			packageName: item.packageName,
+			singleton: !!item.singleton,
+			eager: !!item.eager
+		})
+	);
+}
+
 export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ConsumeSharedPlugin;
 	_options;
@@ -40,51 +91,9 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	constructor(options: ConsumeSharedPluginOptions) {
 		super();
 		this._options = {
-			consumes: parseOptions(
+			consumes: normalizeConsumeShareOptions(
 				options.consumes,
-				(item, key) => {
-					if (Array.isArray(item))
-						throw new Error("Unexpected array in options");
-					const result =
-						item === key || !isRequiredVersion(item)
-							? // item is a request/key
-								{
-									import: key,
-									shareScope: options.shareScope || "default",
-									shareKey: key,
-									requiredVersion: undefined,
-									packageName: undefined,
-									strictVersion: false,
-									singleton: false,
-									eager: false
-								}
-							: // key is a request/key
-								// item is a version
-								{
-									import: key,
-									shareScope: options.shareScope || "default",
-									shareKey: key,
-									requiredVersion: item,
-									strictVersion: true,
-									packageName: undefined,
-									singleton: false,
-									eager: false
-								};
-					return result;
-				},
-				(item, key) => ({
-					import: item.import === false ? undefined : item.import || key,
-					shareScope: item.shareScope || options.shareScope || "default",
-					shareKey: item.shareKey || key,
-					requiredVersion: item.requiredVersion,
-					strictVersion:
-						typeof item.strictVersion === "boolean"
-							? item.strictVersion
-							: item.import !== false && !item.singleton,
-					packageName: item.packageName,
-					singleton: !!item.singleton,
-					eager: !!item.eager
-				})
+				options.shareScope
 			),
 			enhanced: options.enhanced ?? false
 		};
