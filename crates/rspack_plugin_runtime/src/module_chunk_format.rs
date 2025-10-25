@@ -18,8 +18,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  chunk_contains_container_entry, chunk_has_js, chunk_needs_mf_async_startup, get_all_chunks,
-  get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name, runtime_chunk_has_hash,
+  chunk_has_js, chunk_needs_mf_async_startup, get_all_chunks, get_chunk_output_name,
+  get_relative_path, get_runtime_chunk_output_name, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -51,22 +51,8 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  // When async startup is enabled, skip container entries and runtime chunks that don't need it
-  if compilation.options.experiments.mf_async_startup {
-    if chunk_contains_container_entry(compilation, chunk_ukey) {
-      return Ok(());
-    }
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-      && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
-    {
-      return Ok(());
-    }
-  } else {
-    // Main branch behavior: skip runtime chunks
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      return Ok(());
-    }
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    return Ok(());
   }
 
   if compilation
@@ -90,19 +76,8 @@ async fn js_chunk_hash(
   hasher: &mut RspackHash,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-  // When async startup is enabled, skip runtime chunks that don't need it
-  if compilation.options.experiments.mf_async_startup {
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-      && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
-    {
-      return Ok(());
-    }
-  } else {
-    // Main branch behavior: skip runtime chunks
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      return Ok(());
-    }
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    return Ok(());
   }
 
   PLUGIN_NAME.hash(hasher);
@@ -151,19 +126,8 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-  // Container entry handling only when async startup is enabled
-  let is_container_entry = if compilation.options.experiments.mf_async_startup {
-    chunk_contains_container_entry(compilation, chunk_ukey)
-  } else {
-    false
-  };
-
-  let needs_async_startup = if is_container_entry {
-    false
-  } else {
-    chunk_needs_mf_async_startup(compilation, chunk_ukey)
-  };
+  let needs_async_startup = compilation.options.experiments.mf_async_startup
+    && chunk_needs_mf_async_startup(compilation, chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
   let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
@@ -213,126 +177,112 @@ async fn render_chunk(
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
-    if is_container_entry {
-      if let Some((module, _)) = entries.iter().next_back() {
-        let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-          .expect("should have module id");
-        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+    let mut startup_source = vec![];
+
+    startup_source.push(format!(
+      "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
+      RuntimeGlobals::ENTRY_MODULE_ID
+    ));
+
+    let mut loaded_chunks = HashSet::default();
+    for (i, (module, entry)) in entries.iter().enumerate() {
+      let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+        .expect("should have module id");
+      let runtime_chunk = compilation
+        .chunk_group_by_ukey
+        .expect_get(entry)
+        .get_runtime_chunk(&compilation.chunk_group_by_ukey);
+      let chunks = get_all_chunks(
+        entry,
+        &runtime_chunk,
+        None,
+        &compilation.chunk_group_by_ukey,
+      );
+
+      for chunk_ukey in chunks.iter() {
+        // Skip processing if the chunk doesn't have any JavaScript
+        if !chunk_has_js(chunk_ukey, compilation) {
+          continue;
+        }
+        if loaded_chunks.contains(chunk_ukey) {
+          continue;
+        }
+        loaded_chunks.insert(*chunk_ukey);
+        let index = loaded_chunks.len();
+        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
+        let mut index_buffer = itoa::Buffer::new();
+        let index_str = index_buffer.format(index);
+        startup_source.push(format!(
+          "import * as __webpack_chunk_${}__ from '{}';",
+          index_str,
+          get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
+        ));
+        let mut index_buffer2 = itoa::Buffer::new();
+        let index_str2 = index_buffer2.format(index);
+        startup_source.push(format!(
+          "{}(__webpack_chunk_${}__);",
+          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+          index_str2
+        ));
+      }
+
+      let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+
+      startup_source.push(format!(
+        "{}__webpack_exec__({module_id_expr});",
+        if i + 1 == entries.len() {
+          "var __webpack_exports__ = "
+        } else {
+          ""
+        }
+      ));
+    }
+
+    let last_entry_module = entries
+      .keys()
+      .next_back()
+      .expect("should have last entry module");
+    let mut render_source = RenderSource {
+      source: RawStringSource::from(startup_source.join("\n")).boxed(),
+    };
+    hooks
+      .try_read()
+      .expect("should have js plugin drive")
+      .render_startup
+      .call(
+        compilation,
+        chunk_ukey,
+        last_entry_module,
+        &mut render_source,
+      )
+      .await?;
+    if needs_async_startup {
+      let startup_code = render_source.source.source();
+      let default_bindings = collect_default_export_binding_names(startup_code.as_ref());
+      let has_default_export = has_default_export_statement(startup_code.as_ref());
+
+      sources.add(render_source.source.clone());
+      sources.add(RawStringSource::from_static(
+        "const __webpack_exports__Promise = Promise.resolve().then(async () => {\n  return __webpack_exports__;\n});\n",
+      ));
+      sources.add(RawStringSource::from_static(
+        "__webpack_exports__ = await __webpack_exports__Promise;\n",
+      ));
+
+      for binding in default_bindings {
         sources.add(RawStringSource::from(format!(
-          "var __webpack_exports__ = __webpack_require__({module_id_expr});\n"
+          "{binding} = await __webpack_exports__Promise;\n",
         )));
+      }
+
+      if !has_default_export {
         sources.add(RawStringSource::from_static(
-          "module.exports = __webpack_exports__;\n",
+          "export default await __webpack_exports__Promise;\n",
         ));
       }
     } else {
-      let mut startup_source = vec![];
-
-      startup_source.push(format!(
-        "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
-        RuntimeGlobals::ENTRY_MODULE_ID
-      ));
-
-      let mut loaded_chunks = HashSet::default();
-      for (i, (module, entry)) in entries.iter().enumerate() {
-        let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-          .expect("should have module id");
-        let runtime_chunk = compilation
-          .chunk_group_by_ukey
-          .expect_get(entry)
-          .get_runtime_chunk(&compilation.chunk_group_by_ukey);
-        let chunks = get_all_chunks(
-          entry,
-          &runtime_chunk,
-          None,
-          &compilation.chunk_group_by_ukey,
-        );
-
-        for chunk_ukey in chunks.iter() {
-          // Skip processing if the chunk doesn't have any JavaScript
-          if !chunk_has_js(chunk_ukey, compilation) {
-            continue;
-          }
-          if loaded_chunks.contains(chunk_ukey) {
-            continue;
-          }
-          loaded_chunks.insert(*chunk_ukey);
-          let index = loaded_chunks.len();
-          let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-          let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
-          let mut index_buffer = itoa::Buffer::new();
-          let index_str = index_buffer.format(index);
-          startup_source.push(format!(
-            "import * as __webpack_chunk_${}__ from '{}';",
-            index_str,
-            get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
-          ));
-          let mut index_buffer2 = itoa::Buffer::new();
-          let index_str2 = index_buffer2.format(index);
-          startup_source.push(format!(
-            "{}(__webpack_chunk_${}__);",
-            RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-            index_str2
-          ));
-        }
-
-        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
-
-        startup_source.push(format!(
-          "{}__webpack_exec__({module_id_expr});",
-          if i + 1 == entries.len() {
-            "var __webpack_exports__ = "
-          } else {
-            ""
-          }
-        ));
-      }
-
-      let last_entry_module = entries
-        .keys()
-        .next_back()
-        .expect("should have last entry module");
-      let mut render_source = RenderSource {
-        source: RawStringSource::from(startup_source.join("\n")).boxed(),
-      };
-      hooks
-        .try_read()
-        .expect("should have js plugin drive")
-        .render_startup
-        .call(
-          compilation,
-          chunk_ukey,
-          last_entry_module,
-          &mut render_source,
-        )
-        .await?;
-      if needs_async_startup {
-        let startup_code = render_source.source.source();
-        let default_bindings = collect_default_export_binding_names(startup_code.as_ref());
-        let has_default_export = has_default_export_statement(startup_code.as_ref());
-
-        sources.add(render_source.source.clone());
-        sources.add(RawStringSource::from_static(
-          "const __webpack_exports__Promise = Promise.resolve().then(async () => {\n  return __webpack_exports__;\n});\n",
-        ));
-        sources.add(RawStringSource::from_static(
-          "__webpack_exports__ = await __webpack_exports__Promise;\n",
-        ));
-
-        for binding in default_bindings {
-          sources.add(RawStringSource::from(format!(
-            "{binding} = await __webpack_exports__Promise;\n",
-          )));
-        }
-
-        if !has_default_export {
-          sources.add(RawStringSource::from_static(
-            "export default await __webpack_exports__Promise;\n",
-          ));
-        }
-      } else {
-        sources.add(render_source.source);
-      }
+      sources.add(render_source.source);
     }
   }
   render_source.source = sources.boxed();
@@ -341,6 +291,32 @@ async fn render_chunk(
 
 fn render_chunk_import(named_import: &str, import_source: &str) -> String {
   format!("import * as {} from '{}';\n", named_import, import_source)
+}
+
+fn collect_default_export_binding_names(startup_code: &str) -> Vec<String> {
+  startup_code
+    .lines()
+    .filter_map(|line| {
+      let trimmed = line.trim();
+      if !trimmed.starts_with("var ") {
+        return None;
+      }
+      let trimmed = trimmed.trim_start_matches("var ").trim();
+      let trimmed = trimmed.strip_suffix(';')?;
+      let (name, value) = trimmed.split_once('=')?;
+      if value.trim() == "__webpack_exports__" {
+        Some(name.trim().to_string())
+      } else {
+        None
+      }
+    })
+    .collect()
+}
+
+fn has_default_export_statement(startup_code: &str) -> bool {
+  startup_code.contains("export default")
+    || startup_code.contains(" as default")
+    || startup_code.contains("__webpack_exports__default")
 }
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleChunkFormatPlugin)]
 async fn render_startup(
@@ -417,58 +393,5 @@ impl Plugin for ModuleChunkFormatPlugin {
       .dependent_full_hash
       .tap(compilation_dependent_full_hash::new(self));
     Ok(())
-  }
-}
-
-fn collect_default_export_binding_names(startup_code: &str) -> Vec<String> {
-  startup_code
-    .lines()
-    .filter_map(|line| {
-      let trimmed = line.trim();
-      if !trimmed.starts_with("var ") {
-        return None;
-      }
-      let trimmed = trimmed.trim_start_matches("var ").trim();
-      let trimmed = trimmed.strip_suffix(';')?;
-      let (name, value) = trimmed.split_once('=')?;
-      if value.trim() == "__webpack_exports__" {
-        Some(name.trim().to_string())
-      } else {
-        None
-      }
-    })
-    .collect()
-}
-
-fn has_default_export_statement(startup_code: &str) -> bool {
-  startup_code.contains("export default")
-    || startup_code.contains(" as default")
-    || startup_code.contains("__webpack_exports__default")
-}
-
-#[cfg(test)]
-mod tests {
-  use super::{collect_default_export_binding_names, has_default_export_statement};
-
-  #[test]
-  fn detects_default_binding_assignment() {
-    let source = r#"
-      var __webpack_exports__default = __webpack_exports__;
-      var __webpack_exports__foo = __webpack_exports__.foo;
-    "#;
-    let bindings = collect_default_export_binding_names(source);
-    assert_eq!(bindings, vec!["__webpack_exports__default"]);
-  }
-
-  #[test]
-  fn detects_default_export_statements() {
-    let source = "export { __webpack_exports__default as default };";
-    assert!(has_default_export_statement(source));
-    assert!(has_default_export_statement(
-      "var __webpack_exports__default__ = { foo: 'bar' }; export default __webpack_exports__default__;"
-    ));
-    assert!(!has_default_export_statement(
-      "export const value = __webpack_exports__;"
-    ));
   }
 }
