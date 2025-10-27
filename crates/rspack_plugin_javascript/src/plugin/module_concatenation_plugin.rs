@@ -661,7 +661,11 @@ impl ModuleConcatenationPlugin {
       .module_by_identifier(&root_module_id)
       .expect("should have module");
     let root_module_source_types = box_module.source_types(&module_graph);
+
     let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
+    if is_root_module_asset_module && !root_module_source_types.contains(&SourceType::JavaScript) {
+      return Ok(());
+    }
 
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,

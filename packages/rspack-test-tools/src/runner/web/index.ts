@@ -335,9 +335,15 @@ export class WebRunner extends NodeRunner {
 
 			this.preExecute(code, file);
 
-			const script = new Script(code);
-			const vmContext = this.dom.getInternalVMContext();
-			script.runInContext(vmContext);
+			try {
+				const script = new Script(code);
+				const vmContext = this.dom.getInternalVMContext();
+				script.runInContext(vmContext);
+			} catch (e) {
+				throw new Error(
+					`Parse script '${file.path}' failed: ${(e as Error).message}`
+				);
+			}
 
 			this.postExecute(m, file);
 

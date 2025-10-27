@@ -29,12 +29,7 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=18.12.0"
   },
@@ -47,6 +42,7 @@
   },
   "devDependencies": {
     "@ast-grep/napi": "^0.39.6",
+    "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
     "@rslib/core": "0.16.1",
     "@swc/types": "0.1.25",
