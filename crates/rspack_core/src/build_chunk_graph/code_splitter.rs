@@ -141,10 +141,6 @@ impl Default for CgiUkey {
   }
 }
 
-// safety: CgiUkey is just numeric identifier, it's safe to impl Send and Sync
-unsafe impl Send for CgiUkey {}
-unsafe impl Sync for CgiUkey {}
-
 impl_item_ukey!(CgiUkey);
 
 impl CgiUkey {
