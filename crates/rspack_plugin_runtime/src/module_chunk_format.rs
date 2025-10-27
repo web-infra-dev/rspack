@@ -270,8 +270,7 @@ async fn render_chunk(
       .await?;
     if needs_async_startup {
       let startup_code = render_source.source.source();
-      let default_bindings = collect_default_export_binding_names(startup_code.as_ref());
-      let has_default_export = has_default_export_statement(startup_code.as_ref());
+      let (default_bindings, has_default_export) = analyze_startup_code(startup_code.as_ref());
 
       sources.add(render_source.source.clone());
       sources.add(RawStringSource::from_static(
@@ -304,31 +303,6 @@ fn render_chunk_import(named_import: &str, import_source: &str) -> String {
   format!("import * as {} from '{}';\n", named_import, import_source)
 }
 
-fn collect_default_export_binding_names(startup_code: &str) -> Vec<String> {
-  startup_code
-    .lines()
-    .filter_map(|line| {
-      let trimmed = line.trim();
-      if !trimmed.starts_with("var ") {
-        return None;
-      }
-      let trimmed = trimmed.trim_start_matches("var ").trim();
-      let trimmed = trimmed.strip_suffix(';')?;
-      let (name, value) = trimmed.split_once('=')?;
-      if value.trim() == "__webpack_exports__" {
-        Some(name.trim().to_string())
-      } else {
-        None
-      }
-    })
-    .collect()
-}
-
-fn has_default_export_statement(startup_code: &str) -> bool {
-  startup_code.contains("export default")
-    || startup_code.contains(" as default")
-    || startup_code.contains("__webpack_exports__default")
-}
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleChunkFormatPlugin)]
 async fn render_startup(
   &self,
@@ -405,4 +379,113 @@ impl Plugin for ModuleChunkFormatPlugin {
       .tap(compilation_dependent_full_hash::new(self));
     Ok(())
   }
+}
+
+fn analyze_startup_code(startup_code: &str) -> (Vec<String>, bool) {
+  if let Some(module) = parse_startup_module(startup_code) {
+    let bindings = collect_default_export_binding_names_from_module(&module);
+    let has_default_export = module_has_default_export(&module);
+    (bindings, has_default_export)
+  } else {
+    (Vec::new(), false)
+  }
+}
+
+fn parse_startup_module(startup_code: &str) -> Option<swc_core::ecma::ast::Module> {
+  use swc_core::{
+    common::{FileName, GLOBALS, Globals, SourceMap, sync::Lrc},
+    ecma::{
+      ast::EsVersion,
+      parser::{EsConfig, Parser, StringInput, Syntax, lexer::Lexer},
+    },
+  };
+
+  let globals = Globals::new();
+  let cm: Lrc<SourceMap> = Default::default();
+  let fm = cm.new_source_file(
+    FileName::Custom("startup.mjs".into()),
+    startup_code.to_string(),
+  );
+
+  GLOBALS.set(&globals, || {
+    let lexer = Lexer::new(
+      Syntax::Es(EsConfig {
+        jsx: true,
+        ..Default::default()
+      }),
+      EsVersion::EsNext,
+      StringInput::from(&*fm),
+      None,
+    );
+    let mut parser = Parser::new_from(lexer);
+    parser.parse_module().ok()
+  })
+}
+
+fn collect_default_export_binding_names_from_module(
+  module: &swc_core::ecma::ast::Module,
+) -> Vec<String> {
+  use swc_core::ecma::ast::{Decl, Expr, ModuleItem, Pat, Stmt, VarDeclKind};
+
+  module
+    .body
+    .iter()
+    .filter_map(|item| {
+      if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = item {
+        if var_decl.kind != VarDeclKind::Var {
+          return None;
+        }
+        let names = var_decl
+          .decls
+          .iter()
+          .filter_map(|decl| {
+            if let Pat::Ident(binding) = &decl.name {
+              if let Some(init) = &decl.init {
+                if matches!(
+                  init.as_ref(),
+                  Expr::Ident(ident) if ident.sym.as_ref() == "__webpack_exports__"
+                ) {
+                  return Some(binding.id.sym.to_string());
+                }
+              }
+            }
+            None
+          })
+          .collect::<Vec<_>>();
+        return Some(names);
+      }
+      None
+    })
+    .flatten()
+    .collect()
+}
+
+fn module_has_default_export(module: &swc_core::ecma::ast::Module) -> bool {
+  use swc_core::ecma::ast::{ExportSpecifier, ModuleDecl, ModuleExportName, ModuleItem};
+
+  for item in &module.body {
+    match item {
+      ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(_))
+      | ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(_))
+      | ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultSpecifier(_)) => return true,
+      ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named)) => {
+        for specifier in &named.specifiers {
+          match specifier {
+            ExportSpecifier::Default(_) => return true,
+            ExportSpecifier::Named(named_spec) => {
+              if let Some(ModuleExportName::Ident(ident)) = &named_spec.exported {
+                if ident.sym.as_ref() == "default" {
+                  return true;
+                }
+              }
+            }
+            ExportSpecifier::Namespace(_) => {}
+          }
+        }
+      }
+      _ => {}
+    }
+  }
+
+  false
 }

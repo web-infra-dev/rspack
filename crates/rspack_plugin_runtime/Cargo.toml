@@ -23,6 +23,7 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
+swc_core                 = { workspace = true, features = ["common", "ecma_ast", "ecma_parser"] }
 tokio                    = { workspace = true }
 
 rustc-hash = { workspace = true }
@@ -33,5 +34,5 @@ tracing    = { workspace = true }
 ignored = ["tracing", "tokio"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"
