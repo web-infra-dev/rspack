@@ -31,7 +31,6 @@ pub struct AssetPlugin;
 static JS_AND_CSS_URL_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::CssUrl];
 static JS_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 static CSS_URL_TYPES: &[SourceType; 1] = &[SourceType::CssUrl];
-static NO_TYPES: &[SourceType; 0] = &[];
 
 static ASSET_AND_JS_AND_CSS_URL_TYPES: &[SourceType; 3] = &[
   SourceType::Asset,
@@ -358,6 +357,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
     }
 
+    let is_import_mode_preserve = self
+      .get_import_mode(
+        module
+          .as_normal_module()
+          .and_then(|x| x.get_generator_options()),
+      )
+      .is_ok_and(|x| x.is_preserve());
+
     if self
       .parsed_asset_config
       .as_ref()
@@ -365,7 +372,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       || !self.emit
     {
       if source_types.is_empty() {
-        return NO_TYPES;
+        return JS_TYPES;
       } else {
         let has_js = source_types.contains(&SourceType::JavaScript);
         let has_css = source_types.contains(&SourceType::Css);
@@ -380,7 +387,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
 
     if source_types.is_empty() {
-      return ASSET_TYPES;
+      return if is_import_mode_preserve {
+        ASSET_AND_JS_TYPES
+      } else {
+        ASSET_TYPES
+      };
     }
 
     let has_js = source_types.contains(&SourceType::JavaScript);
