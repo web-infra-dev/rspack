@@ -56,6 +56,7 @@ export default defineConfig({
 	source: {
 		exclude: [root],
 	},
+	disableConsoleIntercept: true,
 	globals: true,
 	output: {
 		externals: [/.*/],
