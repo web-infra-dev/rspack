@@ -62,7 +62,9 @@ export default defineConfig<RspackOptions>({
 					basePort: 8200,
 					handleConfig: (config: any) => {
 						config.experiments ??= {};
-						config.experiments.incremental = true;
+						if (config.experiments.incremental == undefined) {
+							config.experiments.incremental = true;
+						}
 						const cache = config.experiments.cache;
 						if (typeof cache === "object" && cache.type === "persistent") {
 							cache.storage = {

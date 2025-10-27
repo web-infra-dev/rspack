@@ -167,7 +167,7 @@ pub(crate) fn get_target_with_filter(
   }
 }
 
-pub(crate) fn get_target_from_export_info(
+fn get_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,

@@ -10,8 +10,8 @@ use rspack_collections::{
 };
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, ExportMode,
-  ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
+  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
+  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
   IdentCollector, InitFragmentKey, InitFragmentStage, MaybeDynamicTargetExportInfoHashKey,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
   NormalInitFragment, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode,
@@ -1715,15 +1715,22 @@ impl EsmLibraryPlugin {
           .module_by_identifier(&m)
           .expect("should have module");
 
-        // make sure all outgoing modules are rendered
+        // make sure all side-effect modules are rendered
         // eg.
         // import './foo.cjs'
         // should be rendered as __webpack_require__('./foo.cjs')
-        for dep in module.get_dependencies() {
-          let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+        for dep_id in module.get_dependencies() {
+          let Some(dep) = module_graph.dependency_by_id(dep_id) else {
             continue;
           };
 
+          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
+            continue;
+          }
+
+          let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+            continue;
+          };
           if !conn.is_target_active(
             &module_graph,
             None,
@@ -1736,6 +1743,7 @@ impl EsmLibraryPlugin {
           let ref_module = *conn.module_identifier();
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
+
           if outgoing_module_info.is_external() {
             if ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module).is_none() {
               // if module don't contains id, it no need to be required
