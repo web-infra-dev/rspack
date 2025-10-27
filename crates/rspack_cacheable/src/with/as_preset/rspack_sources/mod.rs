@@ -70,7 +70,7 @@ where
     deserializer: &mut D,
   ) -> Result<BoxSource, DeserializeError> {
     let CacheableSource { buffer, map } = field.deserialize(deserializer)?;
-    if let Some(map) = &map
+    if let Some(map) = map
       && let Ok(source_map) = SourceMap::from_json(map)
     {
       return Ok(

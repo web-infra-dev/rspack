@@ -302,7 +302,10 @@ pub async fn extract_source_map(
   };
 
   // Get sources from SourceMap and take ownership
-  let sources = source_map.sources().to_vec();
+  let sources = source_map
+    .sources()
+    .map(|s| s.to_string())
+    .collect::<Vec<_>>();
   let source_root = source_map.source_root().map(|s| s.to_string());
 
   // Pre-collect all source content to avoid borrowing issues

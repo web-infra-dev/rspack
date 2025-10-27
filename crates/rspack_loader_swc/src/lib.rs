@@ -159,7 +159,6 @@ impl SwcLoader {
       map.set_sources(
         map
           .sources()
-          .iter()
           .map(|source| {
             let source_path = Path::new(source);
             if source_path.is_relative() {

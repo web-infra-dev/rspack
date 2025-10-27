@@ -26,7 +26,7 @@ impl<'s> From<JsCompatSource<'s>> for BoxSource {
     match value.source {
       Either::A(string) => {
         if let Some(map) = value.map {
-          match SourceMap::from_slice(map.as_ref()).ok() {
+          match SourceMap::from_json(map).ok() {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",
@@ -55,7 +55,7 @@ impl From<JsCompatSourceOwned> for BoxSource {
     match value.source {
       Either::A(string) => {
         if let Some(map) = value.map {
-          match SourceMap::from_slice(map.as_ref()).ok() {
+          match SourceMap::from_json(map).ok() {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",

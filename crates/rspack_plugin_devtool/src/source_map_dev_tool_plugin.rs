@@ -226,13 +226,7 @@ impl SourceMapDevToolPlugin {
     let source_map_modules = mapped_sources
       .par_iter()
       .filter_map(|(file, _asset, source_map)| source_map.as_ref().map(|s| (file, s)))
-      .flat_map(|(file, source_map)| {
-        source_map
-          .sources()
-          .iter()
-          .map(|i| (file, i))
-          .collect::<Vec<_>>()
-      })
+      .flat_map(|(file, source_map)| source_map.sources().map(|i| (file, i)).collect::<Vec<_>>())
       .map(|(file, source)| {
         let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
           let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
@@ -415,7 +409,6 @@ impl SourceMapDevToolPlugin {
         source_map.set_sources(
           source_map
             .sources()
-            .iter()
             .map(|source| {
               let module_or_source = source_map_modules
                 .get(source)
