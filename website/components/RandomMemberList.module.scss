@@ -1,16 +1,18 @@
 .wrapper {
-  columns: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 @media (max-width: 1600px) {
   .wrapper {
-    columns: 2;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 512px) {
   .wrapper {
-    columns: 1;
+    grid-template-columns: repeat(1, 1fr);
   }
 }
 
