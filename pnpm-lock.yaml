@@ -320,9 +320,12 @@ importers:
       '@ast-grep/napi':
         specifier: ^0.39.6
         version: 0.39.6
+      '@napi-rs/wasm-runtime':
+        specifier: 1.0.7
+        version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.2
-        version: 1.4.2(@rsbuild/core@1.5.17)
+        version: 1.4.2(@rsbuild/core@1.6.0-beta.1)
       '@rslib/core':
         specifier: 0.16.1
         version: 0.16.1(@microsoft/api-extractor@7.52.15(@types/node@20.19.23))(typescript@5.9.3)
@@ -10726,7 +10729,7 @@ snapshots:
       core-js: 3.46.0
       jiti: 2.6.1
 
-  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.5.17)':
+  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.0-beta.1)':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10752,7 +10755,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 1.5.17
+      '@rsbuild/core': 1.6.0-beta.1
 
   '@rsbuild/plugin-react@1.4.1(@rsbuild/core@1.5.13)':
     dependencies:
@@ -17427,7 +17430,7 @@ snapshots:
       mime-types: 3.0.1
       on-finished: 2.4.1
       range-parser: 1.2.1
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
     optionalDependencies:
       webpack: 5.102.1
 
@@ -17438,7 +17441,7 @@ snapshots:
       mime-types: 3.0.1
       on-finished: 2.4.1
       range-parser: 1.2.1
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
     optionalDependencies:
       webpack: 5.99.9
 
@@ -17465,7 +17468,7 @@ snapshots:
       launch-editor: 2.11.1
       open: 10.2.0
       p-retry: 6.2.1
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
       selfsigned: 2.4.1
       serve-index: 1.9.1
       sockjs: 0.3.24
@@ -17503,7 +17506,7 @@ snapshots:
       launch-editor: 2.11.1
       open: 10.2.0
       p-retry: 6.2.1
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
       selfsigned: 2.4.1
       serve-index: 1.9.1
       sockjs: 0.3.24
@@ -17579,7 +17582,7 @@ snapshots:
       loader-runner: 4.3.0
       mime-types: 2.1.35
       neo-async: 2.6.2
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
       tapable: 2.2.3
       terser-webpack-plugin: 5.3.14(webpack@5.99.9)
       watchpack: 2.4.4

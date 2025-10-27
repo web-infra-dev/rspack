@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
-  RuntimeGlobals,
+  RuntimeGlobals, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -184,8 +184,19 @@ async fn render_chunk(
       RuntimeGlobals::ENTRY_MODULE_ID
     ));
 
+    let module_graph = compilation.get_module_graph();
     let mut loaded_chunks = HashSet::default();
     for (i, (module, entry)) in entries.iter().enumerate() {
+      if !module_graph
+        .module_by_identifier(module)
+        .is_some_and(|module| {
+          module
+            .source_types(&module_graph)
+            .contains(&SourceType::JavaScript)
+        })
+      {
+        continue;
+      }
       let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
         .expect("should have module id");
       let runtime_chunk = compilation

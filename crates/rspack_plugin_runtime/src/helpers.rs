@@ -327,17 +327,23 @@ pub fn generate_entry_startup(
 ) -> BoxSource {
   let mut module_id_exprs = vec![];
   let mut chunks_ids = HashSet::default();
-
+  let module_graph = compilation.get_module_graph();
   for (module, entry) in entries {
-    if let Some(module_id) = compilation
-      .get_module_graph()
-      .module_graph_module_by_identifier(module)
+    if let Some(module_id) = module_graph
+      .module_by_identifier(module)
+      .filter(|module| {
+        module
+          .source_types(&module_graph)
+          .contains(&SourceType::JavaScript)
+      })
       .and_then(|module| {
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.module_identifier)
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
       })
     {
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
       module_id_exprs.push(module_id_expr);
+    } else {
+      continue;
     }
 
     if let Some(runtime_chunk) = compilation
@@ -377,9 +383,11 @@ pub fn generate_entry_startup(
   let mf_async_startup = chunk_needs_mf_async_startup(compilation, chunk);
 
   if chunks_ids.is_empty() && !mf_async_startup {
-    source.push_str("var __webpack_exports__ = (");
-    source.push_str(module_ids_code);
-    source.push_str(");\n");
+    if !module_ids_code.is_empty() {
+      source.push_str("var __webpack_exports__ = (");
+      source.push_str(module_ids_code);
+      source.push_str(");\n");
+    }
   } else {
     let chunk_ids_literal = stringify_chunks_to_array(&chunks_ids);
     if mf_async_startup {
