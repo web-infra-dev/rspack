@@ -20,6 +20,9 @@ if (process.env.RSTEST) {
 	global.__RSPACK_PATH__ ??= process.env.__RSPACK_PATH__;
 	global.__RSPACK_TEST_TOOLS_PATH__ ??= process.env.__RSPACK_TEST_TOOLS_PATH__;
 	global.__DEBUG__ ??= process.env.DEBUG === "test";
+} else {
+	// Compatible with jest tests (eg, hot、Serial tests)
+	global.rstest = jest;
 }
 
 if (process.env.ALTERNATIVE_SORT) {

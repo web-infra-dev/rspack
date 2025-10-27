@@ -32,7 +32,7 @@ const wasmConfig = process.env.WASM && defineConfig({
 	maxConcurrency: 1,
 	pool: {
 		maxWorkers: 1,
-		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],	
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	}
 });
 
@@ -41,7 +41,7 @@ export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: [
-		"<rootDir>/*.test.js",
+		"*.test.js",
 	],
 	exclude: ["Cache.test.js", "Incremental-*.test.js", "Hot*.test.js", "Serial.test.js", "NativeWatcher*.test.js", "Diagnostics.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,

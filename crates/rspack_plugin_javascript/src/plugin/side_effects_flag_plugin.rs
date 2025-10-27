@@ -8,7 +8,6 @@ use rspack_core::{
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
   SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
@@ -644,8 +643,14 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let mut side_effects_optimize_artifact =
-    std::mem::take(&mut compilation.side_effects_optimize_artifact);
+  let mut side_effects_optimize_artifact = if compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
+  {
+    std::mem::take(&mut compilation.side_effects_optimize_artifact)
+  } else {
+    Default::default()
+  };
   let module_graph = compilation.get_module_graph();
 
   let all_modules = module_graph.modules();
@@ -671,10 +676,14 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .mutations_read(IncrementalPasses::SIDE_EFFECTS)
     && !side_effects_optimize_artifact.is_empty()
   {
-    side_effects_optimize_artifact.retain(|dependency_id, _| {
-      module_graph
+    side_effects_optimize_artifact.retain(|dependency_id, do_optimize| {
+      let dep_exist = module_graph
         .connection_by_dependency_id(dependency_id)
-        .is_some()
+        .is_some();
+      let target_module_exist = module_graph
+        .module_by_identifier(&do_optimize.target_module)
+        .is_some();
+      dep_exist && target_module_exist
     });
 
     fn affected_incoming_modules(
@@ -731,7 +740,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   logger.time_end(inner_start);
 
   let inner_start = logger.time("find optimizable connections");
-  let artifact: SideEffectsOptimizeArtifact = modules
+  let dep_optimize_info = modules
     .par_iter()
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
@@ -745,21 +754,17 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         can_optimize_connection(connection, &side_effects_state_map, &module_graph),
       )
     })
-    .collect();
+    .collect::<Vec<_>>();
+  for (dep_id, can_optimize) in dep_optimize_info {
+    if let Some(do_optimize) = can_optimize {
+      side_effects_optimize_artifact.insert(dep_id, do_optimize);
+    } else {
+      side_effects_optimize_artifact.remove(&dep_id);
+    }
+  }
   logger.time_end(inner_start);
 
-  let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
-    .incremental
-    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-  {
-    side_effects_optimize_artifact.extend(artifact);
-    side_effects_optimize_artifact.clone()
-  } else {
-    artifact
-  }
-  .into_iter()
-  .filter_map(|(connection, do_optimize)| do_optimize.map(|i| (connection, i)))
-  .collect();
+  let mut do_optimizes = side_effects_optimize_artifact.clone();
 
   let inner_start = logger.time("do optimize connections");
   let mut do_optimized_count = 0;

@@ -28,6 +28,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
+      '@rstest/core':
+        specifier: ^0.5.4
+        version: 0.5.4(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
