@@ -91,8 +91,11 @@ impl RuntimeModule for RemoteRuntimeModule {
         remotes,
       );
     }
-    // In both enhanced and non-enhanced modes, include the actual handler code
-    let remotes_loading_impl = include_str!("./remotesLoading.js");
+    let remotes_loading_impl = if self.enhanced {
+      "__webpack_require__.f.remotes = __webpack_require__.f.remotes || function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+    } else {
+      include_str!("./remotesLoading.js")
+    };
     Ok(format!(
       r#"
 __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};

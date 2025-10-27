@@ -16,7 +16,6 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
-  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
@@ -90,62 +89,8 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate prevStartup wrapper pattern with defensive checks
     let startup = RuntimeGlobals::STARTUP.name();
-
-    let result = if self.options.async_startup {
-      // Async startup mode: expose installRuntime for manual invocation
-      let compat_helper = r#"if (typeof __webpack_require__.n !== "function") {
-	__webpack_require__.n = function (module) {
-		var getter = module && module.__esModule ? function () { return module["default"]; } : function () { return module; };
-		getter.a = getter;
-		return getter;
-	};
-}
-"#;
-
-      format!(
-        r#"var prevStartup = {startup};
-var hasRun = false;
-if (typeof __webpack_require__.g !== "undefined") {{
-	if (typeof __webpack_require__.g.importScripts === "undefined") {{
-		__webpack_require__.g.importScripts = function() {{ return false; }};
-	}}
-	if (typeof __webpack_require__.g.location === "undefined") {{
-		__webpack_require__.g.location = {{
-			href: "http://localhost/_rspack_placeholder_.js",
-			toString: function() {{ return this.href; }}
-		}};
-	}}
-	if (typeof __webpack_require__.g.document === "undefined") {{
-		__webpack_require__.g.document = {{
-			currentScript: {{ tagName: "script", src: "http://localhost/_rspack_placeholder_.js" }},
-			getElementsByTagName: function() {{ return [{{ src: "http://localhost/_rspack_placeholder_.js" }}]; }}
-		}};
-	}}
-}}
-function runFederationRuntime() {{
-	if (!hasRun) {{
-		hasRun = true;
-{compat_helper}
-{module_executions}
-	}}
-}}
-__webpack_require__.federation = __webpack_require__.federation || {{}};
-__webpack_require__.federation.installRuntime = runFederationRuntime;
-{startup} = function() {{
-	if (typeof prevStartup === 'function') {{
-		return prevStartup.apply(this, arguments);
-	}}
-	if (typeof prevStartup !== 'undefined') {{
-		return prevStartup;
-	}}
-	console.warn('[MF] Invalid prevStartup');
-}};
-"#
-      )
-    } else {
-      // Sync startup mode (default): call runtime directly in startup (backwards compat with main)
-      format!(
-        r#"var prevStartup = {startup};
+    let result = format!(
+      r#"var prevStartup = {startup};
 var hasRun = false;
 {startup} = function() {{
 	if (!hasRun) {{
@@ -158,8 +103,7 @@ var hasRun = false;
 		console.warn('[MF] Invalid prevStartup');
 	}}
 }};"#
-      )
-    };
+    );
 
     Ok(result)
   }

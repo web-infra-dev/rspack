@@ -1,4 +1,3 @@
-__webpack_require__.f = __webpack_require__.f || {};
 __webpack_require__.f.consumes = function(chunkId, promises) {
 	var moduleIdToConsumeDataMapping = __webpack_require__.consumesLoadingData.moduleIdToConsumeDataMapping
 	var chunkMapping = __webpack_require__.consumesLoadingData.chunkMapping;

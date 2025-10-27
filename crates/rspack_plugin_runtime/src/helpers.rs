@@ -45,12 +45,6 @@ pub fn update_hash_for_entry_startup(
       }
     }
   }
-
-  if chunk_needs_mf_async_startup(compilation, chunk)
-    && let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk)
-  {
-    chunk_ref.id(&compilation.chunk_ids_artifact).hash(hasher);
-  }
 }
 
 pub fn get_all_chunks(
@@ -184,141 +178,6 @@ pub async fn runtime_chunk_has_hash(
   Ok(false)
 }
 
-pub fn chunk_contains_container_entry(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
-  let module_graph = compilation.get_module_graph();
-  let has_container_entry = compilation
-    .chunk_graph
-    .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-    .keys()
-    .any(|identifier| {
-      module_graph
-        .module_by_identifier(identifier)
-        .map(|module| module.identifier().as_str().starts_with("container entry"))
-        .unwrap_or(false)
-    });
-  #[cfg(debug_assertions)]
-  {
-    if has_container_entry
-      && let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk)
-      && let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
-    {
-      let ids: Vec<_> = compilation
-        .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-        .keys()
-        .filter_map(|identifier| {
-          module_graph
-            .module_by_identifier(identifier)
-            .map(|module| module.identifier().as_str().to_string())
-        })
-        .collect();
-      eprintln!(
-        "[mf-debug] chunk {} detected container entries: {:?}",
-        chunk_id, ids
-      );
-    }
-  }
-  has_container_entry
-}
-
-pub fn chunk_needs_mf_async_startup(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
-  let Some(chunk_ref) = compilation.chunk_by_ukey.get(chunk) else {
-    return false;
-  };
-
-  if !compilation.options.experiments.mf_async_startup {
-    return false;
-  }
-
-  let Some(runtime_requirements) = compilation.cgc_runtime_requirements_artifact.get(chunk) else {
-    return false;
-  };
-
-  // Check for MF-specific runtime requirements (not just ENSURE_CHUNK_HANDLERS which is too broad)
-  let has_mf_runtime = runtime_requirements.contains(RuntimeGlobals::INITIALIZE_SHARING)
-    || runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP)
-    || runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-
-  if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
-    && chunk_id.as_str() == "build time chunk"
-  {
-    return false;
-  }
-
-  if compilation.chunk_graph.get_number_of_entry_modules(chunk) == 0 {
-    return false;
-  }
-
-  // Check for MF-specific module types
-  let module_graph = compilation.get_module_graph();
-  let has_remote_modules = !compilation
-    .chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::Remote, &module_graph)
-    .is_empty();
-  let has_consume_modules = !compilation
-    .chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::ConsumeShared, &module_graph)
-    .is_empty();
-
-  // Only enable async startup if chunk actually participates in MF
-  if !has_mf_runtime && !has_remote_modules && !has_consume_modules {
-    return false;
-  }
-
-  #[cfg(debug_assertions)]
-  {
-    if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact)
-      && chunk_id.as_str().contains("container")
-    {
-      let entries: Vec<_> = compilation
-        .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(chunk)
-        .keys()
-        .filter_map(|identifier| {
-          module_graph
-            .module_by_identifier(identifier)
-            .map(|module| module.identifier().as_str().to_string())
-        })
-        .collect();
-      eprintln!("[mf-debug] chunk {} entry modules {:?}", chunk_id, entries);
-    }
-  }
-
-  // Check if this chunk contains a container entry module
-  // Container entries should NOT have async startup - only host applications should
-  let has_container_entry = chunk_contains_container_entry(compilation, chunk);
-  let has_expose_modules = !compilation
-    .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk, SourceType::Expose, &module_graph)
-    .is_empty();
-
-  // Return false for container entries (they should not have async startup)
-  if has_container_entry || has_expose_modules {
-    #[cfg(debug_assertions)]
-    {
-      if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
-        eprintln!(
-          "[mf-debug] disabling async startup for chunk {} (container_entry={}, expose_modules={})",
-          chunk_id, has_container_entry, has_expose_modules
-        );
-      }
-    }
-    return false;
-  }
-
-  #[cfg(debug_assertions)]
-  {
-    if let Some(chunk_id) = chunk_ref.id(&compilation.chunk_ids_artifact) {
-      eprintln!(
-        "[mf-debug] enabling async startup for chunk {} (has_mf_runtime={}, has_remote_modules={}, has_consume_modules={})",
-        chunk_id, has_mf_runtime, has_remote_modules, has_consume_modules
-      );
-    }
-  }
-
-  true
-}
-
 pub fn generate_entry_startup(
   compilation: &Compilation,
   chunk: &ChunkUkey,
@@ -380,82 +239,33 @@ pub fn generate_entry_startup(
     .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
     .collect::<Vec<_>>()
     .join(", ");
-  let mf_async_startup = chunk_needs_mf_async_startup(compilation, chunk);
-
-  if chunks_ids.is_empty() && !mf_async_startup {
+  if chunks_ids.is_empty() {
     if !module_ids_code.is_empty() {
       source.push_str("var __webpack_exports__ = (");
       source.push_str(module_ids_code);
       source.push_str(");\n");
     }
   } else {
-    let chunk_ids_literal = stringify_chunks_to_array(&chunks_ids);
-    if mf_async_startup {
-      let startup_global = RuntimeGlobals::STARTUP.name();
-      let ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name();
-
-      source.push_str(&format!("var chunkIds = {};\n", chunk_ids_literal));
-      source.push_str("var promises = [];\n");
-      source.push_str(&format!(
-        "if (typeof {startup} === \"function\") {{\n  {startup}();\n}} else {{\n  console.warn(\"[Module Federation] {startup} is not a function, skipping startup extension\");\n}}\n",
-        startup = startup_global
-      ));
-      source.push_str(
-        "var __federation__ = __webpack_require__.federation;\nif (__federation__ && typeof __federation__.installRuntime === \"function\") {\n  __federation__.installRuntime();\n}\n",
-      );
-      source.push_str(&format!(
-        "var __chunk_handlers__ = {};\n",
-        ensure_chunk_handlers
-      ));
-      source.push_str(
-        "var __handler_chunk_ids__ = chunkIds.slice();\nif (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {\n  for (var __chunk_key__ in __webpack_require__.remotesLoadingData.chunkMapping) {\n    if (__handler_chunk_ids__.indexOf(__chunk_key__) < 0) __handler_chunk_ids__.push(__chunk_key__);\n  }\n}\nif (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {\n  for (var __consume_chunk__ in __webpack_require__.consumesLoadingData.chunkMapping) {\n    if (__handler_chunk_ids__.indexOf(__consume_chunk__) < 0) __handler_chunk_ids__.push(__consume_chunk__);\n  }\n}\n"
-      );
-      source.push_str("if (__chunk_handlers__) {\n");
-      source.push_str("  var __handler_list__ = [\n");
-      source.push_str("    __chunk_handlers__.consumes || function(chunkId, promises) {},\n");
-      source.push_str("    __chunk_handlers__.remotes || function(chunkId, promises) {}\n");
-      source.push_str("  ];\n");
-      source.push_str(
-        "  promises = __handler_list__.reduce(function(p, handler) {\n    if (typeof handler === \"function\") {\n      for (var idx = 0; idx < __handler_chunk_ids__.length; idx++) {\n        handler(__handler_chunk_ids__[idx], p);\n      }\n    }\n    return p;\n  }, promises);\n"
-      );
-      source.push_str("}\n");
-      source.push_str("var __webpack_exports__ = Promise.all(promises).then(function() {\n");
-      if passive {
-        source.push_str(&format!(
-          "  {on_chunks}(0, chunkIds, function() {{\n    return {modules};\n  }});\n  return {on_chunks}();\n",
-          on_chunks = RuntimeGlobals::ON_CHUNKS_LOADED.name(),
-          modules = module_ids_code
-        ));
-      } else {
-        source.push_str(&format!(
-          "  return {startup_entry}(0, chunkIds, function() {{\n    return {modules};\n  }});\n",
-          startup_entry = RuntimeGlobals::STARTUP_ENTRYPOINT.name(),
-          modules = module_ids_code
-        ));
-      }
-      source.push_str("});\n");
-    } else {
-      if !passive {
-        source.push_str("var __webpack_exports__ = ");
-      }
-      source.push_str(&format!(
-        "{}(0, {}, function() {{
+    if !passive {
+      source.push_str("var __webpack_exports__ = ");
+    }
+    source.push_str(&format!(
+      "{}(0, {}, function() {{
         return {};
       }});\n",
-        if passive {
-          RuntimeGlobals::ON_CHUNKS_LOADED
-        } else {
-          RuntimeGlobals::STARTUP_ENTRYPOINT
-        },
-        chunk_ids_literal,
-        module_ids_code
-      ));
       if passive {
-        source.push_str(&format!(
-          "var __webpack_exports__ = {}();\n",
-          RuntimeGlobals::ON_CHUNKS_LOADED
-        ));
-      }
+        RuntimeGlobals::ON_CHUNKS_LOADED
+      } else {
+        RuntimeGlobals::STARTUP_ENTRYPOINT
+      },
+      stringify_chunks_to_array(&chunks_ids),
+      module_ids_code
+    ));
+    if passive {
+      source.push_str(&format!(
+        "var __webpack_exports__ = {}();\n",
+        RuntimeGlobals::ON_CHUNKS_LOADED
+      ));
     }
   }
 

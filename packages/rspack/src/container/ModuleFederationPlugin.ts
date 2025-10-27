@@ -28,6 +28,7 @@ export class ModuleFederationPlugin {
 
 		// Generate the runtime entry content
 		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
+
 		// Pass only the entry runtime to the Rust-side plugin
 		new ModuleFederationRuntimePlugin({
 			entryRuntime

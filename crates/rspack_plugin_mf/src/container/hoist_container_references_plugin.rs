@@ -19,8 +19,8 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeSpec, incremental::Mutation,
+  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
+  ModuleIdentifier, Plugin, RuntimeSpec, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -182,170 +182,34 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let mg = compilation.get_module_graph();
 
-  if !compilation.options.experiments.mf_async_startup {
-    let all_modules_to_hoist = self
-      .federation_deps
-      .lock()
-      .expect("Failed to lock federation deps")
-      .iter()
-      .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
-      .flat_map(|module| get_all_referenced_modules(compilation, *module, "initial"))
-      .collect::<FxHashSet<_>>();
-
-    let entries = compilation
-      .get_chunk_graph_entries()
-      .filter_map(|entry| {
-        compilation
-          .chunk_by_ukey
-          .get(&entry)
-          .map(|chunk| (chunk.runtime(), entry))
-      })
-      .collect::<FxHashMap<_, _>>();
-
-    for module in &all_modules_to_hoist {
-      let runtime_chunks = compilation
-        .chunk_graph
-        .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
-        .flat_map(|runtime| runtime.iter())
-        .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
-        .collect::<Vec<_>>();
-      for runtime_chunk in runtime_chunks {
-        if !compilation
-          .chunk_graph
-          .is_module_in_chunk(module, runtime_chunk)
-        {
-          compilation
-            .chunk_graph
-            .connect_chunk_and_module(runtime_chunk, *module);
-        }
-      }
-    }
-
-    let runtime_chunks = entries.values().copied().collect::<FxHashSet<_>>();
-    for module in all_modules_to_hoist {
-      let non_runtime_chunks = compilation
-        .chunk_graph
-        .get_module_chunks(module)
-        .iter()
-        .filter(|chunk| !runtime_chunks.contains(chunk))
-        .copied()
-        .collect::<Vec<_>>();
-      for chunk in non_runtime_chunks {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(&chunk, module);
-
-        if compilation.chunk_graph.get_number_of_chunk_modules(&chunk) == 0
-          && compilation.chunk_graph.get_number_of_entry_modules(&chunk) == 0
-          && let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk)
-        {
-          compilation
-            .chunk_graph
-            .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
-          compilation.chunk_graph.remove_chunk(&chunk);
-
-          if let Some(name) = removed_chunk.name() {
-            compilation.named_chunks.remove(name);
-          }
-          if let Some(mutations) = compilation.incremental.mutations_write() {
-            mutations.add(Mutation::ChunkRemove { chunk });
-          }
-        }
-      }
-    }
-
-    return Ok(None);
-  }
-
-  // Async startup specific behaviour
-  let has_federation_deps = {
-    let deps = self
-      .federation_deps
-      .lock()
-      .expect("Failed to lock federation deps");
-    !deps.is_empty()
-  };
-
-  let has_bundler_runtime = mg.modules().keys().any(|module_id| {
-    module_id
-      .as_str()
-      .contains("@module-federation/webpack-bundler-runtime")
-  });
-
-  if !has_federation_deps && !has_bundler_runtime {
-    return Ok(None);
-  }
-
-  let mut all_modules_to_hoist = self
+  // Collect all federation (container, runtime, and remote) referenced modules
+  let all_modules_to_hoist = self
     .federation_deps
     .lock()
     .expect("Failed to lock federation deps")
     .iter()
-    .filter_map(|dep| {
-      mg.module_identifier_by_dependency_id(dep)
-        .copied()
-        .or_else(|| {
-          mg.get_module_by_dependency_id(dep)
-            .map(|module| module.identifier())
-        })
-    })
-    .flat_map(|module| get_all_referenced_modules(compilation, module, "initial"))
+    .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
+    .flat_map(|module| get_all_referenced_modules(compilation, *module, "initial"))
     .collect::<FxHashSet<_>>();
 
-  let is_bundler_runtime_module = |module_id: &ModuleIdentifier| {
-    module_id
-      .as_str()
-      .contains("@module-federation/webpack-bundler-runtime")
-  };
-
-  // Ensure the bundler runtime helper is always hoisted, even when it is not reachable
-  // via tracked federation dependencies (for example, when injected via runtime plugins).
-  for module_id in mg.modules().keys().copied() {
-    if is_bundler_runtime_module(&module_id) {
-      all_modules_to_hoist.insert(module_id);
-    }
-  }
-
   // Hoist referenced modules to their runtime chunk
-  let mut runtime_chunk_map: FxHashMap<RuntimeSpec, ChunkUkey> = compilation
+  let entries = compilation
     .get_chunk_graph_entries()
     .filter_map(|entry| {
       compilation
         .chunk_by_ukey
         .get(&entry)
-        .map(|chunk| (chunk.runtime().clone(), entry))
+        .map(|chunk| (chunk.runtime(), entry))
     })
-    .collect();
-
-  for (chunk_ukey, chunk) in compilation.chunk_by_ukey.iter() {
-    let runtime = chunk.runtime().clone();
-    runtime_chunk_map.entry(runtime).or_insert(*chunk_ukey);
-  }
+    .collect::<FxHashMap<_, _>>();
   for module in &all_modules_to_hoist {
-    let mut connected = FxHashSet::default();
-    for runtime_spec in compilation
+    let runtime_chunks = compilation
       .chunk_graph
       .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
-    {
-      if let Some(runtime_chunk) = runtime_chunk_map.get(runtime_spec).copied() {
-        connected.insert(runtime_chunk);
-      } else {
-        for runtime_key in runtime_spec.iter() {
-          if let Some(runtime_chunk) = runtime_chunk_map
-            .get(&RuntimeSpec::from_iter([*runtime_key]))
-            .copied()
-          {
-            connected.insert(runtime_chunk);
-          }
-        }
-      }
-    }
-
-    if connected.is_empty() {
-      connected.extend(runtime_chunk_map.values().copied());
-    }
-
-    for runtime_chunk in connected {
+      .flat_map(|runtime| runtime.iter())
+      .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
+      .collect::<Vec<_>>();
+    for runtime_chunk in runtime_chunks {
       if !compilation
         .chunk_graph
         .is_module_in_chunk(module, runtime_chunk)
@@ -358,10 +222,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Disconnect hoisted modules from non-runtime chunks, this is safe since we already hoist them to runtime chunk
-  let runtime_chunks = runtime_chunk_map
-    .values()
-    .copied()
-    .collect::<FxHashSet<_>>();
+  let runtime_chunks = entries.values().copied().collect::<FxHashSet<_>>();
   for module in all_modules_to_hoist {
     let non_runtime_chunks = compilation
       .chunk_graph
@@ -371,28 +232,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .copied()
       .collect::<Vec<_>>();
     for chunk in non_runtime_chunks {
-      let chunk_info = compilation.chunk_by_ukey.expect_get(&chunk);
-      if chunk_info.has_runtime(&compilation.chunk_group_by_ukey) {
-        continue;
-      }
-
-      // When async startup is enabled, check if chunk should be preserved for async loading
-      if compilation.options.experiments.mf_async_startup {
-        let preserve_chunk = compilation
-          .cgc_runtime_requirements_artifact
-          .get(&chunk)
-          .map(|req| {
-            req.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-              || req.contains(RuntimeGlobals::REQUIRE)
-              || req.contains(RuntimeGlobals::ENSURE_CHUNK)
-          })
-          .unwrap_or(false);
-
-        if preserve_chunk && !is_bundler_runtime_module(&module) {
-          continue;
-        }
-      }
-
       compilation
         .chunk_graph
         .disconnect_chunk_and_module(&chunk, module);

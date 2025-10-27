@@ -2812,11 +2812,6 @@ export type Experiments = {
 	 */
 	lazyBarrel?: boolean;
 	/**
-	 * Enable Module Federation async startup
-	 * @default false
-	 */
-	mfAsyncStartup?: boolean;
-	/**
 	 * Enable defer import feature
 	 * @default false
 	 */

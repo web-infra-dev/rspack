@@ -483,7 +483,6 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
   runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
   runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-  runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   compilation.add_runtime_module(
     chunk_ukey,
     Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),

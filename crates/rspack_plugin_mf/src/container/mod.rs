@@ -6,7 +6,6 @@ pub mod container_plugin;
 pub mod container_reference_plugin;
 pub mod embed_federation_runtime_module;
 pub mod embed_federation_runtime_plugin;
-pub mod entry_runtime_module;
 pub mod expose_runtime_module;
 pub mod fallback_dependency;
 pub mod fallback_item_dependency;

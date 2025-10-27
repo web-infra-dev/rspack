@@ -27,20 +27,8 @@ impl ExposeRuntimeModule {
     compilation: &'a Compilation,
   ) -> Option<&'a CodeGenerationDataExpose> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let mut visited = rustc_hash::FxHashSet::default();
-    let mut chunks_to_visit = Vec::new();
-    chunks_to_visit.push(*chunk_ukey);
-    for c in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
-      chunks_to_visit.push(c);
-    }
-    for c in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
-      chunks_to_visit.push(c);
-    }
     let module_graph = compilation.get_module_graph();
-    for c in chunks_to_visit {
-      if !visited.insert(c) {
-        continue;
-      }
+    for c in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation
         .chunk_graph
@@ -51,7 +39,7 @@ impl ExposeRuntimeModule {
           .get(&m, Some(chunk.runtime()));
         if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
           return Some(data);
-        }
+        };
       }
     }
     None
@@ -86,35 +74,8 @@ __webpack_require__.initializeExposesData = {{
       module_map,
       json_stringify(&data.share_scope)
     );
-    source += r#"
-var __webpack_require__getContainer = __webpack_require__.getContainer;
-var __webpack_require__initContainer = __webpack_require__.initContainer;
-var __webpack_require__initializeExposesData = __webpack_require__.initializeExposesData;
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-if (typeof __webpack_require__getContainer !== "function") {
-	__webpack_require__.getContainer = function(module, getScope) {
-		var moduleMap = __webpack_require__initializeExposesData.moduleMap;
-		__webpack_require__.R = getScope;
-		var promise = hasOwnProperty.call(moduleMap, module)
-			? moduleMap[module]()
-			: Promise.resolve().then(function() {
-					throw new Error('Module "' + module + '" does not exist in container.');
-			  });
-		__webpack_require__.R = undefined;
-		return promise;
-	};
-}
-if (typeof __webpack_require__initContainer !== "function") {
-	__webpack_require__.initContainer = function(shareScope, initScope) {
-		if (!__webpack_require__.S) return;
-		var name = __webpack_require__initializeExposesData.shareScope;
-		var oldScope = __webpack_require__.S[name];
-		if (oldScope && oldScope !== shareScope) throw new Error("Container initialization failed as it has already been initialized with a different share scope");
-		__webpack_require__.S[name] = shareScope;
-		return __webpack_require__.I(name, initScope);
-	};
-}
-"#;
+    source += "__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
+    source += "__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
     Ok(source)
   }
 

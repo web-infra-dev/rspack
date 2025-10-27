@@ -104,14 +104,11 @@ async fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  if self.options.enhanced {
-    runtime_requirements_mut.insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
-    return Ok(None);
-  }
   if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    if self.options.enhanced {
+      compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
+    }
   }
   Ok(None)
 }

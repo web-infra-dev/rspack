@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeModuleStage, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -21,10 +21,6 @@ impl StartupEntrypointRuntimeModule {
 impl RuntimeModule for StartupEntrypointRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
-  }
-
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Trigger
   }
 
   fn template(&self) -> Vec<(String, String)> {

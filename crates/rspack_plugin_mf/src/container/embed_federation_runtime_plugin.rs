@@ -115,7 +115,6 @@ async fn runtime_requirement_in_tree(
 
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
-      async_startup: compilation.options.experiments.mf_async_startup,
     };
 
     // Inject EmbedFederationRuntimeModule

@@ -14,7 +14,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::json_stringify;
 
-use super::{chunk_needs_mf_async_startup, generate_entry_startup, update_hash_for_entry_startup};
+use super::{generate_entry_startup, update_hash_for_entry_startup};
 
 const PLUGIN_NAME: &str = "rspack.ArrayPushCallbackChunkFormatPlugin";
 
@@ -167,28 +167,13 @@ async fn render_chunk(
             &mut render_source,
           )
           .await?;
+        source.add(render_source.source);
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
-        if chunk_needs_mf_async_startup(compilation, chunk_ukey) {
-          let mut async_wrapper = ConcatSource::default();
-          async_wrapper.add(RawStringSource::from_static(
-            "return Promise.resolve().then(function() {\n",
+        if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+          source.add(RawStringSource::from_static(
+            "return __webpack_exports__;\n",
           ));
-          async_wrapper.add(render_source.source);
-          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-            async_wrapper.add(RawStringSource::from_static(
-              "return __webpack_exports__;\n",
-            ));
-          }
-          async_wrapper.add(RawStringSource::from_static("});\n"));
-          source.add(async_wrapper.boxed());
-        } else {
-          source.add(render_source.source);
-          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-            source.add(RawStringSource::from_static(
-              "return __webpack_exports__;\n",
-            ));
-          }
         }
       }
       source.add(RawStringSource::from_static("\n}\n"));

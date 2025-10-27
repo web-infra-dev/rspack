@@ -264,9 +264,6 @@ const applyExperimentsDefaults = (
 	// Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
 	D(experiments, "useInputFileSystem", false);
 
-	// IGNORE(experiments.mfAsyncStartup): Rspack specific configuration for async federation startup
-	D(experiments, "mfAsyncStartup", false);
-
 	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
 	D(experiments, "inlineConst", false);
 

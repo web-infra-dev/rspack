@@ -18,8 +18,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  chunk_has_js, chunk_needs_mf_async_startup, get_all_chunks, get_chunk_output_name,
-  get_relative_path, get_runtime_chunk_output_name, runtime_chunk_has_hash,
+  chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
+  get_runtime_chunk_output_name, runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -126,8 +126,6 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let needs_async_startup = compilation.options.experiments.mf_async_startup
-    && chunk_needs_mf_async_startup(compilation, chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
   let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
@@ -268,32 +266,7 @@ async fn render_chunk(
         &mut render_source,
       )
       .await?;
-    if needs_async_startup {
-      let startup_code = render_source.source.source();
-      let (default_bindings, has_default_export) = analyze_startup_code(startup_code.as_ref());
-
-      sources.add(render_source.source.clone());
-      sources.add(RawStringSource::from_static(
-        "const __webpack_exports__Promise = Promise.resolve().then(async () => {\n  return __webpack_exports__;\n});\n",
-      ));
-      sources.add(RawStringSource::from_static(
-        "__webpack_exports__ = await __webpack_exports__Promise;\n",
-      ));
-
-      for binding in default_bindings {
-        sources.add(RawStringSource::from(format!(
-          "{binding} = await __webpack_exports__Promise;\n",
-        )));
-      }
-
-      if !has_default_export {
-        sources.add(RawStringSource::from_static(
-          "export default await __webpack_exports__Promise;\n",
-        ));
-      }
-    } else {
-      sources.add(render_source.source);
-    }
+    sources.add(render_source.source);
   }
   render_source.source = sources.boxed();
   Ok(())
@@ -302,7 +275,6 @@ async fn render_chunk(
 fn render_chunk_import(named_import: &str, import_source: &str) -> String {
   format!("import * as {} from '{}';\n", named_import, import_source)
 }
-
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleChunkFormatPlugin)]
 async fn render_startup(
   &self,
@@ -379,113 +351,4 @@ impl Plugin for ModuleChunkFormatPlugin {
       .tap(compilation_dependent_full_hash::new(self));
     Ok(())
   }
-}
-
-fn analyze_startup_code(startup_code: &str) -> (Vec<String>, bool) {
-  if let Some(module) = parse_startup_module(startup_code) {
-    let bindings = collect_default_export_binding_names_from_module(&module);
-    let has_default_export = module_has_default_export(&module);
-    (bindings, has_default_export)
-  } else {
-    (Vec::new(), false)
-  }
-}
-
-fn parse_startup_module(startup_code: &str) -> Option<swc_core::ecma::ast::Module> {
-  use swc_core::{
-    common::{FileName, GLOBALS, Globals, SourceMap, sync::Lrc},
-    ecma::{
-      ast::EsVersion,
-      parser::{EsConfig, Parser, StringInput, Syntax, lexer::Lexer},
-    },
-  };
-
-  let globals = Globals::new();
-  let cm: Lrc<SourceMap> = Default::default();
-  let fm = cm.new_source_file(
-    FileName::Custom("startup.mjs".into()),
-    startup_code.to_string(),
-  );
-
-  GLOBALS.set(&globals, || {
-    let lexer = Lexer::new(
-      Syntax::Es(EsConfig {
-        jsx: true,
-        ..Default::default()
-      }),
-      EsVersion::EsNext,
-      StringInput::from(&*fm),
-      None,
-    );
-    let mut parser = Parser::new_from(lexer);
-    parser.parse_module().ok()
-  })
-}
-
-fn collect_default_export_binding_names_from_module(
-  module: &swc_core::ecma::ast::Module,
-) -> Vec<String> {
-  use swc_core::ecma::ast::{Decl, Expr, ModuleItem, Pat, Stmt, VarDeclKind};
-
-  module
-    .body
-    .iter()
-    .filter_map(|item| {
-      if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = item {
-        if var_decl.kind != VarDeclKind::Var {
-          return None;
-        }
-        let names = var_decl
-          .decls
-          .iter()
-          .filter_map(|decl| {
-            if let Pat::Ident(binding) = &decl.name {
-              if let Some(init) = &decl.init {
-                if matches!(
-                  init.as_ref(),
-                  Expr::Ident(ident) if ident.sym.as_ref() == "__webpack_exports__"
-                ) {
-                  return Some(binding.id.sym.to_string());
-                }
-              }
-            }
-            None
-          })
-          .collect::<Vec<_>>();
-        return Some(names);
-      }
-      None
-    })
-    .flatten()
-    .collect()
-}
-
-fn module_has_default_export(module: &swc_core::ecma::ast::Module) -> bool {
-  use swc_core::ecma::ast::{ExportSpecifier, ModuleDecl, ModuleExportName, ModuleItem};
-
-  for item in &module.body {
-    match item {
-      ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(_))
-      | ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(_))
-      | ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultSpecifier(_)) => return true,
-      ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named)) => {
-        for specifier in &named.specifiers {
-          match specifier {
-            ExportSpecifier::Default(_) => return true,
-            ExportSpecifier::Named(named_spec) => {
-              if let Some(ModuleExportName::Ident(ident)) = &named_spec.exported {
-                if ident.sym.as_ref() == "default" {
-                  return true;
-                }
-              }
-            }
-            ExportSpecifier::Namespace(_) => {}
-          }
-        }
-      }
-      _ => {}
-    }
-  }
-
-  false
 }

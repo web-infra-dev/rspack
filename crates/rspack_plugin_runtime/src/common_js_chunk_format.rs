@@ -15,8 +15,8 @@ use rspack_plugin_javascript::{
 use rspack_util::json_stringify;
 
 use crate::{
-  chunk_needs_mf_async_startup, generate_entry_startup, get_chunk_output_name, get_relative_path,
-  get_runtime_chunk_output_name, runtime_chunk_has_hash, update_hash_for_entry_startup,
+  generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  runtime_chunk_has_hash, update_hash_for_entry_startup,
 };
 
 const PLUGIN_NAME: &str = "rspack.CommonJsChunkFormatPlugin";
@@ -72,9 +72,7 @@ async fn js_chunk_hash(
   hasher: &mut RspackHash,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-    && !chunk_needs_mf_async_startup(compilation, chunk_ukey)
-  {
+  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     return Ok(());
   }
 
@@ -116,7 +114,6 @@ async fn render_chunk(
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let needs_async_startup = chunk_needs_mf_async_startup(compilation, chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
@@ -174,29 +171,7 @@ async fn render_chunk(
         &mut startup_render_source,
       )
       .await?;
-    if needs_async_startup {
-      let startup_code = startup_render_source.source.source();
-      let mut indented = String::new();
-      for segment in startup_code.split_inclusive('\n') {
-        indented.push_str("  ");
-        indented.push_str(segment);
-      }
-      if !startup_code.ends_with('\n') {
-        indented.push_str("  ");
-        indented.push('\n');
-      }
-      let mut async_wrapper = ConcatSource::default();
-      async_wrapper.add(RawStringSource::from_static(
-        "module.exports = Promise.resolve().then(function() {\n",
-      ));
-      async_wrapper.add(RawStringSource::from(indented));
-      async_wrapper.add(RawStringSource::from_static(
-        "  return __webpack_exports__;\n});\n",
-      ));
-      sources.add(async_wrapper.boxed());
-    } else {
-      sources.add(startup_render_source.source);
-    }
+    sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
       RawStringSource::from_static("(function() {\n").boxed(),
       sources.boxed(),
