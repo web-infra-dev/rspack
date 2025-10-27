@@ -21,11 +21,9 @@ declare module "@rspack/binding" {
 Object.defineProperty(binding.KnownBuildInfo.prototype, util.inspect.custom, {
 	enumerable: true,
 	configurable: true,
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- util.inspect.custom must declare `this` to receive the bound instance.
-	value(this: binding.KnownBuildInfo): Record<string, unknown> {
-		const serializable = Object.assign({}, this);
+	value(this: binding.KnownBuildInfo): any {
 		return {
-			...serializable,
+			...this,
 			assets: this.assets,
 			fileDependencies: this.fileDependencies,
 			contextDependencies: this.contextDependencies,
