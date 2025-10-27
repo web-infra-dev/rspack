@@ -39,6 +39,7 @@ static ASSET_AND_JS_AND_CSS_URL_TYPES: &[SourceType; 3] = &[
 ];
 static ASSET_AND_JS_TYPES: &[SourceType; 2] = &[SourceType::Asset, SourceType::JavaScript];
 static ASSET_AND_CSS_URL_TYPES: &[SourceType; 2] = &[SourceType::Asset, SourceType::CssUrl];
+static ASSET_TYPES: &[SourceType; 1] = &[SourceType::Asset];
 
 const DEFAULT_ENCODING: &str = "base64";
 
