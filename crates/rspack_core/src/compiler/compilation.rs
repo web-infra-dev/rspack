@@ -1447,10 +1447,10 @@ impl Compilation {
 
     if let Some(mutations) = self.incremental.mutations_write() {
       let mg = self.make_artifact.get_module_graph();
-      // It's possible that a module is deleted and the incomming dependencies is revoked, and added to
-      // process_dependencies tasks queue to update the incomming dependencies, but the incomming dependencies'
+      // It's possible that a module is deleted and the incoming dependencies is revoked, and added to
+      // process_dependencies tasks queue to update the incoming dependencies, but the incoming dependencies'
       // parent module is not added to build_module tasks queue so the parent module is not marked as updated
-      // and the incremental won't know that, so here we add the incomming dependencies' parent module
+      // and the incremental won't know that, so here we add the incoming dependencies' parent module
       // to `Mutation::ModuleUpdate` (**The module is updated if there dependencies is updated**).
       let updated_dependency_modules = self
         .make_artifact
