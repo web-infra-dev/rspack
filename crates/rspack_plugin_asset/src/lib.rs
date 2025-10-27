@@ -809,7 +809,6 @@ async fn render_manifest(
       let code_gen_result = compilation
         .code_generation_results
         .get(mid, Some(chunk.runtime()));
-
       let result = code_gen_result.get(&SourceType::Asset).map(|source| {
         let asset_filename = code_gen_result
           .data
