@@ -16,7 +16,7 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
 		// Skip because the loader can not be loaded in CI
-		// "Hot*.test.js",
+		"Hot*.test.js",
 
 		// Skip temporarily and should investigate in the future
 		"Cache.test.js",
@@ -92,7 +92,7 @@ export default defineConfig({
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
-	reporters: process.env.CI ? undefined : ["verbose"],
+	reporters: process.env.DEBUG === "test" ? ["verbose"] : undefined,
 	hideSkippedTests: true,
 		...(wasmConfig || {}),
 });
