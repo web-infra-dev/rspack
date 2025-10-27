@@ -123,7 +123,8 @@ impl Resolver {
       options_with_dependency_type.dependency_category,
     );
 
-    let resolver = self.resolver.clone_with_options(options);
+    let boxfs = BoxFS::new(self.inner_fs.clone());
+    let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
     Self {
       inner_fs: self.inner_fs.clone(),
       resolver,
