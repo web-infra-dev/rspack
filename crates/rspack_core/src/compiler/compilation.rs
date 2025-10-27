@@ -1445,8 +1445,19 @@ impl Compilation {
 
     // make finished, make artifact should be readonly thereafter.
 
-    // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
+      let mg = self.make_artifact.get_module_graph();
+      // It's possible that a module is deleted and the incomming dependencies is revoked, and added to
+      // process_dependencies tasks queue to update the incomming dependencies, but the incomming dependencies'
+      // parent module is not added to build_module tasks queue so the parent module is not marked as updated
+      // and the incremental won't know that, so here we add the incomming dependencies' parent module
+      // to `Mutation::ModuleUpdate` (**The module is updated if there dependencies is updated**).
+      let updated_dependency_modules = self
+        .make_artifact
+        .affected_dependencies
+        .updated()
+        .iter()
+        .filter_map(|dep| mg.get_parent_module(dep));
       mutations.extend(
         self
           .make_artifact
@@ -1461,6 +1472,7 @@ impl Compilation {
           .affected_modules
           .updated()
           .iter()
+          .chain(updated_dependency_modules)
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
