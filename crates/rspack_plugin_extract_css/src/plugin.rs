@@ -120,7 +120,7 @@ impl PluginCssExtract {
     Self::new_inner(Arc::new(options))
   }
 
-  // port from https://github.com/webpack-contrib/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
+  // port from https://github.com/webpack/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
   fn sort_modules<'comp>(
     &self,
     chunk: &Chunk,

@@ -42,15 +42,15 @@ RSPACK_PROFILE=ALL rspack build
 
 ### terser-webpack-plugin
 
-[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
+[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
 
 ### css-minimizer-webpack-plugin
 
-[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
+[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
 
 ### less-loader
 
-[less-loader](https://github.com/webpack-contrib/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
+[less-loader](https://github.com/webpack/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
 
 ### html-webpack-plugin
 

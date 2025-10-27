@@ -106,8 +106,8 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 - [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
 - [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) 项目（由 [@pmmmwh](https://github.com/pmmmwh) 创建），它启发了 Rspack 内的 ReactRefreshPlugin 实现。
 - [prefresh](https://github.com/preactjs/prefresh) 项目（由 [@Jovi De Croock](https://github.com/JoviDeCroock) 创建），它启发了 Rspack 内的 PreactRefreshPlugin 实现。
-- [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) 项目（由 [@sokra](https://github.com/sokra) 创建），它启发了 Rspack 内的 CssExtractPlugin 实现。
-- [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) 项目（由 [@kevlened](https://github.com/kevlened) 创建），它启发了 Rspack 内的 CopyPlugin 实现。
+- [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) 项目（由 [@sokra](https://github.com/sokra) 创建），它启发了 Rspack 内的 CssExtractPlugin 实现。
+- [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin) 项目（由 [@kevlened](https://github.com/kevlened) 创建），它启发了 Rspack 内的 CopyPlugin 实现。
 - [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) 项目（由 [@jscheid](https://github.com/jscheid) 创建），它启发了 Rspack 内的 SubresourceIntegrityPlugin 实现。
 - [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) 项目（由 [@aackerman](https://github.com/aackerman) 创建），它启发 Rspack 中循环依赖插件的实现。
 - [tracing-chrome](https://github.com/thoren-d/tracing-chrome) 项目（由 [thoren-d](https://github.com/thoren-d) 创建），它启发 Rspack tracing 功能的实现。

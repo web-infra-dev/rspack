@@ -22,7 +22,7 @@ Rspack 允许你使用社区中绝大多数的 webpack loaders。查看 [awesome
 
 ### 使用 Less
 
-你可以使用 [less-loader](https://github.com/webpack-contrib/less-loader) 对 `.less` 文件的内容做相应的转换：
+你可以使用 [less-loader](https://github.com/webpack/less-loader) 对 `.less` 文件的内容做相应的转换：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -42,13 +42,13 @@ export default {
 };
 ```
 
-[less-loader](https://github.com/webpack-contrib/less-loader) 可以将 Less 文件转换为 Rspack 支持的 CSS 模块类型，因此你可以设置 type 为 `'css'` 以指示 Rspack 使用原生支持的 CSS 策略进行后处理。
+[less-loader](https://github.com/webpack/less-loader) 可以将 Less 文件转换为 Rspack 支持的 CSS 模块类型，因此你可以设置 type 为 `'css'` 以指示 Rspack 使用原生支持的 CSS 策略进行后处理。
 
 ### 使用多个 Loader
 
 你可以对特定的 [Rule](/config/module#rule) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
 
-例如，你可以使用 [less-loader](https://github.com/webpack-contrib/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
+例如，你可以使用 [less-loader](https://github.com/webpack/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
 
 ```js title="rspack.config.mjs"
 export default {
