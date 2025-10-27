@@ -1,7 +1,7 @@
 asset entry.js xx KiB [emitted] (name: entry)
 asset vendor.js 211 bytes [emitted] (name: vendor) (id hint: vendor)
 Entrypoint entry xx KiB = vendor.js 211 bytes entry.js xx KiB
-runtime modules xx KiB 12 modules
+runtime modules xx KiB 3 modules
 cacheable modules 138 bytes
   ./entry.js 72 bytes [built] [code generated]
   ./modules/a.js 22 bytes [built] [code generated]
