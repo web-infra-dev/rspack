@@ -324,11 +324,42 @@ impl JsPlugin {
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
       if chunk.has_entry_module(&compilation.chunk_graph) {
+        // Detect if federation async startup should be used
+        let is_federation_async = compilation.options.experiments.mf_async_startup
+          && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+
         let mut buf2: Vec<Cow<str>> = Vec::new();
-        buf2.push("// Load entry module and return exports".into());
+
+        if is_federation_async {
+          // Federation async startup initialization
+          buf2.push("// Module Federation async startup".into());
+          buf2.push(
+            format!(
+              "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId); }};",
+              RuntimeGlobals::REQUIRE,
+              RuntimeGlobals::ENTRY_MODULE_ID
+            )
+            .into(),
+          );
+          buf2.push("var promises = [];".into());
+          buf2.push("// Call federation runtime initialization".into());
+          buf2.push("if (typeof __webpack_require__.x === \"function\") {".into());
+          buf2.push("  __webpack_require__.x();".into());
+          buf2.push("} else {".into());
+          buf2.push("  console.warn(\"[Module Federation] __webpack_require__.x is not a function, skipping federation startup\");".into());
+          buf2.push("}".into());
+        } else {
+          buf2.push("// Load entry module and return exports".into());
+        }
+
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+
+        // For federation async startup, collect entry data
+        let mut federation_entry_calls: Vec<String> = Vec::new();
+        let mut all_chunk_ids: Vec<String> = Vec::new();
+
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
@@ -418,7 +449,17 @@ impl JsPlugin {
             module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
           }
 
-          if !chunk_ids.is_empty() {
+          // For federation async startup, collect entry data instead of generating execution code
+          if is_federation_async {
+            // Store module ID for __webpack_exec__ call
+            federation_entry_calls.push(format!("__webpack_exec__({})", module_id_expr));
+            // Collect unique chunk IDs
+            for chunk_id in &chunk_ids {
+              if !all_chunk_ids.contains(chunk_id) {
+                all_chunk_ids.push(chunk_id.clone());
+              }
+            }
+          } else if !chunk_ids.is_empty() {
             buf2.push(
               format!(
                 "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
@@ -483,7 +524,64 @@ impl JsPlugin {
             }
           }
         }
-        if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+
+        // Add federation async startup Promise.all wrapping
+        if is_federation_async && !federation_entry_calls.is_empty() {
+          // Get the chunk ID for this chunk
+          let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
+          let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
+
+          // Build the entry execution function
+          let entry_fn_body = federation_entry_calls.join("; ");
+
+          // Build Promise.all wrapping with federation handlers
+          buf2.push("// Wrap startup in Promise.all with federation handlers".into());
+          buf2.push(format!("var {} = Promise.all([", RuntimeGlobals::EXPORTS).into());
+          buf2.push(
+            format!(
+              "  {}.consumes || function(chunkId, promises) {{}},",
+              RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+            )
+            .into(),
+          );
+          buf2.push(
+            format!(
+              "  {}.remotes || function(chunkId, promises) {{}}",
+              RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+            )
+            .into(),
+          );
+          buf2.push(
+            format!(
+              "].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)",
+              chunk_id_str
+            )
+            .into(),
+          );
+          buf2.push(").then(function() {".into());
+
+          // Call STARTUP_ENTRYPOINT with chunk dependencies and entry execution, or directly execute
+          if !all_chunk_ids.is_empty() {
+            buf2.push(
+              format!(
+                "  return {}(0, {}, function() {{ return {}; }});",
+                RuntimeGlobals::STARTUP_ENTRYPOINT,
+                stringify_array(&all_chunk_ids),
+                entry_fn_body
+              )
+              .into(),
+            );
+          } else {
+            buf2.push(format!("  return {};", entry_fn_body).into());
+          }
+
+          buf2.push("});".into());
+
+          // Skip STARTUP_ENTRYPOINT wrapping - the Promise.all IS the startup
+          allow_inline_startup = false;
+          startup.push("// federation async startup".into());
+          startup.push(buf2.join("\n").into());
+        } else if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
           buf2.push(
             format!(
               "__webpack_exports__ = {}(__webpack_exports__);",
@@ -492,7 +590,33 @@ impl JsPlugin {
             .into(),
           );
         }
-        if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+
+        if !is_federation_async && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+        {
+          // Async startup entrypoint (for MF async startup)
+          allow_inline_startup = false;
+          header.push(
+            format!(
+              "// the startup function (async)\n{} = {};\n",
+              RuntimeGlobals::STARTUP_ENTRYPOINT,
+              basic_function(
+                &compilation.options.output.environment,
+                "",
+                &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
+              )
+            )
+            .into(),
+          );
+          startup.push("// run startup".into());
+          startup.push(
+            format!(
+              "var {} = {}();",
+              RuntimeGlobals::EXPORTS,
+              RuntimeGlobals::STARTUP_ENTRYPOINT
+            )
+            .into(),
+          );
+        } else if !is_federation_async && runtime_requirements.contains(RuntimeGlobals::STARTUP) {
           allow_inline_startup = false;
           header.push(
             format!(
@@ -515,10 +639,18 @@ impl JsPlugin {
             )
             .into(),
           );
-        } else {
+        } else if !is_federation_async {
           startup.push("// startup".into());
           startup.push(buf2.join("\n").into());
         }
+      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+        header.push(
+          format!(
+            "// the startup function (async)\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
+            RuntimeGlobals::STARTUP_ENTRYPOINT
+          )
+          .into(),
+        );
       } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
         header.push(
           format!(
@@ -528,6 +660,16 @@ impl JsPlugin {
           .into(),
         );
       }
+    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+      // When STARTUP_ENTRYPOINT is present (async MF startup), call .X() instead of .x()
+      startup.push("// run startup".into());
+      startup.push(
+        format!(
+          "var __webpack_exports__ = {}();",
+          RuntimeGlobals::STARTUP_ENTRYPOINT
+        )
+        .into(),
+      );
     } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
       header.push(
         format!(

@@ -88,7 +88,12 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
-    let startup = RuntimeGlobals::STARTUP.name();
+    // Use STARTUP_ENTRYPOINT when mf_async_startup is enabled, otherwise use STARTUP
+    let startup = if compilation.options.experiments.mf_async_startup {
+      RuntimeGlobals::STARTUP_ENTRYPOINT.name()
+    } else {
+      RuntimeGlobals::STARTUP.name()
+    };
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;

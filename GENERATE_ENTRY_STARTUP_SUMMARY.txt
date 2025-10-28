@@ -1,0 +1,231 @@
+================================================================================
+COMPREHENSIVE RESEARCH: generate_entry_startup Function
+================================================================================
+
+RESEARCH COMPLETION SUMMARY
+
+Three detailed research documents have been generated analyzing the 
+generate_entry_startup function in rspack_plugin_runtime/src/helpers.rs:
+
+================================================================================
+DOCUMENT 1: GENERATE_ENTRY_STARTUP_RESEARCH.md (Primary)
+================================================================================
+
+Comprehensive technical analysis covering:
+
+1. FUNCTION SIGNATURE & PARAMETERS (Section 1)
+   - Complete parameter documentation
+   - Parameter types and purposes
+   - Parameter flow diagram
+
+2. THE PASSIVE PARAMETER - IMPACT (Section 2) 
+   - How passive=true uses ON_CHUNKS_LOADED (__webpack_require__.O)
+   - How passive=false uses STARTUP_ENTRYPOINT (__webpack_require__.X)
+   - Two-phase vs direct execution differences
+   - Code generation patterns for each mode
+   - Location: array_push_callback_chunk_format.rs:156 & common_js_chunk_format.rs:155
+
+3. RUNTIME GLOBALS USED (Section 3)
+   - ENTRY_MODULE_ID (__webpack_require__.s): Stores entry module ID
+   - ON_CHUNKS_LOADED (__webpack_require__.O): Deferred callback queue
+   - STARTUP_ENTRYPOINT (__webpack_require__.X): Async entry executor
+   - Complete reference table with bit positions and JavaScript names
+
+4. CALLING LOCATIONS (Section 4)
+   - ArrayPushCallbackChunkFormatPlugin: Line 156, sets passive based on mf_async_startup
+   - CommonJsChunkFormatPlugin: Line 155, always sets passive=false
+   - Detailed call stacks for both plugins
+
+5. CODE GENERATION STRUCTURE (Section 5)
+   - Phase 1: Create __webpack_exec__ wrapper (lines 231-235)
+   - Phase 2: Extract module IDs (lines 190-206)
+   - Phase 3: Collect chunk dependencies (lines 208-228)
+   - Phase 4: Generate startup code (lines 242-270)
+   - Complete code generation example with input/output
+
+6. EXTENSION & INJECTION POINTS (Section 6)
+   - JavascriptModulesRenderStartup hook definition
+   - Hook calling mechanism
+   - Example: AssignLibraryPlugin implementation
+   - Available hook implementations (6 plugins)
+   - Custom injection plugin template
+
+7. KEY CODE SECTIONS - DETAILED BREAKDOWN (Section 7)
+   - Section 1: Module ID Extraction logic
+   - Section 2: Chunk Dependency Collection logic
+   - Section 3: Runtime Global Selection with decision tree
+
+TOTAL LENGTH: ~5000 words, comprehensive technical reference
+
+================================================================================
+DOCUMENT 2: GENERATE_ENTRY_STARTUP_QUICK_REF.md (Quick Reference)
+================================================================================
+
+One-page quick lookup guide containing:
+
+- File location & line numbers
+- Function signature
+- Parameter quick reference table
+- passive parameter effect summary
+- Code generation phases (4 phases)
+- Runtime globals table
+- Where it's called (2 locations)
+- Extension points & hook implementations
+- Example: Injecting custom code
+- Key decision logic flowchart
+- Helper functions used
+- Return type documentation
+
+IDEAL FOR: Quick lookups while coding or reading source code
+
+================================================================================
+DOCUMENT 3: GENERATE_ENTRY_STARTUP_CODE_SNIPPETS.md (Implementation Details)
+================================================================================
+
+Complete code implementations containing:
+
+1. COMPLETE FUNCTION (helpers.rs:181-273)
+   - Full function source with comments for each phase
+
+2. CALL SITE 1: ArrayPushCallbackChunkFormatPlugin (array_push_callback_chunk_format.rs:140-189)
+   - Full render_chunk implementation showing how generate_entry_startup is called
+   - Demonstrates passive parameter selection
+   - Shows render_startup hook invocation
+
+3. CALL SITE 2: CommonJsChunkFormatPlugin (common_js_chunk_format.rs:135-182)
+   - Full render_chunk implementation
+   - Shows different calling pattern (passive=false always)
+   - IIFE wrapping of startup code
+
+4. HOOK DEFINITION (drive.rs:10-52)
+   - JavascriptModulesRenderStartup hook definition
+   - RenderSource struct definition
+   - All 11 hook definitions in JavascriptModulesPluginHooks
+
+5. EXAMPLE HOOK IMPLEMENTATION (assign_library_plugin.rs:245-280)
+   - Real implementation showing code injection pattern
+   - ConcatSource concatenation technique
+   - How to modify render_source.source
+
+6. STRINGIFY_CHUNKS_TO_ARRAY HELPER (runtime.rs:370-380)
+   - Helper function that converts chunk IDs to JSON array
+   - Used by generate_entry_startup for chunk list generation
+
+7. RUNTIME GLOBALS DEFINITION (runtime_globals.rs)
+   - Complete bitflags implementation
+   - ON_CHUNKS_LOADED constant definition with comments
+   - STARTUP_ENTRYPOINT constant
+   - ENTRY_MODULE_ID constant
+   - RuntimeGlobals::name() implementation
+
+8. GENERATED OUTPUT EXAMPLES
+   - Example 1: Simple Entry (No Dependencies)
+   - Example 2: Entry with Dependencies (passive=true, ON_CHUNKS_LOADED)
+   - Example 3: Entry with Dependencies (passive=false, STARTUP_ENTRYPOINT)
+   - Example 4: With Library Plugin Extension (showing code injection result)
+
+================================================================================
+KEY FINDINGS SUMMARY
+================================================================================
+
+1. FUNCTION PURPOSE
+   Generate JavaScript startup code that:
+   - Identifies entry modules
+   - Resolves chunk dependencies
+   - Selects appropriate runtime global (ON_CHUNKS_LOADED vs STARTUP_ENTRYPOINT)
+   - Creates __webpack_exec__ wrapper for module execution
+
+2. CRITICAL PARAMETER: passive
+   Controls which runtime method is generated:
+   - passive=true  → ON_CHUNKS_LOADED (.O) - Two-phase: register + execute
+   - passive=false → STARTUP_ENTRYPOINT (.X) - Single direct call
+
+3. CALLING CONTEXT
+   - ArrayPushCallbackChunkFormatPlugin: passive determined by !experiments.mf_async_startup
+   - CommonJsChunkFormatPlugin: Always passive=false
+
+4. EXTENSION CAPABILITY
+   Via JavascriptModulesRenderStartup hook, plugins can:
+   - Wrap generated code with pre/post code
+   - Replace generated code entirely
+   - Inject library exports, module exports compatibility, etc.
+
+5. CODE GENERATION PHASES (4 phases)
+   Phase 1: Create __webpack_exec__ wrapper function
+   Phase 2: Extract entry module IDs (filtering for JavaScript only)
+   Phase 3: Collect dependent chunk IDs
+   Phase 4: Generate final startup code based on:
+            - Whether chunks exist
+            - passive flag value
+
+6. GENERATED CODE PATTERNS
+   Simple:   var __webpack_exports__ = (__webpack_exec__(0));
+   
+   Complex (passive=true):
+   __webpack_require__.O(0, [chunks], fn);
+   var __webpack_exports__ = __webpack_require__.O();
+   
+   Complex (passive=false):
+   var __webpack_exports__ = __webpack_require__.X(0, [chunks], fn);
+
+================================================================================
+RESEARCH DOCUMENTS LOCATION
+================================================================================
+
+1. /Users/zackjackson/rspack/GENERATE_ENTRY_STARTUP_RESEARCH.md
+   Primary comprehensive document (7 sections, ~5000 words)
+
+2. /Users/zackjackson/rspack/GENERATE_ENTRY_STARTUP_QUICK_REF.md
+   One-page quick reference (for desk reference)
+
+3. /Users/zackjackson/rspack/GENERATE_ENTRY_STARTUP_CODE_SNIPPETS.md
+   Complete code implementations with examples
+
+================================================================================
+HOW TO USE THESE DOCUMENTS
+================================================================================
+
+For Complete Understanding:
+→ Start with GENERATE_ENTRY_STARTUP_RESEARCH.md
+→ Understand each section in order
+→ Cross-reference with CODE_SNIPPETS for actual implementations
+
+For Quick Lookup:
+→ Use GENERATE_ENTRY_STARTUP_QUICK_REF.md
+→ Jump to specific sections as needed
+
+For Implementation Details:
+→ Use GENERATE_ENTRY_STARTUP_CODE_SNIPPETS.md
+→ Reference specific functions and plugins
+
+For Custom Code Injection:
+→ See Section 6 (Extension Points) in RESEARCH.md
+→ Look at AssignLibraryPlugin example in CODE_SNIPPETS.md
+→ Use template provided in QUICK_REF.md
+
+================================================================================
+QUESTIONS ANSWERED
+================================================================================
+
+1. What parameters does it accept and what do they control?
+   ✓ Documented in Section 1 with detailed table and flow diagram
+
+2. How does the passive parameter affect the generated code?
+   ✓ Documented in Section 2 with code examples and decision tree
+
+3. What runtime globals does it use (ON_CHUNKS_LOADED vs STARTUP_ENTRYPOINT)?
+   ✓ Documented in Section 3 with complete reference table and usage examples
+
+4. Where is this function called from?
+   ✓ Documented in Section 4 with 2 call sites, full stack traces
+
+5. How does it generate the actual startup code - what's the structure?
+   ✓ Documented in Section 5 with 4 phases, code examples, decision logic
+
+6. Can we modify it to inject custom code before/after entry execution?
+   ✓ Documented in Section 6 with hook system, real examples, template code
+
+7. Look at the actual code generation - show me the key parts
+   ✓ Complete implementation in CODE_SNIPPETS.md with all phases
+
+================================================================================

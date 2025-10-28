@@ -1,0 +1,378 @@
+================================================================================
+RSPACK STARTUP BOOTSTRAP - COMPLETE DECISION TREE
+================================================================================
+
+ENTRY POINT: render_bootstrap(chunk_ukey, compilation)
+│
+│ Retrieves: runtime_requirements = ChunkGraph::get_chunk_runtime_requirements()
+│
+└─────────────────────────────────────────────────────────────────────────────
+    PRIMARY DECISION: Is STARTUP_NO_DEFAULT required?
+    (controls whether entry modules are processed)
+┌─────────────────────────────────────────────────────────────────────────────
+│
+├─ NO: STARTUP_NO_DEFAULT not required (NORMAL CASE - most common)
+│  │
+│  ├─────────────────────────────────────────────────────────────────────────
+│  │ SECONDARY DECISION: Does chunk have entry modules?
+│  ├─────────────────────────────────────────────────────────────────────────
+│  │
+│  ├─ YES: chunk.has_entry_module() = true
+│  │  │
+│  │  │ ACTION: Build buf2 buffer with startup logic for each entry
+│  │  │
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │ STEP 1: Check Inline Bailout Conditions
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │
+│  │  │ For each condition, set allow_inline_startup = false:
+│  │  │
+│  │  │ 1. Module factories required
+│  │  │ 2. Module cache required
+│  │  │ 3. Module execution intercepted
+│  │  │ 4. Entry depends on other chunks
+│  │  │ 5. Entry referenced by other modules
+│  │  │ 6. No top-level declarations metadata
+│  │  │ 7. Hook bailout detected
+│  │  │ 8. Entry requires 'module' global
+│  │  │
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │ STEP 2: Build Module Execution Code (for each entry module)
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │
+│  │  ├─ Case A: Entry has dependent chunks (chunk_ids not empty)
+│  │  │  │
+│  │  │  └─ OUTPUT:
+│  │  │     var __webpack_exports__ = __webpack_require__.O(
+│  │  │         undefined,
+│  │  │         [chunk1_id, chunk2_id, ...],
+│  │  │         function() { return __webpack_require__(entry_module_id); }
+│  │  │     );
+│  │  │
+│  │  ├─ Case B: use_require flag set (requires __webpack_require__ global)
+│  │  │  │
+│  │  │  └─ OUTPUT:
+│  │  │     var __webpack_exports__ = __webpack_require__(entry_module_id);
+│  │  │
+│  │  └─ Case C: Direct module execution (no require wrapper needed)
+│  │     │
+│  │     ├─ If require_scope_used:
+│  │     │  └─ __webpack_modules__[id](0, __webpack_exports__, __webpack_require__);
+│  │     │
+│  │     ├─ Else if needs_exports:
+│  │     │  └─ __webpack_modules__[id](0, __webpack_exports__);
+│  │     │
+│  │     └─ Else:
+│  │        └─ __webpack_modules__[id]();
+│  │
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │ STEP 3: Post-process with ON_CHUNKS_LOADED
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │
+│  │  └─ If ON_CHUNKS_LOADED required:
+│  │     __webpack_exports__ = __webpack_require__.O(__webpack_exports__);
+│  │     (Processes deferred chunk callbacks)
+│  │
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │ STEP 4: CRITICAL - Decide wrapping strategy
+│  │  ├──────────────────────────────────────────────────────────────────────
+│  │  │
+│  │  └─ TERTIARY DECISION: Is STARTUP required?
+│  │     │
+│  │     ├─ YES: STARTUP required (entry has dependent chunks)
+│  │     │  │
+│  │     │  │ OUTPUT PATH A1a (WRAPPED):
+│  │     │  │
+│  │     │  │ HEADER (function definition):
+│  │     │  │ ──────────────────────────
+│  │     │  │ __webpack_require__.x = function() {
+│  │     │  │     var __webpack_exports__ = {};
+│  │     │  │     // <buf2 code from steps above>
+│  │     │  │     return __webpack_exports__;
+│  │     │  │ };
+│  │     │  │
+│  │     │  │ STARTUP (function call):
+│  │     │  │ ──────────────────────────
+│  │     │  │ // run startup
+│  │     │  │ var __webpack_exports__ = __webpack_require__.x();
+│  │     │  │
+│  │     │  │ allow_inline_startup = false (forced)
+│  │     │  │
+│  │     │  └─ Global Name: __webpack_require__.x (1<<42 bit)
+│  │     │
+│  │     └─ NO: STARTUP not required (simple entry, no dependencies)
+│  │        │
+│  │        │ OUTPUT PATH A1b (INLINED):
+│  │        │
+│  │        │ STARTUP:
+│  │        │ ──────────────────────────
+│  │        │ // startup
+│  │        │ <buf2 code directly without wrapper>
+│  │        │
+│  │        │ Direct execution, no function definition
+│  │        │ Only possible if allow_inline_startup still true
+│  │        │
+│  │        └─ Code executes immediately, no function call overhead
+│  │
+│  └─ NO: No entry modules in chunk
+│     │
+│     └─ SECONDARY ACTION:
+│        If STARTUP is required:
+│           HEADER:
+│           __webpack_require__.x = function(){};
+│           (empty stub for compatibility)
+│        Else:
+│           (no startup code generated)
+│
+├─ YES: STARTUP_NO_DEFAULT is required
+│  │
+│  │ (Chunk has custom startup handling elsewhere)
+│  │
+│  └─────────────────────────────────────────────────────────────────────────
+│      QUATERNARY DECISION: Is STARTUP_ENTRYPOINT required?
+│  ┌─────────────────────────────────────────────────────────────────────────
+│  │
+│  ├─ YES: STARTUP_ENTRYPOINT required (async Module Federation)
+│  │  │
+│  │  │ Set by: array_push_callback_chunk_format.rs
+│  │  │ When: experiments.mf_async_startup = true
+│  │  │
+│  │  │ OUTPUT PATH B (ASYNC MF STARTUP):
+│  │  │
+│  │  │ The .X() function is defined elsewhere in HEADER via
+│  │  │ StartupEntrypointRuntimeModule (sync or async version)
+│  │  │
+│  │  │ STARTUP CODE:
+│  │  │ ──────────────────────────
+│  │  │ // run startup
+│  │  │ var __webpack_exports__ = __webpack_require__.X();
+│  │  │
+│  │  │ *** RETURNS PROMISE if async version is used ***
+│  │  │
+│  │  └─ Global Name: __webpack_require__.X (1<<34 bit)
+│  │
+│  └─ NO: STARTUP_ENTRYPOINT not required
+│     │
+│     └─────────────────────────────────────────────────────────────────────
+│         QUINARY DECISION: Is STARTUP required?
+│     ┌─────────────────────────────────────────────────────────────────────
+│     │
+│     └─ YES: STARTUP required (some runtime module handles it)
+│        │
+│        │ OUTPUT PATH C (MINIMAL STUB):
+│        │
+│        │ HEADER:
+│        │ ──────────────────────────
+│        │ __webpack_require__.x = function(){};
+│        │
+│        │ STARTUP:
+│        │ ──────────────────────────
+│        │ // run startup
+│        │ var __webpack_exports__ = __webpack_require__.x();
+│        │
+│        └─ Global Name: __webpack_require__.x (1<<42 bit)
+
+
+================================================================================
+PARALLEL RUNTIME REQUIREMENT ASSIGNMENT
+================================================================================
+
+These run SEPARATELY in plugins, setting up requirements BEFORE render_bootstrap:
+
+1. ArrayPushCallbackChunkFormatPlugin (array_push_callback_chunk_format.rs:56-60)
+   ┌────────────────────────────────────────────────────────┐
+   │ if has_entry_modules:                                  │
+   │    if experiments.mf_async_startup:                    │
+   │       runtime_requirements.insert(STARTUP_ENTRYPOINT)  │
+   │    else:                                               │
+   │       runtime_requirements.insert(ON_CHUNKS_LOADED)    │
+   │    runtime_requirements.insert(EXPORTS)                │
+   │    runtime_requirements.insert(REQUIRE)                │
+   └────────────────────────────────────────────────────────┘
+   DECISION: Async (X) vs Deferred/Passive (O)
+
+2. StartupChunkDependenciesPlugin (startup_chunk_dependencies.rs:25-47)
+   ┌────────────────────────────────────────────────────────┐
+   │ if has_chunk_entry_dependent_chunks:                   │
+   │    runtime_requirements.insert(STARTUP)                │
+   │    runtime_requirements.insert(ENSURE_CHUNK)           │
+   │    runtime_requirements.insert(ENSURE_CHUNK_INCLUDE)   │
+   └────────────────────────────────────────────────────────┘
+   DECISION: Entry has dependent chunks to load
+
+
+================================================================================
+HELPER FUNCTION: generate_entry_startup()
+================================================================================
+
+Location: rspack_plugin_runtime/src/helpers.rs:181-273
+
+Called by: array_push_callback_chunk_format.rs:156
+
+Parameters:
+  - compilation: &Compilation
+  - chunk: &ChunkUkey
+  - entries: &IdentifierLinkedMap<ChunkGroupUkey>
+  - passive: bool <- KEY PARAMETER (controls STARTUP_ENTRYPOINT vs ON_CHUNKS_LOADED)
+
+Passive Flag Determination:
+┌─────────────────────────────────────────────────────────┐
+│ let passive = !compilation.options.experiments.mf_async │
+│                                                         │
+│ if passive = true:  Use ON_CHUNKS_LOADED (.O)          │
+│ if passive = false: Use STARTUP_ENTRYPOINT (.X)        │
+└─────────────────────────────────────────────────────────┘
+
+Generated Code Structure:
+
+IF passive=false (async MF):
+┌──────────────────────────────────────────────────────────────┐
+│ var __webpack_exports__ = __webpack_require__.X(             │
+│     0,                                                        │
+│     [dependent_chunk_ids...],                                │
+│     function() {                                             │
+│         return __webpack_exec__(module_id_1),                │
+│                __webpack_exec__(module_id_2), ...            │
+│     }                                                         │
+│ );                                                           │
+└──────────────────────────────────────────────────────────────┘
+* RETURNS PROMISE (if async template used)
+* Direct call to async startup function
+
+IF passive=true (deferred):
+┌──────────────────────────────────────────────────────────────┐
+│ __webpack_require__.O(                                       │
+│     0,                                                        │
+│     [dependent_chunk_ids...],                                │
+│     function() {                                             │
+│         return __webpack_exec__(module_id_1),                │
+│                __webpack_exec__(module_id_2), ...            │
+│     }                                                         │
+│ );                                                           │
+│ var __webpack_exports__ = __webpack_require__.O();           │
+└──────────────────────────────────────────────────────────────┘
+* First call REGISTERS callback
+* Second call PROCESSES deferred queue
+* Returns direct value (not Promise)
+
+
+================================================================================
+RUNTIME TEMPLATE DEFINITIONS
+================================================================================
+
+STARTUP_ENTRYPOINT - Sync Version (startup_entrypoint.ejs):
+┌──────────────────────────────────────────────────────────────┐
+│ __webpack_require__.X = function(result, chunkIds, fn) {     │
+│     var moduleId = chunkIds;                                 │
+│     if (!fn) {                                               │
+│         chunkIds = result;                                   │
+│         fn = function() {                                    │
+│             return __webpack_require__(__webpack_require__.s │
+│                         = moduleId);                         │
+│         }                                                    │
+│     }                                                        │
+│     chunkIds.map(__webpack_require__.e, __webpack_require__) │
+│     var r = fn();                                            │
+│     return r === undefined ? result : r;                     │
+│ }                                                            │
+└──────────────────────────────────────────────────────────────┘
+Behavior: Synchronous, waits for chunks, executes callback
+
+
+STARTUP_ENTRYPOINT - Async Version (startup_entrypoint_with_async.ejs):
+┌──────────────────────────────────────────────────────────────┐
+│ __webpack_require__.X = function(result, chunkIds, fn) {     │
+│     var moduleId = chunkIds;                                 │
+│     if (!fn) {                                               │
+│         chunkIds = result;                                   │
+│         fn = function() {                                    │
+│             return __webpack_require__(__webpack_require__.s │
+│                         = moduleId);                         │
+│         }                                                    │
+│     }                                                        │
+│     return Promise.all(                                      │
+│         chunkIds.map(__webpack_require__.e,                  │
+│                      __webpack_require__)                    │
+│     ).then(function() {                                      │
+│         var r = fn();                                        │
+│         return r === undefined ? result : r;                 │
+│     });                                                      │
+│ }                                                            │
+└──────────────────────────────────────────────────────────────┘
+Behavior: Returns PROMISE, allows concurrent chunk loading
+
+
+ON_CHUNKS_LOADED (on_chunk_loaded.ejs):
+┌──────────────────────────────────────────────────────────────┐
+│ var deferred = [];                                           │
+│ __webpack_require__.O = function(result, chunkIds, fn, ...) {│
+│     if (chunkIds) {                                          │
+│         // REGISTER phase: add to deferred queue             │
+│         deferred[i] = [chunkIds, fn, priority];              │
+│         return;                                              │
+│     }                                                        │
+│     // EXECUTE phase: process all fulfilled callbacks        │
+│     for (var i = 0; i < deferred.length; i++) {             │
+│         var [chunkIds, fn, priority] = deferred[i];          │
+│         var fulfilled = true;                                │
+│         for (var j = 0; j < chunkIds.length; j++) {         │
+│             if (all chunks loaded) {                         │
+│                 remove from queue, fn();                     │
+│             } else {                                         │
+│                 fulfilled = false;                           │
+│             }                                                │
+│         }                                                    │
+│     }                                                        │
+│     return result;                                           │
+│ }                                                            │
+└──────────────────────────────────────────────────────────────┘
+Behavior: Deferred execution, requires TWO calls (register + execute)
+
+
+================================================================================
+FINAL OUTPUT PATHS SUMMARY
+================================================================================
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PATH A1a: STARTUP WRAPPER (most common with chunk dependencies)             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Function: __webpack_require__.x                                              │
+│ Call: var __webpack_exports__ = __webpack_require__.x();                    │
+│ Behavior: Wraps startup logic in function, called synchronously              │
+│ Use Case: Entry modules with dependent chunks needing sequential loading     │
+│ Optimization: allow_inline_startup = false (always)                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PATH A1b: INLINE STARTUP (simple entries)                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Function: None (direct execution)                                            │
+│ Call: <buf2 code directly>                                                   │
+│ Behavior: Code executes inline without wrapper function                      │
+│ Use Case: Simple entries without dependencies or inline constraints          │
+│ Optimization: allow_inline_startup = true (when no bailouts)                │
+│ Size Benefit: Eliminates function definition overhead                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PATH B: STARTUP_ENTRYPOINT (async Module Federation)                        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Function: __webpack_require__.X                                              │
+│ Call: var __webpack_exports__ = __webpack_require__.X();                    │
+│ Behavior: Returns Promise if async version, direct value if sync             │
+│ Use Case: Module Federation with mf_async_startup=true                       │
+│ Async Benefit: Concurrent chunk loading via Promise.all()                    │
+│ Return Value: Promise (async) or direct result (sync)                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PATH C: MINIMAL STARTUP (empty stub)                                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Function: __webpack_require__.x                                              │
+│ Call: var __webpack_exports__ = __webpack_require__.x();                    │
+│ Body: function(){}; (no-op)                                                  │
+│ Behavior: Compatibility placeholder, no actual startup logic                 │
+│ Use Case: Chunks with no entry modules but runtime handles startup          │
+│ Purpose: Maintain consistent interface for dynamic code                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+

@@ -33,17 +33,30 @@ pub use runtime_module_from_js::RuntimeModuleFromJs;
 mod drive;
 pub use drive::*;
 
-pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
+pub fn enable_chunk_loading_plugin(
+  loading_type: ChunkLoadingType,
+  mf_async_startup: bool,
+  plugins: &mut Vec<BoxPlugin>,
+) {
   match loading_type {
     ChunkLoadingType::Jsonp => {
+      if mf_async_startup {
+        plugins.push(
+          StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Jsonp), true)
+            .boxed(),
+        );
+      }
       plugins.push(JsonpChunkLoadingPlugin::default().boxed());
     }
     ChunkLoadingType::Require => {
       plugins.push(
-        StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Require), false)
-          .boxed(),
+        StartupChunkDependenciesPlugin::new(
+          ChunkLoading::Enable(ChunkLoadingType::Require),
+          mf_async_startup,
+        )
+        .boxed(),
       );
-      plugins.push(CommonJsChunkLoadingPlugin::new(false).boxed())
+      plugins.push(CommonJsChunkLoadingPlugin::new(mf_async_startup).boxed())
     }
     ChunkLoadingType::AsyncNode => {
       plugins.push(

@@ -671,6 +671,7 @@ export interface ExperimentsNormalized {
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
 	deferImport?: boolean;
+	mfAsyncStartup?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

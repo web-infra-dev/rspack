@@ -78,8 +78,12 @@ async fn additional_chunk_runtime_requirements_tree(
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
-    // Add STARTUP requirement
-    runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
+    if compilation.options.experiments.mf_async_startup {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    } else {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    }
   }
 
   Ok(())
@@ -200,15 +204,41 @@ async fn render_startup(
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
 
-    // Add startup call
-    startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
-    startup_with_call.add(RawStringSource::from(format!(
-      "{}();\n",
-      RuntimeGlobals::STARTUP.name()
-    )));
+    if compilation.options.experiments.mf_async_startup {
+      // Use federation async startup pattern with Promise.all wrapping
+      // This completely replaces the original startup since Promise.all handles everything
+      let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
+      let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
 
-    startup_with_call.add(render_source.source.clone());
-    render_source.source = startup_with_call.boxed();
+      startup_with_call.add(RawStringSource::from(
+        "\n// Federation async startup (delegated)\n",
+      ));
+      startup_with_call.add(RawStringSource::from("var promises = [];\n"));
+      startup_with_call.add(RawStringSource::from(
+        "if (typeof __webpack_require__.x === \"function\") {\n",
+      ));
+      startup_with_call.add(RawStringSource::from("  __webpack_require__.x();\n"));
+      startup_with_call.add(RawStringSource::from("}\n"));
+      startup_with_call.add(RawStringSource::from(format!(
+        "var __webpack_exports__ = Promise.all([\n  {}.consumes || function(chunkId, promises) {{}},\n  {}.remotes || function(chunkId, promises) {{}}\n].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)\n).then(function() {{\n  return {}();\n}});\n",
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name(),
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name(),
+        chunk_id_str,
+        RuntimeGlobals::STARTUP_ENTRYPOINT.name()
+      )));
+
+      // Replace the entire source with our async startup
+      render_source.source = startup_with_call.boxed();
+    } else {
+      // Standard sync startup call - prepend to original
+      startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
+      startup_with_call.add(RawStringSource::from(format!(
+        "{}();\n",
+        RuntimeGlobals::STARTUP.name()
+      )));
+      startup_with_call.add(render_source.source.clone());
+      render_source.source = startup_with_call.boxed();
+    }
   }
 
   Ok(())

@@ -53,7 +53,11 @@ async fn additional_chunk_runtime_requirements(
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
-    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    if compilation.options.experiments.mf_async_startup {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    } else {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    }
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
@@ -148,7 +152,8 @@ async fn render_chunk(
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
+        let passive = !compilation.options.experiments.mf_async_startup;
+        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, passive);
         let last_entry_module = entries
           .keys()
           .next_back()

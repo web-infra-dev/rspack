@@ -143,7 +143,11 @@ impl BuilderContext {
         plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginOptions::EnableChunkLoadingPlugin(chunk_loading_type) => {
-        rspack_plugin_runtime::enable_chunk_loading_plugin(chunk_loading_type, &mut plugins);
+        rspack_plugin_runtime::enable_chunk_loading_plugin(
+          chunk_loading_type,
+          compiler_options.experiments.mf_async_startup,
+          &mut plugins,
+        );
       }
       BuiltinPluginOptions::EnableWasmLoadingPlugin(wasm_loading_type) => {
         plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(

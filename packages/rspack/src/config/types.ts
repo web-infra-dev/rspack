@@ -2816,6 +2816,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	deferImport?: boolean;
+	/**
+	 * Enable async startup for Module Federation
+	 * @default false
+	 */
+	mfAsyncStartup?: boolean;
 };
 //#endregion
 
