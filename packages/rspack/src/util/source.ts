@@ -1,5 +1,5 @@
 import type { JsSource } from "@rspack/binding";
-import { RawSource, Source, SourceMapSource } from "webpack-sources";
+import { RawSource, type Source, SourceMapSource } from "webpack-sources";
 
 export class SourceAdapter {
 	static fromBinding(source: JsSource): Source {

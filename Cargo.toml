@@ -83,7 +83,7 @@ regex-syntax        = { version = "0.8.5", default-features = false, features = 
 regress             = { version = "0.10.4", default-features = false, features = ["pattern"] }
 ropey               = { version = "1.6.1", default-features = false }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.4", default-features = false }
-rspack_sources      = { version = "0.4.12", default-features = false }
+rspack_sources      = { version = "=0.4.12", default-features = false }
 rustc-hash          = { version = "2.1.0", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }

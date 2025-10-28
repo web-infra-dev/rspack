@@ -13,10 +13,10 @@ import type {
 	ChunkGroup,
 	Dependency,
 	ExternalObject,
-	JsSource,
 	JsCompilation,
 	JsPathData,
-	JsRuntimeModule
+	JsRuntimeModule,
+	JsSource
 } from "@rspack/binding";
 import binding from "@rspack/binding";
 
