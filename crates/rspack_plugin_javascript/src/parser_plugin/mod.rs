@@ -32,6 +32,7 @@ mod worker_plugin;
 pub mod define_plugin;
 pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
+pub mod side_effects_parser_plugin;
 
 pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 pub(crate) use self::{
@@ -65,6 +66,7 @@ pub(crate) use self::{
   override_strict_plugin::OverrideStrictPlugin,
   require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin,
   require_ensure_dependencies_block_parse_plugin::RequireEnsureDependenciesBlockParserPlugin,
+  side_effects_parser_plugin::SideEffectsParserPlugin,
   url_plugin::URLPlugin,
   use_strict_plugin::UseStrictPlugin,
   webpack_included_plugin::WebpackIsIncludedPlugin,
