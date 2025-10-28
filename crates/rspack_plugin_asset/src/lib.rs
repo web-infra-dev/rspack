@@ -631,7 +631,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         };
 
         if generate_context.requested_source_type == SourceType::CssUrl {
-          return Ok(RawStringSource::from("").boxed());
+          return Ok(RawStringSource::from_static("").boxed());
         }
 
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {

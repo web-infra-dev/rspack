@@ -200,9 +200,9 @@ impl EsmLibraryPlugin {
         Self::render_runtime(chunk_ukey, compilation, *tree_runtime_requirements).await?;
 
       runtime_source.add(runtimes);
-      runtime_source.add(RawStringSource::from("\n"));
+      runtime_source.add(RawStringSource::from_static("\n"));
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
-      runtime_source.add(RawStringSource::from("\n"));
+      runtime_source.add(RawStringSource::from_static("\n"));
 
       if tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
         export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));
