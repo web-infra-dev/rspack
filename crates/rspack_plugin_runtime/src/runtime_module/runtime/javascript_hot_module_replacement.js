@@ -98,6 +98,7 @@ function applyHandler(options) {
 		console.warn(
 			"[HMR] unexpected require(" + module.id + ") to disposed module"
 		);
+		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
 	for (var moduleId in currentUpdate) {
