@@ -341,8 +341,9 @@ impl JsPlugin {
           );
           buf2.push("var promises = [];".into());
           buf2.push("// Call federation runtime initialization".into());
+          buf2.push("var runtimeInitialization = undefined;".into());
           buf2.push("if (typeof __webpack_require__.x === \"function\") {".into());
-          buf2.push("  __webpack_require__.x();".into());
+          buf2.push("  runtimeInitialization = __webpack_require__.x();".into());
           buf2.push("} else {".into());
           buf2.push("  console.warn(\"[Module Federation] __webpack_require__.x is not a function, skipping federation startup\");".into());
           buf2.push("}".into());
@@ -457,29 +458,29 @@ impl JsPlugin {
             let entry_fn_body = federation_entry_calls.join("; ");
 
             buf2.push("// Wrap startup in Promise.all with federation handlers".into());
-            buf2.push(format!("var {} = Promise.all([", RuntimeGlobals::EXPORTS).into());
             buf2.push(
               format!(
-                "  {}.consumes || function(chunkId, promises) {{}},",
-                RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+                "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
+                RuntimeGlobals::EXPORTS
               )
               .into(),
             );
+            buf2.push("  var handlers = [".into());
+            buf2.push("    function(chunkId, promises) {".into());
+            buf2.push("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);".into());
+            buf2.push("    },".into());
+            buf2.push("    function(chunkId, promises) {".into());
+            buf2.push("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);".into());
+            buf2.push("    }".into());
+            buf2.push("  ];".into());
             buf2.push(
               format!(
-                "  {}.remotes || function(chunkId, promises) {{}}",
-                RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-              )
-              .into(),
-            );
-            buf2.push(
-              format!(
-                "].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)",
+                "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));",
                 chunk_id_str
               )
               .into(),
             );
-            buf2.push(").then(function() {".into());
+            buf2.push("}).then(function() {".into());
             if !all_chunk_ids.is_empty() {
               buf2.push(
                 format!(

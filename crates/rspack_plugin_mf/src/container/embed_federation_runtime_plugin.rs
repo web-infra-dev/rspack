@@ -84,11 +84,6 @@ async fn additional_chunk_runtime_requirements_tree(
     return Ok(());
   }
 
-  // Skip container entry chunks (they should NOT use async startup)
-  if Self::is_container_entry_chunk(compilation, chunk_ukey) {
-    return Ok(());
-  }
-
   // Check if chunk needs federation runtime support
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   let has_entry_modules = compilation
@@ -98,10 +93,13 @@ async fn additional_chunk_runtime_requirements_tree(
 
   // Federation is enabled for runtime chunks or entry chunks
   let is_enabled = has_runtime || has_entry_modules;
+  let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
+  let use_async_startup =
+    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
 
   if is_enabled {
     // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
-    if compilation.options.experiments.mf_async_startup {
+    if use_async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     } else {
