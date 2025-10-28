@@ -978,7 +978,7 @@ impl JsPlugin {
               let cm: Arc<swc_core::common::SourceMap> = Default::default();
               let fm = cm.new_source_file(
                 Arc::new(FileName::Custom(m.identifier().to_string())),
-                code.source().to_string(),
+                code.source().into_string_lossy().into_owned(),
               );
               let comments = swc_node_comments::SwcComments::default();
               let mut errors = vec![];

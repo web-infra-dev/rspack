@@ -625,7 +625,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           asset_path
         } else if parsed_asset_config.is_source() {
-          format!(r"{:?}", source.source())
+          format!(r"{:?}", source.source().into_string_lossy())
         } else {
           unreachable!()
         };

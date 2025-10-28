@@ -2,8 +2,8 @@ use std::{hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource, RawSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
+  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
   WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
@@ -66,20 +66,19 @@ impl TryFrom<&dyn Source> for JsSourceToJs {
   type Error = napi::Error;
 
   fn try_from(value: &dyn Source) -> Result<Self> {
-    if let Some(raw_buffer_source) = value.as_any().downcast_ref::<RawBufferSource>() {
-      let bytes = raw_buffer_source.buffer().to_vec();
-      return Ok(JsSourceToJs {
-        source: Either::B(Buffer::from(bytes)),
+    match value.source() {
+      SourceValue::String(string) => {
+        let map: Option<String> = to_webpack_map(value)?;
+        Ok(JsSourceToJs {
+          source: Either::A(string.into_owned()),
+          map,
+        })
+      }
+      SourceValue::Buffer(bytes) => Ok(JsSourceToJs {
+        source: Either::B(Buffer::from(bytes.to_vec())),
         map: None,
-      });
+      }),
     }
-
-    let string = value.source();
-    let map: Option<String> = to_webpack_map(value)?;
-    Ok(JsSourceToJs {
-      source: Either::A(string.into_owned()),
-      map,
-    })
   }
 }
 

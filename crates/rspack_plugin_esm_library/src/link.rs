@@ -774,7 +774,11 @@ impl EsmLibraryPlugin {
                 let readable_identifier = m.readable_identifier(&compilation.options.context);
                 let fm = cm.new_source_file(
                   Arc::new(FileName::Custom(readable_identifier.clone().into_owned())),
-                  render_source.source.source().to_string(),
+                  render_source
+                    .source
+                    .source()
+                    .into_string_lossy()
+                    .into_owned(),
                 );
                 let mut errors = vec![];
                 let module = parse_file_as_module(

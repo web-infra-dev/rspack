@@ -189,7 +189,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().to_string();
+        let input = original_source.source().into_string_lossy().into_owned();
         let input_source_map = original_source.map(&MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {

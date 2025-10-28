@@ -57,7 +57,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       module_parser_options,
       ..
     } = parse_context;
-    let source = box_source.source();
+    let source = box_source.source().into_string_lossy();
     let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
     let strip_bom_source = strip_bom_source.unwrap_or(&source);
