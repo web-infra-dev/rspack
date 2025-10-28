@@ -1,0 +1,451 @@
+---
+date: 2025-10-29 11:00:00
+sidebar: false
+---
+
+_October 29, 2025_
+
+# Announcing Rspack 1.6
+
+![Rspack 1.6](https://assets.rspack.rs/rspack/rspack-banner-v1-6.png)
+
+---
+
+Rspack 1.6 has been officially released!
+
+Notable changes include:
+
+- New Features
+  - [Better ESM Output](#better-esm-output)
+  - [Layers Feature Stabilized](#layers-feature-stabilized)
+  - [Optimized Tree Shaking for Dynamic Imports](#optimized-tree-shaking-for-dynamic-imports)
+  - [Experimental Support for Defer Import](#experimental-support-for-defer-import)
+  - [lazyBarrel Enabled by Default](#lazybarrel-enabled-by-default)
+  - [Preserve JSX in Output](#preserve-jsx-in-output)
+  - [Rule.extractSourceMap](#rule-extractsourcemap)
+- Rstack Progress
+  - [Rspress V2](#rspress-v2)
+  - [Rsbuild](#rsbuild)
+  - [Rslib](#rslib)
+  - [Rstest](#rstest)
+  - [Rsdoctor](#rsdoctor)
+- Ecosystem
+  - [next-rspack](#next-rspack)
+
+## New features
+
+### Better ESM output
+
+The new EsmLibraryPlugin is now available as an experimental feature, providing better and more static output for library builds. Compared to the previous ModernModule approach, the new ESM output is not limited by ConcatenatedModule and Rspack's own runtime constraints. For example, even if the Entry Module doesn't meet Scope Hoisting standards, it won't cause the output to be unusable or result in syntax errors.
+
+```js title=rspack.config.mjs
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.experiments.EsmLibraryPlugin()],
+  output: {
+    chunkFormat: false, // disable default chunk format as EsmLibraryPlugin will handle how chunks are rendered and loaded
+  },
+  optimization: {
+    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+    concatenateModules: false, // disable module concatenation as EsmLibraryPlugin has its own scope hoisting implementation
+  },
+};
+```
+
+The new EsmLibraryPlugin breaks away from the webpack runtime's Chunk Group parallel loading architecture, allowing each Chunk to be loaded and used independently. SplitChunks is still supported, so users can continue to use SplitChunks to split output according to their needs.
+
+Experimental support for the preserveModules feature is provided, allowing the output structure to be preserved according to the source code structure.
+
+```js title=rspack.config.mjs
+import path from 'path';
+
+new rspack.experiments.EsmLibraryPlugin({
+  preserveModules: path.resolve(__dirname, './src'),
+});
+```
+
+### Layers feature stabilized
+
+In version 1.6.0, we deprecated the experimental switch for [experiments.layers](/config/experiments#experimentslayers), and you can now directly start using the layer feature.
+
+layer is a practical feature that allows you to categorize and manage modules. You can assign different layers to modules and then handle them differently based on the layer, such as downgrading modules to different targets according to different layers, or splitting modules from different layers into different output directories.
+
+You have multiple ways to specify layers for modules:
+
+- Specify via [Entry](/config/entry#entrydescriptionlayer)
+
+```js title=rspack.config.mjs
+export default {
+  entry: {
+    server: {
+      import: './src/server.js',
+      layer: 'server',
+    },
+    client: {
+      import: './src/client.js',
+      layer: 'client',
+    },
+  },
+};
+```
+
+- Specify via [Rule.layer](/config/module#rulelayer)
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
+
+You can filter specific layers through issuerLayer. In the following example, we use different downgrade strategies based on different layers of modules:
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        oneOf: [
+          {
+            issuerLayer: 'client',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es5',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            issuerLayer: 'server',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es2020',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+In subsequent stages, you can also place Modules into different Chunks based on different layers:
+
+```js title=rspack.config.mjs
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        server: {
+          layer: 'server',
+          filename: 'server/[name].js',
+        },
+        client: {
+          layer: 'client',
+          filename: 'client/[name].js',
+        },
+      },
+    },
+  },
+};
+```
+
+In the above example, we separated server and client code into different output directories through layers.
+
+### Optimized tree shaking for dynamic imports
+
+We have optimized tree shaking for dynamic import `import()`. Previously, Rspack only performed tree shaking on destructuring assignments for dynamic imports, but not in other cases.
+
+Now Rspack implements deeper and more comprehensive static analysis for dynamic imports, capable of identifying and analyzing more diverse usage patterns, thus achieving precise tree shaking of unused exported content and further optimizing bundle size.
+
+```js title=rspack.config.mjs
+// Previously only supported analyzing destructuring assignments
+const { value } = await import('./module');
+console.log(value);
+
+// Now also supports analyzing the following cases
+const mod = await import('./module');
+const { value } = mod;
+console.log(value);
+
+const mod = await import('./module');
+console.log(mod.value);
+
+import('./module').then(({ value }) => {
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  const { value } = mod;
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  console.log(mod.value);
+});
+```
+
+### Experimental support for defer import
+
+Rspack now experimentally supports [defer import](https://github.com/tc39/proposal-defer-import-eval), which you can enable through [experiments.deferImport](/config/experiments#experimentsdeferimport). Currently, we only support the `import defer` syntax, and `import.defer()` will be implemented later.
+
+```js title=rspack.config.mjs
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+### lazyBarrel enabled by default
+
+In Rspack v1.5, we introduced the experimental lazyBarrel optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack v1.6.
+
+:::info
+What are Barrel Files? Barrel files are files that are primarily used to re-export content from other modules, typically used to simplify import paths and provide a unified API entry point.
+:::
+
+### Preserve JSX in output
+
+Rspack now supports preserving JSX syntax in the output. Rspack only analyzes JSX without performing any transformations.
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true, // Enable JSX parsing
+      },
+    },
+    rules: [
+      {
+        test: /\.jsx?$/,
+        use: {
+          loader: 'swc-loader',
+          options: {
+            jsc: {
+              parser: { jsx: true },
+              transform: {
+                // Preserve JSX syntax
+                react: { runtime: 'preserve' },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Rule.extractSourceMap
+
+Rspack now supports extracting existing source map data from files (from their `//# sourceMappingURL` comments) through [Rule.extractSourceMap](/config/module#ruleextractsourcemap). This feature is particularly useful for preserving source maps provided by third-party libraries, ensuring that debugging information remains accurate even when these libraries are bundled or transformed.
+
+This feature was originally introduced in webpack [v5.102.0](https://github.com/webpack/webpack/releases/tag/v5.102.0) as a built-in alternative to [source-map-loader](https://github.com/webpack-contrib/source-map-loader), providing better performance and tighter integration with the build process.
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
+      },
+    ],
+  },
+};
+```
+
+## Rstack progress
+
+[Rstack](/guide/start/ecosystem#rstack) is a unified JavaScript toolchain centered around Rspack, featuring excellent performance and consistent architecture.
+
+### Rsbuild
+
+#### Forward browser logs
+
+Rsbuild now automatically forwards error logs from the browser to the terminal, helping you conveniently view runtime errors during development. This also enables Coding Agents to obtain more complete context from terminal logs, allowing them to better analyze and locate errors.
+
+![rsbuild-error-forward](https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png)
+
+If you don't need this feature, you can disable it by setting [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) to false:
+
+```js title=rsbuild.config.ts
+// rsbuild.config.ts
+export default {
+  dev: {
+    browserLogs: false,
+  },
+};
+```
+
+#### Building ESM applications
+
+Rsbuild now supports building ES Modules format output for Web applications, simply enable [output.module: true](https://rsbuild.rs/zh/config/output/module):
+
+```ts title=rsbuild.config.ts
+export default {
+  output: {
+    module: true,
+  },
+};
+```
+
+Once enabled, Rsbuild will no longer generate IIFE format scripts by default, but will output standard ESM format and automatically set the generated `<script>` tags to `type="module"`.
+
+#### Configuration loading method
+
+Since Node.js 22 already natively supports TypeScript, Rsbuild now defaults to using Node.js's native loader to parse configuration files; if loading fails, it will automatically fall back to [Jiti](https://github.com/unjs/jiti). When using Node.js 22 and above, this mechanism ensures that module resolution behavior remains consistent with Node.js native behavior while providing better loading performance.
+
+You can also manually specify the loading method through the Rsbuild CLI's --config-loader option:
+
+```
+# Force use of native loading
+rsbuild build --config-loader native
+
+# Force use of jiti loading
+rsbuild build --config-loader jiti
+```
+
+### Rspress V2
+
+#### New theme lands on V2 website
+
+Rspress V2's new theme has entered internal testing phase and has been synchronized to the V2 website!
+
+The new theme has been comprehensively upgraded in design, bringing a better documentation reading experience. It also opens up more stable theme interfaces and CSS class names, achieving extremely high freedom in UI customization.
+
+👉 Visit https://v2.rspress.rs/ to experience
+
+![rspress-v2-theme](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rspress.gif)
+
+#### Support for `<PageTabs />` component for Sub-page switching
+
+Rspress V2 adds the `<PageTabs />` component, which can create sub-tabs within the same page, splitting a single page into multiple sub-pages.
+
+![rspress-page-tabs](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
+
+### Rslib
+
+#### TSGO-based Type generation
+
+Rslib now supports generating type declaration files based on [TSGO](https://github.com/microsoft/typescript-go), simply enable [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo). This can bring about 2.5 ~ 3 times improvement in type generation performance, with more significant benefits in large projects.
+
+```ts title=rslib.config.ts
+export default {
+  lib: [
+    {
+      dts: {
+        tsgo: true,
+      },
+    },
+  ],
+};
+```
+
+#### Preserve JSX syntax
+
+Rslib now supports preserving original JSX in build output, simply set runtime to [`'preserve'`](https://rsbuild.rs/zh/plugins/list/plugin-react#preserve). In this mode, JSX syntax will be preserved as-is without any transformation, making it convenient for subsequent processing by other bundling tools.
+
+```ts title=rslib.config.ts
+import { pluginReact } from '@rsbuild/plugin-react';
+
+export default {
+  lib: [
+    {
+      bundle: false,
+      format: 'esm',
+    },
+  ],
+  plugins: [
+    pluginReact({
+      swcReactOptions: {
+        runtime: 'preserve',
+      },
+    }),
+  ],
+};
+```
+
+#### More build CLI options
+
+Rslib supports [additional CLI options](https://rslib.rs/zh/guide/basic/cli#rslib-build) in the build command, which take precedence over configuration files.
+
+```json title=package.json
+{
+  "scripts": {
+    "build": "rslib build --entry index.ts --minify --tsconfig tsconfig.build.json"
+  }
+}
+```
+
+You can also use Rslib without a configuration file, and the CLI will automatically use a default configuration containing only a single [lib](https://rslib.rs/zh/config/lib/) and complete the build based on command line parameters.
+
+### Rstest
+
+#### VS Code extension
+
+The Rstest [VS Code extension](https://marketplace.visualstudio.com/items?itemName=rstack.rstest) can easily discover, run, and debug Rstest tests, enabling developers to efficiently manage test cases and quickly view test results.
+
+![rstest-vscode-extension](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-vscode-ext.gif)
+
+#### Coverage support
+
+Rstest supports using istanbul to collect code coverage and generate coverage reports.
+
+![rstest-coverage](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png)
+
+For more information, see [Rstest - Code Coverage](https://rstest.rs/zh/config/test/coverage).
+
+### Rsdoctor
+
+#### Rsdoctor GitHub Actions
+
+Rsdoctor supports GitHub bundle diff action, which can perform bundle degradation detection during the GitHub CI stage.
+
+> https://github.com/web-infra-dev/rsdoctor-action
+
+![rsdoctor-github-action](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
+
+#### Support for All-in-one JSON data reports
+
+Supports exporting single JSON report data in Brief mode, allowing users to perform cloud storage, sharing, and secondary data processing on the JSON file. Additionally, a new Playground page has been added, allowing reports to be reopened by uploading JSON files.
+
+👉 [Playground Document](https://rsdoctor.rs/zh/guide/start/playground)
+
+👉 [All-in-one JSON](https://rsdoctor.rs/zh/config/options/output#mode-brief)
+
+## Ecosystem
+
+### next-rspack
+
+Using the customized Rspack Rust binding for Next.js in next@16.0.0 brings significant performance improvements:
+
+- 24% improvement in build speed
+- 10% improvement in development speed
+
+In the customized Rspack Rust binding, we migrated the externals logic to Rust, greatly reducing communication overhead between JS and Rust.
+
+![next-rspack-performance](https://assets.rspack.rs/rspack/assets/rspack-v1-6-next-rspack-bench.png)
+
+The benchmark uses the [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) repository. You can view detailed performance data in the repository: https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md
