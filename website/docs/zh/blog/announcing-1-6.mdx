@@ -1,0 +1,451 @@
+---
+date: 2025-10-29 11:00:00
+sidebar: false
+---
+
+_2025 年 10 月 29 日_
+
+# Rspack 1.6 发布公告
+
+![Rspack 1.6](https://assets.rspack.rs/rspack/rspack-banner-v1-6.png)
+
+---
+
+Rspack 1.6 已经正式发布！
+
+值得关注的变更如下：
+
+- 新功能
+  - [更好的 ESM 产物](#更好的-esm-产物)
+  - [layers 特性稳定](#layers-特性稳定)
+  - [优化动态引入语句的 tree shaking](#优化动态引入语句的-tree-shaking)
+  - [实验性支持 defer import](#实验性支持-defer-import)
+  - [lazybarrel 默认启用](#lazybarrel-默认启用)
+  - [产物保留 JSX](#产物保留-jsx)
+  - [extractSourceMap](#extractsourcemap)
+- Rstack 进展
+  - [Rsbuild](#rsbuild)
+  - [Rspress V2](#rspress-v2)
+  - [Rslib](#rslib)
+  - [Rstest](#rstest)
+  - [Rsdoctor](#rsdoctor)
+- 生态系统
+  - [next-rspack](#next-rspack)
+
+## 新功能
+
+### 更好的 ESM 产物
+
+新的 EsmLibraryPlugin 现在作为实验性功能开始启用，为库构建提供更好用、更静态的产物。相比之前的 ModernModule 方案，新的 ESM 产物不受限于 ConcatenatedModule 和 Rspack 自身运行时的限制。
+
+```js title=rspack.config.mjs
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.experiments.EsmLibraryPlugin()],
+  output: {
+    chunkFormat: false, // disable default chunk format as EsmLibraryPlugin will handle how chunks are rendered and loaded
+  },
+  optimization: {
+    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+    concatenateModules: false, // disable module concatenation as EsmLibraryPlugin has its own scope hoisting implementation
+  },
+};
+```
+
+新的 EsmLibraryPlugin 脱离了基于 rspack runtime 中的 Chunk Group 并行加载架构，每一个 Chunk 都可以被直接独立引用。同时 SplitChunks 仍然支持，用户可以继续使用 SplitChunks 拆分出适合自己的产物。
+
+我们还提供了实验性的 preserveModules 特性支持，产物结构可以按照源码结构保留。
+
+```js title=rspack.config.mjs
+import path from 'path';
+
+new rspack.experiments.EsmLibraryPlugin({
+  preserveModules: path.resolve(__dirname, './src'),
+});
+```
+
+### layers 特性稳定
+
+在 1.6.0 版本中，我们废弃了 [experiments.layers](/config/experiments#experimentslayers) 的实验性开关，现在你可以直接开始使用 [layer 特性](/guide/features/layer#layer)。
+
+layer 是一个可以让你分类管理模块的实用特性。你可以给模块赋予不同的 layer，再按照 layer 做不同的处理，例如将模块按照不同的 layer 降级到不同的目标，或是将不同 layer 的模块拆分到不同的产物目录中。
+
+你有多种方式给模块指定 layer：
+
+- 通过 [Entry](/config/entry#entrydescriptionlayer) 指定
+
+```js title=rspack.config.mjs
+export default {
+  entry: {
+    server: {
+      import: './src/server.js',
+      layer: 'server',
+    },
+    client: {
+      import: './src/client.js',
+      layer: 'client',
+    },
+  },
+};
+```
+
+- 通过 [Rule.layer](/config/module#rulelayer) 指定
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
+
+你可以通过 issuerLayer 筛选指定 layer。下面的例子中，我们根据模块的不同 layer 使用不同的降级策略：
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        oneOf: [
+          {
+            issuerLayer: 'client',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es5',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            issuerLayer: 'server',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es2020',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+在后续阶段，你还可以根据不同的 layer 将 Module 放到不同的 Chunk 中：
+
+```js title=rspack.config.mjs
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        server: {
+          layer: 'server',
+          filename: 'server/[name].js',
+        },
+        client: {
+          layer: 'client',
+          filename: 'client/[name].js',
+        },
+      },
+    },
+  },
+};
+```
+
+上面的例子中，我们通过 layer 将 server 和 client 代码分到了不同的产物目录中。
+
+### 优化动态引入语句的 tree shaking
+
+我们针对 dynamic import `import()` 的 tree shaking 进行了优化。之前 Rspack 对于动态导入仅会对解构赋值进行 tree shaking，其他情况下则完全不会。
+
+现在 Rspack 对 dynamic import 实现了更加深入和全面的静态分析，能够识别和分析更多样化的使用模式，从而实现对未使用导出内容的精准 tree shaking，进一步优化打包体积。
+
+```js title=rspack.config.mjs
+// 之前仅支持分析解构赋值
+const { value } = await import('./module');
+console.log(value);
+
+// 现在还支持分析以下情况
+const mod = await import('./module');
+const { value } = mod;
+console.log(value);
+
+const mod = await import('./module');
+console.log(mod.value);
+
+import('./module').then(({ value }) => {
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  const { value } = mod;
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  console.log(mod.value);
+});
+```
+
+### 实验性支持 defer import
+
+Rspack 现在实验性支持了 [defer import](https://github.com/tc39/proposal-defer-import-eval)，你可以通过 [experiments.deferImport](/config/experiments#experimentsdeferimport) 开启。目前我们仅支持 `import defer` 语法，`import.defer()` 会在后续实现。
+
+```js title=rspack.config.mjs
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+### lazyBarrel 默认启用
+
+在 Rspack v1.5 版本中，我们引入了实验性的 lazyBarrel 优化功能，专门用于提升 barrel files（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack v1.6 版本中将其设为默认启用。
+
+:::info
+什么是 Barrel Files？ Barrel files 是指那些主要用于重新导出其他模块内容的文件，通常用于简化导入路径和提供统一的 API 入口。
+:::
+
+### 产物保留 JSX
+
+Rspack 现在支持在产物中保留 JSX 语法，Rspack 对 JSX 仅进行分析而不做任何转换。
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true, // Enable JSX parsing
+      },
+    },
+    rules: [
+      {
+        test: /\.jsx?$/,
+        use: {
+          loader: 'swc-loader',
+          options: {
+            jsc: {
+              parser: { jsx: true },
+              transform: {
+                // Preserve JSX syntax
+                react: { runtime: 'preserve' },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### extractSourceMap
+
+Rspack 现在支持通过 [Rule.extractSourceMap](/config/module#ruleextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
+
+这个功能最初在 webpack [v5.102.0](https://github.com/webpack/webpack/releases/tag/v5.102.0) 中引入，作为 [source-map-loader](https://github.com/webpack-contrib/source-map-loader) 的内置替代方案，提供了更好的性能和与构建过程更紧密的集成。
+
+```js title=rspack.config.mjs
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
+      },
+    ],
+  },
+};
+```
+
+## Rstack 进展
+
+[Rstack](/guide/start/ecosystem#rstack) 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+
+### Rsbuild
+
+#### 转发浏览器日志
+
+Rsbuild 现在会自动将浏览器中的错误日志转发到终端，帮助你在开发过程中便捷地查看运行时报错，这也使 Coding Agents 能够从终端日志中获取更完整的上下文，从而更好地分析和定位错误。
+
+![rsbuild-error-forward](https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png)
+
+如果你不需要该功能，可以将 [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) 设置为 false 来禁用它：
+
+```js title=rsbuild.config.ts
+// rsbuild.config.ts
+export default {
+  dev: {
+    browserLogs: false,
+  },
+};
+```
+
+#### 构建 ESM 应用
+
+Rsbuild 现在支持为 Web 应用构建 ES Modules 格式产物，只需启用 [output.module: true](https://rsbuild.rs/zh/config/output/module) 即可：
+
+```ts title=rsbuild.config.ts
+export default {
+  output: {
+    module: true,
+  },
+};
+```
+
+启用后，Rsbuild 将不再默认生成 IIFE 格式的脚本，而是输出标准的 ESM 格式，并自动将生成的 `<script>` 标签设置为 `type="module"`。
+
+#### 配置加载方式
+
+由于 Node.js 22 已经原生支持了 TypeScript，Rsbuild 现在默认会使用 Node.js 的原生加载器来解析配置文件；如果加载失败，则会自动回退到 [Jiti](https://github.com/unjs/jiti)。在使用 Node.js 22 及以上版本时，这一机制能够确保模块解析行为与 Node.js 原生保持一致，同时带来更好的加载性能。
+
+你也可以通过 Rsbuild CLI 的 --config-loader 选项手动指定加载方式：
+
+```
+# 强制使用原生加载
+rsbuild build --config-loader native
+
+# 强制使用 Jiti 加载
+rsbuild build --config-loader jiti
+```
+
+### Rspress v2
+
+#### 全新主题已登陆 V2 官网
+
+Rspress V2 新主题进入内部测试阶段，并已同步上线至 V2 官网！
+
+全新主题在设计上全面升级，带来更出色的文档阅读体验。同时开放了更多稳定的主题接口与 CSS 类名，实现极高自由度的 UI 定制。
+
+👉 前往 https://v2.rspress.rs/ 体验
+
+![rspress-v2-theme](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rspress.gif)
+
+#### 支持 `<PageTabs />` 组件用于子页面切换
+
+Rspress V2 新增 `<PageTabs />` 组件，可在同一页面内创建子标签页，将单个页面拆分为多个子页面。
+
+![rspress-page-tabs](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
+
+### Rslib
+
+#### 基于 tsgo 的类型生成
+
+Rslib 现在支持基于 [tsgo](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo) 即可。这可以带来大约 2.5 ~ 3 倍的类型生成性能提升，在大型项目中收益更为明显。
+
+```ts title=rslib.config.ts
+export default {
+  lib: [
+    {
+      dts: {
+        tsgo: true,
+      },
+    },
+  ],
+};
+```
+
+#### 保留 JSX 语法
+
+Rslib 现在支持在构建产物中保留原始 JSX，只需将 runtime 设置为 [`'preserve'`](https://rsbuild.rs/zh/plugins/list/plugin-react#preserve) 即可。在该模式下，JSX 语法将保留原样，不做任何转换，方便后续由其他打包工具处理。
+
+```ts title=rslib.config.ts
+import { pluginReact } from '@rsbuild/plugin-react';
+
+export default {
+  lib: [
+    {
+      bundle: false,
+      format: 'esm',
+    },
+  ],
+  plugins: [
+    pluginReact({
+      swcReactOptions: {
+        runtime: 'preserve',
+      },
+    }),
+  ],
+};
+```
+
+#### 更多的 build CLI 选项
+
+Rslib 在 build 命令中支持了[额外的 CLI 选项](https://rslib.rs/zh/guide/basic/cli#rslib-build)，这些选项的优先级高于配置文件。
+
+```json title=package.json
+{
+  "scripts": {
+    "build": "rslib build --entry index.ts --minify --tsconfig tsconfig.build.json"
+  }
+}
+```
+
+你也可以在没有配置文件的情况下使用 Rslib，CLI 将自动使用仅包含单个 [lib](https://rslib.rs/zh/config/lib/) 的默认配置，并根据命令行参数完成构建。
+
+### Rstest
+
+#### VS Code 扩展
+
+Rstest [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rstack.rstest)可以轻松发现、运行和调试 Rstest 测试，使开发者能够高效地管理测试用例，快速查看测试结果。
+
+![rstest-vscode-extension](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-vscode-ext.gif)
+
+#### 覆盖率支持
+
+Rstest 支持使用 istanbul 收集代码覆盖率并生成覆盖率报告。
+
+![rstest-coverage](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png)
+
+更多信息可查看 [Rstest - 代码覆盖率](https://rstest.rs/zh/config/test/coverage)。
+
+### Rsdoctor
+
+#### Rsdoctor GitHub Actions
+
+Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bundle 劣化检测。
+
+> https://github.com/web-infra-dev/rsdoctor-action
+
+![rsdoctor-github-action](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
+
+#### 支持 All-in-one JSON 数据报告
+
+支持在 Brief 模式下导出单一 JSON 报告数据，用户可对该 JSON 文件进行云存储、分享以及二次数据处理。同时，新增了 Playground 页面，可通过上传 JSON 文件再次打开报告。
+
+👉 [Playground Document](https://rsdoctor.rs/zh/guide/start/playground)
+
+👉 [All-in-one JSON](https://rsdoctor.rs/zh/config/options/output#mode-brief)
+
+## 生态
+
+### next-rspack
+
+在 next@16.0.0 中使用为 Next.js 定制的 Rspack Rust binding，带来显著性能提升：
+
+- 构建速度提升 24%
+- 开发速度提升 10%
+
+在定制的 Rspack Rust binding 中，我们将 externals 逻辑迁移到 Rust，极大减少了 JS 与 Rust 之间的通信开销。
+
+![next-rspack-performance](https://assets.rspack.rs/rspack/assets/rspack-v1-6-next-rspack-bench.png)
+
+Benchmark 使用的仓库为 [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack)，可以在仓库中查看详细的性能数据：https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md
