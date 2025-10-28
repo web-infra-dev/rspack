@@ -6,9 +6,6 @@ module.exports = {
 	cache: true,
 	experiments: {
 		cache: true,
-		incremental: {
-			providedExports: false
-		}
 	},
 	plugins: [new rspack.HtmlRspackPlugin()]
 };
