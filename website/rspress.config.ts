@@ -153,6 +153,9 @@ export default defineConfig({
         if (routePath.endsWith('blog/announcing-1-5')) {
           return 'assets/rspack-og-image-v1-5.png';
         }
+        if (routePath.endsWith('blog/announcing-1-6')) {
+          return 'assets/rspack-og-image-v1-6.png';
+        }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
         }
