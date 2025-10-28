@@ -16,25 +16,25 @@ Rspack 1.6 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [更好的 ESM 产物](#更好的-esm-产物)
+  - [优化 ESM 产物](#优化-esm-产物)
+  - [增强 Tree shaking](#增强-tree-shaking)
+  - [支持 import defer](#支持-import-defer)
+  - [默认启用 barrel 优化](#默认启用-barrel-优化)
   - [layers 特性稳定](#layers-特性稳定)
-  - [优化动态引入语句的 tree shaking](#优化动态引入语句的-tree-shaking)
-  - [实验性支持 defer import](#实验性支持-defer-import)
-  - [lazybarrel 默认启用](#lazybarrel-默认启用)
-  - [产物保留 JSX](#产物保留-jsx)
-  - [extractSourceMap](#extractsourcemap)
+  - [保留 JSX 语法](#保留-jsx-语法)
+  - [提取 source map](#提取-source-map)
 - Rstack 进展
-  - [Rsbuild](#rsbuild)
-  - [Rspress V2](#rspress-v2)
-  - [Rslib](#rslib)
-  - [Rstest](#rstest)
-  - [Rsdoctor](#rsdoctor)
+  - [Rsbuild 1.6](#rsbuild-1-6)
+  - [Rspress v2 预览](#rspress-v2-预览)
+  - [Rslib 0.16](#rslib-0-16)
+  - [Rstest 0.6](#rstest-0-6)
+  - [Rsdoctor 1.3](#rsdoctor-1-3)
 - 生态系统
   - [next-rspack](#next-rspack)
 
 ## 新功能
 
-### 更好的 ESM 产物
+### 优化 ESM 产物
 
 新的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 现在作为实验性功能开始启用，为库构建提供更好用、更静态的产物。
 
@@ -45,7 +45,7 @@ ESM 库构建一直是 Rspack 的弱点，在之前我们基于 [concatenateModu
 
 因此我们引入了 EsmLibraryPlugin 实验性插件来彻底解决上述的问题。EsmLibraryPlugin 插件会完全接管 Rspack 的 Chunk 渲染和加载机制，不再依赖 Rspack 的运行时执行整个产物，在编译期链接好 Chunk 中的模块，可以任意搭配 SplitChunks 等优化功能来使用。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
@@ -62,7 +62,7 @@ export default {
 
 我们还提供了实验性的 preserveModules 特性支持，产物结构可以按照源码结构保留。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 import path from 'path';
 
 new rspack.experiments.EsmLibraryPlugin({
@@ -72,21 +72,13 @@ new rspack.experiments.EsmLibraryPlugin({
 
 目前 EsmLibraryPlugin 还在实验阶段，未来会以配置的形式进行开启。
 
-### layers 特性稳定
-
-在 1.6.0 版本中，我们废弃了 [experiments.layers](/config/experiments#experimentslayers) 的实验性开关，现在你可以直接开始使用 [layer 特性](/guide/features/layer#layer)。
-
-layer 是一个可以让你分类管理模块的实用特性。你可以给模块赋予不同的 layer，再按照 layer 做不同的处理，例如将模块按照不同的 layer 降级到不同的目标，或是将不同 layer 的模块拆分到不同的产物目录中。
-
-我们有一篇[关于 layer 特性的介绍文章](/guide/features/layer#layer)，你可以在其中了解更多关于 layer 特性的信息。
-
-### 优化动态引入语句的 tree shaking
+### 增强 Tree shaking
 
 我们针对 dynamic import `import()` 的 tree shaking 进行了优化。之前 Rspack 对于动态导入仅会对解构赋值进行 tree shaking，其他情况下则完全不会。
 
 现在 Rspack 对 dynamic import 实现了更加深入和全面的静态分析，能够识别和分析更多样化的使用模式，从而实现对未使用导出内容的精准 tree shaking，进一步优化打包体积。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 // 之前仅支持分析解构赋值
 const { value } = await import('./module');
 console.log(value);
@@ -113,11 +105,11 @@ import('./module').then(mod => {
 });
 ```
 
-### 实验性支持 defer import
+### 支持 import defer
 
 Rspack 现在实验性支持了 [defer import](https://github.com/tc39/proposal-defer-import-eval)，你可以通过 [experiments.deferImport](/config/experiments#experimentsdeferimport) 开启。目前我们仅支持 `import defer` 语法，`import.defer()` 会在后续实现。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 export default {
   experiments: {
     deferImport: true,
@@ -125,19 +117,27 @@ export default {
 };
 ```
 
-### lazyBarrel 默认启用
+### 默认启用 barrel 优化
 
-在 Rspack v1.5 版本中，我们引入了实验性的 lazyBarrel 优化功能，专门用于提升 barrel files（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack v1.6 版本中将其设为默认启用。
+在 Rspack v1.5 中，我们引入了实验性的 lazyBarrel 优化功能，专门用于提升 barrel files（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack v1.6 版本中将其设为默认启用。
 
 :::info
 什么是 Barrel Files？ Barrel files 是指那些主要用于重新导出其他模块内容的文件，通常用于简化导入路径和提供统一的 API 入口。
 :::
 
-### 产物保留 JSX
+### layers 特性稳定
+
+在 1.6.0 版本中，我们废弃了 [experiments.layers](/config/experiments#experimentslayers) 的实验性开关，现在你可以直接开始使用 [layer 特性](/guide/features/layer#layer)。
+
+layer 是一个可以让你分类管理模块的实用特性。你可以给模块赋予不同的 layer，再按照 layer 做不同的处理，例如将模块按照不同的 layer 降级到不同的目标，或是将不同 layer 的模块拆分到不同的产物目录中。
+
+我们新增了一篇 [关于 layer 特性的介绍文章](/guide/features/layer#layer)，你可以在其中了解更多关于 layer 特性的信息。
+
+### 保留 JSX 语法
 
 Rspack 现在支持在产物中保留 JSX 语法，Rspack 对 JSX 仅进行分析而不做任何转换。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
@@ -149,7 +149,7 @@ export default {
       {
         test: /\.jsx?$/,
         use: {
-          loader: 'swc-loader',
+          loader: 'builtin:swc-loader',
           options: {
             jsc: {
               parser: { jsx: true },
@@ -166,13 +166,13 @@ export default {
 };
 ```
 
-### 提取 SourceMap
+### 提取 source map
 
 Rspack 现在支持通过 [Rule.extractSourceMap](/config/module#ruleextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
 
-这个功能最初在 webpack [v5.102.0](https://github.com/webpack/webpack/releases/tag/v5.102.0) 中引入，作为 [source-map-loader](https://github.com/webpack-contrib/source-map-loader) 的内置替代方案，提供了更好的性能和与构建过程更紧密的集成。
+这个功能可以作为 [source-map-loader](https://github.com/webpack-contrib/source-map-loader) 的内置替代方案，提供了更好的性能和与构建过程更紧密的集成。
 
-```js title=rspack.config.mjs
+```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
@@ -189,13 +189,17 @@ export default {
 
 [Rstack](/guide/start/ecosystem#rstack) 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
 
-### Rsbuild
+### Rsbuild 1.6
 
 #### 转发浏览器日志
 
 Rsbuild 现在会自动将浏览器中的错误日志转发到终端，帮助你在开发过程中便捷地查看运行时报错，这也使 Coding Agents 能够从终端日志中获取更完整的上下文，从而更好地分析和定位错误。
 
-![rsbuild-error-forward](https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png)
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png"
+  alt="rsbuild-error-forward"
+  width="600"
+/>
 
 如果你不需要该功能，可以将 [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) 设置为 false 来禁用它：
 
@@ -212,7 +216,7 @@ export default {
 
 Rsbuild 现在支持为 Web 应用构建 ES Modules 格式产物，只需启用 [output.module: true](https://rsbuild.rs/zh/config/output/module) 即可：
 
-```ts title=rsbuild.config.ts
+```ts title="rsbuild.config.ts"
 export default {
   output: {
     module: true,
@@ -228,7 +232,7 @@ export default {
 
 你也可以通过 Rsbuild CLI 的 --config-loader 选项手动指定加载方式：
 
-```
+```bash
 # 强制使用原生加载
 rsbuild build --config-loader native
 
@@ -236,7 +240,7 @@ rsbuild build --config-loader native
 rsbuild build --config-loader jiti
 ```
 
-### Rspress v2
+### Rspress v2 预览
 
 #### 全新主题已登陆 V2 官网
 
@@ -254,13 +258,13 @@ Rspress V2 新增 `<PageTabs />` 组件，可在同一页面内创建子标签�
 
 ![rspress-page-tabs](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
 
-### Rslib
+### Rslib 0.16
 
 #### 基于 tsgo 的类型生成
 
 Rslib 现在支持基于 [tsgo](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo) 即可。这可以带来大约 2.5 ~ 3 倍的类型生成性能提升，在大型项目中收益更为明显。
 
-```ts title=rslib.config.ts
+```ts title="rslib.config.ts"
 export default {
   lib: [
     {
@@ -276,7 +280,7 @@ export default {
 
 Rslib 现在支持在构建产物中保留原始 JSX，只需将 runtime 设置为 [`'preserve'`](https://rsbuild.rs/zh/plugins/list/plugin-react#preserve) 即可。在该模式下，JSX 语法将保留原样，不做任何转换，方便后续由其他打包工具处理。
 
-```ts title=rslib.config.ts
+```ts title="rslib.config.ts"
 import { pluginReact } from '@rsbuild/plugin-react';
 
 export default {
@@ -310,7 +314,7 @@ Rslib 在 build 命令中支持了[额外的 CLI 选项](https://rslib.rs/zh/gui
 
 你也可以在没有配置文件的情况下使用 Rslib，CLI 将自动使用仅包含单个 [lib](https://rslib.rs/zh/config/lib/) 的默认配置，并根据命令行参数完成构建。
 
-### Rstest
+### Rstest 0.6
 
 #### VS Code 扩展
 
@@ -322,11 +326,15 @@ Rstest [VS Code 扩展](https://marketplace.visualstudio.com/items?itemName=rsta
 
 Rstest 支持使用 istanbul 收集代码覆盖率并生成覆盖率报告。
 
-![rstest-coverage](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png)
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png"
+  alt="rstest-coverage"
+  width="600"
+/>
 
 更多信息可查看 [Rstest - 代码覆盖率](https://rstest.rs/zh/config/test/coverage)。
 
-### Rsdoctor
+### Rsdoctor 1.3
 
 #### Rsdoctor GitHub Actions
 
