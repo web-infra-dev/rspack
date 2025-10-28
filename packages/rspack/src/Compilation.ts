@@ -13,10 +13,10 @@ import type {
 	ChunkGroup,
 	Dependency,
 	ExternalObject,
-	JsCompatSourceOwned,
 	JsCompilation,
 	JsPathData,
-	JsRuntimeModule
+	JsRuntimeModule,
+	JsSource
 } from "@rspack/binding";
 import binding from "@rspack/binding";
 
@@ -60,7 +60,7 @@ import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
-import { JsSource } from "./util/source";
+import { SourceAdapter } from "./util/source";
 // patch Chunk
 import "./Chunk";
 // patch Chunks
@@ -600,20 +600,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			| AssetInfo
 			| ((assetInfo: AssetInfo) => AssetInfo | undefined)
 	) {
-		let compatNewSourceOrFunction:
-			| JsCompatSourceOwned
-			| ((source: JsCompatSourceOwned) => JsCompatSourceOwned);
+		let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
 
 		if (typeof newSourceOrFunction === "function") {
-			compatNewSourceOrFunction = function newSourceFunction(
-				source: JsCompatSourceOwned
-			) {
-				return JsSource.__to_binding(
-					newSourceOrFunction(JsSource.__from_binding(source))
+			compatNewSourceOrFunction = function newSourceFunction(source: JsSource) {
+				return SourceAdapter.toBinding(
+					newSourceOrFunction(SourceAdapter.fromBinding(source))
 				);
 			};
 		} else {
-			compatNewSourceOrFunction = JsSource.__to_binding(newSourceOrFunction);
+			compatNewSourceOrFunction = SourceAdapter.toBinding(newSourceOrFunction);
 		}
 
 		this.#inner.updateAsset(
@@ -631,7 +627,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		this.#inner.emitAsset(filename, JsSource.__to_binding(source), assetInfo);
+		this.#inner.emitAsset(filename, SourceAdapter.toBinding(source), assetInfo);
 	}
 
 	deleteAsset(filename: string) {
@@ -1016,7 +1012,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!rawSource) {
 			return;
 		}
-		return JsSource.__from_binding(rawSource);
+		return SourceAdapter.fromBinding(rawSource);
 	}
 
 	/**
@@ -1027,7 +1023,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @internal
 	 */
 	__internal__setAssetSource(filename: string, source: Source) {
-		this.#inner.setAssetSource(filename, JsSource.__to_binding(source));
+		this.#inner.setAssetSource(filename, SourceAdapter.toBinding(source));
 	}
 
 	/**

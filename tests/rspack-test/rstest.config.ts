@@ -53,7 +53,7 @@ export default defineConfig({
 					: process.argv.indexOf("--test")) + 1
 				]
 				: undefined,
-		printLogger: process.argv.includes("--verbose") ? 'true' : 'false',
+		printLogger: process.env.DEBUG === "test" ? 'true' : 'false',
 		__TEST_PATH__: __dirname,
 		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
 		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
@@ -62,7 +62,6 @@ export default defineConfig({
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
-	reporters: process.env.CI ? undefined : ["verbose"],
 	hideSkippedTests: true,
 });
 

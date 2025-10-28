@@ -15,8 +15,10 @@ use super::state::UsageCallback;
 use crate::{
   ClassExt,
   dependency::PureExpressionDependency,
-  is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
+  side_effects_parser_plugin::{
+    is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
+  },
   visitors::{
     JavascriptParser, Statement, TagInfoData, VariableDeclaration, scope_info::VariableInfoFlags,
   },

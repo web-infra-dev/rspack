@@ -1808,7 +1808,7 @@ type DevToolDebugIds = "-debugids" | "";
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
 
 // @public
-export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
+export type DevtoolModuleFilenameTemplate = string | ((context: ModuleFilenameTemplateContext) => string);
 
 // @public
 export type DevtoolNamespace = string;
@@ -4748,6 +4748,21 @@ declare namespace ModuleFilenameHelpers {
 export { ModuleFilenameHelpers }
 
 // @public (undocumented)
+export interface ModuleFilenameTemplateContext {
+    absoluteResourcePath: string;
+    allLoaders: string;
+    hash: string;
+    identifier: string;
+    loaders: string;
+    moduleId: string;
+    namespace: string;
+    query: string;
+    resource: string;
+    resourcePath: string;
+    shortIdentifier: string;
+}
+
+// @public (undocumented)
 type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type: any) => boolean);
 
 // @public (undocumented)
@@ -6559,6 +6574,7 @@ declare namespace rspackExports {
         HashSalt,
         SourceMapFilename,
         DevtoolNamespace,
+        ModuleFilenameTemplateContext,
         DevtoolModuleFilenameTemplate,
         DevtoolFallbackModuleFilenameTemplate,
         Environment,

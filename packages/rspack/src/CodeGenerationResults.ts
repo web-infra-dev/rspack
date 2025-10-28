@@ -1,5 +1,5 @@
 import binding from "@rspack/binding";
-import { JsSource } from "./util/source";
+import { SourceAdapter } from "./util/source";
 
 Object.defineProperty(binding.Sources.prototype, "get", {
 	enumerable: true,
@@ -7,7 +7,7 @@ Object.defineProperty(binding.Sources.prototype, "get", {
 	value(this: binding.Sources, sourceType: string) {
 		const originalSource = this._get(sourceType);
 		if (originalSource) {
-			return JsSource.__from_binding(originalSource);
+			return SourceAdapter.fromBinding(originalSource);
 		}
 		return null;
 	}

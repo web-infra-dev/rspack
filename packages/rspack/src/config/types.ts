@@ -355,8 +355,35 @@ export type SourceMapFilename = string;
 /** This option determines the module's namespace */
 export type DevtoolNamespace = string;
 
+export interface ModuleFilenameTemplateContext {
+	/** The identifier of the module */
+	identifier: string;
+	/** The shortened identifier of the module */
+	shortIdentifier: string;
+	/** The resource of the module request */
+	resource: string;
+	/** The resource path of the module request */
+	resourcePath: string;
+	/** The absolute resource path of the module request */
+	absoluteResourcePath: string;
+	/** The loaders of the module request */
+	loaders: string;
+	/** All loaders of the module request */
+	allLoaders: string;
+	/** The query of the module identifier */
+	query: string;
+	/** The module id of the module */
+	moduleId: string;
+	/** The hash of the module identifier */
+	hash: string;
+	/** The module namespace */
+	namespace: string;
+}
+
 /** This option is only used when devtool uses an option that requires module names. */
-export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
+export type DevtoolModuleFilenameTemplate =
+	| string
+	| ((context: ModuleFilenameTemplateContext) => string);
 
 /** A fallback is used when the template string or function above yields duplicates. */
 export type DevtoolFallbackModuleFilenameTemplate =
