@@ -143,9 +143,6 @@ export default defineConfig({
     },
   ],
   builderConfig: {
-    dev: {
-      lazyCompilation: true,
-    },
     plugins: [
       pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
