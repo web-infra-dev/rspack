@@ -251,11 +251,11 @@ macro_rules! impl_module_methods {
         self.module.readable_identifier()
       }
 
-      #[napi(js_name = "_originalSource", enumerable = false)]
+      #[napi(js_name = "_originalSource", ts_return_type = "JsSource", enumerable = false)]
       pub fn original_source(
         &mut self,
         env: &napi::Env,
-      ) -> napi::Result<napi::Either<$crate::source::JsCompatSource<'_>, ()>> {
+      ) -> napi::Result<napi::Either<$crate::source::JsSourceToJs, ()>> {
         self.module.original_source(env)
       }
 
@@ -295,13 +295,13 @@ macro_rules! impl_module_methods {
       #[napi(
         js_name = "_emitFile",
         enumerable = false,
-        ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+        ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
       )]
       pub fn emit_file(
         &mut self,
         env: &napi::Env,
         filename: String,
-        source: $crate::source::JsCompatSource,
+        source: $crate::source::JsSourceFromJs,
         asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
         self

@@ -7,9 +7,7 @@ use rspack_core::{
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
   PathInfo, RuntimeGlobals, SourceType, get_js_chunk_filename_template, get_undo_path,
   render_init_fragments,
-  rspack_sources::{
-    BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  rspack_sources::{ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -638,7 +636,7 @@ impl EsmLibraryPlugin {
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource<BoxSource>> {
+  ) -> Result<ReplaceSource> {
     let mut source = info.source.clone().expect("should have source");
 
     for ((atom, ctxt), refs) in &info.binding_to_ref {
