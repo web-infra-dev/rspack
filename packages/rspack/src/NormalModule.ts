@@ -5,7 +5,7 @@ import type { Source } from "webpack-sources";
 import type { Compilation } from "./Compilation";
 import type { LoaderContext } from "./config";
 import type { Module } from "./Module";
-import { JsSource } from "./util/source";
+import { SourceAdapter } from "./util/source";
 
 Object.defineProperty(binding.NormalModule.prototype, "identifier", {
 	enumerable: true,
@@ -20,7 +20,7 @@ Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
 	value(this: binding.NormalModule) {
 		const originalSource = this._originalSource();
 		if (originalSource) {
-			return JsSource.__from_binding(originalSource);
+			return SourceAdapter.fromBinding(originalSource);
 		}
 		return null;
 	}
@@ -34,7 +34,7 @@ Object.defineProperty(binding.NormalModule.prototype, "emitFile", {
 		source: Source,
 		assetInfo?: binding.AssetInfo
 	) {
-		return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
+		return this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
 	}
 });
 

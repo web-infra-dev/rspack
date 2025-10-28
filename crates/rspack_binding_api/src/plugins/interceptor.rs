@@ -95,7 +95,7 @@ use crate::{
     JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
     JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
   },
-  source::ToJsCompatSourceOwned,
+  source::JsSourceToJs,
 };
 
 #[napi(object)]
@@ -1320,14 +1320,10 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_str = module.generate(compilation).await?;
+    let source_string = module.generate(compilation).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
-        source: Some(
-          RawStringSource::from(source_str)
-            .to_js_compat_source_owned()
-            .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-        ),
+        source: Some(JsSourceToJs::new(source_string)),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
         name: module
@@ -1345,14 +1341,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      match source.source {
-        napi::Either::A(string) => {
-          module.set_custom_source(string);
-        }
-        napi::Either::B(buffer) => {
-          module.set_custom_source(String::from_utf8_lossy(&buffer).into_owned());
-        }
-      }
+      module.set_custom_source(String::from_utf8_lossy(&source.source).into_owned());
     }
     Ok(())
   }
