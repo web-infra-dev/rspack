@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   hash::{BuildHasherDefault, Hash},
-  ptr::NonNull,
   sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -10,16 +9,17 @@ use std::{
 
 use dashmap::DashMap;
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
+use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
-use rspack_macros::impl_source_map_config;
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -40,7 +40,7 @@ use crate::{
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
   OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
-  diagnostics::ModuleBuildError, get_context, impl_module_meta_info, module_update_hash,
+  diagnostics::ModuleBuildError, get_context, module_update_hash,
 };
 
 #[cacheable]
@@ -77,7 +77,7 @@ impl ModuleIssuer {
   }
 }
 
-define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData) -> Content,tracing=false);
+define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
@@ -94,10 +94,9 @@ pub struct NormalModuleHooks {
   pub additional_data: NormalModuleAdditionalDataHook,
 }
 
-#[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
-pub struct NormalModule {
+pub struct NormalModuleInner {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
@@ -134,6 +133,8 @@ pub struct NormalModule {
   parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
+  /// enable/disable extracting source map
+  extract_source_map: Option<bool>,
 
   #[allow(unused)]
   debug_id: usize,
@@ -148,11 +149,52 @@ pub struct NormalModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   parsed: bool,
+
+  source_map_kind: SourceMapKind,
+}
+
+#[cacheable]
+#[derive(Debug)]
+pub enum NormalModule {
+  Owned(Box<NormalModuleInner>),
+  Transferred,
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  #[inline]
+  fn inner(&self) -> &NormalModuleInner {
+    match self {
+      NormalModule::Owned(inner) => inner,
+      NormalModule::Transferred => {
+        unreachable!("NormalModule ownership has been transferred to loader execution context")
+      }
+    }
+  }
+
+  #[inline]
+  fn inner_mut(&mut self) -> &mut NormalModuleInner {
+    match self {
+      NormalModule::Owned(inner) => inner,
+      NormalModule::Transferred => {
+        unreachable!("NormalModule ownership has been transferred to loader execution context")
+      }
+    }
+  }
+
+  #[inline]
+  async fn with_ownership<R>(
+    &mut self,
+    operation: impl FnOnce(Self) -> BoxFuture<'static, R>,
+    extract_module: impl FnOnce(&mut R) -> Self,
+  ) -> R {
+    let module = std::mem::replace(self, NormalModule::Transferred);
+    let mut result = operation(module).await;
+    *self = extract_module(&mut result);
+    result
+  }
+
   fn create_id<'request>(
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
@@ -182,10 +224,11 @@ impl NormalModule {
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
     context: Option<Context>,
+    extract_source_map: Option<bool>,
   ) -> Self {
     let module_type = module_type.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
-    Self {
+    Self::Owned(Box::new(NormalModuleInner {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       id: ModuleIdentifier::from(id.as_ref()),
@@ -204,6 +247,7 @@ impl NormalModule {
       loaders,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
+      extract_source_map,
 
       cached_source_sizes: DashMap::default(),
       diagnostics: Default::default(),
@@ -214,74 +258,74 @@ impl NormalModule {
       build_meta: Default::default(),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
-    }
+    }))
   }
 
   pub fn id(&self) -> ModuleIdentifier {
-    self.id
+    self.inner().id
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
-    self.match_resource.as_ref()
+    self.inner().match_resource.as_ref()
   }
 
   pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
-    &mut self.match_resource
+    &mut self.inner_mut().match_resource
   }
 
   pub fn resource_resolved_data(&self) -> &Arc<ResourceData> {
-    &self.resource_data
+    &self.inner().resource_data
   }
 
   pub fn request(&self) -> &str {
-    &self.request
+    &self.inner().request
   }
 
   pub fn user_request(&self) -> &str {
-    &self.user_request
+    &self.inner().user_request
   }
 
   pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
+    &mut self.inner_mut().user_request
   }
 
   pub fn raw_request(&self) -> &str {
-    &self.raw_request
+    &self.inner().raw_request
   }
 
   pub fn loaders(&self) -> &[BoxLoader] {
-    &self.loaders
+    &self.inner().loaders
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
-    &*self.parser_and_generator
+    &*self.inner().parser_and_generator
   }
 
   pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
-    &mut self.parser_and_generator
+    &mut self.inner_mut().parser_and_generator
   }
 
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
-    &self.code_generation_dependencies
+    &self.inner().code_generation_dependencies
   }
 
   pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
-    &mut self.code_generation_dependencies
+    &mut self.inner_mut().code_generation_dependencies
   }
 
   pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
-    &self.presentational_dependencies
+    &self.inner().presentational_dependencies
   }
 
   pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
-    &mut self.presentational_dependencies
+    &mut self.inner_mut().presentational_dependencies
   }
 
   #[tracing::instrument(
     "NormalModule:build_hash", skip_all,fields(
-    resource = self.resource_data.resource()
-  )
-)]
+      resource = self.inner().resource_data.resource()
+    )
+  )]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,
@@ -291,7 +335,7 @@ impl NormalModule {
     "source".hash(&mut hasher);
     if let Some(error) = self.first_error() {
       error.message.hash(&mut hasher);
-    } else if let Some(s) = &self.source {
+    } else if let Some(s) = &self.inner().source {
       s.hash(&mut hasher);
     }
     "meta".hash(&mut hasher);
@@ -300,70 +344,74 @@ impl NormalModule {
   }
 
   pub fn get_parser_options(&self) -> Option<&ParserOptions> {
-    self.parser_options.as_ref()
+    self.inner().parser_options.as_ref()
   }
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
-    self.generator_options.as_ref()
+    self.inner().generator_options.as_ref()
   }
 }
 
 impl Identifiable for NormalModule {
   #[inline]
   fn identifier(&self) -> ModuleIdentifier {
-    self.id
+    self.inner().id
   }
 }
 
 impl DependenciesBlock for NormalModule {
   fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+    self.inner_mut().blocks.push(block)
   }
 
   fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
+    &self.inner().blocks
   }
 
   fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
+    self.inner_mut().dependencies.push(dependency)
   }
 
   fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
+    self.inner_mut().dependencies.retain(|d| d != &dependency)
   }
 
   fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+    &self.inner().dependencies
   }
 }
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
-  impl_module_meta_info!();
-
   fn module_type(&self) -> &ModuleType {
-    &self.module_type
+    &self.inner().module_type
   }
 
   fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType] {
-    self.parser_and_generator.source_types(self, module_graph)
+    self
+      .inner()
+      .parser_and_generator
+      .source_types(self, module_graph)
   }
 
   fn source(&self) -> Option<&BoxSource> {
-    self.source.as_ref()
+    self.inner().source.as_ref()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
-    Cow::Owned(context.shorten(&self.user_request))
+    Cow::Owned(context.shorten(&self.inner().user_request))
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
+    if let Some(size_ref) = source_type.and_then(|st| self.inner().cached_source_sizes.get(st)) {
       *size_ref
     } else {
-      let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
-      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
+      let size = f64::max(
+        1.0,
+        self.inner().parser_and_generator.size(self, source_type),
+      );
+      source_type.and_then(|st| self.inner().cached_source_sizes.insert(*st, size));
       size
     }
   }
@@ -373,18 +421,19 @@ impl Module for NormalModule {
     perfetto.process_name = format!("Rspack Build Detail"),
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
-    module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
+    module.loaders = ?self.inner().loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
   )]
   async fn build(
     &mut self,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    let inner = self.inner_mut();
     // so does webpack
-    self.parsed = true;
+    inner.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(inner.request.as_str()).await?
     } else {
       false
     };
@@ -399,60 +448,83 @@ impl Module for NormalModule {
     let plugin = Arc::new(RspackLoaderRunnerPlugin {
       plugin_driver: build_context.plugin_driver.clone(),
       current_loader: Default::default(),
+      extract_source_map: self.inner().extract_source_map,
     });
 
-    let (mut loader_result, err) = run_loaders(
-      self.loaders.clone(),
-      self.resource_data.clone(),
-      Some(plugin.clone()),
-      RunnerContext {
-        compiler_id: build_context.compiler_id,
-        compilation_id: build_context.compilation_id,
-        options: build_context.compiler_options.clone(),
-        resolver_factory: build_context.resolver_factory.clone(),
-        #[allow(clippy::unwrap_used)]
-        module: NonNull::new(self).unwrap(),
-        module_source_map_kind: self.source_map_kind,
-      },
-      build_context.fs.clone(),
-    )
-    .instrument(info_span!("NormalModule:run_loaders",))
-    .await;
+    let compiler_id = build_context.compiler_id;
+    let compilation_id = build_context.compilation_id;
+    let compiler_options = build_context.compiler_options.clone();
+    let resolver_factory = build_context.resolver_factory.clone();
+    let fs = build_context.fs.clone();
+    let (mut loader_result, err) = self
+      .with_ownership(
+        |mut module| {
+          Box::pin(async move {
+            let inner = module.inner_mut();
+            let (loader_result, err) = run_loaders(
+              inner.loaders.clone(),
+              inner.resource_data.clone(),
+              Some(plugin.clone()),
+              RunnerContext {
+                compiler_id,
+                compilation_id,
+                options: compiler_options,
+                resolver_factory,
+                source_map_kind: inner.source_map_kind,
+                module,
+              },
+              fs,
+            )
+            .instrument(info_span!("NormalModule:run_loaders",))
+            .await;
+            (loader_result, err)
+          })
+        },
+        |(loader_result, _)| {
+          std::mem::replace(&mut loader_result.context.module, NormalModule::Transferred)
+        },
+      )
+      .await;
+
+    let inner = self.inner_mut();
     if let Some(err) = err {
-      self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.file_dependencies = loader_result
+      inner.build_info.cacheable = loader_result.cacheable;
+      inner.build_info.file_dependencies = loader_result
         .file_dependencies
         .into_iter()
         .map(Into::into)
         .collect();
-      self.build_info.context_dependencies = loader_result
+      inner.build_info.context_dependencies = loader_result
         .context_dependencies
         .into_iter()
         .map(Into::into)
         .collect();
-      self.build_info.missing_dependencies = loader_result
+      inner.build_info.missing_dependencies = loader_result
         .missing_dependencies
         .into_iter()
         .map(Into::into)
         .collect();
-      self.build_info.build_dependencies = loader_result
+      inner.build_info.build_dependencies = loader_result
         .build_dependencies
         .into_iter()
         .map(Into::into)
         .collect();
 
-      self.source = None;
+      inner.source = None;
       let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
-      self.add_diagnostic(diagnostic);
+      inner.diagnostics.push(diagnostic);
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      self.inner_mut().build_info.hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.inner().build_meta,
+      ));
       return Ok(BuildResult {
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: vec![],
       });
     };
+
     build_context
       .plugin_driver
       .normal_module_hooks
@@ -461,7 +533,8 @@ impl Module for NormalModule {
       .await?;
     self.add_diagnostics(loader_result.diagnostics);
 
-    let is_binary = self
+    let inner = self.inner_mut();
+    let is_binary = inner
       .generator_options
       .as_ref()
       .and_then(|g| match g {
@@ -470,7 +543,7 @@ impl Module for NormalModule {
         GeneratorOptions::AssetResource(g) => g.binary,
         _ => None,
       })
-      .unwrap_or(self.module_type().is_binary());
+      .unwrap_or(inner.module_type.is_binary());
 
     let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())
@@ -479,36 +552,39 @@ impl Module for NormalModule {
     };
     let source = self.create_source(content, loader_result.source_map)?;
 
-    self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.file_dependencies = loader_result
+    let inner = self.inner_mut();
+    inner.build_info.cacheable = loader_result.cacheable;
+    inner.build_info.file_dependencies = loader_result
       .file_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    self.build_info.context_dependencies = loader_result
+    inner.build_info.context_dependencies = loader_result
       .context_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    self.build_info.missing_dependencies = loader_result
+    inner.build_info.missing_dependencies = loader_result
       .missing_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    self.build_info.build_dependencies = loader_result
+    inner.build_info.build_dependencies = loader_result
       .build_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
 
     if no_parse {
-      self.parsed = false;
-      self.source = Some(source);
-      self.code_generation_dependencies = Some(Vec::new());
-      self.presentational_dependencies = Some(Vec::new());
+      inner.parsed = false;
+      inner.source = Some(source);
+      inner.code_generation_dependencies = Some(Vec::new());
+      inner.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      self.inner_mut().build_info.hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.inner().build_meta,
+      ));
 
       return Ok(BuildResult {
         dependencies: Vec::new(),
@@ -527,30 +603,30 @@ impl Module for NormalModule {
         side_effects_bailout,
       },
       diagnostics,
-    ) = self
+    ) = inner
       .parser_and_generator
       .parse(ParseContext {
         source: source.clone(),
-        module_context: &self.context,
-        module_identifier: self.identifier(),
-        module_parser_options: self.parser_options.as_ref(),
-        module_type: &self.module_type,
-        module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
-        module_source_map_kind: *self.get_source_map_kind(),
-        loaders: &self.loaders,
-        resource_data: &self.resource_data,
+        module_context: &inner.context,
+        module_identifier: inner.id,
+        module_parser_options: inner.parser_options.as_ref(),
+        module_type: &inner.module_type,
+        module_layer: inner.layer.as_ref(),
+        module_user_request: &inner.user_request,
+        module_source_map_kind: inner.source_map_kind,
+        loaders: &inner.loaders,
+        resource_data: &inner.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        factory_meta: self.factory_meta.as_ref(),
-        build_info: &mut self.build_info,
-        build_meta: &mut self.build_meta,
+        factory_meta: inner.factory_meta.as_ref(),
+        build_info: &mut inner.build_info,
+        build_meta: &mut inner.build_meta,
         parse_meta: loader_result.parse_meta,
       })
       .await?
       .split_into_parts();
     if diagnostics.iter().any(|d| d.is_error()) {
-      self.build_meta = Default::default();
+      inner.build_meta = Default::default();
     }
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
@@ -566,12 +642,15 @@ impl Module for NormalModule {
     };
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.source = Some(source);
-    self.code_generation_dependencies = Some(code_generation_dependencies);
-    self.presentational_dependencies = Some(presentational_dependencies);
+    let inner = self.inner_mut();
+    inner.source = Some(source);
+    inner.code_generation_dependencies = Some(code_generation_dependencies);
+    inner.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.hash =
-      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+    self.inner_mut().build_info.hash = Some(self.init_build_hash(
+      &build_context.compiler_options.output,
+      &self.inner().build_meta,
+    ));
 
     Ok(BuildResult {
       dependencies,
@@ -606,15 +685,16 @@ impl Module for NormalModule {
       }
       return Ok(code_generation_result);
     }
-    let Some(source) = &self.source else {
+    let inner = self.inner();
+    let Some(source) = &inner.source else {
       return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
-        self.request
+        inner.request
       ));
     };
 
     let mut code_generation_result = CodeGenerationResult::default();
-    if !self.parsed {
+    if !inner.parsed {
       code_generation_result
         .runtime_requirements
         .insert(RuntimeGlobals::MODULE);
@@ -628,7 +708,7 @@ impl Module for NormalModule {
 
     let module_graph = compilation.get_module_graph();
     for source_type in self.source_types(&module_graph) {
-      let generation_result = self
+      let generation_result = inner
         .parser_and_generator
         .generate(
           source,
@@ -654,11 +734,12 @@ impl Module for NormalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
+    let inner = self.inner();
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.build_info.hash.dyn_hash(&mut hasher);
+    inner.build_info.hash.dyn_hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
-    if self.source.is_some() {
-      self
+    if inner.source.is_some() {
+      inner
         .parser_and_generator
         .get_runtime_hash(self, compilation, runtime)
         .await?
@@ -670,7 +751,7 @@ impl Module for NormalModule {
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
-    let resource = self.resource_data.resource();
+    let resource = self.inner().resource_data.resource();
     let idx = resource.find('?');
     if let Some(idx) = idx {
       Some(resource[..idx].into())
@@ -681,7 +762,7 @@ impl Module for NormalModule {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
     let mut ident = String::new();
-    if let Some(layer) = &self.layer {
+    if let Some(layer) = &self.inner().layer {
       ident += "(";
       ident += layer;
       ident += ")/";
@@ -691,11 +772,11 @@ impl Module for NormalModule {
   }
 
   fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
-    self.resolve_options.clone()
+    self.inner().resolve_options.clone()
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
-    if let Some(deps) = self.code_generation_dependencies.as_deref()
+    if let Some(deps) = self.inner().code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {
       Some(deps)
@@ -705,7 +786,7 @@ impl Module for NormalModule {
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
-    if let Some(deps) = self.presentational_dependencies.as_deref()
+    if let Some(deps) = self.inner().presentational_dependencies.as_deref()
       && !deps.is_empty()
     {
       Some(deps)
@@ -715,11 +796,11 @@ impl Module for NormalModule {
   }
 
   fn get_context(&self) -> Option<Box<Context>> {
-    Some(self.context.clone())
+    Some(self.inner().context.clone())
   }
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.layer.as_ref()
+    self.inner().layer.as_ref()
   }
 
   // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120
@@ -731,7 +812,7 @@ impl Module for NormalModule {
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
     module_graph_cache.cached_get_side_effects_connection_state(self.id(), || {
-      if let Some(state) = connection_state_cache.get(&self.id) {
+      if let Some(state) = connection_state_cache.get(&self.inner().id) {
         return *state;
       }
 
@@ -756,7 +837,7 @@ impl Module for NormalModule {
             if matches!(state, ConnectionState::Active(true)) {
               // TODO add optimization bailout
               module_chain.remove(&self.identifier());
-              connection_state_cache.insert(self.id, ConnectionState::Active(true));
+              connection_state_cache.insert(self.inner().id, ConnectionState::Active(true));
               return ConnectionState::Active(true);
             } else if !matches!(state, ConnectionState::CircularConnection) {
               current = current + state;
@@ -764,7 +845,7 @@ impl Module for NormalModule {
           }
         }
         module_chain.remove(&self.identifier());
-        connection_state_cache.insert(self.id, current);
+        connection_state_cache.insert(self.inner().id, current);
         return current;
       }
       ConnectionState::Active(true)
@@ -777,22 +858,57 @@ impl Module for NormalModule {
     cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     self
+      .inner()
       .parser_and_generator
       .get_concatenation_bailout_reason(self, mg, cg)
+  }
+
+  fn factory_meta(&self) -> Option<&FactoryMeta> {
+    self.inner().factory_meta.as_ref()
+  }
+
+  fn set_factory_meta(&mut self, factory_meta: FactoryMeta) {
+    self.inner_mut().factory_meta = Some(factory_meta);
+  }
+
+  fn build_info(&self) -> &BuildInfo {
+    &self.inner().build_info
+  }
+
+  fn build_info_mut(&mut self) -> &mut BuildInfo {
+    &mut self.inner_mut().build_info
+  }
+
+  fn build_meta(&self) -> &BuildMeta {
+    &self.inner().build_meta
+  }
+
+  fn build_meta_mut(&mut self) -> &mut BuildMeta {
+    &mut self.inner_mut().build_meta
+  }
+}
+
+impl ModuleSourceMapConfig for NormalModule {
+  fn get_source_map_kind(&self) -> &SourceMapKind {
+    &self.inner().source_map_kind
+  }
+
+  fn set_source_map_kind(&mut self, source_map_kind: SourceMapKind) {
+    self.inner_mut().source_map_kind = source_map_kind;
   }
 }
 
 impl Diagnosable for NormalModule {
   fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostics.push(diagnostic);
+    self.inner_mut().diagnostics.push(diagnostic);
   }
 
   fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
-    self.diagnostics.append(&mut diagnostics);
+    self.inner_mut().diagnostics.append(&mut diagnostics);
   }
 
   fn diagnostics(&self) -> Cow<'_, [Diagnostic]> {
-    Cow::Borrowed(&self.diagnostics)
+    Cow::Borrowed(&self.inner().diagnostics)
   }
 }
 

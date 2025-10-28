@@ -6,9 +6,8 @@ it('should have correct css result', async () => {
 	expect(css.toString()).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'imported_js.bundle0.css.txt'));
 })
 
-it("should allow to dynamic import a css module", done => {
-	import("./style.module.css").then(x => {
-		try {
+it("should allow to dynamic import a css module", async () => {
+	await import("./style.module.css").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					foo: "foo",
@@ -17,17 +16,12 @@ it("should allow to dynamic import a css module", done => {
 					local: "local",
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to reexport a css module", done => {
+it("should allow to reexport a css module", async () => {
 	__non_webpack_require__("./reexported_js.bundle0.js");
-	import("./reexported").then(x => {
-		try {
+	await import("./reexported").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					foo: "foo",
@@ -36,17 +30,12 @@ it("should allow to reexport a css module", done => {
 					local: "local",
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to import a css module", done => {
+it("should allow to import a css module", async () => {
 	__non_webpack_require__("./imported_js.bundle0.js");
-	import("./imported").then(({ default: x }) => {
-		try {
+	await import("./imported").then(({ default: x }) => {
 			expect(x).toEqual(
 				nsObj({
 					foo: "foo",
@@ -55,9 +44,5 @@ it("should allow to import a css module", done => {
 					local: "local",
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });

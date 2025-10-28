@@ -77,6 +77,7 @@ swc_core = { workspace = true, features = [
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
+urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 

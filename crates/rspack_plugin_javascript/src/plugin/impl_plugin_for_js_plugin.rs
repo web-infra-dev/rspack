@@ -63,7 +63,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport,
+    DependencyType::EsmExportImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -494,6 +494,16 @@ async fn render_manifest(
   let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
 
   if !is_hot_update
+    && is_runtime_chunk
+    && !chunk_has_runtime_or_js(
+      chunk_ukey,
+      &compilation.chunk_graph,
+      &compilation.get_module_graph(),
+    )
+  {
+    return Ok(());
+  }
+  if !is_hot_update
     && !is_main_chunk
     && !is_runtime_chunk
     && !chunk_has_js(
@@ -633,4 +643,22 @@ fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &Modu
   } else {
     chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
   }
+}
+
+fn chunk_has_runtime_or_js(
+  chunk: &ChunkUkey,
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+) -> bool {
+  if chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk)
+    .next()
+    .is_some()
+  {
+    return true;
+  }
+  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
+    return true;
+  }
+  false
 }

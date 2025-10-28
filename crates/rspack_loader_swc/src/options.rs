@@ -191,9 +191,66 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           schema,
           source_map_ignore_list,
         },
-        ..Default::default()
+        ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_specially_default_values_in_swc_options() {
+    // Verifies that fields using `#[serde(default = "...")]`
+    // receive the correct default value from the initializations of
+    // both SwcCompilerOptionsWithAdditional and swc_core::base::config::Options.
+    let raw_options = "{}";
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from empty JSON string failed");
+
+    let swc_options_from_rspack: Options = swc_options_with_additional.swc_options;
+
+    let swc_options_from_native_lib: Options =
+      serde_json::from_value(serde_json::from_str(raw_options).unwrap()).unwrap();
+
+    assert_eq!(
+      swc_options_from_rspack.env_name,
+      swc_options_from_native_lib.env_name
+    );
+    assert_eq!(swc_options_from_rspack.cwd, swc_options_from_native_lib.cwd);
+    assert_eq!(
+      swc_options_from_rspack.swcrc,
+      swc_options_from_native_lib.swcrc
+    );
+  }
+
+  #[test]
+  fn test_swc_loader_js_options_ignore_unexpected_field() {
+    let raw_options = "{ \"envName\": \"my-env\" }";
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let swc_options_from_rspack: Options = swc_options_with_additional.swc_options;
+
+    let swc_options_from_native_lib: Options =
+      serde_json::from_value(serde_json::from_str(raw_options).unwrap()).unwrap();
+
+    assert_eq!(
+      swc_options_from_native_lib.env_name, "my-env",
+      "native options should parse envName from JSON"
+    );
+    assert_ne!(
+      swc_options_from_rspack.env_name, "my-env",
+      "SwcCompilerOptionsWithAdditional should ignore unexpected field envName"
+    );
+    assert!(
+      !swc_options_from_rspack.env_name.is_empty(),
+      "SwcCompilerOptionsWithAdditional should receive a default value of env_name"
+    )
   }
 }

@@ -18,9 +18,9 @@ test("should load success", async ({ page, rspack }) => {
 	await expect(page.locator("#dyn")).toHaveCount(1);
 	expect(has_dyn_module(rspack.compiler.__modules)).toBe(true);
 
-	await rspack.reboot();
-	await page.reload();
 	// trigger other import compile
+	await rspack.reboot();
+
 	await expect(page.locator("#Component")).toHaveCount(1);
 	await expect(page.locator("#dyn")).toHaveCount(0);
 	expect(has_dyn_module(rspack.compiler.__modules)).toBe(true);

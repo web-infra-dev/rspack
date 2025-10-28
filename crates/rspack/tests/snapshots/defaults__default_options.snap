@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -736,7 +737,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -768,7 +771,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -805,7 +810,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -895,7 +902,9 @@ CompilerOptions {
                                     },
                                 ),
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -994,7 +1003,9 @@ CompilerOptions {
                                     },
                                 ),
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -1026,7 +1037,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -1067,7 +1080,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -1171,7 +1186,9 @@ CompilerOptions {
                                     },
                                 ),
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -1227,7 +1244,9 @@ CompilerOptions {
                                             generator: None,
                                             resolve: None,
                                             enforce: Normal,
+                                            extract_source_map: None,
                                         },
+                                        extract_source_map: None,
                                     },
                                     ModuleRule {
                                         rspack_resource: None,
@@ -1257,7 +1276,9 @@ CompilerOptions {
                                             generator: None,
                                             resolve: None,
                                             enforce: Normal,
+                                            extract_source_map: None,
                                         },
+                                        extract_source_map: None,
                                     },
                                 ],
                             ),
@@ -1271,7 +1292,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                         ModuleRule {
                             rspack_resource: None,
@@ -1310,7 +1333,9 @@ CompilerOptions {
                                 generator: None,
                                 resolve: None,
                                 enforce: Normal,
+                                extract_source_map: None,
                             },
+                            extract_source_map: None,
                         },
                     ],
                 ),
@@ -1323,7 +1348,9 @@ CompilerOptions {
                     generator: None,
                     resolve: None,
                     enforce: Normal,
+                    extract_source_map: None,
                 },
+                extract_source_map: None,
             },
             ModuleRule {
                 rspack_resource: None,
@@ -1353,7 +1380,9 @@ CompilerOptions {
                     generator: None,
                     resolve: None,
                     enforce: Normal,
+                    extract_source_map: None,
                 },
+                extract_source_map: None,
             },
         ],
         parser: Some(
@@ -1452,6 +1481,7 @@ CompilerOptions {
                             jsx: Some(
                                 false,
                             ),
+                            defer_import: None,
                         },
                     ),
                 },
@@ -1471,6 +1501,7 @@ CompilerOptions {
             ),
         ),
         no_parse: None,
+        ..
     },
     stats: StatsOptions {
         colors: true,
@@ -1492,6 +1523,7 @@ CompilerOptions {
         inline_enum: false,
         type_reexports_presence: false,
         lazy_barrel: false,
+        defer_import: false,
     },
     node: Some(
         NodeOption {

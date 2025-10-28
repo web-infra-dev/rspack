@@ -1,12 +1,10 @@
 import { doThings, foo, valueFromA } from "./a";
-it("should compile", function (done) {
+it("should compile", function () {
 	expect(doThings("ok")).toBe("ok");
 
 	// Should be replaced by the code in the config.
 	expect(foo.foo).toBe("bar");
 	expect(valueFromA).toBe("A");
-
-	done();
 });
 
 it("should not reference the chunk", () => {

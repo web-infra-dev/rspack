@@ -1,3 +1,4 @@
+const { HtmlRspackPlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -5,11 +6,10 @@ module.exports = {
 			import: ["./index.js"]
 		}
 	},
-	builtins: {
-		html: [
-			{
-				favicon: "favicon.ico"
-			}
-		]
-	}
+	plugins: [
+		new HtmlRspackPlugin({
+			favicon: "favicon.ico"
+		})
+	],
+
 };

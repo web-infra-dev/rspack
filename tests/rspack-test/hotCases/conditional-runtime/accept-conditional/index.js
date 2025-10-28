@@ -1,10 +1,7 @@
-it("should create a conditional import when accepted", done => {
+it("should create a conditional import when accepted", async () => {
 	if (Math.random() < 0) new Worker(new URL("worker.js", import.meta.url));
-	import("./module")
-		.then(module =>
-			module.test(callback => {
-				NEXT(require("../../update")(done, undefined, callback));
-			}, done)
-		)
-		.catch(done);
+	const m = await import("./module");
+	await m.test(NEXT_HMR);
 });
+
+module.hot.accept("./module");

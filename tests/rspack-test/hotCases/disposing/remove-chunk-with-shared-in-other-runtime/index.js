@@ -1,14 +1,12 @@
-import module from "./module";
+import m from "./module";
 
-it("should not dispose shared modules when a chunk from a different runtime is removed", done => {
-	import("./chunk1").then(chunk1 => {
-		import.meta.webpackHot.accept("./module", async () => {
-			expect(module).toBe(42);
-			expect(chunk1).toMatchObject({
-				active: true
-			});
-			done();
-		});
-		NEXT(require("../../update")(done));
-	}, done);
+it("should not dispose shared modules when a chunk from a different runtime is removed", async () => {
+	const chunk1 = await import("./chunk1");
+	await NEXT_HMR();
+	expect(m).toBe(42);
+	expect(chunk1).toMatchObject({
+		active: true
+	});
 });
+
+import.meta.webpackHot.accept("./module");

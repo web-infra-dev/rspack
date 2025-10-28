@@ -51,17 +51,6 @@ Rspack commands can specify the configuration file with `-c` or `--config`, simi
 However, unlike webpack, if a configuration file is not explicitly specified, Rspack defaults to using `rspack.config.js`.
 :::
 
-Rspack does not currently support all webpack configurations, and some configurations might affect the build output.
-To ensure the correctness of the build output, Rspack enables strict validation of the configurations by default.
-However, Rspack also provides a loose mode for easy progressive migration. You can enable it by setting the `RSPACK_CONFIG_VALIDATE` environment variable:
-
-```bash
-# Enabling loose validation mode will print out erroneous configurations but will not throw an error.
-RSPACK_CONFIG_VALIDATE=loose rspack build
-# Enable loose validation mode, without printing errors or throwing an error.
-RSPACK_CONFIG_VALIDATE=loose-silent rspack build
-```
-
 Rspack is actively working on implementing webpack's upcoming features, so some configuration defaults differ from webpack 5, as shown below:
 
 | Configuration     | webpack Default | Rspack Default |
@@ -103,7 +92,7 @@ Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspac
 
 ### `copy-webpack-plugin`
 
-Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin):
+Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -121,7 +110,7 @@ module.exports = {
 
 ### `mini-css-extract-plugin`
 
-Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin):
+Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');

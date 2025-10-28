@@ -14,7 +14,7 @@ if (globalThis.__FEDERATION__) {
 let warnings = [];
 let nativeLog;
 
-beforeEach(done => {
+beforeEach(() => {
 	nativeLog = console.log;
 	console.log = (...args) => {
 		const m = args.join(' ');
@@ -28,13 +28,11 @@ beforeEach(done => {
 			warnings.push(m);
 		}
 	}
-	done();
 });
 
-afterEach(done => {
+afterEach(() => {
 	expectWarning();
 	console.log = nativeLog;
-	done();
 });
 
 const expectWarning = (regexp, index) => {
@@ -49,7 +47,7 @@ const expectWarning = (regexp, index) => {
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		expectWarning(
-			/Version 8 from main of shared singleton module react does not satisfy the requirement of main which needs \^2/,
+			/Version 8 from main of shared singleton module mocked-react does not satisfy the requirement of main which needs \^2/,
 			0
 		);
 		const rendered = App();

@@ -382,7 +382,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               } else {
                 CanInlineUse::No
               }));
+            } else if !can_inline {
+              export_info.set_can_inline_use(Some(CanInlineUse::No));
             }
+
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
               let changed_flag = export_info.set_used_conditionally(
@@ -711,6 +714,8 @@ fn process_referenced_module_without_nested(
           } else {
             CanInlineUse::No
           }));
+        } else if !can_inline {
+          export_info.set_can_inline_use(Some(CanInlineUse::No));
         }
 
         let changed_flag = export_info.set_used_conditionally(

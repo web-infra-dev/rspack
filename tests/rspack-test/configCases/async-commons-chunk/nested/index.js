@@ -1,4 +1,5 @@
-it("should load nested commons chunk", function(done) {
+it("should load nested commons chunk", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require.ensure(["./a"], function(require) {
 		expect(require("./a")).toBe("a");
 		var counter = 0;
@@ -17,4 +18,4 @@ it("should load nested commons chunk", function(done) {
 			if(++counter == 3) done();
 		});
 	});
-});
+}));

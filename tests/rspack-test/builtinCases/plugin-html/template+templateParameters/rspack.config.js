@@ -1,3 +1,5 @@
+const { HtmlRspackPlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -5,14 +7,12 @@ module.exports = {
 			import: ["./index.js"]
 		}
 	},
-	builtins: {
-		html: [
-			{
-				template: "index.html",
-				templateParameters: {
-					foo: "bar"
-				}
+	plugins: [
+		new HtmlRspackPlugin({
+			template: "index.html",
+			templateParameters: {
+				foo: "bar"
 			}
-		]
-	}
+		})
+	],
 };

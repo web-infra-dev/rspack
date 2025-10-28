@@ -5,7 +5,7 @@ const {
 	sources: { RawSource }
 } = require("@rspack/core");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		library: {
@@ -44,6 +44,14 @@ module.exports = {
 									new RawSource(content)
 								);
 							});
+
+							const content = compilation.getAsset("bundle0.mjs").source.source()
+							const esmImportSpecifier1 = content.match(/import (.+) from "\.\/static-package\.json" with \{"type":"json"\};/);
+							const esmImportSpecifier2 = content.match(/import (.+) from "\.\/static-package\.json";/);
+							expect(esmImportSpecifier1[1]).not.toBe(esmImportSpecifier2[1]);
+							const importChunkId1 = content.match(/const dynamicPkgPure = await __webpack_require__.e\(\/\* import\(\) \*\/ "(.+)"\)/)
+							const importChunkId2 = content.match(/const dynamicPkgStr = await __webpack_require__.e\(\/\* import\(\) \*\/ "(.+)"\)/)
+							expect(importChunkId1[1]).not.toBe(importChunkId2[1]);
 						}
 					);
 				});

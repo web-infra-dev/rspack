@@ -264,7 +264,7 @@ pub struct ChunkLinkContext {
   specifier order doesn't matter, we can sort them based on name
   Map<module_id, Map<local_name, export_name>>
   */
-  exports: FxHashMap<Atom, FxHashSet<Atom>>,
+  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
 
   /**
   symbols that this chunk provides
@@ -396,11 +396,11 @@ impl ChunkLinkContext {
     set.get(&export_name).expect("should have inserted")
   }
 
-  pub fn exports(&self) -> &FxHashMap<Atom, FxHashSet<Atom>> {
+  pub fn exports(&self) -> &FxHashMap<Atom, FxIndexSet<Atom>> {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut FxHashMap<Atom, FxHashSet<Atom>> {
+  pub fn exports_mut(&mut self) -> &mut FxHashMap<Atom, FxIndexSet<Atom>> {
     &mut self.exports
   }
 

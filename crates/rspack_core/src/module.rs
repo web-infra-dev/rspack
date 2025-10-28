@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -547,22 +547,82 @@ pub fn module_update_hash(
 }
 
 pub trait ModuleExt {
-  fn boxed(self) -> Box<dyn Module>;
+  fn boxed(self) -> BoxModule;
 }
 
 impl<T: Module> ModuleExt for T {
-  fn boxed(self) -> Box<dyn Module> {
-    Box::new(self)
+  fn boxed(self) -> BoxModule {
+    BoxModule(Box::new(self))
   }
 }
 
-pub type BoxModule = Box<dyn Module>;
+/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
+#[cacheable(with=AsInner)]
+#[repr(transparent)]
+pub struct BoxModule(Box<dyn Module>);
 
-impl Identifiable for Box<dyn Module> {
+impl BoxModule {
+  /// Create a new BoxModule from a boxed Module trait object.
+  pub fn new(module: Box<dyn Module>) -> Self {
+    BoxModule(module)
+  }
+}
+
+impl AsInnerConverter for BoxModule {
+  type Inner = Box<dyn Module>;
+
+  fn to_inner(&self) -> &Self::Inner {
+    &self.0
+  }
+
+  fn from_inner(data: Self::Inner) -> Self {
+    BoxModule(data)
+  }
+}
+
+impl std::ops::Deref for BoxModule {
+  type Target = Box<dyn Module>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl std::ops::DerefMut for BoxModule {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
+impl From<Box<dyn Module>> for BoxModule {
+  fn from(inner: Box<dyn Module>) -> Self {
+    BoxModule(inner)
+  }
+}
+
+impl AsRef<dyn Module> for BoxModule {
+  fn as_ref(&self) -> &dyn Module {
+    self.0.as_ref()
+  }
+}
+
+impl AsMut<dyn Module> for BoxModule {
+  fn as_mut(&mut self) -> &mut dyn Module {
+    self.0.as_mut()
+  }
+}
+
+impl Debug for BoxModule {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    self.0.fmt(f)
+  }
+}
+
+impl Identifiable for BoxModule {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
-    self.as_ref().identifier()
+    self.0.as_ref().identifier()
   }
 }
 
@@ -661,7 +721,7 @@ mod test {
   use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
-  use super::Module;
+  use super::{BoxModule, Module};
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
     ConcatenationScope, Context, DependenciesBlock, DependencyId, ModuleExt, ModuleGraph,
@@ -801,8 +861,8 @@ mod test {
 
   #[test]
   fn should_downcast_successfully() {
-    let a: Box<dyn Module> = ExternalModule(String::from("a")).boxed();
-    let b: Box<dyn Module> = RawModule(String::from("a")).boxed();
+    let a: BoxModule = ExternalModule(String::from("a")).boxed();
+    let b: BoxModule = RawModule(String::from("a")).boxed();
 
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());

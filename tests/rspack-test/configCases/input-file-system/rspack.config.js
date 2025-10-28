@@ -3,7 +3,7 @@ const assert = require("node:assert");
 let readFileCalled = false;
 let stateCalled = false;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		index: "./virtual_index.js"

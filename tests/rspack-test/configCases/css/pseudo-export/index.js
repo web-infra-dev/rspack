@@ -1,7 +1,6 @@
-it("should allow to dynamic import a css module", done => {
+it("should allow to dynamic import a css module", async () => {
 	__non_webpack_require__("./style_module_css.bundle0.js");
-	import("./style.module.css").then(x => {
-		try {
+	await import("./style.module.css").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -11,17 +10,12 @@ it("should allow to dynamic import a css module", done => {
 					default: "default"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to reexport a css module", done => {
+it("should allow to reexport a css module", async () => {
 	__non_webpack_require__("./reexported_js.bundle0.js");
-	import("./reexported").then(x => {
-		try {
+	await import("./reexported").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -30,17 +24,12 @@ it("should allow to reexport a css module", done => {
 					whitespace: "abc\n\tdef"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to import a css module", done => {
+it("should allow to import a css module", async () => {
 	__non_webpack_require__("./imported_js.bundle0.js");
-	import("./imported").then(({ default: x }) => {
-		try {
+	await import("./imported").then(({ default: x }) => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -50,9 +39,5 @@ it("should allow to import a css module", done => {
 					default: "default"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });

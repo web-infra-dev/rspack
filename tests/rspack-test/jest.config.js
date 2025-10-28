@@ -15,8 +15,13 @@ const wasmConfig = process.env.WASM && {
 		"Error.test.js",
 		"StatsAPI.test.js",
 		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"HotWeb.test.js",
+		"HotWorker.test.js",
+		"HotNode.test.js",
 
 		// Skip temporarily and should investigate in the future
+		"HotSnapshot.hottest.js",
 		"Defaults.test.js",
 		"Cache.test.js",
 		"Compiler.test.js",
@@ -38,22 +43,39 @@ const wasmConfig = process.env.WASM && {
 
 /** @type {import('jest').Config} */
 const config = {
-	testEnvironment: "../../scripts/test/patch-node-env.cjs",
+	testEnvironment: "@rspack/test-tools/jest/patch-node-env",
 	setupFilesAfterEnv,
 	reporters: [
-		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
-		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+		["@rspack/test-tools/jest/ignore-snapshot-default-reporter", null],
+		"@rspack/test-tools/jest/ignore-snapshot-summary-reporter"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: [
+	testMatch: process.env.WASM ? [
 		"<rootDir>/*.test.js",
 		"<rootDir>/legacy-test/*.test.js"
+	] : [
+		"<rootDir>/legacy-test/*.test.js",
+		"<rootDir>/Cache.test.js",
+		"<rootDir>/Incremental-async-node.test.js",
+		"<rootDir>/Incremental-node.test.js",
+		"<rootDir>/Incremental-watch-webpack.test.js",
+		"<rootDir>/Incremental-watch.test.js",
+		"<rootDir>/Incremental-web.test.js",
+		"<rootDir>/Incremental-webworker.test.js",
+		"<rootDir>/HotWeb.test.js",
+		"<rootDir>/HotWorker.test.js",
+		"<rootDir>/HotNode.test.js",
+		"<rootDir>/Serial.test.js",
+		"<rootDir>/Diagnostics.test.js",
+		"<rootDir>/EsmOutput.test.js",
+		"<rootDir>/NativeWatcher.test.js",
+		"<rootDir>/NativeWatcher-webpack.test.js",
 	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
-		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
-		// disable sourcmap remapping for ts file
+		slash: "@rspack/test-tools/jest/slash",
+		// disable sourcemap remapping for ts file
 		"source-map-support/register": "identity-obj-proxy"
 	},
 	cache: !process.env.CI,
@@ -74,7 +96,14 @@ const config = {
 					: process.argv.indexOf("--test")) + 1
 				]
 				: undefined,
-		printLogger: process.argv.includes("--verbose")
+		printLogger: process.argv.includes("--verbose"),
+		__TEST_PATH__: __dirname,
+		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
+		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
+		__ROOT_PATH__: root,
+		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
+		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
+		__DEBUG__: process.env.DEBUG === "test",
 	},
 	...(wasmConfig || {}),
 	verbose: true,

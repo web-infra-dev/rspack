@@ -92,5 +92,4 @@ Cargo.toml @quininer
 
 /tests/bench
 /tests/e2e
-/tests/webpack-examples
 /tests/rspack-test

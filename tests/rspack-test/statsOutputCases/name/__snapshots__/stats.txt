@@ -1,9 +1,9 @@
 ./statsOutputCases/name/app.js:
   asset bundle1.js 36 bytes [emitted] (name: main)
   ./app.js 1 bytes [built] [code generated]
-  <TEST_TOOLS_ROOT>/statsOutputCases/name/app.js (Rspack x.x.x) compiled successfully in X s
+  <TEST_ROOT>/statsOutputCases/name/app.js (Rspack x.x.x) compiled successfully in X s
 
 ./statsOutputCases/name/server.js:
   asset bundle2.js 36 bytes [emitted] (name: main)
   ./server.js 1 bytes [built] [code generated]
-  <TEST_TOOLS_ROOT>/statsOutputCases/name/server.js (Rspack x.x.x) compiled successfully in X s
+  <TEST_ROOT>/statsOutputCases/name/server.js (Rspack x.x.x) compiled successfully in X s

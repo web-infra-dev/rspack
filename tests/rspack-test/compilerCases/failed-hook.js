@@ -1,5 +1,5 @@
 const { createFsFromVolume, Volume } = require("memfs");
-const failedSpy = jest.fn();
+const failedSpy = rstest.fn();
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {

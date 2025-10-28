@@ -27,8 +27,6 @@ import {
 import * as liteTapable from "@rspack/lite-tapable";
 import { type Compilation, checkCompilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { getRsdoctorPluginSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
 import type { CreatePartialRegisters } from "../taps/types";
 import { create } from "./base";
 
@@ -77,7 +75,6 @@ const RsdoctorPluginImpl = create(
 			chunkGraphFeatures: true
 		}
 	): RawRsdoctorPluginOptions {
-		validate(c, getRsdoctorPluginSchema);
 		return {
 			moduleGraphFeatures: c.moduleGraphFeatures ?? true,
 			chunkGraphFeatures: c.chunkGraphFeatures ?? true,

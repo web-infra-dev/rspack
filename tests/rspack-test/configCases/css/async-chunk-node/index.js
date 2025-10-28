@@ -1,6 +1,5 @@
-it("should allow to dynamic import a css module", done => {
-	import("../pseudo-export/style.module.css").then(x => {
-		try {
+it("should allow to dynamic import a css module", async () => {
+	await import("../pseudo-export/style.module.css").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -11,16 +10,11 @@ it("should allow to dynamic import a css module", done => {
 					default: "default"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to dynamic import a pure css", done => {
-	import("./style.css").then(x => {
+it("should allow to dynamic import a pure css", async () => {
+	await import("./style.css").then(x => {
 		expect(Object.keys(x).length).toBe(0)
-		done();
-	}, done);
+	});
 });

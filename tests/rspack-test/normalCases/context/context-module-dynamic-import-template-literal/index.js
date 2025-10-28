@@ -1,7 +1,6 @@
-it("context module + dynamic import + template literal", function (done) {
+it("context module + dynamic import + template literal", async function () {
 	let params = "index";
-	import(`./child/${params}.js`).then(module => {
+	await import(`./child/${params}.js`).then(module => {
 		expect(module.value).toBe("dynamic");
-		done();
 	});
 });

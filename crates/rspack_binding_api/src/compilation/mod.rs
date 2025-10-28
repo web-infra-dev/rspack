@@ -194,8 +194,8 @@ impl JsCompilation {
 
     Ok(
       compilation
+        .make_artifact
         .built_modules()
-        .iter()
         .filter_map(|module_id| {
           compilation
             .module_by_identifier(module_id)

@@ -38,13 +38,13 @@ struct Node<'a> {
 pub fn save_module_graph(
   partial: &ModuleGraphPartial,
   module_to_lazy_make: &ModuleToLazyMake,
-  revoked_modules: &IdentifierSet,
+  removed_modules: &IdentifierSet,
   need_update_modules: &IdentifierSet,
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) {
   let mg = ModuleGraph::new([Some(partial), None], None);
-  for identifier in revoked_modules {
+  for identifier in removed_modules {
     storage.remove(SCOPE, identifier.as_bytes());
   }
 

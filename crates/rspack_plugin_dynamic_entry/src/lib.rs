@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use derive_more::Debug;
-use futures::future::BoxFuture;
+use futures::{future::BoxFuture, lock::Mutex};
 use rspack_core::{
   BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
-  DependencyType, EntryDependency, EntryOptions, Plugin,
+  DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxDashMap, FxHashMap};
+use rspack_util::fx_hash::FxHashMap;
 
 pub struct EntryDynamicResult {
   pub import: Vec<String>,
@@ -31,7 +31,7 @@ pub struct DynamicEntryPlugin {
   entry: EntryDynamic,
   // Need "cache" the dependency to tell incremental that this entry dependency is not changed
   // so it can be reused and skip the module make
-  dependencies_map: FxDashMap<Arc<str>, FxHashMap<EntryOptions, BoxDependency>>,
+  imported_dependencies: Mutex<FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>>>,
 }
 
 impl DynamicEntryPlugin {
@@ -54,11 +54,24 @@ async fn compilation(
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let entry_fn = &self.entry;
   let decs = entry_fn().await?;
+
+  let mut imported_dependencies = self.imported_dependencies.lock().await;
+  let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
+    Default::default();
+
   for EntryDynamicResult { import, options } in decs {
     for entry in import {
-      let dependency: BoxDependency = if let Some(map) = self.dependencies_map.get(entry.as_str())
-        && let Some(dependency) = map.get(&options)
+      let module_graph = compilation.get_module_graph();
+
+      let entry_dependency: BoxDependency = if let Some(map) =
+        imported_dependencies.get(entry.as_str())
+        && let Some(dependency_id) = map.get(&options)
+        && let Some(dependency) = module_graph.dependency_by_id(dependency_id)
       {
+        next_imported_dependencies
+          .entry(entry.into())
+          .or_default()
+          .insert(options.clone(), *dependency_id);
         dependency.clone()
       } else {
         let dependency: BoxDependency = Box::new(EntryDependency::new(
@@ -67,18 +80,20 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
           options.layer.clone(),
           false,
         ));
-        if let Some(mut map) = self.dependencies_map.get_mut(entry.as_str()) {
-          map.insert(options.clone(), dependency.clone());
-        } else {
-          let mut map = FxHashMap::default();
-          map.insert(options.clone(), dependency.clone());
-          self.dependencies_map.insert(entry.into(), map);
-        }
+        next_imported_dependencies
+          .entry(entry.into())
+          .or_default()
+          .insert(options.clone(), *dependency.id());
         dependency
       };
-      compilation.add_entry(dependency, options.clone()).await?;
+      compilation
+        .add_entry(entry_dependency, options.clone())
+        .await?;
     }
   }
+
+  *imported_dependencies = next_imported_dependencies;
+
   Ok(())
 }
 

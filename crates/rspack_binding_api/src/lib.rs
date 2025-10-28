@@ -101,6 +101,7 @@ mod virtual_modules;
 
 use std::{
   cell::RefCell,
+  mem::ManuallyDrop,
   sync::{Arc, RwLock},
 };
 
@@ -159,8 +160,11 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 
 #[napi(custom_finalize)]
 struct JsCompiler {
+  // whether to skip drop compiler in finalize
+  unsafe_fast_drop: bool,
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Compiler,
+  // call drop manually to avoid unnecessary drop overhead in cli build
+  compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
@@ -183,6 +187,7 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
+    unsafe_fast_drop: bool,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
@@ -309,17 +314,17 @@ impl JsCompiler {
       );
 
       Ok(Self {
-        compiler: Compiler::from(rspack),
+        compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
         include_dependencies_map: Default::default(),
         entry_dependencies_map: Default::default(),
         compiler_context,
         virtual_file_store,
+        unsafe_fast_drop,
       })
     })
   }
-
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
@@ -460,7 +465,7 @@ impl JsCompiler {
 }
 
 impl ObjectFinalize for JsCompiler {
-  fn finalize(self, _env: Env) -> Result<()> {
+  fn finalize(mut self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
 
     COMPILER_REFERENCES.with(|ref_cell| {
@@ -469,6 +474,11 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
+    if (!self.unsafe_fast_drop) {
+      unsafe {
+        ManuallyDrop::drop(&mut self.compiler);
+      }
+    }
     Ok(())
   }
 }
@@ -500,11 +510,7 @@ fn init() {
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
   // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
   // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-  let default_blocking_threads = if std::env::consts::OS == "macos" {
-    8
-  } else {
-    512
-  };
+  let default_blocking_threads = 4;
   let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
     .ok()
     .and_then(|v| v.parse::<usize>().ok())

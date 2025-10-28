@@ -3,7 +3,7 @@ import {
 	BuiltinPluginName,
 	type RawCssExtractPluginOption
 } from "@rspack/binding";
-import type { Compiler } from "../..";
+import type { Compiler, LiteralUnion } from "../..";
 import { MODULE_TYPE } from "./loader";
 import { PLUGIN_NAME } from "./utils";
 
@@ -20,7 +20,7 @@ export interface CssExtractRspackPluginOptions {
 	ignoreOrder?: boolean;
 	insert?: string | ((linkTag: HTMLLinkElement) => void);
 	attributes?: Record<string, string>;
-	linkType?: string | "text/css" | false;
+	linkType?: LiteralUnion<"text/css", string> | false;
 	runtime?: boolean;
 
 	// workaround for pathinto, deprecate this when rspack supports pathinfo

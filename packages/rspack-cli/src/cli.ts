@@ -1,48 +1,51 @@
 import path from "node:path";
 import util from "node:util";
-import type { RspackPluginFunction, RspackPluginInstance } from "@rspack/core";
-import * as rspackCore from "@rspack/core";
-import {
-	type Compiler,
-	type MultiCompiler,
-	type MultiRspackOptions,
-	type MultiStats,
-	type RspackOptions,
-	rspack,
-	type Stats,
-	ValidationError
+import type {
+	Compiler,
+	MultiCompiler,
+	MultiRspackOptions,
+	MultiStats,
+	RspackOptions,
+	RspackPluginFunction,
+	RspackPluginInstance,
+	Stats
 } from "@rspack/core";
-import { createColors, isColorSupported } from "colorette";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+import cac, { type CAC } from "cac";
+import { createColors, isColorSupported } from "picocolors";
 import { BuildCommand } from "./commands/build";
 import { PreviewCommand } from "./commands/preview";
 import { ServeCommand } from "./commands/serve";
-import type {
-	RspackBuildCLIOptions,
-	RspackCLIColors,
-	RspackCLILogger,
-	RspackCLIOptions
-} from "./types";
+import type { RspackCLIColors, RspackCLILogger } from "./types";
 import { loadExtendedConfig, loadRspackConfig } from "./utils/loadConfig";
-import { normalizeEnv } from "./utils/options";
+import type {
+	CommonOptions,
+	CommonOptionsForBuildAndServe
+} from "./utils/options";
+import { rspack } from "./utils/rspackCore";
 
 type Command = "serve" | "build";
 
+declare global {
+	const RSPACK_CLI_VERSION: string;
+}
+
 export class RspackCLI {
 	colors: RspackCLIColors;
-	program: yargs.Argv;
+	program: CAC;
+
 	constructor() {
+		const program = cac("rspack");
 		this.colors = this.createColors();
-		this.program = yargs();
+		this.program = program;
+		program.help();
+		program.version(RSPACK_CLI_VERSION);
 	}
+
 	async createCompiler(
-		options: RspackBuildCLIOptions,
+		options: CommonOptionsForBuildAndServe,
 		rspackCommand: Command,
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
-		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
-
 		let { config, pathMap } = await this.loadConfig(options);
 		config = await this.buildConfig(config, pathMap, options, rspackCommand);
 
@@ -53,10 +56,14 @@ export class RspackCLI {
 		let compiler: MultiCompiler | Compiler | null;
 		try {
 			compiler = rspack(config, isWatch ? callback : undefined);
+			if (!isWatch && compiler) {
+				// unsafeFastDrop is an internal option api and not shown in types
+				compiler.unsafeFastDrop = true;
+			}
 		} catch (e) {
 			// Aligned with webpack-cli
 			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
-			if (e instanceof ValidationError) {
+			if (e instanceof rspack.ValidationError) {
 				this.getLogger().error(e.message);
 				process.exit(2);
 			} else if (e instanceof Error) {
@@ -71,13 +78,15 @@ export class RspackCLI {
 		}
 		return compiler;
 	}
+
 	createColors(useColor?: boolean): RspackCLIColors {
 		const shouldUseColor = useColor || isColorSupported;
 		return {
-			...createColors({ useColor: shouldUseColor }),
+			...createColors(shouldUseColor),
 			isColorSupported: shouldUseColor
 		};
 	}
+
 	getLogger(): RspackCLILogger {
 		return {
 			error: val =>
@@ -89,15 +98,12 @@ export class RspackCLI {
 			raw: val => console.log(val)
 		};
 	}
+
 	async run(argv: string[]) {
-		this.program.showHelpOnFail(false);
-		this.program.usage("[options]");
-		this.program.scriptName("rspack");
-		this.program.strictCommands(true).strict(true);
-		this.program.middleware(normalizeEnv);
-		this.registerCommands();
-		await this.program.parseAsync(hideBin(argv));
+		await this.registerCommands();
+		this.program.parse(argv);
 	}
+
 	async registerCommands() {
 		const builtinCommands = [
 			new BuildCommand(),
@@ -105,13 +111,13 @@ export class RspackCLI {
 			new PreviewCommand()
 		];
 		for (const command of builtinCommands) {
-			command.apply(this);
+			await command.apply(this);
 		}
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
 		pathMap: WeakMap<RspackOptions, string[]>,
-		options: RspackBuildCLIOptions,
+		options: CommonOptionsForBuildAndServe,
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const isBuild = command === "build";
@@ -176,10 +182,10 @@ export class RspackCLI {
 
 			if (isServe) {
 				const installed = (item.plugins ||= []).find(
-					item => item instanceof rspackCore.ProgressPlugin
+					item => item instanceof rspack.ProgressPlugin
 				);
 				if (!installed) {
-					(item.plugins ??= []).push(new rspackCore.ProgressPlugin());
+					(item.plugins ??= []).push(new rspack.ProgressPlugin());
 				}
 			}
 
@@ -228,7 +234,7 @@ export class RspackCLI {
 		return internalBuildConfig(item as RspackOptions);
 	}
 
-	async loadConfig(options: RspackCLIOptions): Promise<{
+	async loadConfig(options: CommonOptions): Promise<{
 		config: RspackOptions | MultiRspackOptions;
 		pathMap: WeakMap<RspackOptions, string[]>;
 	}> {
@@ -240,10 +246,14 @@ export class RspackCLI {
 				pathMap: new WeakMap()
 			};
 		}
+
 		let { loadedConfig, configPath } = config;
 
 		if (typeof loadedConfig === "function") {
-			let functionResult = loadedConfig(options.argv?.env, options.argv);
+			let functionResult = loadedConfig(
+				options.env as Record<string, unknown>,
+				options
+			);
 			// if return promise we should await its result
 			if (
 				typeof (functionResult as unknown as Promise<unknown>).then ===
@@ -270,7 +280,7 @@ export class RspackCLI {
 	}
 
 	private filterConfig(
-		options: RspackCLIOptions,
+		options: CommonOptions,
 		config: RspackOptions | MultiRspackOptions
 	): RspackOptions | MultiRspackOptions {
 		if (options.configName) {

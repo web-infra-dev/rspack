@@ -2,7 +2,7 @@
 
 const webpack = require("@rspack/core");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./test.js",
 	resolve: {

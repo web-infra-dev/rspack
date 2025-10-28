@@ -42,16 +42,33 @@ RSPACK_PROFILE=ALL rspack build
 
 ### terser-webpack-plugin
 
-[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
+[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
 
 ### css-minimizer-webpack-plugin
 
-[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
+[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
 
 ### less-loader
 
-[less-loader](https://github.com/webpack-contrib/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
+[less-loader](https://github.com/webpack/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
 
 ### html-webpack-plugin
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
+
+## 线程池大小
+
+Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻塞操作，以避免阻塞主线程。
+
+默认情况下，这个线程池的大小是 `4`，与 Node.js 的 [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) 保持一致，能在大多数开发与 CI 环境中提供稳定性能。
+
+如果你的构建环境使用高速存储，可以通过设置 `RSPACK_BLOCKING_THREADS` 环境变量来修改线程数，以获得更高的并发度和潜在的性能提升，例如：
+
+```bash
+# 需要安装 cross-env 包来设置环境变量
+cross-env RSPACK_BLOCKING_THREADS=8 rspack build
+```
+
+设置环境变量后，可以观察构建时间的变化，以找到最合适的配置。
+
+在较慢或延迟较高的文件系统中，建议保留默认值甚至更低，以避免线程争用。

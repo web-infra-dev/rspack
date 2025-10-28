@@ -1,4 +1,5 @@
 ## JavaScript related workflow
+
 Scripts here are related to development workflow of Rspack.
 
 ## Usages

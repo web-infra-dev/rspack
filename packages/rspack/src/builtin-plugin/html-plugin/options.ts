@@ -1,6 +1,4 @@
 import { Compilation } from "../../Compilation";
-import { getHtmlPluginOptionsSchema } from "../../schema/plugins";
-import { validate } from "../../schema/validate";
 
 const compilationOptionsMap: WeakMap<Compilation, HtmlRspackPluginOptions> =
 	new WeakMap();
@@ -105,10 +103,6 @@ export type HtmlRspackPluginOptions = {
 	 */
 	[key: string]: any;
 };
-
-export function validateHtmlPluginOptions(options: HtmlRspackPluginOptions) {
-	return validate(options, getHtmlPluginOptionsSchema);
-}
 
 export const getPluginOptions = (compilation: Compilation, uid: number) => {
 	if (!(compilation instanceof Compilation)) {

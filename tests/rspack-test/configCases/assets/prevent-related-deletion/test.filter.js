@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: related sourcemap file is deleted"

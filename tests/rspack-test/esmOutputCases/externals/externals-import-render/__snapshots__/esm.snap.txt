@@ -17,9 +17,3 @@ it('should compile', () => {
 
 
 ```
-
-```mjs title=runtime.mjs
-
-
-
-```

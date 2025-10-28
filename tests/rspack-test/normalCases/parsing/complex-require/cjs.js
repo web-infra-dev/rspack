@@ -1,5 +1,5 @@
 
-it("should parse template strings in require.ensure requires", function (done) {
+it("should parse template strings in require.ensure requires", () => new Promise(done => {
 	var name = "abc";
 	var suffix = "Test";
 
@@ -16,7 +16,7 @@ it("should parse template strings in require.ensure requires", function (done) {
 		}
 		done()
 	})
-})
+}))
 
 it("should parse template strings in sync requires", function () {
 	var name = "sync";
@@ -43,7 +43,7 @@ it("should parse template strings in require.resolve", function () {
 	expect(require.resolve(`./sync/${name}Test`)).toBeDefined();
 })
 
-it("should parse .concat strings in require.ensure requires", function (done) {
+it("should parse .concat strings in require.ensure requires", () => new Promise(done => {
 	var name = "abc";
 	var suffix = "Test";
 
@@ -59,7 +59,7 @@ it("should parse .concat strings in require.ensure requires", function (done) {
 		}
 		done()
 	})
-})
+}))
 
 it("should parse .concat strings in sync requires", function () {
 	var name = "sync";

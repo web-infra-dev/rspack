@@ -1,12 +1,13 @@
 var fs = require("fs");
 var path = require("path");
 
-it("should complete", function(done) {
+it("should complete", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require.ensure(["./a"], function(require) {
 		expect(require("./a")).toBe("a");
 		done();
 	});
-});
+}));
 
 it("should write the correct manifest", function() {
 	var manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'bundle0-manifest.json'), "utf-8"));

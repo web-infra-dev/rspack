@@ -40,6 +40,7 @@ export * from "./HttpUriPlugin";
 export * from "./html-plugin/index";
 export * from "./IgnorePlugin";
 export * from "./InferAsyncModulesPlugin";
+export * from "./InlineExportsPlugin";
 export * from "./JavascriptModulesPlugin";
 export * from "./JsLoaderRspackPlugin";
 export * from "./JsonModulesPlugin";

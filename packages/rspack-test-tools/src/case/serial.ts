@@ -1,12 +1,9 @@
 import { BasicCaseCreator } from "../test/creator";
-import type { ECompilerType, TTestConfig } from "../type";
+import type { TTestConfig } from "../type";
 import { createConfigProcessor } from "./config";
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from "./runner";
 
-export type TSerialCaseConfig = Omit<
-	TTestConfig<ECompilerType.Rspack>,
-	"validate"
->;
+export type TSerialCaseConfig = Omit<TTestConfig, "validate">;
 
 const creator = new BasicCaseCreator({
 	clean: true,

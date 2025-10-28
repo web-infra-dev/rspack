@@ -30,6 +30,7 @@ pub struct RawExperiments {
   pub inline_enum: bool,
   pub type_reexports_presence: bool,
   pub lazy_barrel: bool,
+  pub defer_import: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -51,6 +52,7 @@ impl From<RawExperiments> for Experiments {
       inline_enum: value.inline_enum,
       type_reexports_presence: value.type_reexports_presence,
       lazy_barrel: value.lazy_barrel,
+      defer_import: value.defer_import,
     }
   }
 }

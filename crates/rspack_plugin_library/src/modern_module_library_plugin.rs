@@ -5,8 +5,8 @@ use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, LibraryOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, Plugin,
-  PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  DependencyId, ExportsType, LibraryOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  Plugin, PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -325,7 +325,8 @@ async fn render_startup(
     .code_generation_results
     .get(module_id, Some(chunk.runtime()));
 
-  let mut exports = vec![];
+  // export local as exported
+  let mut exports: Vec<(String, Option<String>)> = vec![];
   let mut exports_with_property_access = vec![];
   let mut exports_with_inlined = vec![];
 
@@ -336,7 +337,14 @@ async fn render_startup(
   let mut source = ConcatSource::default();
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
-
+  let module = module_graph
+    .module_by_identifier(module_id)
+    .expect("should have module");
+  let exports_type = module.get_exports_type(
+    &module_graph,
+    &compilation.module_graph_cache_artifact,
+    module.build_meta().strict_esm_module,
+  );
   if let Some(exports_final_names) = codegen
     .data
     .get::<CodeGenerationExportsFinalNames>()
@@ -368,9 +376,9 @@ async fn render_startup(
         if contains_char(final_name, "[]().") {
           exports_with_property_access.push((final_name, info_name));
         } else if info_name == final_name {
-          exports.push(info_name.to_string());
+          exports.push((info_name.to_string(), None));
         } else {
-          exports.push(format!("{final_name} as {info_name}"));
+          exports.push((final_name.to_string(), Some(info_name.to_string())));
         }
       }
     }
@@ -382,7 +390,7 @@ async fn render_startup(
         "var {var_name} = {final_name};\n"
       )));
 
-      exports.push(format!("{var_name} as {info_name}"));
+      exports.push((var_name, Some(info_name.to_string())));
     }
 
     for (inlined, info_name) in exports_with_inlined.iter() {
@@ -393,19 +401,90 @@ async fn render_startup(
         inlined.render()
       )));
 
-      exports.push(format!("{var_name} as {info_name}"));
+      exports.push((var_name, Some(info_name.to_string())));
     }
   }
 
   if !exports.is_empty() && !compilation.options.output.iife {
-    source.add(RawStringSource::from(format!(
-      "export {{ {} }};\n",
-      exports.join(", ")
-    )));
+    let exports_string = match exports_type {
+      ExportsType::DefaultOnly => render_as_default_only_export(&exports),
+      ExportsType::DefaultWithNamed | ExportsType::Dynamic => {
+        render_as_default_with_named_exports(&exports)
+      }
+      ExportsType::Namespace => render_as_named_exports(&exports),
+    };
+    source.add(RawStringSource::from(exports_string));
   }
 
   render_source.source = source.boxed();
   Ok(())
+}
+
+pub fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
+  render_as_default_export_impl(exports)
+}
+
+pub fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
+  render_as_named_exports_impl(exports, false)
+}
+
+pub fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
+  format!(
+    "{}\n{}",
+    render_as_named_exports_impl(exports, true),
+    render_as_default_only_export(exports),
+  )
+}
+
+fn render_as_named_exports_impl(
+  exports: &[(String, Option<String>)],
+  ignore_default: bool,
+) -> String {
+  format!(
+    "export {{ {} }};\n",
+    exports
+      .iter()
+      .filter(|(_, exported)| {
+        if ignore_default {
+          !matches!(exported.as_deref(), Some("default"))
+        } else {
+          true
+        }
+      })
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{local} as {exported}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
+}
+
+pub fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
+  if let Some((local, _)) = exports
+    .iter()
+    .find(|(_, exported)| matches!(exported.as_deref(), Some("default")))
+  {
+    return format!("export {{ {local} as default }};\n",);
+  }
+
+  format!(
+    "var __webpack_exports_default__ = {{ {} }};\nexport default __webpack_exports_default__;\n",
+    exports
+      .iter()
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{exported}: {local}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
 }
 
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]

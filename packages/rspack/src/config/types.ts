@@ -10,6 +10,9 @@ import type ModuleGraph from "../ModuleGraph";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type { DevServerOptions } from "./devServer";
 
+/** https://github.com/microsoft/TypeScript/issues/29729 */
+export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
+
 export type FilenameTemplate = string;
 
 export type Filename =
@@ -48,19 +51,18 @@ export type Falsy = false | "" | 0 | null | undefined;
 
 //#region Entry
 /** The publicPath of the resource referenced by this entry. */
-export type PublicPath = "auto" | Filename;
+export type PublicPath =
+	| LiteralUnion<"auto", string>
+	| Exclude<Filename, string>;
 
 /** The baseURI of the resource referenced by this entry. */
 export type BaseUri = string;
 
 /** How this entry load other chunks. */
-export type ChunkLoadingType =
-	| string
-	| "jsonp"
-	| "import-scripts"
-	| "require"
-	| "async-node"
-	| "import";
+export type ChunkLoadingType = LiteralUnion<
+	"jsonp" | "import-scripts" | "require" | "async-node" | "import",
+	string
+>;
 
 /** How this entry load other chunks. */
 export type ChunkLoading = false | ChunkLoadingType;
@@ -69,11 +71,10 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType =
-	| string
-	| "fetch-streaming"
-	| "fetch"
-	| "async-node";
+export type WasmLoadingType = LiteralUnion<
+	"fetch-streaming" | "fetch" | "async-node",
+	string
+>;
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -106,8 +107,7 @@ export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 export type LibraryExport = string | string[];
 
 /** Configure how the library will be exposed. */
-export type LibraryType =
-	| string
+export type LibraryType = LiteralUnion<
 	| "var"
 	| "module"
 	| "assign"
@@ -125,7 +125,9 @@ export type LibraryType =
 	| "umd"
 	| "umd2"
 	| "jsonp"
-	| "system";
+	| "system",
+	string
+>;
 
 /** When using output.library.type: "umd", setting output.library.umdNamedDefine to true will name the AMD module of the UMD build. */
 export type UmdNamedDefine = boolean;
@@ -939,6 +941,9 @@ export type RuleSetRule = {
 
 	/** A kind of Nested Rule, an array of Rules that is also used when the parent Rule matches. */
 	rules?: (RuleSetRule | Falsy)[];
+
+	/** Whether to extract source maps from the module. */
+	extractSourceMap?: boolean;
 };
 
 /** A list of rules. */
@@ -1136,6 +1141,9 @@ export type JavascriptParserOptions = {
 
 	/** Whether to enable JSX parsing */
 	jsx?: boolean;
+
+	/** Whether to enable defer import */
+	deferImport?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -1379,6 +1387,11 @@ export type ModuleOptions = {
 
 	/** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
 	noParse?: NoParseOption;
+
+	/**
+	 * Cache the resolving of module requests.
+	 */
+	unsafeCache?: boolean | RegExp;
 };
 
 //#endregion
@@ -1731,7 +1744,7 @@ export type CacheOptions = boolean;
 
 //#region Stats
 
-type StatsPresets =
+export type StatsPresets =
 	| "normal"
 	| "none"
 	| "verbose"
@@ -2149,6 +2162,10 @@ export type StatsOptions = {
 	 * @default 5
 	 */
 	warningsSpace?: number;
+};
+
+export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+	children?: StatsValue | (StatsValue | undefined)[];
 };
 
 /**
@@ -2794,6 +2811,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	lazyBarrel?: boolean;
+	/**
+	 * Enable defer import feature
+	 * @default false
+	 */
+	deferImport?: boolean;
 };
 //#endregion
 
@@ -2840,7 +2862,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends DevServerOptions {}
+export type DevServer = DevServerOptions;
 
 export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion

@@ -1,78 +1,138 @@
-import type yargs from "yargs";
+import type { Command } from "cac";
 
 /**
  * Apply common options for all commands
  */
-export const commonOptions = (yargs: yargs.Argv) => {
-	return yargs.options({
-		config: {
-			g: true,
-			type: "string",
-			describe: "config file",
-			alias: "c"
-		},
-		configName: {
-			type: "array",
-			string: true,
-			describe: "Name of the configuration to use."
-		},
-		configLoader: {
-			type: "string",
-			default: "register",
-			describe:
-				"Specify the loader to load the config file, can be `native` or `register`."
-		},
-		nodeEnv: {
-			string: true,
-			describe: "sets `process.env.NODE_ENV` to be specified value"
+export const commonOptions = (command: Command): Command =>
+	command
+		.option("-c, --config <path>", "config file")
+		.option("--config-name <name>", "Name(s) of the configuration to use.", {
+			type: [String],
+			default: []
+		})
+		.option(
+			"--config-loader <loader>",
+			"Specify the loader to load the config file, can be `native` or `register`.",
+			{ default: "register" }
+		)
+		.option("--env <env>", "env passed to config function", {
+			type: [String],
+			default: []
+		})
+		.option(
+			"--node-env <value>",
+			"sets `process.env.NODE_ENV` to be specified value"
+		);
+
+export type CommonOptions = {
+	config?: string;
+	configName?: string[];
+	configLoader?: string;
+	env?: Record<string, unknown> | string[];
+	nodeEnv?: string;
+};
+
+function normalizeDevtoolOption(
+	value?: string | boolean
+): string | boolean | undefined {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		if (trimmed === "" || trimmed === "false") {
+			return false;
 		}
-	});
+		if (trimmed === "true") {
+			return "source-map";
+		}
+		return trimmed;
+	}
+	if (typeof value === "boolean") {
+		return value ? "source-map" : false;
+	}
+}
+
+export const normalizeCommonOptions = (
+	options: CommonOptions | CommonOptionsForBuildAndServe,
+	action: "serve" | "build" | "preview"
+) => {
+	const isEmptyArray = (arr?: unknown[]): arr is [] =>
+		Array.isArray(arr) && arr.length === 0;
+
+	// remove empty array
+	for (const key of ["entry", "configName"] as const) {
+		const val = (options as CommonOptionsForBuildAndServe)[key];
+		if (isEmptyArray(val)) {
+			(options as CommonOptionsForBuildAndServe)[key] = undefined;
+		}
+	}
+
+	// normalize options.env
+	const env = Array.isArray(options.env) ? normalizeEnvToObject(options) : {};
+	options.env = env;
+	if (action === "serve") {
+		setBuiltinEnvArg(env, "SERVE", true);
+	} else if (action === "build") {
+		if ((options as CommonOptionsForBuildAndServe).watch) {
+			setBuiltinEnvArg(env, "WATCH", true);
+		} else {
+			setBuiltinEnvArg(env, "BUNDLE", true);
+			setBuiltinEnvArg(env, "BUILD", true);
+		}
+	}
+
+	// normalize options.devtool
+	if ("devtool" in options) {
+		options.devtool = normalizeDevtoolOption(options.devtool);
+	}
 };
 
 /**
  * Apply common options for `build` and `serve` commands
  */
-export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
-	return yargs
-		.options({
-			entry: {
-				type: "array",
-				string: true,
-				describe: "entry file"
-			},
-			outputPath: {
-				type: "string",
-				describe: "output path dir",
-				alias: "o"
-			},
-			mode: { type: "string", describe: "mode", alias: "m" },
-			watch: {
-				type: "boolean",
-				default: false,
-				describe: "watch",
-				alias: "w"
-			},
-			env: {
-				type: "array",
-				string: true,
-				describe: "env passed to config function"
-			},
-			devtool: {
-				type: "string",
-				describe:
-					"Specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production.",
-				alias: "d",
-				coerce: (arg): string | boolean => {
-					if (arg === "true") return "source-map";
-					if (arg === "false" || arg.trim() === "") return false;
-					return arg;
-				}
-			}
+export const commonOptionsForBuildAndServe = (command: Command): Command => {
+	return command
+		.option("--analyze", "analyze")
+		.option(
+			"-d, --devtool <value>",
+			"specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production."
+		)
+		.option("--entry <entry>", "entry file", {
+			type: [String],
+			default: []
 		})
-		.alias({ v: "version", h: "help" });
+		.option("-m, --mode <mode>", "mode")
+		.option("-o, --output-path <dir>", "output path dir")
+		.option("--profile", "capture timing information for each module")
+		.option("-w, --watch", "watch");
 };
 
-export function normalizeEnv(argv: yargs.Arguments) {
+export type CommonOptionsForBuildAndServe = CommonOptions & {
+	analyze?: boolean;
+	devtool?: string | boolean;
+	entry?: string[];
+	mode?: string;
+	outputPath?: string;
+	profile?: boolean;
+	watch?: boolean;
+};
+
+/**
+ * set builtin env from cli - like `RSPACK_BUNDLE=true`
+ * @param env the `argv.env` object
+ * @param envNameSuffix the added env will be `RSPACK_${envNameSuffix}`
+ * @param value
+ */
+function setBuiltinEnvArg(
+	env: Record<string, any>,
+	envNameSuffix: string,
+	value: unknown
+) {
+	const envName = `RSPACK_${envNameSuffix}`;
+	if (!(envName in env)) {
+		env[envName] = value;
+	}
+}
+
+function normalizeEnvToObject(options: CommonOptions) {
 	function parseValue(previous: Record<string, unknown>, value: string) {
 		const [allKeys, val] = value.split(/=(.+)/, 2);
 		const splitKeys = allKeys.split(/\.(?!$)/);
@@ -107,57 +167,16 @@ export function normalizeEnv(argv: yargs.Arguments) {
 
 		return previous;
 	}
-	const envObj = ((argv.env as string[]) ?? []).reduce(parseValue, {});
-	argv.env = envObj;
-}
 
-/**
- * set builtin env from cli - like `WEBPACK_BUNDLE=true`. also for `RSPACK_` prefixed.
- * @param env the `argv.env` object
- * @param envNameSuffix the added env will be `WEBPACK_${envNameSuffix}` and `RSPACK_${envNameSuffix}`
- * @param value
- */
-export function setBuiltinEnvArg(
-	env: Record<string, any>,
-	envNameSuffix: string,
-	value: any
-) {
-	const envNames = [
-		// TODO: breaking change
-		// `WEBPACK_${envNameSuffix}`,
-		`RSPACK_${envNameSuffix}`
-	];
-	for (const envName of envNames) {
-		if (envName in env) {
-			continue;
-		}
-		env[envName] = value;
-	}
-}
-
-/**
- * infer `argv.env` as an object for it was transformed from array to object after `normalizeEnv` middleware
- * @returns the reference of `argv.env` object
- */
-export function ensureEnvObject<T extends Record<string, unknown>>(
-	options: yargs.Arguments
-): T {
-	if (Array.isArray(options.env)) {
-		// in case that cli haven't got `normalizeEnv` middleware applied
-		normalizeEnv(options);
-	}
-	options.env = options.env || {};
-	return options.env as T;
+	return ((options.env as string[]) ?? []).reduce(parseValue, {});
 }
 
 export function setDefaultNodeEnv(
-	options: yargs.Arguments,
+	options: { nodeEnv?: unknown },
 	defaultEnv: string
-) {
-	if (process.env.NODE_ENV !== undefined) {
-		return;
+): void {
+	if (process.env.NODE_ENV === undefined) {
+		process.env.NODE_ENV =
+			typeof options.nodeEnv === "string" ? options.nodeEnv : defaultEnv;
 	}
-
-	process.env.NODE_ENV =
-		typeof options.nodeEnv === "string" ? options.nodeEnv : defaultEnv;
 }

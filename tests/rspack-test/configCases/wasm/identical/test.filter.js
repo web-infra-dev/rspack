@@ -1,7 +1,2 @@
-// var supportsWebAssembly = require("@rspack/test-tools/helper/legacy/supportsWebAssembly");
-
-// module.exports = function (config) {
-//   return supportsWebAssembly();
-// };
 
 module.exports = () => "TODO: support AsyncWebAssemblyModulesPlugin.getCompilationHooks"

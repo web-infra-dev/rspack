@@ -42,6 +42,9 @@ swc_core                       = { workspace = true, features = ["base", "ecma_a
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
 
-
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']

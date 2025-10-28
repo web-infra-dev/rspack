@@ -254,11 +254,11 @@ impl DestructuringAssignmentProperties {
     self.inner.iter()
   }
 
-  pub fn traverse_on_left<'a, F>(&'a self, on_left_node: &mut F)
+  pub fn traverse_on_leaf<'a, F>(&'a self, on_leaf_node: &mut F)
   where
     F: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
   {
-    self.traverse_impl(on_left_node, &mut |_| {}, &mut Vec::new());
+    self.traverse_impl(on_leaf_node, &mut |_| {}, &mut Vec::new());
   }
 
   pub fn traverse_on_enter<'a, F>(&'a self, on_enter_node: &mut F)
@@ -270,7 +270,7 @@ impl DestructuringAssignmentProperties {
 
   fn traverse_impl<'a, L, E>(
     &'a self,
-    on_left_node: &mut L,
+    on_leaf_node: &mut L,
     on_enter_node: &mut E,
     stack: &mut Vec<&'a DestructuringAssignmentProperty>,
   ) where
@@ -281,9 +281,9 @@ impl DestructuringAssignmentProperties {
       stack.push(prop);
       on_enter_node(stack);
       if let Some(pattern) = &prop.pattern {
-        pattern.traverse_impl(on_left_node, on_enter_node, stack);
+        pattern.traverse_impl(on_leaf_node, on_enter_node, stack);
       } else {
-        on_left_node(stack);
+        on_leaf_node(stack);
       }
       stack.pop();
     }

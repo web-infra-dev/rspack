@@ -1,4 +1,4 @@
-it("should load a duplicate module with different dependencies correctly", function(done) {
+it("should load a duplicate module with different dependencies correctly", () => new Promise(done => {
 	var a = require("bundle-loader!./a/file");
 	var b = require("bundle-loader!./b/file");
 	expect((typeof a)).toBe("function");
@@ -10,4 +10,4 @@ it("should load a duplicate module with different dependencies correctly", funct
 			done();
 		})
 	});
-});
+}));

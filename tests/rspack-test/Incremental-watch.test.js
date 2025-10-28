@@ -1,5 +1,4 @@
 process.env.RSPACK_INCREMENTAL_WATCH_TEST = true;
-process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
 
 const path = require("path");
 const {

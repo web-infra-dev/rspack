@@ -1,11 +1,14 @@
-use std::sync::{Arc, LazyLock};
+use std::{
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
-  CompilationFinishModules, CompilationParams, CompilationProcessAssets,
+  CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
   ModuleIdentifier, ModuleInfo, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
@@ -23,7 +26,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
-  runtime::RegisterModuleRuntime,
+  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
 };
 
 pub static CONCATENATED_MODULES_MAP_FOR_CODEGEN: LazyLock<
@@ -37,9 +40,19 @@ pub static CONCATENATED_MODULES_MAP: LazyLock<
 pub static LINKS: LazyLock<RwLock<FxHashMap<u32, UkeyMap<ChunkUkey, ChunkLinkContext>>>> =
   LazyLock::new(Default::default);
 
+pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
+
 #[plugin]
 #[derive(Debug, Default)]
-pub struct EsmLibraryPlugin {}
+pub struct EsmLibraryPlugin {
+  pub(crate) preserve_modules: Option<PathBuf>,
+}
+
+impl EsmLibraryPlugin {
+  pub fn new(preserve_modules: Option<PathBuf>) -> Self {
+    Self::new_inner(preserve_modules)
+  }
+}
 
 #[plugin_hook(CompilerCompilation for EsmLibraryPlugin, stage=100)]
 async fn compilation(
@@ -181,6 +194,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           runtime_requirements: RuntimeGlobals::default(),
           name: None,
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         }),
       );
     }
@@ -227,6 +244,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           name: None,
           runtime_requirements: RuntimeGlobals::default(),
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         });
         stack.push(*dep_module);
       }
@@ -355,12 +376,25 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut replaced = vec![];
+  let mut removed = vec![];
 
   for (asset_name, asset) in compilation.assets() {
     if asset.get_info().javascript_module.unwrap_or_default() {
       let Some(source) = asset.get_source() else {
         continue;
       };
+
+      if asset
+        .get_info()
+        .extras
+        .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
+        && source.source().trim().is_empty()
+      {
+        // remove empty runtime chunk
+        removed.push(asset_name.to_string());
+        continue;
+      }
+
       let mut replace_source = ReplaceSource::new(source.clone());
       let output_path = compilation.options.output.path.as_std_path();
       let mut self_path = output_path.join(asset_name);
@@ -407,10 +441,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .as_str(),
         );
         let relative = chunk_path.relative(self_path.as_path());
+        let relative = relative
+          .to_slash()
+          .expect("should have correct to_str for chunk path");
+
+        // change relative path to unix style
         let import_str = if relative.starts_with(".") {
-          relative.to_string_lossy().to_string()
+          relative
         } else {
-          format!("./{}", relative.display())
+          std::borrow::Cow::Owned(format!("./{relative}"))
         };
         replace_source.replace(start, end, &import_str, None);
       }
@@ -425,8 +464,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .expect("should have asset")
       .set_source(Some(Arc::new(replace_source)));
   }
+  for remove_name in removed {
+    compilation.assets_mut().remove(&remove_name);
+  }
 
   Ok(())
+}
+
+#[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if let Some(preserve_modules_root) = &self.preserve_modules {
+    let errors = preserve_modules(preserve_modules_root, compilation).await;
+    if !errors.is_empty() {
+      compilation.extend_diagnostics(errors);
+    }
+  }
+
+  Ok(None)
 }
 
 impl Plugin for EsmLibraryPlugin {
@@ -464,6 +518,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
 
     Ok(())
   }

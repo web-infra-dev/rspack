@@ -1,28 +1,21 @@
 import path from "node:path";
-import type { Chunk } from "@rspack/core";
+import type {
+	Chunk,
+	RspackOptions,
+	Stats,
+	StatsCompilation
+} from "@rspack/core";
 import fs from "fs-extra";
 import { escapeSep } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	ECompilerType,
-	type ITestContext,
-	type ITestEnv,
-	type TCompilerOptions,
-	type TCompilerStats,
-	type TCompilerStatsCompilation,
-	type THotUpdateContext
-} from "../type";
-import { getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import type { THotStepRuntimeData } from "./runner";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-type TModuleGetHandler = (
-	file: string,
-	options: TCompilerOptions<ECompilerType>
-) => string[];
+type TModuleGetHandler = (file: string, options: RspackOptions) => string[];
 
 declare let global: {
 	self?: {
@@ -34,10 +27,7 @@ const NOOP_SET = new Set();
 
 const escapeLocalName = (str: string) => str.split(/[-<>:"/|?*.]/).join("_");
 
-const SELF_HANDLER = (
-	file: string,
-	options: TCompilerOptions<ECompilerType>
-): string[] => {
+const SELF_HANDLER = (file: string, options: RspackOptions): string[] => {
 	let res: string[] = [];
 	const hotUpdateGlobal = (_: string, modules: Record<string, unknown>) => {
 		res = Object.keys(modules);
@@ -51,9 +41,6 @@ const SELF_HANDLER = (
 	global.self[hotUpdateGlobalKey] = hotUpdateGlobal;
 	require(file);
 	delete global.self[hotUpdateGlobalKey];
-	if (!Object.keys(global.self).length) {
-		delete global.self;
-	}
 	return res;
 };
 
@@ -70,13 +57,15 @@ const GET_MODULE_HANDLER: Record<string, TModuleGetHandler> = {
 
 type TSupportTarget = keyof typeof GET_MODULE_HANDLER;
 
-const creators: Map<
-	TTarget,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const creators: Map<TTarget, BasicCaseCreator> = new Map();
 
-function createHotStepProcessor(name: string, target: TTarget) {
-	const processor = createHotProcessor(name, target);
+function createHotStepProcessor(
+	name: string,
+	src: string,
+	temp: string,
+	target: TTarget
+) {
+	const processor = createHotProcessor(name, src, temp, target);
 	const entries: Record<string, string[]> = {};
 	const hashes: string[] = [];
 
@@ -84,8 +73,8 @@ function createHotStepProcessor(name: string, target: TTarget) {
 		env: ITestEnv,
 		context: ITestContext,
 		step: number,
-		options: TCompilerOptions<ECompilerType.Rspack>,
-		stats: TCompilerStatsCompilation<ECompilerType.Rspack>,
+		options: RspackOptions,
+		stats: StatsCompilation,
 		runtime?: THotStepRuntimeData
 	) {
 		const getModuleHandler =
@@ -107,9 +96,9 @@ function createHotStepProcessor(name: string, target: TTarget) {
 		const changedFiles: string[] =
 			step === 0
 				? []
-				: processor.hotUpdateContext.changedFiles.map((i: string) =>
-						escapeSep(path.relative(context.getSource(), i))
-					);
+				: processor.updatePlugin
+						.getModifiedFiles()
+						.map((i: string) => escapeSep(path.relative(temp, i)));
 		changedFiles.sort();
 
 		const resultHashes: Record<string, string> = {
@@ -327,18 +316,12 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 	const originRun = processor.run;
 	processor.run = async function (env, context) {
 		context.setValue(
-			name,
 			"hotUpdateStepChecker",
-			(
-				hotUpdateContext: THotUpdateContext,
-				stats: TCompilerStats<ECompilerType.Rspack>,
-				runtime: THotStepRuntimeData
-			) => {
-				const statsJson: TCompilerStatsCompilation<ECompilerType.Rspack> =
-					stats.toJson({
-						assets: true,
-						chunks: true
-					});
+			(updateIndex: number, stats: Stats, runtime: THotStepRuntimeData) => {
+				const statsJson: StatsCompilation = stats.toJson({
+					assets: true,
+					chunks: true
+				});
 
 				const chunks = Array.from(
 					// Some chunk fields are missing from rspack
@@ -354,12 +337,12 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 								: Array.from(entry.runtime);
 					}
 				}
-				const compiler = context.getCompiler(name, ECompilerType.Rspack);
+				const compiler = context.getCompiler();
 				const compilerOptions = compiler.getOptions();
 				matchStepSnapshot(
 					env,
 					context,
-					hotUpdateContext.updateIndex,
+					updateIndex,
 					compilerOptions,
 					statsJson,
 					runtime
@@ -368,13 +351,8 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			}
 		);
 		context.setValue(
-			name,
 			"hotUpdateStepErrorChecker",
-			(
-				_: THotUpdateContext,
-				stats: TCompilerStats<ECompilerType.Rspack>,
-				runtime: THotStepRuntimeData
-			) => {
+			(updateIndex: number, stats: Stats, runtime: THotStepRuntimeData) => {
 				hashes.push(stats.hash!);
 			}
 		);
@@ -383,8 +361,8 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 	};
 
 	processor.check = async function (env, context) {
-		const compiler = getCompiler(context, name);
-		const stats = compiler.getStats() as TCompilerStats<ECompilerType.Rspack>;
+		const compiler = context.getCompiler();
+		const stats = compiler.getStats() as Stats;
 		if (!stats || !stats.hash) {
 			env.expect(false);
 			return;
@@ -428,8 +406,13 @@ function getCreator(target: TTarget) {
 				clean: true,
 				describe: false,
 				target,
-				steps: ({ name, target }) => [
-					createHotStepProcessor(name, target as TTarget)
+				steps: ({ name, target, src, temp, dist }) => [
+					createHotStepProcessor(
+						name,
+						src,
+						temp || path.resolve(dist, "temp"),
+						target as TTarget
+					)
 				],
 				runner: {
 					key: (context: ITestContext, name: string, file: string) => name,
@@ -446,8 +429,9 @@ export function createHotStepCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"]
+	temp: string,
+	target: RspackOptions["target"]
 ) {
 	const creator = getCreator(target);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }

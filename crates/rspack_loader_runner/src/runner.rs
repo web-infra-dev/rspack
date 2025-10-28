@@ -4,7 +4,6 @@ use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
-use tokio::task::spawn_blocking;
 use tracing::{Instrument, info_span};
 
 use crate::{
@@ -36,28 +35,20 @@ async fn process_resource<Context: Send>(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = &loader_context.plugin
-    && let Some(processed_resource) = plugin
-      .process_resource(&loader_context.resource_data)
+    && let Some((content, source_map, file_dependencies)) = plugin
+      .process_resource(&loader_context.resource_data, fs)
       .await?
   {
-    loader_context.content = Some(processed_resource);
+    loader_context.content = Some(content);
+    loader_context.source_map = source_map;
+    loader_context.file_dependencies.extend(file_dependencies);
     return Ok(());
   }
 
   let resource_data = &loader_context.resource_data;
   let scheme = resource_data.get_scheme();
+
   if scheme.is_none() {
-    if let Some(resource_path) = resource_data.path()
-      && !resource_path.as_str().is_empty()
-    {
-      let resource_path_owned = resource_path.to_owned();
-      // use spawn_blocking to avoid block, see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
-      let result = spawn_blocking(move || fs.read_sync(resource_path_owned.as_path()))
-        .await
-        .map_err(|e| error!("{e}, spawn task failed"))?;
-      let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
-      loader_context.content = Some(Content::from(result));
-    }
     return Ok(());
   }
 
@@ -110,7 +101,7 @@ pub async fn run_loaders<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
-) -> (LoaderResult, Option<Error>) {
+) -> (LoaderResult<Context>, Option<Error>) {
   let loaders = loaders
     .into_iter()
     .map(|i| i.into())
@@ -220,7 +211,8 @@ async fn run_loaders_impl<Context: Send>(
 }
 
 #[derive(Debug)]
-pub struct LoaderResult {
+pub struct LoaderResult<Context> {
+  pub context: Context,
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -233,9 +225,10 @@ pub struct LoaderResult {
   pub parse_meta: ParseMeta,
 }
 
-impl LoaderResult {
-  pub fn new<T: Send>(loader_context: LoaderContext<T>) -> Self {
+impl<Context: Send> LoaderResult<Context> {
+  pub fn new(loader_context: LoaderContext<Context>) -> Self {
     LoaderResult {
+      context: loader_context.context,
       cacheable: loader_context.cacheable,
       file_dependencies: loader_context.file_dependencies,
       context_dependencies: loader_context.context_dependencies,
@@ -259,7 +252,9 @@ mod test {
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
   use rspack_error::Result;
-  use rspack_fs::NativeFileSystem;
+  use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+  use rspack_sources::SourceMap;
+  use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
@@ -278,8 +273,12 @@ mod test {
       Ok(())
     }
 
-    async fn process_resource(&self, _resource_data: &ResourceData) -> Result<Option<Content>> {
-      Ok(Some(Content::Buffer(vec![])))
+    async fn process_resource(
+      &self,
+      _resource_data: &ResourceData,
+      _fs: Arc<dyn ReadableFileSystem>,
+    ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>> {
+      Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }
 

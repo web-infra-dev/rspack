@@ -1,4 +1,4 @@
-it("should cache modules correctly", function(done) {
+it("should cache modules correctly", () => new Promise(done => {
 	delete require.cache[require.resolve("./singular.js")];
 	expect(require("./singular.js").value).toBe(1);
 	expect((require("./singular.js")).value).toBe(1);
@@ -8,7 +8,7 @@ it("should cache modules correctly", function(done) {
 		expect(require("./singular.js").value).toBe(2);
 		done();
 	});
-});
+}));
 
 it("should be able the remove modules from cache with require.cache and require.resolve", function() {
 	var singularObj = require("./singular2");

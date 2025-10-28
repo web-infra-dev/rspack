@@ -1,7 +1,9 @@
+const { DefinePlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	builtins: {
-		define: {
+	plugins: [
+		new DefinePlugin({
 			TRUE: "true",
 			FALSE: "false",
 			NUMBER_ADD: "3 + 2",
@@ -39,6 +41,6 @@ module.exports = {
 			"M1.M2.M3": "{}",
 			SHOULD_CONVERTED: "205",
 			CONVERTED_TO_MEMBER: "A1.A2.A3"
-		}
-	}
+		})
+	],
 };

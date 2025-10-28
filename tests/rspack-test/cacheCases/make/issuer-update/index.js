@@ -11,3 +11,5 @@ it("should issuer update", async () => {
 		expect(content).toBe("b");
 	}
 });
+
+module.hot.accept("./file");

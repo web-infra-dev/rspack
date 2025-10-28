@@ -4,7 +4,7 @@ runtime modules 88 bytes 1 module
 modules by path ./*.js 73 bytes
   ./index.js 51 bytes [built] [code generated] [2 warnings]
   ./a.js 22 bytes [built] [code generated]
-<TEST_TOOLS_ROOT>/statsOutputCases/preset-normal|sync 160 bytes [built] [code generated]
+<TEST_ROOT>/statsOutputCases/preset-normal|sync 160 bytes [built] [code generated]
 
 LOG from LogTestPlugin
 <e> Error

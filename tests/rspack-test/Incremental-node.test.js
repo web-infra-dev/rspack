@@ -1,10 +1,9 @@
-process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
-
 const path = require("path");
 const {
 	describeByWalk,
 	createHotIncrementalCase
 } = require("@rspack/test-tools");
+const tempDir = path.resolve(__dirname, `./js/temp/incremental-node`);
 
 function v(name) {
 	return path.join(__dirname, `incremental ${name}`);
@@ -14,7 +13,7 @@ function v(name) {
 describeByWalk(
 	v("hot node"),
 	(name, src, dist) => {
-		createHotIncrementalCase(name, src, dist, "node", false);
+		createHotIncrementalCase(name, src, dist, path.join(tempDir, name), "node", false);
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),

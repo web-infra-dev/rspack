@@ -1,7 +1,7 @@
 ERROR in ./index.tsx
   × Module build failed:
   ├─▶   ×   x Unexpected token. Did you mean `{'>'}` or `&gt;`?
-  │     │    ,-[<TEST_TOOLS_ROOT>/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx<LINE_COL>]
+  │     │    ,-[<TEST_ROOT>/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx<LINE_COL>]
   │     │  1 | let c = <test>() => {}</test>;
   │     │    :                   ^
   │     │    `----

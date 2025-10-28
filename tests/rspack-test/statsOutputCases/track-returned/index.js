@@ -237,7 +237,7 @@ it("should work correct for if #4", () => {
 	}
 });
 
-it("should not include unused assets", (done) => {
+it("should not include unused assets", () => {
 	let a, b;
 	(function() {
 		try {

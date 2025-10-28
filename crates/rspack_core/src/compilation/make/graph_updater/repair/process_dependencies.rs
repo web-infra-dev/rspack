@@ -32,6 +32,11 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     for dependency_id in dependencies {
+      context
+        .artifact
+        .affected_dependencies
+        .mark_as_add(&dependency_id);
+
       let dependency = module_graph
         .dependency_by_id(&dependency_id)
         .expect("should have dependency");

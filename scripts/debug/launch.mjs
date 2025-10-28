@@ -17,7 +17,7 @@ export async function launchRspackCli(additionalArgs) {
 			type: "lldb",
 			request: "launch",
 			sourceLanguages: ["rust"],
-			program: "node",
+			program: "/Users/bytedance/.local/state/fnm_multishells/52776_1760165974924/bin/node",
 			args,
 			env: process.env,
 			cwd: process.cwd()

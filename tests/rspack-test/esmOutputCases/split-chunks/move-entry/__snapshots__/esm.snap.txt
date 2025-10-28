@@ -1,8 +1,5 @@
 ```mjs title=lib.mjs
-import { __webpack_require__ } from "./runtime.mjs";
 import "./lib_js.mjs";
-
-const lib = __webpack_require__("./lib.js");
 
 
 ```
@@ -21,6 +18,8 @@ console.log.bind(console)
 
 }),
 });
+const lib = __webpack_require__("./lib.js");
+
 
 ```
 

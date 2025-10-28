@@ -1,7 +1,7 @@
 const path = require('path');
 
-const mockWatchRunFn = jest.fn(() => { });
-const mockInvalidFn = jest.fn(() => { });
+const mockWatchRunFn = rstest.fn(() => { });
+const mockInvalidFn = rstest.fn(() => { });
 
 class MyPlugin {
 	apply(compiler) {

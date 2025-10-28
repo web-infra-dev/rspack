@@ -13,3 +13,5 @@ it("should version work", async () => {
 		expect(value).toBe(4);
 	}
 });
+
+module.hot.accept("./file");

@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: failed to import css modules";

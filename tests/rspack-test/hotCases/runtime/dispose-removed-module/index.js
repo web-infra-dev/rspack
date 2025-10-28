@@ -1,20 +1,15 @@
 var m = require("./module");
 
-it("should dispose a module which is removed from bundle", (done) => {
+it("should dispose a module which is removed from bundle", async () => {
 	var disposed = [];
 	m.setHandler((id) => {
 		disposed.push(id);
 	});
-	NEXT(require("../../update")(done, true, () => {
-		require("./module");
-		NEXT(require("../../update")(done, true, () => {
-			var newModule = require("./module");
-			expect(disposed).toEqual([newModule.default]);
-			done();
-		}));
-	}));
+	await NEXT_HMR();
+	require("./module");
+	await NEXT_HMR();
+	var newModule = require("./module");
+	expect(disposed).toEqual([newModule.default]);
 });
 
-if(module.hot) {
-	module.hot.accept("./module");
-}
+module.hot.accept("./module");

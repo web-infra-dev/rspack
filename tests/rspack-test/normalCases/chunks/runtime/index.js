@@ -1,5 +1,6 @@
 /* globals it */
-it("should handle duplicate chunks", function(done) {
+it("should handle duplicate chunks", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var firstOne = false, secondOne = false;
 	require.ensure([], function(require) {
 		require("./acircular");
@@ -15,9 +16,10 @@ it("should handle duplicate chunks", function(done) {
 		secondOne = true;
 		if(firstOne) done();
 	});
-});
+}));
 
-it("should not load a chunk which is included in a already loaded one", function(done) {
+it("should not load a chunk which is included in a already loaded one", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var asyncFlag = false;
 	require.ensure(["./empty?x", "./empty?y", "./empty?z"], function(require) {
 		try {
@@ -44,4 +46,4 @@ it("should not load a chunk which is included in a already loaded one", function
 			sync = false;
 		});
 	}
-});
+}));

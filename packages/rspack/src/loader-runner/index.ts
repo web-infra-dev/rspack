@@ -7,9 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
-const LOADER_PROCESS_NAME = "Loader Analysis";
-
-import assert from "node:assert";
 import querystring from "node:querystring";
 import {
 	formatDiagnostic,
@@ -53,8 +50,7 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import ModuleError from "./ModuleError";
-import ModuleWarning from "./ModuleWarning";
+import { ModuleError, ModuleWarning } from "./ModuleError";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {
@@ -63,6 +59,8 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
+
+const LOADER_PROCESS_NAME = "Loader Analysis";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -186,7 +184,10 @@ export class LoaderObject {
 	}
 
 	set pitchExecuted(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("pitchExecuted should be true");
+		}
+
 		this.loaderItem.pitchExecuted = true;
 	}
 
@@ -195,12 +196,17 @@ export class LoaderObject {
 	}
 
 	set normalExecuted(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("normalExecuted should be true");
+		}
+
 		this.loaderItem.normalExecuted = true;
 	}
 
 	set noPitch(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("noPitch should be true");
+		}
 		this.loaderItem.noPitch = true;
 	}
 
@@ -727,7 +733,7 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
-		get: () => (cacheable: boolean) => {
+		get: () => (cacheable?: boolean) => {
 			if (cacheable === false) {
 				context.cacheable = cacheable;
 			}

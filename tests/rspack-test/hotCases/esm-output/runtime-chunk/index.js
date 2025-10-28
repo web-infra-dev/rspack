@@ -1,23 +1,16 @@
 import { sharedData } from "./shared";
-import update from "../../update.esm";
 
-it("should handle HMR with runtime chunk in ESM format", (done) => {
+it("should handle HMR with runtime chunk in ESM format", async () => {
 	expect(sharedData.version).toBe("1.0.0");
-	
-	import.meta.webpackHot.accept(["./shared"]);
-	
-	NEXT(update(done, true, () => {
-		import("./shared").then(updatedModule => {
-			expect(updatedModule.sharedData.version).toBe("2.0.0");
-			done();
-		}).catch(done);
-	}));
+	await NEXT_HMR();
+	const updatedModule = await import("./shared");
+	expect(updatedModule.sharedData.version).toBe("2.0.0");
 });
 
-it("should load async shared module with runtime chunk", (done) => {
-	import("./async-shared").then(module => {
-		expect(module.asyncData.loaded).toBe(true);
-		expect(module.asyncData.content).toBe("Async shared content");
-		done();
-	}).catch(done);
+it("should load async shared module with runtime chunk", async () => {
+	const m = await import("./async-shared");
+	expect(m.asyncData.loaded).toBe(true);
+	expect(m.asyncData.content).toBe("Async shared content");
 });
+
+import.meta.webpackHot.accept(["./shared", "./async-shared"]);

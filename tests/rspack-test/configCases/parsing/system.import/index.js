@@ -16,7 +16,8 @@ it("should answer typeof System.import correctly", () => {
 	}
 });
 
-it("should be able to use System.import()", done => {
+it("should be able to use System.import()", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	try {
 		System.import("./module").then(mod => {
 			if(__SYSTEM__) {
@@ -35,4 +36,4 @@ it("should be able to use System.import()", done => {
 			done();
 		}
 	}
-});
+}));

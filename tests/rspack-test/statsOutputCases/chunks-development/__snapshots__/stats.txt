@@ -9,7 +9,7 @@ chunk (runtime: main) bundle.js (main) 233 bytes (javascript) 88 bytes (runtime)
   ./index.js 51 bytes [built] [code generated] [2 warnings]
     entry ./index
     xx ms (resolving: xx ms, building: xx ms)
-  <TEST_TOOLS_ROOT>/statsOutputCases/chunks-development|sync 160 bytes [dependent] [built] [code generated]
+  <TEST_ROOT>/statsOutputCases/chunks-development|sync 160 bytes [dependent] [built] [code generated]
     commonjs require context . ./index.js 2:0-16
     commonjs require context . ./index.js 3:0-16
     xx ms (resolving: xx ms, building: xx ms)

@@ -6,7 +6,7 @@ modules with errors 53 bytes [errors]
 ./inner.js 53 bytes [built] [code generated]
 
 ERROR in ./not-existing.js 1:8-24
-  × Module not found: Can't resolve 'does-not-exist' in '<TEST_TOOLS_ROOT>/statsOutputCases/module-trace-disabled-in-error'
+  × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/module-trace-disabled-in-error'
    ╭────
  1 │ require('does-not-exist')
    · ─────────────────────────

@@ -60,7 +60,7 @@ impl JavaScriptCompiler {
     filename: Option<Arc<FileName>>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
-    inspect_parsed_ast: impl FnOnce(&Program),
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<TransformOutput>
   where
@@ -293,7 +293,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform<P>(
     self,
-    inspect_parsed_ast: impl FnOnce(&Program),
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
   ) -> Result<TransformOutput>
@@ -317,9 +317,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
     let input_source_map = self.input_source_map(&built_input.input_source_map)?;
 
-    inspect_parsed_ast(&built_input.program);
-
-    let diagnostics = self.transform_with_built_input(&mut built_input)?;
+    let diagnostics = self.transform_with_built_input(&mut built_input, inspect_parsed_ast)?;
     let ascii_only = built_input
       .output
       .charset
@@ -434,10 +432,13 @@ impl<'a> JavaScriptTransformer<'a> {
   fn transform_with_built_input(
     &self,
     built_input: &mut BuiltInput<impl Pass>,
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
   ) -> Result<Vec<String>> {
     let mut diagnostics = vec![];
     let result = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
+        inspect_parsed_ast(&built_input.program, built_input.unresolved_mark);
+
         let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
           // Apply external plugin passes to the Program AST.
           // External plugins may emit warnings or inject helpers,

@@ -127,7 +127,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
-    let module = unsafe { cx.context.module.as_ref() };
+    let module = &cx.context.module;
 
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {

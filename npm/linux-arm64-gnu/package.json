@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-arm64-gnu",
-  "version": "1.5.8",
+  "version": "1.6.0-beta.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-arm64-gnu.node",
@@ -12,18 +12,18 @@
     "directory": "packages/rspack"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "arm64"
+    ],
+    "libc": [
+      "glibc"
+    ]
   },
   "files": [
     "rspack.linux-arm64-gnu.node"
-  ],
-  "os": [
-    "linux"
-  ],
-  "cpu": [
-    "arm64"
-  ],
-  "libc": [
-    "glibc"
   ]
 }

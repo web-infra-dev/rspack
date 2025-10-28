@@ -3,8 +3,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  ExportSpecExports, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
@@ -249,7 +249,7 @@ fn collect_module_exports_specs(
     }
   }
 
-  let block = &**mg.module_by_identifier(module_id)?;
+  let block = mg.module_by_identifier(module_id)?.as_ref();
   let mut dep_ids = FxIndexSet::default();
   walk_block(block, &mut dep_ids, mg);
 
@@ -406,7 +406,7 @@ struct ParsedExportSpec<'a> {
   name: &'a Atom,
   can_mangle: Option<bool>,
   terminal_binding: bool,
-  exports: Option<&'a Vec<ExportNameOrSpec>>,
+  exports: Option<&'a ExportSpecExports>,
   from: Option<&'a ModuleGraphConnection>,
   from_export: Option<&'a Nullable<Vec<Atom>>>,
   priority: Option<u8>,
@@ -613,7 +613,7 @@ fn merge_nested_exports(
   mg: &mut ModuleGraph,
   module_id: &ModuleIdentifier,
   export_info: ExportInfo,
-  exports: &Vec<ExportNameOrSpec>,
+  exports: &ExportSpecExports,
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
@@ -642,11 +642,15 @@ fn merge_nested_exports(
     new_exports_info_id
   };
 
+  if exports.unknown_provided {
+    nested_exports_info.set_unknown_exports_provided(mg, false, None, None, None, None);
+  }
+
   let (merge_changed, merge_dependencies) = merge_exports(
     mg,
     module_id,
     nested_exports_info,
-    exports,
+    &exports.exports,
     global_export_info.clone(),
     dep_id,
   );

@@ -1,0 +1,147 @@
+# Layer
+
+Layer is a powerful feature provided by Rspack that allows you to categorize and manage modules. By assigning different layers to modules, you can perform differentiated processing for different types of modules, such as:
+
+- Using different compilation targets based on different layers
+- Splitting modules from different layers into different output directories
+- Applying different compilation strategies for code in different environments (such as server-side and client-side)
+
+## Ways to specify layers
+
+When a module is assigned a layer, all its dependent modules will also be assigned to that layer. For example, if you specify the layer as `client` for the root module, all modules starting from the root module and their dependencies will be assigned to the `client` layer.
+
+## Ways to specify layers
+
+You can specify layers for modules in the following ways:
+
+### 1. Specify via entry
+
+Directly specify layers for different entry points in the [entry configuration using the `layer`](/config/entry#entrydescriptionlayer) option:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    server: {
+      import: './src/server.js',
+      layer: 'server',
+    },
+    client: {
+      import: './src/client.js',
+      layer: 'client',
+    },
+  },
+};
+```
+
+### 2. Specify via loader rules
+
+You can use the [`rule.layer`](/config/module#rulelayer) option to specify a layer for all modules that match the rule:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'yourLayer',
+      },
+    ],
+  },
+};
+```
+
+The layer assigned by [`rule.layer`](/config/module#rulelayer) will override the module's own layer. For example, if a module has been assigned a layer through Entry configuration, the layer assigned through Rule will override the layer specified by Entry.
+
+## Layer inheritance
+
+To better understand how Layer works, we categorize modules into two types:
+
+- **Regular modules**: Modules that are not explicitly assigned a layer
+- **Layer modules**: Modules that have been assigned a layer
+
+### Layer inheritance rules
+
+**1. Downward Inheritance**
+
+All dependent modules of a Layer module will inherit the same layer. For example, when you specify the layer as `'client'` for an entry module, all modules in the entire dependency tree starting from that entry will be assigned to the `'client'` layer.
+
+**2. Mid-path Override**
+
+If a module in the dependency chain is reassigned to a different layer (such as `'server'`) through Loader rules, then all subsequent dependencies starting from that module will follow the new layer.
+
+When a regular module is depended upon by multiple modules with different layers, that module will generate multiple copies in the build output, with each copy corresponding to a layer.
+
+**Example:** If both `'client'` layer and `'server'` layer depend on the same `lib.js` module, then:
+
+- The build output will contain two copies of `lib.js`: one belonging to the `'client'` layer and another to the `'server'` layer
+- The dependency modules of these two copies will also be duplicated and assigned according to the same rules
+
+## Applying different processing rules to different layers
+
+You can use [`issuerLayer`](/config/module#ruleissuerlayer) to filter modules from specific layers and apply different processing rules to them. The following example shows how to use different compilation targets for different layers:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        oneOf: [
+          {
+            issuerLayer: 'client',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es5',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            issuerLayer: 'server',
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: {
+                  jsc: {
+                    target: 'es2020',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Layer-based code splitting
+
+During the build optimization phase, you can assign modules to different chunks based on different layers:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        server: {
+          layer: 'server',
+          filename: 'server/[name].js',
+        },
+        client: {
+          layer: 'client',
+          filename: 'client/[name].js',
+        },
+      },
+    },
+  },
+};
+```
+
+Through the above configuration, we successfully output server and client code to different directories respectively, achieving layer-based code separation.

@@ -163,6 +163,18 @@ fn get_source_for_import(
   )
 }
 
+fn module_external_fragment_key(base: &str, attributes: &Option<ImportAttributes>) -> String {
+  if let Some(attributes) = attributes {
+    format!(
+      "{}|{}",
+      base,
+      serde_json::to_string(attributes).expect("json stringify failed")
+    )
+  } else {
+    base.to_string()
+  }
+}
+
 /**
  * Resolve the detailed external type from the raw external type.
  * e.g. resolve "module" or "import" from "module-import" type
@@ -240,11 +252,20 @@ impl ExternalModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      id: Identifier::from(format!(
-        "external {} {}",
-        resolve_external_type(external_type.as_str(), &dependency_meta),
-        serde_json::to_string(&request).expect("invalid json to_string")
-      )),
+      id: Identifier::from({
+        let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
+        let request_str = serde_json::to_string(&request).expect("invalid json to_string");
+        let attrs_str = dependency_meta
+          .attributes
+          .as_ref()
+          .map_or(String::new(), |attrs| {
+            format!(
+              " {}",
+              serde_json::to_string(attrs).expect("invalid json to_string")
+            )
+          });
+        format!("external {resolved_type} {request_str}{attrs_str}")
+      }),
       request,
       external_type,
       user_request,
@@ -420,9 +441,16 @@ impl ExternalModule {
         if compilation.options.output.module
           && let Some(request) = request
         {
-          let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
+          let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary
+            || self.dependency_meta.attributes.is_some()
+          {
             let mut hasher = RspackHash::from(&compilation.options.output);
             request.primary.hash(&mut hasher);
+            if let Some(attributes) = &self.dependency_meta.attributes {
+              serde_json::to_string(attributes)
+                .expect("json stringify failed")
+                .hash(&mut hasher);
+            }
             let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
             Cow::Owned(format!(
               "{}_{}",
@@ -521,7 +549,10 @@ impl ExternalModule {
                     module_graph
                       .get_pre_order_index(&self.identifier())
                       .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(request.primary().into()),
+                    InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                      request.primary(),
+                      &self.dependency_meta.attributes,
+                    )),
                     None,
                   )
                   .boxed(),
@@ -541,14 +572,15 @@ impl ExternalModule {
                   json_stringify(request.primary()),
                   attributes.unwrap_or_default()
                 );
+                let key = module_external_fragment_key(&content, &self.dependency_meta.attributes);
                 chunk_init_fragments.push(
                   NormalInitFragment::new(
-                    content.clone(),
+                    content,
                     InitFragmentStage::StageESMImports,
                     module_graph
                       .get_pre_order_index(&self.identifier())
                       .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(content),
+                    InitFragmentKey::ModuleExternal(key),
                     None,
                   )
                   .boxed(),
@@ -568,7 +600,10 @@ impl ExternalModule {
                       module_graph
                         .get_pre_order_index(&self.identifier())
                         .map_or(0, |num| num as i32),
-                      InitFragmentKey::ModuleExternal(request.primary().into()),
+                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                        request.primary(),
+                        &self.dependency_meta.attributes,
+                      )),
                       None,
                     )
                     .boxed(),
@@ -621,7 +656,10 @@ impl ExternalModule {
                 ),
                 InitFragmentStage::StageESMImports,
                 0,
-                InitFragmentKey::ModuleExternal(request.primary().into()),
+                InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                  request.primary(),
+                  &self.dependency_meta.attributes,
+                )),
                 None,
               )
               .boxed(),

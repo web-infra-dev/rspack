@@ -9,11 +9,9 @@ it("should able to import with default and named exports", () => {
 	expect(foo).toEqual("_style_module_css_named-foo");
 });
 
-it("should able to import with different default and namex dynamic export", (done) => {
-	import("./style.module.css?namespace").then((style1) => {
+it("should able to import with different default and named dynamic export", async () => {
+	await import("./style.module.css?namespace").then((style1) => {
 		expect(style1.default).toEqual(nsObj({ foo: '_style_module_css_namespace-foo' }));
 		expect(style1.foo).toEqual('_style_module_css_namespace-foo');
-
-		done();
-	}, done)
+	})
 });

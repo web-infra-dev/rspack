@@ -7,8 +7,8 @@ it("should skip trusted types logic when policy name is empty", function () {
 	window.trustedTypes = {
 		createPolicy: () => rules
 	};
-	const createScriptURLSpy = jest.spyOn(rules, "createScriptURL");
-	const createPolicySpy = jest.spyOn(window.trustedTypes, "createPolicy");
+	const createScriptURLSpy = rstest.spyOn(rules, "createScriptURL");
+	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
 
 	const promise = import(
 		"./empty?b" /* webpackChunkName: "no-trusted-types-policy-name" */

@@ -36,7 +36,7 @@ module.exports = {
 	async check() {
 		expect(error).toBeTruthy();
 		expect(error.toString()).toMatchInlineSnapshot(`
-		Error:   × Module not found: Can't resolve './nonexistentfile' in '<TEST_TOOLS_ROOT>/fixtures'
+		Error:   × Module not found: Can't resolve './nonexistentfile' in '<TEST_ROOT>/fixtures'
 		   ╭─[3:4]
 		 1 │ module.exports = function b() {
 		 2 │     /* eslint-disable node/no-missing-require */

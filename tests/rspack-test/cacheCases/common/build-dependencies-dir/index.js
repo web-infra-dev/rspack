@@ -25,3 +25,5 @@ it("should build dependencies work", async () => {
 		expect(value).toBe(8);
 	}
 });
+
+module.hot.accept("./file");

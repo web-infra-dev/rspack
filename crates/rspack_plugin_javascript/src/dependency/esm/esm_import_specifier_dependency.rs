@@ -8,11 +8,11 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
-  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
-  property_access, to_normal_comment,
+  GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  export_from_import, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -48,6 +48,7 @@ pub struct ESMImportSpecifierDependency {
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
@@ -69,6 +70,7 @@ impl ESMImportSpecifierDependency {
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
+    phase: ImportPhase,
     attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -91,6 +93,7 @@ impl ESMImportSpecifierDependency {
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
+      phase,
       attributes,
       resource_identifier,
       loc,
@@ -110,7 +113,7 @@ impl ESMImportSpecifierDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
-      referenced_properties.traverse_on_left(&mut |stack| {
+      referenced_properties.traverse_on_leaf(&mut |stack| {
         let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
         if let Some(ids) = ids {
           let mut ids = ids.to_vec();
@@ -126,7 +129,12 @@ impl ESMImportSpecifierDependency {
         .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Array(v.to_vec())]
+      vec![ExtendedReferencedExport::Export(ReferencedExport {
+        name: v.to_vec(),
+        can_mangle: true,
+        // Need access the export value to trigger side effects for deferred module
+        can_inline: !self.phase.is_defer(),
+      })]
     } else {
       create_exports_object_referenced()
     }
@@ -166,6 +174,10 @@ impl Dependency for ESMImportSpecifierDependency {
     Some(self.source_order)
   }
 
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
   }
@@ -202,7 +214,7 @@ impl Dependency for ESMImportSpecifierDependency {
     let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(&**module)
+      .get_effective_export_presence(module.as_ref())
       && let Some(diagnostic) = esm_import_dependency_get_linking_error(
         self,
         self.get_ids(module_graph),
@@ -331,6 +343,7 @@ impl ESMImportSpecifierDependencyTemplate {
       compilation,
       runtime,
       concatenation_scope,
+      module,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -342,6 +355,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
@@ -351,6 +365,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         ) + property_access(ids, 0).as_str()
@@ -362,13 +377,22 @@ impl ESMImportSpecifierDependencyTemplate {
             ids: ids.to_vec(),
             call: dep.call,
             direct_import: dep.direct_import,
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
       }
     } else {
-      let import_var = compilation.get_import_var(&dep.id, *runtime);
-      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+      let mg = compilation.get_module_graph();
+      let target_module = mg.get_module_by_dependency_id(&dep.id);
+      let import_var = compilation.get_import_var(
+        module.identifier(),
+        target_module,
+        dep.user_request(),
+        dep.phase,
+        *runtime,
+      );
+      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
       export_from_import(
         code_generatable_context,
         true,
@@ -379,6 +403,7 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.call,
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
+        dep.phase,
       )
     }
   }

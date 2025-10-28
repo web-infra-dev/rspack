@@ -1,5 +1,5 @@
 const webpack = require("@rspack/core");
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		library: {

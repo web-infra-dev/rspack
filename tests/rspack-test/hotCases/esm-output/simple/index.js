@@ -1,18 +1,12 @@
 import { greeting } from "./module.js";
-import update from "../../update.esm.js";
 
 import.meta.webpackHot.accept(["./module.js"]);
 
-it("should update a simple ES module with HMR", (done) => {
+it("should update a simple ES module with HMR", async () => {
 	expect(greeting).toBe("Hello World!");
-
-	NEXT(update(done, true, () => {
-		// After HMR update, we need to re-import the module in ESM
-		import("./module.js").then(updatedModule => {
-			expect(updatedModule.greeting).toBe("Hello HMR!");
-			done();
-		}).catch(done);
-	}));
+	await NEXT_HMR();
+	const updatedModule = await import("./module.js");
+	expect(updatedModule.greeting).toBe("Hello HMR!");
 });
 
 it("should have HMR runtime available in ESM output", () => {

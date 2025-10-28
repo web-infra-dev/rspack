@@ -15,6 +15,8 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
@@ -28,10 +30,11 @@ use crate::{
     ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
     GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
     GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-    LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
-    NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-    RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule, chunk_has_css,
-    chunk_has_js, is_enabled_for_chunk,
+    LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
+    MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
+    OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
+    RuntimeIdRuntimeModule, SystemContextRuntimeModule, chunk_has_css, chunk_has_js,
+    is_enabled_for_chunk,
   },
 };
 
@@ -40,6 +43,7 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RuntimePlugin::get_compilation_hooks_mut]
 type ArcRuntimePluginHooks = Arc<AtomicRefCell<RuntimePluginHooks>>;
 
+#[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRuntimePluginHooks>> =
   LazyLock::new(Default::default);
 
@@ -74,6 +78,7 @@ const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
   RuntimeGlobals::LOAD_SCRIPT,
   RuntimeGlobals::SYSTEM_CONTEXT,
   RuntimeGlobals::ON_CHUNKS_LOADED,
+  RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
 ];
 
 const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
@@ -121,6 +126,14 @@ const TREE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
   (
     RuntimeGlobals::NODE_MODULE_DECORATOR,
     RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+  ),
+  (
+    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+      .union(RuntimeGlobals::MAKE_NAMESPACE_OBJECT)
+      .union(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+      .union(RuntimeGlobals::HAS_OWN_PROPERTY)
+      .union(RuntimeGlobals::REQUIRE),
   ),
 ];
 
@@ -525,6 +538,12 @@ async fn runtime_requirements_in_tree(
             AmdOptionsRuntimeModule::new(options.clone()).boxed(),
           )?;
         }
+      }
+      RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => {
+        compilation.add_runtime_module(
+          chunk_ukey,
+          MakeDeferredNamespaceObjectRuntimeModule::new(*chunk_ukey).boxed(),
+        )?;
       }
       _ => {}
     }

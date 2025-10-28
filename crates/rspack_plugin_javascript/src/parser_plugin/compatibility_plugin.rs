@@ -14,11 +14,11 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
+pub const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
 #[derive(Debug, Clone)]
-struct NestedRequireData {
-  name: String,
+pub struct NestedRequireData {
+  pub name: String,
   update: bool,
   loc: DependencyRange,
   in_short_hand: bool,

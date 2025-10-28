@@ -1,17 +1,17 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: css/auto|<TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/b.css,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/b.css,
     moduleName: ./b.css,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: css/auto|<TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css,
     moduleName: ./c.css,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: css/auto|<TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/module-parse-failed/at-import-in-the-middle/c.css,
     moduleName: ./c.css,
   },
 ]

@@ -1,7 +1,5 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
-import { getExternalsTypeSchema } from "../schema/config";
-import { isValidate } from "../schema/validate";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
@@ -96,9 +94,8 @@ function getRemoteInfos(options: ModuleFederationPluginOptions): RemoteInfos {
 
 	const remoteType =
 		options.remoteType ||
-		(options.library && isValidate(options.library.type, getExternalsTypeSchema)
-			? (options.library.type as ExternalsType)
-			: "script");
+		(options.library ? (options.library.type as ExternalsType) : "script");
+
 	const remotes = parseOptions(
 		options.remotes,
 		item => ({

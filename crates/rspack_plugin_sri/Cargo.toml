@@ -37,3 +37,7 @@ urlencoding                     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "async-trait", "rspack_hash", "tokio"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']
