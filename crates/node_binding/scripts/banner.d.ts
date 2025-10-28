@@ -92,7 +92,7 @@ export interface RspackError extends Error {
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 
 export interface JsSource {
-	source: Buffer
+	source: string | Buffer
 	map?: string
 }
 /* -- banner.d.ts end -- */

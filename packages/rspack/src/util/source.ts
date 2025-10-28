@@ -15,13 +15,20 @@ export class SourceAdapter {
 	}
 
 	static toBinding(source: Source): JsSource {
+		const content = source.source();
+		if (Buffer.isBuffer(content)) {
+			return {
+				source: content,
+				map: undefined
+			};
+		}
+
 		const map = source.map?.({
 			columns: true
 		});
 		const stringifyMap = map ? JSON.stringify(map) : undefined;
-		const buffer = source.buffer();
 		return {
-			source: buffer,
+			source: content,
 			map: stringifyMap
 		};
 	}
