@@ -17,7 +17,7 @@ use crate::error::RspackResultToNapiResultExt;
 /// If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
 #[napi(object)]
 pub struct JsSourceFromJs<'jsobject> {
-  pub source: BufferSlice<'jsobject>,
+  pub source: Either<String, BufferSlice<'jsobject>>,
   pub map: Option<String>,
 }
 
@@ -25,33 +25,38 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
   type Error = napi::Error;
 
   fn try_from(value: JsSourceFromJs<'jsobject>) -> Result<Self> {
-    if let Some(json) = value.map {
-      let source_map =
-        SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{}", e)))?;
-      Ok(
-        SourceMapSource::new(WithoutOriginalOptions {
-          value: unsafe { String::from_utf8_unchecked(value.source.to_vec()) },
-          name: "inmemory://from js",
-          source_map,
-        })
-        .boxed(),
-      )
-    } else {
-      Ok(RawBufferSource::from(value.source.to_vec()).boxed())
+    match value.source {
+      Either::A(string) => {
+        if let Some(json) = value.map {
+          let source_map =
+            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{}", e)))?;
+          Ok(
+            SourceMapSource::new(WithoutOriginalOptions {
+              value: string,
+              name: "inmemory://from js",
+              source_map,
+            })
+            .boxed(),
+          )
+        } else {
+          Ok(RawStringSource::from(string).boxed())
+        }
+      }
+      Either::B(buffer) => Ok(RawBufferSource::from(buffer.to_vec()).boxed()),
     }
   }
 }
 
 #[napi(object)]
 pub struct JsSourceToJs {
-  pub source: Buffer,
+  pub source: Either<String, Buffer>,
   pub map: Option<String>,
 }
 
-impl JsSourceToJs {
-  pub fn new(source: String) -> Self {
+impl From<String> for JsSourceToJs {
+  fn from(source: String) -> Self {
     Self {
-      source: Buffer::from(source.into_bytes()),
+      source: Either::A(source),
       map: None,
     }
   }
@@ -61,10 +66,18 @@ impl TryFrom<&dyn Source> for JsSourceToJs {
   type Error = napi::Error;
 
   fn try_from(value: &dyn Source) -> Result<Self> {
-    let buffer = value.buffer();
+    if let Some(raw_buffer_source) = value.as_any().downcast_ref::<RawBufferSource>() {
+      let bytes = raw_buffer_source.buffer().to_vec();
+      return Ok(JsSourceToJs {
+        source: Either::B(Buffer::from(bytes)),
+        map: None,
+      });
+    }
+
+    let string = value.source();
     let map: Option<String> = to_webpack_map(value)?;
     Ok(JsSourceToJs {
-      source: Buffer::from(buffer.as_ref()),
+      source: Either::A(string.into_owned()),
       map,
     })
   }
@@ -72,17 +85,17 @@ impl TryFrom<&dyn Source> for JsSourceToJs {
 
 impl From<JsSourceToJs> for BoxSource {
   fn from(value: JsSourceToJs) -> Self {
-    match value.map {
-      Some(map) => {
-        let string = unsafe { String::from_utf8_unchecked(value.source.to_vec()) };
-        SourceMapSource::new(WithoutOriginalOptions {
+    match value.source {
+      Either::A(string) => match value.map {
+        Some(map) => SourceMapSource::new(WithoutOriginalOptions {
           value: string,
           name: "inmemory://from js",
           source_map: SourceMap::from_json(map.as_ref()).unwrap(),
         })
-        .boxed()
-      }
-      None => RawBufferSource::from(value.source.to_vec()).boxed(),
+        .boxed(),
+        None => RawStringSource::from(string).boxed(),
+      },
+      Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
     }
   }
 }

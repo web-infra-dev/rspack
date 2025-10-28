@@ -92,7 +92,7 @@ export interface RspackError extends Error {
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 
 export interface JsSource {
-	source: Buffer
+	source: string | Buffer
 	map?: string
 }
 /* -- banner.d.ts end -- */
@@ -1223,12 +1223,12 @@ export interface JsRuntimeRequirementInTreeResult {
  * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
  */
 export interface JsSourceFromJs {
-  source: Buffer
+  source: string | Buffer
   map?: string
 }
 
 export interface JsSourceToJs {
-  source: Buffer
+  source: string | Buffer
   map?: string
 }
 

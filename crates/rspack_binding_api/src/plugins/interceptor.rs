@@ -1323,7 +1323,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let source_string = module.generate(compilation).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
-        source: Some(JsSourceToJs::new(source_string)),
+        source: Some(JsSourceToJs::from(source_string)),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
         name: module
@@ -1341,7 +1341,14 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         .runtime_modules
         .get_mut(m)
         .expect("should have module");
-      module.set_custom_source(String::from_utf8_lossy(&source.source).into_owned());
+      match source.source {
+        napi::Either::A(string) => {
+          module.set_custom_source(string);
+        }
+        napi::Either::B(buffer) => {
+          module.set_custom_source(String::from_utf8_lossy(&buffer).into_owned());
+        }
+      }
     }
     Ok(())
   }
