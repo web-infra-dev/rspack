@@ -36,7 +36,14 @@ Rspack 1.6 已经正式发布！
 
 ### 更好的 ESM 产物
 
-新的 EsmLibraryPlugin 现在作为实验性功能开始启用，为库构建提供更好用、更静态的产物。相比之前的 ModernModule 方案，新的 ESM 产物不受限于 ConcatenatedModule 和 Rspack 自身运行时的限制。
+新的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 现在作为实验性功能开始启用，为库构建提供更好用、更静态的产物。
+
+ESM 库构建一直是 Rspack 的弱点，在之前我们基于 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 实现了 ESM 产物的优化，但它还是有一些限制。
+
+- 每个异步加载的 Chunk 产物，导出 Rspack 运行时所需的 chunk id 和包含模块信息，而非 Chunk 中模块的真正导出。
+- 很多场景会导致模块无法被 concatenate，导致产物会出现预期外的错误。
+
+因此我们引入了 EsmLibraryPlugin 实验性插件来彻底解决上述的问题。EsmLibraryPlugin 插件会完全接管 Rspack 的 Chunk 渲染和加载机制，不再依赖 Rspack 的运行时执行整个产物，在编译期链接好 Chunk 中的模块，可以任意搭配 SplitChunks 等优化功能来使用。
 
 ```js title=rspack.config.mjs
 import { rspack } from '@rspack/core';
@@ -53,8 +60,6 @@ export default {
 };
 ```
 
-新的 EsmLibraryPlugin 脱离了基于 rspack runtime 中的 Chunk Group 并行加载架构，每一个 Chunk 都可以被直接独立引用。同时 SplitChunks 仍然支持，用户可以继续使用 SplitChunks 拆分出适合自己的产物。
-
 我们还提供了实验性的 preserveModules 特性支持，产物结构可以按照源码结构保留。
 
 ```js title=rspack.config.mjs
@@ -65,111 +70,15 @@ new rspack.experiments.EsmLibraryPlugin({
 });
 ```
 
+目前 EsmLibraryPlugin 还在实验阶段，未来会以配置的形式进行开启。
+
 ### layers 特性稳定
 
 在 1.6.0 版本中，我们废弃了 [experiments.layers](/config/experiments#experimentslayers) 的实验性开关，现在你可以直接开始使用 [layer 特性](/guide/features/layer#layer)。
 
 layer 是一个可以让你分类管理模块的实用特性。你可以给模块赋予不同的 layer，再按照 layer 做不同的处理，例如将模块按照不同的 layer 降级到不同的目标，或是将不同 layer 的模块拆分到不同的产物目录中。
 
-你有多种方式给模块指定 layer：
-
-- 通过 [Entry](/config/entry#entrydescriptionlayer) 指定
-
-```js title=rspack.config.mjs
-export default {
-  entry: {
-    server: {
-      import: './src/server.js',
-      layer: 'server',
-    },
-    client: {
-      import: './src/client.js',
-      layer: 'client',
-    },
-  },
-};
-```
-
-- 通过 [Rule.layer](/config/module#rulelayer) 指定
-
-```js title=rspack.config.mjs
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        layer: 'layer-name',
-      },
-    ],
-  },
-};
-```
-
-你可以通过 issuerLayer 筛选指定 layer。下面的例子中，我们根据模块的不同 layer 使用不同的降级策略：
-
-```js title=rspack.config.mjs
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        oneOf: [
-          {
-            issuerLayer: 'client',
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: {
-                    target: 'es5',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            issuerLayer: 'server',
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: {
-                    target: 'es2020',
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-在后续阶段，你还可以根据不同的 layer 将 Module 放到不同的 Chunk 中：
-
-```js title=rspack.config.mjs
-export default {
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-      cacheGroups: {
-        server: {
-          layer: 'server',
-          filename: 'server/[name].js',
-        },
-        client: {
-          layer: 'client',
-          filename: 'client/[name].js',
-        },
-      },
-    },
-  },
-};
-```
-
-上面的例子中，我们通过 layer 将 server 和 client 代码分到了不同的产物目录中。
+我们有一篇[关于 layer 特性的介绍文章](/guide/features/layer#layer)，你可以在其中了解更多关于 layer 特性的信息。
 
 ### 优化动态引入语句的 tree shaking
 
@@ -257,7 +166,7 @@ export default {
 };
 ```
 
-### extractSourceMap
+### 提取 SourceMap
 
 Rspack 现在支持通过 [Rule.extractSourceMap](/config/module#ruleextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
 

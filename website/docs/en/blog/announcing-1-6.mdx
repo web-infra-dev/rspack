@@ -36,7 +36,14 @@ Notable changes include:
 
 ### Better ESM output
 
-The new EsmLibraryPlugin is now available as an experimental feature, providing better and more static output for library builds. Compared to the previous ModernModule approach, the new ESM output is not limited by ConcatenatedModule and Rspack's own runtime constraints. For example, even if the Entry Module doesn't meet Scope Hoisting standards, it won't cause the output to be unusable or result in syntax errors.
+The new [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) is now available as an experimental feature, providing better and more static output for library builds.
+
+ESM library building has always been a weakness of Rspack. Previously, we implemented ESM output optimization based on [concatenateModules](/config/optimization#optimizationconcatenatemodules), but it still had some limitations.
+
+- Each asynchronously loaded Chunk output exports the chunk id and module information required by the Rspack runtime, rather than the actual exports of the modules in the Chunk.
+- Many scenarios would cause modules to fail concatenation, leading to unexpected errors in the output.
+
+Therefore, we introduced the experimental EsmLibraryPlugin to completely solve the above problems. The EsmLibraryPlugin takes full control of Rspack's Chunk rendering and loading mechanism, no longer relying on Rspack's runtime to execute the entire output. It links modules in Chunks at compile time and can be used in combination with optimization features like SplitChunks.
 
 ```js title=rspack.config.mjs
 import { rspack } from '@rspack/core';
@@ -67,109 +74,11 @@ new rspack.experiments.EsmLibraryPlugin({
 
 ### Layers feature stabilized
 
-In version 1.6.0, we deprecated the experimental switch for [experiments.layers](/config/experiments#experimentslayers), and you can now directly start using the layer feature.
+In version 1.6.0, we deprecated the experimental switch for [experiments.layers](/config/experiments#experimentslayers), and you can now directly start using the [layer feature](/guide/features/layer#layer).
 
 layer is a practical feature that allows you to categorize and manage modules. You can assign different layers to modules and then handle them differently based on the layer, such as downgrading modules to different targets according to different layers, or splitting modules from different layers into different output directories.
 
-You have multiple ways to specify layers for modules:
-
-- Specify via [Entry](/config/entry#entrydescriptionlayer)
-
-```js title=rspack.config.mjs
-export default {
-  entry: {
-    server: {
-      import: './src/server.js',
-      layer: 'server',
-    },
-    client: {
-      import: './src/client.js',
-      layer: 'client',
-    },
-  },
-};
-```
-
-- Specify via [Rule.layer](/config/module#rulelayer)
-
-```js title=rspack.config.mjs
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        layer: 'layer-name',
-      },
-    ],
-  },
-};
-```
-
-You can filter specific layers through issuerLayer. In the following example, we use different downgrade strategies based on different layers of modules:
-
-```js title=rspack.config.mjs
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.js$/,
-        oneOf: [
-          {
-            issuerLayer: 'client',
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: {
-                    target: 'es5',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            issuerLayer: 'server',
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: {
-                    target: 'es2020',
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-In subsequent stages, you can also place Modules into different Chunks based on different layers:
-
-```js title=rspack.config.mjs
-export default {
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-      cacheGroups: {
-        server: {
-          layer: 'server',
-          filename: 'server/[name].js',
-        },
-        client: {
-          layer: 'client',
-          filename: 'client/[name].js',
-        },
-      },
-    },
-  },
-};
-```
-
-In the above example, we separated server and client code into different output directories through layers.
+We have an [introduction article about the layer feature](/guide/features/layer#layer), where you can learn more about the layer feature.
 
 ### Optimized tree shaking for dynamic imports
 
