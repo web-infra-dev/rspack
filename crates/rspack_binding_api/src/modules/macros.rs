@@ -251,7 +251,7 @@ macro_rules! impl_module_methods {
         self.module.readable_identifier()
       }
 
-      #[napi(js_name = "_originalSource", enumerable = false)]
+      #[napi(js_name = "_originalSource", ts_return_type = "JsSource", enumerable = false)]
       pub fn original_source(
         &mut self,
         env: &napi::Env,

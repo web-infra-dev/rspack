@@ -735,6 +735,7 @@ pub struct JsExecuteModuleArg {
 #[derive(Default)]
 #[napi(object)]
 pub struct JsRuntimeModule {
+  #[napi(ts_type = "JsSource")]
   pub source: Option<JsSourceToJs>,
   pub module_identifier: String,
   pub constructor_name: String,

@@ -185,7 +185,7 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSourceToJs | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -196,7 +196,7 @@ export declare class ConcatenatedModule {
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceToJs | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -259,7 +259,7 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSourceToJs | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
@@ -281,7 +281,7 @@ export declare class JsCompilation {
   getNamedChunk(name: string): Chunk
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): ChunkGroup
-  setAssetSource(name: string, source: JsSourceFromJs): void
+  setAssetSource(name: string, source: JsSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
@@ -1194,7 +1194,7 @@ export interface JsRuntimeGlobals {
 }
 
 export interface JsRuntimeModule {
-  source?: JsSourceToJs
+  source?: JsSource
   moduleIdentifier: string
   constructorName: string
   name: string

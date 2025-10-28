@@ -267,7 +267,7 @@ impl JsCompilation {
     )
   }
 
-  #[napi]
+  #[napi(ts_args_type = "name: string, source: JsSource")]
   pub fn set_asset_source(&mut self, name: String, source: JsSourceFromJs) -> Result<()> {
     let compilation = self.as_mut()?;
 
