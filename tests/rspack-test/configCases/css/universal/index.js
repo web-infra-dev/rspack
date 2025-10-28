@@ -1,7 +1,8 @@
 import * as pureStyle from "./style.css";
 import * as styles from "./style.modules.css";
 
-it("should work", done => {
+it("should work", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	expect(pureStyle).toEqual(nsObj({}));
 	const style = getComputedStyle(document.body);
 	expect(style.getPropertyValue("background")).toBe(" red");
@@ -17,7 +18,7 @@ it("should work", done => {
 			done();
 		}, done);
 	}, done);
-});
+}));
 
 it("should work in worker", async () => {
 	const worker = new Worker(new URL("./worker.js", import.meta.url), {

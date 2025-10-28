@@ -1,63 +1,69 @@
-mod incremental_info;
+mod resource_id;
 
-use incremental_info::IncrementalInfo;
+use std::hash::BuildHasherDefault;
+
 use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
+use rustc_hash::FxHashSet as HashSet;
+use ustr::IdentityHasher;
 
-/// Used to count file usage
+pub use self::resource_id::ResourceId;
+use crate::utils::incremental_info::IncrementalInfo;
+
+/// Used to count file usage and track which modules/dependencies use each file
 #[derive(Debug, Default)]
 pub struct FileCounter {
-  inner: ArcPathMap<usize>,
-  incremental_info: IncrementalInfo,
+  inner: ArcPathMap<HashSet<ResourceId>>,
+  incremental_info: IncrementalInfo<ArcPath, BuildHasherDefault<IdentityHasher>>,
 }
 
 impl FileCounter {
-  /// Add a [`PathBuf`] to counter
+  /// Add batch [`PathBuf`] to counter
   ///
-  /// It will +1 to the PathBuf in inner hashmap
-  fn add_file(&mut self, path: ArcPath) {
-    if let Some(value) = self.inner.get_mut(&path) {
-      *value += 1;
-    } else {
-      self.incremental_info.add(&path);
-      self.inner.insert(path, 1);
+  /// It will add resource_id at the PathBuf in inner hashmap
+  pub fn add_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
+    for path in paths {
+      let list = self.inner.entry(path.clone()).or_default();
+      if list.is_empty() {
+        self.incremental_info.mark_as_add(path);
+      }
+      // multiple additions are allowed without additional checks to see if the addition was successful
+      list.insert(resource_id.clone());
     }
   }
 
-  /// Remove a [`PathBuf`] from counter
+  /// Remove batch [`PathBuf`] from counter
   ///
-  /// It will -1 to the PathBuf in inner hashmap
+  /// It will remove resource_id at the PathBuf in inner hashmap
   ///
-  /// If the PathBuf usage is 0 after reduction, the record will be deleted
+  /// If the PathBuf resource_id is empty after reduction, the record will be deleted
   /// If PathBuf does not exist, panic will occur.
-  fn remove_file(&mut self, path: &ArcPath) {
-    if let Some(value) = self.inner.get_mut(path) {
-      *value -= 1;
-      if value == &0 {
-        self.incremental_info.remove(path);
+  pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
+    for path in paths {
+      let Some(list) = self.inner.get_mut(path) else {
+        panic!("unable to remove untracked file {}", path.to_string_lossy());
+      };
+      if !list.remove(resource_id) {
+        panic!(
+          "unable to remove path '{}' with resource_id '{:?}', it has not been added.",
+          path.to_string_lossy(),
+          resource_id,
+        )
+      }
+      if list.is_empty() {
+        self.incremental_info.mark_as_remove(path);
         self.inner.remove(path);
       }
-    } else {
-      panic!("can not remove file {path:?}");
     }
   }
 
-  /// Add batch [`PathBuf``] to counter
-  pub fn add_batch_file(&mut self, paths: &ArcPathSet) {
-    for path in paths {
-      self.add_file(path.clone());
-    }
-  }
-
-  /// Remove batch [`PathBuf`] to counter
-  pub fn remove_batch_file(&mut self, paths: &ArcPathSet) {
-    for path in paths {
-      self.remove_file(path);
-    }
-  }
-
-  /// Get files with count more than 0
+  /// Get the file that has been used
   pub fn files(&self) -> impl Iterator<Item = &ArcPath> {
     self.inner.keys()
+  }
+
+  /// Get the resource ids (modules/dependencies) that use a specific file
+  pub fn related_resource_ids(&self, path: &ArcPath) -> Option<&HashSet<ResourceId>> {
+    self.inner.get(path)
   }
 
   /// reset incremental info
@@ -66,112 +72,130 @@ impl FileCounter {
   }
 
   /// Added files compared to the `files()` when call reset_incremental_info
-  pub fn added_files(&self) -> &ArcPathSet {
-    self.incremental_info.added_files()
+  pub fn added_files(&self) -> impl Iterator<Item = &ArcPath> {
+    self.incremental_info.added().iter()
   }
 
   /// Removed files compared to the `files()` when call reset_incremental_info
-  pub fn removed_files(&self) -> &ArcPathSet {
-    self.incremental_info.removed_files()
+  pub fn removed_files(&self) -> impl Iterator<Item = &ArcPath> {
+    self.incremental_info.removed().iter()
   }
 }
 
 #[cfg(test)]
 mod test {
-  use rspack_paths::ArcPath;
+  use rspack_paths::{ArcPath, ArcPathSet};
 
-  use super::FileCounter;
+  use super::{FileCounter, ResourceId};
   #[test]
   fn file_counter_is_available() {
     let mut counter = FileCounter::default();
-    let file_a = std::path::PathBuf::from("/a");
-    let file_b = std::path::PathBuf::from("/b");
+    let file_a = ArcPath::from(std::path::PathBuf::from("/a"));
+    let file_b = ArcPath::from(std::path::PathBuf::from("/b"));
+    let file_list_a = {
+      let mut list = ArcPathSet::default();
+      list.insert(file_a.clone());
+      list
+    };
+    let file_list_b = {
+      let mut list = ArcPathSet::default();
+      list.insert(file_b.clone());
+      list
+    };
+    let file_list_all = {
+      let mut list = ArcPathSet::default();
+      list.insert(file_a);
+      list.insert(file_b);
+      list
+    };
 
-    let file_a = ArcPath::from(file_a);
-    let file_b = ArcPath::from(file_b);
+    let resource_1 = ResourceId::Module("A".into());
+    let resource_2 = ResourceId::Module("B".into());
 
-    counter.add_file(file_a.clone());
-    counter.add_file(file_a.clone());
-    counter.add_file(file_b.clone());
+    counter.add_files(&resource_1, &file_list_all);
+    counter.add_files(&resource_2, &file_list_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().len(), 2);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
-    counter.remove_file(&file_a);
+    // test repeated additions
+    counter.add_files(&resource_1, &file_list_all);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().len(), 2);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
-    counter.remove_file(&file_b);
+    counter.remove_files(&resource_1, &file_list_a);
+    assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.remove_files(&resource_1, &file_list_b);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
-    assert_eq!(counter.added_files().len(), 1);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
-    counter.remove_file(&file_a);
+    counter.remove_files(&resource_2, &file_list_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
-  }
-
-  #[test]
-  fn file_counter_add_file() {
-    let mut counter = FileCounter::default();
-    let file_a = std::path::PathBuf::from("/a");
-    let file_a = ArcPath::from(file_a);
-    assert_eq!(counter.inner.get(&file_a), None);
-
-    counter.add_file(file_a.clone());
-    assert_eq!(counter.inner.get(&file_a), Some(&1));
-
-    counter.add_file(file_a.clone());
-    assert_eq!(counter.inner.get(&file_a), Some(&2));
-  }
-
-  #[test]
-  fn file_counter_remove_file() {
-    let mut counter = FileCounter::default();
-    let file_a = std::path::PathBuf::from("/a");
-    let file_a = ArcPath::from(file_a);
-    counter.add_file(file_a.clone());
-    assert_eq!(counter.inner.get(&file_a), Some(&1));
-
-    counter.remove_file(&file_a);
-    assert_eq!(counter.inner.get(&file_a), None);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
   }
 
   #[test]
   #[should_panic]
   fn file_counter_remove_file_with_panic() {
     let mut counter = FileCounter::default();
-    let file_a = std::path::PathBuf::from("/a");
-    let file_a = ArcPath::from(file_a);
-    counter.remove_file(&file_a);
+    let file_a = ArcPath::from(std::path::PathBuf::from("/a"));
+    let file_list_a = {
+      let mut list = ArcPathSet::default();
+      list.insert(file_a);
+      list
+    };
+    let resource = ResourceId::Module("A".into());
+    counter.remove_files(&resource, &file_list_a);
   }
 
   #[test]
   fn file_counter_reset_incremental_info() {
     let mut counter = FileCounter::default();
-    let file_a = std::path::PathBuf::from("/a");
-    let file_a = ArcPath::from(file_a);
+    let file_a = ArcPath::from(std::path::PathBuf::from("/a"));
+    let file_list_a = {
+      let mut list = ArcPathSet::default();
+      list.insert(file_a);
+      list
+    };
+    let resource_1 = ResourceId::Module("A".into());
+    let resource_2 = ResourceId::Module("B".into());
 
-    counter.add_file(file_a.clone());
-    assert_eq!(counter.added_files().len(), 1);
-    assert_eq!(counter.removed_files().len(), 0);
+    counter.add_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.reset_incremental_info();
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
-    counter.add_file(file_a.clone());
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    counter.remove_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
 
-    counter.remove_file(&file_a);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    counter.add_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
-    counter.remove_file(&file_a);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 1);
+    counter.reset_incremental_info();
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.add_files(&resource_2, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.remove_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.remove_files(&resource_2, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
   }
 }

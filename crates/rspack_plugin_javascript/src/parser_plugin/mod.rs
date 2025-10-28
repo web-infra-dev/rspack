@@ -19,7 +19,7 @@ mod initialize_evaluating;
 mod inline_const;
 mod inner_graph;
 mod javascript_meta_info_plugin;
-mod node_stuff_plugin;
+pub mod node_stuff_plugin;
 mod override_strict_plugin;
 mod require_context_dependency_parser_plugin;
 mod require_ensure_dependencies_block_parse_plugin;

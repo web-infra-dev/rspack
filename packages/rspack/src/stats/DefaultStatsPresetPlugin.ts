@@ -168,7 +168,7 @@ const DEFAULTS: StatsDefault = {
 	chunkGroups: OFF_FOR_TO_STRING,
 	chunkGroupAuxiliary: OFF_FOR_TO_STRING,
 	chunkGroupChildren: OFF_FOR_TO_STRING,
-	chunkGroupMaxAssets: (o, { forToString }) =>
+	chunkGroupMaxAssets: (_, { forToString }) =>
 		forToString ? 5 : Number.POSITIVE_INFINITY,
 	chunks: OFF_FOR_TO_STRING,
 	chunkRelations: OFF_FOR_TO_STRING,
@@ -194,11 +194,11 @@ const DEFAULTS: StatsDefault = {
 	groupModulesByAttributes: ON_FOR_TO_STRING,
 	groupModulesByPath: ON_FOR_TO_STRING,
 	groupModulesByExtension: ON_FOR_TO_STRING,
-	modulesSpace: (o, { forToString }) =>
+	modulesSpace: (_, { forToString }) =>
 		forToString ? 15 : Number.POSITIVE_INFINITY,
-	chunkModulesSpace: (o, { forToString }) =>
+	chunkModulesSpace: (_, { forToString }) =>
 		forToString ? 10 : Number.POSITIVE_INFINITY,
-	nestedModulesSpace: (o, { forToString }) =>
+	nestedModulesSpace: (_, { forToString }) =>
 		forToString ? 10 : Number.POSITIVE_INFINITY,
 	relatedAssets: OFF_FOR_TO_STRING,
 	groupAssetsByEmitStatus: ON_FOR_TO_STRING,
@@ -206,7 +206,7 @@ const DEFAULTS: StatsDefault = {
 	groupAssetsByPath: ON_FOR_TO_STRING,
 	groupAssetsByExtension: ON_FOR_TO_STRING,
 	groupAssetsByChunk: ON_FOR_TO_STRING,
-	assetsSpace: (o, { forToString }) =>
+	assetsSpace: (_, { forToString }) =>
 		forToString ? 15 : Number.POSITIVE_INFINITY,
 	orphanModules: OFF_FOR_TO_STRING,
 	runtimeModules: ({ all, runtime }, { forToString }) =>
@@ -221,7 +221,7 @@ const DEFAULTS: StatsDefault = {
 	depth: OFF_FOR_TO_STRING,
 	cachedAssets: OFF_FOR_TO_STRING,
 	reasons: OFF_FOR_TO_STRING,
-	reasonsSpace: (o, { forToString }) =>
+	reasonsSpace: (_, { forToString }) =>
 		forToString ? 15 : Number.POSITIVE_INFINITY,
 	groupReasonsByOrigin: ON_FOR_TO_STRING,
 	usedExports: OFF_FOR_TO_STRING,
@@ -319,10 +319,10 @@ export class DefaultStatsPresetPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsPresetPlugin", compilation => {
 			for (const key of Object.keys(NAMED_PRESETS)) {
-				const defaults = NAMED_PRESETS[key as keyof typeof NAMED_PRESETS];
+				const defaults = NAMED_PRESETS[key];
 				compilation.hooks.statsPreset
 					.for(key)
-					.tap("DefaultStatsPresetPlugin", (options, context) => {
+					.tap("DefaultStatsPresetPlugin", options => {
 						applyDefaults(options, defaults);
 					});
 			}

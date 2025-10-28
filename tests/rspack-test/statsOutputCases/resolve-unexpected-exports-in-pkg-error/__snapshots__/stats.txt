@@ -3,6 +3,6 @@ runtime modules 274 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-22
-  × Invalid "exports" target "../../index.js" defined for '.' in the package config <TEST_TOOLS_ROOT>/statsOutputCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
+  × Invalid "exports" target "../../index.js" defined for '.' in the package config <TEST_ROOT>/statsOutputCases/resolve-unexpected-exports-in-pkg-error/node_modules/pkg-a/package.json
 
 Rspack x.x.x compiled with 1 error in X s

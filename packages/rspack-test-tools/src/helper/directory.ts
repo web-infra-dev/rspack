@@ -40,7 +40,9 @@ export function describeByWalk(
 				if (options.exclude) {
 					if (
 						options.exclude.some(exclude => {
-							return exclude.test(folder);
+							return exclude.test(
+								path.join(dirname, folder).replace(/\\/g, "/")
+							);
 						})
 					) {
 						return false;

@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
 	afterExecute(options) {
-		const outputPath = options[0].output.path;
+		const outputPath = options.output.path;
 		const files = fs.readdirSync(outputPath);
 
 		for (const file of files) {

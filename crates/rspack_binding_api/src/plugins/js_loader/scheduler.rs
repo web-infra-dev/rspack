@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext, diagnostics::CapturedLoaderError,
+  NormalModuleLoaderStartYielding, RunnerContext,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
@@ -110,14 +110,7 @@ pub(crate) fn merge_loader_context(
     } else {
       None
     };
-
-    return Err(
-      CapturedLoaderError::new(
-        Box::new(error.with_parent_error_name("ModuleBuildError")),
-        details,
-      )
-      .into(),
-    );
+    return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 
   let content = match from.content {

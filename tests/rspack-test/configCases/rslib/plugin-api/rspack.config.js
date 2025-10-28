@@ -5,7 +5,9 @@ const {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	{
-		entry: "./index.js",
+		entry: {
+			index: "./index.js",
+		},
 		target: "node",
 		node: {
 			__filename: false,
@@ -15,6 +17,33 @@ module.exports = [
 			library: {
 				type: "commonjs"
 			}
+		},
+		plugins: [
+			new RslibPlugin({
+				interceptApiPlugin: true
+			})
+		]
+	},
+	{
+		entry: {
+			index: "./module.js",
+		},
+		target: "node",
+		node: {
+			__filename: false,
+			__dirname: false
+		},
+		externals: {
+			"node:module": "module-import node:module"
+		},
+		output: {
+			module: true,
+			library: {
+				type: "modern-module"
+			}
+		},
+		experiments: {
+			outputModule: true
 		},
 		plugins: [
 			new RslibPlugin({

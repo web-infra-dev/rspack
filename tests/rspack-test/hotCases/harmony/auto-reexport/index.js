@@ -1,11 +1,7 @@
 import { value } from "./reexport";
 
-it("should auto-reexport an ES6 imported value on accept", function (done) {
+it("should auto-reexport an ES6 imported value on accept", async () => {
 	expect(value).toBe(1);
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(value).toBe(2);
-			done();
-		})
-	);
+	await NEXT_HMR();
+	expect(value).toBe(2);
 });

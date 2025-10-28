@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -18,6 +18,7 @@ use crate::{
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
     ESMImportSideEffectDependency,
   },
+  parser_plugin::compatibility_plugin::{NESTED_WEBPACK_IDENTIFIER_TAG, NestedRequireData},
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
@@ -51,7 +52,8 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       source.clone(),
       parser.last_esm_import_order,
       statement.span().into(),
-      DependencyType::EsmExport,
+      DependencyType::EsmExportImport,
+      ImportPhase::Evaluation,
       statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
       statement.is_star_export(),
@@ -108,6 +110,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
+        settings.phase,
         settings.attributes,
         Some(parser.source_map.clone()),
       );
@@ -133,9 +136,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
         parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
       }
+      let variable = parser.get_tag_data(local_id, NESTED_WEBPACK_IDENTIFIER_TAG);
+
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
-        local_id.clone(),
+        if let Some(variable) = variable {
+          let data = NestedRequireData::downcast(variable);
+          data.name.clone().into()
+        } else {
+          local_id.clone()
+        },
         inlinable,
         enum_value,
         statement.span().into(),
@@ -187,7 +197,8 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       star_exports,
       statement.span().into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      None,
+      ImportPhase::Evaluation,
+      statement.get_with_obj().map(get_attributes),
       Some(parser.source_map.clone()),
     );
     if export_name.is_none() {

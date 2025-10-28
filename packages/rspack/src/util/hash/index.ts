@@ -10,7 +10,6 @@
 import { AbstractMethodError } from "../../lib/AbstractMethodError";
 
 export default class Hash {
-	/* istanbul ignore next */
 	/**
 	 * @param data data
 	 * @param inputEncoding data encoding
@@ -18,14 +17,12 @@ export default class Hash {
 	 */
 	update(data: string, inputEncoding: string): this;
 
-	/* istanbul ignore next */
 	/**
 	 * @param data data
 	 * @returns updated hash
 	 */
 	update(data: Buffer): this;
 
-	/* istanbul ignore next */
 	/**
 	 * Update hash {@link https://nodejs.org/api/crypto.html#crypto_hash_update_data_inputencoding}
 	 * @abstract
@@ -33,11 +30,10 @@ export default class Hash {
 	 * @param inputEncoding data encoding
 	 * @returns updated hash
 	 */
-	update(data: string | Buffer, inputEncoding?: string): this {
+	update(): this {
 		throw new AbstractMethodError();
 	}
 
-	/* istanbul ignore next */
 	/**
 	 * Calculates the digest without encoding
 	 * @abstract
@@ -45,7 +41,6 @@ export default class Hash {
 	 */
 	digest(): Buffer;
 
-	/* istanbul ignore next */
 	/**
 	 * Calculates the digest with encoding
 	 * @abstract
@@ -54,13 +49,12 @@ export default class Hash {
 	 */
 	digest(encoding: string): string;
 
-	/* istanbul ignore next */
 	/**
 	 * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
 	 * @param {string=} encoding encoding of the return value
 	 * @returns {string|Buffer} digest
 	 */
-	digest(encoding?: string): string | Buffer {
+	digest(): string | Buffer {
 		throw new AbstractMethodError();
 	}
 }

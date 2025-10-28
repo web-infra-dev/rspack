@@ -37,7 +37,11 @@ export type { default as ModuleGraph } from "./ModuleGraph";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
-export type { RspackError, RspackSeverity } from "./RspackError";
+export {
+	type RspackError,
+	type RspackSeverity,
+	ValidationError
+} from "./RspackError";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export { RuntimeModule } from "./RuntimeModule";
 export type {
@@ -86,10 +90,6 @@ export const config: Config = {
 
 export type * from "./config";
 
-import { ValidationError } from "./schema/validate";
-
-export { ValidationError };
-
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
 
@@ -130,9 +130,10 @@ export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
-export type { OutputFileSystem } from "./util/fs";
+export type { OutputFileSystem, WatchFileSystem } from "./util/fs";
 
 import {
+	EsmLibraryPlugin,
 	FetchCompileAsyncWasmPlugin,
 	lazyCompilationMiddleware,
 	SubresourceIntegrityPlugin
@@ -368,6 +369,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
@@ -405,6 +407,7 @@ export const experiments: Experiments = {
 		}
 	},
 	RemoveDuplicateModulesPlugin,
+	EsmLibraryPlugin,
 	/**
 	 * Note: This plugin is unstable yet
 	 *

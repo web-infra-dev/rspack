@@ -25,7 +25,6 @@ rspack_hash                     = { workspace = true }
 rspack_hook                     = { workspace = true }
 rspack_paths                    = { workspace = true }
 rspack_plugin_html              = { workspace = true }
-rspack_plugin_mf                = { workspace = true }
 rspack_plugin_real_content_hash = { workspace = true }
 rspack_plugin_runtime           = { workspace = true }
 rspack_util                     = { workspace = true }
@@ -38,3 +37,7 @@ urlencoding                     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "async-trait", "rspack_hash", "tokio"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(allocative)']

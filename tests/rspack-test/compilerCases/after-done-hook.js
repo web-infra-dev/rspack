@@ -1,10 +1,10 @@
 const { createFsFromVolume, Volume } = require("memfs");
 
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [(() => {
-  const runCb = jest.fn();
-  const doneHookCb = jest.fn();
+  const runCb = rstest.fn();
+  const doneHookCb = rstest.fn();
   return {
     description: "should call afterDone hook after other callbacks (run)",
     options(context) {
@@ -31,10 +31,10 @@ module.exports = [(() => {
     },
   }
 })(), (() => {
-  const invalidHookCb = jest.fn();
-  const doneHookCb = jest.fn();
-  const watchCb = jest.fn();
-  const invalidateCb = jest.fn();
+  const invalidHookCb = rstest.fn();
+  const doneHookCb = rstest.fn();
+  const watchCb = rstest.fn();
+  const invalidateCb = rstest.fn();
 
   return {
     description: "should call afterDone hook after other callbacks (watch)",
@@ -68,10 +68,10 @@ module.exports = [(() => {
     },
   };
 })(), (() => {
-  const invalidHookCb = jest.fn();
-  const watchCloseCb = jest.fn();
-  const watchCloseHookCb = jest.fn();
-  const invalidateCb = jest.fn();
+  const invalidHookCb = rstest.fn();
+  const watchCloseCb = rstest.fn();
+  const watchCloseHookCb = rstest.fn();
+  const invalidateCb = rstest.fn();
   return {
     description: "should call afterDone hook after other callbacks (watch close)",
     options(context) {
@@ -104,8 +104,8 @@ module.exports = [(() => {
     },
   }
 })(), (() => {
-  const instanceCb = jest.fn();
-  const doneHookCb = jest.fn();
+  const instanceCb = rstest.fn();
+  const doneHookCb = rstest.fn();
   let rejection = null;
   return {
     description: "should call afterDone hook after other callbacks (instance cb)",

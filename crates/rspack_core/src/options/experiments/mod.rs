@@ -9,7 +9,6 @@ use crate::incremental::IncrementalOptions;
 // `impl From<Experiments> for ExperimentsBuilder` should be updated.
 #[derive(Debug)]
 pub struct Experiments {
-  pub layers: bool,
   pub incremental: IncrementalOptions,
   pub parallel_code_splitting: bool,
   pub top_level_await: bool,
@@ -20,6 +19,7 @@ pub struct Experiments {
   pub inline_enum: bool,
   pub type_reexports_presence: bool,
   pub lazy_barrel: bool,
+  pub defer_import: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]

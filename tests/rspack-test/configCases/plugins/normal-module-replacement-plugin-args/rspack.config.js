@@ -15,7 +15,4 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 			args.request = args.request.replace(/request\.v1(\.|$)/, "request.v2$1");
 		})
 	],
-	experiments: {
-		layers: true
-	}
 });

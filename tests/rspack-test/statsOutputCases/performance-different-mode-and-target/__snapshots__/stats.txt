@@ -1,0 +1,60 @@
+asset warning.pro-web.js xx KiB [emitted] [big] (name: main)
+./index.js xx KiB [built] [code generated]
+
+WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+  │   warning.pro-web.js (xx KiB)
+
+WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+  │   main (xx KiB)
+  │       warning.pro-web.js
+
+WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
+
+Rspack x.x.x compiled with 3 warnings in X s
+
+asset warning.pro-webworker.js xx KiB [emitted] [big] (name: main)
+./index.js xx KiB [built] [code generated]
+
+WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+  │   warning.pro-webworker.js (xx KiB)
+
+WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+  │   main (xx KiB)
+  │       warning.pro-webworker.js
+
+WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
+
+Rspack x.x.x compiled with 3 warnings in X s
+
+asset no-warning.pro-node.js xx KiB [emitted] (name: main)
+./index.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s
+
+asset no-warning.dev-web.js 1.72 MiB [emitted] (name: main)
+./index.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s
+
+asset no-warning.dev-node.js 1.72 MiB [emitted] (name: main)
+./index.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s
+
+asset no-warning.dev-web-with-limit-set.js 1.72 MiB [emitted] [big] (name: main)
+./index.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s
+
+asset warning.pro-node-with-hints-set.js xx KiB [emitted] [big] (name: main)
+./index.js xx KiB [built] [code generated]
+
+WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+  │   warning.pro-node-with-hints-set.js (xx KiB)
+
+WARNING in ⚠ entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+  │   main (xx KiB)
+  │       warning.pro-node-with-hints-set.js
+
+WARNING in ⚠ Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
+
+Rspack x.x.x compiled with 3 warnings in X s

@@ -54,10 +54,7 @@ export type StatsPrinterContext = KnownStatsPrinterContext &
 	Record<string, any>;
 
 export class StatsPrinter {
-	private _levelHookCache: Map<
-		HookMap<Hook<any, any>>,
-		Map<string, Hook<any, any>[]>
-	>;
+	private _levelHookCache: Map<HookMap<Hook>, Map<string, Hook[]>>;
 	private _inPrint: boolean;
 
 	hooks: Readonly<{
@@ -133,7 +130,7 @@ export class StatsPrinter {
 	/**
 	 * get all level hooks
 	 */
-	private _getAllLevelHooks<T extends Hook<any, any>>(
+	private _getAllLevelHooks<T extends Hook>(
 		hookMap: HookMap<T>,
 		type: string
 	): T[] {

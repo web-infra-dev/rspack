@@ -1,10 +1,9 @@
 import value from "./a";
 
-it("should make clean isolated module works", done => {
+it("should make clean isolated module works", async () => {
 	expect(value).toBe("cba");
-	module.hot.accept("./a", () => {
-		expect(value).toBe("a");
-		done();
-	});
-	NEXT(require("../../update")(done));
+	await NEXT_HMR();
+	expect(value).toBe("a");
 });
+
+module.hot.accept("./a");

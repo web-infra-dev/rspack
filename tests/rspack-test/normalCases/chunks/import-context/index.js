@@ -20,7 +20,8 @@ function testCase(load, done) {
 	});
 }
 
-it("should be able to use expressions in import", function(done) {
+it("should be able to use expressions in import", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	function load(name, expected, callback) {
 		import("./dir/" + name).then(function(result) {
 			expect(result).toEqual(nsObj({
@@ -32,4 +33,4 @@ it("should be able to use expressions in import", function(done) {
 		});
 	}
 	testCase(load, done);
-});
+}));

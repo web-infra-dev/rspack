@@ -35,7 +35,7 @@ it("should parse fancy AMD calls", function() {
 	});
 });
 
-it("should be able to use AMD-style require", function(done) {
+it("should be able to use AMD-style require", () => new Promise(done => {
 	var template = "b";
 	require(["./circular", "./templates/" + template, true ? "./circular" : "fail"], function(circular, testTemplate, circular2) {
 		expect(circular).toBe(1);
@@ -43,61 +43,61 @@ it("should be able to use AMD-style require", function(done) {
 		expect(testTemplate).toBe("b");
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define", function(done) {
+it("should be able to use require.js-style define", () => new Promise(done => {
 	define("name", ["./circular"], function(circular) {
 		expect(circular).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, optional dependencies, not exist", function(done) {
+it("should be able to use require.js-style define, optional dependencies, not exist", () => new Promise(done => {
 	define("name", ["./optional"], function(optional) {
 		expect(optional.b).toBeFalsy();
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, special string", function(done) {
+it("should be able to use require.js-style define, special string", () => new Promise(done => {
 	define(["require"], function(require) {
 		expect(require("./circular")).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, without name", function(done) {
+it("should be able to use require.js-style define, without name", () => new Promise(done => {
 	true && define(["./circular"], function(circular) {
 		expect(circular).toBe(1);
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, with empty dependencies", function(done) {
+it("should be able to use require.js-style define, with empty dependencies", () => new Promise(done => {
 	define("name", [], function() {
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, with empty dependencies, with a expression", function(done) {
+it("should be able to use require.js-style define, with empty dependencies, with a expression", () => new Promise(done => {
 	define([], ok);
 	function ok() { done() };
-});
+}));
 
-it("should be able to use require.js-style define, with empty dependencies, with a expression and name", function(done) {
+it("should be able to use require.js-style define, with empty dependencies, with a expression and name", () => new Promise(done => {
 	define("name", [], done);
-});
+}));
 
-it("should be able to use require.js-style define, without dependencies", function(done) {
+it("should be able to use require.js-style define, without dependencies", () => new Promise(done => {
 	true && define("name", function() {
 		done();
 	});
-});
+}));
 
-it("should be able to use require.js-style define, without dependencies, with a expression", function(done) {
+it("should be able to use require.js-style define, without dependencies, with a expression", () => new Promise(done => {
 	true && define("name", ok);
 	function ok() { done() };
-});
+}));
 
 var obj = {};
 it("should be able to use require.js-style define, with an object", function() {
@@ -114,7 +114,7 @@ it("should be able to use require.js-style define, with an object", function() {
 	module.exports = null;
 });
 
-it("should offer AMD-style define for CommonJs", function(done) {
+it("should offer AMD-style define for CommonJs", () => new Promise(done => {
 	var _test_exports = exports;
 	var _test_module = module;
 	define(function(require, exports, module) {
@@ -124,26 +124,26 @@ it("should offer AMD-style define for CommonJs", function(done) {
 		expect(require("./circular")).toBe(1);
 		done();
 	});
-});
+}));
 
 it("should not crash on require.js require only with array", function() {
 	require(["./circular"]);
 });
 
-it("should be able to use AMD require without function expression (empty array)", function(done) {
+it("should be able to use AMD require without function expression (empty array)", () => new Promise(done => {
 	require([], ok);
 	function ok() { done() };
-});
+}));
 
-it("should be able to use AMD require without function expression", function(done) {
+it("should be able to use AMD require without function expression", () => new Promise(done => {
 	require(["./circular"], fn);
 	function fn(c) {
 		expect(c).toBe(1);
 		done();
 	}
-});
+}));
 
-it("should create a chunk for require.js require", function(done) {
+it("should create a chunk for require.js require", () => new Promise(done => {
 	var sameTick = true;
 	require(["./c"], function(c) {
 		expect(sameTick).toBe(false);
@@ -152,9 +152,9 @@ it("should create a chunk for require.js require", function(done) {
 		done();
 	});
 	sameTick = false;
-});
+}));
 
-it("should not fail #138", function(done) {
+it("should not fail #138", () => new Promise(done => {
 	(function (factory) {
 		if (typeof define === 'function' && define.amd) {
 			define([], factory); // AMD
@@ -164,41 +164,41 @@ it("should not fail #138", function(done) {
 			factory(); // Browser global
 		}
 	}(function () { done() }));
-});
+}));
 
-it("should parse a bound function expression 1", function(done) {
+it("should parse a bound function expression 1", () => new Promise(done => {
 	define(function(a, require, exports, module) {
 		expect(a).toBe(123);
 		expect((typeof require)).toBe("function");
 		expect(require("./a")).toBe("a");
 		done();
 	}.bind(null, 123));
-});
+}));
 
-it("should parse a bound function expression 2", function(done) {
+it("should parse a bound function expression 2", () => new Promise(done => {
 	define("name", function(a, require, exports, module) {
 		expect(a).toBe(123);
 		expect((typeof require)).toBe("function");
 		expect(require("./a")).toBe("a");
 		done();
 	}.bind(null, 123));
-});
+}));
 
-it("should parse a bound function expression 3", function(done) {
+it("should parse a bound function expression 3", () => new Promise(done => {
 	define(["./a"], function(number, a) {
 		expect(number).toBe(123);
 		expect(a).toBe("a");
 		done();
 	}.bind(null, 123));
-});
+}));
 
-it("should parse a bound function expression 4", function(done) {
+it("should parse a bound function expression 4", () => new Promise(done => {
 	define("name", ["./a"], function(number, a) {
 		expect(number).toBe(123);
 		expect(a).toBe("a");
 		done();
 	}.bind(null, 123));
-});
+}));
 
 it("should not fail issue #138 second", function() {
 	(function(define, global) { 'use strict';

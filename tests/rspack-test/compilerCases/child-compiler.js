@@ -2,12 +2,12 @@ const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
 const { EntryPlugin } = require("@rspack/core");
 
-let stubCompilerName = jest.fn();
+let stubCompilerName = rstest.fn();
 
 let cachedChildCompiler;
 let cachedChildCompilation;
-let stubCompiler = jest.fn();
-let stubCompilation = jest.fn();
+let stubCompiler = rstest.fn();
+let stubCompilation = rstest.fn();
 
 const CHILD_COMPILER_NAME = "NEW_CHILD_COMPILER";
 
@@ -48,7 +48,7 @@ class MyPlugin {
 
 const outputFileSystem = createFsFromVolume(new Volume());
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description:
 		"should pass the new compiler and compilation instance in loader",

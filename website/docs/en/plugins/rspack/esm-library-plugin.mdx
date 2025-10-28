@@ -1,0 +1,31 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# EsmLibraryPlugin
+
+<ApiMeta specific={['Rspack']} addedVersion="1.5.6" />
+
+Rspack provides experimental `EsmLibraryPlugin` plugin, provides statically analyzable, cleaner output for ESM library, and also supports code splitting.
+
+:::tip
+🚧 This plugin is still work-in-progress, config may change at anytime.
+:::
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.experiments.EsmLibraryPlugin()],
+  output: {
+    chunkFormat: false, // disable default chunk format as EsmLibraryPlugin will handle how chunks are rendered and loaded
+  },
+  optimization: {
+    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+    concatenateModules: false, // disable module concatenation as EsmLibraryPlugin has its own scope hoisting implementation
+  },
+};
+```
+
+## Known limits
+
+- Execution order of modules is not 100% guaranteed, so avoid relying on side effects of execution orders.
+- Currently does not support context module and ModuleFederation, but this will be improved in the future.

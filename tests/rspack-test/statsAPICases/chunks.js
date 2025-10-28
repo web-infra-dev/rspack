@@ -43,7 +43,7 @@ module.exports = {
 		});
 		expect(string).toContain(`chunk (runtime: main) chunkB.js (chunkB) 94 bytes [rendered]`);
 		expect(string).toContain(`./fixtures/b.js 94 bytes [built] [code generated]`);
-		expect(string).toContain(`chunk (runtime: main) main.js (main) 85 bytes (javascript) 8.52 KiB (runtime) [entry] [rendered]`);
+		expect(string).toContain(`chunk (runtime: main) main.js (main) 85 bytes (javascript) 8.53 KiB (runtime) [entry] [rendered]`);
 		expect(string).toContain(`./fixtures/chunk-b.js 85 bytes [built] [code generated]`);
 	}
 };

@@ -218,7 +218,7 @@ export class Compilation {
 		log: liteTapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
 		optimizeTree: liteTapable.AsyncSeriesHook<
 			[Iterable<Chunk>, Iterable<Module>]
 		>;
@@ -227,38 +227,33 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+		chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
 		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
-		succeedModule: liteTapable.SyncHook<[Module], void>;
-		stillValidModule: liteTapable.SyncHook<[Module], void>;
+		succeedModule: liteTapable.SyncHook<[Module]>;
+		stillValidModule: liteTapable.SyncHook<[Module]>;
 
 		statsPreset: liteTapable.HookMap<
-			liteTapable.SyncHook<
-				[Partial<StatsOptions>, CreateStatsOptionsContext],
-				void
-			>
+			liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>
 		>;
 		statsNormalize: liteTapable.SyncHook<
-			[Partial<StatsOptions>, CreateStatsOptionsContext],
-			void
+			[Partial<StatsOptions>, CreateStatsOptionsContext]
 		>;
-		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
 
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
-			[Chunk, Set<string>],
-			void
+			[Chunk, Set<string>]
 		>;
 		runtimeRequirementInTree: liteTapable.HookMap<
 			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-		seal: liteTapable.SyncHook<[], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+		seal: liteTapable.SyncHook<[]>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
 	}>;
@@ -302,8 +297,7 @@ export class Compilation {
 		const createProcessAssetsHook = <T>(
 			name: string,
 			stage: number,
-			getArgs: () => liteTapable.AsArray<T>,
-			code?: string
+			getArgs: () => liteTapable.AsArray<T>
 		) => {
 			const errorMessage = (
 				reason: string
@@ -442,7 +436,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	get chunkGroups(): ReadonlyArray<ChunkGroup> {
+	get chunkGroups(): readonly ChunkGroup[] {
 		return this.#inner.chunkGroups;
 	}
 
@@ -571,8 +565,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			// properties in the prototype chain
 			const options: Partial<NormalizedStatsOptions> = {};
 			for (const key in optionsOrPreset) {
-				options[key as keyof NormalizedStatsOptions] =
-					optionsOrPreset[key as keyof StatsValue];
+				options[key] = optionsOrPreset[key as keyof StatsValue];
 			}
 			if (options.preset !== undefined) {
 				this.hooks.statsPreset.for(options.preset).call(options, context);
@@ -648,7 +641,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get an array of Asset
 	 */
-	getAssets(): ReadonlyArray<Asset> {
+	getAssets(): readonly Asset[] {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
@@ -973,7 +966,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
 			chunk,
-			RuntimeModule.__to_binding(this, runtimeModule)
+			RuntimeModule.__to_binding(runtimeModule)
 		);
 	}
 
@@ -1235,9 +1228,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.entries();
 	}
 
-	get [Symbol.toStringTag](): string {
-		return "Map";
-	}
+	readonly [Symbol.toStringTag] = "Map";
 
 	has(key: string): boolean {
 		return this.#data.has(key);

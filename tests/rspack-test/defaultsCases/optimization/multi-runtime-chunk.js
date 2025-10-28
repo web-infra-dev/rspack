@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "multiple runtimeChunk",
 	options: () => ({ optimization: { runtimeChunk: "multiple" } }),

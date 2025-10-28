@@ -1,5 +1,9 @@
 import { defineConfig } from "@rspack/cli";
-import { type RspackPluginFunction, rspack } from "@rspack/core";
+import {
+	type RspackPluginFunction,
+	rspack,
+	type SwcLoaderOptions
+} from "@rspack/core";
 import { VueLoaderPlugin } from "vue-loader";
 
 // Target browsers, see: https://github.com/browserslist/browserslist
@@ -33,7 +37,7 @@ export default defineConfig({
 								}
 							},
 							env: { targets }
-						}
+						} satisfies SwcLoaderOptions
 					}
 				]
 			},

@@ -83,7 +83,7 @@ function getCurrentScriptUrl(moduleId: string) {
 		srcByModuleId[moduleId] = src;
 	}
 
-	return (fileMap: string): Option<Array<string>> | null => {
+	return (fileMap: string): Option<string[]> | null => {
 		if (!src) {
 			return null;
 		}
@@ -176,7 +176,7 @@ function updateCss(el: HTMLLinkElement & Record<string, any>, url?: string) {
 	}
 }
 
-function getReloadUrl(href: string, src: Array<string>): string {
+function getReloadUrl(href: string, src: string[]): string {
 	let ret = "";
 
 	const normalizedHref = normalizeUrl(href);
@@ -190,7 +190,7 @@ function getReloadUrl(href: string, src: Array<string>): string {
 	return ret;
 }
 
-function reloadStyle(src: Option<Array<string>>): boolean {
+function reloadStyle(src: Option<string[]>): boolean {
 	if (!src) {
 		return false;
 	}

@@ -12,8 +12,8 @@
  * @template T
  */
 class ArrayQueue<T> {
-	_list: Array<T>;
-	_listReversed: Array<T>;
+	_list: T[];
+	_listReversed: T[];
 
 	constructor(items?: T[]) {
 		this._list = items ? Array.from(items) : [];

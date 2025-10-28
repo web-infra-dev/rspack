@@ -267,7 +267,8 @@ export const getNormalizedRspackOptions = (
 				{}
 			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
-			rules: nestedArray(module.rules, r => [...r])
+			rules: nestedArray(module.rules, r => [...r]),
+			unsafeCache: module.unsafeCache
 		})),
 		target: config.target,
 		externals: config.externals,
@@ -326,50 +327,64 @@ export const getNormalizedRspackOptions = (
 		}),
 		performance: config.performance,
 		plugins: nestedArray(config.plugins, p => [...p]),
-		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments,
-			cache: optionalNestedConfig(experiments.cache, cache => {
-				if (typeof cache === "boolean") {
-					return cache;
-				}
-				if (cache.type === "memory") {
-					return cache;
-				}
-				const snapshot = cache.snapshot || {};
-				return {
-					type: "persistent",
-					buildDependencies: nestedArray(cache.buildDependencies, deps =>
-						deps.map(d => path.resolve(config.context || process.cwd(), d))
-					),
-					version: cache.version || "",
-					snapshot: {
-						immutablePaths: nestedArray(snapshot.immutablePaths, p => [...p]),
-						unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
-						managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
-							...p
-						]) || [/\/node_modules\//]
-					},
-					storage: {
-						type: "filesystem",
-						directory: path.resolve(
-							config.context || process.cwd(),
-							cache.storage?.directory || "node_modules/.cache/rspack"
-						)
+		experiments: nestedConfig(config.experiments, experiments => {
+			if (experiments.layers) {
+				util.deprecate(
+					() => {},
+					"`experiments.layers` config has been deprecated and will be removed in Rspack v2.0. Feature layers will be always enabled. Please remove this option from your Rspack configuration."
+				)();
+			}
+			if (experiments.topLevelAwait === false) {
+				util.deprecate(
+					() => {},
+					"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
+				)();
+			}
+			return {
+				...experiments,
+				cache: optionalNestedConfig(experiments.cache, cache => {
+					if (typeof cache === "boolean") {
+						return cache;
 					}
-				};
-			}),
-			lazyCompilation: optionalNestedConfig(
-				experiments.lazyCompilation,
-				options => (options === true ? {} : options)
-			),
-			incremental: optionalNestedConfig(experiments.incremental, options =>
-				getNormalizedIncrementalOptions(options)
-			),
-			parallelCodeSplitting: experiments.parallelCodeSplitting,
-			buildHttp: experiments.buildHttp,
-			parallelLoader: experiments.parallelLoader,
-			useInputFileSystem: experiments.useInputFileSystem
-		})),
+					if (cache.type === "memory") {
+						return cache;
+					}
+					const snapshot = cache.snapshot || {};
+					return {
+						type: "persistent",
+						buildDependencies: nestedArray(cache.buildDependencies, deps =>
+							deps.map(d => path.resolve(config.context || process.cwd(), d))
+						),
+						version: cache.version || "",
+						snapshot: {
+							immutablePaths: nestedArray(snapshot.immutablePaths, p => [...p]),
+							unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
+							managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
+								...p
+							]) || [/\/node_modules\//]
+						},
+						storage: {
+							type: "filesystem",
+							directory: path.resolve(
+								config.context || process.cwd(),
+								cache.storage?.directory || "node_modules/.cache/rspack"
+							)
+						}
+					};
+				}),
+				lazyCompilation: optionalNestedConfig(
+					experiments.lazyCompilation,
+					options => (options === true ? {} : options)
+				),
+				incremental: optionalNestedConfig(experiments.incremental, options =>
+					getNormalizedIncrementalOptions(options)
+				),
+				parallelCodeSplitting: experiments.parallelCodeSplitting,
+				buildHttp: experiments.buildHttp,
+				parallelLoader: experiments.parallelLoader,
+				useInputFileSystem: experiments.useInputFileSystem
+			};
+		}),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
@@ -509,15 +524,12 @@ const keyedNestedConfig = <T, R>(
 	const result =
 		value === undefined
 			? {}
-			: Object.keys(value).reduce(
-					(obj, key) => {
-						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
-							value[key]
-						);
-						return obj;
-					},
-					{} as Record<string, R>
-				);
+			: Object.keys(value).reduce<Record<string, R>>((obj, key) => {
+					obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+						value[key]
+					);
+					return obj;
+				}, {});
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {
@@ -607,6 +619,7 @@ export interface ModuleOptionsNormalized {
 	parser: ParserOptionsByModuleType;
 	generator: GeneratorOptionsByModuleType;
 	noParse?: NoParseOption;
+	unsafeCache?: boolean | RegExp;
 }
 
 export type ExperimentCacheNormalized =
@@ -619,9 +632,9 @@ export type ExperimentCacheNormalized =
 			buildDependencies: string[];
 			version: string;
 			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
+				immutablePaths: (string | RegExp)[];
+				unmanagedPaths: (string | RegExp)[];
+				managedPaths: (string | RegExp)[];
 			};
 			storage: {
 				type: "filesystem";
@@ -641,6 +654,9 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
+	/**
+	 * @deprecated This option is deprecated, layers is enabled since v1.6.0
+	 */
 	layers?: boolean;
 	incremental?: false | Incremental;
 	parallelCodeSplitting?: boolean;
@@ -654,6 +670,7 @@ export interface ExperimentsNormalized {
 	typeReexportsPresence?: boolean;
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
+	deferImport?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

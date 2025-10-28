@@ -16,10 +16,7 @@ export class RuntimeModule {
 	static STAGE_ATTACH = RuntimeModuleStage.ATTACH;
 	static STAGE_TRIGGER = RuntimeModuleStage.TRIGGER;
 
-	static __to_binding(
-		compilation: Compilation,
-		module: RuntimeModule
-	): JsAddingRuntimeModule {
+	static __to_binding(module: RuntimeModule): JsAddingRuntimeModule {
 		return {
 			name: module.name,
 			stage: module.stage,

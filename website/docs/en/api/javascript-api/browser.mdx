@@ -1,3 +1,5 @@
+import { ApiMeta } from '../../../../components/ApiMeta';
+
 # Browser API
 
 `@rspack/browser` is a version of Rspack specifically designed for browser environments, without relying on WebContainers or any particular platform. Its API is consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`, while additionally providing features and interfaces tailored for the browser environment.
@@ -79,6 +81,30 @@ builtinMemFs.volume.fromJSON({
 const files = builtinMemFs.volume.toJSON();
 ```
 
+`builtinMemFs` is a global singleton instance. In scenarios involving concurrent builds of multiple projects, it is recommended to enable [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) to avoid conflicts.  
+Please note that, currently in the `@rspack/browser`, `experiments.useInputFileSystem` can only intercept project files that will be ultimately bundled, and cannot intercept files relied upon during the build process, such as those used by Loaders (see also [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules) below).
+
+```js title="rspack.config.mjs"
+import { builtinMemFs } from '@rspack/browser';
+
+const projectFs = builtinMemFs.memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs.fs;
+          compiler.outputFileSystem = projectFs.fs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
 ## Browser-Specific Plugins
 
 To better meet the bundling needs in browser environments, `@rspack/browser` offers several dedicated plugins.
@@ -141,15 +167,95 @@ interface BrowserHttpImportPluginOptions {
 }
 ```
 
+#### Compatibility with `resolve.alias`
+
+When using `BrowserHttpImportEsmPlugin`, the rewriting of dependency identifiers occurs **before** the alias replacements defined in [resolve.alias](/config/resolve#resolvealias). This ordering can lead to conflicts between the plugin’s rewriting logic and alias resolution.
+
+To resolve this issue, you can configure the plugin’s `dependencyUrl` option to preemptively skip requests that should be handled by `resolve.alias`:
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // e.g., "@/util.js" will be resolved to "/src/util.js"
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // Skip rewriting for requests starting with "@/” to allow alias resolution
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
 ### BrowserRequirePlugin
 
 In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
 
+The `BrowserRequirePlugin` plugin provides two ways to address this requirement. Options for `BrowserRequirePlugin` are as follows:
+
+```ts
+interface BrowserRequirePluginOptions {
+  /**
+   * This function defines how to execute CommonJS code.
+   */
+  execute?: (code: string, runtime: CommonJsRuntime) => void;
+  /**
+   * This option provides a direct mapping from the module specifier to the module content, similar to the mechanism of a virtual module.
+   * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs and run `execute`.
+   */
+  modules?: Record<string, any> | ((id: string) => any);
+}
+```
+
+#### `modules`
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+This option allows you to directly map a module request id to any JavaScript object within the project. Note that you need to create a corresponding empty file in `memfs`:
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
+import CustomLoader from './custom-loader';
+
+builtinMemFs.volume.fromJSON({
+  '/LOADER/custom-loader.js': '',
+});
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /a\.js$/,
+        loader: '/LOADER/custom-loader.js',
+      },
+    ],
+  },
+  plugins: [
+    new BrowserRequirePlugin({
+      modules: {
+        '/LOADER/custom-loader.js': CustomLoader,
+      },
+    }),
+  ],
+};
+```
+
+#### `execute`
+
+This option is used to simulate the `require` process in Node.js: it resolves modules based on memfs, reads file contents, and executes them. When modules is not provided, or the corresponding result is not found in modules, this path will be attempted.
+
 :::warning
 Rspack does not execute user code during bundling. For security, it is recommended to run the final bundled output inside an iframe.
 :::
-
-The `BrowserRequirePlugin` plugin enables this capability:
 
 ```js title="rspack.config.mjs"
 import { BrowserRequirePlugin } from '@rspack/browser';
@@ -173,32 +279,6 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
   runtime.module.exports.hello = 'rspack';
 }
 ```
-
-Options for `BrowserRequirePlugin` are as follows:
-
-```ts
-/**
- * Runtime context for loading CommonJS modules
- */
-interface CommonJsRuntime {
-  module: any;
-  exports: any;
-  require: BrowserRequire;
-}
-
-interface BrowserRequirePluginOptions {
-  /**
-   * Function to execute dynamic code
-   */
-  execute: (code: string, runtime: CommonJsRuntime) => void;
-}
-```
-
-:::tip How to decide whether to use this plugin?
-If your project does not require dynamic loading and execution of JavaScript code, you do not need this plugin.
-
-If your project does not distribute untrusted code or distributing such code does not cause security issues, you can directly use `BrowserRequirePlugin.unsafeExecute`. For example, the [Rspack Playground](https://playground.rspack.rs/) does not involve user privacy or account security.
-:::
 
 ## Using Module Federation
 

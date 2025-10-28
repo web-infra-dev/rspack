@@ -478,17 +478,10 @@ impl NormalModuleFactory {
       resource_data.resource().to_owned()
     };
 
-    let file_dependency = resource_data.path().map(|p| p.to_owned());
-
     let resolved_module_type =
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &resolved_module_rules);
-    if resolved_module_layer.is_some() && !self.options.experiments.layers {
-      return Err(error!(
-        "'Rule.layer' is only allowed when 'experiments.layers' is enabled"
-      ));
-    }
 
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
@@ -500,6 +493,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
+    let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
     let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -575,6 +569,7 @@ impl NormalModuleFactory {
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),
+        resolved_extract_source_map,
       )
       .boxed()
     };
@@ -586,9 +581,6 @@ impl NormalModuleFactory {
       .call(data, &mut create_data, &mut module)
       .await?;
 
-    if let Some(file_dependency) = file_dependency {
-      data.add_file_dependency(file_dependency.into_std_path_buf());
-    }
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
 
@@ -639,6 +631,17 @@ impl NormalModuleFactory {
       }
     }
     side_effect_res
+  }
+
+  fn calculate_extract_source_map(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
+    let mut extract_source_map_res = None;
+    // extract_source_map from module rule has higher priority
+    for rule in module_rules.iter() {
+      if rule.extract_source_map.is_some() {
+        extract_source_map_res = rule.extract_source_map;
+      }
+    }
+    extract_source_map_res
   }
 
   fn calculate_parser_and_generator_options(

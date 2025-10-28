@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "experiments.futureDefaults w/ experiments.css disabled",
 	options: () => ({
@@ -17,8 +17,9 @@ module.exports = {
 		+     "asyncWebAssembly": true,
 		@@ ... @@
 		-     "css": undefined,
-		-     "futureDefaults": false,
 		+     "css": false,
+		@@ ... @@
+		-     "futureDefaults": false,
 		+     "futureDefaults": true,
 		@@ ... @@
 		+       },
@@ -35,11 +36,11 @@ module.exports = {
 		+         ],
 		+         "test": /\\.wasm$/i,
 		+         "type": "webassembly/async",
-		@@ ... @@
+		+       },
 		+       Object {
 		+         "mimetype": "application/wasm",
 		+         "rules": Array [
-		@@ ... @@
+		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -49,10 +50,5 @@ module.exports = {
 		+           },
 		+         ],
 		+         "type": "webassembly/async",
-		+       },
-		+       Object {
-		@@ ... @@
-		-     "charset": true,
-		+     "charset": false,
 	`)
 };

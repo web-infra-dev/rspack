@@ -1,7 +1,7 @@
 const path = require('path');
 
-const mockWatchRunFn = jest.fn(() => { });
-const mockInvalidFn = jest.fn(() => { });
+const mockWatchRunFn = rstest.fn(() => { });
+const mockInvalidFn = rstest.fn(() => { });
 
 class MyPlugin {
 	apply(compiler) {
@@ -33,7 +33,7 @@ module.exports = {
 						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/a.js")]));
 						compiler.watching.invalidateWithChangesAndRemovals(new Set([path.resolve(__dirname, "../fixtures/b.js")]));
 						setTimeout(() => {
-							resolve()
+							resolve();
 						}, 2000)
 					}
 				});
@@ -41,7 +41,6 @@ module.exports = {
 		} catch (err) {
 			throw err
 		}
-
 	},
 	async check() {
 		expect(mockWatchRunFn).toHaveBeenCalledTimes(3);

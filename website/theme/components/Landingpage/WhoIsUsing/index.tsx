@@ -22,6 +22,7 @@ import microsoftLogo from './assets/microsoft.svg';
 import miroLogo from './assets/miro.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
+import snapLogo from './assets/snap.svg';
 import tiktokLogo from './assets/tiktok.svg';
 import trellisLogo from './assets/trellis.svg';
 import verkadaLogo from './assets/verkada.png';
@@ -148,6 +149,12 @@ const companyList: Company[] = [
     name: 'Miro',
     logo: miroLogo,
     url: 'https://miro.com',
+    width: 120,
+  },
+  {
+    name: 'Snap',
+    logo: snapLogo,
+    url: 'https://www.snap.com/',
     width: 120,
   },
 ];

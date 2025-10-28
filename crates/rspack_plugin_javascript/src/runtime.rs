@@ -5,10 +5,8 @@ use rspack_core::{
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  to_normal_comment,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JavascriptModulesPluginHooks, RenderSource};
@@ -177,13 +175,6 @@ pub async fn render_module(
     ));
     sources.add(RawStringSource::from_static(": "));
 
-    if is_diff_mode() {
-      sources.add(RawStringSource::from(format!(
-        "\n{}\n",
-        to_normal_comment(&format!("start::{}", module.identifier()))
-      )));
-    }
-
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
         compilation,
@@ -221,14 +212,6 @@ pub async fn render_module(
 
       let mut container_sources = ConcatSource::default();
 
-      // TODO: put this in a plugin via render_module_{container,package} hook
-      if is_diff_mode() {
-        container_sources.add(RawStringSource::from(format!(
-          "\n{}\n",
-          to_normal_comment(&format!("start::{}", module.identifier()))
-        )));
-      }
-
       container_sources.add(RawStringSource::from(format!(
         "(function ({}) {{\n",
         args.join(", ")
@@ -238,13 +221,6 @@ pub async fn render_module(
       }
       container_sources.add(render_source.source);
       container_sources.add(RawStringSource::from_static("\n\n})"));
-
-      if is_diff_mode() {
-        container_sources.add(RawStringSource::from(format!(
-          "\n{}\n",
-          to_normal_comment(&format!("end::{}", module.identifier()))
-        )));
-      }
       container_sources.add(RawStringSource::from_static(",\n"));
 
       RenderSource {
@@ -344,17 +320,10 @@ pub async fn render_runtime_modules(
           if source.size() == 0 {
             return Ok(sources);
           }
-          if is_diff_mode() {
-            sources.add(RawStringSource::from(format!(
-              "/* start::{} */\n",
-              module.identifier()
-            )));
-          } else {
-            sources.add(RawStringSource::from(format!(
-              "// {}\n",
-              module.identifier()
-            )));
-          }
+          sources.add(RawStringSource::from(format!(
+            "// {}\n",
+            module.identifier()
+          )));
           let supports_arrow_function = compilation
             .options
             .output
@@ -381,12 +350,6 @@ pub async fn render_runtime_modules(
             } else {
               "\n}();\n"
             }));
-          }
-          if is_diff_mode() {
-            sources.add(RawStringSource::from(format!(
-              "/* end::{} */\n",
-              module.identifier()
-            )));
           }
           Ok(sources)
         });

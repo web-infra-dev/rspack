@@ -1,0 +1,39 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "ESM library plugin for Rspack"
+documentation.workspace = true
+edition                 = "2024"
+homepage.workspace      = true
+license.workspace       = true
+name                    = "rspack_plugin_esm_library"
+repository.workspace    = true
+version.workspace       = true
+
+[dependencies]
+async-trait                = { workspace = true }
+rayon                      = { workspace = true }
+regex                      = { workspace = true }
+rspack_cacheable           = { workspace = true }
+rspack_collections         = { workspace = true }
+rspack_core                = { workspace = true }
+rspack_error               = { workspace = true }
+rspack_futures             = { workspace = true }
+rspack_hash                = { workspace = true }
+rspack_hook                = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
+rspack_plugin_javascript   = { workspace = true }
+rspack_util                = { workspace = true }
+serde                      = { workspace = true }
+serde_json                 = { workspace = true }
+sugar_path                 = { workspace = true }
+swc_core                   = { workspace = true, features = ["swc_ecma_transforms_base"] }
+tokio                      = { workspace = true }
+tracing                    = { workspace = true }
+
+[lints]
+workspace = true
+
+
+[package.metadata.cargo-shear]
+ignored = ["serde", "tracing", "rspack_hash", "rspack_cacheable"]

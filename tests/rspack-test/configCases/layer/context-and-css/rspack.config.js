@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: "web",
 	entry: {
@@ -6,7 +6,6 @@ module.exports = {
 		dark: { import: "./dark.js", layer: "dark" }
 	},
 	experiments: {
-		layers: true,
 		css: true
 	},
 	optimization: {

@@ -1,4 +1,7 @@
 class Plugin {
+	/**
+	* @param {import("@rspack/core").Compiler} compiler
+	*/
 	apply(compiler) {
 		compiler.hooks.compilation.tap("Test", compilation => {
 			const chunks = compilation.chunks;
@@ -8,13 +11,17 @@ class Plugin {
 				expect(chunks.size).toBe(1);
 
 				const chunk = Array.from(chunks)[0];
-				const mockFn = jest.fn((value, value2, set) => {
+				const mockFn = rstest.fn((value, value2, set) => {
 					expect(value).toBe(chunk);
 					expect(value2).toBe(chunk);
 					expect(set).toBe(chunks);
 				});
 				chunks.forEach(mockFn);
 				expect(mockFn).toHaveBeenCalledTimes(1);
+
+				const entries = chunks.entries();
+				expect(entries.next()).toStrictEqual({ value: [chunk, chunk], done: false });
+				expect(entries.next()).toStrictEqual({ value: undefined, done: true });
 			});
 		});
 	}

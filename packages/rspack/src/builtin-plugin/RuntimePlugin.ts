@@ -48,7 +48,7 @@ RuntimePlugin.getHooks = RuntimePlugin.getCompilationHooks = (
 
 export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 	`RuntimePlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerRuntimePluginCreateScriptTaps: createTap(
 			binding.RegisterJsTapKind.RuntimePluginCreateScript,

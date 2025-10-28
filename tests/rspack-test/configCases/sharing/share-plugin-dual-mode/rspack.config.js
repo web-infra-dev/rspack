@@ -1,6 +1,6 @@
 const { SharePlugin } = require("@rspack/core").sharing;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
   context: `${__dirname}/cjs`,
   plugins: [

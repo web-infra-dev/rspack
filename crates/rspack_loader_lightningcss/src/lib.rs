@@ -170,39 +170,39 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let enable_sourcemap = loader_context.context.module_source_map_kind.enabled();
-
-    let mut source_map = loader_context
-      .source_map()
-      .map(|input_source_map| -> Result<_> {
-        let mut sm = parcel_sourcemap::SourceMap::new(
-          input_source_map
-            .source_root()
-            .unwrap_or(&loader_context.context.options.context),
-        );
-        sm.add_source(&filename);
-        sm.set_source_content(0, &content_str).to_rspack_result()?;
-        Ok(sm)
-      })
-      .transpose()?
-      .unwrap_or_else(|| {
-        let mut source_map =
-          parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-        let source_idx = source_map.add_source(&filename);
-        source_map
-          .set_source_content(source_idx as usize, &content_str)
-          .expect("should set source content");
-        source_map
-      });
+    let mut source_map = if loader_context.context.source_map_kind.enabled() {
+      Some(
+        loader_context
+          .source_map()
+          .map(|input_source_map| -> Result<_> {
+            let mut sm = parcel_sourcemap::SourceMap::new(
+              input_source_map
+                .source_root()
+                .unwrap_or(&loader_context.context.options.context),
+            );
+            sm.add_source(&filename);
+            sm.set_source_content(0, &content_str).to_rspack_result()?;
+            Ok(sm)
+          })
+          .transpose()?
+          .unwrap_or_else(|| {
+            let mut source_map =
+              parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
+            let source_idx = source_map.add_source(&filename);
+            source_map
+              .set_source_content(source_idx as usize, &content_str)
+              .expect("should set source content");
+            source_map
+          }),
+      )
+    } else {
+      None
+    };
 
     let content = stylesheet
       .to_css(PrinterOptions {
         minify: self.config.minify.unwrap_or(false),
-        source_map: if enable_sourcemap {
-          Some(&mut source_map)
-        } else {
-          None
-        },
+        source_map: source_map.as_mut(),
         project_root: None,
         targets,
         analyze_dependencies: None,
@@ -220,7 +220,7 @@ impl LightningCssLoader {
       })
       .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
-    if enable_sourcemap {
+    if let Some(source_map) = source_map {
       let mappings = encode_mappings(source_map.get_mappings().iter().map(|mapping| Mapping {
         generated_line: mapping.generated_line,
         generated_column: mapping.generated_column,

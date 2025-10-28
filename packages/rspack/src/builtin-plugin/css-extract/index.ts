@@ -3,7 +3,7 @@ import {
 	BuiltinPluginName,
 	type RawCssExtractPluginOption
 } from "@rspack/binding";
-import type { Compiler } from "../..";
+import type { Compiler, LiteralUnion } from "../..";
 import { MODULE_TYPE } from "./loader";
 import { PLUGIN_NAME } from "./utils";
 
@@ -20,7 +20,7 @@ export interface CssExtractRspackPluginOptions {
 	ignoreOrder?: boolean;
 	insert?: string | ((linkTag: HTMLLinkElement) => void);
 	attributes?: Record<string, string>;
-	linkType?: string | "text/css" | false;
+	linkType?: LiteralUnion<"text/css", string> | false;
 	runtime?: boolean;
 
 	// workaround for pathinto, deprecate this when rspack supports pathinfo
@@ -98,7 +98,7 @@ export class CssExtractRspackPlugin {
 
 		const normalzedOptions: RawCssExtractPluginOption = {
 			filename: options.filename || DEFAULT_FILENAME,
-			chunkFilename: chunkFilename!,
+			chunkFilename: chunkFilename,
 			ignoreOrder: options.ignoreOrder ?? false,
 			runtime: options.runtime ?? true,
 			insert:
@@ -112,7 +112,7 @@ export class CssExtractRspackPlugin {
 						? undefined
 						: JSON.stringify(options.linkType),
 			attributes: options.attributes
-				? (Reflect.ownKeys(options.attributes)
+				? Reflect.ownKeys(options.attributes)
 						.map(k => [
 							JSON.stringify(k),
 							JSON.stringify(options.attributes![k as string])
@@ -120,7 +120,7 @@ export class CssExtractRspackPlugin {
 						.reduce((obj: Record<string, string>, [k, v]) => {
 							obj[k] = v;
 							return obj;
-						}, {}) as Record<string, string>)
+						}, {})
 				: {},
 			pathinfo: options.pathinfo ?? false,
 			enforceRelative: options.enforceRelative ?? false

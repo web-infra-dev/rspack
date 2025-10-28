@@ -22,4 +22,6 @@ declare global {
 			) => void;
 		}
 	}
+
+	var rstest = jest;
 }

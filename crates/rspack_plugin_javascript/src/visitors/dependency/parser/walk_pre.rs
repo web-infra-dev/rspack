@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
-use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::ast::{
-    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, ForStmt,
-    IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase,
-    SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
+    ArrayPat, AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
+    ForStmt, IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Pat, Stmt,
+    SwitchCase, SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -17,7 +16,7 @@ use super::{
 use crate::{
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
+  visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
 };
 
 impl JavascriptParser<'_> {
@@ -208,9 +207,28 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn collect_destructuring_assignment_properties(
     &mut self,
+    pattern: &Pat,
+  ) -> Option<DestructuringAssignmentProperties> {
+    if let Some(obj_pat) = pattern.as_object()
+      && let Some(properties) =
+        self.collect_destructuring_assignment_properties_from_object_pattern(obj_pat)
+    {
+      return Some(properties);
+    }
+    if let Some(arr_pat) = pattern.as_array()
+      && let Some(properties) =
+        self.collect_destructuring_assignment_properties_from_array_pattern(arr_pat)
+    {
+      return Some(properties);
+    }
+    None
+  }
+
+  pub(crate) fn collect_destructuring_assignment_properties_from_object_pattern(
+    &mut self,
     obj_pat: &ObjectPat,
-  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
-    let mut keys = FxHashSet::default();
+  ) -> Option<DestructuringAssignmentProperties> {
+    let mut keys = DestructuringAssignmentProperties::default();
     for prop in &obj_pat.props {
       match prop {
         ObjectPatProp::KeyValue(prop) => {
@@ -218,6 +236,7 @@ impl JavascriptParser<'_> {
             keys.insert(DestructuringAssignmentProperty {
               id: ident_key.sym.clone(),
               range: prop.key.span().into(),
+              pattern: self.collect_destructuring_assignment_properties(&prop.value),
               shorthand: false,
             });
           } else {
@@ -226,6 +245,7 @@ impl JavascriptParser<'_> {
               keys.insert(DestructuringAssignmentProperty {
                 id: id.into(),
                 range: prop.key.span().into(),
+                pattern: self.collect_destructuring_assignment_properties(&prop.value),
                 shorthand: false,
               });
             } else {
@@ -237,11 +257,36 @@ impl JavascriptParser<'_> {
           keys.insert(DestructuringAssignmentProperty {
             id: prop.key.sym.clone(),
             range: prop.key.span().into(),
+            pattern: None,
             shorthand: true,
           });
         }
         ObjectPatProp::Rest(_) => return None,
       };
+    }
+    Some(keys)
+  }
+
+  pub(crate) fn collect_destructuring_assignment_properties_from_array_pattern(
+    &mut self,
+    arr_pat: &ArrayPat,
+  ) -> Option<DestructuringAssignmentProperties> {
+    let mut keys = DestructuringAssignmentProperties::default();
+    for (i, ele) in arr_pat.elems.iter().enumerate() {
+      let Some(ele) = ele else {
+        continue;
+      };
+      if ele.is_rest() {
+        return None;
+      }
+      let mut buf = rspack_util::itoa::Buffer::new();
+      let i = buf.format(i);
+      keys.insert(DestructuringAssignmentProperty {
+        id: i.into(),
+        range: ele.span().into(),
+        pattern: self.collect_destructuring_assignment_properties(ele),
+        shorthand: false,
+      });
     }
     Some(keys)
   }

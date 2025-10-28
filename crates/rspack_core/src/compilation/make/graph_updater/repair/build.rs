@@ -7,17 +7,21 @@ use super::{
   TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
+  CompilerId, CompilerOptions, DependencyParents, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
   compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  utils::task_loop::{Task, TaskResult, TaskType},
+  utils::{
+    ResourceId,
+    task_loop::{Task, TaskResult, TaskType},
+  },
 };
 
 #[derive(Debug)]
 pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -85,7 +89,7 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<ModuleProfile>,
@@ -125,18 +129,19 @@ impl Task<TaskContext> for BuildResultTask {
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
+    let resource_id = ResourceId::from(module.identifier());
     artifact
       .file_dependencies
-      .add_batch_file(&build_info.file_dependencies);
+      .add_files(&resource_id, &build_info.file_dependencies);
     artifact
       .context_dependencies
-      .add_batch_file(&build_info.context_dependencies);
+      .add_files(&resource_id, &build_info.context_dependencies);
     artifact
       .missing_dependencies
-      .add_batch_file(&build_info.missing_dependencies);
+      .add_files(&resource_id, &build_info.missing_dependencies);
     artifact
       .build_dependencies
-      .add_batch_file(&build_info.build_dependencies);
+      .add_files(&resource_id, &build_info.build_dependencies);
 
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();

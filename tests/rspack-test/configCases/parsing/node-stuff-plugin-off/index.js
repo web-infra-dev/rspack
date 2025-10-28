@@ -1,9 +1,8 @@
-it("should not evaluate __dirname or __filename when node option is false", function(done) {
+it("should not evaluate __dirname or __filename when node option is false", function() {
 	if (typeof __dirname !== "undefined") {
-		done.fail();
+		throw new Error()
 	}
 	if (typeof __filename !== "undefined") {
-		done.fail();
+		throw new Error()
 	}
-	done();
 });

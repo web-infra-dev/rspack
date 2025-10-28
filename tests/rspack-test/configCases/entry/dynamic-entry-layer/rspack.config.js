@@ -7,8 +7,5 @@ module.exports = {
 				layer: "client"
 			}
 		});
-	},
-	experiments: {
-		layers: true
 	}
 };

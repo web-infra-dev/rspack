@@ -1,6 +1,6 @@
 let updatedChunkHash = false;
 
-/** @type {import("../../../..").THookCaseConfig} */
+/** @type {import("@rspack/test-tools").THookCaseConfig} */
 module.exports = {
 	description: "should work with javascriptModulesPlugin#chunkHash",
 	options(context) {

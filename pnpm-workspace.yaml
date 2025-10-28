@@ -10,10 +10,7 @@ packages:
   - "examples/**"
   - "!examples/three"
   - "tests/e2e"
-  - "tests/webpack-examples"
-  - "tests/webpack-test"
   - "tests/rspack-test"
-  - "tests/webpack-cli-test"
   - "tests/bench"
   # this following is used to test resolve in monorepo
   - "tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*"

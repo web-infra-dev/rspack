@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		bundle0: {
@@ -48,9 +48,6 @@ module.exports = {
 				layer: "dynamic-layer"
 			}
 		]
-	},
-	experiments: {
-		layers: true
 	},
 	externals: [
 		{

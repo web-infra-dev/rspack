@@ -1,4 +1,4 @@
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "cache true",
 	options: () => ({}),
@@ -8,7 +8,7 @@ module.exports = {
 		  amd: undefined,
 		  bail: false,
 		  cache: false,
-		  context: <TEST_TOOLS_ROOT>,
+		  context: <TEST_ROOT>,
 		  dependencies: undefined,
 		  devServer: undefined,
 		  devtool: false,
@@ -24,6 +24,7 @@ module.exports = {
 		    buildHttp: undefined,
 		    cache: false,
 		    css: undefined,
+		    deferImport: false,
 		    futureDefaults: false,
 		    incremental: Object {
 		      buildChunkGraph: false,
@@ -45,8 +46,7 @@ module.exports = {
 		    },
 		    inlineConst: false,
 		    inlineEnum: false,
-		    layers: false,
-		    lazyBarrel: false,
+		    lazyBarrel: true,
 		    lazyCompilation: false,
 		    parallelCodeSplitting: false,
 		    parallelLoader: false,
@@ -193,6 +193,8 @@ module.exports = {
 		        },
 		      },
 		      javascript: Object {
+		        commonjs: true,
+		        deferImport: false,
 		        dynamicImportMode: lazy,
 		        dynamicImportPrefetch: false,
 		        dynamicImportPreload: false,
@@ -219,6 +221,7 @@ module.exports = {
 		      },
 		    },
 		    rules: Array [],
+		    unsafeCache: false,
 		  },
 		  name: undefined,
 		  node: Object {
@@ -288,7 +291,7 @@ module.exports = {
 		  output: Object {
 		    assetModuleFilename: [hash][ext][query],
 		    asyncChunks: true,
-		    charset: true,
+		    charset: false,
 		    chunkFilename: [name].js,
 		    chunkFormat: array-push,
 		    chunkLoadTimeout: 120000,
@@ -340,7 +343,7 @@ module.exports = {
 		    importMetaName: import.meta,
 		    library: undefined,
 		    module: false,
-		    path: <TEST_TOOLS_ROOT>/dist,
+		    path: <TEST_ROOT>/dist,
 		    pathinfo: false,
 		    publicPath: auto,
 		    scriptType: false,
@@ -548,7 +551,7 @@ module.exports = {
 		    ],
 		    pnp: false,
 		    roots: Array [
-		      <TEST_TOOLS_ROOT>,
+		      <TEST_ROOT>,
 		    ],
 		  },
 		  resolveLoader: Object {

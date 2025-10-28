@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7201
+- Update: main.hot-update.js, size: 7115
 
 ## Manifest
 
@@ -23,7 +23,7 @@
 ### main.hot-update.js
 
 #### Changed Modules
-- ../../../../../packages/rspack/dist/cssExtractHmr.js
+- ../../../../../../../../packages/rspack/dist/cssExtractHmr.js
 - ./index.css
 
 #### Changed Runtime Modules
@@ -33,10 +33,10 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"../../../../../packages/rspack/dist/cssExtractHmr.js": 
-/*!************************************************************!*\
-  !*** ../../../../../packages/rspack/dist/cssExtractHmr.js ***!
-  \************************************************************/
+"../../../../../../../../packages/rspack/dist/cssExtractHmr.js": 
+/*!*********************************************************************!*\
+  !*** ../../../../../../../../packages/rspack/dist/cssExtractHmr.js ***!
+  \*********************************************************************/
 (function (__unused_webpack_module, exports) {
 
 var __nested_webpack_require_18_37__ = {};
@@ -74,7 +74,7 @@ __nested_webpack_require_18_37__.r(__nested_webpack_exports__), __nested_webpack
     cssReload: ()=>cssReload,
     normalizeUrl: ()=>normalizeUrl
 });
-let srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
+const srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
     let normalizedUrl;
@@ -134,14 +134,13 @@ function cssReload(moduleId, options) {
             if (!src) return !1;
             let elements = document.querySelectorAll("link"), loaded = !1;
             return forEach.call(elements, (el)=>{
+                var href;
+                let ret, normalizedHref;
                 if (!el.href) return;
-                let url = function(href, src) {
-                    let ret = "", normalizedHref = normalizeUrl(href);
-                    return src.some((url)=>{
-                        normalizedHref.indexOf(src) > -1 && (ret = url);
-                    }), ret;
-                }(el.href, src);
-                isUrlRequest(url) && !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
+                let url = (href = el.href, ret = "", normalizedHref = normalizeUrl(href), src.some((url)=>{
+                    normalizedHref.indexOf(src) > -1 && (ret = url);
+                }), ret);
+                !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
             }), loaded;
         }(src);
         if (options.locals) {
@@ -149,8 +148,7 @@ function cssReload(moduleId, options) {
             return;
         }
         reloaded ? console.log("[HMR] CSS reload %s", src && src.join(" ")) : (console.log("[HMR] Reload all CSS"), reloadAll());
-    }, timeout = 0, function() {
-        for(var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++)args[_key] = arguments[_key];
+    }, timeout = 0, function(...args) {
         let self = this;
         clearTimeout(timeout), timeout = setTimeout(function() {
             return fn.apply(self, args);
@@ -178,7 +176,7 @@ __webpack_require__.r(__webpack_exports__);
     if(true) {
       (function() {
         var localsJsonString = undefined;
-        var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        var cssReload = (__webpack_require__(/*! ../../../../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
         if (
           module.hot.data &&

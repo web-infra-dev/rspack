@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support javascript.inlineInRuntimeBailout hook";

@@ -1,0 +1,13 @@
+assets by status xx KiB [cached] 3 assets
+runtime modules xx KiB 8 modules
+cacheable modules 128 bytes
+  ./entry-1.js 63 bytes [built] [code generated]
+  ./entry-2.js 1 bytes [built] [code generated]
+  ./entry-3.js 63 bytes [built] [code generated]
+  ./dynamic.js 1 bytes [built] [code generated]
+
+ERROR in × It's not allowed to load an initial chunk on demand. The chunk name "entry2" is already used by an entrypoint.
+
+ERROR in × It's not allowed to load an initial chunk on demand. The chunk name "entry3" is already used by an entrypoint.
+
+Rspack x.x.x compiled with 2 errors in X s

@@ -1,6 +1,3 @@
-// Need to run some webpack-test
-process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
-
 const path = require("path");
 const { describeByWalk, createCacheCase } = require("@rspack/test-tools");
 const tempDir = path.resolve(__dirname, `./js/temp`);

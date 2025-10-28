@@ -125,7 +125,7 @@ export function createDiagnosticArray(
 				value: RspackError,
 				index: number,
 				array: RspackError[]
-			) => U | ReadonlyArray<U>,
+			) => U | readonly U[],
 			thisArg?: This
 		): U[] {
 			return adm.values().flatMap(callbackfn, thisArg);

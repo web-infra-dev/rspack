@@ -1,15 +1,17 @@
 var value = require("../file");
 import('./async.js'); // make sure ensure chunk runtime added
-it("should accept a dependencies multiple times", (done) => {
+it("should accept a dependencies multiple times", async () => {
 	expect(value).toBe(1);
-	module.hot.accept("../file", () => {
+	await NEXT_HMR();
+	while (true) {
 		var oldValue = value;
 		value = require("../file");
 		expect(value).toBe(oldValue + 1);
 		if (value < 4)
-			NEXT(require("../../../update")(done));
+			await NEXT_HMR();
 		else
-			done();
-	});
-	NEXT(require("../../../update")(done));
+			break;
+	}
 });
+
+module.hot.accept("../file");

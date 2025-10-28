@@ -1,6 +1,6 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
 
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have build time executed",
 	options(context) {
@@ -41,7 +41,7 @@ module.exports = {
 		executedModuleIds.sort();
 		expect(executedModuleIds).toMatchInlineSnapshot(`
 		Array [
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/fixtures/css/style.css,
+		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/fixtures/css/style.css,
 		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		]

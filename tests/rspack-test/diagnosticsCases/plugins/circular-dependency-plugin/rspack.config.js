@@ -14,9 +14,6 @@ module.exports = {
 			layer: "f"
 		}
 	},
-	experiments: {
-		layers: true
-	},
 	module: {
 		rules: [
 			{

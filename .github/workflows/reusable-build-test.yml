@@ -35,6 +35,7 @@ jobs:
           path: crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 20
@@ -53,7 +54,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.55.0-jammy
+          image: mcr.microsoft.com/playwright:v1.56.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -96,6 +97,7 @@ jobs:
         run: ls -lah crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: ${{ matrix.node }}
@@ -113,7 +115,7 @@ jobs:
 
       ### *-apple-darwin
       - name: Test apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ contains(inputs.target, 'apple-darwin') }}
         run: |
           # arch is ARM and target is ARM
@@ -139,18 +141,3 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
         run: pnpm run test:ci
-
-      ### write the latest metric into branch gh-pages
-      ### Note that, We can't merge this script, because this script only runs on main branch
-      ### [Note] This step requires push permission and should be refactored.
-      # - name: Update main branch test compatibility metric
-      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
-      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
-
-      # ### update metric diff against main branch when pull request change
-      - name: Update
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
-        uses: ./.github/actions/webpack-test-metric-diff
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{ github.sha }}

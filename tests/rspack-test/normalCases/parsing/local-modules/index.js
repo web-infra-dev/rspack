@@ -13,7 +13,7 @@ it("should define and require a local module", function () {
 	require(["my-module"]);
 });
 
-it("should not create a chunk for a AMD require to a local module", function (done) {
+it("should not create a chunk for a AMD require to a local module", () => new Promise(done => {
 	define("my-module2", function () {
 		return 1235;
 	});
@@ -26,7 +26,7 @@ it("should not create a chunk for a AMD require to a local module", function (do
 		expect(sync).toBe(true);
 		done();
 	});
-});
+}));
 
 it("should define and require a local module with deps", function () {
 	module.exports = "not set";

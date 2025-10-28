@@ -1,10 +1,14 @@
-use rspack_collections::IdentifierSet;
+use std::hash::BuildHasherDefault;
+
+use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  compilation::make::ModuleToLazyMake, utils::FileCounter,
+  compilation::make::ModuleToLazyMake,
+  incremental_info::IncrementalInfo,
+  utils::{FileCounter, ResourceId},
 };
 
 /// Enum used to mark whether module graph has been built.
@@ -23,16 +27,14 @@ pub enum MakeArtifactState {
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
   // temporary data, used by subsequent steps of make, should be reset when rebuild.
-  /// Make stage built modules.
+  /// Make stage affected modules.
   ///
-  /// This field will contain all modules in the moduleGraph when cold start,
-  /// but incremental rebuild will only contain modules that need to be rebuilt and newly created.
-  pub built_modules: IdentifierSet,
-  /// Make stage revoked modules.
+  /// This field will contain added modules, updated modules, removed modules.
+  pub affected_modules: IncrementalInfo<ModuleIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  /// Make stage affected dependencies.
   ///
-  /// This field is empty on a cold start,
-  /// but incremental rebuild will contain modules that need to be rebuilt or removed.
-  pub revoked_modules: IdentifierSet,
+  /// This field will contain added dependencies, updated dependencies, removed dependencies.
+  pub affected_dependencies: IncrementalInfo<DependencyId>,
   /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
   ///
   /// This field is empty on a cold start.
@@ -91,18 +93,19 @@ impl MakeArtifact {
       .expect("should have module");
     // clean module build info
     let build_info = module.build_info();
+    let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies
-      .remove_batch_file(&build_info.file_dependencies);
+      .remove_files(&resource_id, &build_info.file_dependencies);
     self
       .context_dependencies
-      .remove_batch_file(&build_info.context_dependencies);
+      .remove_files(&resource_id, &build_info.context_dependencies);
     self
       .missing_dependencies
-      .remove_batch_file(&build_info.missing_dependencies);
+      .remove_files(&resource_id, &build_info.missing_dependencies);
     self
       .build_dependencies
-      .remove_batch_file(&build_info.build_dependencies);
+      .remove_files(&resource_id, &build_info.build_dependencies);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info
@@ -111,28 +114,31 @@ impl MakeArtifact {
       .expect("should have mgm");
     for dep_id in mgm
       .all_dependencies
-      .iter()
-      .chain(mgm.incoming_connections())
+      .clone()
+      .into_iter()
+      .chain(mgm.incoming_connections().clone())
     {
-      if !self.make_failed_dependencies.remove(dep_id) {
-        continue;
+      self.make_failed_dependencies.remove(&dep_id);
+
+      let dep = mg
+        .dependency_by_id_mut(&dep_id)
+        .expect("should have dependency");
+      if let Some(info) = FactorizeInfo::revoke(dep) {
+        let resource_id = ResourceId::from(dep_id);
+        self
+          .file_dependencies
+          .remove_files(&resource_id, info.file_dependencies());
+        self
+          .context_dependencies
+          .remove_files(&resource_id, info.context_dependencies());
+        self
+          .missing_dependencies
+          .remove_files(&resource_id, info.missing_dependencies());
       }
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
-      self
-        .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
-      self
-        .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
-      self
-        .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+      self.affected_dependencies.mark_as_remove(&dep_id);
     }
 
-    self.revoked_modules.insert(*module_identifier);
-    self.built_modules.remove(module_identifier);
+    self.affected_modules.mark_as_remove(module_identifier);
     self.issuer_update_modules.remove(module_identifier);
     mg.revoke_module(module_identifier)
   }
@@ -142,29 +148,34 @@ impl MakeArtifact {
   /// If `force` is true, the dependency will be completely removed, and nothing will be returned.
   /// This function will update index on MakeArtifact.
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    self.make_failed_dependencies.remove(dep_id);
 
-    let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
-      // make failed dependencies clean it.
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
-      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    let revoke_dep_ids = if let Some(factorize_info) = mg
+      .dependency_by_id_mut(dep_id)
+      .and_then(FactorizeInfo::revoke)
+    {
+      let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
-        .remove_batch_file(&info.file_dependencies());
+        .remove_files(&resource_id, factorize_info.file_dependencies());
       self
         .context_dependencies
-        .remove_batch_file(&info.context_dependencies());
+        .remove_files(&resource_id, factorize_info.context_dependencies());
       self
         .missing_dependencies
-        .remove_batch_file(&info.missing_dependencies());
+        .remove_files(&resource_id, factorize_info.missing_dependencies());
       // related_dep_ids will contain dep_id it self
-      info.related_dep_ids().into_owned()
+      factorize_info.related_dep_ids().to_vec()
     } else {
       vec![*dep_id]
     };
     revoke_dep_ids
       .iter()
-      .filter_map(|dep_id| mg.revoke_dependency(dep_id, force))
+      .filter_map(|dep_id| {
+        self.affected_dependencies.mark_as_remove(dep_id);
+        mg.revoke_dependency(dep_id, force)
+      })
       .collect()
   }
 
@@ -204,12 +215,19 @@ impl MakeArtifact {
   }
 
   pub fn reset_temporary_data(&mut self) {
-    self.built_modules = Default::default();
-    self.revoked_modules = Default::default();
+    self.affected_modules.reset();
+    self.affected_dependencies.reset();
 
     self.file_dependencies.reset_incremental_info();
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  pub fn built_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.affected_modules.active()
+  }
+  pub fn revoked_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.affected_modules.dirty()
   }
 }

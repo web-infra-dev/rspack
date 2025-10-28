@@ -1,4 +1,4 @@
-/** @type {import("../../../../src/index").RspackOptions} */
+/** @type {import("@rspack/coresrc/index").RspackOptions} */
 module.exports = {
 	entry: {
 		main: "./index"

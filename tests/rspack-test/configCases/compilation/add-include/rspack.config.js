@@ -82,6 +82,9 @@ class Plugin {
 					const moduleId = compilation.chunkGraph.getModuleId(module);
 					manifest[key] = moduleId;
 				}
+				if (!fs.existsSync(compiler.outputPath)) {
+					fs.mkdirSync(compiler.outputPath, { recursive: true });
+				}
 				fs.writeFileSync(
 					path.join(compiler.outputPath, "manifest.json"),
 					JSON.stringify(manifest),

@@ -326,7 +326,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -531,6 +531,7 @@ export declare enum BuiltinPluginName {
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  EsmLibraryPlugin = 'EsmLibraryPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WorkerPlugin = 'WorkerPlugin',
@@ -569,6 +570,7 @@ export declare enum BuiltinPluginName {
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  InlineExportsPlugin = 'InlineExportsPlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
@@ -594,6 +596,7 @@ export declare enum BuiltinPluginName {
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
+  URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
@@ -2090,6 +2093,10 @@ export interface RawEnvironment {
   dynamicImportInWorker?: boolean
 }
 
+export interface RawEsmLibraryPlugin {
+  preserveModules?: string
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
@@ -2104,7 +2111,6 @@ export interface RawExperimentCacheOptionsPersistent {
 }
 
 export interface RawExperiments {
-  layers: boolean
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
@@ -2116,6 +2122,7 @@ inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
+deferImport: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2290,6 +2297,14 @@ export interface RawIntegrityItem {
   integrity: string
 }
 
+export declare enum RawJavascriptParserCommonjsExports {
+  SkipInEsm = 'skipInEsm'
+}
+
+export interface RawJavascriptParserCommonjsOptions {
+  exports?: boolean | 'skipInEsm'
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2322,27 +2337,29 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   requireResolve?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importDynamic?: boolean
-  commonjsMagicComments?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  inlineConst?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  typeReexportsPresence?: string
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  jsx?: boolean
+commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importDynamic?: boolean
+commonjsMagicComments?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+inlineConst?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+typeReexportsPresence?: string
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+jsx?: boolean
+deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2446,6 +2463,7 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+  unsafeCache?: boolean | RegExp
 }
 
 export interface RawModuleRule {
@@ -2483,6 +2501,8 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
+  /** Whether to extract source maps from the module. */
+  extractSourceMap?: boolean
 }
 
 /**
@@ -2718,6 +2738,11 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   compactExternalModuleDynamicImport?: boolean
+  /**
+   * Add shims for javascript/esm modules
+   * @default `false`
+   */
+  forceNodeShims?: boolean
 }
 
 export interface RawRspackFuture {

@@ -38,13 +38,9 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 ## output.charset
 
 - **类型：** `boolean`
-- **默认值：** `true`
+- **默认值：** `false`
 
-为 `<script>` 标签添加 `charset="utf-8"` 属性。
-
-:::tip
-尽管 `<script>` 标签的 `charset` 属性已被标记为[已废弃的](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/script#Charset)， 为了兼容旧浏览器，在默认情况下 rspack 依然会添加该属性。
-:::
+为 `<script>` 标签添加已被标记为[已废弃的](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/script#Charset) `charset="utf-8"` 属性。
 
 ## output.chunkFilename
 

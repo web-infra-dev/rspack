@@ -12,3 +12,5 @@ it("should rebuild abnormal module success", async () => {
 	});
 	expect(index).toBe(1);
 });
+
+module.hot.accept();

@@ -1,4 +1,5 @@
-it("should move externals in chunks into entry chunk", function(done) {
+it("should move externals in chunks into entry chunk", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename, "utf-8");
 	expect(source).toMatch("1+" + (1+1));
@@ -15,4 +16,4 @@ it("should move externals in chunks into entry chunk", function(done) {
 			});
 		});
 	});
-});
+}));

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.5.7",
+  "version": "1.6.0-beta.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -23,18 +23,13 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.ts",
+    "build:browser": "rslib build -c rslib.browser.config.mts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=18.12.0"
   },
@@ -46,28 +41,26 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.39.5",
+    "@ast-grep/napi": "^0.39.6",
+    "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.13.2",
+    "@rslib/core": "0.16.1",
     "@swc/types": "0.1.25",
-    "@types/graceful-fs": "4.1.9",
+    "@types/node": "^20.19.23",
     "@types/watchpack": "^2.4.4",
     "browserslist-load-config": "^1.0.1",
     "enhanced-resolve": "5.18.3",
     "glob-to-regexp": "^0.4.1",
-    "graceful-fs": "^4.2.11",
-    "memfs": "4.38.2",
+    "memfs": "4.48.1",
     "prebundle": "^1.4.2",
     "tinypool": "^1.1.1",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "watchpack": "^2.4.4",
-    "webpack-sources": "3.3.3",
-    "zod": "^3.25.76",
-    "zod-validation-error": "3.5.3"
+    "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.18.0",
+    "@module-federation/runtime-tools": "0.21.1",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },

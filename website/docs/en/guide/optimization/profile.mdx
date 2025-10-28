@@ -53,3 +53,20 @@ If you need to use some Babel plugins for custom transformations, configure babe
 ### html-webpack-plugin
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
+
+## Thread pool size
+
+Rspack internally uses a dedicated thread pool to handle blocking operations such as file system reads and writes, preventing the main thread from being blocked.
+
+By default, the pool size is set to `4`, matching Node.js's [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) behavior, which provides stable performance across most development and CI environments.
+
+If your build environment uses high-speed storage, you can adjust the thread count via the `RSPACK_BLOCKING_THREADS` environment variable to improve parallelism and potentially reduce build time, for example:
+
+```bash
+# Need to install cross-env package to set environment variables
+cross-env RSPACK_BLOCKING_THREADS=8 rspack build
+```
+
+After setting the variable, observe the build time to find the most suitable configuration.
+
+On slower or high-latency file systems, it's recommended to keep the default value or even lower it to avoid thread contention.

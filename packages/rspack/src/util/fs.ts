@@ -7,8 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
 import type { Abortable } from "node:events";
 import path from "node:path";
 
@@ -79,6 +77,36 @@ interface IDirent {
 	name: string | Buffer;
 }
 
+export interface StreamOptions {
+	flags?: string;
+	encoding?: NodeJS.BufferEncoding;
+	fd?: any;
+	mode?: number;
+	autoClose?: boolean;
+	emitClose?: boolean;
+	start?: number;
+	signal?: null | AbortSignal;
+}
+
+export interface FSImplementation {
+	open?: (...args: any[]) => any;
+	close?: (...args: any[]) => any;
+}
+
+export type CreateReadStreamFSImplementation = FSImplementation & {
+	read: (...args: any[]) => any;
+};
+
+export type ReadStreamOptions = StreamOptions & {
+	fs?: null | CreateReadStreamFSImplementation;
+	end?: number;
+};
+
+export type CreateReadStream = (
+	path: PathLike,
+	options?: NodeJS.BufferEncoding | ReadStreamOptions
+) => NodeJS.ReadableStream;
+
 export interface OutputFileSystem {
 	writeFile: (
 		arg0: string | number,
@@ -124,6 +152,7 @@ export interface OutputFileSystem {
 	join?: (arg0: string, arg1: string) => string;
 	relative?: (arg0: string, arg1: string) => string;
 	dirname?: (arg0: string) => string;
+	createReadStream?: CreateReadStream;
 }
 
 export type JsonPrimitive = string | number | boolean | null;
@@ -566,9 +595,9 @@ export type IntermediateFileSystemExtras = {
 		arg2: (arg0: null | NodeJS.ErrnoException) => void
 	) => void;
 	mkdirSync: MkdirSync;
-	write: Write<Buffer>;
+	write: Write;
 	open: Open;
-	read: Read<Buffer>;
+	read: Read;
 	close: (
 		arg0: number,
 		arg1: (arg0: null | NodeJS.ErrnoException) => void
@@ -597,7 +626,9 @@ export function rmrf(
 					fs.rmdir(p, callback);
 				} else {
 					for (const file of files!) {
-						assert(typeof file === "string");
+						if (typeof file !== "string") {
+							throw new Error("file should be a string");
+						}
 						const fullPath = join(fs, p, file);
 						rmrf(fs, fullPath, err => {
 							if (err) {

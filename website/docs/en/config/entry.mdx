@@ -224,8 +224,10 @@ The default value can be affected by different [target](/config/target):
 
 Specifies the layer in which modules of this entrypoint are placed. Make the corresponding configuration take effect through layer matching in split chunks, [rules](/config/module#ruleissuerlayer), stats, and externals.
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
-This configuration will only take effect when [experiments.layers](/config/experiments#experimentslayers) is `true`.
+For version before v1.6.0, this configuration will only take effect when [experiments.layers](/config/experiments#experimentslayers) is `true`.
 :::
 
 ```js title="rspack.config.mjs"
@@ -235,9 +237,6 @@ export default {
       import: './src/index.js',
       layer: 'layer-name',
     },
-  },
-  experiments: {
-    layers: true,
   },
 };
 ```

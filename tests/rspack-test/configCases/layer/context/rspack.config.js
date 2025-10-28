@@ -1,13 +1,10 @@
 const { CssExtractRspackPlugin: MiniCssExtractPlugin } = require("@rspack/core");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		light: { import: "./light.js", layer: "light" },
 		dark: { import: "./dark.js", layer: "dark" }
-	},
-	experiments: {
-		layers: true
 	},
 	output: {
 		filename: "[name].js"

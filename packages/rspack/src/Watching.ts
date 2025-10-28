@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import assert from "node:assert";
 import type { Callback } from "@rspack/lite-tapable";
 
 import type { Compilation, Compiler } from ".";
@@ -320,7 +319,7 @@ export class Watching {
 					});
 					return;
 				}
-				this._done(null, this.compiler._lastCompilation!);
+				this._done(null, this.compiler._lastCompilation);
 			};
 
 			this.compiler.compile(onCompiled);
@@ -351,7 +350,10 @@ export class Watching {
 		if (error) {
 			return handleError(error);
 		}
-		assert(compilation);
+
+		if (!compilation) {
+			throw new Error("compilation is required if no error");
+		}
 
 		stats = new Stats(compilation);
 
@@ -425,7 +427,7 @@ export class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
-			this.compiler.hooks.afterDone.call(stats!);
+			this.compiler.hooks.afterDone.call(stats);
 		});
 	}
 

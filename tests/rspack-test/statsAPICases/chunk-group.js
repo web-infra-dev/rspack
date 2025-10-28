@@ -1,4 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should generate chunk group asset",
 	options(context) {
@@ -24,7 +24,7 @@ module.exports = {
 		const string = stats.toString(statsOptions);
 
 		// entrypoints
-		expect(string).toContain(`Entrypoint main 13.6 KiB (15.7 KiB) = main.js 13.6 KiB (main.js.map 15.7 KiB)`);
+		expect(string).toContain(`Entrypoint main 13.6 KiB (15.6 KiB) = main.js 13.6 KiB (main.js.map 15.6 KiB)`);
 		expect(string).toContain(`prefetch: chunk.js 831 bytes {411} (name: chunk) (chunk.js.map 510 bytes)`);
 
 		// chunk groups

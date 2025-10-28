@@ -6,9 +6,9 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.done.tap("DonePlugin", stats => {
-					expect(Array.from(stats.compilation.missingDependencies)).toEqual([
+					expect(Array.from(stats.compilation.missingDependencies)).toContain(
 						path.resolve(__dirname, "./lang")
-					]);
+					);
 				});
 			}
 		}

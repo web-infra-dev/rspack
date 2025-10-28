@@ -105,7 +105,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 
 	this.addDependency(filepath);
 
-	let { publicPath } = this._compilation!.outputOptions;
+	let { publicPath } = this._compilation.outputOptions;
 
 	if (typeof options.publicPath === "string") {
 		// eslint-disable-next-line prefer-destructuring
@@ -221,9 +221,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 					);
 
 					const localsString = identifiers
-						.map(
-							([id, key]) => `\nvar ${id} = ${stringifyLocal(locals![key])};`
-						)
+						.map(([id, key]) => `\nvar ${id} = ${stringifyLocal(locals[key])};`)
 						.join("");
 					const exportsString = `export { ${identifiers
 						.map(([id, key]) => `${id} as ${JSON.stringify(key)}`)

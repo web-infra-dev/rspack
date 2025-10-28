@@ -1,6 +1,6 @@
 const { createFsFromVolume, Volume } = require("memfs");
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   description: "should use cache on second run call",
   options(context) {

@@ -1,0 +1,7 @@
+<e> [LogTestPlugin] Error
+LOG from LogTestPlugin
+<e> Error
+<w> Warning
++ 13 hidden lines
+
+Rspack compiled successfully

@@ -11,6 +11,10 @@ impl DependencyId {
     let id = fetch_new_dependency_id();
     Self(id)
   }
+
+  pub fn as_u32(&self) -> u32 {
+    self.0
+  }
 }
 
 impl Default for DependencyId {

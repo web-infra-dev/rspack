@@ -1,4 +1,4 @@
-/** @type {import("../../../..").THookCaseConfig} */
+/** @type {import("@rspack/test-tools").THookCaseConfig} */
 module.exports = {
 	description: "should work with duplicate",
 	options(context) {

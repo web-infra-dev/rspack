@@ -1,11 +1,7 @@
 import "./a";
 
-it("should create new JsModule when module changed", (done) => {
-    NEXT(
-        require('../../update')(done, true, () => {
-            done();
-        }),
-    );
+it("should create new JsModule when module changed", async () => {
+    await NEXT_HMR();
 });
 
 module.hot.accept('./a');

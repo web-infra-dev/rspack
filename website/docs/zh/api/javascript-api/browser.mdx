@@ -1,3 +1,5 @@
+import { ApiMeta } from '../../../../components/ApiMeta';
+
 # Browser API
 
 `@rspack/browser` 是专为浏览器环境打造的 Rspack 版本，无需依赖 WebContainers 或特定平台。其 API 与 `@rspack/core` 的 [JavaScript API](/api/javascript-api/) 保持一致，并在此基础上，额外提供了适配浏览器环境的特性和接口。
@@ -80,6 +82,30 @@ builtinMemFs.volume.fromJSON({
 const files = builtinMemFs.volume.toJSON();
 ```
 
+`builtinMemFs` 是一个全局单例实例。在存在并发构建多个项目的场景下，建议启用 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 以避免冲突。  
+需要注意的是，目前在 `@rspack/browser` 环境中，`experiments.useInputFileSystem` 仅能拦截最终将被打包的项目文件，无法拦截诸如 Loader 等构建过程中依赖的文件（见下文 [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules)）。
+
+```js title="rspack.config.mjs"
+import { builtinMemFs } from '@rspack/browser';
+
+const projectFs = builtinMemFs.memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs.fs;
+          compiler.outputFileSystem = projectFs.fs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
 ## 浏览器专用插件
 
 为更好地满足浏览器环境下的打包需求，`@rspack/browser` 提供了若干专用插件。
@@ -139,15 +165,102 @@ interface BrowserHttpImportPluginOptions {
 }
 ```
 
+#### `resolve.alias` 兼容性说明
+
+在使用 `BrowserHttpImportEsmPlugin` 时，依赖标识符的重写操作会**先于** [resolve.alias](/config/resolve#resolvealias) 的别名替换执行，导致两者之间可能发生冲突。为避免此类问题，可以通过配置插件的 `dependencyUrl` 规则，提前识别并跳过那些应由 `resolve.alias` 处理的路径：
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // 例如：@/util.js 会被替换为 /src/util.js
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // 遇到以 "@/” 开头的请求时，直接返回原请求，跳过插件的重写逻辑
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
 ### BrowserRequirePlugin
 
 在 Rspack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](/plugins/rspack/html-rspack-plugin#use-template-function)。由于这些代码可能来自不可信的第三方用户，直接在浏览器环境中执行会带来潜在的安全风险。为了保障安全性，`@rspack/browser` 在遇到此类场景时会默认抛出错误，阻止不安全代码的执行。
 
+`BrowserRequirePlugin` 插件提供了两种方式解决这个需求。`BrowserRequirePlugin` 的选项如下：
+
+```ts
+/**
+ * 加载 CommonJS 模块的运行时上下文
+ */
+interface CommonJsRuntime {
+  module: any;
+  exports: any;
+  require: BrowserRequire;
+}
+
+interface BrowserRequirePluginOptions {
+  /**
+   * 执行动态代码的函数
+   */
+  execute?: (code: string, runtime: CommonJsRuntime) => void;
+  /**
+   * 这个选项提供了直接从 id 到模块内容的映射，类似于 virtual module 机制。
+   * 如果没有提供该选项或映射的结果为 undefined，那么会 fallback 到从 memfs 中解析，并执行 `execute`。
+   */
+  modules?: Record<string, any> | ((id: string) => any);
+}
+```
+
+#### `modules`
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+该选项能够直接将模块请求 id 映射到项目内的任意 JavaScript 对象，注意，这里需要在 memfs 中对应地写入一个空的文件：
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
+import CustomLoader from './custom-loader';
+
+builtinMemFs.volume.fromJSON({
+  '/LOADER/custom-loader.js': '',
+});
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /a\.js$/,
+        loader: '/LOADER/custom-loader.js',
+      },
+    ],
+  },
+  plugins: [
+    new BrowserRequirePlugin({
+      modules: {
+        '/LOADER/custom-loader.js': CustomLoader,
+      },
+    }),
+  ],
+};
+```
+
+#### `execute`
+
+该选项用于模拟 Node.js 中的 Require 过程：基于 memfs 解析模块、读取文件内容并执行。当未提供 `modules`，或在 `modules` 中未找到对应结果时，将尝试使用此路径。
+
 :::warning
 Rspack 在打包过程中不会执行项目的用户代码。为了安全起见，建议在 iframe 中运行最终的打包产物。
 :::
-
-`BrowserRequirePlugin` 插件开放了此类能力：
 
 ```js title="rspack.config.mjs"
 import { BrowserRequirePlugin } from '@rspack/browser';
@@ -171,32 +284,6 @@ function uselessExecute(_code: string, runtime: CommonJsRuntime) {
   runtime.module.exports.hello = 'rspack';
 }
 ```
-
-`BrowserRequirePlugin` 的选项如下：
-
-```ts
-/**
- * 加载 CommonJS 模块的运行时上下文
- */
-interface CommonJsRuntime {
-  module: any;
-  exports: any;
-  require: BrowserRequire;
-}
-
-interface BrowserRequirePluginOptions {
-  /**
-   * 执行动态代码的函数
-   */
-  execute: (code: string, runtime: CommonJsRuntime) => void;
-}
-```
-
-:::tip 如何选择是否使用此插件？
-如果你的项目无需动态加载和执行 JavaScript 代码，则无需使用此插件。
-
-若项目不会分发不可信代码，或即使分发也不会造成安全问题，可直接使用 `BrowserRequirePlugin.unsafeExecute`。例如 [Rspack Playground](https://playground.rspack.rs/) 就不涉及用户隐私或账户安全。
-:::
 
 ## 使用模块联邦
 

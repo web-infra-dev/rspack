@@ -2,8 +2,6 @@ import {
 	BuiltinPluginName,
 	type RawIgnorePluginOptions
 } from "@rspack/binding";
-import { getIgnorePluginOptionsSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
 import { create } from "./base";
 
 export type IgnorePluginOptions =
@@ -22,8 +20,6 @@ export type IgnorePluginOptions =
 export const IgnorePlugin = create(
 	BuiltinPluginName.IgnorePlugin,
 	(options: IgnorePluginOptions): RawIgnorePluginOptions => {
-		validate(options, getIgnorePluginOptionsSchema);
-
 		return options;
 	}
 );

@@ -5,3 +5,5 @@ it("should fix issue 10915", async () => {
 	await NEXT_HMR();
 	expect(value).toBe("file");
 });
+
+module.hot.accept("./file");

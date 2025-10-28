@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-darwin-arm64",
-  "version": "1.5.7",
+  "version": "1.6.0-beta.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.darwin-arm64.node",
@@ -12,15 +12,15 @@
     "directory": "packages/rspack"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "os": [
+      "darwin"
+    ],
+    "cpu": [
+      "arm64"
+    ]
   },
   "files": [
     "rspack.darwin-arm64.node"
-  ],
-  "os": [
-    "darwin"
-  ],
-  "cpu": [
-    "arm64"
   ]
 }

@@ -1,4 +1,4 @@
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
 	description: "should load @swc/plugin-remove-console successfully and transform code using rspack inner swc api",
 	async check({ compiler }) {

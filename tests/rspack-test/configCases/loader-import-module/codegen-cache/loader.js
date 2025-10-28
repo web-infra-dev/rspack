@@ -1,4 +1,4 @@
-/** @type {import("../../../../").PitchLoaderDefinitionFunction} */
+/** @type {import("@rspack/core").PitchLoaderDefinitionFunction} */
 module.exports = async function (remaining) {
 	try {
 		const result = await this.importModule("./app.js", this.getOptions());

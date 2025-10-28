@@ -1,10 +1,3 @@
-const update = () =>
-	new Promise((resolve, reject) => {
-		NEXT(err => {
-			if (err) reject(err);
-			else resolve();
-		});
-	});
 
 const expectMessage = (w, msg) =>
 	new Promise((resolve, reject) => {
@@ -24,7 +17,7 @@ it("should support hot module replacement in WebWorkers", async () => {
 	const a = new Worker(new URL("workerA.js", import.meta.url));
 	const b = new Worker(new URL("workerB.js", import.meta.url));
 	for (let i = 0; i < 7; i++) {
-		await update();
+		await NEXT_HMR();
 		await next(a);
 		await next(b);
 	}

@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
@@ -140,6 +139,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       && call.callee.is_import()
       && let Some(binding) = declarator.name.as_ident()
     {
+      parser.define_variable(binding.id.sym.clone());
       tag_dynamic_import_referenced(parser, call, binding.id.sym.clone());
     }
     None
@@ -162,11 +162,15 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .destructuring_assignment_properties
       .get(&ident.span())
     {
-      for key in keys {
+      let mut refs = Vec::new();
+      keys.traverse_on_leaf(&mut |stack| {
+        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+      });
+      for ids in refs {
         parser
           .dynamic_import_references
           .get_import_mut_expect(&data.import_span)
-          .add_reference(vec![key.id.clone()]);
+          .add_reference(ids);
       }
     } else {
       parser
@@ -290,20 +294,28 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         .map(|name| vec![Atom::from(name.as_str())])
         .collect::<Vec<_>>()
     });
+    let has_webpack_exports_comment = exports.is_some();
 
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&import_call_span)
-      .cloned();
+      .get(&import_call_span);
     let referenced_in_member = parser
       .dynamic_import_references
       .get_import(&import_call_span);
     let referenced_fulfilled_ns_obj =
       import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
+    if let Some(keys) = referenced_in_destructuring {
+      let mut refs = Vec::new();
+      keys.traverse_on_leaf(&mut |stack| {
+        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+      });
+      exports = Some(refs);
+    }
+
     let is_statical = referenced_in_destructuring.is_some()
       || referenced_in_member.is_some()
       || referenced_fulfilled_ns_obj.is_some();
-    if is_statical && exports.is_some() {
+    if is_statical && has_webpack_exports_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
@@ -313,15 +325,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       error.severity = Severity::Warning;
       error.hide_stack = Some(true);
       parser.add_warning(error.into());
-    }
-    if let Some(referenced_properties_in_destructuring) = referenced_in_destructuring {
-      exports = Some(
-        referenced_properties_in_destructuring
-          .iter()
-          .cloned()
-          .map(|x| vec![x.id])
-          .collect_vec(),
-      );
     }
 
     let attributes = get_attributes_from_call_expr(node);
@@ -433,11 +436,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       }
     };
 
-    if let Some(ns_obj) = referenced_fulfilled_ns_obj
-      && let Some(import_then) = import_then
-    {
-      walk_import_then_fulfilled_callback(parser, node, &import_then.args[0].expr, ns_obj);
-      parser.walk_expr_or_spread(&import_then.args[1..]);
+    if let Some(import_then) = import_then {
+      if let Some(ns_obj) = referenced_fulfilled_ns_obj {
+        walk_import_then_fulfilled_callback(parser, node, &import_then.args[0].expr, ns_obj);
+        parser.walk_expr_or_spread(&import_then.args[1..]);
+      } else {
+        parser.walk_expr_or_spread(&import_then.args);
+      }
     }
 
     if let Some(import_references) = parser
@@ -559,15 +564,21 @@ fn walk_import_then_fulfilled_callback(
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
         tag_dynamic_import_referenced(parser, import_call, ns_obj.id.sym.clone());
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
-        if let Some(keys) = parser.collect_destructuring_assignment_properties(ns_obj) {
+        if let Some(keys) =
+          parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
+        {
           parser
             .dynamic_import_references
             .add_import(import_call.span());
           let import_references = parser
             .dynamic_import_references
             .get_import_mut_expect(&import_call.span());
-          for key in keys {
-            import_references.add_reference(vec![key.id.clone()]);
+          let mut refs = Vec::new();
+          keys.traverse_on_leaf(&mut |stack| {
+            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+          });
+          for ids in refs {
+            import_references.add_reference(ids);
           }
         }
       } else {

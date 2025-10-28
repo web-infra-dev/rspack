@@ -211,11 +211,14 @@ interface Diagnostic {
   help?: string;
   sourceCode?: string;
   /**
-   * Location to the source code.
-   *
-   * If `sourceCode` is not provided, location will be omitted.
+   * 源代码的位置信息
+   * 如果未提供 `sourceCode`，则位置信息将被省略
    */
   location?: DiagnosticLocation;
+  /**
+   * 可选展示的文件名
+   * 如果设置，它将成为 stats 中的 `StatsError.file` 值
+   */
   file?: string;
   severity: 'error' | 'warning';
 }

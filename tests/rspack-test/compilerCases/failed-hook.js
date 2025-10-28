@@ -1,7 +1,7 @@
 const { createFsFromVolume, Volume } = require("memfs");
-const failedSpy = jest.fn();
+const failedSpy = rstest.fn();
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   description: "should call the failed-hook on error",
   options(context) {

@@ -1,0 +1,41 @@
+```mjs title=main.mjs
+import fs_0 , { readFile as external_fs_readFile } from "fs";
+
+// fs
+
+// ./lib.js
+const named = 42
+
+/* should not exported */
+const namedUnused = 42
+
+
+// ./lib2.js
+const starExports = 42
+
+// ./index.js
+
+
+
+
+
+
+
+it('should compile and import success', async () => {
+	const {
+		fs,
+		/* star re-exported */ readFileSync,
+		/* renamed re-exported */ r,
+		readFile
+	} = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(fs).toBeDefined()
+	expect(readFileSync).toBeDefined()
+	expect(r).toBeDefined()
+	expect(readFile).toBeDefined()
+})
+
+export { external_fs_readFile as r, external_fs_readFile as readFile, fs_0 as fs, named, starExports };
+export * from "fs";
+
+```

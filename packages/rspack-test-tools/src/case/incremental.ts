@@ -1,13 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type TCompilerOptions
-} from "../type";
+import type { ITestContext } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import {
 	createWatchInitialProcessor,
@@ -16,38 +11,18 @@ import {
 	getWatchRunnerKey
 } from "./watch";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-const hotCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const hotCreators: Map<string, BasicCaseCreator> = new Map();
 
 function createHotIncrementalProcessor(
 	name: string,
+	src: string,
+	temp: string,
 	target: TTarget,
 	webpackCases: boolean
 ) {
-	const processor = createHotProcessor(name, target, true);
-	processor.before = async context => {
-		context.setValue(
-			name,
-			"documentType",
-			webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
-		);
-	};
-	const originalAfterAll = processor.afterAll;
-	processor.afterAll = async function (context) {
-		try {
-			await originalAfterAll?.(context);
-		} catch (e: any) {
-			const isFake =
-				context.getValue(name, "documentType") === EDocumentType.Fake;
-			if (isFake && /Should run all hot steps/.test(e.message)) return;
-			throw e;
-		}
-	};
-	return processor;
+	return createHotProcessor(name, src, temp, target, true);
 }
 
 function getHotCreator(target: TTarget, webpackCases: boolean) {
@@ -59,8 +34,14 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				clean: true,
 				describe: true,
 				target,
-				steps: ({ name, target }) => [
-					createHotIncrementalProcessor(name, target as TTarget, webpackCases)
+				steps: ({ name, target, src, temp, dist }) => [
+					createHotIncrementalProcessor(
+						name,
+						src,
+						temp || path.resolve(dist, "temp"),
+						target as TTarget,
+						webpackCases
+					)
 				],
 				runner: {
 					key: (context: ITestContext, name: string, file: string) => name,
@@ -77,17 +58,15 @@ export function createHotIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	temp: string,
+	target: RspackOptions["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }
 
-const watchCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const watchCreators: Map<string, BasicCaseCreator> = new Map();
 
 export type WatchIncrementalOptions = {
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;
@@ -121,14 +100,10 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 					return runs.map((run, index) =>
 						index === 0
 							? createWatchInitialProcessor(name, temp!, run.name, watchState, {
-									incremental: true,
-									ignoreNotFriendlyForIncrementalWarnings:
-										options.ignoreNotFriendlyForIncrementalWarnings
+									incremental: true
 								})
 							: createWatchStepProcessor(name, temp!, run.name, watchState, {
-									incremental: true,
-									ignoreNotFriendlyForIncrementalWarnings:
-										options.ignoreNotFriendlyForIncrementalWarnings
+									incremental: true
 								})
 					);
 				},

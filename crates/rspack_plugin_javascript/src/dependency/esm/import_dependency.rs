@@ -61,7 +61,7 @@ pub fn create_import_dependency_referenced_exports(
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
-  id: DependencyId,
+  pub id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
   pub range: DependencyRange,

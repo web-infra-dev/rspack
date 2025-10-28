@@ -1,4 +1,7 @@
-it("should accept itself and pass data", (done) => {
-	require("./file")(done);
-	NEXT(require("../../update")(done));
+it("should accept itself and pass data", async () => {
+	const p = new Promise(resolve => require("./file")(resolve))
+	await NEXT_HMR();
+	await p;
 });
+
+module.hot.accept("./file");

@@ -1,5 +1,5 @@
-it("should receive a namespace object when importing commonjs", function (done) {
-	import("./cjs.js")
+it("should receive a namespace object when importing commonjs", async function () {
+	await import("./cjs.js")
 		.then(function (result) {
 			expect(result).toEqual(
 				nsObj({
@@ -7,13 +7,11 @@ it("should receive a namespace object when importing commonjs", function (done) 
 					named: "named"
 				})
 			);
-			done();
 		})
-		.catch(done);
 });
 
-it("should receive a namespace object when importing commonjs with __esModule", function (done) {
-	import("./cjs-esmodule.js")
+it("should receive a namespace object when importing commonjs with __esModule", async function () {
+  await import("./cjs-esmodule.js")
 		.then(function (result) {
 			expect(result).toEqual(
 				nsObj({
@@ -21,19 +19,15 @@ it("should receive a namespace object when importing commonjs with __esModule", 
 					named: "named"
 				})
 			);
-			done();
 		})
-		.catch(done);
 });
 
-it("should resolve the promise returned by the imported dynamic commonjs", function (done) {
+it("should resolve the promise returned by the imported dynamic commonjs", async function () {
 	const post = "dynamic.js";
-	import(/* webpackMode: "eager" */ "./cjs-" + post) // context module
+	await import(/* webpackMode: "eager" */ "./cjs-" + post) // context module
 		.then(function (result) {
 			expect(result).toBe(1);
-			done();
 		})
-		.catch(done);
 });
 
 function contextCJS(name) {

@@ -123,10 +123,14 @@ export default {
 
 ## experiments.layers
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
+<ApiMeta deprecatedVersion="1.6.0" />
 
 - **类型：** `boolean`
 - **默认值：** `false`
+
+:::warning
+该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
+:::
 
 控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
 
@@ -856,7 +860,7 @@ export default {
 <ApiMeta addedVersion="1.5.0" />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true` (v1.6.0 后默认开启)
 
 是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
 

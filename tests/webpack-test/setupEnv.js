@@ -1,1 +1,0 @@
-process.env.RSPACK_CONFIG_VALIDATE = 'loose-silent';

@@ -1,5 +1,5 @@
 const { createFsFromVolume, Volume } = require("memfs");
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
 	description: "should get assets with both `getAssets` and `assets`(getter)",
 	options(context) {
@@ -53,7 +53,7 @@ module.exports = [{
 		);
 	}
 }, (() => {
-	const mockFn = jest.fn();
+	const mockFn = rstest.fn();
 	return {
 		description: "should throw if the asset to be updated is not exist",
 		options(context) {

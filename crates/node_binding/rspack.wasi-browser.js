@@ -115,6 +115,7 @@ export const JsRspackSeverity = __napiModule.exports.JsRspackSeverity
 export const loadBrowserslist = __napiModule.exports.loadBrowserslist
 export const minify = __napiModule.exports.minify
 export const minifySync = __napiModule.exports.minifySync
+export const RawJavascriptParserCommonjsExports = __napiModule.exports.RawJavascriptParserCommonjsExports
 export const RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
 export const registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 export const RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind

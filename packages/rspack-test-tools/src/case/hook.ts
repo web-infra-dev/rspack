@@ -1,5 +1,10 @@
 import path from "node:path";
-import { Compilation, Compiler, sources } from "@rspack/core";
+import {
+	Compilation,
+	Compiler,
+	type RspackOptions,
+	sources
+} from "@rspack/core";
 import { getSerializers } from "jest-snapshot";
 import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import {
@@ -7,27 +12,63 @@ import {
 	format as prettyFormat
 } from "pretty-format";
 import merge from "webpack-merge";
-import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import { TestContext, type TTestContextOptions } from "../test/context";
-import { getSimpleProcessorRunner } from "../test/simple";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
-import { build, checkSnapshot, compiler, config, getCompiler } from "./common";
+import { BasicCaseCreator } from "../test/creator";
+import type { ITestContext, ITestEnv, ITesterConfig } from "../type";
+import { build, checkSnapshot, compiler, config } from "./common";
 
-const srcDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/fixtures"
-);
-const distDir = path.resolve(
-	__dirname,
-	"../../../../tests/rspack-test/js/hook"
-);
+const srcDir = __TEST_FIXTURES_PATH__;
+const distDir = path.resolve(__TEST_DIST_PATH__, "hook");
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: true,
+	createContext: (config: ITesterConfig) =>
+		new HookCasesContext(config.src, config.name, config),
+	steps: ({ name, caseConfig: _caseConfig, src }) => {
+		const caseConfig = _caseConfig as THookCaseConfig;
+		return [
+			{
+				config: async (context: ITestContext) => {
+					const compiler = context.getCompiler();
+					const options = await config(
+						context,
+						name,
+						["rspack.config.js", "webpack.config.js"],
+						defaultOptions(context, caseConfig.options)
+					);
+					if (!global.printLogger) {
+						options.infrastructureLogging = {
+							level: "error"
+						};
+					}
+					compiler.setOptions(options);
+				},
+				compiler: async (context: ITestContext) => {
+					const c = await compiler(context, name);
+					if (caseConfig.compiler) {
+						await caseConfig.compiler(context, c);
+					}
+				},
+				build: async (context: ITestContext) => {
+					await build(context, name);
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					// no need to run, just check snapshot
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await checkSnapshot(
+						env,
+						context,
+						name,
+						path.join(src, "output.snap.txt"),
+						caseConfig.snapshotFileFilter
+					);
+				}
+			}
+		];
+	}
+});
 
 export function createHookCase(
 	name: string,
@@ -41,56 +82,16 @@ export function createHookCase(
 	const testName = path.basename(
 		name.slice(0, name.indexOf(path.extname(name)))
 	);
-	const runner = getSimpleProcessorRunner(source, dist, {
-		env: () => env,
-		context: () =>
+	creator.create(name, src, dist, undefined, {
+		caseConfig,
+		description: () => caseConfig.description!,
+		createContext: (config: ITesterConfig) =>
 			new HookCasesContext(src, testName, {
 				src: source,
-				dist: dist
+				dist: dist,
+				name: name
 			})
 	});
-
-	it(caseConfig.description!, async () => {
-		await runner(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				const options = await config(
-					context,
-					name,
-					["rspack.config.js", "webpack.config.js"],
-					defaultOptions(context, caseConfig.options)
-				);
-				if (!global.printLogger) {
-					options.infrastructureLogging = {
-						level: "error"
-					};
-				}
-				compiler.setOptions(options);
-			},
-			compiler: async (context: ITestContext) => {
-				const c = await compiler(context, name);
-				if (caseConfig.compiler) {
-					await caseConfig.compiler(context, c);
-				}
-			},
-			build: async (context: ITestContext) => {
-				await build(context, name);
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check snapshot
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await checkSnapshot(
-					env,
-					context,
-					name,
-					path.join(src, "output.snap.txt"),
-					caseConfig.snapshotFileFilter
-				);
-			}
-		} as ITestProcessor);
-	});
-	const env = createLazyTestEnv(10000);
 }
 
 const sourceSerializer = {
@@ -243,11 +244,8 @@ export class HookCasesContext extends TestContext {
 }
 
 export type THookCaseConfig = {
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: (context: ITestContext) => Promise<void>;
 	snapshotFileFilter?: (file: string) => boolean;
 	description: string;
@@ -255,7 +253,7 @@ export type THookCaseConfig = {
 
 function defaultOptions(
 	context: ITestContext,
-	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
+	custom?: (context: ITestContext) => RspackOptions
 ) {
 	let defaultOptions = {
 		context: context.getSource(),
@@ -277,10 +275,9 @@ function defaultOptions(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 	if (custom) {
 		defaultOptions = merge(defaultOptions, custom(context));
 	}

@@ -224,8 +224,10 @@ export default {
 
 指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module#ruleissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+
 :::warning
-只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
+对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
 
 ```js title="rspack.config.mjs"
@@ -235,9 +237,6 @@ export default {
       import: './src/index.js',
       layer: 'layer-name',
     },
-  },
-  experiments: {
-    layers: true,
   },
 };
 ```

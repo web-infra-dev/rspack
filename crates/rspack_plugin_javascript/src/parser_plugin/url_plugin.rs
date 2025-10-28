@@ -1,4 +1,4 @@
-use rspack_core::{ConstDependency, RuntimeGlobals};
+use rspack_core::{ConstDependency, JavascriptParserUrl, RuntimeGlobals};
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -45,7 +45,7 @@ pub fn get_url_request(
 }
 
 pub struct URLPlugin {
-  pub relative: bool,
+  pub mode: Option<JavascriptParserUrl>,
 }
 
 impl JavascriptParserPlugin for URLPlugin {
@@ -96,7 +96,7 @@ impl JavascriptParserPlugin for URLPlugin {
         request.into(),
         expr.span.into(),
         (start, end).into(),
-        self.relative,
+        self.mode,
       );
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));

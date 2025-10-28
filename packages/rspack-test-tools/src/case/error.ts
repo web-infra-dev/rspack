@@ -1,18 +1,47 @@
 import type fs from "node:fs";
 import path from "node:path";
-import type { StatsError } from "@rspack/core";
+import type { Compiler, RspackOptions, StatsError } from "@rspack/core";
 import merge from "webpack-merge";
-import { getSimpleProcessorRunner } from "../test/simple";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
-import { getCompiler } from "./common";
+import { BasicCaseCreator } from "../test/creator";
+import type { ITestContext, ITestEnv } from "../type";
 
 let addedSerializer = false;
+
+const creator = new BasicCaseCreator({
+	clean: true,
+	describe: true,
+	steps: ({ name, caseConfig }) => {
+		const config = caseConfig as TErrorCaseConfig;
+		return [
+			{
+				config: async (context: ITestContext) => {
+					const compiler = context.getCompiler();
+					compiler.setOptions(options(context, config.options));
+				},
+				compiler: async (context: ITestContext) => {
+					const compilerManager = context.getCompiler();
+					compilerManager.createCompiler();
+					compiler(context, compilerManager.getCompiler()!, config.compiler);
+				},
+				build: async (context: ITestContext) => {
+					const compiler = context.getCompiler();
+					if (typeof config.build === "function") {
+						await config.build(context, compiler.getCompiler()!);
+					} else {
+						await compiler.build();
+					}
+				},
+				run: async (env: ITestEnv, context: ITestContext) => {
+					// no need to run, just check the snapshot of diagnostics
+				},
+				check: async (env: ITestEnv, context: ITestContext) => {
+					await check(env, context, name, config.check);
+				}
+			}
+		];
+	},
+	concurrent: true
+});
 
 export function createErrorCase(
 	name: string,
@@ -23,50 +52,32 @@ export function createErrorCase(
 	if (!addedSerializer) {
 		addedSerializer = true;
 	}
-	const caseConfig = require(testConfig);
-	const runner = getSimpleProcessorRunner(src, dist);
-
-	it(caseConfig.description, async () => {
-		await runner(name, {
-			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				compiler.setOptions(options(context, caseConfig.options));
-			},
-			compiler: async (context: ITestContext) => {
-				const compilerManager = getCompiler(context, name);
-				compilerManager.createCompiler();
-				compiler(context, compilerManager.getCompiler()!, caseConfig.compiler);
-			},
-			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
-				if (typeof caseConfig.build === "function") {
-					await caseConfig.build(context, compiler.getCompiler()!);
-				} else {
-					await compiler.build();
-				}
-			},
-			run: async (env: ITestEnv, context: ITestContext) => {
-				// no need to run, just check the snapshot of diagnostics
-			},
-			check: async (env: ITestEnv, context: ITestContext) => {
-				await check(env, context, name, caseConfig.check);
-			}
+	const caseConfigList = require(testConfig);
+	function createCase(caseConfig: TErrorCaseConfig) {
+		if (caseConfig.skip) {
+			it.skip(name, () => {});
+			return;
+		}
+		creator.create(name, src, dist, undefined, {
+			caseConfig,
+			description: () => caseConfig.description
 		});
-	});
+	}
+	if (Array.isArray(caseConfigList)) {
+		for (const caseConfig of caseConfigList) {
+			createCase(caseConfig);
+		}
+	} else {
+		createCase(caseConfigList);
+	}
 }
 
-function options<T extends ECompilerType.Rspack>(
+function options(
 	context: ITestContext,
-	custom: (
-		context: ITestContext,
-		options: TCompilerOptions<T>
-	) => TCompilerOptions<T>
-): TCompilerOptions<T> {
+	custom?: (context: ITestContext, options: RspackOptions) => RspackOptions
+): RspackOptions {
 	let options = {
-		context: path.resolve(
-			__dirname,
-			"../../../../tests/rspack-test/fixtures/errors"
-		),
+		context: path.resolve(__TEST_FIXTURES_PATH__, "errors"),
 		mode: "none",
 		devtool: false,
 		optimization: {
@@ -82,7 +93,7 @@ function options<T extends ECompilerType.Rspack>(
 				}
 			}
 		}
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 	if (typeof custom === "function") {
 		options = merge(options, custom(context, options));
 	}
@@ -93,10 +104,10 @@ function options<T extends ECompilerType.Rspack>(
 	return options;
 }
 
-async function compiler<T extends ECompilerType.Rspack>(
+async function compiler(
 	context: ITestContext,
-	compiler: TCompiler<T>,
-	custom?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>
+	compiler: Compiler,
+	custom?: (context: ITestContext, compiler: Compiler) => Promise<void>
 ) {
 	if (compiler) {
 		compiler.outputFileSystem = {
@@ -138,7 +149,15 @@ async function check(
 	name: string,
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>
 ) {
-	const compiler = getCompiler(context, name);
+	if (context.getError().length > 0) {
+		await check?.(
+			new RspackStatsDiagnostics(context.getError() as StatsError[], [])
+		);
+		context.clearError();
+		return;
+	}
+
+	const compiler = context.getCompiler();
 	const stats = compiler.getStats();
 	env.expect(typeof stats).toBe("object");
 	const statsResult = stats!.toJson({ errorDetails: false });
@@ -154,14 +173,9 @@ async function check(
 
 export type TErrorCaseConfig = {
 	description: string;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	skip?: boolean;
+	options?: (context: ITestContext) => RspackOptions;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
 	check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 };

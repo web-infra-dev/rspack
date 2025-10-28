@@ -11,6 +11,9 @@ pub struct RawRslibPluginOptions {
   /// This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
   /// @default `false`
   pub compact_external_module_dynamic_import: Option<bool>,
+  /// Add shims for javascript/esm modules
+  /// @default `false`
+  pub force_node_shims: Option<bool>,
 }
 
 impl From<RawRslibPluginOptions> for RslibPluginOptions {
@@ -20,6 +23,7 @@ impl From<RawRslibPluginOptions> for RslibPluginOptions {
       compact_external_module_dynamic_import: value
         .compact_external_module_dynamic_import
         .unwrap_or_default(),
+      force_node_shims: value.force_node_shims.unwrap_or_default(),
     }
   }
 }

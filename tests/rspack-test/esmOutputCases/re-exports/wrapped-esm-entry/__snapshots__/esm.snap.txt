@@ -1,0 +1,162 @@
+```mjs title=main.mjs
+import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
+import { __webpack_require__ } from "./runtime.mjs";
+__webpack_require__.add({
+"./index.js": 
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  fs: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__["default"]),
+  named: () => (/* reexport safe */ _lib__WEBPACK_IMPORTED_MODULE_1__.K),
+  r: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__.readFile),
+  readFile: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__.readFile),
+  starExports: () => (/* reexport safe */ _lib2__WEBPACK_IMPORTED_MODULE_2__.i)
+});
+/* ESM import */var fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! fs */ "fs");
+/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./lib */ "./lib.js");
+/* ESM import */var _lib2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+/* module decorator */ module = __webpack_require__.hmd(module);
+
+
+
+
+
+
+
+console.log.bind(module)
+
+it('should compile and import success', async () => {
+	const {
+		fs,
+		/* star re-exported */ readFileSync,
+		/* renamed re-exported */ r,
+		readFile
+	} = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(fs).toBeDefined()
+	expect(readFileSync).toBeDefined()
+	expect(r).toBeDefined()
+	expect(readFile).toBeDefined()
+})
+
+
+}),
+"./lib.js": 
+/*!****************!*\
+  !*** ./lib.js ***!
+  \****************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  K: () => (named)
+});
+const named = 42
+
+/* should not exported */
+const namedUnused = 42
+
+
+
+}),
+"./lib2.js": 
+/*!*****************!*\
+  !*** ./lib2.js ***!
+  \*****************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  i: () => (starExports)
+});
+const starExports = 42
+
+
+}),
+"fs": 
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(function (module) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_fs__;
+
+
+}),
+});
+const index = __webpack_require__("./index.js");
+var fs = index.fs;
+var named = index.named;
+var r = index.r;
+var readFile = index.readFile;
+var starExports = index.starExports;
+
+export { fs, named, r, readFile, starExports };
+export * from "fs";
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+id: moduleId,
+loaded: false,
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Flag the module as loaded
+module.loaded = true;
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// esm library register module runtime
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_module_decorator
+(() => {
+__webpack_require__.hmd = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```

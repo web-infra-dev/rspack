@@ -1,4 +1,4 @@
-/** @type {import('../../../../packages/rspack-test-tools/dist').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "stats true",
 	options: () => ({ stats: true }),

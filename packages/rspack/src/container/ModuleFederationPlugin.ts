@@ -1,7 +1,5 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
-import { getExternalsTypeSchema } from "../schema/config";
-import { isValidate } from "../schema/validate";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
@@ -14,7 +12,7 @@ export interface ModuleFederationPluginOptions
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
 }
-export type RuntimePlugins = string[];
+export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
@@ -96,9 +94,8 @@ function getRemoteInfos(options: ModuleFederationPluginOptions): RemoteInfos {
 
 	const remoteType =
 		options.remoteType ||
-		(options.library && isValidate(options.library.type, getExternalsTypeSchema)
-			? (options.library.type as ExternalsType)
-			: "script");
+		(options.library ? (options.library.type as ExternalsType) : "script");
+
 	const remotes = parseOptions(
 		options.remotes,
 		item => ({
@@ -180,10 +177,16 @@ function getDefaultEntryRuntime(
 	const runtimePluginVars = [];
 	for (let i = 0; i < runtimePlugins.length; i++) {
 		const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
+		const pluginSpec = runtimePlugins[i];
+		const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
+		const pluginParams = Array.isArray(pluginSpec) ? pluginSpec[1] : undefined;
+
 		runtimePluginImports.push(
-			`import ${runtimePluginVar} from ${JSON.stringify(runtimePlugins[i])}`
+			`import ${runtimePluginVar} from ${JSON.stringify(pluginPath)}`
 		);
-		runtimePluginVars.push(`${runtimePluginVar}()`);
+		const paramsCode =
+			pluginParams === undefined ? "undefined" : JSON.stringify(pluginParams);
+		runtimePluginVars.push(`${runtimePluginVar}(${paramsCode})`);
 	}
 
 	const content = [

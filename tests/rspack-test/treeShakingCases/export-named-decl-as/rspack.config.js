@@ -1,3 +1,4 @@
+const { DefinePlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -8,9 +9,9 @@ module.exports = {
 	optimization: {
 		sideEffects: true
 	},
-	builtins: {
-		define: {
+	plugins: [
+		new DefinePlugin({
 			"process.env.NODE_ENV": "'development'"
-		}
-	}
+		})
+	],
 };

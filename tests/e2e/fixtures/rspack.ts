@@ -89,24 +89,25 @@ class Rspack {
 }
 
 export type RspackOptions = {
-	defaultRspackConfig: {
+	rspackConfig: {
 		handleConfig(config: Configuration): Configuration;
+		basePort: number;
 	};
 };
 
 export type RspackFixtures = Fixtures<
-	RspackOptions & { rspack: Rspack; rspackIncremental: Rspack },
+	RspackOptions & { rspack: Rspack },
 	{},
 	PlaywrightTestArgs & PathInfoFixtures
 >;
 
 export const rspackFixtures = (): RspackFixtures => {
-	const rspackFixture = (
-		incremental: boolean
-	): RspackFixtures["rspack"] | RspackFixtures["rspackIncremental"] => [
-			async ({ page, pathInfo, defaultRspackConfig }, use, { workerIndex }) => {
+	return {
+		rspackConfig: [{ handleConfig: c => c, basePort: 8000 }, { option: true }],
+		rspack: [
+			async ({ page, pathInfo, rspackConfig }, use, { workerIndex }) => {
 				const { tempProjectDir } = pathInfo;
-				const port = (incremental ? 8200 : 8000) + workerIndex;
+				const port = rspackConfig.basePort + workerIndex;
 				const rspack = new Rspack(tempProjectDir, config => {
 					// rewrite port
 					if (!config.devServer) {
@@ -125,21 +126,7 @@ export const rspackFixtures = (): RspackFixtures => {
 					}
 					config.output.path = path.resolve(tempProjectDir, "dist");
 
-					if (incremental) {
-						config.experiments ??= {};
-						config.experiments.incremental = true;
-						const cache = config.experiments.cache;
-						if (typeof cache === "object" && cache.type === "persistent") {
-							cache.storage = {
-								type: "filesystem",
-								...cache.storage,
-								//rewrite directory
-								directory: "node_modules/.cache/incremental"
-							};
-						}
-					}
-
-					return defaultRspackConfig.handleConfig(config);
+					return rspackConfig.handleConfig(config);
 				});
 				await rspack.start();
 
@@ -150,10 +137,6 @@ export const rspackFixtures = (): RspackFixtures => {
 				await rspack.stop();
 			},
 			{ auto: true }
-		];
-	return {
-		defaultRspackConfig: [{ handleConfig: c => c }, { option: true }],
-		rspack: rspackFixture(false),
-		rspackIncremental: rspackFixture(true)
+		]
 	};
 };

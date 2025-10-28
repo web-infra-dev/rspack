@@ -13,14 +13,17 @@ mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
+mod inline_exports_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
 mod side_effects_flag_plugin;
+pub mod url_plugin;
 
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
+pub use inline_exports_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
@@ -38,7 +41,9 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_javascript_compiler::ast::Ast;
-use rspack_util::{SpanExt, diff_mode};
+use rspack_util::SpanExt;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
@@ -52,6 +57,7 @@ use crate::runtime::{
   render_chunk_modules, render_module, render_runtime_modules, stringify_array,
 };
 
+#[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<
   SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
@@ -127,14 +133,15 @@ impl JsPlugin {
       .clone()
   }
 
-  pub fn render_require(
-    &self,
+  pub fn render_require<'me>(
     chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> Vec<Cow<'_, str>> {
+    compilation: &'me Compilation,
+  ) -> Vec<Cow<'me, str>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
+    let need_module_defer =
+      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let mut sources: Vec<Cow<str>> = Vec::new();
 
     sources.push(
@@ -166,7 +173,11 @@ impl JsPlugin {
       sources.push("loaded: false,".into());
     }
 
-    sources.push("exports: {}".into());
+    if need_module_defer {
+      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+    } else {
+      sources.push("exports: {}".into());
+    }
     sources.push("});\n// Execute the module function".into());
 
     let module_execution = if runtime_requirements
@@ -192,10 +203,16 @@ impl JsPlugin {
       sources.push("try {\n".into());
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
+      if need_module_defer {
+        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+      }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
+      if need_module_defer {
+        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+      }
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
@@ -207,11 +224,10 @@ impl JsPlugin {
     sources
   }
 
-  pub async fn render_bootstrap(
-    &self,
+  pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> Result<RenderBootstrapResult<'_>> {
+    compilation: &'me Compilation,
+  ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
@@ -221,6 +237,8 @@ impl JsPlugin {
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
+    let need_module_defer =
+      runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let use_require = require_function || intercept_module_execution || module_used;
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
@@ -243,6 +261,16 @@ impl JsPlugin {
       header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
     }
 
+    if need_module_defer {
+      // in order to optimize of DeferredNamespaceObject, we remove all proxy handlers after the module initialize
+      // (see MakeDeferredNamespaceObjectRuntimeModule)
+      // This requires all deferred imports to a module can get the module export object before the module
+      // is evaluated.
+      header.push(
+        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
+      );
+    }
+
     if use_require {
       header.push(
         format!(
@@ -251,7 +279,7 @@ impl JsPlugin {
         )
         .into(),
       );
-      header.extend(self.render_require(chunk_ukey, compilation));
+      header.extend(Self::render_require(chunk_ukey, compilation));
       header.push("\n}\n".into());
     } else if require_scope_used {
       header.push(
@@ -371,10 +399,6 @@ impl JsPlugin {
             .await?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && diff_mode::is_diff_mode() {
-            buf2.push("// This entry module can't be inlined in diff mode".into());
             allow_inline_startup = false;
           }
           let entry_runtime_requirements =
@@ -547,7 +571,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -1274,7 +1298,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);
@@ -1290,7 +1314,7 @@ pub struct ExtractedCommentsInfo {
 
 #[derive(Debug)]
 pub struct RenderBootstrapResult<'a> {
-  header: Vec<Cow<'a, str>>,
-  startup: Vec<Cow<'a, str>>,
-  allow_inline_startup: bool,
+  pub header: Vec<Cow<'a, str>>,
+  pub startup: Vec<Cow<'a, str>>,
+  pub allow_inline_startup: bool,
 }

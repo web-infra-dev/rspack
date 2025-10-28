@@ -317,18 +317,27 @@ type StatsChunkGroup = {
 type StatsError = {
   // 错误/警告的可视化提示信息
   message: string;
-  // 相关资源文件
+  // 与此错误/警告关联的自定义文件名
   file?: string;
   // 错误/警告的明细信息
   details?: string;
   // 错误/警告的栈信息
   stack?: string;
-
-  // 发生错误/警告的模块唯一标识
+  /**
+   * 与此错误/警告相关的模块标识符
+   * 通常是绝对路径，可能包含内联的 loader request
+   * @example
+   * - `/path/to/project/src/index.js`
+   * - `!builtin:react-refresh-loader!/path/to/project/src/index.css`
+   */
   moduleIdentifier?: string;
-  // 发生错误/警告的模块相对路径
-  moduleName?: string;
-  // 发生错误/警告的模块 ID
+  /**
+   * 与此错误/警告相关的模块可读名称
+   * 通常是相对路径，不包含内联的 loader request
+   * @example
+   * - `"./src/index.js"`
+   * - `"./src/index.css"`
+   */
   moduleId?: string;
   // 错误/警告的模块引用路径
   moduleTrace: Array<JsStatsModuleTrace>;

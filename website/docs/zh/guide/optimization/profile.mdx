@@ -55,3 +55,20 @@ RSPACK_PROFILE=ALL rspack build
 ### html-webpack-plugin
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
+
+## 线程池大小
+
+Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻塞操作，以避免阻塞主线程。
+
+默认情况下，这个线程池的大小是 `4`，与 Node.js 的 [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) 保持一致，能在大多数开发与 CI 环境中提供稳定性能。
+
+如果你的构建环境使用高速存储，可以通过设置 `RSPACK_BLOCKING_THREADS` 环境变量来修改线程数，以获得更高的并发度和潜在的性能提升，例如：
+
+```bash
+# 需要安装 cross-env 包来设置环境变量
+cross-env RSPACK_BLOCKING_THREADS=8 rspack build
+```
+
+设置环境变量后，可以观察构建时间的变化，以找到最合适的配置。
+
+在较慢或延迟较高的文件系统中，建议保留默认值甚至更低，以避免线程争用。

@@ -1,4 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have nested modules",
 	options(context) {

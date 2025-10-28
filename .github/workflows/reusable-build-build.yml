@@ -40,7 +40,18 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
+      - name: Download and install zstd
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash # Use bash for curl and unzip commands
+        run: |
+          curl -L https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-v1.5.5-win64.zip --output zstd.zip
+          unzip zstd.zip
+          mv zstd-v1.5.5-win64/zstd.exe C:/Windows/System32/
+          # Verify installation
+          zstd --version
+
       - name: Pnpm Setup
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
@@ -55,7 +66,7 @@ jobs:
         with:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
-          save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
+          save-if: true
 
       # setup rust target for native runner
       - name: Setup Rust Target
@@ -179,7 +190,7 @@ jobs:
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 pnpm build:binding:${{ inputs.profile }}
+          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
       # WASM Release (use profile = release-wasi) + wasm-opt

@@ -2,17 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import vm, { SourceTextModule } from "node:vm";
+import type { RspackOptions, StatsCompilation } from "@rspack/core";
 import asModule from "../../helper/legacy/asModule";
+import createFakeWorker from "../../helper/legacy/createFakeWorker";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import {
-	type ECompilerType,
 	EEsmMode,
 	type IGlobalContext,
 	type IModuleScope,
 	type ITestEnv,
 	type ITestRunner,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation,
 	type TModuleObject,
 	type TRunnerFile,
 	type TRunnerRequirer,
@@ -22,6 +21,8 @@ import {
 declare global {
 	var printLogger: boolean;
 }
+
+const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
 
 const isRelativePath = (p: string) => /^\.\.?\//.test(p);
 const getSubPath = (p: string) => {
@@ -47,26 +48,30 @@ const getSubPath = (p: string) => {
 
 const cached = new Map<string, TRunnerFile>();
 
-export interface INodeRunnerOptions<T extends ECompilerType> {
+export interface INodeRunnerOptions {
 	env: ITestEnv;
-	stats?: () => TCompilerStatsCompilation<T>;
+	stats?: () => StatsCompilation;
 	name: string;
 	runInNewContext?: boolean;
-	testConfig: TTestConfig<T>;
+	testConfig: TTestConfig;
 	source: string;
 	dist: string;
-	compilerOptions: TCompilerOptions<T>;
+	compilerOptions: RspackOptions;
 	cachable?: boolean;
+	logs?: string[];
+	errors?: Error[];
 }
-export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
-	implements ITestRunner
-{
+export class NodeRunner implements ITestRunner {
 	protected requireCache = Object.create(null);
 
 	protected globalContext: IGlobalContext | null = null;
 	protected baseModuleScope: IModuleScope | null = null;
 	protected requirers: Map<string, TRunnerRequirer> = new Map();
-	constructor(protected _options: INodeRunnerOptions<T>) {}
+	constructor(protected _options: INodeRunnerOptions) {}
+
+	protected log(message: string) {
+		this._options.logs?.push(`[NodeRunner] ${message}`);
+	}
 
 	run(file: string): Promise<unknown> {
 		if (!this.globalContext) {
@@ -82,8 +87,10 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 		}
 		this.createRunner();
 		const res = this.getRequire()(
-			this._options.dist,
-			file.startsWith("./") || file.startsWith("https://test.cases/")
+			path.isAbsolute(file) ? path.dirname(file) : this._options.dist,
+			file.startsWith("./") ||
+				file.startsWith("https://test.cases/") ||
+				path.isAbsolute(file)
 				? file
 				: `./${file}`
 		);
@@ -95,7 +102,19 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 
 	getRequire(): TRunnerRequirer {
 		const entryRequire = this.requirers.get("entry")!;
-		return (currentDirectory, modulePath, context = {}) => {
+		const runner = this;
+		return function (
+			this: { from: string },
+			currentDirectory,
+			modulePath,
+			context = {}
+		) {
+			const from = this?.from;
+			if (from) {
+				runner.log(`require: ${modulePath} from ${from}`);
+			} else {
+				runner.log(`require: ${modulePath}`);
+			}
 			const p = Array.isArray(modulePath)
 				? modulePath
 				: modulePath.split("?")[0]!;
@@ -174,8 +193,12 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			Symbol,
 			Buffer,
 			setImmediate,
+			self: this.globalContext,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
+			Worker: createFakeWorker(this._options.env, {
+				outputDirectory: this._options.dist
+			}),
 			...this._options.env
 		};
 		return baseModuleScope;
@@ -187,7 +210,14 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 	): IModuleScope {
 		const requirer: TRunnerRequirer & {
 			webpackTestSuiteRequire?: boolean;
-		} = requireFn.bind(null, path.dirname(file.path));
+			from?: string;
+		} = requireFn.bind(
+			{
+				from: file.path,
+				module: m
+			},
+			path.dirname(file.path)
+		);
 		requirer.webpackTestSuiteRequire = true;
 		return {
 			...this.baseModuleScope!,
@@ -259,6 +289,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 		this.requirers.set("json", this.createJsonRequirer());
 		this.requirers.set("entry", (currentDirectory, modulePath, context) => {
 			const file = this.getFile(modulePath, currentDirectory);
+			this.log(`entry: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -286,11 +317,14 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 
 	protected createMissRequirer(): TRunnerRequirer {
 		return (currentDirectory, modulePath, context = {}) => {
+			this.log(`missing: ${modulePath}`);
 			const modulePathStr = modulePath as string;
 			const modules = this._options.testConfig.modules;
 			if (modules && modulePathStr in modules) {
+				this.log(`mock module: ${modulePathStr}`);
 				return modules[modulePathStr];
 			}
+			this.log(`native require: ${modulePathStr}`);
 			return require(
 				modulePathStr.startsWith("node:")
 					? modulePathStr.slice(5)
@@ -305,6 +339,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				throw new Error("Array module path is not supported in hot cases");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`json: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -320,11 +355,13 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				return require("@rspack/test-tools");
 			}
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`cjs: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
 			if (file.path in this.requireCache) {
+				this.log(`cjs cache hit: ${file.path}`);
 				return this.requireCache[file.path].exports;
 			}
 
@@ -335,7 +372,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			this.requireCache[file.path] = m;
 
 			if (!this._options.runInNewContext) {
-				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
+				file.content = `Object.assign(global, _globalAssign);${file.content}`;
 			}
 
 			const currentModuleScope = this.createModuleScope(
@@ -360,16 +397,49 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 					currentModuleScope.__STATS_I__ = statsIndex;
 				}
 			}
+			const createNodeLocatedError = createLocatedError(
+				this._options.errors || ([] as Error[]),
+				2
+			);
+			const originIt = currentModuleScope.it;
+			currentModuleScope.it = (
+				description: string,
+				fn: () => Promise<void> | void
+			) => {
+				originIt(description, async () => {
+					try {
+						await fn();
+					} catch (err) {
+						throw createNodeLocatedError(err as Error, file);
+					}
+				});
+			};
+			currentModuleScope.__CREATE_LOCATED_ERROR__ = createNodeLocatedError;
+			currentModuleScope.__FILE__ = file;
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {
-        ${file.content}
+				try {
+					${file.content}
+				} catch(err) {
+					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
+				}
       })`;
 
 			this.preExecute(code, file);
+			this.log(
+				`run mode: ${this._options.runInNewContext ? "new context" : "this context"}`
+			);
 			const fn = this._options.runInNewContext
-				? vm.runInNewContext(code, this.globalContext!, file.path)
-				: vm.runInThisContext(code, file.path);
+				? vm.runInNewContext(code, this.globalContext!, {
+						filename: file.path,
+						lineOffset: 1
+					})
+				: vm.runInThisContext(code, {
+						filename: file.path,
+						lineOffset: 1
+					});
+
 			fn.call(
 				this._options.testConfig.nonEsmThis
 					? this._options.testConfig.nonEsmThis(modulePath)
@@ -378,6 +448,7 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			);
 
 			this.postExecute(m, file);
+			this.log(`end cjs: ${modulePath}`);
 			return m.exports;
 		};
 	}
@@ -397,12 +468,20 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			}
 			const _require = this.getRequire();
 			const file = context.file || this.getFile(modulePath, currentDirectory);
+			this.log(`esm: ${modulePath} -> ${file?.path}`);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
 
 			if (file.content.includes("__STATS__")) {
 				esmContext.__STATS__ = this._options.stats?.();
+			}
+
+			if (file.content.includes("__STATS_I__")) {
+				const statsIndex = this._options.stats?.()?.__index__;
+				if (typeof statsIndex === "number") {
+					esmContext.__STATS_I__ = statsIndex;
+				}
 			}
 
 			let esm = esmCache.get(file.path);
@@ -412,13 +491,19 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 					// no attribute
 					url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,
 					context: esmContext,
-					initializeImportMeta: (meta: { url: string }, _: any) => {
+					initializeImportMeta: (
+						meta: { url: string; dirname?: string; filename?: string },
+						_: any
+					) => {
 						meta.url = pathToFileURL(file!.path).href;
+						meta.dirname = path.dirname(file!.path);
+						meta.filename = file!.path;
 					},
 					importModuleDynamically: async (
 						specifier: any,
 						module: { context: any }
 					) => {
+						this.log(`import: ${specifier} from ${file?.path}`);
 						const result = await _require(path.dirname(file!.path), specifier, {
 							esmMode: EEsmMode.Evaluated
 						});
@@ -429,24 +514,28 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 			}
 			if (context.esmMode === EEsmMode.Unlinked) return esm;
 			return (async () => {
-				await esm.link(async (specifier, referencingModule) => {
-					return await asModule(
-						await _require(
-							path.dirname(
-								referencingModule.identifier
-									? referencingModule.identifier.slice(esmIdentifier.length + 1)
-									: fileURLToPath((referencingModule as any).url)
+				if (esm.status === "unlinked") {
+					await esm.link(async (specifier, referencingModule) => {
+						return await asModule(
+							await _require(
+								path.dirname(
+									referencingModule.identifier
+										? referencingModule.identifier.slice(
+												esmIdentifier.length + 1
+											)
+										: fileURLToPath((referencingModule as any).url)
+								),
+								specifier,
+								{
+									esmMode: EEsmMode.Unlinked
+								}
 							),
-							specifier,
-							{
-								esmMode: EEsmMode.Unlinked
-							}
-						),
-						referencingModule.context,
-						true
-					);
-				});
-				if ((esm as any).instantiate) (esm as any).instantiate();
+							referencingModule.context,
+							true
+						);
+					});
+				}
+
 				await esm.evaluate();
 				if (context.esmMode === EEsmMode.Evaluated) {
 					return esm;
@@ -454,8 +543,37 @@ export class NodeRunner<T extends ECompilerType = ECompilerType.Rspack>
 				const ns = esm.namespace as {
 					default: unknown;
 				};
+				this.log(`end esm: ${modulePath}`);
 				return ns.default && ns.default instanceof Promise ? ns.default : ns;
 			})();
 		};
 	}
 }
+
+export const createLocatedError = (
+	collectedErrors: Error[],
+	offset: number
+) => {
+	return (e: Error, file: TRunnerFile) => {
+		const match = (e.stack || e.message).match(EVAL_LOCATION_REGEX);
+		if (match) {
+			const [, line] = match;
+			const realLine = Number(line) - offset;
+			const codeLines = file.content.split("\n");
+			const lineContents = [
+				...codeLines
+					.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
+					.map(line => `│  ${line}`),
+				`│> ${codeLines[realLine - 1]}`,
+				...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
+			];
+			const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
+			const finalError = new Error(message);
+			finalError.stack = undefined;
+			collectedErrors.push(finalError);
+			return finalError;
+		} else {
+			return e;
+		}
+	};
+};

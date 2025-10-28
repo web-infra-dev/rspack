@@ -4,6 +4,8 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use ustr::{Ustr, UstrSet};
 
@@ -11,6 +13,7 @@ use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   inner: UstrSet,
@@ -157,6 +160,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),

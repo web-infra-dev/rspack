@@ -12,6 +12,7 @@ version.workspace = true
 anyhow       = { workspace = true }
 async-trait  = { workspace = true }
 cow-utils    = { workspace = true }
+napi         = { workspace = true }
 once_cell    = { workspace = true }
 regex        = { workspace = true }
 rspack_core  = { workspace = true }

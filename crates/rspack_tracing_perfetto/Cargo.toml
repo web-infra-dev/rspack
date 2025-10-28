@@ -16,5 +16,7 @@ micromegas-perfetto = { workspace = true }
 prost               = { workspace = true }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }
+allocative          = { workspace = true, optional = true }
+
 [lints]
 workspace = true

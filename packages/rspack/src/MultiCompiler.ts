@@ -51,7 +51,7 @@ export interface MultiCompilerOptions {
 	parallelism?: number;
 }
 
-export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
+export type MultiRspackOptions = readonly RspackOptions[] &
 	MultiCompilerOptions;
 
 export class MultiCompiler {
@@ -147,7 +147,11 @@ export class MultiCompiler {
 			});
 		}
 	}
-
+	set unsafeFastDrop(value: boolean) {
+		for (const compiler of this.compilers) {
+			compiler.unsafeFastDrop = value;
+		}
+	}
 	get options() {
 		return Object.assign(
 			this.compilers.map(c => c.options),

@@ -1,7 +1,7 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: javascript/esm|<TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/return-outside-function/b.js,
+    moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/module-parse-failed/return-outside-function/b.js,
     moduleName: ./b.js,
   },
 ]

@@ -1,5 +1,5 @@
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   skip: true,
   description: "should not evaluate constants in asm.js",

@@ -1,0 +1,7 @@
+asset main-41905a688b0c4ae5.js xx KiB [emitted] [immutable] (name: main)
+asset 860-06080dd03840d077.js 171 bytes [emitted] [immutable]
+runtime modules xx KiB 5 modules
+cacheable modules 250 bytes
+  ./index.js 115 bytes [built] [code generated]
+  ./worker.js 135 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

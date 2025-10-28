@@ -10,7 +10,8 @@ use rspack_core::{
   ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, module_raw, property_access, to_normal_comment,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  module_raw, property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -41,6 +42,7 @@ impl CommonJsExportRequireDependency {
     range: DependencyRange,
     base: ExportsBase,
     names: Vec<Atom>,
+    ids: Vec<Atom>,
     result_used: bool,
   ) -> Self {
     Self {
@@ -50,7 +52,7 @@ impl CommonJsExportRequireDependency {
       range,
       base,
       names,
-      ids: vec![],
+      ids,
       result_used,
       factorize_info: Default::default(),
     }
@@ -296,7 +298,7 @@ impl Dependency for CommonJsExportRequireDependency {
     let ids = self.get_ids(mg);
     let get_full_result = || {
       if ids.is_empty() {
-        vec![ExtendedReferencedExport::Array(vec![])]
+        create_exports_object_referenced()
       } else {
         vec![ExtendedReferencedExport::Export(ReferencedExport {
           name: ids.to_vec(),
@@ -318,7 +320,7 @@ impl Dependency for CommonJsExportRequireDependency {
       let export_info = exports_info.get_read_only_export_info(name);
       let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
-        return vec![ExtendedReferencedExport::Array(vec![])];
+        return create_no_exports_referenced();
       }
       if !matches!(used, UsageState::OnlyPropertiesUsed) {
         return get_full_result();

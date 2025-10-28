@@ -1,0 +1,24 @@
+chunk (runtime: main) 267.js (id hint: ) 21 bytes <{889}> ={269}= [rendered]
+  > ./index.js 17:4-21:6
+  > ./index.js 2:4-5:6
+  ./a.js 21 bytes [built] [code generated]
+chunk (runtime: main) 269.js 21 bytes <{889}> ={267}= [rendered]
+  > ./index.js 17:4-21:6
+  ./c.js 21 bytes [built] [code generated]
+chunk (runtime: main) main.js (main) 726 bytes (javascript) xx KiB (runtime) >{267}< >{269}< [entry] [rendered]
+  > ./ main
+  dependent modules 160 bytes [dependent] 1 module
+  ./index.js 566 bytes [built] [code generated] [1 warning]
+
+WARNING in ./index.js 9:4-11
+  ⚠ Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
+    ╭─[9:4]
+  7 │ 
+  8 │ it("should load a chunk with async commons (AMD)", () => new Promise(done => {
+  9 │     require(["./a", "./b"], (a, b) => {
+    ·     ───────
+ 10 │         expect(a).toBe("a");
+ 11 │         expect(b).toBe("b");
+    ╰────
+
+Rspack x.x.x compiled with 1 warning

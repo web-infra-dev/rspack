@@ -1,0 +1,30 @@
+assets by status xx KiB [cached] 1 asset
+modules with errors 53 bytes [errors]
+  ./not-existing.js 26 bytes [built] [code generated] [1 error]
+  ./parse-error.js 27 bytes [built] [code generated] [1 error]
+./index.js 19 bytes [built] [code generated]
+./inner.js 53 bytes [built] [code generated]
+
+ERROR in ./not-existing.js 1:8-24
+  × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/module-trace-disabled-in-error'
+   ╭────
+ 1 │ require('does-not-exist')
+   · ─────────────────────────
+   ╰────
+
+ERROR in ./parse-error.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭─[3:4]
+       1 │ Here
+       2 │ could
+       3 │ be :)
+         ·     ─
+       4 │ your
+       5 │ code
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack x.x.x compiled with 2 errors in X s

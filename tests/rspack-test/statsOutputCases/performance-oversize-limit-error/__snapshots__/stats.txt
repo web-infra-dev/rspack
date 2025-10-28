@@ -1,0 +1,25 @@
+asset main.js xx KiB [emitted] [big] (name: main)
+asset sec.js xx KiB [emitted] [big] (name: sec)
+Entrypoint main [big] xx KiB = main.js
+Entrypoint sec [big] xx KiB = sec.js
+./index.js 16 bytes [built] [code generated]
+./index2.js 16 bytes [built] [code generated]
+./a.js xx KiB [built] [code generated]
+
+ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
+  │   main.js (xx KiB)
+  │   sec.js (xx KiB)
+
+
+ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (xx KiB). This can impact web performance.Entrypoints:
+  │   main (xx KiB)
+  │       main.js
+  │   sec (xx KiB)
+  │       sec.js
+
+
+ERROR in × Rspack performance recommendations:You can limit the size of your bundles by using import() to lazy load some parts of your application.
+  │ For more info visit https://rspack.rs/guide/optimization/code-splitting
+
+
+Rspack x.x.x compiled with 3 errors in X s

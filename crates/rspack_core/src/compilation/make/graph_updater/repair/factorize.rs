@@ -9,7 +9,10 @@ use crate::{
   FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
   ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
   module_graph::ModuleGraphModule,
-  utils::task_loop::{Task, TaskResult, TaskType},
+  utils::{
+    ResourceId,
+    task_loop::{Task, TaskResult, TaskType},
+  },
 };
 
 #[derive(Debug)]
@@ -114,17 +117,35 @@ impl Task<TaskContext> for FactorizeTask {
       current_profile.mark_factory_end();
     }
 
-    let factorize_info = FactorizeInfo::new(
-      create_data.diagnostics,
-      create_data
-        .dependencies
-        .iter()
-        .map(|dep| *dep.id())
-        .collect(),
-      create_data.file_dependencies,
-      create_data.context_dependencies,
-      create_data.missing_dependencies,
-    );
+    let factorize_info = if let Some(unsafe_cache_predicate) = &self.options.module.unsafe_cache
+      && let Some(result) = &factory_result
+      && let Some(module) = &result.module
+      && unsafe_cache_predicate(module.as_ref()).await?
+    {
+      FactorizeInfo::new(
+        create_data.diagnostics,
+        create_data
+          .dependencies
+          .iter()
+          .map(|dep| *dep.id())
+          .collect(),
+        Default::default(),
+        Default::default(),
+        Default::default(),
+      )
+    } else {
+      FactorizeInfo::new(
+        create_data.diagnostics,
+        create_data
+          .dependencies
+          .iter()
+          .map(|dep| *dep.id())
+          .collect(),
+        create_data.file_dependencies,
+        create_data.context_dependencies,
+        create_data.missing_dependencies,
+      )
+    };
     let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
@@ -168,22 +189,25 @@ impl Task<TaskContext> for FactorizeResultTask {
     } = *self;
 
     let artifact = &mut context.artifact;
-    if !factorize_info.diagnostics().is_empty() {
-      artifact
-        .file_dependencies
-        .add_batch_file(&factorize_info.file_dependencies());
-      artifact
-        .context_dependencies
-        .add_batch_file(&factorize_info.context_dependencies());
-      artifact
-        .missing_dependencies
-        .add_batch_file(&factorize_info.missing_dependencies());
+    if !factorize_info.is_success() {
       artifact
         .make_failed_dependencies
         .insert(*dependencies[0].id());
     }
-    // write factorize_info to dependencies[0] and set success factorize_info to others
+    let resource_id = ResourceId::from(*dependencies[0].id());
+    artifact
+      .file_dependencies
+      .add_files(&resource_id, factorize_info.file_dependencies());
+    artifact
+      .context_dependencies
+      .add_files(&resource_id, factorize_info.context_dependencies());
+    artifact
+      .missing_dependencies
+      .add_files(&resource_id, factorize_info.missing_dependencies());
+
     for dep in &mut dependencies {
+      artifact.affected_dependencies.mark_as_add(dep.id());
+
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
       } else if let Some(d) = dep.as_module_dependency_mut() {
@@ -191,6 +215,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
+      // write factorize_info to dependencies[0] and set success factorize_info to others
       *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 

@@ -27,6 +27,8 @@ use rspack_hook::define_hook;
 use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
 use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
@@ -38,17 +40,17 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
-  DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, Filename, ImportVarMap, Logger, MemoryGCStorage,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
+  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
+  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
-    ExecuteModuleId, MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make,
-    update_module_graph,
+    MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
@@ -66,6 +68,7 @@ define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
@@ -97,6 +100,7 @@ pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
   pub revoked_modules: CompilationRevokedModulesHook,
+  pub concatenation_scope: CompilationConcatenationScopeHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
@@ -130,6 +134,7 @@ pub struct CompilationHooks {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct CompilationId(pub u32);
 
 impl CompilationId {
@@ -259,6 +264,7 @@ pub struct Compilation {
   pub module_static_cache_artifact: ModuleStaticCacheArtifact,
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -313,6 +319,7 @@ impl Compilation {
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE: i32 = 700;
   pub const PROCESS_ASSETS_STAGE_SUMMARIZE: i32 = 1000;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_HASH: i32 = 2500;
+  pub const PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH: i32 = 2600;
   pub const PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER: i32 = 3000;
   pub const PROCESS_ASSETS_STAGE_ANALYSE: i32 = 4000;
   pub const PROCESS_ASSETS_STAGE_REPORT: i32 = 5000;
@@ -370,6 +377,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
 
       async_modules_artifact: Default::default(),
+      imported_by_defer_modules_artifact: Default::default(),
       dependencies_diagnostics_artifact: Default::default(),
       side_effects_optimize_artifact: Default::default(),
       module_ids_artifact: Default::default(),
@@ -502,9 +510,8 @@ impl Compilation {
       .make_artifact
       .file_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.file_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.file_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -524,13 +531,8 @@ impl Compilation {
       .make_artifact
       .context_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .context_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.context_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -550,13 +552,8 @@ impl Compilation {
       .make_artifact
       .missing_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .make_artifact
-      .missing_dependencies
-      .removed_files()
-      .iter();
+    let removed_files = self.make_artifact.missing_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -576,27 +573,21 @@ impl Compilation {
       .make_artifact
       .build_dependencies
       .added_files()
-      .iter()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.build_dependencies.removed_files().iter();
+    let removed_files = self.make_artifact.build_dependencies.removed_files();
     (all_files, added_files, removed_files)
   }
 
   // TODO move out from compilation
-  pub fn get_import_var(&self, dep_id: &DependencyId, runtime: Option<&RuntimeSpec>) -> String {
-    let module_graph = self.get_module_graph();
-    let parent_module_id = module_graph
-      .get_parent_module(dep_id)
-      .expect("should have parent module");
-    let module_id = module_graph
-      .module_identifier_by_dependency_id(dep_id)
-      .copied();
-    let module_dep = module_graph
-      .dependency_by_id(dep_id)
-      .and_then(|dep| dep.as_module_dependency())
-      .expect("should be module dependency");
-    let user_request = to_identifier(module_dep.user_request());
-    let mut runtime_map = self.import_var_map.entry(*parent_module_id).or_default();
+  pub fn get_import_var(
+    &self,
+    module: ModuleIdentifier,
+    target_module: Option<&BoxModule>,
+    user_request: &str,
+    phase: ImportPhase,
+    runtime: Option<&RuntimeSpec>,
+  ) -> String {
+    let mut runtime_map = self.import_var_map.entry(module).or_default();
     let import_var_map_of_module = runtime_map
       .entry(
         runtime
@@ -605,14 +596,23 @@ impl Compilation {
       )
       .or_default();
     let len = import_var_map_of_module.len();
+    let is_deferred = phase.is_defer()
+      && !target_module
+        .map(|m| m.build_meta().has_top_level_await)
+        .unwrap_or_default();
 
-    match import_var_map_of_module.entry(module_id) {
+    match import_var_map_of_module.entry((target_module.map(|m| m.identifier()), is_deferred)) {
       hash_map::Entry::Occupied(occ) => occ.get().clone(),
       hash_map::Entry::Vacant(vac) => {
         let mut b = itoa::Buffer::new();
         let import_var = format!(
-          "{}__WEBPACK_IMPORTED_MODULE_{}__",
-          user_request,
+          "{}__WEBPACK_{}IMPORTED_MODULE_{}__",
+          to_identifier(user_request),
+          match phase {
+            ImportPhase::Evaluation => "",
+            ImportPhase::Source => "",
+            ImportPhase::Defer => "DEFERRED_",
+          },
           b.format(len)
         );
         vac.insert(import_var.clone());
@@ -1096,6 +1096,12 @@ impl Compilation {
       for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
         let hash = ChunkGraph::get_module_hash(self, module, runtime)
           .expect("should have cgm.hash in code generation");
+        let scope = self
+          .plugin_driver
+          .compilation_hooks
+          .concatenation_scope
+          .call(self, module)
+          .await?;
         if let Some(job) = map.get_mut(hash) {
           job.runtimes.push(runtime.clone());
         } else {
@@ -1106,6 +1112,7 @@ impl Compilation {
               hash: hash.clone(),
               runtime: runtime.clone(),
               runtimes: vec![runtime.clone()],
+              scope,
             },
           );
         }
@@ -1129,7 +1136,7 @@ impl Compilation {
             .code_generate_occasion
             .use_cache(&job, || async {
               module
-                .code_generation(this, Some(&job.runtime), None)
+                .code_generation(this, Some(&job.runtime), job.scope.clone())
                 .await
                 .map(|mut codegen_res| {
                   codegen_res.set_hash(
@@ -1363,7 +1370,7 @@ impl Compilation {
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
   }
 
-  #[instrument("Compilation:after_process_asssets", skip_all)]
+  #[instrument("Compilation:after_process_assets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .compilation_hooks
@@ -1440,22 +1447,25 @@ impl Compilation {
       mutations.extend(
         self
           .make_artifact
-          .revoked_modules
-          .difference(&self.make_artifact.built_modules)
+          .affected_modules
+          .removed()
+          .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .intersection(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .updated()
+          .iter()
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
         self
           .make_artifact
-          .built_modules
-          .difference(&self.make_artifact.revoked_modules)
+          .affected_modules
+          .added()
+          .iter()
           .map(|&module| Mutation::ModuleAdd { module }),
       );
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
@@ -2818,10 +2828,6 @@ impl Compilation {
     dep
       .dependency_template()
       .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
-  }
-
-  pub fn built_modules(&self) -> &IdentifierSet {
-    &self.make_artifact.built_modules
   }
 }
 

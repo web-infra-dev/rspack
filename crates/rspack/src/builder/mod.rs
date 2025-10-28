@@ -32,6 +32,7 @@ macro_rules! expect {
 use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
+use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
@@ -42,13 +43,14 @@ use rspack_core::{
   CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
   DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl,
-  JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
+  TrustedTypes, UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{Error, Result};
@@ -1607,6 +1609,8 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1616,6 +1620,7 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
+      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1627,6 +1632,7 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
+      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1713,6 +1719,9 @@ impl ModuleOptionsBuilder {
           require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),
+          commonjs: Some(JavascriptParserCommonjsOptions {
+            exports: JavascriptParserCommonjsExportsOption::Enable,
+          }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
           inline_const: Some(false),
@@ -1814,6 +1823,7 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
+      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }
@@ -3646,8 +3656,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable module layers feature.  
-  layers: Option<bool>,
   /// Incremental passes.
   incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
@@ -3672,7 +3680,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      layers: Some(value.layers),
       incremental: Some(value.incremental),
       top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
@@ -3689,7 +3696,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      layers: value.layers.take(),
       incremental: value.incremental.take(),
       top_level_await: value.top_level_await.take(),
       rspack_future: value.rspack_future.take(),
@@ -3704,12 +3710,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
 }
 
 impl ExperimentsBuilder {
-  /// Set whether to enable layers.
-  pub fn layers(&mut self, layers: bool) -> &mut Self {
-    self.layers = Some(layers);
-    self
-  }
-
   /// Set the incremental passes.
   pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
@@ -3761,7 +3761,6 @@ impl ExperimentsBuilder {
     development: bool,
     production: bool,
   ) -> Result<Experiments> {
-    let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
       let passes = if !production {
         IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
@@ -3792,7 +3791,6 @@ impl ExperimentsBuilder {
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
 
     Ok(Experiments {
-      layers,
       incremental,
       top_level_await,
       rspack_future,
@@ -3803,6 +3801,7 @@ impl ExperimentsBuilder {
       inline_enum: false,
       type_reexports_presence: false,
       lazy_barrel: false,
+      defer_import: false,
     })
   }
 }

@@ -1,8 +1,9 @@
+const { DefinePlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	builtins: {
-		define: {
+	plugins: [
+		new DefinePlugin({
 			"process.env.NODE_ENV": "'development'"
-		}
-	}
+		})
+	],
 };

@@ -68,6 +68,64 @@ export default {
 };
 ```
 
+## module.unsafeCache
+
+- **Type:** `boolean | RegExp`
+
+This is a performance optimization option that reduces the overhead of recording module resolution-related files in Rspack by **assuming that the resolution results of matched modules will not change**.
+
+During module resolution, Rspack needs to record relevant files that may affect the resolution results. For example:
+
+```js
+import 'the-module';
+```
+
+When resolving `the-module`, Rspack not only obtains the actual module path but also records the associated `package.json`:
+
+```json
+{
+  "exports": {
+    ".": "./lib/index.js"
+  }
+}
+```
+
+Because the `exports` field in `package.json` may affect the module's resolution path. When these files change, Rspack needs to re-perform module resolution.
+
+After enabling `unsafeCache`, matched modules are considered to have stable resolution results that will not change, so Rspack will no longer record files associated with the resolution of these modules.
+
+`unsafeCache` has the following default behavior:
+
+- If [cache](/config/cache) is disabled, the value is `false`
+- If [cache](/config/cache) is enabled:
+  - For modules from the `node_modules` directory, the value is `true`
+  - In other cases, the value is `false`
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    unsafeCache: false,
+  },
+};
+```
+
+:::tip Differences from Webpack
+Even when `module.unsafeCache: false` is set, Rspack still caches the association between `Dependency` and `Module` because Rspack uses an incremental algorithm when building the module graph. In contrast, Webpack completely disables module graph caching.
+
+To ensure resolution accuracy, Rspack completely records all related files during the module resolution process when `unsafeCache` is disabled.
+:::
+
+:::tip Relationship with `watchOptions.ignored`
+File recording: Occurs during the make phase, storing associated paths and building indexes with Dependencies.
+
+File watching: After compilation ends, recorded file paths are passed to the watcher, which can ignore specific paths through the `ignored` configuration.
+
+Incremental building: When the watcher detects file changes, Rspack finds the affected Dependencies through the paths and re-executes module resolution.
+
+Both are architecturally layered, each responsible for different functional phases.
+:::
+
 ## module.parser
 
 - **Type:** `Object`
@@ -278,21 +336,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 Enable parsing of `new URL()` syntax.
 
-When use 'relative', Rspack would generate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+- `true`: Generate absolute URLs that include the root URL (default behavior).
+- `'relative'`: Generate relative URLs without the root URL.
+- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
 
-```html
-<!-- with 'relative' -->
-<img src="icon.svg" />
+When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
 
-<!-- without 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// would become 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -304,6 +379,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical
@@ -630,6 +713,29 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.inlineConst
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
@@ -688,6 +794,32 @@ Please refer to [inline const example](https://github.com/rspack-contrib/rstack-
 
 :::warning
 This is currently an experimental feature, so you also need to enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence).
+:::
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Allow the JavaScript parser to understand JSX syntax so that parsing and minimization can operate on files that keep JSX in the final bundle.
+
+Enable this option when you set the loader's JSX mode to "preserve" and want to defer the actual JSX transform to a later tool (for example, libraries that ship JSX output or rely on a custom JSX runtime).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This option is experimental in Rspack and may change or be removed.
 :::
 
 ### module.parser["javascript/auto"]
@@ -1989,8 +2121,10 @@ export default {
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
-This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 A basic example:
@@ -2038,9 +2172,6 @@ export default {
         },
       },
     ],
-  },
-  experiments: {
-    layers: true,
   },
 };
 ```
@@ -2397,8 +2528,10 @@ The meanings of all `type` options are as follows:
 
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
-This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 ```js title="rspack.config.mjs"
@@ -2604,6 +2737,28 @@ export default {
             type: 'asset/resource',
           },
         ],
+      },
+    ],
+  },
+};
+```
+
+### Rule.extractSourceMap
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type**: `boolean`
+- **Default:** `false`
+
+Extracts existing source map data from files (from their `//# sourceMappingURL` comment), useful for preserving the source maps of third-party libraries.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
       },
     ],
   },

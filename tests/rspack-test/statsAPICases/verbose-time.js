@@ -1,4 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have time log when logging verbose",
 	options(context) {
@@ -50,8 +50,10 @@ module.exports = {
 
 		LOG from rspack.ModuleConcatenationPlugin
 		<t> select relevant modules: X ms
+		    0 potential root modules, 0 potential inner modules
 		<t> sort relevant modules: X ms
 		<t> find modules to concatenate: X ms
+		    0 candidates were considered for adding (0 cached failure, 0 already in config, 0 invalid module, 0 incorrect chunks, 0 incorrect dependency, 0 incorrect chunks of importer, 0 incorrect module dependency, 0 incorrect runtime condition, 0 importer failed, 0 added)
 		<t> sort concat configurations: X ms
 
 		LOG from rspack.RealContentHashPlugin

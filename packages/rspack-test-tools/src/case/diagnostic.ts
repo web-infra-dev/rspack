@@ -1,16 +1,11 @@
 import assert from "node:assert";
 import path from "node:path";
+import type { RspackOptions } from "@rspack/core";
 import merge from "webpack-merge";
 import { readConfigFile } from "../helper";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompilerOptions
-} from "../type";
-import { getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
 
 const creator = new BasicCaseCreator({
 	clean: true,
@@ -18,12 +13,14 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		{
 			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				let options = defaultOptions(context);
-				const custom = readConfigFile<ECompilerType.Rspack>(
+				const custom = readConfigFile(
 					["rspack.config.js", "webpack.config.js"].map(i =>
 						context.getSource(i)
-					)
+					),
+					context,
+					options
 				)[0];
 				if (custom) {
 					options = merge(options, custom);
@@ -36,11 +33,11 @@ const creator = new BasicCaseCreator({
 				compiler.setOptions(options);
 			},
 			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.createCompiler();
 			},
 			build: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				await compiler.build();
 			},
 			run: async (env: ITestEnv, context: ITestContext) => {
@@ -66,16 +63,14 @@ const creator = new BasicCaseCreator({
 export function createDiagnosticCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
-export interface IDiagnosticOptions {
+export type TDiagnosticOptions = {
 	snapshot: string;
 	snapshotErrors: string;
 	snapshotWarning: string;
 	format?: (output: string) => string;
-}
+};
 
-function defaultOptions<T extends ECompilerType.Rspack>(
-	context: ITestContext
-): TCompilerOptions<T> {
+function defaultOptions(context: ITestContext): RspackOptions {
 	return {
 		target: "node",
 		context: context.getSource(),
@@ -99,19 +94,18 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 }
 
 async function check(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string,
-	options: IDiagnosticOptions
+	options: TDiagnosticOptions
 ) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const stats = compiler.getStats();
 	if (!stats) {
 		throw new Error("Stats should exists");

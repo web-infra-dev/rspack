@@ -132,9 +132,12 @@ const versionDependent = (
 	};
 };
 
-const TARGETS: Array<
-	[string, string, RegExp, (...args: string[]) => Partial<TargetProperties>]
-> = [
+const TARGETS: [
+	string,
+	string,
+	RegExp,
+	(...args: string[]) => Partial<TargetProperties>
+][] = [
 	[
 		"browserslist / browserslist:env / browserslist:query / browserslist:path-to-config / browserslist:path-to-config:env",
 		"Resolve features from browserslist. Will resolve browserslist config automatically. Only browser or node queries are supported (electron is not supported). Examples: 'browserslist:modern' to use 'modern' environment from browserslist config",
@@ -389,7 +392,7 @@ const mergeTargetProperties = (
 ): TargetProperties => {
 	const keys = new Set<keyof TargetProperties>();
 	for (const tp of targetProperties) {
-		for (const key of Object.keys(tp) as Array<keyof TargetProperties>) {
+		for (const key of Object.keys(tp) as (keyof TargetProperties)[]) {
 			keys.add(key);
 		}
 	}

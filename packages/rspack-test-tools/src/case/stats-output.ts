@@ -1,21 +1,23 @@
 import path from "node:path";
-import type { Compiler, Stats } from "@rspack/core";
+import type { Compiler, RspackOptions, Stats } from "@rspack/core";
 import fs from "fs-extra";
 import { normalizePlaceholder } from "../helper/expect/placeholder";
 import captureStdio from "../helper/legacy/captureStdio";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
-import { build, compiler, configMultiCompiler, getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
+import { build, compiler, configMultiCompiler } from "./common";
 
 const REG_ERROR_CASE = /error$/;
 
-function createStatsProcessor(name: string) {
+export function createStatsProcessor(
+	name: string,
+	defaultOptions: (index: number, context: ITestContext) => RspackOptions,
+	overrideOptions: (
+		index: number,
+		context: ITestContext,
+		options: RspackOptions
+	) => void
+) {
 	const writeStatsOuptut = false;
 	const snapshotName = "stats.txt";
 	let stderr: any = null;
@@ -54,7 +56,9 @@ function createStatsProcessor(name: string) {
 const creator = new BasicCaseCreator({
 	clean: true,
 	describe: false,
-	steps: ({ name }) => [createStatsProcessor(name)],
+	steps: ({ name }) => [
+		createStatsProcessor(name, defaultOptions, overrideOptions)
+	],
 	description: () => "should print correct stats for"
 });
 
@@ -62,11 +66,11 @@ export function createStatsOutputCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }
 
-function defaultOptions(
-	index: number,
-	context: ITestContext
-): TCompilerOptions<ECompilerType.Rspack> {
-	if (fs.existsSync(path.join(context.getSource(), "rspack.config.js"))) {
+function defaultOptions(index: number, context: ITestContext): RspackOptions {
+	if (
+		fs.existsSync(path.join(context.getSource(), "rspack.config.js")) ||
+		fs.existsSync(path.join(context.getSource(), "webpack.config.js"))
+	) {
 		return {
 			experiments: {
 				css: true,
@@ -76,7 +80,7 @@ function defaultOptions(
 					}
 				}
 			}
-		} as TCompilerOptions<ECompilerType.Rspack>;
+		} as RspackOptions;
 	}
 	return {
 		context: context.getSource(),
@@ -96,16 +100,15 @@ function defaultOptions(
 					force: false
 				}
 			},
-			inlineConst: true,
-			lazyBarrel: true
+			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 }
 
 function overrideOptions(
 	index: number,
 	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
+	options: RspackOptions
 ) {
 	if (!options.context) options.context = context.getSource();
 	if (!options.output) options.output = options.output || {};
@@ -134,9 +137,8 @@ async function check(
 	snapshot: string,
 	stderr: any
 ) {
-	const compiler = getCompiler(context, name);
-	const options =
-		compiler.getOptions() as TCompilerOptions<ECompilerType.Rspack>;
+	const compiler = context.getCompiler();
+	const options = compiler.getOptions() as RspackOptions;
 	const stats = compiler.getStats();
 	if (!stats || !compiler) return;
 
@@ -204,7 +206,8 @@ async function check(
 			// CHANGE: The time unit display in Rspack is second
 			.replace(/[.0-9]+(\s?s)/g, "X$1")
 			// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
-			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
+			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB")
+			.replace(/[0-9]+ ms/g, "xx ms");
 	}
 
 	const snapshotPath = path.isAbsolute(snapshot)
@@ -219,10 +222,7 @@ async function check(
 	}
 }
 
-async function statsCompiler(
-	context: ITestContext,
-	compiler: TCompiler<ECompilerType.Rspack>
-) {
+async function statsCompiler(context: ITestContext, compiler: Compiler) {
 	const compilers: Compiler[] = (compiler as any).compilers
 		? (compiler as any).compilers
 		: [compiler as any];

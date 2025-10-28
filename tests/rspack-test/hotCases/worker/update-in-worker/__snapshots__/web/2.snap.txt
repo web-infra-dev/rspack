@@ -1,0 +1,132 @@
+# Case update-in-worker: Step 2
+
+## Changed Files
+- module.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: worker_js.chunk.CURRENT_HASH.js
+- Manifest: [runtime of worker_js].LAST_HASH.hot-update.json, size: 33
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: worker_js.LAST_HASH.hot-update.js, size: 571
+
+## Manifest
+
+### [runtime of worker_js].LAST_HASH.hot-update.json
+
+```json
+{"c":["worker_js"],"r":[],"m":[]}
+```
+
+
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### worker_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./module.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("worker_js", {
+"./module.js": 
+/*!*******************!*\
+  !*** ./module.js ***!
+  \*******************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

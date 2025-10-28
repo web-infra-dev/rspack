@@ -1,6 +1,3 @@
-/**
- * this test case is in addition to webpack-test/configCases/asset-modules/assetModuleFilename
- */
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",

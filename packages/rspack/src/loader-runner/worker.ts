@@ -239,7 +239,7 @@ async function loaderImpl(
 		},
 		createHash: type => {
 			return createHash(
-				type || loaderContext._compilation.outputOptions!.hashFunction!
+				type || loaderContext._compilation.outputOptions.hashFunction!
 			);
 		}
 	};
@@ -406,7 +406,7 @@ async function loaderImpl(
 		return options;
 	};
 
-	loaderContext.cacheable = function cacheable(flag: boolean) {
+	loaderContext.cacheable = function cacheable(flag?: boolean) {
 		if (flag === false) {
 			sendRequest(RequestType.SetCacheable, false);
 		}
@@ -461,6 +461,7 @@ async function loaderImpl(
 					break;
 				}
 			}
+			break;
 		}
 		case JsLoaderState.Normal: {
 			while (loaderContext.loaderIndex >= 0) {

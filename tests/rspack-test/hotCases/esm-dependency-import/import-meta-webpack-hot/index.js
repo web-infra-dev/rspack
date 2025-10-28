@@ -1,6 +1,6 @@
 import { val } from "./module";
 
-it("should accept changes", (done) => {
+it("should accept changes", async () => {
 	expect(val).toBe(1);
-	NEXT(require("../../update")(done, true, () => done()));
+	await NEXT_HMR();
 });

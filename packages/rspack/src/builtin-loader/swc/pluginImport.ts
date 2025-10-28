@@ -13,8 +13,8 @@ type RawPluginImportConfig = {
 	style?: RawStyleConfig;
 	camelToDashComponentName?: boolean;
 	transformToDefaultImport?: boolean;
-	ignoreEsComponent?: Array<string>;
-	ignoreStyleComponent?: Array<string>;
+	ignoreEsComponent?: string[];
+	ignoreStyleComponent?: string[];
 };
 
 type PluginImportConfig = {

@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "non-root directory",
 	options: () => ({
@@ -18,5 +18,8 @@ module.exports = {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
+		@@ ... @@
+		-     "unsafeCache": false,
+		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 	`)
 };

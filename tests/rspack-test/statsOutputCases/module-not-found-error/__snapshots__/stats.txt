@@ -1,0 +1,17 @@
+ERROR in ./index.js 1:8-16
+  × Module not found: Can't resolve 'buffer' in '<TEST_ROOT>/statsOutputCases/module-not-found-error'
+   ╭─[1:0]
+ 1 │ require('buffer')
+   · ─────────────────
+ 2 │ require('os')
+   ╰────
+
+ERROR in ./index.js 2:8-12
+  × Module not found: Can't resolve 'os' in '<TEST_ROOT>/statsOutputCases/module-not-found-error'
+   ╭─[2:0]
+ 1 │ require('buffer')
+ 2 │ require('os')
+   · ─────────────
+   ╰────
+
+Rspack compiled with 2 errors

@@ -14,7 +14,9 @@ export default defineConfig<RspackOptions>({
 
 	// Fail the build on CI if you accidentally left test.only in the source code.
 	forbidOnly: !!process.env.CI,
-
+	build: {
+		external: ["**/moduleFederationDefaultRuntime.js"]
+	},
 	retries: 0,
 
 	// timeout 30s
@@ -45,7 +47,33 @@ export default defineConfig<RspackOptions>({
 			name: "chromium",
 			use: {
 				rspackConfig: {
+					basePort: 8000,
 					handleConfig: (config: any) => {
+						return config;
+					}
+				},
+				...devices["Desktop Chrome"]
+			}
+		},
+		{
+			name: "chromium-incremental",
+			use: {
+				rspackConfig: {
+					basePort: 8200,
+					handleConfig: (config: any) => {
+						config.experiments ??= {};
+						if (config.experiments.incremental == undefined) {
+							config.experiments.incremental = true;
+						}
+						const cache = config.experiments.cache;
+						if (typeof cache === "object" && cache.type === "persistent") {
+							cache.storage = {
+								type: "filesystem",
+								...cache.storage,
+								//rewrite directory
+								directory: "node_modules/.cache/incremental"
+							};
+						}
 						return config;
 					}
 				},

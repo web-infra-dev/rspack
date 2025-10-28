@@ -107,3 +107,12 @@ th:nth-child(25), td:nth-child(25) { grid-area: y; }
 
 /* prettier-ignore */
 th:nth-child(26), td:nth-child(26) { grid-area: z; }
+
+/* Fix: Remove unexpected borders on code block focus */
+pre:focus,
+code:focus,
+pre:focus-visible,
+code:focus-visible {
+  outline: none;
+  border: none;
+}

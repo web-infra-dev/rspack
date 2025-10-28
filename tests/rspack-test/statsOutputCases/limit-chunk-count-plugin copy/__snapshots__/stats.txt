@@ -1,0 +1,96 @@
+1 chunks:
+  asset bundle1.js xx KiB [emitted] (name: main)
+  chunk (runtime: main) bundle1.js (main) 357 bytes (javascript) xx KiB (runtime) <{889}> >{889}< [entry] [rendered]
+    ./a.js 22 bytes [dependent] [built] [code generated]
+    ./c.js 30 bytes [dependent] [built] [code generated]
+    ./d.js 22 bytes [dependent] [built] [code generated]
+    ./e.js 22 bytes [dependent] [built] [code generated]
+    ./index.js 101 bytes [built] [code generated] [1 warning]
+    <TEST_ROOT>/statsOutputCases/limit-chunk-count-plugin copy|sync 160 bytes [dependent] [built] [code generated]
+
+  WARNING in ./index.js 2:0-16
+    ⚠ Critical dependency: the request of a dependency is an expression
+     ╭─[2:8]
+   1 │ require.ensure(["./a"], function() {});
+   2 │ require(["./b"]);
+     ·         ───────
+   3 │ import(/* webpackChunkName: "c" */ "./c");
+     ╰────
+
+  1 chunks (Rspack x.x.x) compiled with 1 warning in X s
+
+2 chunks:
+  asset bundle2.js xx KiB [emitted] (name: main)
+  asset 907.bundle2.js 548 bytes [emitted] (name: c)
+  chunk (runtime: main) bundle2.js (main) 261 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated] [1 warning]
+    <TEST_ROOT>/statsOutputCases/limit-chunk-count-plugin copy|sync 160 bytes [dependent] [built] [code generated]
+  chunk (runtime: main) 907.bundle2.js (c) 96 bytes <{889}> <{907}> >{907}< [rendered]
+    dependent modules 44 bytes [dependent]
+      ./d.js 22 bytes [dependent] [built] [code generated]
+      ./e.js 22 bytes [dependent] [built] [code generated]
+    ./a.js 22 bytes [built] [code generated]
+    ./c.js 30 bytes [built] [code generated]
+
+  WARNING in ./index.js 2:0-16
+    ⚠ Critical dependency: the request of a dependency is an expression
+     ╭─[2:8]
+   1 │ require.ensure(["./a"], function() {});
+   2 │ require(["./b"]);
+     ·         ───────
+   3 │ import(/* webpackChunkName: "c" */ "./c");
+     ╰────
+
+  2 chunks (Rspack x.x.x) compiled with 1 warning in X s
+
+3 chunks:
+  asset bundle3.js xx KiB [emitted] (name: main)
+  asset 907.bundle3.js 386 bytes [emitted] (name: c)
+  asset 874.bundle3.js 236 bytes [emitted]
+  chunk (runtime: main) 874.bundle3.js 66 bytes <{889}> <{907}> [rendered]
+    ./a.js 22 bytes [built] [code generated]
+    ./d.js 22 bytes [built] [code generated]
+    ./e.js 22 bytes [built] [code generated]
+  chunk (runtime: main) bundle3.js (main) 261 bytes (javascript) xx KiB (runtime) >{874}< >{907}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated] [1 warning]
+    <TEST_ROOT>/statsOutputCases/limit-chunk-count-plugin copy|sync 160 bytes [dependent] [built] [code generated]
+  chunk (runtime: main) 907.bundle3.js (c) 30 bytes <{889}> >{874}< [rendered]
+    ./c.js 30 bytes [built] [code generated]
+
+  WARNING in ./index.js 2:0-16
+    ⚠ Critical dependency: the request of a dependency is an expression
+     ╭─[2:8]
+   1 │ require.ensure(["./a"], function() {});
+   2 │ require(["./b"]);
+     ·         ───────
+   3 │ import(/* webpackChunkName: "c" */ "./c");
+     ╰────
+
+  3 chunks (Rspack x.x.x) compiled with 1 warning in X s
+
+4 chunks:
+  asset bundle4.js xx KiB [emitted] (name: main)
+  asset 907.bundle4.js 386 bytes [emitted] (name: c)
+  asset 719.bundle4.js 182 bytes [emitted]
+  asset 267.bundle4.js 128 bytes [emitted]
+  chunk (runtime: main) 267.bundle4.js 22 bytes <{889}> [rendered]
+    ./a.js 22 bytes [built] [code generated]
+  chunk (runtime: main) 719.bundle4.js 44 bytes <{907}> [rendered]
+    ./d.js 22 bytes [built] [code generated]
+    ./e.js 22 bytes [built] [code generated]
+  chunk (runtime: main) bundle4.js (main) 261 bytes (javascript) xx KiB (runtime) >{267}< >{907}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated] [1 warning]
+    <TEST_ROOT>/statsOutputCases/limit-chunk-count-plugin copy|sync 160 bytes [dependent] [built] [code generated]
+  chunk (runtime: main) 907.bundle4.js (c) 30 bytes <{889}> >{719}< [rendered]
+    ./c.js 30 bytes [built] [code generated]
+
+  WARNING in ./index.js 2:0-16
+    ⚠ Critical dependency: the request of a dependency is an expression
+     ╭─[2:8]
+   1 │ require.ensure(["./a"], function() {});
+   2 │ require(["./b"]);
+     ·         ───────
+   3 │ import(/* webpackChunkName: "c" */ "./c");
+     ╰────
+
+  4 chunks (Rspack x.x.x) compiled with 1 warning in X s

@@ -5,6 +5,6 @@ it("should have a relative url to the source-map", function () {
 	expect(match[1]).toBe("bundle0.js.map");
 });
 
-it("should have a relative url to the source-map with prefix", function (done) {
-	import("./test.js").then(() => done());
+it("should have a relative url to the source-map with prefix", async function () {
+	await import("./test.js")
 });

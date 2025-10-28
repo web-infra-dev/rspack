@@ -8,9 +8,6 @@ module.exports = {
 			layer: "main"
 		}
 	},
-	experiments: {
-		layers: true
-	},
 	plugins: [
 		new rspack.DefinePlugin({
 			__RUNTIME_TYPE__: "__webpack_layer__"
