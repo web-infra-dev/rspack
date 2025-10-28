@@ -895,3 +895,12 @@ A side-effect-free module is a module that meets one of the following conditions
 :::
 
 > For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, Rspack will support bundling the [Defer Import](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Currently, only `import defer * as ns from "./module"` is supported, while `import.defer()` will be supported in future versions.

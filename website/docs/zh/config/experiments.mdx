@@ -896,3 +896,12 @@ export default {
 :::
 
 > 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后 Rspack 会支持打包 [Defer Import](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。目前仅支持 `import defer * as ns from "./module"`，`import.defer()` 会在后续版本支持。
