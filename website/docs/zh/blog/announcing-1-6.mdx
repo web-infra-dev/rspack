@@ -15,7 +15,7 @@ Rspack 1.6 已经正式发布！
 
 值得关注的变更如下：
 
-- 新功能
+- 新特性
   - [优化 ESM 产物](#优化-esm-产物)
   - [增强 Tree shaking](#增强-tree-shaking)
   - [支持 import defer](#支持-import-defer)
@@ -25,7 +25,7 @@ Rspack 1.6 已经正式发布！
   - [提取 source map](#提取-source-map)
 - Rstack 进展
   - [Rsbuild 1.6](#rsbuild-1-6)
-  - [Rspress v2 预览](#rspress-v2-预览)
+  - [Rspress v2 beta](#rspress-v2-beta)
   - [Rslib 0.16](#rslib-0-16)
   - [Rstest 0.6](#rstest-0-6)
   - [Rsdoctor 1.3](#rsdoctor-1-3)
@@ -226,7 +226,7 @@ export default {
 
 启用后，Rsbuild 将不再默认生成 IIFE 格式的脚本，而是输出标准的 ESM 格式，并自动将生成的 `<script>` 标签设置为 `type="module"`。
 
-#### 配置加载方式
+#### 配置加载更快
 
 由于 Node.js 22 已经原生支持了 TypeScript，Rsbuild 现在默认会使用 Node.js 的原生加载器来解析配置文件；如果加载失败，则会自动回退到 [Jiti](https://github.com/unjs/jiti)。在使用 Node.js 22 及以上版本时，这一机制能够确保模块解析行为与 Node.js 原生保持一致，同时带来更好的加载性能。
 
@@ -240,9 +240,9 @@ rsbuild build --config-loader native
 rsbuild build --config-loader jiti
 ```
 
-### Rspress v2 预览
+### Rspress v2 beta
 
-#### 全新主题已登陆 V2 官网
+#### 新主题预览
 
 Rspress V2 新主题进入内部测试阶段，并已同步上线至 V2 官网！
 
@@ -252,7 +252,7 @@ Rspress V2 新主题进入内部测试阶段，并已同步上线至 V2 官网�
 
 ![rspress-v2-theme](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rspress.gif)
 
-#### 支持 `<PageTabs />` 组件用于子页面切换
+#### 子页面切换
 
 Rspress V2 新增 `<PageTabs />` 组件，可在同一页面内创建子标签页，将单个页面拆分为多个子页面。
 
@@ -260,7 +260,7 @@ Rspress V2 新增 `<PageTabs />` 组件，可在同一页面内创建子标签�
 
 ### Rslib 0.16
 
-#### 基于 tsgo 的类型生成
+#### 更快的类型生成
 
 Rslib 现在支持基于 [tsgo](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo) 即可。这可以带来大约 2.5 ~ 3 倍的类型生成性能提升，在大型项目中收益更为明显。
 
@@ -300,11 +300,11 @@ export default {
 };
 ```
 
-#### 更多的 build CLI 选项
+#### CLI 增强
 
 Rslib 在 build 命令中支持了[额外的 CLI 选项](https://rslib.rs/zh/guide/basic/cli#rslib-build)，这些选项的优先级高于配置文件。
 
-```json title=package.json
+```json title="package.json"
 {
   "scripts": {
     "build": "rslib build --entry index.ts --minify --tsconfig tsconfig.build.json"
@@ -344,7 +344,7 @@ Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bun
 
 ![rsdoctor-github-action](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
 
-#### 支持 All-in-one JSON 数据报告
+#### 单一 JSON 数据报告
 
 支持在 Brief 模式下导出单一 JSON 报告数据，用户可对该 JSON 文件进行云存储、分享以及二次数据处理。同时，新增了 Playground 页面，可通过上传 JSON 文件再次打开报告。
 

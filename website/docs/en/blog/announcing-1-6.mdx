@@ -25,7 +25,7 @@ Notable changes include:
   - [Extract source map](#extract-source-map)
 - Rstack Progress
   - [Rsbuild 1.6](#rsbuild-1-6)
-  - [Rspress v2 preview](#rspress-v2-preview)
+  - [Rspress v2 beta](#rspress-v2-beta)
   - [Rslib 0.16](#rslib-0-16)
   - [Rstest 0.6](#rstest-0-6)
   - [Rsdoctor 1.3](#rsdoctor-1-3)
@@ -226,7 +226,7 @@ export default {
 
 Once enabled, Rsbuild will no longer generate IIFE format scripts by default, but will output standard ESM format and automatically set the generated `<script>` tags to `type="module"`.
 
-#### Configuration loading method
+#### Faster configuration loading
 
 Since Node.js 22 already natively supports TypeScript, Rsbuild now defaults to using Node.js's native loader to parse configuration files; if loading fails, it will automatically fall back to [Jiti](https://github.com/unjs/jiti). When using Node.js 22 and above, this mechanism ensures that module resolution behavior remains consistent with Node.js native behavior while providing better loading performance.
 
@@ -240,9 +240,9 @@ rsbuild build --config-loader native
 rsbuild build --config-loader jiti
 ```
 
-### Rspress v2 preview
+### Rspress v2 beta
 
-#### New theme lands on V2 website
+#### New theme preview
 
 Rspress V2's new theme has entered internal testing phase and has been synchronized to the V2 website!
 
@@ -252,7 +252,7 @@ The new theme has been comprehensively upgraded in design, bringing a better doc
 
 ![rspress-v2-theme](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rspress.gif)
 
-#### Support for `<PageTabs />` component for Sub-page switching
+#### Sub-page switching
 
 Rspress V2 adds the `<PageTabs />` component, which can create sub-tabs within the same page, splitting a single page into multiple sub-pages.
 
@@ -260,7 +260,7 @@ Rspress V2 adds the `<PageTabs />` component, which can create sub-tabs within t
 
 ### Rslib 0.16
 
-#### TSGO-based Type generation
+#### Faster type generation
 
 Rslib now supports generating type declaration files based on [TSGO](https://github.com/microsoft/typescript-go), simply enable [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo). This can bring about 2.5 ~ 3 times improvement in type generation performance, with more significant benefits in large projects.
 
@@ -300,11 +300,11 @@ export default {
 };
 ```
 
-#### More build CLI options
+#### Enhanced CLI
 
 Rslib supports [additional CLI options](https://rslib.rs/zh/guide/basic/cli#rslib-build) in the build command, which take precedence over configuration files.
 
-```json title=package.json
+```json title="package.json"
 {
   "scripts": {
     "build": "rslib build --entry index.ts --minify --tsconfig tsconfig.build.json"
@@ -344,7 +344,7 @@ Rsdoctor supports GitHub bundle diff action, which can perform bundle degradatio
 
 ![rsdoctor-github-action](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
 
-#### Support for All-in-one JSON data reports
+#### All-in-one JSON data reports
 
 Supports exporting single JSON report data in Brief mode, allowing users to perform cloud storage, sharing, and secondary data processing on the JSON file. Additionally, a new Playground page has been added, allowing reports to be reopened by uploading JSON files.
 
