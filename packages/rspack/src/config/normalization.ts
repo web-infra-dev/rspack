@@ -382,7 +382,8 @@ export const getNormalizedRspackOptions = (
 				parallelCodeSplitting: experiments.parallelCodeSplitting,
 				buildHttp: experiments.buildHttp,
 				parallelLoader: experiments.parallelLoader,
-				useInputFileSystem: experiments.useInputFileSystem
+				useInputFileSystem: experiments.useInputFileSystem,
+				mfAsyncStartup: experiments.mfAsyncStartup ?? false
 			};
 		}),
 		watch: config.watch,

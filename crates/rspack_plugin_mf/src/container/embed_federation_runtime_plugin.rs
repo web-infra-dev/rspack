@@ -18,6 +18,7 @@ use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rustc_hash::FxHashSet;
 
 use super::{
+  container_entry_module::ContainerEntryModule,
   embed_federation_runtime_module::{
     EmbedFederationRuntimeModule, EmbedFederationRuntimeModuleOptions,
   },
@@ -51,6 +52,22 @@ impl EmbedFederationRuntimePlugin {
   pub fn new() -> Self {
     Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
   }
+
+  /// Check if the chunk is a container entry chunk (should NOT use async startup)
+  fn is_container_entry_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+    let entries = compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+
+    // Get the last entry module (final entry)
+    if let Some((module_id, _)) = entries.iter().next_back() {
+      let module_graph = compilation.get_module_graph();
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
+        return module.as_any().is::<ContainerEntryModule>();
+      }
+    }
+    false
+  }
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
@@ -64,6 +81,11 @@ async fn additional_chunk_runtime_requirements_tree(
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
+    return Ok(());
+  }
+
+  // Skip container entry chunks (they should NOT use async startup)
+  if Self::is_container_entry_chunk(compilation, chunk_ukey) {
     return Ok(());
   }
 
@@ -81,6 +103,7 @@ async fn additional_chunk_runtime_requirements_tree(
     // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
     if compilation.options.experiments.mf_async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     } else {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
     }
@@ -172,6 +195,11 @@ async fn render_startup(
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
+    return Ok(());
+  }
+
+  // Skip container entry chunks (they should NOT use async startup)
+  if Self::is_container_entry_chunk(compilation, chunk_ukey) {
     return Ok(());
   }
 

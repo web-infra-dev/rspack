@@ -324,14 +324,12 @@ impl JsPlugin {
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
       if chunk.has_entry_module(&compilation.chunk_graph) {
-        // Detect if federation async startup should be used
-        let is_federation_async = compilation.options.experiments.mf_async_startup
+        let use_federation_async = compilation.options.experiments.mf_async_startup
           && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
-        let mut buf2: Vec<Cow<str>> = Vec::new();
+        if use_federation_async {
+          let mut buf2: Vec<Cow<str>> = Vec::new();
 
-        if is_federation_async {
-          // Federation async startup initialization
           buf2.push("// Module Federation async startup".into());
           buf2.push(
             format!(
@@ -348,302 +346,387 @@ impl JsPlugin {
           buf2.push("} else {".into());
           buf2.push("  console.warn(\"[Module Federation] __webpack_require__.x is not a function, skipping federation startup\");".into());
           buf2.push("}".into());
-        } else {
-          buf2.push("// Load entry module and return exports".into());
-        }
 
-        let entries = compilation
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+          let entries = compilation
+            .chunk_graph
+            .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
-        // For federation async startup, collect entry data
-        let mut federation_entry_calls: Vec<String> = Vec::new();
-        let mut all_chunk_ids: Vec<String> = Vec::new();
+          let mut federation_entry_calls: Vec<String> = Vec::new();
+          let mut all_chunk_ids: Vec<String> = Vec::new();
 
-        for (i, (module, entry)) in entries.iter().enumerate() {
-          let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
-          let chunk_ids = chunk_group
-            .chunks
-            .iter()
-            .filter(|c| *c != chunk_ukey)
-            .map(|chunk_ukey| {
-              compilation
-                .chunk_by_ukey
-                .expect_get(chunk_ukey)
-                .expect_id(&compilation.chunk_ids_artifact)
-                .to_string()
-            })
-            .collect::<Vec<_>>();
-          if allow_inline_startup && !chunk_ids.is_empty() {
-            buf2.push("// This entry module depends on other loaded chunks and execution need to be delayed".into());
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && {
-            let module_graph = compilation.get_module_graph();
-            let module_graph_cache = &compilation.module_graph_cache_artifact;
-            module_graph
-              .get_incoming_connections_by_origin_module(module)
+          for (module, entry) in entries.iter() {
+            let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
+            let chunk_ids = chunk_group
+              .chunks
               .iter()
-              .any(|(origin_module, connections)| {
-                if let Some(origin_module) = origin_module {
-                  connections.iter().any(|c| {
-                    c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
-                  }) && compilation
-                    .chunk_graph
-                    .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
-                    .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
-                } else {
-                  false
-                }
+              .filter(|c| *c != chunk_ukey)
+              .map(|chunk_ukey| {
+                compilation
+                  .chunk_by_ukey
+                  .expect_get(chunk_ukey)
+                  .expect_id(&compilation.chunk_ids_artifact)
+                  .to_string()
               })
-          } {
-            buf2.push(
-              "// This entry module is referenced by other modules so it can't be inlined".into(),
-            );
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
-              .data
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|d| d.inner())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
-            allow_inline_startup = false;
-          }
-          let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-          let bailout = hooks
-            .try_read()
-            .expect("should have js plugin drive")
-            .inline_in_runtime_bailout
-            .call(compilation)
-            .await?;
-          if allow_inline_startup && let Some(bailout) = bailout {
-            buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
-            allow_inline_startup = false;
-          }
-          let entry_runtime_requirements =
-            ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
-          if allow_inline_startup
-            && let Some(entry_runtime_requirements) = entry_runtime_requirements
-            && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
-          {
-            allow_inline_startup = false;
-            buf2.push("// This entry module used 'module' so it can't be inlined".into());
-          }
+              .collect::<Vec<_>>();
+            if allow_inline_startup && !chunk_ids.is_empty() {
+              buf2.push("// This entry module depends on other loaded chunks and execution need to be delayed".into());
+              allow_inline_startup = false;
+            }
+            if allow_inline_startup && {
+              let module_graph = compilation.get_module_graph();
+              let module_graph_cache = &compilation.module_graph_cache_artifact;
+              module_graph
+                .get_incoming_connections_by_origin_module(module)
+                .iter()
+                .any(|(origin_module, connections)| {
+                  if let Some(origin_module) = origin_module {
+                    connections.iter().any(|c| {
+                      c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                    }) && compilation
+                      .chunk_graph
+                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
+                      .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
+                  } else {
+                    false
+                  }
+                })
+            } {
+              buf2.push(
+                "// This entry module is referenced by other modules so it can't be inlined".into(),
+              );
+              allow_inline_startup = false;
+            }
+            if allow_inline_startup && {
+              let codegen = compilation
+                .code_generation_results
+                .get(module, Some(chunk.runtime()));
+              let module_graph = compilation.get_module_graph();
+              let top_level_decls = codegen
+                .data
+                .get::<CodeGenerationDataTopLevelDeclarations>()
+                .map(|d| d.inner())
+                .or_else(|| {
+                  module_graph
+                    .module_by_identifier(module)
+                    .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                });
+              top_level_decls.is_none()
+            } {
+              buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+              allow_inline_startup = false;
+            }
+            let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+            let bailout = hooks
+              .try_read()
+              .expect("should have js plugin drive")
+              .inline_in_runtime_bailout
+              .call(compilation)
+              .await?;
+            if allow_inline_startup && let Some(bailout) = bailout {
+              buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
+              allow_inline_startup = false;
+            }
+            let entry_runtime_requirements =
+              ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
+            if allow_inline_startup
+              && let Some(entry_runtime_requirements) = entry_runtime_requirements
+              && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
+            {
+              allow_inline_startup = false;
+              buf2.push("// This entry module used 'module' so it can't be inlined".into());
+            }
 
-          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
-            .expect("should have module id");
-          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
-          if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
-            module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
-          }
+            let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+              .expect("should have module id");
+            let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+            if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
+              module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+            }
 
-          // For federation async startup, collect entry data instead of generating execution code
-          if is_federation_async {
-            // Store module ID for __webpack_exec__ call
             federation_entry_calls.push(format!("__webpack_exec__({})", module_id_expr));
-            // Collect unique chunk IDs
             for chunk_id in &chunk_ids {
               if !all_chunk_ids.contains(chunk_id) {
                 all_chunk_ids.push(chunk_id.clone());
               }
             }
-          } else if !chunk_ids.is_empty() {
+          }
+
+          if !federation_entry_calls.is_empty() {
+            let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
+            let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
+            let entry_fn_body = federation_entry_calls.join("; ");
+
+            buf2.push("// Wrap startup in Promise.all with federation handlers".into());
+            buf2.push(format!("var {} = Promise.all([", RuntimeGlobals::EXPORTS).into());
             buf2.push(
               format!(
-                "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
-                if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
-                } else {
-                  "".to_string()
-                },
-                RuntimeGlobals::ON_CHUNKS_LOADED,
-                stringify_array(&chunk_ids),
-                RuntimeGlobals::REQUIRE
+                "  {}.consumes || function(chunkId, promises) {{}},",
+                RuntimeGlobals::ENSURE_CHUNK_HANDLERS
               )
               .into(),
             );
-          } else if use_require {
             buf2.push(
               format!(
-                "{}{}({module_id_expr});",
-                if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
-                } else {
-                  "".to_string()
-                },
-                RuntimeGlobals::REQUIRE
+                "  {}.remotes || function(chunkId, promises) {{}}",
+                RuntimeGlobals::ENSURE_CHUNK_HANDLERS
               )
               .into(),
-            )
-          } else {
-            let should_exec = i + 1 == entries.len();
-            if should_exec {
-              buf2.push(format!("var {} = {{}}", RuntimeGlobals::EXPORTS).into());
-            }
-            if require_scope_used {
+            );
+            buf2.push(
+              format!(
+                "].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)",
+                chunk_id_str
+              )
+              .into(),
+            );
+            buf2.push(").then(function() {".into());
+            if !all_chunk_ids.is_empty() {
               buf2.push(
                 format!(
-                  "__webpack_modules__[{module_id_expr}](0, {}, {});",
-                  if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
-                  } else {
-                    "{}"
-                  },
-                  RuntimeGlobals::REQUIRE
-                )
-                .into(),
-              );
-            } else if let Some(entry_runtime_requirements) = entry_runtime_requirements
-              && entry_runtime_requirements.contains(RuntimeGlobals::EXPORTS)
-            {
-              buf2.push(
-                format!(
-                  "__webpack_modules__[{module_id_expr}](0, {});",
-                  if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
-                  } else {
-                    "{}"
-                  }
+                  "  return {}(0, {}, function() {{ return {}; }});",
+                  RuntimeGlobals::STARTUP_ENTRYPOINT,
+                  stringify_array(&all_chunk_ids),
+                  entry_fn_body
                 )
                 .into(),
               );
             } else {
-              buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
+              buf2.push(format!("  return {};", entry_fn_body).into());
+            }
+            buf2.push("});".into());
+
+            allow_inline_startup = false;
+            startup.push("// federation async startup".into());
+            startup.push(buf2.join("\n").into());
+          }
+        } else {
+          let mut buf2: Vec<Cow<str>> = Vec::new();
+          buf2.push("// Load entry module and return exports".into());
+
+          let entries = compilation
+            .chunk_graph
+            .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+
+          for (i, (module, entry)) in entries.iter().enumerate() {
+            let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
+            let chunk_ids = chunk_group
+              .chunks
+              .iter()
+              .filter(|c| *c != chunk_ukey)
+              .map(|chunk_ukey| {
+                compilation
+                  .chunk_by_ukey
+                  .expect_get(chunk_ukey)
+                  .expect_id(&compilation.chunk_ids_artifact)
+                  .to_string()
+              })
+              .collect::<Vec<_>>();
+            if allow_inline_startup && !chunk_ids.is_empty() {
+              buf2.push("// This entry module depends on other loaded chunks and execution need to be delayed".into());
+              allow_inline_startup = false;
+            }
+            if allow_inline_startup && {
+              let module_graph = compilation.get_module_graph();
+              let module_graph_cache = &compilation.module_graph_cache_artifact;
+              module_graph
+                .get_incoming_connections_by_origin_module(module)
+                .iter()
+                .any(|(origin_module, connections)| {
+                  if let Some(origin_module) = origin_module {
+                    connections.iter().any(|c| {
+                      c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                    }) && compilation
+                      .chunk_graph
+                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
+                      .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
+                  } else {
+                    false
+                  }
+                })
+            } {
+              buf2.push(
+                "// This entry module is referenced by other modules so it can't be inlined".into(),
+              );
+              allow_inline_startup = false;
+            }
+            if allow_inline_startup && {
+              let codegen = compilation
+                .code_generation_results
+                .get(module, Some(chunk.runtime()));
+              let module_graph = compilation.get_module_graph();
+              let top_level_decls = codegen
+                .data
+                .get::<CodeGenerationDataTopLevelDeclarations>()
+                .map(|d| d.inner())
+                .or_else(|| {
+                  module_graph
+                    .module_by_identifier(module)
+                    .and_then(|m| m.build_info().top_level_declarations.as_ref())
+                });
+              top_level_decls.is_none()
+            } {
+              buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+              allow_inline_startup = false;
+            }
+            let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+            let bailout = hooks
+              .try_read()
+              .expect("should have js plugin drive")
+              .inline_in_runtime_bailout
+              .call(compilation)
+              .await?;
+            if allow_inline_startup && let Some(bailout) = bailout {
+              buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
+              allow_inline_startup = false;
+            }
+            let entry_runtime_requirements =
+              ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
+            if allow_inline_startup
+              && let Some(entry_runtime_requirements) = entry_runtime_requirements
+              && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
+            {
+              allow_inline_startup = false;
+              buf2.push("// This entry module used 'module' so it can't be inlined".into());
+            }
+
+            let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+              .expect("should have module id");
+            let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+            if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
+              module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+            }
+
+            if !chunk_ids.is_empty() {
+              buf2.push(
+                format!(
+                  "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
+                  if i + 1 == entries.len() {
+                    format!("var {} = ", RuntimeGlobals::EXPORTS)
+                  } else {
+                    "".to_string()
+                  },
+                  RuntimeGlobals::ON_CHUNKS_LOADED,
+                  stringify_array(&chunk_ids),
+                  RuntimeGlobals::REQUIRE
+                )
+                .into(),
+              );
+            } else if use_require {
+              buf2.push(
+                format!(
+                  "{}{}({module_id_expr});",
+                  if i + 1 == entries.len() {
+                    format!("var {} = ", RuntimeGlobals::EXPORTS)
+                  } else {
+                    "".to_string()
+                  },
+                  RuntimeGlobals::REQUIRE
+                )
+                .into(),
+              )
+            } else {
+              let should_exec = i + 1 == entries.len();
+              if should_exec {
+                buf2.push(format!("var {} = {{}}", RuntimeGlobals::EXPORTS).into());
+              }
+              if require_scope_used {
+                buf2.push(
+                  format!(
+                    "__webpack_modules__[{module_id_expr}](0, {}, {});",
+                    if should_exec {
+                      RuntimeGlobals::EXPORTS.name()
+                    } else {
+                      "{}"
+                    },
+                    RuntimeGlobals::REQUIRE
+                  )
+                  .into(),
+                );
+              } else if let Some(entry_runtime_requirements) = entry_runtime_requirements
+                && entry_runtime_requirements.contains(RuntimeGlobals::EXPORTS)
+              {
+                buf2.push(
+                  format!(
+                    "__webpack_modules__[{module_id_expr}](0, {});",
+                    if should_exec {
+                      RuntimeGlobals::EXPORTS.name()
+                    } else {
+                      "{}"
+                    }
+                  )
+                  .into(),
+                );
+              } else {
+                buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
+              }
             }
           }
-        }
 
-        // Add federation async startup Promise.all wrapping
-        if is_federation_async && !federation_entry_calls.is_empty() {
-          // Get the chunk ID for this chunk
-          let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
-          let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
-
-          // Build the entry execution function
-          let entry_fn_body = federation_entry_calls.join("; ");
-
-          // Build Promise.all wrapping with federation handlers
-          buf2.push("// Wrap startup in Promise.all with federation handlers".into());
-          buf2.push(format!("var {} = Promise.all([", RuntimeGlobals::EXPORTS).into());
-          buf2.push(
-            format!(
-              "  {}.consumes || function(chunkId, promises) {{}},",
-              RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-            )
-            .into(),
-          );
-          buf2.push(
-            format!(
-              "  {}.remotes || function(chunkId, promises) {{}}",
-              RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-            )
-            .into(),
-          );
-          buf2.push(
-            format!(
-              "].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)",
-              chunk_id_str
-            )
-            .into(),
-          );
-          buf2.push(").then(function() {".into());
-
-          // Call STARTUP_ENTRYPOINT with chunk dependencies and entry execution, or directly execute
-          if !all_chunk_ids.is_empty() {
+          if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
             buf2.push(
               format!(
-                "  return {}(0, {}, function() {{ return {}; }});",
+                "__webpack_exports__ = {}(__webpack_exports__);",
+                RuntimeGlobals::ON_CHUNKS_LOADED
+              )
+              .into(),
+            );
+          }
+          if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+            allow_inline_startup = false;
+            header.push(
+              format!(
+                "// the startup function\n{} = {};\n",
+                RuntimeGlobals::STARTUP,
+                basic_function(
+                  &compilation.options.output.environment,
+                  "",
+                  &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
+                )
+              )
+              .into(),
+            );
+            startup.push("// run startup".into());
+            startup.push(
+              format!(
+                "var {} = {}();",
+                RuntimeGlobals::EXPORTS,
+                RuntimeGlobals::STARTUP
+              )
+              .into(),
+            );
+          } else if compilation.options.experiments.mf_async_startup
+            && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+          {
+            allow_inline_startup = false;
+            header.push(
+              format!(
+                "// the startup function (async)\n{} = {};\n",
                 RuntimeGlobals::STARTUP_ENTRYPOINT,
-                stringify_array(&all_chunk_ids),
-                entry_fn_body
+                basic_function(
+                  &compilation.options.output.environment,
+                  "",
+                  &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
+                )
+              )
+              .into(),
+            );
+            startup.push("// run startup".into());
+            startup.push(
+              format!(
+                "var {} = {}();",
+                RuntimeGlobals::EXPORTS,
+                RuntimeGlobals::STARTUP_ENTRYPOINT
               )
               .into(),
             );
           } else {
-            buf2.push(format!("  return {};", entry_fn_body).into());
+            startup.push("// startup".into());
+            startup.push(buf2.join("\n").into());
           }
-
-          buf2.push("});".into());
-
-          // Skip STARTUP_ENTRYPOINT wrapping - the Promise.all IS the startup
-          allow_inline_startup = false;
-          startup.push("// federation async startup".into());
-          startup.push(buf2.join("\n").into());
-        } else if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
-          buf2.push(
-            format!(
-              "__webpack_exports__ = {}(__webpack_exports__);",
-              RuntimeGlobals::ON_CHUNKS_LOADED
-            )
-            .into(),
-          );
         }
-
-        if !is_federation_async && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-        {
-          // Async startup entrypoint (for MF async startup)
-          allow_inline_startup = false;
-          header.push(
-            format!(
-              "// the startup function (async)\n{} = {};\n",
-              RuntimeGlobals::STARTUP_ENTRYPOINT,
-              basic_function(
-                &compilation.options.output.environment,
-                "",
-                &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
-              )
-            )
-            .into(),
-          );
-          startup.push("// run startup".into());
-          startup.push(
-            format!(
-              "var {} = {}();",
-              RuntimeGlobals::EXPORTS,
-              RuntimeGlobals::STARTUP_ENTRYPOINT
-            )
-            .into(),
-          );
-        } else if !is_federation_async && runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-          allow_inline_startup = false;
-          header.push(
-            format!(
-              "// the startup function\n{} = {};\n",
-              RuntimeGlobals::STARTUP,
-              basic_function(
-                &compilation.options.output.environment,
-                "",
-                &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
-              )
-            )
-            .into(),
-          );
-          startup.push("// run startup".into());
-          startup.push(
-            format!(
-              "var {} = {}();",
-              RuntimeGlobals::EXPORTS,
-              RuntimeGlobals::STARTUP
-            )
-            .into(),
-          );
-        } else if !is_federation_async {
-          startup.push("// startup".into());
-          startup.push(buf2.join("\n").into());
-        }
-      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+      } else if compilation.options.experiments.mf_async_startup
+        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+      {
         header.push(
           format!(
             "// the startup function (async)\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
@@ -660,8 +743,9 @@ impl JsPlugin {
           .into(),
         );
       }
-    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
-      // When STARTUP_ENTRYPOINT is present (async MF startup), call .X() instead of .x()
+    } else if compilation.options.experiments.mf_async_startup
+      && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+    {
       startup.push("// run startup".into());
       startup.push(
         format!(

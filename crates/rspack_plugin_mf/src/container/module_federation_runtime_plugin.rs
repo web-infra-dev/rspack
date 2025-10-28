@@ -60,6 +60,7 @@ async fn additional_tree_runtime_requirements(
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
+      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
   }
 

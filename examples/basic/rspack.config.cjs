@@ -1,4 +1,4 @@
-const rspack = require("../../packages/rspack/dist/index.js");
+const _rspack = require("../../packages/rspack/dist/index.js");
 
 module.exports = {
 	context: __dirname,
@@ -7,22 +7,17 @@ module.exports = {
 	},
 	mode: 'development',
 	devtool: false,
+	output: {
+		module: true,
+		libraryTarget: 'module',
+		chunkFormat: 'module'
+	},
 	optimization: {
 		runtimeChunk: 'single'
 	},
 	experiments: {
-		mfAsyncStartup: true
+		mfAsyncStartup: false,
+		outputModule: true
 	},
-	plugins: [
-		new rspack.container.ModuleFederationPlugin({
-			name: "basic_example",
-			filename: "remoteEntry.js",
-			shared: {
-				react: {
-					singleton: true,
-					requiredVersion: "^18.0.0"
-				}
-			}
-		})
-	]
+	plugins: []
 };
