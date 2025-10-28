@@ -40,15 +40,15 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 ### terser-webpack-plugin
 
-[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin).
+[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin).
 
 ### css-minimizer-webpack-plugin
 
-[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin).
+[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin).
 
 ### less-loader
 
-[less-loader](https://github.com/webpack-contrib/less-loader) compiles `.less` files based on Less. Since Less currently lacks an officially implemented high performance alternative, it is recommended to use [sass-loader](https://github.com/webpack-contrib/sass-loader) and [sass-embedded](https://www.npmjs.com/package/sass-embedded) instead. `sass-embedded` is a JavaScript wrapper for Sass's native Dart executable that provides excellent performance.
+[less-loader](https://github.com/webpack/less-loader) compiles `.less` files based on Less. Since Less currently lacks an officially implemented high performance alternative, it is recommended to use [sass-loader](https://github.com/webpack/sass-loader) and [sass-embedded](https://www.npmjs.com/package/sass-embedded) instead. `sass-embedded` is a JavaScript wrapper for Sass's native Dart executable that provides excellent performance.
 
 ### html-webpack-plugin
 
