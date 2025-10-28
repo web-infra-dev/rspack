@@ -14,17 +14,13 @@
   "bin": {
     "create-rspack": "bin.js"
   },
-  "files": [
-    "template-*",
-    "dist",
-    "bin.js"
-  ],
+  "files": ["template-*", "dist", "bin.js"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "1.6.1"
+    "create-rstack": "1.7.1"
   },
   "devDependencies": {
     "@rslib/core": "0.16.1",
