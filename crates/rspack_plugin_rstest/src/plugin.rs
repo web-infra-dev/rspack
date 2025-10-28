@@ -71,7 +71,7 @@ impl RstestPlugin {
         pos.content_with_flag_start,
         pos.content_with_flag_end,
       ) {
-        let content = old.source().into_string_lossy()[content_start..content_end].to_string();
+        let content = &old.source().into_string_lossy()[content_start..content_end];
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon

@@ -1442,8 +1442,15 @@ impl Compilation {
 
     // make finished, make artifact should be readonly thereafter.
 
-    // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
+      mutations.extend(
+        self
+          .make_artifact
+          .affected_dependencies
+          .updated()
+          .iter()
+          .map(|&dependency| Mutation::DependencyUpdate { dependency }),
+      );
       mutations.extend(
         self
           .make_artifact

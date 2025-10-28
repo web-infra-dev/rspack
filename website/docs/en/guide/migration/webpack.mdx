@@ -92,7 +92,7 @@ Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspac
 
 ### `copy-webpack-plugin`
 
-Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin):
+Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -110,7 +110,7 @@ module.exports = {
 
 ### `mini-css-extract-plugin`
 
-Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin):
+Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');

@@ -89,6 +89,7 @@ impl From<JsSourceToJs> for BoxSource {
         Some(map) => SourceMapSource::new(WithoutOriginalOptions {
           value: string,
           name: "inmemory://from js",
+          #[allow(clippy::unwrap_used)]
           source_map: SourceMap::from_json(map.as_ref()).unwrap(),
         })
         .boxed(),

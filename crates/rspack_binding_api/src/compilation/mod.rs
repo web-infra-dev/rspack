@@ -156,7 +156,7 @@ impl JsCompilation {
   }
 
   #[napi(ts_return_type = "JsSource | null")]
-  pub fn get_asset_source<'a>(&self, env: &'a Env, name: String) -> Result<Option<JsSourceToJs>> {
+  pub fn get_asset_source(&self, env: &Env, name: String) -> Result<Option<JsSourceToJs>> {
     let compilation = self.as_ref()?;
 
     compilation
