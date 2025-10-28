@@ -88,14 +88,26 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
-    // Use STARTUP_ENTRYPOINT when mf_async_startup is enabled, otherwise use STARTUP
-    let startup = if compilation.options.experiments.mf_async_startup {
-      RuntimeGlobals::STARTUP_ENTRYPOINT.name()
+    // When mf_async_startup is enabled, wrap __webpack_require__.x instead of STARTUP_ENTRYPOINT
+    // This ensures federation runtime modules execute BEFORE __webpack_require__.x() is called
+    let result = if compilation.options.experiments.mf_async_startup {
+      format!(
+        r#"var prevX = __webpack_require__.x;
+var hasRun = false;
+__webpack_require__.x = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	if (typeof prevX === 'function') {{
+		return prevX();
+	}}
+}};"#
+      )
     } else {
-      RuntimeGlobals::STARTUP.name()
-    };
-    let result = format!(
-      r#"var prevStartup = {startup};
+      let startup = RuntimeGlobals::STARTUP.name();
+      format!(
+        r#"var prevStartup = {startup};
 var hasRun = false;
 {startup} = function() {{
 	if (!hasRun) {{
@@ -108,7 +120,8 @@ var hasRun = false;
 		console.warn('[MF] Invalid prevStartup');
 	}}
 }};"#
-    );
+      )
+    };
 
     Ok(result)
   }

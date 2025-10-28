@@ -1724,7 +1724,10 @@ impl EsmLibraryPlugin {
             continue;
           };
 
-          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
+          if !matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          ) {
             continue;
           }
 

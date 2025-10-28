@@ -226,34 +226,19 @@ async fn render_startup(
     return Ok(());
   }
 
-  // Entry chunks delegating to runtime need explicit startup calls
+  // Entry chunks delegating to runtime need explicit federation initialization
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
 
     if compilation.options.experiments.mf_async_startup {
-      // Use federation async startup pattern with Promise.all wrapping
-      // This completely replaces the original startup since Promise.all handles everything
-      let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
-      let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
-
+      // For async mode, call __webpack_require__.x() before executing entry modules
+      startup_with_call.add(RawStringSource::from("\n// Initialize federation runtime\n"));
       startup_with_call.add(RawStringSource::from(
-        "\n// Federation async startup (delegated)\n",
-      ));
-      startup_with_call.add(RawStringSource::from("var promises = [];\n"));
-      startup_with_call.add(RawStringSource::from(
-        "if (typeof __webpack_require__.x === \"function\") {\n",
+        "if (typeof __webpack_require__.x === 'function') {\n",
       ));
       startup_with_call.add(RawStringSource::from("  __webpack_require__.x();\n"));
       startup_with_call.add(RawStringSource::from("}\n"));
-      startup_with_call.add(RawStringSource::from(format!(
-        "var __webpack_exports__ = Promise.all([\n  {}.consumes || function(chunkId, promises) {{}},\n  {}.remotes || function(chunkId, promises) {{}}\n].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises)\n).then(function() {{\n  return {}();\n}});\n",
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name(),
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS.name(),
-        chunk_id_str,
-        RuntimeGlobals::STARTUP_ENTRYPOINT.name()
-      )));
-
-      // Replace the entire source with our async startup
+      startup_with_call.add(render_source.source.clone());
       render_source.source = startup_with_call.boxed();
     } else {
       // Standard sync startup call - prepend to original
