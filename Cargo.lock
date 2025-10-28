@@ -4948,8 +4948,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.11"
-source = "git+https://github.com/SyMind/rspack-sources.git?rev=94d18ea3d36f87a48818cd820786d8c6d3a01f80#94d18ea3d36f87a48818cd820786d8c6d3a01f80"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e9329f7305637366273271d5eb37c4c104112642efe1757cc31f2d9d76481cf"
 dependencies = [
  "dyn-clone",
  "itertools 0.13.0",
