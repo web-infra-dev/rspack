@@ -228,43 +228,55 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit federation initialization
   if !has_runtime && has_entry_modules {
+    let is_esm_output = compilation.options.output.module;
     let mut startup_with_call = ConcatSource::default();
 
     if compilation.options.experiments.mf_async_startup {
-      // For async mode, wrap execution in Promise-based pattern
       let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
       let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
 
-      startup_with_call.add(RawStringSource::from("\n// Initialize federation runtime\n"));
-      startup_with_call.add(RawStringSource::from("var runtimeInitialization = undefined;\n"));
-      startup_with_call.add(RawStringSource::from("if (typeof __webpack_require__.x === 'function') {\n"));
-      startup_with_call.add(RawStringSource::from("  runtimeInitialization = __webpack_require__.x();\n"));
-      startup_with_call.add(RawStringSource::from("}\n"));
-      startup_with_call.add(RawStringSource::from("var promises = [];\n"));
-      startup_with_call.add(RawStringSource::from(format!(
-        "var {} = Promise.resolve(runtimeInitialization).then(function() {{\n",
-        RuntimeGlobals::EXPORTS.name()
-      )));
-      startup_with_call.add(RawStringSource::from("  var handlers = [\n"));
-      startup_with_call.add(RawStringSource::from("    function(chunkId, promises) {\n"));
-      startup_with_call.add(RawStringSource::from("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);\n"));
-      startup_with_call.add(RawStringSource::from("    },\n"));
-      startup_with_call.add(RawStringSource::from("    function(chunkId, promises) {\n"));
-      startup_with_call.add(RawStringSource::from("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);\n"));
-      startup_with_call.add(RawStringSource::from("    }\n"));
-      startup_with_call.add(RawStringSource::from("  ];\n"));
-      startup_with_call.add(RawStringSource::from(format!(
-        "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));\n",
-        chunk_id_str
-      )));
-      startup_with_call.add(RawStringSource::from("}).then(function() {\n"));
-      // Add the original source but change it to return the value instead of declaring __webpack_exports__
-      startup_with_call.add(RawStringSource::from("  return (function() {\n"));
-      startup_with_call.add(render_source.source.clone());
-      startup_with_call.add(RawStringSource::from("    return __webpack_exports__;\n"));
-      startup_with_call.add(RawStringSource::from("  })();\n"));
-      startup_with_call.add(RawStringSource::from("});\n"));
-      render_source.source = startup_with_call.boxed();
+      if is_esm_output {
+        // ESM async mode: add top-level await for federation initialization
+        // Cannot wrap imports, so just prepend initialization and wrap execution
+        startup_with_call.add(RawStringSource::from("\n// Initialize federation runtime\n"));
+        startup_with_call.add(RawStringSource::from("if (typeof __webpack_require__.x === 'function') {\n"));
+        startup_with_call.add(RawStringSource::from("  await __webpack_require__.x();\n"));
+        startup_with_call.add(RawStringSource::from("}\n"));
+        startup_with_call.add(render_source.source.clone());
+        render_source.source = startup_with_call.boxed();
+      } else {
+        // CJS output: use function-based Promise pattern
+        startup_with_call.add(RawStringSource::from("\n// Initialize federation runtime\n"));
+        startup_with_call.add(RawStringSource::from("var runtimeInitialization = undefined;\n"));
+        startup_with_call.add(RawStringSource::from("if (typeof __webpack_require__.x === 'function') {\n"));
+        startup_with_call.add(RawStringSource::from("  runtimeInitialization = __webpack_require__.x();\n"));
+        startup_with_call.add(RawStringSource::from("}\n"));
+        startup_with_call.add(RawStringSource::from("var promises = [];\n"));
+        startup_with_call.add(RawStringSource::from(format!(
+          "var {} = Promise.resolve(runtimeInitialization).then(function() {{\n",
+          RuntimeGlobals::EXPORTS.name()
+        )));
+        startup_with_call.add(RawStringSource::from("  var handlers = [\n"));
+        startup_with_call.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        startup_with_call.add(RawStringSource::from("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        startup_with_call.add(RawStringSource::from("    },\n"));
+        startup_with_call.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        startup_with_call.add(RawStringSource::from("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        startup_with_call.add(RawStringSource::from("    }\n"));
+        startup_with_call.add(RawStringSource::from("  ];\n"));
+        startup_with_call.add(RawStringSource::from(format!(
+          "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));\n",
+          chunk_id_str
+        )));
+        startup_with_call.add(RawStringSource::from("}).then(function() {\n"));
+        // Add the original source but change it to return the value instead of declaring __webpack_exports__
+        startup_with_call.add(RawStringSource::from("  return (function() {\n"));
+        startup_with_call.add(render_source.source.clone());
+        startup_with_call.add(RawStringSource::from("    return __webpack_exports__;\n"));
+        startup_with_call.add(RawStringSource::from("  })();\n"));
+        startup_with_call.add(RawStringSource::from("});\n"));
+        render_source.source = startup_with_call.boxed();
+      }
     } else {
       // Standard sync startup call - prepend to original
       startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
