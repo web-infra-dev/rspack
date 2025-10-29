@@ -24,7 +24,7 @@ use swc_core::common::sync::Lazy;
 
 use crate::{
   chunk_link::{ChunkLinkContext, Ref},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS, RSPACK_ESM_RUNTIME_CHUNK},
+  plugin::RSPACK_ESM_RUNTIME_CHUNK,
   runtime::RegisterModuleRuntime,
 };
 
@@ -76,23 +76,16 @@ impl EsmLibraryPlugin {
     asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
-    let chunk_link_guard = LINKS.read().await;
+    let chunk_link_guard = self.links.get().expect("should have chunk link");
 
-    let chunk_link = chunk_link_guard
-      .get(&compilation.id().0)
-      .expect("should have chunk link for compilation")
-      .get(chunk_ukey)
-      .expect("should have chunk");
+    let chunk_link = chunk_link_guard.get(chunk_ukey).expect("should have chunk");
 
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
     let mut replace_auto_public_path = false;
     let mut replace_static_url = false;
 
-    let concatenated_modules_map_by_compilation = CONCATENATED_MODULES_MAP.lock().await;
-    let concatenated_modules_map = concatenated_modules_map_by_compilation
-      .get(&compilation.id().0)
-      .expect("should have map for compilation");
+    let concatenated_modules_map = self.concatenated_modules_map.read().await;
 
     let chunk = get_chunk(compilation, *chunk_ukey);
     let filename_template = get_js_chunk_filename_template(
@@ -132,13 +125,14 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-      let hooks = hooks.read().await;
+
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
 
+        let hooks = hooks.read().await;
         let Some((module_source, init_frags, init_frags2)) = render_module(
           compilation,
           chunk_ukey,
@@ -152,12 +146,12 @@ impl EsmLibraryPlugin {
         else {
           continue;
         };
+        drop(hooks);
 
         chunk_init_fragments.extend(init_frags);
         chunk_init_fragments.extend(init_frags2);
         decl_inner.add(module_source.clone());
       }
-      drop(hooks);
 
       if !decl_inner.source().is_empty() {
         // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
