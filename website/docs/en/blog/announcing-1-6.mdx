@@ -23,6 +23,7 @@ Notable changes include:
   - [Stabilized layers feature](#stabilized-layers-feature)
   - [Preserve JSX syntax](#preserve-jsx-syntax)
   - [Extract source map](#extract-source-map)
+  - [Performance improvements](#performance-improvements)
 - Rstack Progress
   - [Rsbuild 1.6](#rsbuild-1-6)
   - [Rspress v2 beta](#rspress-v2-beta)
@@ -214,6 +215,16 @@ export default {
   },
 };
 ```
+
+### Performance improvements
+
+Rspack 1.6 introduces several performance optimizations. Compared with Rspack 1.5.0, you can expect the following improvements:
+
+- CLI startup is about **50 ms faster**
+- Building 10 000 React components is **11% faster**
+- Building multiple UI component libraries is **31% faster** (thanks to the newly enabled barrel-file optimization by default)
+
+> Data source: [Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
 
 ## Rstack progress
 

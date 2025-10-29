@@ -23,6 +23,7 @@ Rspack 1.6 已经正式发布！
   - [layers 特性稳定](#layers-特性稳定)
   - [保留 JSX 语法](#保留-jsx-语法)
   - [提取 source map](#提取-source-map)
+  - [性能提升](#性能提升)
 - Rstack 进展
   - [Rsbuild 1.6](#rsbuild-1-6)
   - [Rspress v2 beta](#rspress-v2-beta)
@@ -214,6 +215,16 @@ export default {
   },
 };
 ```
+
+### 性能提升
+
+Rspack 1.6 带来了多项性能优化，相较于 Rspack 1.5.0，性能提升如下：
+
+- CLI 启动速度提升约 **50 ms**
+- 构建 10 000 个 React 组件的速度提升 **11%**
+- 构建多个 UI 组件库的速度提升 **31%**（得益于默认启用的 barrel 文件优化）
+
+> 数据来源：[Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
 
 ## Rstack 进展
 
