@@ -159,13 +159,15 @@ impl EsmLibraryPlugin {
       }
       drop(hooks);
 
-      // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
-      decl_source.add(RawStringSource::from(format!(
-        "{}({{\n",
-        RegisterModuleRuntime::runtime_id()
-      )));
-      decl_source.add(decl_inner);
-      decl_source.add(RawStringSource::from_static("});\n"));
+      if !decl_inner.source().is_empty() {
+        // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
+        decl_source.add(RawStringSource::from(format!(
+          "{}({{\n",
+          RegisterModuleRuntime::runtime_id()
+        )));
+        decl_source.add(decl_inner);
+        decl_source.add(RawStringSource::from_static("});\n"));
+      }
     }
 
     // present as

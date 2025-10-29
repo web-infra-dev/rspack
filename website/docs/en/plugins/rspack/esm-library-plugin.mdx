@@ -15,12 +15,8 @@ import { rspack } from '@rspack/core';
 
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
-  output: {
-    chunkFormat: false, // disable default chunk format as EsmLibraryPlugin will handle how chunks are rendered and loaded
-  },
   optimization: {
     runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
-    concatenateModules: false, // disable module concatenation as EsmLibraryPlugin has its own scope hoisting implementation
   },
 };
 ```
