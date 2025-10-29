@@ -106,7 +106,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
     let source = {
-      let source = &origin_source.source();
+      let source = origin_source.source().into_string_lossy();
 
       {
         let modules = map.sources().iter().map(|source| {

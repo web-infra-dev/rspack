@@ -175,7 +175,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
-      source.source().to_string(),
+      source.source().into_string_lossy().into_owned(),
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -273,7 +273,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     if compiler_options.optimization.side_effects.is_true() {
       build_meta.side_effect_free = Some(side_effects_item.is_none());
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let source = source.source();
+        let source = source.source().into_string_lossy();
         let msg = Into::<DependencyRange>::into(item.span)
           .to_loc(Some(source.as_ref()))?
           .to_string();

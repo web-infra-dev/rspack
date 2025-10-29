@@ -390,11 +390,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       };
 
+      let content = source.source().into_string_lossy();
+
       if asset
         .get_info()
         .extras
         .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
-        && source.source().trim().is_empty()
+        && content.trim().is_empty()
       {
         // remove empty runtime chunk
         removed.push(asset_name.to_string());
@@ -408,7 +410,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // only use the path, pop filename
       self_path.pop();
 
-      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&source.source()) {
+      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let whole_str = captures.as_str();
         let chunk_ukey = whole_str
           .strip_prefix("__RSPACK_ESM_CHUNK_")

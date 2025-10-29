@@ -15,8 +15,7 @@ use rspack_core::{
   ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
   RuntimeGlobals, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
   rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
-    SourceExt,
+    BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -102,7 +101,7 @@ impl CssPlugin {
     let source =
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
-    let content = source.source();
+    let content = source.source().into_string_lossy();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
     let auto_public_path_matches: Vec<_> = content
       .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
@@ -201,17 +200,19 @@ impl CssPlugin {
                 // TODO: use PrefixSource to create indent
                 if let Some(media) = data.get::<CssMedia>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@media {media}{{\n")));
+                  container_source.add(RawStringSource::from(format!("@media {media}{{\n")));
                 }
 
                 if let Some(supports) = data.get::<CssSupports>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@supports ({supports}) {{\n")));
+                  container_source.add(RawStringSource::from(format!(
+                    "@supports ({supports}) {{\n"
+                  )));
                 }
 
                 if let Some(layer) = data.get::<CssLayer>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!(
+                  container_source.add(RawStringSource::from(format!(
                     "@layer{} {{\n",
                     if let CssLayer::Named(layer) = &layer {
                       Cow::Owned(format!(" {layer}"))
