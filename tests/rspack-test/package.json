@@ -11,7 +11,7 @@
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:rstest": "rstest",
     "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js  --passWithNoTests",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests"
+    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/@rstest/core/bin/rstest --config ./rstest.config.hot.ts --passWithNoTests"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
