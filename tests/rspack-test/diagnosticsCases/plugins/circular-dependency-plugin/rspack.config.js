@@ -1,6 +1,6 @@
 const { CircularDependencyRspackPlugin } = require("@rspack/core");
-const startFn = jest.fn();
-const endFn = jest.fn();
+const startFn = rstest.fn();
+const endFn = rstest.fn();
 
 module.exports = {
 	entry: {

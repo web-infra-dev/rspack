@@ -431,14 +431,8 @@ export class NodeRunner implements ITestRunner {
 				`run mode: ${this._options.runInNewContext ? "new context" : "this context"}`
 			);
 			const fn = this._options.runInNewContext
-				? vm.runInNewContext(code, this.globalContext!, {
-						filename: file.path,
-						lineOffset: 1
-					})
-				: vm.runInThisContext(code, {
-						filename: file.path,
-						lineOffset: 1
-					});
+				? vm.runInNewContext(code, this.globalContext!)
+				: vm.runInThisContext(code);
 
 			fn.call(
 				this._options.testConfig.nonEsmThis

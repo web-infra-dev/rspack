@@ -326,7 +326,7 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
-  pub(crate) module_type: &'parser ModuleType,
+  pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -564,6 +564,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn next_dependency_idx(&self) -> usize {
     self.dependencies.len()
+  }
+
+  pub fn get_dependencies(&self) -> &[BoxDependency] {
+    &self.dependencies
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {

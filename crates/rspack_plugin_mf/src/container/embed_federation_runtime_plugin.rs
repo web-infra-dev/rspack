@@ -345,7 +345,9 @@ async fn render_startup(
       }
     } else {
       // Standard sync startup call - prepend to original
-      startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
+      startup_with_call.add(RawStringSource::from_static(
+        "\n// Federation startup call\n",
+      ));
       startup_with_call.add(RawStringSource::from(format!(
         "{}();\n",
         RuntimeGlobals::STARTUP.name()

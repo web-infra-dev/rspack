@@ -3,7 +3,7 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 use swc_core::atoms::Atom;
@@ -19,7 +19,7 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,

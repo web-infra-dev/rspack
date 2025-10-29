@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES,
-  asset::{AssetInfo, JsAsset},
+  asset::{AssetInfo, AssetInfoRelated, JsAsset},
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
@@ -95,30 +95,42 @@ impl JsCompilation {
         })();
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
-          Some(asset_info_update_or_function) => match asset_info_update_or_function {
-            Either::A(object) => {
-              let js_asset_info: AssetInfo = unsafe {
-                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-              };
-              Some(js_asset_info.into())
-            }
-            Either::B(f) => {
-              let original_info_object = original_info.reflector();
-              let result = f.call(original_info_object).to_rspack_result()?;
-              match result {
-                Some(object) => {
-                  let js_asset_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
-                  Some(js_asset_info.into())
-                }
-                None => None,
+        let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
+          match asset_info_update_or_function {
+            Some(asset_info_update_or_function) => match asset_info_update_or_function {
+              Either::A(object) => {
+                let js_asset_info: AssetInfo = unsafe {
+                  FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+                };
+                let new_related_to = js_asset_info.get_related();
+                Some((js_asset_info.into(), new_related_to))
               }
-            }
-          },
-          None => None,
-        };
+              Either::B(f) => {
+                let original_info_object = original_info.reflector();
+                let result = f.call(original_info_object).to_rspack_result()?;
+                match result {
+                  Some(object) => {
+                    let js_asset_info =
+                      AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
+                    let new_related_to = js_asset_info.get_related();
+                    Some((js_asset_info.into(), new_related_to))
+                  }
+                  None => None,
+                }
+              }
+            },
+            None => None,
+          };
         if let Some(new_info) = new_info {
-          original_info.merge_another_asset(new_info);
+          original_info.merge_another_asset(new_info.0);
+          // if the new related is null, should remove it in the original info
+          if let Some(new_related_to) = new_info.1
+            && new_related_to
+              .source_map
+              .is_some_and(|s| matches!(s, Either::B(_)))
+          {
+            original_info.related.source_map = None;
+          }
         }
         Ok((new_source, original_info))
       })

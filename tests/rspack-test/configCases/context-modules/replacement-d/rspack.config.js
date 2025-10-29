@@ -18,7 +18,7 @@ module.exports = {
 			/replacement.d$/,
 			path.resolve(__dirname, "modules?cats=meow"),
 			{
-				a: "./a"
+				a: path.resolve(__dirname, "./modules/a")
 			}
 		)
 	]

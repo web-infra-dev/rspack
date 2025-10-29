@@ -163,7 +163,7 @@ fn process_chunk_source(
   let mut new_source = ReplaceSource::new(source.clone());
 
   let mut warnings = vec![];
-  let source_content = source.source();
+  let source_content = source.source().into_string_lossy();
   if source_content.contains("webpackHotUpdate") {
     warnings.push("SubresourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
   }
@@ -180,7 +180,7 @@ fn process_chunk_source(
   }
 
   // compute self integrity and placeholder
-  let integrity = compute_integrity(hash_funcs, new_source.source().as_ref());
+  let integrity = compute_integrity(hash_funcs, new_source.source().into_string_lossy().as_ref());
   let placeholder = chunk_id.map(|id| make_placeholder(hash_funcs, id.as_str()));
 
   ProcessChunkResult {
@@ -246,7 +246,7 @@ async fn add_minssing_integrities(
           return None;
         }
         asset.source.as_ref().map(|s| {
-          let content = s.source();
+          let content = s.source().into_string_lossy();
           let integrity = compute_integrity(hash_func_names, &content);
           (src.clone(), integrity)
         })
@@ -296,7 +296,10 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source())
-        && source.source().contains(PLACEHOLDER_PREFIX)
+        && source
+          .source()
+          .into_string_lossy()
+          .contains(PLACEHOLDER_PREFIX)
       {
         contain_unresolved_files.push(file.to_string());
       }
@@ -334,8 +337,8 @@ pub async fn update_hash(
     })
     .next();
   if let (Some(key), Some(asset)) = (key, assets.first()) {
-    let content = asset.source();
-    let new_integrity = compute_integrity(&self.options.hash_func_names, &content);
+    let content = asset.source().into_string_lossy();
+    let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());
     compilation_integrities
       .write()
       .await

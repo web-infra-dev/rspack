@@ -1018,6 +1018,7 @@ impl CompilerOptionsBuilder {
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
+        ignore_list: None,
         file_context: None,
         public_path: None,
         source_root: None,
