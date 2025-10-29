@@ -1,7 +1,6 @@
-use rspack_util::atom::ModuleExportNameExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::Wtf8Atom,
+  atoms::Atom,
   ecma::{
     ast::{Decl, ExportSpecifier, ModuleDecl, ModuleItem, Program, Stmt},
     visit::Visit,
@@ -10,14 +9,14 @@ use swc_core::{
 
 #[derive(Debug)]
 pub struct TypeExportsCollector<'a> {
-  type_idents: FxHashSet<Wtf8Atom>,
-  export_idents: FxHashMap<Wtf8Atom, Wtf8Atom>,
+  type_idents: FxHashSet<Atom>,
+  export_idents: FxHashMap<Atom, Atom>,
 
-  type_exports: &'a mut FxHashSet<Wtf8Atom>,
+  type_exports: &'a mut FxHashSet<Atom>,
 }
 
 impl<'a> TypeExportsCollector<'a> {
-  pub fn new(type_exports: &'a mut FxHashSet<Wtf8Atom>) -> Self {
+  pub fn new(type_exports: &'a mut FxHashSet<Atom>) -> Self {
     Self {
       type_idents: Default::default(),
       export_idents: Default::default(),
@@ -68,8 +67,8 @@ impl Visit for TypeExportsCollector<'_> {
                         .exported
                         .as_ref()
                         .unwrap_or(&specifier.orig)
-                        .wtf8()
-                        .clone(),
+                        .atom()
+                        .into_owned(),
                     ),
                     _ => None,
                   }
@@ -84,18 +83,18 @@ impl Visit for TypeExportsCollector<'_> {
                           .exported
                           .as_ref()
                           .unwrap_or(&specifier.orig)
-                          .wtf8()
-                          .clone(),
+                          .atom()
+                          .into_owned(),
                       );
                     } else if named_export.src.is_none() {
                       self.export_idents.insert(
-                        specifier.orig.wtf8().clone(),
+                        specifier.orig.atom().into_owned(),
                         specifier
                           .exported
                           .as_ref()
                           .unwrap_or(&specifier.orig)
-                          .wtf8()
-                          .clone(),
+                          .atom()
+                          .into_owned(),
                       );
                     }
                   }
@@ -143,7 +142,7 @@ impl Visit for TypeExportsCollector<'_> {
       self
         .export_idents
         .iter()
-        .filter(|(export_ident, _)| self.type_idents.contains(export_ident))
+        .filter(|(export_ident, _)| self.type_idents.contains(*export_ident))
         .map(|(_, exported_as)| exported_as.clone()),
     );
   }

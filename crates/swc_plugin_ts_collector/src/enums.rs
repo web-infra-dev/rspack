@@ -1,9 +1,8 @@
 use std::borrow::Borrow;
 
-use rspack_util::atom::ModuleExportNameExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::Wtf8Atom,
+  atoms::{Atom, Wtf8Atom},
   common::SyntaxContext,
   ecma::{
     ast::{
@@ -20,9 +19,9 @@ type EnumKeyValueMap = FxHashMap<Wtf8Atom, EnumMemberValue>;
 #[derive(Debug)]
 pub struct ExportedEnumCollector<'a> {
   const_only: bool,
-  export_idents: FxHashSet<Wtf8Atom>,
+  export_idents: FxHashSet<Atom>,
   unresolved_ctxt: SyntaxContext,
-  collected: &'a mut FxHashMap<Wtf8Atom, EnumKeyValueMap>,
+  collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +35,7 @@ impl<'a> ExportedEnumCollector<'a> {
   pub fn new(
     const_only: bool,
     unresolved_ctxt: SyntaxContext,
-    collected: &'a mut FxHashMap<Wtf8Atom, EnumKeyValueMap>,
+    collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
   ) -> Self {
     Self {
       const_only,
@@ -50,7 +49,7 @@ impl<'a> ExportedEnumCollector<'a> {
     if self.const_only && !enum_decl.is_const {
       return;
     }
-    let enum_id = enum_decl.id.sym.borrow();
+    let enum_id = &enum_decl.id.sym;
     // remove existing enum members for enum merging
     let mut enum_members = self.collected.remove(enum_id).unwrap_or_default();
     // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/js_parser/js_parser.go#L11263-L11320
@@ -87,7 +86,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_expr(
     &self,
     expr: &Expr,
-    enum_id: &Wtf8Atom,
+    enum_id: &Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     match expr {
@@ -121,7 +120,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_unary(
     &self,
     expr: &UnaryExpr,
-    enum_id: &Wtf8Atom,
+    enum_id: &Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if !matches!(expr.op, op!(unary, "+") | op!(unary, "-") | op!("~")) {
@@ -145,7 +144,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_bin(
     &self,
     expr: &BinExpr,
-    enum_id: &Wtf8Atom,
+    enum_id: &Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if !matches!(
@@ -215,7 +214,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_member(
     &self,
     expr: &MemberExpr,
-    enum_id: &Wtf8Atom,
+    enum_id: &Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if matches!(expr.prop, MemberProp::PrivateName(..)) {
@@ -236,8 +235,7 @@ impl<'a> ExportedEnumCollector<'a> {
       return EnumMemberValue::Unknown;
     };
     // Only support referencing properties inside the same enum decl for now
-    let ident_sym: &Wtf8Atom = ident.sym.borrow();
-    if ident_sym != enum_id {
+    if &ident.sym != enum_id {
       return EnumMemberValue::Unknown;
     }
     if let Some(value) = existing_enum_members.get(member_name) {
@@ -249,7 +247,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_tpl(
     &self,
     expr: &Tpl,
-    enum_id: &Wtf8Atom,
+    enum_id: &Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     let Tpl { exprs, quasis, .. } = expr;
@@ -320,7 +318,9 @@ impl Visit for ExportedEnumCollector<'_> {
                 if specifier.is_type_only {
                   continue;
                 }
-                self.export_idents.insert(specifier.orig.wtf8().clone());
+                self
+                  .export_idents
+                  .insert(specifier.orig.atom().into_owned());
               }
               _ => continue,
             }
@@ -328,7 +328,7 @@ impl Visit for ExportedEnumCollector<'_> {
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           if let Some(ident) = expr.expr.unwrap_parens().as_ident() {
-            self.export_idents.insert(Wtf8Atom::new(ident.sym.clone()));
+            self.export_idents.insert(ident.sym.clone());
           }
         }
         _ => {}
@@ -336,7 +336,7 @@ impl Visit for ExportedEnumCollector<'_> {
     }
     for stmt in node.body.iter().filter_map(|item| item.as_stmt()) {
       if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt
-        && self.export_idents.contains(enum_decl.id.sym.borrow())
+        && self.export_idents.contains(&enum_decl.id.sym)
       {
         self.collect(enum_decl);
       }
