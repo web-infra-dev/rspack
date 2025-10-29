@@ -37,7 +37,7 @@ _2025 年 10 月 29 日_
 
 ### 增强 Tree shaking
 
-Rspack 1.6 增强了对动态导入（`import()` tree shaking 的支持。此前，Rspack 仅能对动态导入中的解构赋值进行 tree shaking，而其他形式的导入则不会被分析。
+Rspack 1.6 增强了对动态导入 tree shaking 的支持。此前，Rspack 仅能对动态导入中的解构赋值进行 tree shaking，而其他形式的导入则不会被分析。
 
 Rspack 现在为动态导入引入了全面的静态分析，能够识别并处理多样化的使用模式，从而精准地移除未被使用的导出内容，进一步优化打包产物的体积。
 
@@ -47,22 +47,27 @@ const { value } = await import('./module');
 console.log(value);
 
 // Rspack 1.6 - 支持分析以下情况
+// Case 1
 const mod = await import('./module');
 const { value } = mod;
 console.log(value);
 
+// Case 2
 const mod = await import('./module');
 console.log(mod.value);
 
+// Case 3
 import('./module').then(({ value }) => {
   console.log(value);
 });
 
+// Case 4
 import('./module').then(mod => {
   const { value } = mod;
   console.log(value);
 });
 
+// Case 5
 import('./module').then(mod => {
   console.log(mod.value);
 });

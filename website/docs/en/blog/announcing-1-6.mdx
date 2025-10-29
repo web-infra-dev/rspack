@@ -37,7 +37,7 @@ Notable changes include:
 
 ### Enhanced tree shaking
 
-Rspack 1.6 improves tree shaking support for dynamic imports (`import()`). Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
+Rspack 1.6 improved tree shaking support for dynamic imports. Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
 
 Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle various usage patterns, accurately removing unused exports and further reducing the final bundle size.
 
@@ -47,22 +47,27 @@ const { value } = await import('./module');
 console.log(value);
 
 // Rspack 1.6 – Now supports the following cases
+// Case 1
 const mod = await import('./module');
 const { value } = mod;
 console.log(value);
 
+// Case 2
 const mod = await import('./module');
 console.log(mod.value);
 
+// Case 3
 import('./module').then(({ value }) => {
   console.log(value);
 });
 
+// Case 4
 import('./module').then(mod => {
   const { value } = mod;
   console.log(value);
 });
 
+// Case 5
 import('./module').then(mod => {
   console.log(mod.value);
 });
