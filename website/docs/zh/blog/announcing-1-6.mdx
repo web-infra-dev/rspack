@@ -95,22 +95,18 @@ export default {
 
 ### 优化 ESM 产物
 
-新的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 现在作为实验性功能开始启用，专门用于构建 ESM 库，让生成的代码更加简洁和高效。
+如何优化 ESM 产物一直是 Rspack 面临的难题之一。过去我们通过 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 来优化 ESM 输出，但这种方式存在一些局限：
 
-ESM 库构建一直是 Rspack 的一个难点。之前我们使用 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 来优化 ESM 输出，但这种方式有一些问题：
+- **输出不够纯净**：生成文件中包含了 Rspack 运行时代码
+- **可能出错**：某些模块无法被正确合并，可能导致产物行为异常
+- **有限的代码分割支持**：代码分割后的产物会变得复杂，难以进行静态分析和优化
 
-- **输出内容不够纯净**：生成的文件包含了很多 Rspack 内部的运行时代码，而不是你真正想要导出的功能
-- **容易出错**：在某些情况下，模块无法正确被 concatenateModules 优化，导致最终的库文件出现意外错误
-- 代码分割后产物会变得复杂，无法静态分析
+为了彻底解决这些问题，我们引入了实验性的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 插件，它专为构建 ESM 库设计，让生成的代码更加简洁和高效：
 
-**新的解决方案**
+- **完全接管打包过程**：在编译阶段完成模块连接，不再依赖 Rspack 的运行时代码
+- **支持代码分割**：分割后的代码可被静态分析和 tree shaking 友好
 
-为了彻底解决这些问题，我们推出了 EsmLibraryPlugin 插件：
-
-- **完全接管打包过程**：不再依赖 Rspack 的默认运行时，而是在编译阶段就把所有模块正确连接起来
-- **支持代码分割**：代码分割后的产物可以被很好的静态分析和 tree shaking
-
-> 下面的对比图清晰直观展示了代码分割后产物的不同，左为现在 Rspack 的产物， 右为 EsmLibraryPlugin 插件生效的产物：
+下图展示了使用该插件前后的代码分割产物对比：左侧为之前的产物，右侧为使用 EsmLibraryPlugin 后的输出：
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png"
@@ -118,7 +114,9 @@ ESM 库构建一直是 Rspack 的一个难点。之前我们使用 [concatenateM
   width="760"
 />
 
-目前 EsmLibraryPlugin 还在开发阶段，可以通过下面的配置体验，未来会以配置的形式进行开启。
+目前，EsmLibraryPlugin 已基本开发完成，并正在集成至 Rslib 中，以提供开箱即用的体验。
+
+你也可以通过以下配置手动启用它：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -126,25 +124,23 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   optimization: {
-    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+    // Recommended to enable; otherwise, consumers must import runtime code from the entry.
+    runtimeChunk: true,
   },
 };
 ```
 
-我们还提供了实验性的 preserveModules 特性支持，产物结构可以按照源码结构保留。
+此外，我们还提供了 `preserveModules` 选项，可让输出结构与源码目录保持一致：
 
 ```js title="rspack.config.mjs"
-import path from 'path';
+import path from 'node:path';
 
 export default {
   plugins: [
     new rspack.experiments.EsmLibraryPlugin({
-      preserveModules: path.resolve(__dirname, './src'),
+      preserveModules: path.resolve(import.meta.dirname, './src'),
     }),
   ],
-  optimization: {
-    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
-  },
 };
 ```
 

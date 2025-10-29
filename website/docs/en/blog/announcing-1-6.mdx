@@ -95,27 +95,18 @@ export default {
 
 ### Improved ESM output
 
-The new [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) is now available as an experimental feature, specifically designed for building JavaScript libraries with cleaner and more efficient output.
+Optimizing ESM output has long been one of the key challenges faced by Rspack. Previously, we relied on [concatenateModules](/config/optimization#optimizationconcatenatemodules) to optimize ESM outputs, but that approach had several limitations:
 
-**What is ESM library building?**
+- **Impure output** – The generated files contained Rspack's runtime code.
+- **Prone to errors** – Some modules could not be correctly concatenated, leading to unexpected runtime issues.
+- **Limited code-splitting support** – Split bundles became complex and difficult to analyze or optimize statically.
 
-ESM (ES Modules) is the modern JavaScript module system that allows you to organize code using `import` and `export` statements. When you want to publish a JavaScript library for others to use, you need to bundle your source code into an appropriate format.
+To address these issues once and for all, we introduced an experimental plugin called [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin), purpose-built for constructing clean and efficient ESM libraries:
 
-**Previous challenges**
+- **Full control over the bundling process** – All modules are linked during compilation, eliminating reliance on Rspack's runtime.
+- **Code-splitting support** – Code after splitting can be statically analyzed and is tree-shaking friendly.
 
-ESM library building has always been a challenging area for Rspack. Previously, we used [concatenateModules](/config/optimization#optimizationconcatenatemodules) to optimize ESM output, but this approach had some issues:
-
-- **Impure output**: The generated files contained a lot of Rspack's internal runtime code, rather than just the functionality you actually wanted to export
-- **Error-prone**: In certain situations, modules couldn't be properly merged, causing unexpected errors in the final library files
-
-**The new solution**
-
-To completely solve these problems, we introduced the EsmLibraryPlugin. Here's how it works:
-
-- **Full control over bundling**: Instead of relying on Rspack's default runtime, it properly connects all modules during the compilation phase
-- **Better code splitting**: Output after code splitting is more clean and can be easily optimized
-
-> Below you can see the difference of the output after code splitting between current output and EsmLibraryPlugin:
+The image below compares the code splitting output before and after using this plugin — the left side shows the previous output, while the right side shows the cleaner output produced by EsmLibraryPlugin:
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png"
@@ -123,7 +114,7 @@ To completely solve these problems, we introduced the EsmLibraryPlugin. Here's h
   width="760"
 />
 
-The EsmLibraryPlugin is still in the experimental stage, you can try it out by following the configuration below.
+The EsmLibraryPlugin is now largely complete and is being integrated into Rslib to provide an out-of-the-box experience. You can also enable it manually with the following configuration:
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -131,21 +122,24 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   optimization: {
-    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+    // Recommended to enable; otherwise, consumers must import runtime code from the entry.
+    runtimeChunk: true,
   },
 };
 ```
 
-The new EsmLibraryPlugin breaks away from the webpack runtime's Chunk Group parallel loading architecture, allowing each Chunk to be loaded and used independently. SplitChunks is still supported, so users can continue to use SplitChunks to split output according to their needs.
-
-Experimental support for the preserveModules feature is provided, allowing the output structure to be preserved according to the source code structure.
+In addition, we've introduced an `preserveModules` option that preserves the original directory structure of your source files in the output:
 
 ```js title="rspack.config.mjs"
-import path from 'path';
+import path from 'node:path';
 
-new rspack.experiments.EsmLibraryPlugin({
-  preserveModules: path.resolve(__dirname, './src'),
-});
+export default {
+  plugins: [
+    new rspack.experiments.EsmLibraryPlugin({
+      preserveModules: path.resolve(import.meta.dirname, './src'),
+    }),
+  ],
+};
 ```
 
 ### Optimized barrels by default
