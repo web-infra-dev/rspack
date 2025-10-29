@@ -127,10 +127,10 @@ export default {
 
 ### 默认启用 barrel 优化
 
-在 Rspack v1.5 中，我们引入了实验性的 lazyBarrel 优化功能，专门用于提升 barrel files（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack v1.6 版本中将其设为默认启用。
+在 Rspack 1.5 中，我们引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 优化功能，专门用于提升 barrel 文件（桶文件）的构建性能。经过一段时间的生产环境实践和用户反馈收集，我们确认 lazyBarrel 功能已经达到稳定状态，因此在 Rspack 1.6 中将其设为默认启用。
 
 :::info
-什么是 Barrel Files？ Barrel files 是指那些主要用于重新导出其他模块内容的文件，通常用于简化导入路径和提供统一的 API 入口。
+什么是 barrel 文件？ Barrel 文件是指那些主要用于重新导出其他模块内容的文件，通常用于简化导入路径和提供统一的 API 入口。
 :::
 
 ### layers 特性稳定
