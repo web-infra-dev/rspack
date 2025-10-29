@@ -244,7 +244,7 @@ async fn render_startup(
       if is_esm_output {
         // ESM async mode: wrap execution in Promise with async/await syntax
         // Extract any import statements from the source to keep them at top level
-        let source_str = render_source.source.source().to_string();
+        let source_str = render_source.source.source().into_string_lossy();
         let mut imports = Vec::new();
         let mut execution = Vec::new();
         for line in source_str.lines() {
