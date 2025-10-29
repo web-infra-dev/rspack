@@ -432,6 +432,7 @@ impl SourceMapDevToolPlugin {
             })
             .collect::<Vec<_>>(),
         );
+
         if let Some(asset_conditions) = &self.ignore_list {
           let ignore_list = source_map
             .sources()
