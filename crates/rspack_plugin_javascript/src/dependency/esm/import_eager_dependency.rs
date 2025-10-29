@@ -5,8 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, TemplateContext,
-  TemplateReplaceSource, module_namespace_promise,
+  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -25,7 +25,7 @@ pub struct ImportEagerDependency {
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 

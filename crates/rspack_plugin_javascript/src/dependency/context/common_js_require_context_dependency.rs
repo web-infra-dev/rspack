@@ -3,7 +3,7 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -18,7 +18,7 @@ pub struct CommonJsRequireContextDependency {
   loc: DependencyLocation,
   range: DependencyRange,
   value_range: Option<DependencyRange>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   options: ContextOptions,
   optional: bool,
   critical: Option<Diagnostic>,

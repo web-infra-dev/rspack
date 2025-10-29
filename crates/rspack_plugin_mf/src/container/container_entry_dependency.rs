@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
 use crate::ExposeOptions;
@@ -13,7 +13,7 @@ pub struct ContainerEntryDependency {
   pub name: String,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub share_scope: String,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   pub(crate) enhanced: bool,
   factorize_info: FactorizeInfo,
 }
@@ -25,7 +25,7 @@ impl ContainerEntryDependency {
     share_scope: String,
     enhanced: bool,
   ) -> Self {
-    let resource_identifier = format!("container-entry-{}", &name);
+    let resource_identifier = format!("container-entry-{}", &name).into();
     Self {
       id: DependencyId::new(),
       name,

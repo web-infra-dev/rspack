@@ -224,6 +224,7 @@ pub struct FactoryMeta {
 }
 
 pub type ModuleIdentifier = Identifier;
+pub type ResourceIdentifier = Identifier;
 
 #[cacheable_dyn]
 #[async_trait]
