@@ -488,48 +488,86 @@ impl JsPlugin {
             let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
             let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
             let entry_fn_body = federation_entry_calls.join("; ");
+            let is_esm_output = compilation.options.output.module;
 
-            buf2.push("// Wrap startup in Promise.all with federation handlers".into());
-            buf2.push(
-              format!(
-                "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
-                RuntimeGlobals::EXPORTS
-              )
-              .into(),
-            );
-            buf2.push("  var handlers = [".into());
-            buf2.push("    function(chunkId, promises) {".into());
-            buf2.push("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);".into());
-            buf2.push("    },".into());
-            buf2.push("    function(chunkId, promises) {".into());
-            buf2.push("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);".into());
-            buf2.push("    }".into());
-            buf2.push("  ];".into());
-            buf2.push(
-              format!(
-                "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));",
-                chunk_id_str
-              )
-              .into(),
-            );
-            buf2.push("}).then(function() {".into());
-            if !all_chunk_ids.is_empty() {
+            if is_esm_output {
+              // ESM output with top-level await
               buf2.push(
                 format!(
-                  "  return {}(0, {}, function() {{ return {}; }});",
-                  RuntimeGlobals::STARTUP_ENTRYPOINT,
-                  stringify_array(&all_chunk_ids),
-                  entry_fn_body
+                  "const {}Promise = Promise.resolve(runtimeInitialization).then(async () => {{",
+                  RuntimeGlobals::EXPORTS
                 )
                 .into(),
               );
+              buf2.push("  const handlers = [".into());
+              buf2.push("    (chunkId, promises) => (__webpack_require__.f.consumes || (() => {}))(chunkId, promises),".into());
+              buf2.push("    (chunkId, promises) => (__webpack_require__.f.remotes || (() => {}))(chunkId, promises)".into());
+              buf2.push("  ];".into());
+              buf2.push(
+                format!(
+                  "  await Promise.all(handlers.reduce((p, handler) => {{ handler({}, p); return p; }}, promises));",
+                  chunk_id_str
+                )
+                .into(),
+              );
+              if !all_chunk_ids.is_empty() {
+                buf2.push(
+                  format!(
+                    "  return {}(0, {}, () => {{ return {}; }});",
+                    RuntimeGlobals::STARTUP_ENTRYPOINT,
+                    stringify_array(&all_chunk_ids),
+                    entry_fn_body
+                  )
+                  .into(),
+                );
+              } else {
+                buf2.push(format!("  return {};", entry_fn_body).into());
+              }
+              buf2.push("});".into());
+              buf2.push(format!("export default await {}Promise;", RuntimeGlobals::EXPORTS).into());
             } else {
-              buf2.push(format!("  return {};", entry_fn_body).into());
+              // CJS output with Promise chain
+              buf2.push("// Wrap startup in Promise.all with federation handlers".into());
+              buf2.push(
+                format!(
+                  "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
+                  RuntimeGlobals::EXPORTS
+                )
+                .into(),
+              );
+              buf2.push("  var handlers = [".into());
+              buf2.push("    function(chunkId, promises) {".into());
+              buf2.push("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);".into());
+              buf2.push("    },".into());
+              buf2.push("    function(chunkId, promises) {".into());
+              buf2.push("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);".into());
+              buf2.push("    }".into());
+              buf2.push("  ];".into());
+              buf2.push(
+                format!(
+                  "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));",
+                  chunk_id_str
+                )
+                .into(),
+              );
+              buf2.push("}).then(function() {".into());
+              if !all_chunk_ids.is_empty() {
+                buf2.push(
+                  format!(
+                    "  return {}(0, {}, function() {{ return {}; }});",
+                    RuntimeGlobals::STARTUP_ENTRYPOINT,
+                    stringify_array(&all_chunk_ids),
+                    entry_fn_body
+                  )
+                  .into(),
+                );
+              } else {
+                buf2.push(format!("  return {};", entry_fn_body).into());
+              }
+              buf2.push("});".into());
             }
-            buf2.push("});".into());
 
             allow_inline_startup = false;
-            startup.push("// federation async startup".into());
             startup.push(buf2.join("\n").into());
           }
         } else {
