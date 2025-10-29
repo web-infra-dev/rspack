@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: Cannot find module 'replaced'" 
+module.exports = () => "TODO: support context replacement with async require"
