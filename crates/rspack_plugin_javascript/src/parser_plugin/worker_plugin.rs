@@ -42,7 +42,7 @@ fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
   let obj = arg.expr.as_object();
   let name = obj
     .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
-    .map(|str| str.value.to_string());
+    .map(|str| str.value.to_string_lossy().into());
   let span = arg.span();
   ParsedNewWorkerOptions {
     range: Some((span.real_lo(), span.real_hi())),
