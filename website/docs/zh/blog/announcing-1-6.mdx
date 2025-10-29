@@ -36,14 +36,30 @@ Rspack 1.6 已经正式发布！
 
 ### 优化 ESM 产物
 
-新的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 现在作为实验性功能开始启用，为库构建提供更好用、更静态的产物。
+新的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 现在作为实验性功能开始启用，专门用于构建 ESM 库，让生成的代码更加简洁和高效。
 
-ESM 库构建一直是 Rspack 的弱点，在之前我们基于 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 实现了 ESM 产物的优化，但它还是有一些限制。
+ESM 库构建一直是 Rspack 的一个难点。之前我们使用 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 来优化 ESM 输出，但这种方式有一些问题：
 
-- 每个异步加载的 Chunk 产物，导出 Rspack 运行时所需的 chunk id 和包含模块信息，而非 Chunk 中模块的真正导出。
-- 很多场景会导致模块无法被 concatenate，导致产物会出现预期外的错误。
+- **输出内容不够纯净**：生成的文件包含了很多 Rspack 内部的运行时代码，而不是你真正想要导出的功能
+- **容易出错**：在某些情况下，模块无法正确被 concatenateModules 优化，导致最终的库文件出现意外错误
+- 代码分割后产物会变得复杂，无法静态分析
 
-因此我们引入了 EsmLibraryPlugin 实验性插件来彻底解决上述的问题。EsmLibraryPlugin 插件会完全接管 Rspack 的 Chunk 渲染和加载机制，不再依赖 Rspack 的运行时执行整个产物，在编译期链接好 Chunk 中的模块，可以任意搭配 SplitChunks 等优化功能来使用。
+**新的解决方案**
+
+为了彻底解决这些问题，我们推出了 EsmLibraryPlugin 插件：
+
+- **完全接管打包过程**：不再依赖 Rspack 的默认运行时，而是在编译阶段就把所有模块正确连接起来
+- **支持代码分割**：代码分割后的产物可以被很好的静态分析和 tree shaking
+
+> 下面的对比图清晰直观展示了代码分割后产物的不同，左为现在 Rspack 的产物， 右为 EsmLibraryPlugin 插件生效的产物：
+
+<img
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png"
+  alt="Rspack 1.6 ESM output diff"
+  width="760"
+/>
+
+目前 EsmLibraryPlugin 还在开发阶段，可以通过下面的配置体验，未来会以配置的形式进行开启。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -61,12 +77,17 @@ export default {
 ```js title="rspack.config.mjs"
 import path from 'path';
 
-new rspack.experiments.EsmLibraryPlugin({
-  preserveModules: path.resolve(__dirname, './src'),
-});
+export default {
+  plugins: [
+    new rspack.experiments.EsmLibraryPlugin({
+      preserveModules: path.resolve(__dirname, './src'),
+    }),
+  ],
+  optimization: {
+    runtimeChunk: true, // recommended to enable runtime chunk, otherwise consumers need to import runtime code from entry
+  },
+};
 ```
-
-目前 EsmLibraryPlugin 还在实验阶段，未来会以配置的形式进行开启。
 
 ### 增强 Tree shaking
 
