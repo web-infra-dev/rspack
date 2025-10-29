@@ -129,7 +129,7 @@ impl EsmLibraryPlugin {
 
       // we find another name to export this symbol
       let mut idx = 0;
-      let mut new_export = format!("{exported}_{idx}").into();
+      let mut new_export = Atom::new(format!("{exported}_{idx}"));
       while ctx.exported_symbols.contains_key(&new_export) {
         idx += 1;
         new_export = format!("{exported}_{idx}").into();
