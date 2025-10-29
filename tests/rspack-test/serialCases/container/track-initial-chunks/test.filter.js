@@ -1,0 +1,1 @@
+module.exports = () => "FIXME: expect react version to be '0.1.2' but got '1.2.3'"
