@@ -267,7 +267,11 @@ Rspress V2 新主题进入内部测试阶段，并已同步上线至 V2 官网�
 
 Rspress V2 新增 `<PageTabs />` 组件，可在同一页面内创建子标签页，将单个页面拆分为多个子页面。
 
-![rspress-page-tabs](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
+<img
+  width="600"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png"
+  alt="Rspress 子页面切换组件"
+/>
 
 ### Rslib 0.16
 
@@ -353,7 +357,11 @@ Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bun
 
 > https://github.com/web-infra-dev/rsdoctor-action
 
-![rsdoctor-github-action](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
+<img
+  width="700"
+  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png"
+  alt="Rsdoctor GitHub Actions"
+/>
 
 #### 单一 JSON 数据报告
 
@@ -374,6 +382,10 @@ Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bun
 
 在定制的 Rspack Rust binding 中，我们将 externals 逻辑迁移到 Rust，极大减少了 JS 与 Rust 之间的通信开销。
 
-![next-rspack-performance](https://assets.rspack.rs/rspack/assets/rspack-v1-6-next-rspack-bench.png)
+| Tool                           | Build without cache | Dev without cache |
+| ------------------------------ | ------------------- | ----------------- |
+| Rspack(next@16.0.0-canary.7)   | 3.8s                | 1.7s              |
+| Rspack(next@15.4.0-canary.123) | 5.0s                | 1.9s              |
+| Webpack                        | 14.0s               | 7.8s              |
 
 Benchmark 使用的仓库为 [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack)，可以在仓库中查看详细的性能数据：https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md
