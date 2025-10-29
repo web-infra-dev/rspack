@@ -324,8 +324,40 @@ impl JsPlugin {
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
       if chunk.has_entry_module(&compilation.chunk_graph) {
+        let is_container_entry_chunk = {
+          let entries = compilation
+            .chunk_graph
+            .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+          entries
+            .iter()
+            .next_back()
+            .map(|(module_id, chunk_group_ukey)| {
+              let module_graph = compilation.get_module_graph();
+              if let Some(module) = module_graph.module_by_identifier(module_id) {
+                if module
+                  .source_types(&module_graph)
+                  .contains(&SourceType::Expose)
+                {
+                  true
+                } else {
+                  compilation
+                    .chunk_group_by_ukey
+                    .expect_get(chunk_group_ukey)
+                    .kind
+                    .get_entry_options()
+                    .map(|options| options.library.is_some())
+                    .unwrap_or(false)
+                }
+              } else {
+                false
+              }
+            })
+            .unwrap_or(false)
+        };
+
         let use_federation_async = compilation.options.experiments.mf_async_startup
-          && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+          && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+          && !is_container_entry_chunk;
 
         if use_federation_async {
           let mut buf2: Vec<Cow<str>> = Vec::new();

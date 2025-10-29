@@ -59,11 +59,17 @@ impl EmbedFederationRuntimePlugin {
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
-    // Get the last entry module (final entry)
-    if let Some((module_id, _)) = entries.iter().next_back() {
+    // Inspect the last entry module (final entry) and its chunk group metadata
+    if let Some((module_id, chunk_group_ukey)) = entries.iter().next_back() {
       let module_graph = compilation.get_module_graph();
       if let Some(module) = module_graph.module_by_identifier(module_id) {
         return module.as_any().is::<ContainerEntryModule>();
+      }
+      let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      if let Some(entry_options) = chunk_group.kind.get_entry_options() {
+        if entry_options.library.is_some() {
+          return true;
+        }
       }
     }
     false

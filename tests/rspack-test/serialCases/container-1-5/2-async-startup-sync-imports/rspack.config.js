@@ -4,9 +4,6 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 const common = {
 	entry: {
 		main: "./index.js"
-	},
-	optimization: {
-		runtimeChunk: "single"
 	}
 };
 
