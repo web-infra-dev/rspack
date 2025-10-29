@@ -3,7 +3,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyType, FactorizeInfo,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
 };
 use rspack_paths::ArcPathSet;
 
@@ -25,7 +25,7 @@ pub struct CssDependency {
 
   // determine module's postOrderIndex
   range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   pub(crate) cacheable: bool,
   pub(crate) file_dependencies: ArcPathSet,
   pub(crate) context_dependencies: ArcPathSet,
@@ -53,7 +53,7 @@ impl CssDependency {
     missing_dependencies: ArcPathSet,
     build_dependencies: ArcPathSet,
   ) -> Self {
-    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index);
+    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
     Self {
       id: DependencyId::new(),
       identifier,
