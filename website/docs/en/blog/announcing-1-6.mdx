@@ -16,9 +16,9 @@ We're excited to announce Rspack 1.6!
 Notable changes include:
 
 - New Features
-  - [Improved ESM output](#improved-esm-output)
   - [Enhanced tree shaking](#enhanced-tree-shaking)
   - [Support for import defer](#support-for-import-defer)
+  - [Improved ESM output](#improved-esm-output)
   - [Optimized barrels by default](#optimized-barrels-by-default)
   - [Stabilized layers feature](#stabilized-layers-feature)
   - [Preserve JSX syntax](#preserve-jsx-syntax)
@@ -34,6 +34,59 @@ Notable changes include:
   - [next-rspack](#next-rspack)
 
 ## New features
+
+### Enhanced tree shaking
+
+Rspack 1.6 improves tree shaking support for dynamic imports (`import()`). Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
+
+Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle various usage patterns, accurately removing unused exports and further reducing the final bundle size.
+
+```js title="rspack.config.mjs"
+// Rspack 1.5 – Only supported destructured imports
+const { value } = await import('./module');
+console.log(value);
+
+// Rspack 1.6 – Now supports the following cases
+const mod = await import('./module');
+const { value } = mod;
+console.log(value);
+
+const mod = await import('./module');
+console.log(mod.value);
+
+import('./module').then(({ value }) => {
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  const { value } = mod;
+  console.log(value);
+});
+
+import('./module').then(mod => {
+  console.log(mod.value);
+});
+```
+
+### Support for import defer
+
+Rspack now supports the [import defer](https://github.com/tc39/proposal-defer-import-eval) syntax. `import defer` is a new feature in JavaScript that has been supported since [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). It allows you to import a module without immediately executing the module and its dependencies, giving you better control over when code execution and side effects occur.
+
+```js
+import defer * as foo from './foo';
+```
+
+You can enable this feature through [experiments.deferImport](/config/experiments#experimentsdeferimport):
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+> Currently, Rspack only supports the `import defer` syntax. The function form `import.defer()` will be implemented in future versions.
 
 ### Improved ESM output
 
@@ -89,59 +142,6 @@ new rspack.experiments.EsmLibraryPlugin({
   preserveModules: path.resolve(__dirname, './src'),
 });
 ```
-
-### Enhanced tree shaking
-
-Rspack 1.6 improves tree shaking support for dynamic imports (`import()`). Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
-
-Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle various usage patterns, accurately removing unused exports and further reducing the final bundle size.
-
-```js title="rspack.config.mjs"
-// Rspack 1.5 – Only supported destructured imports
-const { value } = await import('./module');
-console.log(value);
-
-// Rspack 1.6 – Now supports the following cases
-const mod = await import('./module');
-const { value } = mod;
-console.log(value);
-
-const mod = await import('./module');
-console.log(mod.value);
-
-import('./module').then(({ value }) => {
-  console.log(value);
-});
-
-import('./module').then(mod => {
-  const { value } = mod;
-  console.log(value);
-});
-
-import('./module').then(mod => {
-  console.log(mod.value);
-});
-```
-
-### Support for import defer
-
-Rspack now supports the [import defer](https://github.com/tc39/proposal-defer-import-eval) syntax. `import defer` is a new feature in JavaScript that has been supported since [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). It allows you to import a module without immediately executing the module and its dependencies, giving you better control over when code execution and side effects occur.
-
-```js
-import defer * as foo from './foo';
-```
-
-You can enable this feature through [experiments.deferImport](/config/experiments#experimentsdeferimport):
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    deferImport: true,
-  },
-};
-```
-
-> Currently, Rspack only supports the `import defer` syntax. The function form `import.defer()` will be implemented in future versions.
 
 ### Optimized barrels by default
 
