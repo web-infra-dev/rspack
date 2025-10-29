@@ -107,6 +107,7 @@ export class IndependentSharePlugin {
 			async (compiler, callback) => {
 				// only call once
 				await this.createIndependentCompilers(compiler);
+				console.log("createIndependentCompilers done");
 				callback();
 			}
 		);
@@ -114,6 +115,7 @@ export class IndependentSharePlugin {
 		// clean hooks
 		compiler.hooks.shutdown.tapAsync("IndependentSharePlugin", callback => {
 			this.cleanup();
+			console.log("cleanup");
 			callback();
 		});
 
@@ -177,15 +179,11 @@ export class IndependentSharePlugin {
 		});
 	}
 
-	private createEntry(shareRequestsMap: ShareRequestsMap) {
-		const entryContent = Object.entries(shareRequestsMap).reduce<string>(
+	private createEntry() {
+		const { sharedOptions } = this;
+		const entryContent = Object.entries(sharedOptions).reduce<string>(
 			(acc, cur, index) => {
-				let str = "";
-				cur[1].requests.forEach((requestInfo, index) => {
-					const request = requestInfo[0];
-					str += `import shared_${index} from '${request}';\n`;
-				});
-				return `${acc}${str}`;
+				return `${acc}import shared_${index} from '${cur[0]}';\n`;
 			},
 			""
 		);
@@ -324,13 +322,11 @@ export class IndependentSharePlugin {
 		// 	);
 		// }
 		finalPlugins.push(extraPlugin);
-		if (extraOptions?.shareRequestsMap) {
-			finalPlugins.push(
-				new rspack.experiments.VirtualModulesPlugin({
-					[VIRTUAL_ENTRY_NAME]: this.createEntry(extraOptions.shareRequestsMap)
-				})
-			);
-		}
+		finalPlugins.push(
+			new rspack.experiments.VirtualModulesPlugin({
+				[VIRTUAL_ENTRY_NAME]: this.createEntry()
+			})
+		);
 		const fullOutputDir = resolve(
 			parentCompiler.context,
 			parentOutputDir,

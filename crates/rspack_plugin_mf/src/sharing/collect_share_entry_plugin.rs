@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{
   collections::hash_map::Entry,
   sync::{Arc, LazyLock},
@@ -6,8 +5,8 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
-  ModuleFactoryCreateData, NormalModuleCreateData, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation, Logger,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -18,16 +17,13 @@ use tokio::sync::RwLock;
 
 use super::provide_shared_plugin::{ProvideOptions, ProvideVersion};
 
-#[allow(dead_code)]
 static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(?:\.\.?(?:/|$))").expect("invalid relative request regex"));
-#[allow(dead_code)]
 static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(?:/|[A-Za-z]:\\|\\\\)").expect("invalid absolute request regex"));
 
 const DEFAULT_FILENAME: &str = "collect-share-entries.json";
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct CollectShareEntryMeta {
   request: String,
@@ -37,27 +33,23 @@ struct CollectShareEntryMeta {
   provide: ProvideOptions,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 struct CollectShareEntryRecord {
   share_scope: String,
   requests: FxHashSet<CollectedShareRequest>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct CollectedShareRequest {
   request: String,
   version: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct CollectShareEntryAsset<'a> {
   shared: FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct CollectShareEntryAssetItem<'a> {
   #[serde(rename = "shareScope")]
@@ -72,7 +64,6 @@ pub struct CollectShareEntryPluginOptions {
 }
 
 #[plugin]
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct CollectShareEntryPlugin {
   provides: Arc<Vec<CollectShareEntryMeta>>,
@@ -82,7 +73,6 @@ pub struct CollectShareEntryPlugin {
   filename: String,
 }
 
-#[allow(dead_code)]
 impl CollectShareEntryPlugin {
   pub fn new(options: CollectShareEntryPluginOptions) -> Self {
     let provides: Vec<CollectShareEntryMeta> = options
@@ -146,7 +136,6 @@ impl CollectShareEntryPlugin {
   }
 }
 
-#[allow(dead_code)]
 #[plugin_hook(CompilerCompilation for CollectShareEntryPlugin)]
 async fn compilation(
   &self,
@@ -191,7 +180,6 @@ async fn compilation(
   Ok(())
 }
 
-#[allow(dead_code)]
 #[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let entries = self.resolved_entries.read().await;
@@ -243,8 +231,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[allow(dead_code)]
-#[plugin_hook(rspack_core::NormalModuleFactoryModule for CollectShareEntryPlugin)]
+#[plugin_hook(NormalModuleFactoryModule for CollectShareEntryPlugin)]
 async fn normal_module_factory_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
@@ -257,6 +244,7 @@ async fn normal_module_factory_module(
   }
 
   let request = create_data.raw_request.clone();
+  let resource = resource_data.resource().to_string();
 
   // Exact match
   if let Some(meta) = self.match_provides.read().await.get(&request).cloned() {
@@ -264,7 +252,7 @@ async fn normal_module_factory_module(
       .record_entry(
         meta.share_key,
         meta.share_scope,
-        request,
+        resource.clone(),
         &meta.provide,
         resource_data,
       )
@@ -291,7 +279,7 @@ async fn normal_module_factory_module(
       .record_entry(
         share_key,
         meta.share_scope,
-        request,
+        resource.clone(),
         &meta.provide,
         resource_data,
       )
@@ -308,7 +296,7 @@ async fn normal_module_factory_module(
         .record_entry(
           meta.share_key,
           meta.share_scope,
-          request,
+          resource,
           &meta.provide,
           resource_data,
         )
@@ -322,6 +310,19 @@ async fn normal_module_factory_module(
 impl Plugin for CollectShareEntryPlugin {
   fn name(&self) -> &'static str {
     "rspack.CollectShareEntryPlugin"
+  }
+
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+    Ok(())
   }
 }
 

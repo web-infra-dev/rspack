@@ -1,7 +1,5 @@
-import react from "react";
+import { Button } from "ui-lib";
 
-export const value = react;
-
-export async function load() {
-	return import("./lazy-module");
+export default function run() {
+	return Button;
 }

@@ -122,7 +122,8 @@ export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
 		compiler.hooks.thisCompilation.tap("Collect share entry", compilation => {
 			compilation.hooks.processAssets.tapPromise(
 				{
-					name: "collect share entry"
+					name: "collect share entry",
+					stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 				},
 				async () => {
 					const filename = this.getFilename();
