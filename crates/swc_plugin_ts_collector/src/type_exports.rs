@@ -35,24 +35,16 @@ impl Visit for TypeExportsCollector<'_> {
         ModuleItem::ModuleDecl(decl) => match decl {
           ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
             Decl::TsInterface(interface_decl) => {
-              self
-                .type_idents
-                .insert(interface_decl.id.sym.clone().into());
-              self
-                .type_exports
-                .insert(interface_decl.id.sym.clone().into());
+              self.type_idents.insert(interface_decl.id.sym.clone());
+              self.type_exports.insert(interface_decl.id.sym.clone());
             }
             Decl::TsTypeAlias(type_alias_decl) => {
-              self
-                .type_idents
-                .insert(type_alias_decl.id.sym.clone().into());
-              self
-                .type_exports
-                .insert(type_alias_decl.id.sym.clone().into());
+              self.type_idents.insert(type_alias_decl.id.sym.clone());
+              self.type_exports.insert(type_alias_decl.id.sym.clone());
             }
             Decl::TsEnum(enum_decl) => {
-              self.type_idents.insert(enum_decl.id.sym.clone().into());
-              self.type_exports.insert(enum_decl.id.sym.clone().into());
+              self.type_idents.insert(enum_decl.id.sym.clone());
+              self.type_exports.insert(enum_decl.id.sym.clone());
             }
             _ => {}
           },
@@ -110,7 +102,7 @@ impl Visit for TypeExportsCollector<'_> {
             if let Some(ident) = expr.expr.unwrap_parens().as_ident() {
               self
                 .export_idents
-                .insert(ident.sym.clone().into(), "default".into());
+                .insert(ident.sym.clone(), "default".into());
             }
           }
           _ => {}
@@ -119,17 +111,13 @@ impl Visit for TypeExportsCollector<'_> {
           if let Stmt::Decl(decl) = stmt {
             match decl {
               Decl::TsInterface(interface_decl) => {
-                self
-                  .type_idents
-                  .insert(interface_decl.id.sym.clone().into());
+                self.type_idents.insert(interface_decl.id.sym.clone());
               }
               Decl::TsTypeAlias(type_alias_decl) => {
-                self
-                  .type_idents
-                  .insert(type_alias_decl.id.sym.clone().into());
+                self.type_idents.insert(type_alias_decl.id.sym.clone());
               }
               Decl::TsEnum(enum_decl) => {
-                self.type_idents.insert(enum_decl.id.sym.clone().into());
+                self.type_idents.insert(enum_decl.id.sym.clone());
               }
               _ => {}
             }
