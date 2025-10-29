@@ -55,7 +55,7 @@ impl JavascriptParser<'_> {
               ModuleExportName::Ident(ident) => Some(&ident.sym),
               ModuleExportName::Str(s) => s.value.as_atom(),
             })
-            .unwrap_or_else(|| &named.local.sym);
+            .unwrap_or(&named.local.sym);
           if drive
             .import_specifier(self, decl, source, Some(export_name), identifier_name)
             .unwrap_or_default()

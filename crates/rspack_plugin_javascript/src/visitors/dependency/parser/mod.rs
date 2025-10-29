@@ -1002,7 +1002,7 @@ impl<'parser> JavascriptParser<'parser> {
             members.push(value.to_atom_lossy().into_owned());
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(ident.sym.clone().into());
+            members.push(ident.sym.clone());
             member_ranges.push(expr.obj.span());
           } else {
             break;

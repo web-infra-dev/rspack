@@ -59,18 +59,18 @@ impl Spanned for ExportAllDeclaration<'_> {
 impl ExportAllDeclaration<'_> {
   pub fn source(&self) -> &Atom {
     match self {
-      ExportAllDeclaration::All(e) => &e
+      ExportAllDeclaration::All(e) => e
         .src
         .value
         .as_atom()
         .expect("ModuleExportName should be a valid utf8"),
-      ExportAllDeclaration::NamedAll(e) => &e
+      ExportAllDeclaration::NamedAll(e) => e
         .src
         .as_ref()
         .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
         .value
         .as_atom()
-        .unwrap(),
+        .expect("ModuleExportName should be a valid utf8"),
     }
   }
 
