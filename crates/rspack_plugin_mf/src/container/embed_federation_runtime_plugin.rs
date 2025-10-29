@@ -66,10 +66,10 @@ impl EmbedFederationRuntimePlugin {
         return module.as_any().is::<ContainerEntryModule>();
       }
       let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group_ukey);
-      if let Some(entry_options) = chunk_group.kind.get_entry_options() {
-        if entry_options.library.is_some() {
-          return true;
-        }
+      if let Some(entry_options) = chunk_group.kind.get_entry_options()
+        && entry_options.library.is_some()
+      {
+        return true;
       }
     }
     false
