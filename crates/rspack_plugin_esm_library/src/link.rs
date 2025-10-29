@@ -1724,10 +1724,6 @@ impl EsmLibraryPlugin {
             continue;
           };
 
-          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
-            continue;
-          }
-
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
@@ -1743,6 +1739,10 @@ impl EsmLibraryPlugin {
           let ref_module = *conn.module_identifier();
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
+
+          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
+            continue;
+          }
 
           if outgoing_module_info.is_external() {
             if ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module).is_none() {

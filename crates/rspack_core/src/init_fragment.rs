@@ -140,8 +140,9 @@ impl InitFragmentKey {
       | InitFragmentKey::ModuleExternal(_)
       | InitFragmentKey::ModuleDecorator(_)
       | InitFragmentKey::CommonJsExports(_)
+      | InitFragmentKey::ESMCompatibility
       | InitFragmentKey::Const(_) => first(fragments),
-      InitFragmentKey::ESMCompatibility | InitFragmentKey::Unique(_) => {
+      InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {self:?}");
         first(fragments)
       }
