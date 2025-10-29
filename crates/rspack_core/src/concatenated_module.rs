@@ -217,7 +217,7 @@ impl ConcatenatedModuleInfo {
     }
 
     if atom.as_str() == "default" {
-      return self.internal_names.get(&DEFAULT_EXPORT_ATOM);
+      return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
     if let Some(name) = &self.namespace_export_symbol
