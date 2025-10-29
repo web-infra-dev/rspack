@@ -307,15 +307,13 @@ Rspress V2 新增 [PageTabs](https://v2.rspress.rs/zh/ui/components/page-tabs) �
 
 #### 更快的类型生成
 
-Rslib 现在支持基于 [tsgo](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo) 即可。这可以带来大约 2.5 ~ 3 倍的类型生成性能提升，在大型项目中收益更为明显。
+Rslib 现在支持基于 [typescript-go](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo)，即可让类型检查和类型生成的性能提升约 **300%**，在大型项目中收益更为明显。
 
 ```ts title="rslib.config.ts"
 export default {
   lib: [
     {
-      dts: {
-        tsgo: true,
-      },
+      dts: { tsgo: true },
     },
   ],
 };
@@ -345,9 +343,9 @@ export default {
 };
 ```
 
-#### CLI 增强
+#### 更多 CLI 选项
 
-Rslib 在 build 命令中支持了[额外的 CLI 选项](https://rslib.rs/zh/guide/basic/cli#rslib-build)，这些选项的优先级高于配置文件。
+Rslib 的 build 命令中支持了更多的 [CLI 选项](https://rslib.rs/zh/guide/basic/cli#rslib-build)，这些选项的优先级高于配置文件。
 
 ```json title="package.json"
 {
@@ -357,7 +355,7 @@ Rslib 在 build 命令中支持了[额外的 CLI 选项](https://rslib.rs/zh/gui
 }
 ```
 
-你也可以在没有配置文件的情况下使用 Rslib，CLI 将自动使用仅包含单个 [lib](https://rslib.rs/zh/config/lib/) 的默认配置，并根据命令行参数完成构建。
+这允许你在没有配置文件的情况下使用 Rslib，CLI 将自动使用仅包含单个 [lib](https://rslib.rs/zh/config/lib/) 的默认配置，并根据命令行参数完成构建。
 
 ### Rstest 0.6
 

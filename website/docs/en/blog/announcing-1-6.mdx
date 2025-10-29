@@ -255,7 +255,7 @@ export default {
 
 #### Building ESM applications
 
-Rsbuild now supports building ES Modules format output for Web applications, simply enable [output.module: true](https://rsbuild.rs/zh/config/output/module):
+Rsbuild now supports building ES Modules format output for Web applications, simply enable [output.module: true](https://rsbuild.rs/config/output/module):
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -307,15 +307,13 @@ Rspress v2 introduces the [PageTabs](https://v2.rspress.rs/ui/components/page-ta
 
 #### Faster type generation
 
-Rslib now supports generating type declaration files based on [TSGO](https://github.com/microsoft/typescript-go), simply enable [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo). This can bring about 2.5 ~ 3 times improvement in type generation performance, with more significant benefits in large projects.
+Rslib now supports generating type declaration files based on [typescript-go](https://github.com/microsoft/typescript-go). By simply enabling [dts.tsgo](https://rslib.rs/config/lib/dts#dtstsgo), you can boost type checking and declaration generation performance by around **300%**, with even greater benefits in large projects.
 
 ```ts title="rslib.config.ts"
 export default {
   lib: [
     {
-      dts: {
-        tsgo: true,
-      },
+      dts: { tsgo: true },
     },
   ],
 };
@@ -323,7 +321,7 @@ export default {
 
 #### Preserve JSX syntax
 
-Rslib now supports preserving original JSX in build output, simply set runtime to [`'preserve'`](https://rsbuild.rs/zh/plugins/list/plugin-react#preserve). In this mode, JSX syntax will be preserved as-is without any transformation, making it convenient for subsequent processing by other bundling tools.
+Rslib now supports preserving original JSX in build output, simply set runtime to [`'preserve'`](https://rsbuild.rs/plugins/list/plugin-react#preserve). In this mode, JSX syntax will be preserved as-is without any transformation, making it convenient for subsequent processing by other bundling tools.
 
 ```ts title="rslib.config.ts"
 import { pluginReact } from '@rsbuild/plugin-react';
@@ -345,9 +343,9 @@ export default {
 };
 ```
 
-#### Enhanced CLI
+#### More CLI options
 
-Rslib supports [additional CLI options](https://rslib.rs/zh/guide/basic/cli#rslib-build) in the build command, which take precedence over configuration files.
+Rslib supports additional [CLI options](https://rslib.rs/guide/basic/cli#rslib-build) in the build command, which take precedence over configuration files.
 
 ```json title="package.json"
 {
@@ -357,7 +355,7 @@ Rslib supports [additional CLI options](https://rslib.rs/zh/guide/basic/cli#rsli
 }
 ```
 
-You can also use Rslib without a configuration file, and the CLI will automatically use a default configuration containing only a single [lib](https://rslib.rs/zh/config/lib/) and complete the build based on command line parameters.
+This also allows you to use Rslib without a configuration file, and the CLI will automatically use a default configuration containing only a single [lib](https://rslib.rs/config/lib/) and complete the build based on command line parameters.
 
 ### Rstest 0.6
 
@@ -377,7 +375,7 @@ Rstest supports using istanbul to collect code coverage and generate coverage re
   width="600"
 />
 
-For more information, see [Rstest - Code Coverage](https://rstest.rs/zh/config/test/coverage).
+For more information, see [Rstest - Code Coverage](https://rstest.rs/config/test/coverage).
 
 ### Rsdoctor 1.3
 
@@ -397,9 +395,9 @@ Rsdoctor supports GitHub bundle diff action, which can perform bundle degradatio
 
 Supports exporting single JSON report data in Brief mode, allowing users to perform cloud storage, sharing, and secondary data processing on the JSON file. Additionally, a new Playground page has been added, allowing reports to be reopened by uploading JSON files.
 
-👉 [Playground Document](https://rsdoctor.rs/zh/guide/start/playground)
+👉 [Playground Document](https://rsdoctor.rs/guide/start/playground)
 
-👉 [All-in-one JSON](https://rsdoctor.rs/zh/config/options/output#mode-brief)
+👉 [All-in-one JSON](https://rsdoctor.rs/config/options/output#mode-brief)
 
 ## Ecosystem
 
