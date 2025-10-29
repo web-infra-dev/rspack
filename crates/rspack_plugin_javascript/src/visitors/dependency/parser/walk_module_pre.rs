@@ -51,9 +51,12 @@ impl JavascriptParser<'_> {
           let export_name = named
             .imported
             .as_ref()
-            .and_then(|imported| match imported {
-              ModuleExportName::Ident(ident) => Some(&ident.sym),
-              ModuleExportName::Str(s) => s.value.as_atom(),
+            .map(|imported| match imported {
+              ModuleExportName::Ident(ident) => &ident.sym,
+              ModuleExportName::Str(s) => s
+                .value
+                .as_atom()
+                .expect("ModuleExportName should be a valid utf8"),
             })
             .unwrap_or(&named.local.sym);
           if drive
