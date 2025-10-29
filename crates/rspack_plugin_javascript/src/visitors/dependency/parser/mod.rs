@@ -105,7 +105,6 @@ pub enum MemberExpressionInfo {
 #[derive(Debug)]
 pub struct CallExpressionInfo {
   pub call: CallExpr,
-  pub callee_name: String,
   pub root_info: ExportedVariableInfo,
   pub callee_members: Vec<Atom>,
   pub members: Vec<Atom>,
@@ -893,18 +892,15 @@ impl<'parser> JavascriptParser<'parser> {
           (callee.get_root_name()?, vec![])
         };
         let NameInfo {
-          name: resolved_root,
-          info: root_info,
+          info: root_info, ..
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let callee_name = object_and_members_to_name(resolved_root.to_string(), &root_members);
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
-          callee_name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
             .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
@@ -998,13 +994,15 @@ impl<'parser> JavascriptParser<'parser> {
               Lit::Null(_) => "null".into(),
               Lit::Num(n) => n.value.to_string().into(),
               Lit::BigInt(i) => i.value.to_string().into(),
-              Lit::Regex(r) => r.exp.clone(),
+              Lit::Regex(r) => r.exp.clone().into(),
               Lit::JSXText(_) => unreachable!(),
             };
-            members.push(value);
+            // Since members are not used across rspack javascript parser plugin,
+            // we directly makes it atom here
+            members.push(value.to_atom_lossy().into_owned());
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(ident.sym.clone());
+            members.push(ident.sym.clone().into());
             member_ranges.push(expr.obj.span());
           } else {
             break;
@@ -1267,7 +1265,7 @@ impl<'parser> JavascriptParser<'parser> {
       return;
     };
 
-    if str.value.as_str() == "use strict" {
+    if str.value == "use strict" {
       self.set_strict(true);
     }
   }
