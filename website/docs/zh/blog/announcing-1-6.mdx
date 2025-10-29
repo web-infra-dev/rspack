@@ -95,7 +95,7 @@ export default {
 
 ### 优化 ESM 产物
 
-如何优化 ESM 产物一直是 Rspack 面临的难题之一。过去我们通过 [concatenateModules](/config/optimization#optimizationconcatenatemodules) 来优化 ESM 输出，但这种方式存在一些局限：
+如何优化 ESM 产物一直是 Rspack 面临的难题之一。过去我们通过 [module concatenation](/config/optimization#optimizationconcatenatemodules) 来优化 ESM 输出，但这种方式存在一些局限：
 
 - **输出不够纯净**：生成文件中包含了 Rspack 运行时代码
 - **可能出错**：某些模块无法被正确合并，可能导致产物行为异常

@@ -95,7 +95,7 @@ export default {
 
 ### Improved ESM output
 
-Optimizing ESM output has long been one of the key challenges faced by Rspack. Previously, we relied on [concatenateModules](/config/optimization#optimizationconcatenatemodules) to optimize ESM outputs, but that approach had several limitations:
+Optimizing ESM output has long been one of the key challenges faced by Rspack. Previously, we relied on [module concatenation](/config/optimization#optimizationconcatenatemodules) to optimize ESM outputs, but that approach had several limitations:
 
 - **Impure output** – The generated files contained Rspack's runtime code.
 - **Prone to errors** – Some modules could not be correctly concatenated, leading to unexpected runtime issues.
