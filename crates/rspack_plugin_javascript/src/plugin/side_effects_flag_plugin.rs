@@ -6,8 +6,8 @@ use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
+  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
@@ -248,7 +248,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   logger.time_end(inner_start);
 
   let inner_start = logger.time("find optimizable connections");
-  let dep_optimize_info = modules
+  modules
     .par_iter()
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
@@ -262,14 +262,13 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         can_optimize_connection(connection, &side_effects_state_map, &module_graph),
       )
     })
-    .collect::<Vec<_>>();
-  for (dep_id, can_optimize) in dep_optimize_info {
-    if let Some(do_optimize) = can_optimize {
-      side_effects_optimize_artifact.insert(dep_id, do_optimize);
-    } else {
-      side_effects_optimize_artifact.remove(&dep_id);
-    }
-  }
+    .consume(|(dep_id, can_optimize)| {
+      if let Some(do_optimize) = can_optimize {
+        side_effects_optimize_artifact.insert(dep_id, do_optimize);
+      } else {
+        side_effects_optimize_artifact.remove(&dep_id);
+      }
+    });
   logger.time_end(inner_start);
 
   let mut do_optimizes = side_effects_optimize_artifact.clone();
