@@ -16,6 +16,7 @@ mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
+pub mod incremental_info;
 pub use fs_trim::*;
 mod hash;
 mod identifier;
@@ -209,4 +210,36 @@ pub fn compare_chunks_with_graph(
     .filter_map(|module_id| module_graph.module_by_identifier(module_id))
     .collect();
   compare_module_iterables(&modules_a, &modules_b)
+}
+
+#[cfg(allocative)]
+pub fn snapshot_allocative(name: &str) {
+  use std::{
+    path::PathBuf,
+    sync::{
+      LazyLock,
+      atomic::{self, AtomicUsize},
+    },
+  };
+
+  use rspack_util::allocative;
+
+  static ENABLE: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
+    std::env::var_os("RSPACK_ALLOCATIVE_DIR")
+      .map(|dir| {
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+      })
+      .map(Into::into)
+  });
+  static COUNT: AtomicUsize = AtomicUsize::new(0);
+
+  if let Some(dir) = ENABLE.as_deref() {
+    let mut builder = allocative::FlameGraphBuilder::default();
+    builder.visit_global_roots();
+    let buf = builder.finish_and_write_flame_graph();
+    let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
+    let path = dir.join(format!("{}-{}.allocative", count, name));
+    std::fs::write(path, buf).expect("allocative write failed");
+  }
 }

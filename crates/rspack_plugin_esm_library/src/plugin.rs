@@ -1,21 +1,26 @@
-use std::sync::{Arc, LazyLock};
+use std::{
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
-  CompilationFinishModules, CompilationParams, CompilationProcessAssets,
+  CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  get_target, is_esm_dep_like,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource, dependency::ImportDependencyTemplate,
+  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
@@ -23,6 +28,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
+  esm_lib_parser_plugin::EsmLibParserPlugin, preserve_modules::preserve_modules,
   runtime::RegisterModuleRuntime,
 };
 
@@ -41,7 +47,15 @@ pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct EsmLibraryPlugin {}
+pub struct EsmLibraryPlugin {
+  pub(crate) preserve_modules: Option<PathBuf>,
+}
+
+impl EsmLibraryPlugin {
+  pub fn new(preserve_modules: Option<PathBuf>) -> Self {
+    Self::new_inner(preserve_modules)
+  }
+}
 
 #[plugin_hook(CompilerCompilation for EsmLibraryPlugin, stage=100)]
 async fn compilation(
@@ -109,10 +123,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     } else if ModuleGraph::is_async(compilation, module_identifier) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
-    } else if !module.build_info().strict {
-      logger.debug(format!("module {module_identifier} is not strict module"));
-      should_scope_hoisting = false;
-    } else if module_graph
+    }
+    // TODO: support config to disable scope hoisting for non strict module
+    //  else if !module.build_info().strict {
+    //   logger.debug(format!("module {module_identifier} is not strict module"));
+    //   should_scope_hoisting = false;
+    // }
+    else if module_graph
       .get_incoming_connections(module_identifier)
       .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
@@ -183,6 +200,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           runtime_requirements: RuntimeGlobals::default(),
           name: None,
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         }),
       );
     }
@@ -229,6 +250,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           interop_default_access_name: None,
           name: None,
           runtime_requirements: RuntimeGlobals::default(),
+          deferred: false,
+          deferred_name: None,
+          deferred_namespace_object_name: None,
+          deferred_namespace_object_used: false,
         });
         stack.push(*dep_module);
       }
@@ -422,10 +447,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .as_str(),
         );
         let relative = chunk_path.relative(self_path.as_path());
+        let relative = relative
+          .to_slash()
+          .expect("should have correct to_str for chunk path");
+
+        // change relative path to unix style
         let import_str = if relative.starts_with(".") {
-          relative.to_string_lossy().to_string()
+          relative
         } else {
-          format!("./{}", relative.display())
+          std::borrow::Cow::Owned(format!("./{relative}"))
         };
         replace_source.replace(start, end, &import_str, None);
       }
@@ -444,6 +474,33 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     compilation.assets_mut().remove(&remove_name);
   }
 
+  Ok(())
+}
+
+#[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if let Some(preserve_modules_root) = &self.preserve_modules {
+    let errors = preserve_modules(preserve_modules_root, compilation).await;
+    if !errors.is_empty() {
+      compilation.extend_diagnostics(errors);
+    }
+  }
+
+  Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryParser for EsmLibraryPlugin)]
+async fn parse(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(Box::new(EsmLibParserPlugin {}));
+  }
   Ok(())
 }
 
@@ -482,6 +539,13 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
+
+    ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
 
     Ok(())
   }

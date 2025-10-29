@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 7229
+- Update: main.hot-update.js, size: 7115
 
 ## Manifest
 
@@ -148,8 +148,7 @@ function cssReload(moduleId, options) {
             return;
         }
         reloaded ? console.log("[HMR] CSS reload %s", src && src.join(" ")) : (console.log("[HMR] Reload all CSS"), reloadAll());
-    }, timeout = 0, function() {
-        for(var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++)args[_key] = arguments[_key];
+    }, timeout = 0, function(...args) {
         let self = this;
         clearTimeout(timeout), timeout = setTimeout(function() {
             return fn.apply(self, args);

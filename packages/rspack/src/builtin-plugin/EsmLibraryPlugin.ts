@@ -6,6 +6,12 @@ import { RemoveDuplicateModulesPlugin } from "./RemoveDuplicateModulesPlugin";
 
 export class EsmLibraryPlugin {
 	static PLUGIN_NAME = "EsmLibraryPlugin";
+	options?: { preserveModules?: string };
+
+	constructor(options?: { preserveModules?: string }) {
+		this.options = options;
+	}
+
 	apply(compiler: Compiler) {
 		new RemoveDuplicateModulesPlugin().apply(compiler);
 
@@ -25,7 +31,9 @@ export class EsmLibraryPlugin {
 
 		compiler.__internal__registerBuiltinPlugin({
 			name: BuiltinPluginName.EsmLibraryPlugin,
-			options: {}
+			options: {
+				preserveModules: this.options?.preserveModules
+			}
 		});
 	}
 }

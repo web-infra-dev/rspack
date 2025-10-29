@@ -14,7 +14,7 @@ it("should load the component from container", async () => {
 	await __webpack_init_sharing__("test-scope");
 
 	// 2 scopes for "0-container-full-mjs" & "mf-with-shareScope-mjs"
-	expect(Object.keys(__webpack_share_scopes__["test-scope"].react).length).toBe(
+	expect(Object.keys(__webpack_share_scopes__["test-scope"]["mocked-react"]).length).toBe(
 		2
 	);
 

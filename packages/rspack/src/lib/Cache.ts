@@ -23,8 +23,8 @@ export interface Etag {
 
 export type CallbackCache<T> = (err?: WebpackError | null, result?: T) => void;
 
-type GotHandler = (
-	result: any | null,
+type GotHandler<T = any> = (
+	result: T | null,
 	callback: (error: Error | null) => void
 ) => void;
 

@@ -1,5 +1,4 @@
 export * from "./case";
-export * from "./compare";
 export * from "./helper";
 export * from "./plugin";
 export * from "./runner";

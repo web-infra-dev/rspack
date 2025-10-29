@@ -32,6 +32,7 @@ macro_rules! expect {
 use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
+use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
@@ -49,7 +50,7 @@ use rspack_core::{
   ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
   OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
   RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  TrustedTypes, UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{Error, Result};
@@ -1608,6 +1609,8 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1617,6 +1620,7 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
+      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1628,6 +1632,7 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
+      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1818,6 +1823,7 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
+      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }
@@ -3795,6 +3801,7 @@ impl ExperimentsBuilder {
       inline_enum: false,
       type_reexports_presence: false,
       lazy_barrel: false,
+      defer_import: false,
     })
   }
 }

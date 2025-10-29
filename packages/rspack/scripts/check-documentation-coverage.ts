@@ -3,9 +3,6 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
 
-// import { ZodObject, ZodOptional, ZodUnion } from "zod";
-// import { rspackOptions } from "../src/config/zod.ts";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -157,7 +154,7 @@ type Section = {
 /**
  * The process of checking the documentation coverage of Rspack configuration
  *
- * 1. Retrieve and traverse all implemented Rspack configurations through zod declaration.
+ * 1. Retrieve and traverse all implemented Rspack configurations.
  * 2. Traverse the configurations and determine whether they match the any level titles of the Markdown files under the config directory of the document site:
  *     1. If so, pass.
  *     2. If not, judge whether the introduction of the configuration exists in the body of the parent configuration:
@@ -166,35 +163,6 @@ type Section = {
  */
 function checkConfigsDocumentationCoverage() {
 	const CONFIG_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/config");
-
-	// function getImplementedConfigs() {
-	// 	const implementedConfigs: string[] = [];
-	// 	function visit(zod, path = "") {
-	// 		if (zod instanceof ZodObject) {
-	// 			for (const [key, schema] of Object.entries(zod.shape)) {
-	// 				const next = (() => {
-	// 					if (key.includes("/")) {
-	// 						return `${path}["${key}"]`;
-	// 					}
-	// 					if (path) {
-	// 						return `${path}.${key}`;
-	// 					}
-	// 					return key;
-	// 				})();
-	// 				implementedConfigs.push(next);
-	// 				visit(schema, next);
-	// 			}
-	// 		} else if (zod instanceof ZodOptional) {
-	// 			visit(zod.unwrap(), path);
-	// 		} else if (zod instanceof ZodUnion) {
-	// 			for (const schema of zod.options) {
-	// 				visit(schema, path);
-	// 			}
-	// 		}
-	// 	}
-	// 	visit(rspackOptions);
-	// 	return implementedConfigs;
-	// }
 
 	function parseConfigDocuments() {
 		function parseMarkdownContent(content) {

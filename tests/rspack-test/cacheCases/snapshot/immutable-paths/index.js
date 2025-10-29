@@ -13,3 +13,5 @@ it("should snapshot immutable-paths work", async () => {
 		expect(value).toBe(4);
 	}
 });
+
+module.hot.accept("./file");

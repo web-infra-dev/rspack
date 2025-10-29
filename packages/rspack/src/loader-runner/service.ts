@@ -1,5 +1,4 @@
 import path from "node:path";
-import { MessageChannel } from "node:worker_threads";
 // biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
 import type { Tinypool } from "tinypool" with { "resolution-mode": "import" };
 
@@ -137,7 +136,7 @@ export enum RequestSyncType {
 export type HandleIncomingRequest = (
 	requestType: RequestType,
 	...args: any[]
-) => Promise<any> | any;
+) => any;
 
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
@@ -203,6 +202,7 @@ export const run = async (
 	}
 ) =>
 	ensureLoaderWorkerPool().then(async pool => {
+		const { MessageChannel } = await import("node:worker_threads");
 		const { port1: mainPort, port2: workerPort } = new MessageChannel();
 		// Create message channel for processing sync API requests from worker
 		// threads.

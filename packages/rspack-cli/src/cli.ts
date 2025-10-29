@@ -11,7 +11,7 @@ import type {
 	Stats
 } from "@rspack/core";
 import cac, { type CAC } from "cac";
-import { createColors, isColorSupported } from "colorette";
+import { createColors, isColorSupported } from "picocolors";
 import { BuildCommand } from "./commands/build";
 import { PreviewCommand } from "./commands/preview";
 import { ServeCommand } from "./commands/serve";
@@ -46,8 +46,6 @@ export class RspackCLI {
 		rspackCommand: Command,
 		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
-		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
-
 		let { config, pathMap } = await this.loadConfig(options);
 		config = await this.buildConfig(config, pathMap, options, rspackCommand);
 
@@ -58,6 +56,10 @@ export class RspackCLI {
 		let compiler: MultiCompiler | Compiler | null;
 		try {
 			compiler = rspack(config, isWatch ? callback : undefined);
+			if (!isWatch && compiler) {
+				// unsafeFastDrop is an internal option api and not shown in types
+				compiler.unsafeFastDrop = true;
+			}
 		} catch (e) {
 			// Aligned with webpack-cli
 			// See: https://github.com/webpack/webpack-cli/blob/eea6adf7d34dfbfd3b5b784ece4a4664834f5a6a/packages/webpack-cli/src/webpack-cli.ts#L2394
@@ -80,7 +82,7 @@ export class RspackCLI {
 	createColors(useColor?: boolean): RspackCLIColors {
 		const shouldUseColor = useColor || isColorSupported;
 		return {
-			...createColors({ useColor: shouldUseColor }),
+			...createColors(shouldUseColor),
 			isColorSupported: shouldUseColor
 		};
 	}

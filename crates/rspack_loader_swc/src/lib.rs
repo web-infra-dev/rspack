@@ -13,6 +13,8 @@ use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext}
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
+#[cfg(allocative)]
+use rspack_util::allocative;
 pub use rspack_workspace::rspack_swc_core_version;
 use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
@@ -25,8 +27,10 @@ use crate::collect_ts_info::collect_typescript_info;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcLoader {
   identifier: Identifier,
+  #[cfg_attr(allocative, allocative(skip))]
   options_with_additional: SwcCompilerOptionsWithAdditional,
 }
 
@@ -68,7 +72,7 @@ impl SwcLoader {
           .merge(MergingOption::from(Some(transform)));
       }
 
-      if loader_context.context.module_source_map_kind.enabled() {
+      if loader_context.context.source_map_kind.enabled() {
         if let Some(pre_source_map) = loader_context.source_map().cloned()
           && let Ok(source_map) = pre_source_map.to_json()
         {
@@ -116,7 +120,7 @@ impl SwcLoader {
       source,
       Some(filename),
       swc_options,
-      Some(loader_context.context.module_source_map_kind),
+      Some(loader_context.context.source_map_kind),
       |program, unresolved_mark| {
         if !is_typescript {
           return;

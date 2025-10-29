@@ -4,6 +4,7 @@ import {
 	type RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
+import type { LiteralUnion } from "../config";
 import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
 
@@ -148,7 +149,7 @@ export interface JsFormatOptions {
 	wrapFuncArgs?: boolean;
 }
 
-export type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
+export type TerserEcmaVersion = LiteralUnion<5 | 2015 | 2016, number> | string;
 export interface TerserCompressOptions {
 	arguments?: boolean;
 	arrows?: boolean;

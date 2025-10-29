@@ -4,7 +4,6 @@ import { rimrafSync } from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import type {
-	ECompilerType,
 	ITestContext,
 	ITestEnv,
 	ITester,
@@ -24,20 +23,20 @@ interface IConcurrentTestEnv {
 	run: () => Promise<void>;
 }
 
-export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
+export interface IBasicCaseCreatorOptions {
 	clean?: boolean;
 	describe?: boolean;
 	timeout?: number;
 	contextValue?: Record<string, unknown>;
 	steps: (
-		creatorConfig: IBasicCaseCreatorOptions<T> & {
+		creatorConfig: IBasicCaseCreatorOptions & {
 			name: string;
 			src: string;
 			dist: string;
 			temp: string | void;
 		}
 	) => ITestProcessor[];
-	testConfig?: (testConfig: TTestConfig<T>) => void;
+	testConfig?: (testConfig: TTestConfig) => void;
 	description?: (name: string, step: number) => string;
 	runner?: TTestRunnerCreator;
 	createContext?: (config: ITesterConfig) => ITestContext;
@@ -47,18 +46,18 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 
 const DEFAULT_MAX_CONCURRENT = 5;
 
-export class BasicCaseCreator<T extends ECompilerType> {
+export class BasicCaseCreator {
 	protected currentConcurrent = 0;
 	protected tasks: [string, () => void][] = [];
 
-	constructor(protected _options: IBasicCaseCreatorOptions<T>) {}
+	constructor(protected _options: IBasicCaseCreatorOptions) {}
 
 	create(
 		name: string,
 		src: string,
 		dist: string,
 		temp?: string,
-		caseOptions?: Partial<IBasicCaseCreatorOptions<T>>
+		caseOptions?: Partial<IBasicCaseCreatorOptions>
 	) {
 		const options = {
 			...this._options,
@@ -133,8 +132,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected describeConcurrent(
 		name: string,
 		tester: ITester,
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	) {
 		beforeAll(async () => {
 			await tester.prepare();
@@ -165,10 +164,11 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						: "should pass";
 			it(
 				description,
-				cb => {
-					stepSignal.then((e: Error | void) => {
-						cb(e);
-					});
+				async () => {
+					const e = await stepSignal;
+					if (e) {
+						throw e;
+					}
 				},
 				options.timeout || 300000
 			);
@@ -180,6 +180,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						await tester.compile();
 						await tester.check(env);
 						await env.run();
+						await tester.after();
 						const context = tester.getContext();
 						if (!tester.next() && context.hasError()) {
 							const errors = context
@@ -221,8 +222,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	protected describe(
 		name: string,
 		tester: ITester,
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	) {
 		beforeAll(async () => {
 			await tester.prepare();
@@ -245,7 +246,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 						await tester.compile();
 					} catch (e) {
 						bailout = true;
-						context.emitError(name, e as Error);
+						context.emitError(e as Error);
 					}
 					await tester.check(env);
 					if (!tester.next() && context.hasError()) {
@@ -308,10 +309,11 @@ export class BasicCaseCreator<T extends ECompilerType> {
 					}
 					try {
 						await runFn(fn);
-					} catch (e) {
-						throw new Error(
-							`Error: ${description} failed\n${(e as Error).stack}`
-						);
+					} catch (err) {
+						const e = err as Error;
+						const message = `Error: ${description} failed:\n${e.message}`;
+						e.message = message;
+						throw e;
 					}
 					for (const after of afterTasks) {
 						await runFn(after);
@@ -332,13 +334,14 @@ export class BasicCaseCreator<T extends ECompilerType> {
 				expect(typeof fn === "function");
 				afterTasks.push(fn);
 			},
-			jest
+			jest: global.jest || global.rstest,
+			rstest: global.rstest
 		};
 	}
 
 	protected createEnv(
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	): ITestEnv {
 		if (options.runner && !testConfig.noTests) {
 			return createLazyTestEnv(10000);
@@ -348,7 +351,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			it,
 			beforeEach,
 			afterEach,
-			jest
+			jest: global.jest || global.rstest,
+			rstest: global.rstest
 		};
 	}
 
@@ -359,23 +363,21 @@ export class BasicCaseCreator<T extends ECompilerType> {
 	}
 
 	protected skip(name: string, reason: string | boolean) {
-		describe.skip(name, () => {
-			it(
-				typeof reason === "string" ? `filtered by ${reason}` : "filtered",
-				() => {}
-			);
-		});
+		it(
+			typeof reason === "string" ? `filtered by ${reason}` : "filtered",
+			() => {}
+		);
 	}
 
-	protected readTestConfig(src: string): TTestConfig<T> {
+	protected readTestConfig(src: string): TTestConfig {
 		const testConfigFile = path.join(src, "test.config.js");
 		return fs.existsSync(testConfigFile) ? require(testConfigFile) : {};
 	}
 
 	protected checkSkipped(
 		src: string,
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	): boolean | string {
 		const filterPath = path.join(src, "test.filter.js");
 		// no test.filter.js, should not skip
@@ -395,8 +397,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		src: string,
 		dist: string,
 		temp: string | undefined,
-		testConfig: TTestConfig<T>,
-		options: IBasicCaseCreatorOptions<T>
+		testConfig: TTestConfig,
+		options: IBasicCaseCreatorOptions
 	): ITester {
 		return new Tester({
 			name,

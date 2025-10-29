@@ -65,8 +65,8 @@ module.exports = {
 							}));
 							deps.sort((a, b) => (a.request > b.request ? 1 : -1));
 							expect(deps).toEqual([
-								{ request: "./b", kind: "esm export" },
-								{ request: "./c", kind: "esm export" },
+								{ request: "./b", kind: "esm export import" },
+								{ request: "./c", kind: "esm export import" },
 								{ request: "./lib/a", kind: "esm import" }
 							]);
 						});

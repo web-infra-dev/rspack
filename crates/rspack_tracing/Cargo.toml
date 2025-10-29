@@ -7,7 +7,6 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[features]
 [dependencies]
 rspack_tracing_perfetto = { workspace = true }
 tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }

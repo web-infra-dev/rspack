@@ -16,3 +16,5 @@ it("should basic test work", async () => {
 		expect(typeof react).toBe("object");
 	}
 });
+
+module.hot.accept("./file");

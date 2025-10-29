@@ -40,16 +40,33 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 ### terser-webpack-plugin
 
-[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin).
+[terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) minifies JavaScript code based on Terser. You can replace Terser with the faster SWC minimizer by using Rspack's built-in [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin).
 
 ### css-minimizer-webpack-plugin
 
-[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin).
+[css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) minifies CSS code based on tools like cssnano. You can replace cssnano with the faster Lightning CSS minimizer by using Rspack's built-in [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin).
 
 ### less-loader
 
-[less-loader](https://github.com/webpack-contrib/less-loader) compiles `.less` files based on Less. Since Less currently lacks an officially implemented high performance alternative, it is recommended to use [sass-loader](https://github.com/webpack-contrib/sass-loader) and [sass-embedded](https://www.npmjs.com/package/sass-embedded) instead. `sass-embedded` is a JavaScript wrapper for Sass's native Dart executable that provides excellent performance.
+[less-loader](https://github.com/webpack/less-loader) compiles `.less` files based on Less. Since Less currently lacks an officially implemented high performance alternative, it is recommended to use [sass-loader](https://github.com/webpack/sass-loader) and [sass-embedded](https://www.npmjs.com/package/sass-embedded) instead. `sass-embedded` is a JavaScript wrapper for Sass's native Dart executable that provides excellent performance.
 
 ### html-webpack-plugin
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
+
+## Thread pool size
+
+Rspack internally uses a dedicated thread pool to handle blocking operations such as file system reads and writes, preventing the main thread from being blocked.
+
+By default, the pool size is set to `4`, matching Node.js's [libuv](https://docs.libuv.org/en/v1.x/threadpool.html) behavior, which provides stable performance across most development and CI environments.
+
+If your build environment uses high-speed storage, you can adjust the thread count via the `RSPACK_BLOCKING_THREADS` environment variable to improve parallelism and potentially reduce build time, for example:
+
+```bash
+# Need to install cross-env package to set environment variables
+cross-env RSPACK_BLOCKING_THREADS=8 rspack build
+```
+
+After setting the variable, observe the build time to find the most suitable configuration.
+
+On slower or high-latency file systems, it's recommended to keep the default value or even lower it to avoid thread contention.

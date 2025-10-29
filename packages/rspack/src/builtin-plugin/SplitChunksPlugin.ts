@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
@@ -27,7 +26,9 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
 
 	raw(compiler: Compiler): BuiltinPlugin {
 		const rawOptions = toRawSplitChunksOptions(this.options, compiler);
-		assert(typeof rawOptions !== "undefined");
+		if (rawOptions === undefined) {
+			throw new Error("rawOptions should not be undefined");
+		}
 		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }

@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::ProcessUnlazyDependenciesTask};
 use crate::{
-  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxModule, ModuleIdentifier, ModuleProfile,
   compilation::make::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -11,7 +11,7 @@ use crate::{
 #[derive(Debug)]
 pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub module: Box<dyn Module>,
+  pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<ModuleProfile>,
@@ -66,7 +66,10 @@ impl Task<TaskContext> for AddTask {
 
       if context.compiler_options.experiments.lazy_barrel {
         if self.from_unlazy {
-          context.artifact.built_modules.insert(module_identifier);
+          context
+            .artifact
+            .affected_modules
+            .mark_as_add(&module_identifier);
         }
 
         if module_graph
@@ -106,8 +109,10 @@ impl Task<TaskContext> for AddTask {
     )?;
 
     tracing::trace!("Module added: {}", self.module.identifier());
-
-    context.artifact.built_modules.insert(module_identifier);
+    context
+      .artifact
+      .affected_modules
+      .mark_as_add(&module_identifier);
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,

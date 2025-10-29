@@ -1,12 +1,8 @@
 import vendor from "vendor";
-module.hot.accept("vendor");
-it("should hot update a splitted initial chunk", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should hot update a splitted initial chunk", async () => {
 	expect(vendor).toBe("1");
-	NEXT(
-		require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-			expect(vendor).toBe("2");
-			done();
-		})
-	);
-}));
+	await NEXT_HMR();
+	expect(vendor).toBe("2");
+});
+
+module.hot.accept(["vendor"]);

@@ -100,12 +100,16 @@ impl EvaluatedInlinableValue {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CanInlineUse {
+  // Must have this initial state to get the correct dependency condition of inline value
+  // at flag_dependency_usage_plugin. If it's just bool and the initial state is true like
+  // mangleExports, then the dependency condition of inline value will be false and the
+  // flag_dependency_usage_plugin will not collect the usage of these dependency.
   HasInfo,
   Yes,
   No,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),

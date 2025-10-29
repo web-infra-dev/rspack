@@ -10,19 +10,15 @@ function check() {
 	prevFullhash = __webpack_hash__;
 }
 
-it("should have hot-update.map file when hmr", () => new Promise((resolve, reject) => {
+it("should have hot-update.map file when hmr", async () => {
 	const done = err => (err ? reject(err) : resolve());
 	expect(value).toBe(1);
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-		check()
-		NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-			check()
-			NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-				check()
-				done();
-			}))
-		}));
-	}));
-}));
+	await NEXT_HMR();
+	check();
+	await NEXT_HMR();
+	check();
+	await NEXT_HMR();
+	check();
+});
 
 module.hot.accept("./file");

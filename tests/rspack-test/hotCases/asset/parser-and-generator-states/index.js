@@ -1,11 +1,9 @@
 import value from './file';
 
-it("should store and resume asset parser and generator states", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should store and resume asset parser and generator states", async () => {
 	expect(value).toBe('string');
-	module.hot.accept("./file", () => {
-		expect(value).toBe('string result');
-		done();
-	});
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-}));
+	await NEXT_HMR();
+	expect(value).toBe('string result');
+});
+
+module.hot.accept('./file');

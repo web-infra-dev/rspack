@@ -53,7 +53,7 @@ module.exports = [{
 		);
 	}
 }, (() => {
-	const mockFn = jest.fn();
+	const mockFn = rstest.fn();
 	return {
 		description: "should throw if the asset to be updated is not exist",
 		options(context) {

@@ -1,24 +1,23 @@
 import path from "node:path";
-import rspack, { type StatsCompilation } from "@rspack/core";
+import rspack, {
+	type RspackOptions,
+	type StatsCompilation
+} from "@rspack/core";
 import { isJavaScript } from "../helper";
 import { HotUpdatePlugin } from "../helper/hot-update";
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
-import { WebRunner } from "../runner";
+import { NodeRunner } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type IModuleScope,
-	type ITestContext,
-	type ITestEnv,
-	type ITestProcessor,
-	type TCompilerOptions,
-	type TCompilerStatsCompilation
+import type {
+	IModuleScope,
+	ITestContext,
+	ITestEnv,
+	ITestProcessor
 } from "../type";
-import { build, check, compiler, config, getCompiler, run } from "./common";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { cachedStats } from "./runner";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
 const MAX_COMPILER_INDEX = 100;
 
@@ -32,10 +31,10 @@ function createCacheProcessor(
 	return {
 		before: async (context: ITestContext) => {
 			await updatePlugin.initialize();
-			context.setValue(name, "hotUpdateContext", updatePlugin);
+			context.setValue("hotUpdateContext", updatePlugin);
 		},
 		config: async (context: ITestContext) => {
-			const compiler = getCompiler(context, name);
+			const compiler = context.getCompiler();
 			let options = defaultOptions(context, temp, target);
 			options = await config(
 				context,
@@ -61,6 +60,9 @@ function createCacheProcessor(
 		},
 		check: async (env: ITestEnv, context: ITestContext) => {
 			await check(env, context, name);
+		},
+		after: async (context: ITestContext) => {
+			await afterExecute(context, name);
 		},
 		afterAll: async (context: ITestContext) => {
 			const updateIndex = updatePlugin.getUpdateIndex();
@@ -100,23 +102,20 @@ export function createCacheCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	target: RspackOptions["target"],
 	temp: string
 ) {
 	const creator = getCreator(target);
 	creator.create(name, src, dist, temp);
 }
 
-const creators: Map<
-	TTarget,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const creators: Map<TTarget, BasicCaseCreator> = new Map();
 
 function defaultOptions(
 	context: ITestContext,
 	temp: string,
 	target: TTarget
-): TCompilerOptions<ECompilerType.Rspack> {
+): RspackOptions {
 	const options = {
 		context: temp,
 		mode: "production",
@@ -143,18 +142,18 @@ function defaultOptions(
 			},
 			inlineConst: true
 		}
-	} as TCompilerOptions<ECompilerType.Rspack>;
+	} as RspackOptions;
 
 	options.plugins ??= [];
-	(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+	(options as RspackOptions).plugins!.push(
 		new rspack.HotModuleReplacementPlugin()
 	);
 
 	return options;
 }
 
-function overrideOptions<T extends ECompilerType>(
-	options: TCompilerOptions<T>,
+function overrideOptions(
+	options: RspackOptions,
 	temp: string,
 	target: TTarget,
 	updatePlugin: HotUpdatePlugin
@@ -173,9 +172,7 @@ function overrideOptions<T extends ECompilerType>(
 			target === "async-node";
 	}
 	options.plugins ??= [];
-	(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-		updatePlugin
-	);
+	(options as RspackOptions).plugins!.push(updatePlugin);
 	if (!global.printLogger) {
 		options.infrastructureLogging = {
 			level: "error"
@@ -190,11 +187,14 @@ function findBundle(
 ): string[] {
 	const files: string[] = [];
 	const prefiles: string[] = [];
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	if (!compiler) throw new Error("Compiler should exists when find bundle");
 	const stats = compiler.getStats();
 	if (!stats) throw new Error("Stats should exists when find bundle");
-	const info = stats.toJson({ all: false, entrypoints: true });
+	const info = stats.toJson({
+		all: false,
+		entrypoints: true
+	}) as StatsCompilation;
 	if (target === "web" || target === "webworker") {
 		for (const file of info.entrypoints!.main.assets!) {
 			if (isJavaScript(file.name)) {
@@ -212,25 +212,21 @@ function findBundle(
 	return [...prefiles, ...files];
 }
 
-function createRunner<T extends ECompilerType.Rspack>(
+function createRunner(
 	context: ITestContext,
 	name: string,
 	file: string,
 	env: ITestEnv
 ) {
-	const compiler = context.getCompiler(name);
-	const options = compiler.getOptions() as TCompilerOptions<T>;
+	const compiler = context.getCompiler();
+	const options = compiler.getOptions() as RspackOptions;
 	let compilerIndex = 0;
 	const testConfig = context.getTestConfig();
 	const source = context.getSource();
 	const dist = context.getDist();
-	const updatePlugin = context.getValue<HotUpdatePlugin>(
-		name,
-		"hotUpdateContext"
-	)!;
+	const updatePlugin = context.getValue<HotUpdatePlugin>("hotUpdateContext")!;
 	const getWebRunner = () => {
-		return new WebRunner<T>({
-			dom: context.getValue(name, "documentType") || EDocumentType.JSDOM,
+		return new NodeRunner({
 			env,
 			stats: cachedStats(context, name),
 			cachable: false,
@@ -240,8 +236,8 @@ function createRunner<T extends ECompilerType.Rspack>(
 				...testConfig,
 				moduleScope(
 					ms: IModuleScope,
-					stats?: TCompilerStatsCompilation<T>,
-					options?: TCompilerOptions<T>
+					stats?: StatsCompilation,
+					options?: RspackOptions
 				) {
 					const moduleScope =
 						typeof testConfig.moduleScope === "function"
@@ -259,10 +255,7 @@ function createRunner<T extends ECompilerType.Rspack>(
 			compilerOptions: options
 		});
 	};
-	const nextHmr = async (
-		m: any,
-		options?: any
-	): Promise<TCompilerStatsCompilation<T>> => {
+	const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
 		await updatePlugin.goNext();
 		const stats = await compiler.build();
 		if (!stats) {
@@ -299,7 +292,7 @@ function createRunner<T extends ECompilerType.Rspack>(
 		return jsonStats as StatsCompilation;
 	};
 
-	const nextStart = async (): Promise<TCompilerStatsCompilation<T>> => {
+	const nextStart = async (): Promise<StatsCompilation> => {
 		await compiler.close();
 		compiler.createCompiler();
 		await updatePlugin.goNext();

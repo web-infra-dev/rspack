@@ -19,3 +19,11 @@ export class DeadlockRiskError extends Error {
 		this.stack = "";
 	}
 }
+
+// This type is no longer used and will be removed in Rspack 2.0
+export class ValidationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ValidationError";
+	}
+}

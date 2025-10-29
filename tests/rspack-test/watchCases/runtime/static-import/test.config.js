@@ -1,5 +1,5 @@
 module.exports = {
-	bundlePath: [
+	findBundle: () => [
 		"./runtime~main.js",
 		"./main.js"
 	]

@@ -25,7 +25,7 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsCompatSource, JsCompatSourceOwned, ToJsCompatSource},
+  source::{JsSourceFromJs, JsSourceToJs},
 };
 
 define_symbols! {
@@ -339,15 +339,16 @@ impl Module {
     )
   }
 
-  #[napi(js_name = "_originalSource", enumerable = false)]
-  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource<'_>, ()>> {
+  #[napi(
+    js_name = "_originalSource",
+    ts_return_type = "JsSource",
+    enumerable = false
+  )]
+  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsSourceToJs, ()>> {
     let (_, module) = self.as_ref()?;
 
     Ok(match module.source() {
-      Some(source) => match source.to_js_compat_source(env).ok() {
-        Some(s) => Either::A(s),
-        None => Either::B(()),
-      },
+      Some(source) => Either::A(source.as_ref().try_into()?),
       None => Either::B(()),
     })
   }
@@ -430,13 +431,13 @@ impl Module {
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
-    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_file(
     &mut self,
     env: &Env,
     filename: String,
-    source: JsCompatSource,
+    source: JsSourceFromJs,
     object: Option<Object>,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
@@ -456,7 +457,7 @@ impl Module {
     module.build_info_mut().assets.insert(
       filename,
       rspack_core::CompilationAsset {
-        source: Some(source.into()),
+        source: Some(source.try_into()?),
         info: asset_info,
       },
     );
@@ -734,7 +735,8 @@ pub struct JsExecuteModuleArg {
 #[derive(Default)]
 #[napi(object)]
 pub struct JsRuntimeModule {
-  pub source: Option<JsCompatSourceOwned>,
+  #[napi(ts_type = "JsSource")]
+  pub source: Option<JsSourceToJs>,
   pub module_identifier: String,
   pub constructor_name: String,
   pub name: String,

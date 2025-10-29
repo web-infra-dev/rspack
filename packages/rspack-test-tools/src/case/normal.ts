@@ -1,18 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
-import { HotModuleReplacementPlugin } from "@rspack/core";
+import {
+	type Compiler,
+	HotModuleReplacementPlugin,
+	type RspackOptions
+} from "@rspack/core";
 import {
 	BasicCaseCreator,
 	type IBasicCaseCreatorOptions
 } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions
-} from "../type";
-import { build, check, compiler, config, getCompiler, run } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
+import { afterExecute, build, check, compiler, config, run } from "./common";
 import { createRunner } from "./runner";
 
 const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, "normalCases");
@@ -20,14 +18,14 @@ const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, "normalCases");
 const createCaseOptions = (
 	hot: boolean,
 	mode?: "development" | "production"
-): IBasicCaseCreatorOptions<ECompilerType> => {
+): IBasicCaseCreatorOptions => {
 	return {
 		clean: true,
 		describe: false,
 		steps: ({ name }) => [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					let options = defaultOptions(
 						context,
 						{
@@ -55,6 +53,9 @@ const createCaseOptions = (
 				},
 				check: async (env: ITestEnv, context: ITestContext) => {
 					await check(env, context, name);
+				},
+				after: async (context: ITestContext) => {
+					await afterExecute(context, name);
 				}
 			}
 		],
@@ -90,10 +91,7 @@ export function createProdNormalCase(name: string, src: string, dist: string) {
 	prodCreator.create(name, src, dist);
 }
 
-function findBundle(
-	context: ITestContext,
-	options: TCompilerOptions<ECompilerType.Rspack>
-) {
+function findBundle(context: ITestContext, options: RspackOptions) {
 	const testConfig = context.getTestConfig();
 
 	if (typeof testConfig.findBundle === "function") {
@@ -104,12 +102,12 @@ function findBundle(
 	return typeof filename === "string" ? filename : undefined;
 }
 
-function defaultOptions<T extends ECompilerType.Rspack>(
+function defaultOptions(
 	context: ITestContext,
-	compilerOptions: TCompilerOptions<T>,
+	compilerOptions: RspackOptions,
 	mode?: "development" | "production"
 ) {
-	let testConfig: TCompilerOptions<T> = {};
+	let testConfig: RspackOptions = {};
 	const testConfigPath = path.join(context.getSource(), "test.config.js");
 	if (fs.existsSync(testConfigPath)) {
 		testConfig = require(testConfigPath);
@@ -123,7 +121,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 		context: NORMAL_CASES_ROOT,
 		entry: `./${path.relative(NORMAL_CASES_ROOT, context.getSource())}/`,
 		target: compilerOptions?.target || "async-node",
-		devtool: compilerOptions?.devtool,
+		devtool: mode === "development" ? false : compilerOptions?.devtool,
 		mode: compilerOptions?.mode || mode || "none",
 		optimization: compilerOptions?.mode
 			? {
@@ -202,7 +200,7 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 		},
 		plugins: (compilerOptions?.plugins || [])
 			.concat(testConfig.plugins || [])
-			.concat(function (this: TCompiler<T>) {
+			.concat(function (this: Compiler) {
 				this.hooks.compilation.tap("TestCasesTest", compilation => {
 					const hooks: never[] = [
 						// CHANGE: the following hooks are not supported yet, so comment it out
@@ -236,13 +234,10 @@ function defaultOptions<T extends ECompilerType.Rspack>(
 			// Turning off here to fallback to webpack's default css processing logic.
 			...(compilerOptions?.module ? { outputModule: true } : {})
 		}
-	} as TCompilerOptions<T>;
+	} as RspackOptions;
 }
 
-function overrideOptions<T extends ECompilerType.Rspack>(
-	context: ITestContext,
-	options: TCompilerOptions<T>
-) {
+function overrideOptions(context: ITestContext, options: RspackOptions) {
 	if (!global.printLogger) {
 		options.infrastructureLogging = {
 			level: "error"

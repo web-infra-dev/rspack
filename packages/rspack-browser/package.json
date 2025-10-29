@@ -1,6 +1,6 @@
 {
   "name": "@rspack/browser",
-  "version": "1.6.0-beta.0",
+  "version": "1.6.0-beta.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
@@ -16,6 +16,7 @@
       "types": "./dist/browser/index.d.ts",
       "default": "./dist/index.mjs"
     },
+    "./wasi-worker-browser.mjs": "./wasi-worker-browser.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {

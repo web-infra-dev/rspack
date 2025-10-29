@@ -1,10 +1,10 @@
-import { f } from /* webpackDefer: true */  "./mod.js"; // error
-import f2 from /* webpackDefer: true */ "./mod.js"; // error
-import * as f3 from /* webpackDefer: true */ "./mod.js";
-import f4, { f as f5 } from /* webpackDefer: true */ "./mod.js"; // error
+import defer { f } from "./mod.js"; // error
+import defer f2 from "./mod.js"; // error
+import defer * as f3 from "./mod.js";
+import defer f4, { f as f5 } from "./mod.js"; // error
 
-export * as f4 from /* webpackDefer: true */ "./mod.js"; // error
-export { f as f5 } from /* webpackDefer: true */ "./mod.js"; // error
+export defer * as f4 from "./mod.js"; // error
+export defer { f as f5 } from "./mod.js"; // error
 
 export default [f, f2, f3, f4, f5];
 

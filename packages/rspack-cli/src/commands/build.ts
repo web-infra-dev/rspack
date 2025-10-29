@@ -1,5 +1,10 @@
 import fs from "node:fs";
-import type { MultiStats, Stats } from "@rspack/core";
+import type {
+	MultiStats,
+	MultiStatsOptions,
+	Stats,
+	StatsOptions
+} from "@rspack/core";
 import type { RspackCLI } from "../cli";
 import type { RspackCommand } from "../types";
 import {
@@ -43,15 +48,18 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
 			return;
 		}
 
-		const statsOptions = cli.isMultipleCompiler(compiler)
-			? {
+		const getStatsOptions = () => {
+			if (cli.isMultipleCompiler(compiler)) {
+				return {
 					children: compiler.compilers.map(item =>
 						item.options ? item.options.stats : undefined
 					)
-				}
-			: compiler.options
-				? compiler.options.stats
-				: undefined;
+				} satisfies MultiStatsOptions;
+			}
+			return compiler.options?.stats;
+		};
+
+		const statsOptions = getStatsOptions() as StatsOptions;
 
 		if (options.json && createJsonStringifyStream) {
 			const handleWriteError = (error: Error) => {

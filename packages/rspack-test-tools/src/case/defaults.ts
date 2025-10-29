@@ -1,16 +1,9 @@
 import path from "node:path";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
+import type { RspackOptions } from "@rspack/core";
 import { diff as jestDiff } from "jest-diff";
-
 import { TestContext } from "../test/context";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITestProcessor,
-	TCompilerOptions
-} from "../type";
-import { getCompiler } from "./common";
+import type { ITestContext, ITestEnv, ITestProcessor } from "../type";
 
 const CURRENT_CWD = process.cwd();
 
@@ -19,11 +12,11 @@ export function createDefaultsCase(name: string, src: string) {
 	it(`should generate the correct defaults from ${caseConfig.description}`, async () => {
 		await run(name, {
 			config: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.setOptions(options(context, caseConfig.options));
 			},
 			compiler: async (context: ITestContext) => {
-				const compiler = getCompiler(context, name);
+				const compiler = context.getCompiler();
 				compiler.createCompiler();
 			},
 			build: async (context: ITestContext) => {
@@ -41,8 +34,8 @@ export function createDefaultsCase(name: string, src: string) {
 
 export function getRspackDefaultConfig(
 	cwd: string,
-	config: TCompilerOptions<ECompilerType>
-): TCompilerOptions<ECompilerType> {
+	config: RspackOptions
+): RspackOptions {
 	process.chdir(cwd);
 	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 		require("@rspack/core").config;
@@ -56,11 +49,11 @@ export function getRspackDefaultConfig(
 }
 
 export type TDefaultsCaseConfig = {
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+	options?: (context: ITestContext) => RspackOptions;
 	cwd?: string;
 	diff: (
 		diff: jest.JestMatchers<RspackTestDiff>,
-		defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+		defaults: jest.JestMatchers<RspackOptions>
 	) => Promise<void>;
 	description: string;
 };
@@ -68,16 +61,11 @@ export type TDefaultsCaseConfig = {
 const srcDir = path.resolve(__dirname, "../../tests/fixtures");
 const distDir = path.resolve(__dirname, "../../tests/js/defaults");
 
-const context = new TestContext({
-	src: srcDir,
-	dist: distDir
-});
-
 function options(
 	context: ITestContext,
-	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
+	custom?: (context: ITestContext) => RspackOptions
 ) {
-	let res: TCompilerOptions<ECompilerType.Rspack>;
+	let res: RspackOptions;
 	if (typeof custom === "function") {
 		res = custom(context);
 	} else {
@@ -101,11 +89,11 @@ async function check(
 		cwd?: string;
 		diff: (
 			diff: jest.JestMatchers<RspackTestDiff>,
-			defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>
+			defaults: jest.JestMatchers<RspackOptions>
 		) => Promise<void>;
 	}
 ) {
-	const compiler = getCompiler(context, name);
+	const compiler = context.getCompiler();
 	const config = getRspackDefaultConfig(
 		options.cwd || CURRENT_CWD,
 		compiler.getOptions()
@@ -123,14 +111,19 @@ async function check(
 }
 
 async function run(name: string, processor: ITestProcessor) {
+	const context = new TestContext({
+		name: name,
+		src: srcDir,
+		dist: distDir
+	});
 	try {
 		await processor.before?.(context);
 		await processor.config?.(context);
 	} catch (e: unknown) {
-		context.emitError(name, e as Error);
+		context.emitError(e as Error);
 	} finally {
 		await processor.check?.(
-			{ expect, it, beforeEach, afterEach, jest },
+			{ expect, it, beforeEach, afterEach, jest: global.jest || global.rstest },
 			context
 		);
 		await processor.after?.(context);

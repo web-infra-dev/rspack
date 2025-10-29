@@ -5,7 +5,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)，但可以使用 CssExtractRspackPlugin 替代，它可以和 css-loader 搭配使用，用于将 CSS 提取成单独文件。
+Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)，但可以使用 CssExtractRspackPlugin 替代，它可以和 css-loader 搭配使用，用于将 CSS 提取成单独文件。
 
 > 如果你的项目不依赖于 css-loader 和 mini-css-extract-plugin，我们更推荐使用 Rspack 内置的 CSS 解决方案 [experiments.css](/config/experiments#experimentscss)，它的性能更好。
 

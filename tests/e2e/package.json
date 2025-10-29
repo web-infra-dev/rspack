@@ -7,13 +7,13 @@
     "test:CI": "CI=1 pnpm run test"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.4",
+    "@babel/core": "^7.28.5",
     "@babel/preset-react": "^7.27.1",
     "@playwright/test": "1.56.0",
     "core-js": "3.45.1",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",
-    "@rspack/plugin-react-refresh": "^1.5.1",
+    "@rspack/plugin-react-refresh": "^1.5.2",
     "@swc/helpers": "0.5.17",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",

@@ -13,3 +13,5 @@ it("should basic test work", async () => {
 		expect(value).toBe(4);
 	}
 });
+
+module.hot.accept("./file");

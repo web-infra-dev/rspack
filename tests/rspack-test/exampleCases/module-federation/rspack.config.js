@@ -22,7 +22,7 @@ const stats = {
 	chunkModules: true,
 	chunkOrigins: true
 };
-module.exports = (env = "development") => [
+module.exports = [
 	// For this example we have 3 configs in a single file
 	// In practice you probably would have separate config
 	// maybe even separate repos for each build.
@@ -31,7 +31,7 @@ module.exports = (env = "development") => [
 	// Each one can have different config options.
 	{
 		name: "app",
-		mode: env,
+		mode: "development",
 		entry: {
 			app: "./src/index.js"
 		},
@@ -73,7 +73,7 @@ module.exports = (env = "development") => [
 	},
 	{
 		name: "mfe-b",
-		mode: env,
+		mode: "development",
 		entry: {},
 		output: {
 			filename: "[name].js",
@@ -109,7 +109,7 @@ module.exports = (env = "development") => [
 	},
 	{
 		name: "mfe-c",
-		mode: env,
+		mode: "development",
 		entry: {},
 		output: {
 			filename: "[name].js",

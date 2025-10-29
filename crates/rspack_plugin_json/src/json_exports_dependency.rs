@@ -2,8 +2,8 @@ use json::JsonValue;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
-  DependencyId, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphCacheArtifact, RuntimeSpec,
+  DependencyId, ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsOfExportsSpec, ExportsSpec,
+  ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use rspack_util::{ext::DynHash, itoa};
 
@@ -39,6 +39,7 @@ impl Dependency for JsonExportsDependency {
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data, self.exports_depth, 1)
+        .map(ExportsOfExportsSpec::Names)
         .unwrap_or(ExportsOfExportsSpec::NoExports),
       ..Default::default()
     })
@@ -68,7 +69,7 @@ fn get_exports_from_data(
   data: &JsonValue,
   exports_depth: u32,
   cur_depth: u32,
-) -> Option<ExportsOfExportsSpec> {
+) -> Option<Vec<ExportNameOrSpec>> {
   if cur_depth > exports_depth {
     return None;
   }
@@ -80,52 +81,37 @@ fn get_exports_from_data(
     | JsonValue::Boolean(_) => {
       return None;
     }
-    JsonValue::Object(obj) => ExportsOfExportsSpec::Names(
-      obj
-        .iter()
-        .map(|(k, v)| {
-          ExportNameOrSpec::ExportSpec(ExportSpec {
-            name: k.into(),
-            can_mangle: Some(true),
-            exports: get_exports_from_data(v, exports_depth, cur_depth + 1).map(
-              |item| match item {
-                ExportsOfExportsSpec::UnknownExports => unreachable!(),
-                ExportsOfExportsSpec::NoExports => unreachable!(),
-                ExportsOfExportsSpec::Names(arr) => arr,
-              },
-            ),
-            ..Default::default()
-          })
+    JsonValue::Object(obj) => obj
+      .iter()
+      .map(|(k, v)| {
+        ExportNameOrSpec::ExportSpec(ExportSpec {
+          name: k.into(),
+          can_mangle: Some(true),
+          exports: get_exports_from_data(v, exports_depth, cur_depth + 1)
+            .map(ExportSpecExports::new),
+          ..Default::default()
         })
-        .collect::<Vec<_>>(),
-    ),
+      })
+      .collect::<Vec<_>>(),
     JsonValue::Array(arr) => {
       if arr.len() > 100 {
         return None;
       }
-      ExportsOfExportsSpec::Names(
-        arr
-          .iter()
-          .enumerate()
-          .map(|(i, item)| {
-            let mut i_buffer = itoa::Buffer::new();
-            let i_str = i_buffer.format(i);
-            ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: i_str.into(),
-              can_mangle: Some(true),
-              exports: get_exports_from_data(item, exports_depth, cur_depth + 1).map(|item| {
-                match item {
-                  ExportsOfExportsSpec::UnknownExports | ExportsOfExportsSpec::NoExports => {
-                    unreachable!()
-                  }
-                  ExportsOfExportsSpec::Names(arr) => arr,
-                }
-              }),
-              ..Default::default()
-            })
+      arr
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+          let mut i_buffer = itoa::Buffer::new();
+          let i_str = i_buffer.format(i);
+          ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: i_str.into(),
+            can_mangle: Some(true),
+            exports: get_exports_from_data(item, exports_depth, cur_depth + 1)
+              .map(ExportSpecExports::new),
+            ..Default::default()
           })
-          .collect::<Vec<_>>(),
-      )
+        })
+        .collect::<Vec<_>>()
     }
   };
   Some(ret)

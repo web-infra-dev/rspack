@@ -1,9 +1,7 @@
 /** @type {function(): import("@rspack/core").Configuration} */
 module.exports = (env, { srcPath }) => ({
 	mode: "development",
-	cache: {
-		type: "memory"
-	},
+	cache: true,
 	snapshot: {
 		managedPaths: [/^(.+?[\\/]node_modules[\\/])/]
 	}

@@ -10,7 +10,7 @@
     "@codspeed/vitest-plugin": "^4.0.1",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "^1.5.1",
+    "@rspack/plugin-react-refresh": "^1.5.2",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "vitest": "^3.2.4"

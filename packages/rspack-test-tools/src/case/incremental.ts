@@ -1,13 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import {
-	type ECompilerType,
-	EDocumentType,
-	type ITestContext,
-	type TCompilerOptions
-} from "../type";
+import type { ITestContext } from "../type";
 import { createHotProcessor, createHotRunner } from "./hot";
 import {
 	createWatchInitialProcessor,
@@ -16,12 +11,9 @@ import {
 	getWatchRunnerKey
 } from "./watch";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-const hotCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const hotCreators: Map<string, BasicCaseCreator> = new Map();
 
 function createHotIncrementalProcessor(
 	name: string,
@@ -30,28 +22,7 @@ function createHotIncrementalProcessor(
 	target: TTarget,
 	webpackCases: boolean
 ) {
-	const processor = createHotProcessor(name, src, temp, target, true);
-	const originalBefore = processor.before;
-	processor.before = async context => {
-		await originalBefore?.(context);
-		context.setValue(
-			name,
-			"documentType",
-			webpackCases ? EDocumentType.Fake : EDocumentType.JSDOM
-		);
-	};
-	const originalAfterAll = processor.afterAll;
-	processor.afterAll = async function (context) {
-		try {
-			await originalAfterAll?.(context);
-		} catch (e: any) {
-			const isFake =
-				context.getValue(name, "documentType") === EDocumentType.Fake;
-			if (isFake && /Should run all hot steps/.test(e.message)) return;
-			throw e;
-		}
-	};
-	return processor;
+	return createHotProcessor(name, src, temp, target, true);
 }
 
 function getHotCreator(target: TTarget, webpackCases: boolean) {
@@ -88,17 +59,14 @@ export function createHotIncrementalCase(
 	src: string,
 	dist: string,
 	temp: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	target: RspackOptions["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
 	creator.create(name, src, dist, temp);
 }
 
-const watchCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const watchCreators: Map<string, BasicCaseCreator> = new Map();
 
 export type WatchIncrementalOptions = {
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;

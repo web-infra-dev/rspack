@@ -1,6 +1,7 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { Compiler } from "@rspack/core";
+import fs from "fs-extra";
+import { rimrafSync } from "rimraf";
 
 async function loopFile(
 	dir: string,
@@ -56,7 +57,7 @@ export class HotUpdatePlugin {
 				);
 				// match command
 				if (command === "delete") {
-					await fs.unlink(filePath);
+					await fs.remove(filePath);
 					return;
 				}
 				if (command === "force_write") {
@@ -81,12 +82,9 @@ export class HotUpdatePlugin {
 			return;
 		}
 		this.initialized = true;
-		try {
-			await fs.rmdir(this.tempDir, { recursive: true });
-		} catch (_e) {
-			// empty
-		}
-		await fs.cp(this.projectDir, this.tempDir, { recursive: true });
+		rimrafSync(this.tempDir);
+		fs.copySync(this.projectDir, this.tempDir);
+
 		await loopFile(this.tempDir, (filePath, content) => {
 			const contents = content.split(/---+\r?\n/g);
 			if (contents.length > 1) {

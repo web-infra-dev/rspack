@@ -1,25 +1,25 @@
-import * as dynamic_default from /* webpackDefer: true */ "./commonjs/dynamic_default.cjs";
-import * as dynamic_default_ns from /* webpackDefer: true */ "./commonjs/dynamic_default_ns.cjs";
-import * as dynamic_named from /* webpackDefer: true */ "./commonjs/dynamic_named.cjs";
-import * as dynamic_named_ns from /* webpackDefer: true */ "./commonjs/dynamic_named_ns.cjs";
-import * as dynamic_both from /* webpackDefer: true */ "./commonjs/dynamic-both.cjs";
-import * as dynamic_both_ns from /* webpackDefer: true */ "./commonjs/dynamic_both_ns.cjs";
+import defer * as dynamic_default from "./commonjs/dynamic_default.cjs";
+import defer * as dynamic_default_ns from "./commonjs/dynamic_default_ns.cjs";
+import defer * as dynamic_named from "./commonjs/dynamic_named.cjs";
+import defer * as dynamic_named_ns from "./commonjs/dynamic_named_ns.cjs";
+import defer * as dynamic_both from "./commonjs/dynamic-both.cjs";
+import defer * as dynamic_both_ns from "./commonjs/dynamic_both_ns.cjs";
 
-import * as flagged_default from /* webpackDefer: true */ "./commonjs/flagged_default.js";
-import * as flagged_default_ns from /* webpackDefer: true */ "./commonjs/flagged_default_ns.js";
-import * as flagged_named from /* webpackDefer: true */ "./commonjs/flagged_named.js";
-import * as flagged_named_ns from /* webpackDefer: true */ "./commonjs/flagged_named_ns.js";
-import * as flagged_both from /* webpackDefer: true */ "./commonjs/flagged_both.js";
-import * as flagged_both_ns from /* webpackDefer: true */ "./commonjs/flagged_both_ns.js";
+import defer * as flagged_default from "./commonjs/flagged_default.js";
+import defer * as flagged_default_ns from "./commonjs/flagged_default_ns.js";
+import defer * as flagged_named from "./commonjs/flagged_named.js";
+import defer * as flagged_named_ns from "./commonjs/flagged_named_ns.js";
+import defer * as flagged_both from "./commonjs/flagged_both.js";
+import defer * as flagged_both_ns from "./commonjs/flagged_both_ns.js";
 
-import * as esm_default from /* webpackDefer: true */ "./esm/esm_default.mjs";
-import * as esm_default_ns from /* webpackDefer: true */ "./esm/esm_default_ns.mjs";
-import * as esm_named from /* webpackDefer: true */ "./esm/esm_named.mjs";
-import * as esm_named_ns from /* webpackDefer: true */ "./esm/esm_named_ns.mjs";
-import * as esm_both from /* webpackDefer: true */ "./esm/esm_both.mjs";
-import * as esm_both_ns from /* webpackDefer: true */ "./esm/esm_both_ns.mjs";
+import defer * as esm_default from "./esm/esm_default.mjs";
+import defer * as esm_default_ns from "./esm/esm_default_ns.mjs";
+import defer * as esm_named from "./esm/esm_named.mjs";
+import defer * as esm_named_ns from "./esm/esm_named_ns.mjs";
+import defer * as esm_both from "./esm/esm_both.mjs";
+import defer * as esm_both_ns from "./esm/esm_both_ns.mjs";
 
-import * as never from /* webpackDefer: true */ "./esm/esm_both_ns.mjs";
+import defer * as never from "./esm/esm_both_ns.mjs";
 
 import { reexport_ns, reexport_cjs_ns } from "./esm/reexport.mjs";
 import {

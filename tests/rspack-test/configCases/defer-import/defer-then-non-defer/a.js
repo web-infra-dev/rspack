@@ -1,4 +1,4 @@
-import * as deferred from /* webpackDefer: true */ './deferred.1.js';
+import defer * as deferred from './deferred.1.js';
 import { order } from './order.js';
 order.push(['a', deferred][0]);
 

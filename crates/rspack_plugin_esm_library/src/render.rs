@@ -7,9 +7,7 @@ use rspack_core::{
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
   PathInfo, RuntimeGlobals, SourceType, get_js_chunk_filename_template, get_undo_path,
   render_init_fragments,
-  rspack_sources::{
-    BoxSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  rspack_sources::{ConcatSource, RawSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
@@ -133,14 +131,9 @@ impl EsmLibraryPlugin {
     let mut decl_source = ConcatSource::default();
 
     if !chunk_link.decl_modules.is_empty() {
-      // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
-      decl_source.add(RawSource::from(format!(
-        "{}({{\n",
-        RegisterModuleRuntime::runtime_id()
-      )));
-
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
       let hooks = hooks.read().await;
+      let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
@@ -162,10 +155,16 @@ impl EsmLibraryPlugin {
 
         chunk_init_fragments.extend(init_frags);
         chunk_init_fragments.extend(init_frags2);
-        decl_source.add(module_source.clone());
+        decl_inner.add(module_source.clone());
       }
       drop(hooks);
 
+      // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
+      decl_source.add(RawSource::from(format!(
+        "{}({{\n",
+        RegisterModuleRuntime::runtime_id()
+      )));
+      decl_source.add(decl_inner);
       decl_source.add(RawSource::from_static("});\n"));
     }
 
@@ -211,7 +210,12 @@ impl EsmLibraryPlugin {
     }
 
     // render namespace object before render module contents
-    for namespace in chunk_link.namespace_object_sources.values() {
+    let mut namespace_object_sources = chunk_link
+      .namespace_object_sources
+      .iter()
+      .collect::<Vec<_>>();
+    namespace_object_sources.sort_by(|(a, _), (b, _)| a.cmp(b));
+    for (_, namespace) in namespace_object_sources {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
 
@@ -632,7 +636,7 @@ impl EsmLibraryPlugin {
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource<BoxSource>> {
+  ) -> Result<ReplaceSource> {
     let mut source = info.source.clone().expect("should have source");
 
     for ((atom, ctxt), refs) in &info.binding_to_ref {

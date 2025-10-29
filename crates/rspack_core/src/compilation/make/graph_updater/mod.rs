@@ -39,11 +39,12 @@ pub async fn update_module_graph(
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
 
+  let revoked_modules = artifact.revoked_modules().copied().collect();
   compilation
     .plugin_driver
     .compilation_hooks
     .revoked_modules
-    .call(compilation, &artifact.revoked_modules)
+    .call(compilation, &revoked_modules)
     .await?;
 
   artifact = repair(compilation, artifact, build_dependencies).await?;

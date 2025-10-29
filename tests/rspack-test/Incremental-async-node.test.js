@@ -1,5 +1,3 @@
-process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
-
 const path = require("path");
 const {
 	describeByWalk,

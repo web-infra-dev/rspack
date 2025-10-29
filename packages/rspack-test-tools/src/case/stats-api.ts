@@ -1,34 +1,18 @@
 import type fs from "node:fs";
+import type { Compiler, RspackOptions, Stats } from "@rspack/core";
 import { createFsFromVolume, Volume } from "memfs";
 import { BasicCaseCreator } from "../test/creator";
-import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	TCompiler,
-	TCompilerOptions,
-	TCompilerStats
-} from "../type";
-import { getCompiler } from "./common";
+import type { ITestContext, ITestEnv } from "../type";
 
 let addedSerializer = false;
 
 export type TStatsAPICaseConfig = {
 	description: string;
-	options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>;
+	options?: (context: ITestContext) => RspackOptions;
 	snapshotName?: string;
-	compiler?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	build?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
-	check?: (
-		stats: TCompilerStats<ECompilerType.Rspack>,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>;
+	compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+	check?: (stats: Stats, compiler: Compiler) => Promise<void>;
 };
 
 const creator = new BasicCaseCreator({
@@ -39,16 +23,16 @@ const creator = new BasicCaseCreator({
 		return [
 			{
 				config: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					compiler.setOptions(options(context, config.options));
 				},
 				compiler: async (context: ITestContext) => {
-					const compilerManager = getCompiler(context, name);
+					const compilerManager = context.getCompiler();
 					compilerManager.createCompiler();
 					compiler(context, compilerManager.getCompiler()!, config.compiler);
 				},
 				build: async (context: ITestContext) => {
-					const compiler = getCompiler(context, name);
+					const compiler = context.getCompiler();
 					if (typeof config.build === "function") {
 						await config.build(context, compiler.getCompiler()!);
 					} else {
@@ -85,10 +69,9 @@ export function createStatsAPICase(
 
 function options(
 	context: ITestContext,
-	custom?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>
+	custom?: (context: ITestContext) => RspackOptions
 ) {
-	const res = (custom?.(context) ||
-		{}) as TCompilerOptions<ECompilerType.Rspack>;
+	const res = (custom?.(context) || {}) as RspackOptions;
 	res.experiments ??= {};
 	res.experiments!.css ??= true;
 	res.experiments!.rspackFuture ??= {};
@@ -104,11 +87,8 @@ function options(
 
 async function compiler(
 	context: ITestContext,
-	compiler: TCompiler<ECompilerType.Rspack>,
-	custom?: (
-		context: ITestContext,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>
+	compiler: Compiler,
+	custom?: (context: ITestContext, compiler: Compiler) => Promise<void>
 ) {
 	if (custom) {
 		await custom(context, compiler);
@@ -124,13 +104,10 @@ async function check(
 	env: ITestEnv,
 	context: ITestContext,
 	name: string,
-	custom?: (
-		stats: TCompilerStats<ECompilerType.Rspack>,
-		compiler: TCompiler<ECompilerType.Rspack>
-	) => Promise<void>
+	custom?: (stats: Stats, compiler: Compiler) => Promise<void>
 ) {
-	const manager = getCompiler(context, name);
-	const stats = manager.getStats()! as TCompilerStats<ECompilerType.Rspack>;
+	const manager = context.getCompiler();
+	const stats = manager.getStats()! as Stats;
 	env.expect(typeof stats).toBe("object");
 	await custom?.(stats, manager.getCompiler()!);
 }

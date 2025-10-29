@@ -1,13 +1,12 @@
-import type { Colorette } from "colorette";
 import type { RspackCLI } from "./cli";
 
 export type { Configuration } from "@rspack/core";
 
 export type LogHandler = (value: any) => void;
 
-export interface RspackCLIColors extends Colorette {
+export type RspackCLIColors = {
 	isColorSupported: boolean;
-}
+} & Omit<typeof import("picocolors"), "createColors">;
 
 export interface RspackCLILogger {
 	error: LogHandler;

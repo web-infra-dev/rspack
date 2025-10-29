@@ -46,9 +46,9 @@ export default {
 
 ### 使用 CssExtractRspackPlugin
 
-Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
+Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。
 
-如果你正在迁移一个使用 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) 的 webpack 项目，那么推荐使用 CssExtractRspackPlugin 来替换 mini-css-extract-plugin，它们的功能和配置方式基本一致。
+如果你正在迁移一个使用 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) 的 webpack 项目，那么推荐使用 CssExtractRspackPlugin 来替换 mini-css-extract-plugin，它们的功能和配置方式基本一致。
 
 - 安装 css-loader：
 
@@ -81,7 +81,7 @@ CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: '
 
 ### 使用 style-loader
 
-Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [style-loader](https://github.com/webpack-contrib/style-loader)，将 CSS 通过 `<style>` 标签注入。这种方式不会生成独立的 CSS 文件，而是将 CSS 的内容内联到 JS 文件中。
+Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [style-loader](https://github.com/webpack/style-loader)，将 CSS 通过 `<style>` 标签注入。这种方式不会生成独立的 CSS 文件，而是将 CSS 的内容内联到 JS 文件中。
 
 - 安装 css-loader 和 style-loader：
 
@@ -167,7 +167,7 @@ Rspack 提供了选项，允许你自定义 CSS Modules 的解析和生成方式
 
 ### 使用 css-loader
 
-如果你没有开启 Rspack 的内置 CSS 支持，那么可以使用 [css-loader](https://github.com/webpack-contrib/css-loader) 来提供对 CSS Modules 的支持。
+如果你没有开启 Rspack 的内置 CSS 支持，那么可以使用 [css-loader](https://github.com/webpack/css-loader) 来提供对 CSS Modules 的支持。
 
 通过 `css-loader` 的 `modules` 选项开启：
 
@@ -188,11 +188,11 @@ export default {
 };
 ```
 
-更多用法请参考 [css-loader - modules](https://github.com/webpack-contrib/css-loader#modules)。
+更多用法请参考 [css-loader - modules](https://github.com/webpack/css-loader#modules)。
 
 ## PostCSS
 
-Rspack 支持使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader)，你可以这样配置：
+Rspack 支持使用 [postcss-loader](https://github.com/webpack/postcss-loader)，你可以这样配置：
 
 <PackageManagerTabs command="add postcss postcss-loader -D" />
 
@@ -220,11 +220,11 @@ export default {
 };
 ```
 
-上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
+上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
 ## Sass
 
-Rspack 支持使用 [sass-loader](https://github.com/webpack-contrib/sass-loader)，你可以这样配置：
+Rspack 支持使用 [sass-loader](https://github.com/webpack/sass-loader)，你可以这样配置：
 
 <PackageManagerTabs command="add sass-embedded sass-loader -D" />
 
@@ -253,11 +253,11 @@ export default {
 };
 ```
 
-上述配置会将所有 `*.sass` 和 `*.scss` 文件经过 [sass-loader](https://github.com/webpack-contrib/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
+上述配置会将所有 `*.sass` 和 `*.scss` 文件经过 [sass-loader](https://github.com/webpack/sass-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
 ## Less
 
-Rspack 支持使用 [less-loader](https://github.com/webpack-contrib/less-loader)，你可以这样配置：
+Rspack 支持使用 [less-loader](https://github.com/webpack/less-loader)，你可以这样配置：
 
 <PackageManagerTabs command="add less less-loader -D" />
 
@@ -283,7 +283,7 @@ export default {
 };
 ```
 
-上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack-contrib/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
+上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
 ## Tailwind CSS
 

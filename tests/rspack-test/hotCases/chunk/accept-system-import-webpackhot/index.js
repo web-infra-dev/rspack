@@ -1,19 +1,13 @@
-it("should import a changed chunk", () => new Promise((resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
-	import("./chunk").then((chunk) => {
-		expect(chunk.value).toBe(1);
-		import("./chunk2").then((chunk2) => {
-			expect(chunk2.value).toBe(1);
-			NEXT(require("@rspack/test-tools/helper/legacy/update")(done));
-			import.meta.webpackHot.accept(["./chunk", "./chunk2"], () => {
-				import("./chunk").then((chunk) => {
-					expect(chunk.value).toBe(2);
-					import("./chunk2").then((chunk2) => {
-						expect(chunk2.value).toBe(2);
-						done();
-					}).catch(done);
-				}).catch(done);
-			});
-		}).catch(done);
-	}).catch(done);
-}));
+it("should import a changed chunk", async () => {
+	let chunk = await import("./chunk");
+	expect(chunk.value).toBe(1);
+	let chunk2 = await import("./chunk2");
+	expect(chunk2.value).toBe(1);
+	await NEXT_HMR();
+	chunk = await import("./chunk");
+	expect(chunk.value).toBe(2);
+	chunk2 = await import("./chunk2");
+	expect(chunk2.value).toBe(2);
+});
+
+import.meta.webpackHot.accept(["./chunk", "./chunk2"]);

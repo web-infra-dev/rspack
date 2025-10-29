@@ -1,6 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
+	target: "web",
 	experiments: {
 		outputModule: true,
 		css: true

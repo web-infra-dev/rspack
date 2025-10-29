@@ -174,6 +174,14 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	options: RspackOptionsNormalized;
+	/**
+	 * Whether to skip dropping Rust compiler instance to improve performance.
+	 * This is an internal option api and could be removed or changed at any time.
+	 * @internal
+	 * true: Skip dropping Rust compiler instance.
+	 * false: Drop Rust compiler instance when Compiler is garbage collected.
+	 */
+	unsafeFastDrop: boolean = false;
 
 	/**
 	 * Note: This is not a webpack public API, maybe removed in future.
@@ -729,16 +737,12 @@ class Compiler {
 			});
 			return;
 		}
+
 		this.hooks.shutdown.callAsync(err => {
 			if (err) return callback(err);
 			this.cache.shutdown(() => {
-				this.#getInstance((error, instance) => {
-					if (error) {
-						return callback(error);
-					}
-					instance!.close();
-					callback();
-				});
+				this.#instance?.close();
+				callback();
 			});
 		});
 	}
@@ -849,11 +853,12 @@ class Compiler {
 			return callback(null, this.#instance);
 		}
 
-		const options = this.options;
+		const { options } = this;
 		const rawOptions = getRawOptions(options, this);
 		rawOptions.__references = Object.fromEntries(
 			this.#ruleSet.builtinReferences.entries()
 		);
+
 		rawOptions.__virtual_files =
 			VirtualModulesPlugin.__internal__take_virtual_files(this);
 
@@ -867,20 +872,36 @@ class Compiler {
 				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined;
 
-		this.#instance = new instanceBinding.JsCompiler(
-			this.compilerPath,
-			rawOptions,
-			this.#builtinPlugins,
-			this.#registers,
-			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-			this.intermediateFileSystem
-				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
-				: undefined,
-			inputFileSystem,
-			ResolverFactory.__to_binding(this.resolverFactory)
-		);
+		try {
+			this.#instance = new instanceBinding.JsCompiler(
+				this.compilerPath,
+				rawOptions,
+				this.#builtinPlugins,
+				this.#registers,
+				ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
+				this.intermediateFileSystem
+					? ThreadsafeIntermediateNodeFS.__to_binding(
+							this.intermediateFileSystem
+						)
+					: undefined,
+				inputFileSystem,
+				ResolverFactory.__to_binding(this.resolverFactory),
+				this.unsafeFastDrop
+			);
 
-		callback(null, this.#instance);
+			callback(null, this.#instance);
+		} catch (err) {
+			if (err instanceof Error) {
+				// hide unnecessary stack trace
+				delete err.stack;
+			}
+			callback(
+				new Error(
+					"Failed to create Rspack compiler instance, check the Rspack configuration.",
+					{ cause: err }
+				)
+			);
+		}
 	}
 
 	#createHooksRegisters(): binding.RegisterJsTaps {

@@ -1,7 +1,6 @@
-```mjs title=main-chunk.mjs
+```mjs title=main.mjs
+import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
 import { __webpack_require__ } from "./runtime.mjs";
-import "./main.mjs";
-
 __webpack_require__.add({
 "./index.js": 
 /*!******************!*\
@@ -44,16 +43,6 @@ it('should compile and import success', async () => {
 
 
 }),
-});
-
-```
-
-```mjs title=main.mjs
-import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
-import { __webpack_require__ } from "./runtime.mjs";
-import "./main-chunk.mjs";
-
-__webpack_require__.add({
 "./lib.js": 
 /*!****************!*\
   !*** ./lib.js ***!

@@ -1,4 +1,4 @@
-import * as ns from /* webpackDefer: true */ "./deferred.js";
+import defer * as ns from "./deferred.js";
 import "./1.js";
 
 if (Math.random() > 1) {

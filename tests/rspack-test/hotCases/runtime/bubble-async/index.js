@@ -1,16 +1,11 @@
 import { load } from "./parent-file";
-import update from "@rspack/test-tools/helper/legacy/update";
 
-it("should bubble update from a nested dependency", () => {
-	return load().then(value => {
-		expect(value).toBe(1);
-		return new Promise((resolve, reject) => {
-			module.hot.accept("./parent-file", () => {
-				resolve(load().then(value => {
-					expect(value).toBe(2);
-				}));
-			});
-			NEXT(update(reject));
-		});
-	})
+it("should bubble update from a nested dependency", async () => {
+	let value = await load();
+	expect(value).toBe(1);
+	await NEXT_HMR();
+	value = await load();
+	expect(value).toBe(2);
 });
+
+module.hot.accept("./parent-file");

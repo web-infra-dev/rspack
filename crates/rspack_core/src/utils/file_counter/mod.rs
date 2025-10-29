@@ -1,17 +1,19 @@
-mod incremental_info;
 mod resource_id;
 
-use incremental_info::IncrementalInfo;
+use std::hash::BuildHasherDefault;
+
 use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
 use rustc_hash::FxHashSet as HashSet;
+use ustr::IdentityHasher;
 
 pub use self::resource_id::ResourceId;
+use crate::utils::incremental_info::IncrementalInfo;
 
 /// Used to count file usage and track which modules/dependencies use each file
 #[derive(Debug, Default)]
 pub struct FileCounter {
   inner: ArcPathMap<HashSet<ResourceId>>,
-  incremental_info: IncrementalInfo,
+  incremental_info: IncrementalInfo<ArcPath, BuildHasherDefault<IdentityHasher>>,
 }
 
 impl FileCounter {
@@ -22,7 +24,7 @@ impl FileCounter {
     for path in paths {
       let list = self.inner.entry(path.clone()).or_default();
       if list.is_empty() {
-        self.incremental_info.add(path);
+        self.incremental_info.mark_as_add(path);
       }
       // multiple additions are allowed without additional checks to see if the addition was successful
       list.insert(resource_id.clone());
@@ -48,7 +50,7 @@ impl FileCounter {
         )
       }
       if list.is_empty() {
-        self.incremental_info.remove(path);
+        self.incremental_info.mark_as_remove(path);
         self.inner.remove(path);
       }
     }
@@ -70,13 +72,13 @@ impl FileCounter {
   }
 
   /// Added files compared to the `files()` when call reset_incremental_info
-  pub fn added_files(&self) -> &ArcPathSet {
-    self.incremental_info.added_files()
+  pub fn added_files(&self) -> impl Iterator<Item = &ArcPath> {
+    self.incremental_info.added().iter()
   }
 
   /// Removed files compared to the `files()` when call reset_incremental_info
-  pub fn removed_files(&self) -> &ArcPathSet {
-    self.incremental_info.removed_files()
+  pub fn removed_files(&self) -> impl Iterator<Item = &ArcPath> {
+    self.incremental_info.removed().iter()
   }
 }
 
@@ -113,29 +115,29 @@ mod test {
     counter.add_files(&resource_1, &file_list_all);
     counter.add_files(&resource_2, &file_list_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().len(), 2);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     // test repeated additions
     counter.add_files(&resource_1, &file_list_all);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().len(), 2);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.remove_files(&resource_1, &file_list_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().len(), 2);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.remove_files(&resource_1, &file_list_b);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
-    assert_eq!(counter.added_files().len(), 1);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.remove_files(&resource_2, &file_list_a);
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
   }
 
   #[test]
@@ -165,23 +167,35 @@ mod test {
     let resource_2 = ResourceId::Module("B".into());
 
     counter.add_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().len(), 1);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.reset_incremental_info();
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
-
-    counter.add_files(&resource_2, &file_list_a);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.remove_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
+
+    counter.add_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.reset_incremental_info();
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.add_files(&resource_2, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+
+    counter.remove_files(&resource_1, &file_list_a);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
 
     counter.remove_files(&resource_2, &file_list_a);
-    assert_eq!(counter.added_files().len(), 0);
-    assert_eq!(counter.removed_files().len(), 1);
+    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
   }
 }

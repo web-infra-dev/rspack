@@ -9,3 +9,5 @@ it("should accept a dependencies and require a new value", async () => {
 	await NEXT_HMR();
 	expect(value).toBe(3);
 });
+
+module.hot.accept("./file");

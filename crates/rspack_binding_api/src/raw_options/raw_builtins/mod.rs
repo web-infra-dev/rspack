@@ -6,6 +6,7 @@ mod raw_copy;
 mod raw_css_chunking;
 mod raw_css_extract;
 mod raw_dll;
+mod raw_esm_lib;
 mod raw_html;
 mod raw_http_uri;
 mod raw_ids;
@@ -63,9 +64,10 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
-  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
+  InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
+  SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
+  provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -128,7 +130,7 @@ use crate::{
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
-    SourceMapDevToolPluginOptions,
+    SourceMapDevToolPluginOptions, raw_builtins::raw_esm_lib::RawEsmLibraryPlugin,
   },
   rslib::RawRslibPluginOptions,
 };
@@ -195,6 +197,7 @@ pub enum BuiltinPluginName {
   SideEffectsFlagPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
+  InlineExportsPlugin,
   MangleExportsPlugin,
   ModuleConcatenationPlugin,
   CssModulesPlugin,
@@ -410,7 +413,10 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CommonJsChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginName::EsmLibraryPlugin => {
-        plugins.push(EsmLibraryPlugin::default().boxed());
+        let options = downcast_into::<RawEsmLibraryPlugin>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins
+          .push(EsmLibraryPlugin::new(options.preserve_modules.as_deref().map(Into::into)).boxed());
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
         plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
@@ -605,6 +611,9 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
+      BuiltinPluginName::InlineExportsPlugin => {
+        plugins.push(InlineExportsPlugin::default().boxed())
+      }
       BuiltinPluginName::MangleExportsPlugin => plugins.push(
         MangleExportsPlugin::new(
           downcast_into::<bool>(self.options)

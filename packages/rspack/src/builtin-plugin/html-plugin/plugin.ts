@@ -17,8 +17,7 @@ import {
 import {
 	cleanPluginOptions,
 	type HtmlRspackPluginOptions,
-	setPluginOptions,
-	validateHtmlPluginOptions
+	setPluginOptions
 } from "./options";
 
 type HtmlPluginTag = {
@@ -37,7 +36,6 @@ const HtmlRspackPluginImpl = create(
 		this: Compiler,
 		c: HtmlRspackPluginOptions = {}
 	): RawHtmlRspackPluginOptions {
-		validateHtmlPluginOptions(c);
 		const uid = HTML_PLUGIN_UID++;
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {

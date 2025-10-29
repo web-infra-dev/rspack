@@ -3,7 +3,7 @@ module.exports = ({ config }) => ({
 		filename: "[name].js"
 	},
 	optimization: {
-		runtimeChunk: config.target !== "webworker",
+		runtimeChunk: true,
 		splitChunks: {
 			chunks: "all",
 			minSize: 0

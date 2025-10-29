@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.6.0-beta.0",
+  "version": "1.6.0-beta.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -24,7 +24,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
-  "files": ["client", "dist", "template", "jest.d.ts"],
+  "files": [
+    "client",
+    "dist",
+    "template",
+    "jest.d.ts"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -37,18 +42,16 @@
     "directory": "packages/rspack-test-tools"
   },
   "dependencies": {
-    "@babel/generator": "7.28.3",
-    "@babel/parser": "7.28.4",
-    "@babel/traverse": "7.28.4",
-    "@babel/types": "7.28.4",
+    "@babel/generator": "7.28.5",
+    "@babel/parser": "7.28.5",
+    "@babel/traverse": "7.28.5",
+    "@babel/types": "7.28.5",
     "@jest/reporters": "29.7.0",
     "cross-env": "^10.1.0",
-    "csv-to-markdown-table": "1.5.0",
-    "deepmerge": "^4.3.1",
     "filenamify": "4.3.0",
     "fs-extra": "^11.3.2",
-    "graceful-fs": "^4.2.11",
     "iconv-lite": "^0.6.3",
+    "javascript-stringify": "^2.1.0",
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
     "jest-environment-node": "29.7.0",
@@ -59,9 +62,10 @@
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
     "terser-webpack-plugin": "^5.3.14",
-    "webpack": "5.99.9",
+    "webpack": "5.102.1",
     "webpack-merge": "6.0.1",
-    "webpack-sources": "3.3.3"
+    "webpack-sources": "3.3.3",
+    "chalk": "^4.1.2"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
@@ -69,9 +73,6 @@
     "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
     "@types/jsdom": "^21.1.7",
-    "chalk": "^4.1.2",
-    "source-map": "^0.7.6",
-    "terser": "5.43.1",
     "typescript": "^5.9.3",
     "wast-loader": "^1.14.1"
   },

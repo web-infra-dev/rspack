@@ -1,0 +1,38 @@
+```mjs title=demo/index.mjs
+import "../main.mjs";
+
+// ./src/demo/index.js
+const demo = () => 'demo'
+;
+/* ESM default export */ const src_demo = (demo);
+
+export default src_demo;
+
+```
+
+```mjs title=index.mjs
+import { default as src_demo } from "./demo/index.mjs";
+import "./main.mjs";
+
+// ./src/index.js
+
+
+
+it('should preserve modules', () => {
+  expect(src_demo()).toBe('demo')
+})
+
+
+```
+
+```mjs title=main.mjs
+// ./other2/index.js
+// other2
+console.log.bind(console)
+
+// ./other1/index.js
+// other1
+console.log.bind(console)
+
+
+```

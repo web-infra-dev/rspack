@@ -9,7 +9,8 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ModuleGraphCacheArtifact, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
+  RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -23,8 +24,7 @@ use crate::{
 };
 
 // TODO Here request can be used Atom
-pub type ImportVarMap =
-  HashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
 
 pub type BuildDependency = (
   DependencyId,
@@ -196,26 +196,54 @@ impl<'a> ModuleGraph<'a> {
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
+  pub fn get_outcoming_connections_by_module(
+    &self,
+    module_id: &ModuleIdentifier,
+  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+    let connections = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have mgm")
+      .outgoing_connections();
+
+    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    for dep_id in connections {
+      let con = self
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      match map.entry(*con.module_identifier()) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().push(con);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(vec![con]);
+        }
+      }
+    }
+    map
+  }
+
+  // #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
+      HashMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
       match map.entry(con.original_module_identifier) {
         Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con.clone());
+          occ.get_mut().push(con);
         }
         Entry::Vacant(vac) => {
-          vac.insert(vec![con.clone()]);
+          vac.insert(vec![con]);
         }
       }
     }
@@ -745,9 +773,10 @@ impl<'a> ModuleGraph<'a> {
     }
 
     // set to origin module outgoing connection
-    if let Some(identifier) = origin_module_id
-      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
-    {
+    if let Some(identifier) = origin_module_id {
+      let original_mgm = self
+        .module_graph_module_by_identifier_mut(&identifier)
+        .expect("should mgm exist");
       original_mgm.add_outgoing_connection(dependency_id);
     };
   }
@@ -926,6 +955,21 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
     compilation.async_modules_artifact.contains(module_id)
+  }
+
+  pub fn is_deferred(
+    &self,
+    imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
+    module_id: &ModuleIdentifier,
+  ) -> bool {
+    let imported_by_defer = imported_by_defer_modules_artifact.contains(module_id);
+    if !imported_by_defer {
+      return false;
+    }
+    let module = self
+      .module_by_identifier(module_id)
+      .expect("should have module");
+    !module.build_meta().has_top_level_await
   }
 
   pub fn set_async(
@@ -1181,7 +1225,7 @@ impl<'a> ModuleGraph<'a> {
     }
   }
 
-  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, UsedNameItem)>) {
     if self.active.is_none() {
       panic!("should have active partial");
     }

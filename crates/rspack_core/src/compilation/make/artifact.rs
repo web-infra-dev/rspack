@@ -1,10 +1,13 @@
-use rspack_collections::IdentifierSet;
+use std::hash::BuildHasherDefault;
+
+use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
   compilation::make::ModuleToLazyMake,
+  incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
 };
 
@@ -24,16 +27,14 @@ pub enum MakeArtifactState {
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
   // temporary data, used by subsequent steps of make, should be reset when rebuild.
-  /// Make stage built modules.
+  /// Make stage affected modules.
   ///
-  /// This field will contain all modules in the moduleGraph when cold start,
-  /// but incremental rebuild will only contain modules that need to be rebuilt and newly created.
-  pub built_modules: IdentifierSet,
-  /// Make stage revoked modules.
+  /// This field will contain added modules, updated modules, removed modules.
+  pub affected_modules: IncrementalInfo<ModuleIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  /// Make stage affected dependencies.
   ///
-  /// This field is empty on a cold start,
-  /// but incremental rebuild will contain modules that need to be rebuilt or removed.
-  pub revoked_modules: IdentifierSet,
+  /// This field will contain added dependencies, updated dependencies, removed dependencies.
+  pub affected_dependencies: IncrementalInfo<DependencyId>,
   /// The modules which mgm.issuer() has been updated in cutout::fix_issuers.
   ///
   /// This field is empty on a cold start.
@@ -134,10 +135,10 @@ impl MakeArtifact {
           .missing_dependencies
           .remove_files(&resource_id, info.missing_dependencies());
       }
+      self.affected_dependencies.mark_as_remove(&dep_id);
     }
 
-    self.revoked_modules.insert(*module_identifier);
-    self.built_modules.remove(module_identifier);
+    self.affected_modules.mark_as_remove(module_identifier);
     self.issuer_update_modules.remove(module_identifier);
     mg.revoke_module(module_identifier)
   }
@@ -171,7 +172,10 @@ impl MakeArtifact {
     };
     revoke_dep_ids
       .iter()
-      .filter_map(|dep_id| mg.revoke_dependency(dep_id, force))
+      .filter_map(|dep_id| {
+        self.affected_dependencies.mark_as_remove(dep_id);
+        mg.revoke_dependency(dep_id, force)
+      })
       .collect()
   }
 
@@ -211,12 +215,19 @@ impl MakeArtifact {
   }
 
   pub fn reset_temporary_data(&mut self) {
-    self.built_modules = Default::default();
-    self.revoked_modules = Default::default();
+    self.affected_modules.reset();
+    self.affected_dependencies.reset();
 
     self.file_dependencies.reset_incremental_info();
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  pub fn built_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.affected_modules.active()
+  }
+  pub fn revoked_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.affected_modules.dirty()
   }
 }

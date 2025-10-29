@@ -6,7 +6,6 @@ pub mod base64;
 pub mod comparators;
 #[cfg(feature = "debug_tool")]
 pub mod debug_tool;
-pub mod diff_mode;
 pub mod env;
 pub mod ext;
 pub mod fx_hash;
@@ -26,6 +25,8 @@ pub mod tracing_preset;
 
 use std::future::Future;
 
+#[cfg(allocative)]
+pub use allocative;
 pub use merge::{MergeFrom, merge_from_optional_with};
 pub use span::SpanExt;
 

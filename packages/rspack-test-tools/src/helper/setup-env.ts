@@ -9,6 +9,22 @@ if (process.env.RSPACK_BINDING_BUILDER_TESTING) {
 	);
 }
 
+if (process.env.RSTEST) {
+	global.printLogger ??= process.env.printLogger === "true";
+	global.__TEST_FIXTURES_PATH__ ??= process.env.__TEST_FIXTURES_PATH__;
+	global.updateSnapshot ??= process.env.updateSnapshot === "true";
+	global.testFilter ??= process.env.testFilter;
+	global.__TEST_PATH__ ??= process.env.__TEST_PATH__;
+	global.__TEST_DIST_PATH__ ??= process.env.__TEST_DIST_PATH__;
+	global.__ROOT_PATH__ ??= process.env.__ROOT_PATH__;
+	global.__RSPACK_PATH__ ??= process.env.__RSPACK_PATH__;
+	global.__RSPACK_TEST_TOOLS_PATH__ ??= process.env.__RSPACK_TEST_TOOLS_PATH__;
+	global.__DEBUG__ ??= process.env.DEBUG === "test";
+} else {
+	// Compatible with wasm tests (lazyTestEnv)
+	global.rstest = jest;
+}
+
 if (process.env.ALTERNATIVE_SORT) {
 	const oldSort = Array.prototype.sort;
 

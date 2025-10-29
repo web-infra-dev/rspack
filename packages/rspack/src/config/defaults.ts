@@ -7,8 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -60,7 +58,10 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	const { mode, target } = options;
-	assert(!isNil(target));
+
+	if (isNil(target)) {
+		throw new Error("target should not be nil after defaults");
+	}
 
 	const targetProperties =
 		target === false
@@ -107,13 +108,15 @@ export const applyRspackOptionsDefaults = (
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
+		cache: !!options.cache,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
 		css: options.experiments.css,
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
 		usedExports: !!options.optimization.usedExports,
-		inlineConst: options.experiments.inlineConst
+		inlineConst: options.experiments.inlineConst,
+		deferImport: options.experiments.deferImport
 	});
 
 	applyOutputDefaults(options.output, {
@@ -219,6 +222,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
 	D(experiments, "topLevelAwait", true);
+	D(experiments, "deferImport", false);
 
 	D(experiments, "buildHttp", undefined);
 	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
@@ -295,7 +299,11 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	{ usedExports, inlineConst }: { usedExports: boolean; inlineConst?: boolean }
+	{
+		usedExports,
+		inlineConst,
+		deferImport
+	}: { usedExports: boolean; inlineConst?: boolean; deferImport?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -316,6 +324,7 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 	D(parserOptions, "jsx", false);
+	D(parserOptions, "deferImport", deferImport);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -327,14 +336,17 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
+		cache,
 		asyncWebAssembly,
 		css,
 		targetProperties,
 		mode,
 		uniqueName,
 		usedExports,
-		inlineConst
+		inlineConst,
+		deferImport
 	}: {
+		cache: boolean;
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
@@ -342,10 +354,18 @@ const applyModuleDefaults = (
 		uniqueName?: string;
 		usedExports: boolean;
 		inlineConst?: boolean;
+		deferImport?: boolean;
 	}
 ) => {
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
+
+	// IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
+	if (cache) {
+		D(module, "unsafeCache", /[\\/]node_modules[\\/]/);
+	} else {
+		D(module, "unsafeCache", false);
+	}
 
 	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
@@ -359,7 +379,8 @@ const applyModuleDefaults = (
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
 		usedExports,
-		inlineConst
+		inlineConst,
+		deferImport
 	});
 
 	F(module.parser, JSON_MODULE_TYPE, () => ({}));

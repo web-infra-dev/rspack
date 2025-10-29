@@ -6,8 +6,7 @@ const getFile = name =>
 		"utf-8"
 	);
 
-it("should work", () => new Promise(async (resolve, reject) => {
-	const done = err => (err ? reject(err) : resolve());
+it("should work", async () => {
 	try {
 		const style = getFile("bundle.css");
 		expect(style).toContain("color: red;");
@@ -21,19 +20,17 @@ it("should work", () => new Promise(async (resolve, reject) => {
 		expect(style2).toContain("color: red;");
 	} catch (e) { }
 
-	NEXT(require("@rspack/test-tools/helper/legacy/update")(done, true, () => {
-		try {
-			const style = getFile("bundle.css");
-			expect(style).toContain("color: blue;");
-		} catch (e) { }
+	await NEXT_HMR();
 
-		try {
-			const style2 = getFile("style2_css.css");
-			expect(style2).toContain("color: blue;");
-		} catch (e) { }
+	try {
+		const style = getFile("bundle.css");
+		expect(style).toContain("color: blue;");
+	} catch (e) { }
 
-		done();
-	}));
-}));
+	try {
+		const style2 = getFile("style2_css.css");
+		expect(style2).toContain("color: blue;");
+	} catch (e) { }
+});
 
 module.hot.accept();

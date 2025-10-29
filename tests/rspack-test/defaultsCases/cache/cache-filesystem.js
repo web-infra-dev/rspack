@@ -12,5 +12,8 @@ module.exports = {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
+		@@ ... @@
+		-     "unsafeCache": false,
+		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 	`)
 };
