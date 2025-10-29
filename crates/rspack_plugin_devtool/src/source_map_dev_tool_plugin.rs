@@ -67,6 +67,7 @@ pub struct SourceMapDevToolPluginOptions {
   pub file_context: Option<String>,
   // Defines the output filename of the SourceMap (will be inlined if no value is provided).
   pub filename: Option<String>,
+  // Decide whether to ignore source files that match the specified value in the SourceMap.
   pub ignore_list: Option<AssetConditions>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
@@ -438,13 +439,13 @@ impl SourceMapDevToolPlugin {
             .enumerate()
             .filter_map(|(idx, source)| {
               if asset_conditions.try_match(source) {
-                Some(idx)
+                Some(idx as u32)
               } else {
                 None
               }
             })
             .collect::<Vec<_>>();
-          source_map.set_ignore_list(ignore_list);
+          source_map.set_ignore_list(Some(ignore_list));
         }
 
         if self.no_sources {

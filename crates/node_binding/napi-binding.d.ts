@@ -3016,6 +3016,7 @@ export interface SourceMapDevToolPluginOptions {
   fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   fileContext?: string
   filename?: (false | null) | string
+  ignoreList?: string | RegExp | (string | RegExp)[]
   module?: boolean
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   namespace?: string
