@@ -395,17 +395,17 @@ Rsdoctor now supports exporting a [all-in-one JSON report file](https://rsdoctor
 
 ### next-rspack
 
-Using the customized Rspack Rust binding for Next.js in next@16.0.0 brings significant performance improvements:
+In Next.js 16, next-rspack has integrated Rspack's [custom Rust binding solution](https://github.com/rspack-contrib/rspack-binding-template), delivering significant performance gains:
 
-- 24% improvement in build speed
-- 10% improvement in development speed
+- 24% faster build performance
+- 10% faster dev performance
 
-In the customized Rspack Rust binding, we migrated the externals logic to Rust, greatly reducing communication overhead between JS and Rust.
+In this customized Rspack Rust binding, the `externals` logic from Next.js has been moved to the Rust side, greatly reducing communication overhead between JavaScript and Rust.
 
-| Tool                           | Build without cache | Dev without cache |
-| ------------------------------ | ------------------- | ----------------- |
-| Rspack(next@16.0.0-canary.7)   | 3.8s                | 1.7s              |
-| Rspack(next@15.4.0-canary.123) | 5.0s                | 1.9s              |
-| Webpack                        | 14.0s               | 7.8s              |
+| Tool                 | Build time (no cache) | Dev time (no cache) |
+| -------------------- | --------------------- | ------------------- |
+| Rspack (next@16.0.0) | 3.8s                  | 1.7s                |
+| Rspack (next@15.4.0) | 5.0s                  | 1.9s                |
+| webpack              | 14.0s                 | 7.8s                |
 
-The benchmark uses the [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) repository. You can view detailed performance data in the repository: https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md
+The benchmark is based on the [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) repository. Full performance data is available here: [PERF.md](https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md).

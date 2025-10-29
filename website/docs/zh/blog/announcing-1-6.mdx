@@ -395,17 +395,17 @@ Rsdoctor 现支持在 Brief 模式下导出 [单一 JSON 报告文件](https://r
 
 ### next-rspack
 
-在 next@16.0.0 中使用为 Next.js 定制的 Rspack Rust binding，带来显著性能提升：
+在 Next.js 16 中，next-rspack 已接入 Rspack 的 [定制 Rust binding 方案](https://github.com/rspack-contrib/rspack-binding-template)，带来了可观的性能提升：
 
-- 构建速度提升 24%
-- 开发速度提升 10%
+- build 性能提升 24%
+- dev 性能提升 10%
 
-在定制的 Rspack Rust binding 中，我们将 externals 逻辑迁移到 Rust，极大减少了 JS 与 Rust 之间的通信开销。
+在定制的 Rspack Rust binding 中，我们将 Next.js 的 `externals` 逻辑迁移到 Rust 侧，显著减少了 JS 与 Rust 之间的通信开销。
 
-| Tool                           | Build without cache | Dev without cache |
-| ------------------------------ | ------------------- | ----------------- |
-| Rspack(next@16.0.0-canary.7)   | 3.8s                | 1.7s              |
-| Rspack(next@15.4.0-canary.123) | 5.0s                | 1.9s              |
-| Webpack                        | 14.0s               | 7.8s              |
+| 工具                 | build 时间（无缓存） | dev 时间（无缓存） |
+| -------------------- | -------------------- | ------------------ |
+| Rspack (next@16.0.0) | 3.8s                 | 1.7s               |
+| Rspack (next@15.4.0) | 5.0s                 | 1.9s               |
+| webpack              | 14.0s                | 7.8s               |
 
-Benchmark 使用的仓库为 [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack)，可以在仓库中查看详细的性能数据：https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md
+基准测试基于 [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) 仓库进行，完整的性能数据可在此查看：[PERF.md](https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md)。
