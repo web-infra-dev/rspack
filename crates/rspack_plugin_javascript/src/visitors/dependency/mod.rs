@@ -7,7 +7,7 @@ use std::sync::Arc;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData,
+  ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
@@ -30,6 +30,7 @@ pub struct ScanDependenciesResult {
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Diagnostic>,
+  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
 
 #[allow(clippy::too_many_arguments)]

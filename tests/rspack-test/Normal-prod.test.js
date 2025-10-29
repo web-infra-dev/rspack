@@ -8,8 +8,6 @@ describeByWalk(__filename, (name, src, dist) => {
 	dist: path.resolve(__dirname, `./js/normal-prod`),
 	// FIXME: these cases throw errors in production
 	exclude: [
-		/warnings\/require-as-expression/,
-		/side-effects\/empty-modules/,
 		/parsing\/resolve-weak-context/,
 		/parsing\/issue-7519/,
 		/parsing\/api/,
