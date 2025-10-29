@@ -135,11 +135,14 @@ export default {
 
 ### layers 特性稳定
 
-在 1.6.0 版本中，我们废弃了 [experiments.layers](/config/experiments#experimentslayers) 的实验性开关，现在你可以直接开始使用 [layer 特性](/guide/features/layer#layer)。
+layer 是一种用于对模块进行分层管理的特性，可以用于 React Server Components 等进阶场景。通过为模块指定不同的 layer，你可以更灵活地控制它们的构建行为，例如：
 
-layer 是一个可以让你分类管理模块的实用特性。你可以给模块赋予不同的 layer，再按照 layer 做不同的处理，例如将模块按照不同的 layer 降级到不同的目标，或是将不同 layer 的模块拆分到不同的产物目录中。
+- 将不同 layer 的模块编译到不同的目标环境
+- 将它们输出到不同的产物目录中
 
-我们新增了一篇 [关于 layer 特性的介绍文章](/guide/features/layer#layer)，你可以在其中了解更多关于 layer 特性的信息。
+从 Rspack 1.6 开始，layer 特性已经足够稳定，因此我们废弃了原先的实验性开关 [experiments.layers](/config/experiments#experimentslayers)。现在，你可以直接使用 layer 特性 而无需实验性开关。
+
+想了解更多 layer 的细节和使用方式，可以阅读我们新增的 [layer 指南](/guide/features/layer#layer)。
 
 ### 保留 JSX 语法
 

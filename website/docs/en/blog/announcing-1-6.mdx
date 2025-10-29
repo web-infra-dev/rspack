@@ -135,11 +135,14 @@ What are barrel files? Barrel files are files that are primarily used to re-expo
 
 ### Stabilized layers feature
 
-In version 1.6.0, we deprecated the experimental switch for [experiments.layers](/config/experiments#experimentslayers), and you can now directly start using the [layer feature](/guide/features/layer#layer).
+Layer is a feature for organizing modules into different layers, which can be useful in advanced scenarios such as React Server Components. By assigning different layers to modules, you can gain finer control over their build behavior, for example:
 
-layer is a practical feature that allows you to categorize and manage modules. You can assign different layers to modules and then handle them differently based on the layer, such as downgrading modules to different targets according to different layers, or splitting modules from different layers into different output directories.
+- Compiling modules in different layers for different target environments
+- Outputting them to separate build directories
 
-We have an [introduction article about the layer feature](/guide/features/layer#layer), where you can learn more about the layer feature.
+Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/config/experiments#experimentslayers) has been deprecated. You can now use the layer feature directly without the experimental flag.
+
+For more details and practical examples, check out our new [Layer guide](/guide/features/layer#layer).
 
 ### Preserve JSX syntax
 
