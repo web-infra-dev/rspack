@@ -3,5 +3,5 @@ import config from './rstest.config'
 
 export default defineConfig({
 	...config,
-	include: process.env.WASM ? [] :["<rootDir>/*.hottest.js"]
+	include: process.env.WASM ? [] : ["<rootDir>/*.hottest.js"]
 });
