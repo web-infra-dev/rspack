@@ -47,6 +47,8 @@ module.exports = function () {
 		const containerShareScope =
 			__webpack_require__.initializeExposesData?.shareScope;
 
+		const shareFallbacks = __module_federation_share_fallbacks__ || {};
+
 		for (const key in __module_federation_bundler_runtime__) {
 			__webpack_require__.federation[key] =
 				__module_federation_bundler_runtime__[key];
@@ -160,7 +162,6 @@ module.exports = function () {
 			"plugins",
 			() => __module_federation_runtime_plugins__
 		);
-		const shareFallbacks = __module_federation_share_fallbacks__ || {};
 
 		early(__webpack_require__.federation, "bundlerRuntimeOptions", () => ({}));
 		early(

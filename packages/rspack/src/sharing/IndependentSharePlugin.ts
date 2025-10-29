@@ -44,6 +44,8 @@ export interface IndependentSharePluginOptions {
 	treeshake?: boolean;
 }
 
+export type ShareFallback = Record<string, [string, string][]>;
+
 export class IndependentSharePlugin {
 	mfName: string;
 	shared: Shared;
@@ -52,7 +54,8 @@ export class IndependentSharePlugin {
 	plugins: Plugins;
 	compilers: Map<string, Compiler> = new Map();
 	treeshake?: boolean;
-	buildAssets: Record<string, string> = {};
+	// { react: [  [ react/19.0.0/index.js , 19.0.0 ]  ] }
+	buildAssets: ShareFallback = {};
 
 	name = "IndependentSharePlugin";
 	constructor(options: IndependentSharePluginOptions) {
@@ -220,7 +223,8 @@ export class IndependentSharePlugin {
 							}
 						);
 						if (typeof shareFileName === "string") {
-							buildAssets[`${shareName}@${version}`] = shareFileName;
+							buildAssets[shareName] ||= [];
+							buildAssets[shareName].push([shareFileName, version]);
 						}
 					})
 				);

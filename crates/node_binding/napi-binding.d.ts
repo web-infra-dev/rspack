@@ -540,6 +540,7 @@ export declare enum BuiltinPluginName {
   SplitChunksPlugin = 'SplitChunksPlugin',
   RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
+  OptimizeDependencyReferencedExportsPlugin = 'OptimizeDependencyReferencedExportsPlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
@@ -2582,6 +2583,17 @@ export interface RawOptimizationOptions {
   mangleExports: boolean | string
   concatenateModules: boolean
   avoidEntryIife: boolean
+}
+
+export interface RawOptimizeDependencyReferencedExportsPluginOptions {
+  shared: Array<RawOptimizeSharedConfig>
+  ignoredRuntime?: Array<string>
+}
+
+export interface RawOptimizeSharedConfig {
+  shareKey: string
+  treeshake: boolean
+  usedExports?: Array<string>
 }
 
 export interface RawOptions {

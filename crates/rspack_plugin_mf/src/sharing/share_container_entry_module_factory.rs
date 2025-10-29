@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_core::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
+use rspack_core::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::Result;
 
 use super::{
@@ -18,14 +18,15 @@ impl ModuleFactory for ShareContainerEntryModuleFactory {
       .expect(
         "dependency of ShareContainerEntryModuleFactory should be ShareContainerEntryDependency",
       );
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
+    Ok(ModuleFactoryResult::new_with_module(
       ShareContainerEntryModule::new(
         dep.name.clone(),
         dep.share_name.clone(),
         dep.request.clone(),
         dep.version.clone(),
         dep.global_name.clone(),
-      ),
-    )))
+      )
+      .boxed(),
+    ))
   }
 }
