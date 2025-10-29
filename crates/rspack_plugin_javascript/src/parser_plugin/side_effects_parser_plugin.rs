@@ -286,6 +286,10 @@ pub fn is_pure_expression<'a>(
     match expr {
       Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments),
       Expr::Paren(_) => unreachable!(),
+      Expr::Seq(seq_expr) => seq_expr
+        .exprs
+        .iter()
+        .all(|expr| is_pure_expression(expr, unresolved_ctxt, comments)),
       _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
