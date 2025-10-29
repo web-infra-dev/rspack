@@ -74,16 +74,16 @@ new rspack.experiments.EsmLibraryPlugin({
 
 ### Enhanced tree shaking
 
-We have optimized tree shaking for dynamic import `import()`. Previously, Rspack only performed tree shaking on destructuring assignments for dynamic imports, but not in other cases.
+Rspack 1.6 improves tree shaking support for dynamic imports (`import()`). Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
 
-Now Rspack implements deeper and more comprehensive static analysis for dynamic imports, capable of identifying and analyzing more diverse usage patterns, thus achieving precise tree shaking of unused exported content and further optimizing bundle size.
+Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle various usage patterns, accurately removing unused exports and further reducing the final bundle size.
 
 ```js title="rspack.config.mjs"
-// Previously only supported analyzing destructuring assignments
+// Rspack 1.5 – Only supported destructured imports
 const { value } = await import('./module');
 console.log(value);
 
-// Now also supports analyzing the following cases
+// Rspack 1.6 – Now supports the following cases
 const mod = await import('./module');
 const { value } = mod;
 console.log(value);
