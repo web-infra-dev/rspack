@@ -5,6 +5,7 @@ use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
+use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use swc_core::common::util::take::Take;
@@ -371,6 +372,16 @@ impl ContextModuleFactory {
       AfterResolveResult::Data(mut after_resolve_data) => {
         // The dependencies can be modified  in the after resolve hook
         data.dependencies = after_resolve_data.dependencies.take();
+
+        let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
+        if let Some(parsed_resource) = parsed_resource {
+          if let Some(query) = &parsed_resource.query {
+            context_module_options.resource_query = query.to_string();
+          }
+          if let Some(fragment) = &parsed_resource.fragment {
+            context_module_options.resource_fragment = fragment.to_string();
+          }
+        }
 
         context_module_options.resource = after_resolve_data.resource;
         context_module_options.context_options.context = after_resolve_data.context;

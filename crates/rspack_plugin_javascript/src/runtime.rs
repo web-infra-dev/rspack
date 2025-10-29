@@ -124,7 +124,7 @@ pub async fn render_module(
     .get::<CodeGenerationPublicPathAutoReplace>()
     .is_some()
   {
-    let content = origin_source.source();
+    let content = origin_source.source().into_string_lossy();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
     let auto_public_path_matches: Vec<_> = content
       .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)

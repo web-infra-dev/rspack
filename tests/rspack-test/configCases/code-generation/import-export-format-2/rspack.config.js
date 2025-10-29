@@ -21,5 +21,8 @@ module.exports = {
 		providedExports: true,
 		minimize: false,
 		mangleExports: false
+	},
+	experiments: {
+		inlineConst: false
 	}
 };

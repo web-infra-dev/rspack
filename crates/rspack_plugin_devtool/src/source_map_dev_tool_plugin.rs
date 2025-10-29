@@ -67,6 +67,8 @@ pub struct SourceMapDevToolPluginOptions {
   pub file_context: Option<String>,
   // Defines the output filename of the SourceMap (will be inlined if no value is provided).
   pub filename: Option<String>,
+  // Decide whether to ignore source files that match the specified value in the SourceMap.
+  pub ignore_list: Option<AssetConditions>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
@@ -106,6 +108,7 @@ pub(crate) struct MappedAsset {
 #[derive(Debug)]
 pub struct SourceMapDevToolPlugin {
   source_map_filename: Option<Filename>,
+  ignore_list: Option<AssetConditions>,
   #[debug(skip)]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -124,6 +127,7 @@ pub struct SourceMapDevToolPlugin {
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
   debug_ids: bool,
+
   mapped_assets_cache: MappedAssetsCache,
 }
 
@@ -175,6 +179,7 @@ impl SourceMapDevToolPlugin {
 
     Self::new_inner(
       options.filename.map(Filename::from),
+      options.ignore_list,
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -427,6 +432,23 @@ impl SourceMapDevToolPlugin {
             })
             .collect::<Vec<_>>(),
         );
+
+        if let Some(asset_conditions) = &self.ignore_list {
+          let ignore_list = source_map
+            .sources()
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, source)| {
+              if asset_conditions.try_match(source) {
+                Some(idx as u32)
+              } else {
+                None
+              }
+            })
+            .collect::<Vec<_>>();
+          source_map.set_ignore_list(Some(ignore_list));
+        }
+
         if self.no_sources {
           source_map.set_sources_content([]);
         }

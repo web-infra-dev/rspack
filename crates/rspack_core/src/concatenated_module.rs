@@ -2242,7 +2242,7 @@ impl ConcatenatedModule {
           "{}",
           self.readable_identifier(&compilation.options.context),
         ))),
-        source_code.to_string(),
+        source_code.into_string_lossy().into_owned(),
       );
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;

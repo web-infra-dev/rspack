@@ -1,1 +1,0 @@
-module.exports = () => "FIXME:  Module not found: Can't resolve './a'";

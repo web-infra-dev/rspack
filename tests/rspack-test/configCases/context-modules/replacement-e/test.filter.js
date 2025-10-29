@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: build timeout"
+module.exports = () => "TODO: support context replacement with async require"

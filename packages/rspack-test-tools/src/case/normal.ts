@@ -121,7 +121,7 @@ function defaultOptions(
 		context: NORMAL_CASES_ROOT,
 		entry: `./${path.relative(NORMAL_CASES_ROOT, context.getSource())}/`,
 		target: compilerOptions?.target || "async-node",
-		devtool: compilerOptions?.devtool,
+		devtool: mode === "development" ? false : compilerOptions?.devtool,
 		mode: compilerOptions?.mode || mode || "none",
 		optimization: compilerOptions?.mode
 			? {

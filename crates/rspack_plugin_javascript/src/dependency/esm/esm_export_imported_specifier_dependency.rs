@@ -994,7 +994,7 @@ impl ESMExportImportedSpecifierDependency {
         && let Some(source) = parent_module.source()
       {
         Error::from_string(
-          Some(source.source().into_owned()),
+          Some(source.source().into_string_lossy().into_owned()),
           span.start as usize,
           span.end as usize,
           title.to_string(),
