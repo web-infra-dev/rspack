@@ -379,9 +379,7 @@ Rstest now supports collecting code coverage using Istanbul and generating detai
 
 #### Rsdoctor GitHub Actions
 
-Rsdoctor supports GitHub bundle diff action, which can perform bundle degradation detection during the GitHub CI stage.
-
-> https://github.com/web-infra-dev/rsdoctor-action
+Rsdoctor now provides a [GitHub bundle diff action](https://github.com/web-infra-dev/rsdoctor-action), which automatically detects and compares bundle size changes during the CI phase. This helps teams identify and prevent bundle size regressions early.
 
 <img
   width="600"
@@ -389,13 +387,9 @@ Rsdoctor supports GitHub bundle diff action, which can perform bundle degradatio
   alt="Rsdoctor GitHub Actions"
 />
 
-#### All-in-one JSON data reports
+#### All-in-one JSON report
 
-Supports exporting single JSON report data in Brief mode, allowing users to perform cloud storage, sharing, and secondary data processing on the JSON file. Additionally, a new Playground page has been added, allowing reports to be reopened by uploading JSON files.
-
-👉 [Playground Document](https://rsdoctor.rs/guide/start/playground)
-
-👉 [All-in-one JSON](https://rsdoctor.rs/config/options/output#mode-brief)
+Rsdoctor now supports exporting a [all-in-one JSON report file](https://rsdoctor.rs/config/options/output#mode-brief) in Brief mode. This file can be easily stored, shared, or used for further data analysis. In addition, we’ve introduced a new [Playground page](https://rsdoctor.rs/guide/start/playground), where developers can upload the JSON report to reopen and visually explore the analysis results.
 
 ## Ecosystem
 

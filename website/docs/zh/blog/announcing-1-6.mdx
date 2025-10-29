@@ -379,9 +379,7 @@ Rstest 现已支持使用 istanbul 收集代码覆盖率并生成覆盖率报告
 
 #### Rsdoctor GitHub Actions
 
-Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bundle 劣化检测。
-
-> https://github.com/web-infra-dev/rsdoctor-action
+Rsdoctor 现在提供了 [GitHub bundle diff action](https://github.com/web-infra-dev/rsdoctor-action)，可以在 CI 阶段自动检测和对比构建产物的体积变化，帮助团队及时发现并预防包体积劣化。
 
 <img
   width="600"
@@ -391,11 +389,7 @@ Rsdoctor 支持了 GitHub bundle diff action，可在 GitHub CI 阶段进行 bun
 
 #### 单一 JSON 数据报告
 
-支持在 Brief 模式下导出单一 JSON 报告数据，用户可对该 JSON 文件进行云存储、分享以及二次数据处理。同时，新增了 Playground 页面，可通过上传 JSON 文件再次打开报告。
-
-👉 [Playground Document](https://rsdoctor.rs/zh/guide/start/playground)
-
-👉 [All-in-one JSON](https://rsdoctor.rs/zh/config/options/output#mode-brief)
+Rsdoctor 现支持在 Brief 模式下导出 [单一 JSON 报告文件](https://rsdoctor.rs/zh/config/options/output#mode-brief)，该文件可方便地用于存储、分享或二次数据分析。此外，我们新增了 [Playground 页面](https://rsdoctor.rs/zh/guide/start/playground)，开发者可以上传 JSON 报告文件，重新打开并可视化查看分析结果。
 
 ## 生态
 
