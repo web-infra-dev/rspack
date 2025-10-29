@@ -1,6 +1,7 @@
+use rspack_util::atom::ModuleExportNameExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::Atom,
+  atoms::Wtf8Atom,
   ecma::{
     ast::{Decl, ExportSpecifier, ModuleDecl, ModuleItem, Program, Stmt},
     visit::Visit,
@@ -9,14 +10,14 @@ use swc_core::{
 
 #[derive(Debug)]
 pub struct TypeExportsCollector<'a> {
-  type_idents: FxHashSet<Atom>,
-  export_idents: FxHashMap<Atom, Atom>,
+  type_idents: FxHashSet<Wtf8Atom>,
+  export_idents: FxHashMap<Wtf8Atom, Wtf8Atom>,
 
-  type_exports: &'a mut FxHashSet<Atom>,
+  type_exports: &'a mut FxHashSet<Wtf8Atom>,
 }
 
 impl<'a> TypeExportsCollector<'a> {
-  pub fn new(type_exports: &'a mut FxHashSet<Atom>) -> Self {
+  pub fn new(type_exports: &'a mut FxHashSet<Wtf8Atom>) -> Self {
     Self {
       type_idents: Default::default(),
       export_idents: Default::default(),
@@ -35,16 +36,24 @@ impl Visit for TypeExportsCollector<'_> {
         ModuleItem::ModuleDecl(decl) => match decl {
           ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
             Decl::TsInterface(interface_decl) => {
-              self.type_idents.insert(interface_decl.id.sym.clone());
-              self.type_exports.insert(interface_decl.id.sym.clone());
+              self
+                .type_idents
+                .insert(interface_decl.id.sym.clone().into());
+              self
+                .type_exports
+                .insert(interface_decl.id.sym.clone().into());
             }
             Decl::TsTypeAlias(type_alias_decl) => {
-              self.type_idents.insert(type_alias_decl.id.sym.clone());
-              self.type_exports.insert(type_alias_decl.id.sym.clone());
+              self
+                .type_idents
+                .insert(type_alias_decl.id.sym.clone().into());
+              self
+                .type_exports
+                .insert(type_alias_decl.id.sym.clone().into());
             }
             Decl::TsEnum(enum_decl) => {
-              self.type_idents.insert(enum_decl.id.sym.clone());
-              self.type_exports.insert(enum_decl.id.sym.clone());
+              self.type_idents.insert(enum_decl.id.sym.clone().into());
+              self.type_exports.insert(enum_decl.id.sym.clone().into());
             }
             _ => {}
           },
@@ -59,7 +68,7 @@ impl Visit for TypeExportsCollector<'_> {
                         .exported
                         .as_ref()
                         .unwrap_or(&specifier.orig)
-                        .atom()
+                        .wtf8()
                         .clone(),
                     ),
                     _ => None,
@@ -75,17 +84,17 @@ impl Visit for TypeExportsCollector<'_> {
                           .exported
                           .as_ref()
                           .unwrap_or(&specifier.orig)
-                          .atom()
+                          .wtf8()
                           .clone(),
                       );
                     } else if named_export.src.is_none() {
                       self.export_idents.insert(
-                        specifier.orig.atom().clone(),
+                        specifier.orig.wtf8().clone(),
                         specifier
                           .exported
                           .as_ref()
                           .unwrap_or(&specifier.orig)
-                          .atom()
+                          .wtf8()
                           .clone(),
                       );
                     }
@@ -102,7 +111,7 @@ impl Visit for TypeExportsCollector<'_> {
             if let Some(ident) = expr.expr.unwrap_parens().as_ident() {
               self
                 .export_idents
-                .insert(ident.sym.clone(), "default".into());
+                .insert(ident.sym.clone().into(), "default".into());
             }
           }
           _ => {}
@@ -111,13 +120,17 @@ impl Visit for TypeExportsCollector<'_> {
           if let Stmt::Decl(decl) = stmt {
             match decl {
               Decl::TsInterface(interface_decl) => {
-                self.type_idents.insert(interface_decl.id.sym.clone());
+                self
+                  .type_idents
+                  .insert(interface_decl.id.sym.clone().into());
               }
               Decl::TsTypeAlias(type_alias_decl) => {
-                self.type_idents.insert(type_alias_decl.id.sym.clone());
+                self
+                  .type_idents
+                  .insert(type_alias_decl.id.sym.clone().into());
               }
               Decl::TsEnum(enum_decl) => {
-                self.type_idents.insert(enum_decl.id.sym.clone());
+                self.type_idents.insert(enum_decl.id.sym.clone().into());
               }
               _ => {}
             }

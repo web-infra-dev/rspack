@@ -7,8 +7,9 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-rustc-hash = { workspace = true }
-swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit", "ecma_parser"] }
+rspack_util = { workspace = true }
+rustc-hash  = { workspace = true }
+swc_core    = { workspace = true, features = ["common", "ecma_ast", "ecma_visit", "ecma_parser"] }
 
 [dev-dependencies]
 glob                       = { workspace = true }

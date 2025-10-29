@@ -1,6 +1,9 @@
+use std::borrow::Borrow;
+
+use rspack_util::atom::ModuleExportNameExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::Atom,
+  atoms::Wtf8Atom,
   common::SyntaxContext,
   ecma::{
     ast::{
@@ -12,20 +15,20 @@ use swc_core::{
   },
 };
 
-type EnumKeyValueMap = FxHashMap<Atom, EnumMemberValue>;
+type EnumKeyValueMap = FxHashMap<Wtf8Atom, EnumMemberValue>;
 
 #[derive(Debug)]
 pub struct ExportedEnumCollector<'a> {
   const_only: bool,
-  export_idents: FxHashSet<Atom>,
+  export_idents: FxHashSet<Wtf8Atom>,
   unresolved_ctxt: SyntaxContext,
-  collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
+  collected: &'a mut FxHashMap<Wtf8Atom, EnumKeyValueMap>,
 }
 
 #[derive(Debug, Clone)]
 pub enum EnumMemberValue {
   Number(f64),
-  String(Atom),
+  String(Wtf8Atom),
   Unknown,
 }
 
@@ -33,7 +36,7 @@ impl<'a> ExportedEnumCollector<'a> {
   pub fn new(
     const_only: bool,
     unresolved_ctxt: SyntaxContext,
-    collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
+    collected: &'a mut FxHashMap<Wtf8Atom, EnumKeyValueMap>,
   ) -> Self {
     Self {
       const_only,
@@ -47,7 +50,7 @@ impl<'a> ExportedEnumCollector<'a> {
     if self.const_only && !enum_decl.is_const {
       return;
     }
-    let enum_id = &enum_decl.id.sym;
+    let enum_id = enum_decl.id.sym.borrow();
     // remove existing enum members for enum merging
     let mut enum_members = self.collected.remove(enum_id).unwrap_or_default();
     // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/js_parser/js_parser.go#L11263-L11320
@@ -84,7 +87,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_expr(
     &self,
     expr: &Expr,
-    enum_id: &Atom,
+    enum_id: &Wtf8Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     match expr {
@@ -99,7 +102,7 @@ impl<'a> ExportedEnumCollector<'a> {
         EnumMemberValue::Number(f64::INFINITY)
       }
       Expr::Ident(ident) => existing_enum_members
-        .get(&ident.sym)
+        .get(ident.sym.borrow())
         .map(|value| match value {
           EnumMemberValue::String(s) => EnumMemberValue::String(s.clone()),
           EnumMemberValue::Number(n) => EnumMemberValue::Number(*n),
@@ -118,7 +121,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_unary(
     &self,
     expr: &UnaryExpr,
-    enum_id: &Atom,
+    enum_id: &Wtf8Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if !matches!(expr.op, op!(unary, "+") | op!(unary, "-") | op!("~")) {
@@ -142,7 +145,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_bin(
     &self,
     expr: &BinExpr,
-    enum_id: &Atom,
+    enum_id: &Wtf8Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if !matches!(
@@ -193,17 +196,17 @@ impl<'a> ExportedEnumCollector<'a> {
         EnumMemberValue::Number(value)
       }
       (EnumMemberValue::String(left), EnumMemberValue::String(right), op!(bin, "+")) => {
-        EnumMemberValue::String(format!("{left}{right}").into())
+        EnumMemberValue::String(format!("{left:?}{right:?}").into())
       }
       (EnumMemberValue::Number(left), EnumMemberValue::String(right), op!(bin, "+")) => {
         let left = left.to_js_string();
 
-        EnumMemberValue::String(format!("{left}{right}").into())
+        EnumMemberValue::String(format!("{left}{right:?}").into())
       }
       (EnumMemberValue::String(left), EnumMemberValue::Number(right), op!(bin, "+")) => {
         let right = right.to_js_string();
 
-        EnumMemberValue::String(format!("{left}{right}").into())
+        EnumMemberValue::String(format!("{left:?}{right}").into())
       }
       _ => EnumMemberValue::Unknown,
     }
@@ -212,14 +215,14 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_member(
     &self,
     expr: &MemberExpr,
-    enum_id: &Atom,
+    enum_id: &Wtf8Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     if matches!(expr.prop, MemberProp::PrivateName(..)) {
       return EnumMemberValue::Unknown;
     }
     let member_name = match &expr.prop {
-      MemberProp::Ident(ident) => &ident.sym,
+      MemberProp::Ident(ident) => ident.sym.borrow(),
       MemberProp::Computed(ComputedPropName { expr, .. }) => {
         let Expr::Lit(Lit::Str(s)) = &**expr else {
           return EnumMemberValue::Unknown;
@@ -233,7 +236,8 @@ impl<'a> ExportedEnumCollector<'a> {
       return EnumMemberValue::Unknown;
     };
     // Only support referencing properties inside the same enum decl for now
-    if &ident.sym != enum_id {
+    let ident_sym: &Wtf8Atom = ident.sym.borrow();
+    if ident_sym != enum_id {
       return EnumMemberValue::Unknown;
     }
     if let Some(value) = existing_enum_members.get(member_name) {
@@ -245,7 +249,7 @@ impl<'a> ExportedEnumCollector<'a> {
   fn evaluate_tpl(
     &self,
     expr: &Tpl,
-    enum_id: &Atom,
+    enum_id: &Wtf8Atom,
     existing_enum_members: &EnumKeyValueMap,
   ) -> EnumMemberValue {
     let Tpl { exprs, quasis, .. } = expr;
@@ -260,7 +264,7 @@ impl<'a> ExportedEnumCollector<'a> {
       let expr = self.evaluate_expr(expr, enum_id, existing_enum_members);
 
       let expr = match expr {
-        EnumMemberValue::String(s) => s.to_string(),
+        EnumMemberValue::String(s) => s.to_string_lossy().into(),
         EnumMemberValue::Number(n) => n.to_js_string(),
         _ => return EnumMemberValue::Unknown,
       };
@@ -273,9 +277,9 @@ impl<'a> ExportedEnumCollector<'a> {
   }
 }
 
-fn enum_member_id_atom(member_id: &TsEnumMemberId) -> Atom {
+fn enum_member_id_atom(member_id: &TsEnumMemberId) -> Wtf8Atom {
   match member_id {
-    TsEnumMemberId::Ident(ident) => ident.sym.clone(),
+    TsEnumMemberId::Ident(ident) => Wtf8Atom::new(ident.sym.as_str()),
     TsEnumMemberId::Str(str) => str.value.clone(),
   }
 }
@@ -316,7 +320,7 @@ impl Visit for ExportedEnumCollector<'_> {
                 if specifier.is_type_only {
                   continue;
                 }
-                self.export_idents.insert(specifier.orig.atom().clone());
+                self.export_idents.insert(specifier.orig.wtf8().clone());
               }
               _ => continue,
             }
@@ -324,7 +328,7 @@ impl Visit for ExportedEnumCollector<'_> {
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           if let Some(ident) = expr.expr.unwrap_parens().as_ident() {
-            self.export_idents.insert(ident.sym.clone());
+            self.export_idents.insert(Wtf8Atom::new(ident.sym.clone()));
           }
         }
         _ => {}
@@ -332,7 +336,7 @@ impl Visit for ExportedEnumCollector<'_> {
     }
     for stmt in node.body.iter().filter_map(|item| item.as_stmt()) {
       if let Stmt::Decl(Decl::TsEnum(enum_decl)) = stmt
-        && self.export_idents.contains(&enum_decl.id.sym)
+        && self.export_idents.contains(enum_decl.id.sym.borrow())
       {
         self.collect(enum_decl);
       }

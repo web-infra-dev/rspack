@@ -4996,6 +4996,7 @@ version = "0.6.0-beta.1"
 dependencies = [
  "glob",
  "rspack_javascript_compiler",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "swc_core",
