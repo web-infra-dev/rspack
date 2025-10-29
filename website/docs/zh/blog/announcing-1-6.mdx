@@ -107,7 +107,13 @@ import('./module').then(mod => {
 
 ### 支持 import defer
 
-Rspack 现在实验性支持了 [defer import](https://github.com/tc39/proposal-defer-import-eval)，你可以通过 [experiments.deferImport](/config/experiments#experimentsdeferimport) 开启。目前我们仅支持 `import defer` 语法，`import.defer()` 会在后续实现。
+Rspack 现已支持 [import defer](https://github.com/tc39/proposal-defer-import-eval) 语法。`import defer` 是 JavaScript 中一个新特性，它已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持，它允许你在导入模块时不立即执行模块及其依赖，从而更好地控制代码的加载和副作用发生的时机。
+
+```js
+import defer * as foo from './foo';
+```
+
+你可以通过 [experiments.deferImport](/config/experiments#experimentsdeferimport) 启用此特性：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -116,6 +122,8 @@ export default {
   },
 };
 ```
+
+> 目前 Rspack 仅支持 `import defer` 语法，`import.defer()` 的函数形式将在后续版本中实现。
 
 ### 默认启用 barrel 优化
 
