@@ -136,13 +136,15 @@ layer 是一种用于对模块进行分层管理的特性，可以用于 React S
 - 将不同 layer 的模块编译到不同的目标环境
 - 将它们输出到不同的产物目录中
 
-从 Rspack 1.6 开始，layer 特性已经足够稳定，因此我们废弃了原先的实验性开关 [experiments.layers](/config/experiments#experimentslayers)。现在，你可以直接使用 layer 特性 而无需实验性开关。
+从 Rspack 1.6 开始，layer 特性已经足够稳定，因此我们废弃了原先的实验性开关 [experiments.layers](/config/experiments#experimentslayers)。现在，你可以直接使用 layer 特性，不再需要实验性开关。
 
 想了解更多 layer 的细节和使用方式，可以阅读我们新增的 [layer 指南](/guide/features/layer#layer)。
 
 ### 保留 JSX 语法
 
-Rspack 现在支持在产物中保留 JSX 语法，Rspack 对 JSX 仅进行分析而不做任何转换。
+Rspack 现在支持在产物中保留 JSX 语法。当启用相关选项时，Rspack 只会对 JSX 进行语法分析，而不会将其转换为 JavaScript。
+
+这一特性在构建一些使用 JSX 的库时尤其实用。例如，在使用 Rslib 构建组件库时，可以选择保留 JSX 原样输出，由消费端在使用阶段再完成 JSX 转换。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -233,7 +235,7 @@ export default {
 
 启用后，Rsbuild 将不再默认生成 IIFE 格式的脚本，而是输出标准的 ESM 格式，并自动将生成的 `<script>` 标签设置为 `type="module"`。
 
-#### 配置加载更快
+#### 更快地加载配置文件
 
 由于 Node.js 22 已经原生支持了 TypeScript，Rsbuild 现在默认会使用 Node.js 的原生加载器来解析配置文件；如果加载失败，则会自动回退到 [Jiti](https://github.com/unjs/jiti)。在使用 Node.js 22 及以上版本时，这一机制能够确保模块解析行为与 Node.js 原生保持一致，同时带来更好的加载性能。
 

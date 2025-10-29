@@ -142,7 +142,9 @@ For more details and practical examples, check out our new [Layer guide](/guide/
 
 ### Preserve JSX syntax
 
-Rspack now supports preserving JSX syntax in the output. Rspack only analyzes JSX without performing any transformations.
+Rspack now supports preserving JSX syntax in the build output. When this option is enabled, Rspack only parses JSX syntax without transforming it into JavaScript.
+
+This feature is especially useful when building libraries that rely on JSX. For example, when using Rslib to build a component library, you can choose to keep the JSX code as-is in the output, allowing the consumer to handle the final JSX transformation during usage.
 
 ```js title="rspack.config.mjs"
 export default {
