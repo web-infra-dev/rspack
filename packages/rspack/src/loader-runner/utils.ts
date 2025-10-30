@@ -11,10 +11,14 @@ import loadLoaderRaw from "./loadLoader";
 const decoder = new TextDecoder();
 
 function utf8BufferToString(buf: Uint8Array) {
-	const str = decoder.decode(
-		// The provided ArrayBufferView value must not be shared.
-		buf.buffer instanceof SharedArrayBuffer ? Buffer.from(buf) : buf
-	);
+	// The provided ArrayBufferView value must not be shared.
+	// ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
+	// the `instanceof` check but they should be treated as of that type.
+	const isShared =
+		buf.buffer instanceof SharedArrayBuffer ||
+		buf.buffer.constructor.name === "SharedArrayBuffer";
+
+	const str = decoder.decode(isShared ? Buffer.from(buf) : buf);
 	if (str.charCodeAt(0) === 0xfeff) {
 		return str.slice(1);
 	}
