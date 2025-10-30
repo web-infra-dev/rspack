@@ -22,6 +22,12 @@ exports.foo = () => 'foo'
 }),
 });
 // ./index.js
+const cjs = __webpack_require__("./cjs.cjs");
+var foo_1 = cjs.foo;
+const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
+var cjs_unknown_default = /*#__PURE__*/__webpack_require__.n(cjs_unknown);
+var cjs_unknown_default_0 = cjs_unknown_default();
+var bar_1 = cjs_unknown.bar;
 
 
 
@@ -32,14 +38,6 @@ it('should have correct re-export', async () => {
 	expect(bar()).toBe('bar')
 	expect(defaultV.bar()).toBe('bar')
 })
-
-const cjs = __webpack_require__("./cjs.cjs");
-var foo_1 = cjs.foo;
-
-const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
-var cjs_unknown_default = /*#__PURE__*/__webpack_require__.n(cjs_unknown);
-var cjs_unknown_default_0 = cjs_unknown_default();
-var bar_1 = cjs_unknown.bar;
 
 export { bar_1 as bar, foo_1 as foo };
 export default cjs_unknown_default_0;

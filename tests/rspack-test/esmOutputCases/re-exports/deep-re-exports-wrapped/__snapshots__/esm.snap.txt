@@ -50,6 +50,8 @@ const lib3 = 42
 }),
 });
 // ./index.js
+const lib_0 = __webpack_require__("./lib.js");
+var cR = lib_0.cR;
 
 
 it('should re-export esm correctly', async () => {
@@ -64,9 +66,6 @@ var u = lib2_0.u;
 
 const lib3_0 = __webpack_require__("./lib3.js");
 var B = lib3_0.B;
-
-const lib_0 = __webpack_require__("./lib.js");
-var cR = lib_0.cR;
 
 export { B as lib3, cR as lib, u as lib2 };
 
