@@ -108,11 +108,7 @@ To address these issues once and for all, we introduced an experimental plugin c
 
 The image below compares the code splitting output before and after using this plugin — the left side shows the previous output, while the right side shows the cleaner output produced by EsmLibraryPlugin:
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png"
-  alt="Rspack 1.6 ESM output diff"
-  width="760"
-/>
+![Rspack 1.6 ESM output diff](https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png)
 
 The EsmLibraryPlugin is now largely complete and is being integrated into Rslib to provide an out-of-the-box experience. You can also enable it manually with the following configuration:
 
@@ -235,11 +231,7 @@ Rspack 1.6 introduces several performance optimizations. Compared with Rspack 1.
 
 Rsbuild now automatically forwards error logs from the browser to the terminal, helping you conveniently view runtime errors during development. This also enables Coding Agents to obtain more complete context from terminal logs, allowing them to better analyze and locate errors.
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png"
-  alt="rsbuild-error-forward"
-  width="600"
-/>
+![rsbuild-error-forward](https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png)
 
 If you don't need this feature, you can disable it by setting [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) to false:
 
@@ -296,11 +288,7 @@ The new theme has been comprehensively upgraded in design, bringing a better doc
 
 Rspress v2 introduces the [PageTabs](https://v2.rspress.rs/ui/components/page-tabs) component, allowing you to create multiple sub-tabs within a single page. This helps naturally split long content into well-structured subpages.
 
-<img
-  width="600"
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png"
-  alt="Rspress sub-page switching"
-/>
+![Rspress sub-page switching](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
 
 ### Rslib 0.16
 
@@ -368,11 +356,7 @@ The [Rstest VS Code Extension](https://marketplace.visualstudio.com/items?itemNa
 
 Rstest now supports collecting code coverage using Istanbul and generating detailed coverage reports. For more information, see [Rstest – Coverage](https://rstest.rs/config/test/coverage).
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png"
-  alt="rstest-coverage"
-  width="600"
-/>
+![rstest-coverage](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png)
 
 ### Rsdoctor 1.3
 
@@ -380,11 +364,7 @@ Rstest now supports collecting code coverage using Istanbul and generating detai
 
 Rsdoctor now provides a [GitHub bundle diff action](https://github.com/web-infra-dev/rsdoctor-action), which automatically detects and compares bundle size changes during the CI phase. This helps teams identify and prevent bundle size regressions early.
 
-<img
-  width="600"
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png"
-  alt="Rsdoctor GitHub Actions"
-/>
+![Rsdoctor GitHub Actions](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
 
 #### All-in-one JSON report
 

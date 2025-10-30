@@ -108,11 +108,7 @@ export default {
 
 下图展示了使用该插件前后的代码分割产物对比：左侧为之前的产物，右侧为使用 EsmLibraryPlugin 后的输出：
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png"
-  alt="Rspack 1.6 ESM output diff"
-  width="760"
-/>
+![Rspack 1.6 ESM output diff](https://assets.rspack.rs/rspack/assets/rspack-v1-6-esm-diff.png)
 
 目前，EsmLibraryPlugin 已基本开发完成，并正在集成至 Rslib 中，以提供开箱即用的体验。
 
@@ -237,11 +233,7 @@ Rspack 1.6 带来了多项性能优化，相较于 Rspack 1.5.0，性能提升�
 
 Rsbuild 现在会自动将浏览器中的错误日志转发到终端，帮助你在开发过程中便捷地查看运行时报错，这也使 Coding Agents 能够从终端日志中获取更完整的上下文，从而更好地分析和定位错误。
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png"
-  alt="rsbuild-error-forward"
-  width="600"
-/>
+![rsbuild-error-forward](https://assets.rspack.rs/rspack/assets/rspack-v1-6-error-forward.png)
 
 如果你不需要该功能，可以将 [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) 设置为 false 来禁用它：
 
@@ -298,11 +290,7 @@ Rspress 的新主题已进入预览阶段，并已经上线至 v2 官网。🎉
 
 Rspress V2 新增 [PageTabs](https://v2.rspress.rs/zh/ui/components/page-tabs) 组件，可在同一页面中创建多个子标签页，将长篇内容自然拆分为结构清晰的子页面。
 
-<img
-  width="600"
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png"
-  alt="Rspress 子页面切换组件"
-/>
+![Rspress 子页面切换组件](https://assets.rspack.rs/rspack/assets/rspack-v1-6-page-tabs.png)
 
 ### Rslib 0.16
 
@@ -370,11 +358,7 @@ Rslib 的 build 命令中支持了更多的 [CLI 选项](https://rslib.rs/zh/gui
 
 Rstest 现已支持使用 istanbul 收集代码覆盖率并生成覆盖率报告，详见 [Rstest - 代码覆盖率](https://rstest.rs/zh/config/test/coverage)。
 
-<img
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png"
-  alt="rstest-coverage"
-  width="600"
-/>
+![rstest-coverage](https://assets.rspack.rs/rspack/assets/rspack-v1-6-rstest-cov.png)
 
 ### Rsdoctor 1.3
 
@@ -382,11 +366,7 @@ Rstest 现已支持使用 istanbul 收集代码覆盖率并生成覆盖率报告
 
 Rsdoctor 现在提供了 [GitHub bundle diff action](https://github.com/web-infra-dev/rsdoctor-action)，可以在 CI 阶段自动检测和对比构建产物的体积变化，帮助团队及时发现并预防包体积劣化。
 
-<img
-  width="600"
-  src="https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png"
-  alt="Rsdoctor GitHub Actions"
-/>
+![Rsdoctor GitHub Actions](https://assets.rspack.rs/rspack/assets/rspack-v1-6-bundle-diff.png)
 
 #### 单一 JSON 数据报告
 
