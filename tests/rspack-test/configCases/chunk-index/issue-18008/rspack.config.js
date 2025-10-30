@@ -48,11 +48,16 @@ module.exports = {
 						data[`${name}Index`] = text;
 					}
 					expect(data).toEqual({
-						AIndex: "0: ./A.js, 1: css ./m.css",
+						// DIFF: rspack will not generate prefix 'css' for readable identifiers of css modules.
+						AIndex: "0: ./A.js, 1: ./m.css",
 						"B-2Index": "0: ./B-2.js",
 						BIndex: "0: ./B.js",
 						mainIndex: "0: ./main.js",
-						sharedIndex: "1: css ./m.css, 2: css ./n.css"
+						// DIFF:
+						// css modules in rspack will only have one source types without css-export in it.
+						// So the module 'n.css' will be disconnected from chunk in concatenated plugin
+						// sharedIndex: "1: css ./m.css, 2: css ./n.css"
+						sharedIndex: "1: ./m.css"
 					});
 				});
 			};

@@ -95,7 +95,7 @@ use crate::{
     JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
     JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
   },
-  source::ToJsCompatSourceOwned,
+  source::JsSourceToJs,
 };
 
 #[napi(object)]
@@ -1320,14 +1320,10 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_str = module.generate(compilation).await?;
+    let source_string = module.generate(compilation).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
-        source: Some(
-          RawStringSource::from(source_str)
-            .to_js_compat_source_owned()
-            .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-        ),
+        source: Some(JsSourceToJs::from(source_string)),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
         name: module

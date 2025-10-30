@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
 #[cacheable]
@@ -10,13 +10,13 @@ pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
   pub exposed_name: String,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
   pub fn new(exposed_name: String, request: String) -> Self {
-    let resource_identifier = format!("exposed dependency {exposed_name}={request}");
+    let resource_identifier = format!("exposed dependency {exposed_name}={request}").into();
     Self {
       id: DependencyId::new(),
       request,

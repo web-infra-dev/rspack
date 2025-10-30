@@ -25,7 +25,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
-use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -1348,10 +1348,7 @@ impl Compilation {
 
         self.emit_asset(
           filename.clone(),
-          CompilationAsset::new(
-            Some(CachedSource::new(file_manifest.source).boxed()),
-            file_manifest.info,
-          ),
+          CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
         );
 
         _ = self
@@ -1445,8 +1442,15 @@ impl Compilation {
 
     // make finished, make artifact should be readonly thereafter.
 
-    // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
+      mutations.extend(
+        self
+          .make_artifact
+          .affected_dependencies
+          .updated()
+          .iter()
+          .map(|&dependency| Mutation::DependencyUpdate { dependency }),
+      );
       mutations.extend(
         self
           .make_artifact

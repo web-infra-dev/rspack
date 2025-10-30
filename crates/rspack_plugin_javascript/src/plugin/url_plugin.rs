@@ -70,7 +70,7 @@ async fn render_module_content(
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
   if codegen_result.data.contains::<URLStaticMode>() {
-    let content = render_source.source.source().clone();
+    let content = render_source.source.source().into_string_lossy();
     let mut replace_source = ReplaceSource::new(render_source.source.clone());
     let replacement = URL_STATIC_PLACEHOLDER_RE
       .find_iter(&content)

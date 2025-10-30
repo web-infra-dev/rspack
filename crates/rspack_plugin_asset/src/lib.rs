@@ -625,13 +625,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           asset_path
         } else if parsed_asset_config.is_source() {
-          format!(r"{:?}", source.source())
+          format!(r"{:?}", source.source().into_string_lossy())
         } else {
           unreachable!()
         };
 
         if generate_context.requested_source_type == SourceType::CssUrl {
-          return Ok(RawStringSource::from("").boxed());
+          return Ok(RawStringSource::from_static("").boxed());
         }
 
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {

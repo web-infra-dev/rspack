@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES,
-  asset::{AssetInfo, JsAsset},
+  asset::{AssetInfo, AssetInfoRelated, JsAsset},
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
@@ -36,7 +36,7 @@ use crate::{
   module_graph::JsModuleGraph,
   options::entry::JsEntryOptions,
   path_data::{JsPathData, PathWithInfo},
-  source::{JsCompatSource, ToJsCompatSource},
+  source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
 };
@@ -70,13 +70,13 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
   pub fn update_asset(
     &mut self,
     env: &Env,
     filename: String,
-    new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
+    new_source_or_function: Either<JsSourceFromJs, Function<'_, JsSourceToJs, JsSourceFromJs>>,
     asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -85,41 +85,52 @@ impl JsCompilation {
       .update_asset(&filename, |original_source, mut original_info| {
         let new_source: napi::Result<BoxSource> = (|| -> napi::Result<BoxSource> {
           let new_source = match new_source_or_function {
-            Either::A(new_source) => new_source.into(),
+            Either::A(new_source) => new_source.try_into()?,
             Either::B(new_source_fn) => {
-              let js_compat_source =
-                new_source_fn.call(original_source.to_js_compat_source(env)?)?;
-              js_compat_source.into()
+              let js_compat_source = new_source_fn.call(original_source.as_ref().try_into()?)?;
+              js_compat_source.try_into()?
             }
           };
           Ok(new_source)
         })();
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: Option<rspack_core::AssetInfo> = match asset_info_update_or_function {
-          Some(asset_info_update_or_function) => match asset_info_update_or_function {
-            Either::A(object) => {
-              let js_asset_info: AssetInfo = unsafe {
-                FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-              };
-              Some(js_asset_info.into())
-            }
-            Either::B(f) => {
-              let original_info_object = original_info.reflector();
-              let result = f.call(original_info_object).to_rspack_result()?;
-              match result {
-                Some(object) => {
-                  let js_asset_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
-                  Some(js_asset_info.into())
-                }
-                None => None,
+        let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
+          match asset_info_update_or_function {
+            Some(asset_info_update_or_function) => match asset_info_update_or_function {
+              Either::A(object) => {
+                let js_asset_info: AssetInfo = unsafe {
+                  FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+                };
+                let new_related_to = js_asset_info.get_related();
+                Some((js_asset_info.into(), new_related_to))
               }
-            }
-          },
-          None => None,
-        };
+              Either::B(f) => {
+                let original_info_object = original_info.reflector();
+                let result = f.call(original_info_object).to_rspack_result()?;
+                match result {
+                  Some(object) => {
+                    let js_asset_info =
+                      AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
+                    let new_related_to = js_asset_info.get_related();
+                    Some((js_asset_info.into(), new_related_to))
+                  }
+                  None => None,
+                }
+              }
+            },
+            None => None,
+          };
         if let Some(new_info) = new_info {
-          original_info.merge_another_asset(new_info);
+          original_info.merge_another_asset(new_info.0);
+          // if the new related is null, should remove it in the original info
+          if let Some(new_related_to) = new_info.1
+            && new_related_to
+              .source_map
+              .is_some_and(|s| matches!(s, Either::B(_)))
+          {
+            original_info.related.source_map = None;
+          }
         }
         Ok((new_source, original_info))
       })
@@ -156,18 +167,18 @@ impl JsCompilation {
     }
   }
 
-  #[napi]
-  pub fn get_asset_source<'a>(
-    &self,
-    env: &'a Env,
-    name: String,
-  ) -> Result<Option<JsCompatSource<'a>>> {
+  #[napi(ts_return_type = "JsSource | null")]
+  pub fn get_asset_source(&self, env: &Env, name: String) -> Result<Option<JsSourceToJs>> {
     let compilation = self.as_ref()?;
 
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
+      .and_then(|v| {
+        v.source
+          .as_ref()
+          .map(|s| JsSourceToJs::try_from(s.as_ref()))
+      })
       .transpose()
   }
 
@@ -268,11 +279,11 @@ impl JsCompilation {
     )
   }
 
-  #[napi]
-  pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) -> Result<()> {
+  #[napi(ts_args_type = "name: string, source: JsSource")]
+  pub fn set_asset_source(&mut self, name: String, source: JsSourceFromJs) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    let source: BoxSource = source.into();
+    let source: BoxSource = source.try_into()?;
     match compilation.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
@@ -316,13 +327,13 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_asset(
     &mut self,
     env: &Env,
     filename: String,
-    source: JsCompatSource,
+    source: JsSourceFromJs,
     object: Option<Object>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
@@ -341,7 +352,7 @@ impl JsCompilation {
     compilation.emit_asset(
       filename,
       rspack_core::CompilationAsset {
-        source: Some(source.into()),
+        source: Some(source.try_into()?),
         info: asset_info,
       },
     );

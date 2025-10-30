@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: not been replaced"
+module.exports = () => "TODO: support function type of newContentResource in ContextReplacementPlugin"

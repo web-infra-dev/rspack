@@ -12,6 +12,7 @@ use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
 
+#[derive(Clone)]
 #[napi(object)]
 pub struct AssetInfoRelated {
   pub source_map: Option<Either<String, Null>>,
@@ -186,6 +187,10 @@ impl AssetInfo {
   pub fn from_jsobject(env: &Env, object: &Object) -> napi::Result<Self> {
     // Safety: The Env and Object should be valid NAPI value
     unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw()) }
+  }
+
+  pub fn get_related(&self) -> Option<AssetInfoRelated> {
+    self.known.related.clone()
   }
 }
 

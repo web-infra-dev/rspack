@@ -165,7 +165,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().into_owned();
+        let input = original_source.source().into_string_lossy().into_owned();
         let input_source_map = original_source.map(&MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();

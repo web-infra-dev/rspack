@@ -201,7 +201,9 @@ async fn render_startup(
     let mut startup_with_call = ConcatSource::default();
 
     // Add startup call
-    startup_with_call.add(RawStringSource::from("\n// Federation startup call\n"));
+    startup_with_call.add(RawStringSource::from_static(
+      "\n// Federation startup call\n",
+    ));
     startup_with_call.add(RawStringSource::from(format!(
       "{}();\n",
       RuntimeGlobals::STARTUP.name()

@@ -188,7 +188,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
   pub has_ast: bool,
-  pub source: Option<ReplaceSource<Arc<dyn Source>>>,
+  pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: HashMap<Atom, Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
@@ -2242,7 +2242,7 @@ impl ConcatenatedModule {
           "{}",
           self.readable_identifier(&compilation.options.context),
         ))),
-        source_code.to_string(),
+        source_code.into_string_lossy().into_owned(),
       );
       let comments = SwcComments::default();
       let mut module_info = concatenation_scope.current_module;

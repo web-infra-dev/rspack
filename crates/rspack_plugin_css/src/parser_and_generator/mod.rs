@@ -133,7 +133,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_code = source.source();
+    let source_code = source.source().into_string_lossy();
     let resource_path = resource_data.path();
     let cached_source_code = OnceCell::new();
     let get_source_code = || {

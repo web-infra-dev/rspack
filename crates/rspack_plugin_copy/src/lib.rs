@@ -15,7 +15,7 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, Logger, PathData, Plugin,
-  rspack_sources::{RawSource, Source},
+  rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -70,7 +70,7 @@ impl Display for ToType {
 }
 
 pub type TransformerFn =
-  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<RawSource>> + Sync + Send>;
+  Box<dyn for<'a> Fn(Vec<u8>, &'a str) -> BoxFuture<'a, Result<BoxSource>> + Sync + Send>;
 
 pub struct ToFnCtx<'a> {
   pub context: &'a Utf8Path,
@@ -114,7 +114,7 @@ pub struct RunPatternResult {
   pub source_filename: Utf8PathBuf,
   pub absolute_filename: Utf8PathBuf,
   pub filename: String,
-  pub source: RawSource,
+  pub source: BoxSource,
   pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
@@ -136,7 +136,7 @@ impl CopyRspackPlugin {
   }
 
   fn get_content_hash(
-    source: &RawSource,
+    source: &BoxSource,
     function: &HashFunction,
     digest: &HashDigest,
     salt: &HashSalt,
@@ -285,7 +285,7 @@ impl CopyRspackPlugin {
       }
     };
 
-    let mut source = RawSource::from(source_vec.clone());
+    let mut source = RawBufferSource::from(source_vec.clone()).boxed();
 
     if let Some(transformer) = &pattern.transform_fn {
       logger.debug(format!("transforming content for '{absolute_filename}'..."));
@@ -777,7 +777,7 @@ async fn handle_transform(
   transformer: &TransformerFn,
   source_vec: Vec<u8>,
   absolute_filename: Utf8PathBuf,
-  source: &mut RawSource,
+  source: &mut BoxSource,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
 ) {
   match transformer(source_vec, absolute_filename.as_str()).await {
