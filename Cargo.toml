@@ -146,10 +146,11 @@ swc_html_minifier   = { version = "35.0.0", default-features = false }
 swc_node_comments   = { version = "16.0.0", default-features = false }
 swc_plugin_runner   = { version = "21.0.0", default-features = false }
 
-wasi-common = { version = "35.0.0", default-features = false }
-wasmtime    = { version = "35.0.0", default-features = false }
-
-rspack_dojang = { version = "0.1.11", default-features = false }
+rspack_dojang    = { version = "0.1.11", default-features = false }
+tracy-client     = { version = "=0.18.2", features = ["enable", "sampling", "demangle", "system-tracing"] }
+tracy-client-sys = { version = "=0.26.0" }
+wasi-common      = { version = "35.0.0", default-features = false }
+wasmtime         = { version = "35.0.0", default-features = false }
 
 
 # all rspack workspace dependencies
@@ -251,10 +252,11 @@ opt-level = 0
 
 # This is for local development
 [profile.dev]
-codegen-units = 16
-debug         = 2       # debug build will cause runtime panic if codegen-unints is default
-incremental   = true
-panic         = "abort"
+codegen-units   = 16
+debug           = 2          # debug build will cause runtime panic if codegen-unints is default
+incremental     = true
+panic           = "abort"
+split-debuginfo = "unpacked"
 
 [profile.release-debug]
 codegen-units = 16
