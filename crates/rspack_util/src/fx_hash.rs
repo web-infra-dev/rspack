@@ -1,9 +1,9 @@
 use std::hash::BuildHasherDefault;
 
 use dashmap::{DashMap, DashSet};
+pub use indexmap;
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHasher;
-
 pub type BuildFxHasher = BuildHasherDefault<FxHasher>;
 pub use rustc_hash::{FxHashMap, FxHashSet};
 pub type FxDashMap<K, V> = DashMap<K, V, BuildHasherDefault<FxHasher>>;
