@@ -14,8 +14,8 @@ export function getEqual(E) {
 			(O.isNone(x)
 				? O.isNone(y)
 				: O.isNone(y)
-				? false
-				: E.equals(y.value)(x.value))
+					? false
+					: E.equals(y.value)(x.value))
 	};
 }
 export function getShow(S) {
@@ -39,14 +39,14 @@ export const AssociativeFlatten = /*#__PURE__*/ P.instance({
 export const IdentityFlatten = /*#__PURE__*/ P.instance(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Any),
-		AssociativeFlatten
-	)
+	AssociativeFlatten
+)
 );
 export const Monad = /*#__PURE__*/ P.instance(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Covariant),
-		IdentityFlatten
-	)
+	IdentityFlatten
+)
 );
 export const AssociativeBoth = /*#__PURE__*/ P.instance({
 	both: O.zip
@@ -54,14 +54,14 @@ export const AssociativeBoth = /*#__PURE__*/ P.instance({
 export const IdentityBoth = /*#__PURE__*/ P.instance(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Any),
-		AssociativeBoth
-	)
+	AssociativeBoth
+)
 );
 export const Applicative = /*#__PURE__*/ P.instance(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Covariant),
-		IdentityBoth
-	)
+	IdentityBoth
+)
 );
 export const Extend = /*#__PURE__*/ P.instance({
 	extend: O.extend
@@ -77,8 +77,8 @@ export const forEachF = /*#__PURE__*/ P.implementForEachF()(
 );
 export const ForEach = /*#__PURE__*/ P.instance(
 	/*#__PURE__*/ Object.assign(/*#__PURE__*/ Object.assign({}, Covariant), {
-		forEachF
-	})
+	forEachF
+})
 );
 export const Fail = /*#__PURE__*/ P.instance({
 	fail: () => O.none
@@ -199,10 +199,10 @@ export function getOrd(_) {
 		x === y
 			? 0
 			: O.isSome(x)
-			? O.isSome(y)
-				? _.compare(y.value)(x.value)
-				: 1
-			: -1
+				? O.isSome(y)
+					? _.compare(y.value)(x.value)
+					: 1
+				: -1
 	);
 }
 export const filter = predicate => fa =>
@@ -241,9 +241,9 @@ export const separateF = /*#__PURE__*/ P.implementSeparateF()(
 		);
 		return O.isNone(o)
 			? P.succeedF(F)({
-					left: O.none,
-					right: O.none
-			  })
+				left: O.none,
+				right: O.none
+			})
 			: o.value;
 	}
 );
@@ -270,8 +270,8 @@ export function getIdentity(A) {
 export const alt = /*#__PURE__*/ P.orElseF(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Covariant),
-		AssociativeEither
-	)
+	AssociativeEither
+)
 );
 export const gen = /*#__PURE__*/ P.genF(Monad);
 export const bind = /*#__PURE__*/ P.bindF(Monad);
@@ -281,14 +281,14 @@ export { branch as if, branch_ as if_ };
 export const struct = /*#__PURE__*/ P.structF(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Monad),
-		Applicative
-	)
+	Applicative
+)
 );
 export const tuple = /*#__PURE__*/ P.tupleF(
 	/*#__PURE__*/ Object.assign(
 		/*#__PURE__*/ Object.assign({}, Monad),
-		Applicative
-	)
+	Applicative
+)
 );
 /**
  * Matchers
