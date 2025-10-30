@@ -75,7 +75,9 @@ import('./module').then(mod => {
 
 ### Support for import defer
 
-Rspack now supports the [import defer](https://github.com/tc39/proposal-defer-import-eval) syntax. `import defer` is a new feature in JavaScript that has been supported since [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). It allows you to import a module without immediately executing the module and its dependencies, giving you better control over when code execution and side effects occur.
+Rspack now supports the [import defer](https://github.com/tc39/proposal-defer-import-eval) syntax.
+
+`import defer` is a new feature in JavaScript, which is also supported in [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). It allows you to import a module without immediately executing the module and its dependencies, giving you better control over when code execution and side effects occur.
 
 ```js
 import defer * as foo from './foo';

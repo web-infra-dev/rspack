@@ -77,7 +77,7 @@ import('./module').then(mod => {
 
 Rspack 现已支持 [import defer](https://github.com/tc39/proposal-defer-import-eval) 语法。
 
-`import defer` 是 JavaScript 中一个新特性，它已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持，它允许你在导入模块时不立即执行模块及其依赖，从而更好地控制代码的加载和副作用发生的时机。
+`import defer` 是 JavaScript 中一个新特性，也已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持，它允许你在导入模块时不立即执行模块及其依赖，从而更好地控制代码的加载和副作用发生的时机。
 
 ```js
 import defer * as foo from './foo';
