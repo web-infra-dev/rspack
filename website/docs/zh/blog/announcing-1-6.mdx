@@ -410,3 +410,23 @@ Rsdoctor 现支持在 Brief 模式下导出 [单一 JSON 报告文件](https://r
 | webpack              | 14.0s                | 7.8s               |
 
 基准测试基于 [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) 仓库进行，完整的性能数据可在此查看：[PERF.md](https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md)。
+
+## 升级指南
+
+### 升级 SWC 插件
+
+如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），需要将插件升级至兼容 `swc_core@46` 的版本，否则可能因版本不兼容导致构建报错。
+
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+
+### 移除 `experiments.layer`
+
+`experiments.layer` 选项已经废弃，可以直接移除：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-   layer: true,
+-  },
+};
+```

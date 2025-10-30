@@ -408,3 +408,23 @@ In this customized Rspack Rust binding, the `externals` logic from Next.js has b
 | webpack              | 14.0s                 | 7.8s                |
 
 The benchmark is based on the [chakra-ui-docs](https://github.com/SyMind/chakra-ui-docs/tree/next-rspack) repository. Full performance data is available here: [PERF.md](https://github.com/SyMind/chakra-ui-docs/blob/next-rspack/PERF.md).
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`), you need to upgrade the plugins to a version compatible with `swc_core@46`, otherwise it may cause build errors due to version incompatibility.
+
+> For more details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
+
+### Remove `experiments.layer`
+
+`experiments.layer` option has been deprecated, you can remove it directly:
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-   layer: true,
+-  },
+};
+```
