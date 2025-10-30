@@ -37,9 +37,9 @@ _2025 年 10 月 29 日_
 
 ### 增强 Tree shaking
 
-Rspack 1.6 增强了对动态导入 tree shaking 的支持。此前，Rspack 仅能对动态导入中的解构赋值进行 tree shaking，而其他形式的导入则不会被分析。
+Rspack 1.6 增强了对动态导入 tree shaking 的支持。在此前的版本中，Rspack 仅能对动态导入中的解构赋值进行 tree shaking，而其他形式的导入则不会被分析。
 
-Rspack 现在为动态导入引入了全面的静态分析，能够识别并处理多样化的使用模式，从而精准地移除未被使用的导出内容，进一步优化打包产物的体积。
+现在，Rspack 为动态导入引入了更全面的静态分析，能够识别并处理多种使用模式，从而精准地移除未被使用的导出内容，进一步减小最终打包产物的体积。
 
 ```js title="rspack.config.mjs"
 // Rspack 1.5 - 仅支持分析解构赋值
@@ -75,7 +75,9 @@ import('./module').then(mod => {
 
 ### 支持 import defer
 
-Rspack 现已支持 [import defer](https://github.com/tc39/proposal-defer-import-eval) 语法。`import defer` 是 JavaScript 中一个新特性，它已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持，它允许你在导入模块时不立即执行模块及其依赖，从而更好地控制代码的加载和副作用发生的时机。
+Rspack 现已支持 [import defer](https://github.com/tc39/proposal-defer-import-eval) 语法。
+
+`import defer` 是 JavaScript 中一个新特性，它已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持，它允许你在导入模块时不立即执行模块及其依赖，从而更好地控制代码的加载和副作用发生的时机。
 
 ```js
 import defer * as foo from './foo';
@@ -218,7 +220,7 @@ export default {
 Rspack 1.6 带来了多项性能优化，相较于 Rspack 1.5.0，性能提升如下：
 
 - CLI 启动速度提升约 **50 ms**
-- 构建 10 000 个 React 组件的速度提升 **11%**
+- 构建 10000 个 React 组件的速度提升 **11%**
 - 构建多个 UI 组件库的速度提升 **31%**（得益于默认启用的 barrel 文件优化）
 
 > 数据来源：[Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
@@ -238,7 +240,6 @@ Rsbuild 现在会自动将浏览器中的错误日志转发到终端，帮助你
 如果你不需要该功能，可以将 [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) 设置为 false 来禁用它：
 
 ```js title=rsbuild.config.ts
-// rsbuild.config.ts
 export default {
   dev: {
     browserLogs: false,
@@ -296,7 +297,7 @@ Rspress V2 新增 [PageTabs](https://v2.rspress.rs/zh/ui/components/page-tabs) �
 
 #### 更快的类型生成
 
-Rslib 现在支持基于 [typescript-go](https://github.com/microsoft/typescript-go) 生成类型声明文件，只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo)，即可让类型检查和类型生成的性能提升约 **300%**，在大型项目中收益更为明显。
+Rslib 现在支持基于 [typescript-go](https://github.com/microsoft/typescript-go) 生成类型声明文件，你只需开启 [dts.tsgo](https://rslib.rs/zh/config/lib/dts#dtstsgo)，即可让类型检查和类型生成的性能提升约 **300%**，在大型项目中收益更为明显。
 
 ```ts title="rslib.config.ts"
 export default {

@@ -11,7 +11,7 @@ _October 29, 2025_
 
 ---
 
-We're excited to announce Rspack 1.6!
+We are excited to announce Rspack 1.6!
 
 Notable changes include:
 
@@ -37,9 +37,9 @@ Notable changes include:
 
 ### Enhanced tree shaking
 
-Rspack 1.6 improved tree shaking support for dynamic imports. Previously, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
+Rspack 1.6 improved tree shaking support for dynamic imports. In previous versions, Rspack could only perform tree shaking on destructured assignments within dynamic imports, while other import patterns were not analyzed.
 
-Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle various usage patterns, accurately removing unused exports and further reducing the final bundle size.
+Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle a wider range of usage patterns. This allows Rspack to precisely eliminate unused exports and further reduce the size of the final bundle.
 
 ```js title="rspack.config.mjs"
 // Rspack 1.5 – Only supported destructured imports
@@ -216,7 +216,7 @@ export default {
 Rspack 1.6 introduces several performance optimizations. Compared with Rspack 1.5.0, you can expect the following improvements:
 
 - CLI startup is about **50 ms faster**
-- Building 10 000 React components is **11% faster**
+- Building 10000 React components is **11% faster**
 - Building multiple UI component libraries is **31% faster** (thanks to the newly enabled barrel-file optimization by default)
 
 > Data source: [Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
@@ -236,7 +236,6 @@ Rsbuild now automatically forwards error logs from the browser to the terminal, 
 If you don't need this feature, you can disable it by setting [dev.browserLogs](https://rsbuild.rs/config/dev/browser-logs) to false:
 
 ```js title=rsbuild.config.ts
-// rsbuild.config.ts
 export default {
   dev: {
     browserLogs: false,
