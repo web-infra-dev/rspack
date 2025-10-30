@@ -100,7 +100,7 @@ __webpack_require__.x = function() {{
 {module_executions}
 	}}
 	if (typeof prevX === 'function') {{
-		return prevX();
+		return prevX.apply(this, arguments);
 	}}
 }};"#
       )

@@ -1149,9 +1149,120 @@ impl JsPlugin {
       .keys()
       .next_back()
     {
-      let mut render_source = RenderSource {
-        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
+      // Check if this entry chunk needs federation startup
+      let needs_federation = compilation.options.experiments.mf_async_startup
+        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      let is_esm_output = compilation.options.output.module;
+
+      let source = if needs_federation && is_esm_output {
+        // ESM async mode with federation - use top-level await
+        let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
+        let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
+        let startup_str = startup.join("\n");
+
+        let mut result = ConcatSource::default();
+
+        // Add federation initialization using top-level await
+        result.add(RawStringSource::from(
+          "// Federation async initialization\n",
+        ));
+        result.add(RawStringSource::from("await (async () => {\n"));
+        result.add(RawStringSource::from(
+          "  if (typeof __webpack_require__.x === 'function') {\n",
+        ));
+        result.add(RawStringSource::from(
+          "    await __webpack_require__.x();\n",
+        ));
+        result.add(RawStringSource::from("  }\n"));
+        result.add(RawStringSource::from("  const promises = [];\n"));
+        result.add(RawStringSource::from("  const handlers = [\n"));
+        result.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        result.add(RawStringSource::from("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        result.add(RawStringSource::from("    },\n"));
+        result.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        result.add(RawStringSource::from("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        result.add(RawStringSource::from("    }\n"));
+        result.add(RawStringSource::from("  ];\n"));
+        result.add(RawStringSource::from(format!(
+          "  await Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));\n",
+          chunk_id_str
+        )));
+        result.add(RawStringSource::from("})();\n\n"));
+
+        // Add the original startup code
+        result.add(RawStringSource::from(startup_str));
+        result.add(RawStringSource::from("\n"));
+
+        result.boxed()
+      } else if needs_federation && !is_esm_output {
+        // CJS output with federation - use Promise chain
+        let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
+        let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
+        let startup_str = startup.join("\n");
+
+        let mut result = ConcatSource::default();
+
+        result.add(RawStringSource::from(
+          "\n// Initialize federation runtime\n",
+        ));
+        result.add(RawStringSource::from(
+          "var runtimeInitialization = undefined;\n",
+        ));
+        result.add(RawStringSource::from(
+          "if (typeof __webpack_require__.x === 'function') {\n",
+        ));
+        result.add(RawStringSource::from(
+          "  runtimeInitialization = __webpack_require__.x();\n",
+        ));
+        result.add(RawStringSource::from("}\n"));
+        result.add(RawStringSource::from("var promises = [];\n"));
+        result.add(RawStringSource::from(format!(
+          "var {} = Promise.resolve(runtimeInitialization).then(function() {{\n",
+          RuntimeGlobals::EXPORTS.name()
+        )));
+        result.add(RawStringSource::from("  var handlers = [\n"));
+        result.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        result.add(RawStringSource::from("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        result.add(RawStringSource::from("    },\n"));
+        result.add(RawStringSource::from("    function(chunkId, promises) {\n"));
+        result.add(RawStringSource::from("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);\n"));
+        result.add(RawStringSource::from("    }\n"));
+        result.add(RawStringSource::from("  ];\n"));
+        result.add(RawStringSource::from(format!(
+          "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));\n",
+          chunk_id_str
+        )));
+        result.add(RawStringSource::from("}).then(function() {\n"));
+        result.add(RawStringSource::from("  return (function() {\n"));
+        result.add(RawStringSource::from(format!("    {}\n", startup_str)));
+        result.add(RawStringSource::from("    return __webpack_exports__;\n"));
+        result.add(RawStringSource::from("  })();\n"));
+        result.add(RawStringSource::from("});\n"));
+
+        result.boxed()
+      } else if compilation.options.experiments.mf_async_startup
+        && !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+        && !startup.is_empty()
+      {
+        // Check for sync federation startup case
+        let mut result = ConcatSource::default();
+        result.add(RawStringSource::from_static(
+          "\n// Federation startup call\n",
+        ));
+        result.add(RawStringSource::from(format!(
+          "{}();\n",
+          RuntimeGlobals::STARTUP.name()
+        )));
+        result.add(RawStringSource::from(startup.join("\n")));
+        result.add(RawStringSource::from("\n"));
+        result.boxed()
+      } else {
+        // Normal case - no federation
+        RawStringSource::from(startup.join("\n") + "\n").boxed()
       };
+
+      // Still call render_startup hook for other plugins that might need it
+      let mut render_source = RenderSource { source };
       hooks
         .render_startup
         .call(
