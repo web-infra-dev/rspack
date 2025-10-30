@@ -1,4 +1,14 @@
 fn main() {
+  // Check for mutually exclusive features
+  let sftrace_setup = std::env::var("CARGO_FEATURE_SFTRACE_SETUP").is_ok();
+  let allocative = std::env::var("CARGO_FEATURE_ALLOCATIVE").is_ok();
+
+  if sftrace_setup && allocative {
+    panic!(
+      "Features 'sftrace-setup' and 'allocative' are mutually exclusive and cannot be enabled together"
+    );
+  }
+
   rspack_binding_build::setup();
 
   #[cfg(feature = "sftrace-setup")]
