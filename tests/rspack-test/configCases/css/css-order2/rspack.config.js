@@ -11,6 +11,9 @@ module.exports = {
 	optimization: {
 		concatenateModules: false
 	},
+	experiments: {
+		css: false
+	},
 	module: {
 		rules: [
 			{
