@@ -74,10 +74,7 @@ module.exports = {
 						path.join(__dirname, "__snapshot__", "g.js.txt"),
 						"harmony export should concat, even with bailout reason"
 					);
-					expect(assets["h.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "h.js.txt"),
-						"asset as entry should not be concatenated"
-					);
+					expect(assets["h.js"]).toBeUndefined();
 				});
 			};
 			this.hooks.compilation.tap("testcase", handler);

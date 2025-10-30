@@ -8,9 +8,9 @@ use rspack_core::{
   ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
-  import_statement,
+  PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
+  filter_runtime, import_statement,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -67,7 +67,7 @@ pub struct ESMImportSideEffectDependency {
   dependency_type: DependencyType,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
@@ -302,7 +302,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       && let Some(source) = parent_module.source()
     {
       Error::from_string(
-        Some(source.source().into_owned()),
+        Some(source.source().into_string_lossy().into_owned()),
         span.start as usize,
         span.end as usize,
         title.to_string(),

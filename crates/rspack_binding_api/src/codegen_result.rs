@@ -21,8 +21,13 @@ impl From<&CodeGenerationResult> for JsCodegenerationResult {
         .inner
         .as_ref()
         .iter()
-        .map(|(source_type, source)| (source_type.to_string(), source.source().to_string()))
-        .collect(),
+        .map(|(source_type, source)| {
+          (
+            source_type.to_string(),
+            source.source().into_string_lossy().into_owned(),
+          )
+        })
+        .collect::<HashMap<String, String>>(),
     }
   }
 }

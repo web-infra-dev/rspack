@@ -96,7 +96,7 @@ describe("build command", () => {
 	});
 
 	it.each(["-o", "--output-path", "--outputPath"])(
-		"output-path option %p should have higher priority than config",
+		"output-path option %s should have higher priority than config",
 		async command => {
 			const { exitCode, stderr, stdout } = await run(__dirname, [
 				command,
@@ -124,7 +124,7 @@ describe("build command", () => {
 		["-d", "false"],
 		["--devtool", "false"]
 	])(
-		"devtool option %p should have higher priority than config",
+		"devtool option %s should have higher priority than config",
 		async (command, option) => {
 			const { exitCode, stderr, stdout } = await run(__dirname, [
 				command,

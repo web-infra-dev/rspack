@@ -9,7 +9,7 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
-  rspack_sources::{RawBufferSource, RawSource, Source},
+  rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
 use rspack_napi::napi::{
@@ -569,16 +569,9 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
   type Error = napi::Error;
 
   fn try_from(stats: StatsModule<'a>) -> std::result::Result<Self, Self::Error> {
-    let source = stats.source.map(|source| {
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>()
-        && raw_source.is_buffer()
-      {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      JsStatsModuleSource::A(CowStrWrapper::new(source.source()))
+    let source = stats.source.map(|source| match source.source() {
+      SourceValue::String(string) => JsStatsModuleSource::A(CowStrWrapper::new(string)),
+      SourceValue::Buffer(bytes) => JsStatsModuleSource::B(Buffer::from(bytes.to_vec())),
     });
 
     let mut sizes = stats

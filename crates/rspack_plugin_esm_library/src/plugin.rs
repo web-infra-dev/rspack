@@ -11,14 +11,16 @@ use rspack_core::{
   CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  get_target, is_esm_dep_like,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource, dependency::ImportDependencyTemplate,
+  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
@@ -26,7 +28,8 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
-  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
+  esm_lib_parser_plugin::EsmLibParserPlugin, preserve_modules::preserve_modules,
+  runtime::RegisterModuleRuntime,
 };
 
 pub static CONCATENATED_MODULES_MAP_FOR_CODEGEN: LazyLock<
@@ -120,10 +123,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     } else if ModuleGraph::is_async(compilation, module_identifier) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
-    } else if !module.build_info().strict {
-      logger.debug(format!("module {module_identifier} is not strict module"));
-      should_scope_hoisting = false;
-    } else if module_graph
+    }
+    // TODO: support config to disable scope hoisting for non strict module
+    //  else if !module.build_info().strict {
+    //   logger.debug(format!("module {module_identifier} is not strict module"));
+    //   should_scope_hoisting = false;
+    // }
+    else if module_graph
       .get_incoming_connections(module_identifier)
       .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
@@ -384,11 +390,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       };
 
+      let content = source.source().into_string_lossy();
+
       if asset
         .get_info()
         .extras
         .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
-        && source.source().trim().is_empty()
+        && content.trim().is_empty()
       {
         // remove empty runtime chunk
         removed.push(asset_name.to_string());
@@ -402,7 +410,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // only use the path, pop filename
       self_path.pop();
 
-      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&source.source()) {
+      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let whole_str = captures.as_str();
         let chunk_ukey = whole_str
           .strip_prefix("__RSPACK_ESM_CHUNK_")
@@ -483,6 +491,21 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   Ok(None)
 }
 
+#[plugin_hook(NormalModuleFactoryParser for EsmLibraryPlugin)]
+async fn parse(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(Box::new(EsmLibParserPlugin {}));
+  }
+  Ok(())
+}
+
 impl Plugin for EsmLibraryPlugin {
   fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
@@ -523,6 +546,8 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
+
+    ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
 
     Ok(())
   }

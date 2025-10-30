@@ -192,10 +192,8 @@ impl ScopeInfoDB {
         Some(top_value)
       }
     } else if definitions.stack.len() > 1 {
-      for index in (0..definitions.stack.len() - 1).rev() {
-        // SAFETY: boundary had been checked
-        let id = unsafe { definitions.stack.get_unchecked(index) };
-        if let Some(&value) = self.expect_get_scope(*id).map.get(key) {
+      for &id in definitions.stack.iter().rev().skip(1) {
+        if let Some(&value) = self.expect_get_scope(id).map.get(key) {
           if value == VariableInfo::TOMBSTONE || value == VariableInfo::UNDEFINED {
             return None;
           } else {

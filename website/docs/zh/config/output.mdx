@@ -262,7 +262,14 @@ export default {
 
 ## output.devtoolFallbackModuleFilenameTemplate
 
-- **类型：** `string` | `function (info)`
+- **类型：**
+
+```ts
+type DevtoolFallbackModuleFilenameTemplate =
+  | string
+  | ((context: ModuleFilenameTemplateContext) => string);
+```
+
 - **默认值：** `undefined`
 
 当模板字符串或函数产生重复时使用的备用内容。
@@ -271,8 +278,15 @@ export default {
 
 ## output.devtoolModuleFilenameTemplate
 
-- **类型：** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
-- **默认值：** `undefined`
+- **类型：**
+
+```ts
+type DevtoolModuleFilenameTemplate =
+  | string
+  | ((context: ModuleFilenameTemplateContext) => string);
+```
+
+- **默认值：** `webpack://[namespace]/[resource-path]?[loaders]'`
 
 此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
 

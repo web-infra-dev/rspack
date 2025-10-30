@@ -18,6 +18,7 @@ use crate::{
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
     ESMImportSideEffectDependency,
   },
+  parser_plugin::compatibility_plugin::{NESTED_WEBPACK_IDENTIFIER_TAG, NestedRequireData},
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
@@ -135,9 +136,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
         parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
       }
+      let variable = parser.get_tag_data(local_id, NESTED_WEBPACK_IDENTIFIER_TAG);
+
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
-        local_id.clone(),
+        if let Some(variable) = variable {
+          let data = NestedRequireData::downcast(variable);
+          data.name.clone().into()
+        } else {
+          local_id.clone()
+        },
         inlinable,
         enum_value,
         statement.span().into(),

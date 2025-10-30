@@ -29,12 +29,7 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=18.12.0"
   },
@@ -46,11 +41,12 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.39.6",
+    "@ast-grep/napi": "^0.39.7",
+    "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
     "@rslib/core": "0.16.1",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.23",
+    "@types/node": "^20.19.24",
     "@types/watchpack": "^2.4.4",
     "browserslist-load-config": "^1.0.1",
     "enhanced-resolve": "5.18.3",
@@ -64,7 +60,7 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.21.1",
+    "@module-federation/runtime-tools": "0.21.2",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },

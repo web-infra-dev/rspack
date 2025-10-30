@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
-use rspack_sources::{BoxSource, ReplaceSource};
+use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
@@ -38,7 +38,7 @@ impl TemplateContext<'_, '_, '_> {
   }
 }
 
-pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
+pub type TemplateReplaceSource = ReplaceSource;
 
 clone_trait_object!(DependencyCodeGeneration);
 
@@ -82,7 +82,7 @@ pub trait DependencyTemplate: Debug + Sync + Send {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    source: &mut TemplateReplaceSource,
+    source: &mut ReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
 }

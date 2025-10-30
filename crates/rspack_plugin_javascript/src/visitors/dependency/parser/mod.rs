@@ -23,7 +23,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  TypeReexportPresenceMode,
+  SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -326,7 +326,7 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
-  pub(crate) module_type: &'parser ModuleType,
+  pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -351,6 +351,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) has_inlinable_const_decls: bool,
+  pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -472,6 +473,12 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
+    if compiler_options.optimization.side_effects.is_true() {
+      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
+        unresolved_mark,
+      )));
+    }
+
     if !matches!(
       javascript_options
         .type_reexports_presence
@@ -525,6 +532,7 @@ impl<'parser> JavascriptParser<'parser> {
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
+      side_effects_item: None,
     }
   }
 
@@ -535,6 +543,7 @@ impl<'parser> JavascriptParser<'parser> {
         blocks: self.blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
+        side_effects_item: self.side_effects_item,
       })
     } else {
       Err(self.errors)
@@ -555,6 +564,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn next_dependency_idx(&self) -> usize {
     self.dependencies.len()
+  }
+
+  pub fn get_dependencies(&self) -> &[BoxDependency] {
+    &self.dependencies
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {

@@ -1,0 +1,15 @@
+```mjs title=foo_js.mjs
+// ./foo.js
+console.log.bind('foo')
+
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should import chunk', async () => {
+	await import("./foo_js.mjs")
+})
+
+
+```

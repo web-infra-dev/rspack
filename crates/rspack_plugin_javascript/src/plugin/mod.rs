@@ -41,9 +41,9 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_javascript_compiler::ast::Ast;
+use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::{SpanExt, diff_mode};
 use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
@@ -399,10 +399,6 @@ impl JsPlugin {
             .await?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
-            allow_inline_startup = false;
-          }
-          if allow_inline_startup && diff_mode::is_diff_mode() {
-            buf2.push("// This entry module can't be inlined in diff mode".into());
             allow_inline_startup = false;
           }
           let entry_runtime_requirements =
@@ -982,7 +978,7 @@ impl JsPlugin {
               let cm: Arc<swc_core::common::SourceMap> = Default::default();
               let fm = cm.new_source_file(
                 Arc::new(FileName::Custom(m.identifier().to_string())),
-                code.source().to_string(),
+                code.source().into_string_lossy().into_owned(),
               );
               let comments = swc_node_comments::SwcComments::default();
               let mut errors = vec![];

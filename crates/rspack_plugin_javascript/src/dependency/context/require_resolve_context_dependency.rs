@@ -2,7 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -14,7 +15,7 @@ pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,

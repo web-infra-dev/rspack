@@ -17,6 +17,8 @@ where
   I: Send,
 {
   type Item = I;
+
+  #[cfg(not(target_family = "wasm"))]
   fn consume(self, mut func: impl FnMut(Self::Item)) {
     let (tx, rx) = channel::<Self::Item>();
     std::thread::scope(|s| {
@@ -28,6 +30,14 @@ where
         func(data);
       }
     });
+  }
+
+  #[cfg(target_family = "wasm")]
+  fn consume(self, mut func: impl FnMut(Self::Item)) {
+    let items: Vec<Self::Item> = self.collect();
+    for item in items {
+      func(item)
+    }
   }
 }
 

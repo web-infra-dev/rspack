@@ -93,7 +93,7 @@ const creator = new BasicCaseCreator({
 		key: getMultiCompilerRunnerKey,
 		runner: createMultiCompilerRunner
 	},
-	concurrent: false
+	concurrent: 1
 });
 
 const defaultOptions = (
@@ -109,8 +109,6 @@ const defaultOptions = (
 	output: {
 		path: context.getDist(),
 		filename: "[name].mjs",
-		chunkLoading: "import",
-		chunkFormat: false,
 		pathinfo: true,
 		module: true
 	},
@@ -119,10 +117,7 @@ const defaultOptions = (
 		minimize: false,
 		moduleIds: "named",
 		chunkIds: "named",
-		runtimeChunk: "single",
-		removeEmptyChunks: false,
-		concatenateModules: false,
-		splitChunks: false
+		runtimeChunk: "single"
 	},
 	plugins: [new rspack.experiments.EsmLibraryPlugin()],
 	experiments: {

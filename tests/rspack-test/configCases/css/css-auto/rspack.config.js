@@ -13,5 +13,8 @@ module.exports = {
 				type: "css/auto"
 			}
 		]
-	}
+	},
+	ignoreWarnings: [
+		/ESModulesLinkingWarning: export 'class'/
+	]
 };

@@ -6,8 +6,4 @@ describeByWalk(__filename, (name, src, dist) => {
 }, {
 	source: path.resolve(__dirname, "./normalCases"),
 	dist: path.resolve(__dirname, `./js/normal-dev`),
-	exclude: [
-		/parsing\/harmony-deep-exports/,
-		/parsing\/asi/
-	]
 });

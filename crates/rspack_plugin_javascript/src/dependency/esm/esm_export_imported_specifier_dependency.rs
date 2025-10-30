@@ -19,11 +19,11 @@ use rspack_core::{
   FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -56,7 +56,7 @@ pub struct ESMExportImportedSpecifierDependency {
   range: DependencyRange,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
@@ -994,7 +994,7 @@ impl ESMExportImportedSpecifierDependency {
         && let Some(source) = parent_module.source()
       {
         Error::from_string(
-          Some(source.source().into_owned()),
+          Some(source.source().into_string_lossy().into_owned()),
           span.start as usize,
           span.end as usize,
           title.to_string(),
