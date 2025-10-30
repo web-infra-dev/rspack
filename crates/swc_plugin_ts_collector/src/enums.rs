@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::{Atom, Wtf8Atom},
+  atoms::{Atom, Wtf8Atom, wtf8::Wtf8Buf},
   common::SyntaxContext,
   ecma::{
     ast::{
@@ -195,17 +195,22 @@ impl<'a> ExportedEnumCollector<'a> {
         EnumMemberValue::Number(value)
       }
       (EnumMemberValue::String(left), EnumMemberValue::String(right), op!(bin, "+")) => {
-        EnumMemberValue::String(format!("{left:?}{right:?}").into())
+        let mut res = Wtf8Buf::new();
+        res.push_wtf8(left.as_wtf8());
+        res.push_wtf8(right.as_wtf8());
+        EnumMemberValue::String(Wtf8Atom::new(res))
       }
       (EnumMemberValue::Number(left), EnumMemberValue::String(right), op!(bin, "+")) => {
-        let left = left.to_js_string();
-
-        EnumMemberValue::String(format!("{left}{right:?}").into())
+        let mut res = Wtf8Buf::new();
+        res.push_str(left.to_js_string().as_str());
+        res.push_wtf8(right.as_wtf8());
+        EnumMemberValue::String(Wtf8Atom::new(res))
       }
       (EnumMemberValue::String(left), EnumMemberValue::Number(right), op!(bin, "+")) => {
-        let right = right.to_js_string();
-
-        EnumMemberValue::String(format!("{left:?}{right}").into())
+        let mut res = Wtf8Buf::new();
+        res.push_wtf8(left.as_wtf8());
+        res.push_str(right.to_js_string().as_str());
+        EnumMemberValue::String(Wtf8Atom::new(res))
       }
       _ => EnumMemberValue::Unknown,
     }
