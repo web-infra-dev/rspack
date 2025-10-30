@@ -38,16 +38,9 @@ async fn runtime_requirements_in_tree(
       }
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
         has_chunk_loading = true;
-        if compilation
-          .chunk_graph
-          .get_number_of_entry_modules(chunk_ukey)
-          > 0
-        {
-          continue;
-        } else {
-          compilation
-            .add_runtime_module(chunk_ukey, ExportWebpackRequireRuntimeModule::new().boxed())?;
-        }
+
+        compilation
+          .add_runtime_module(chunk_ukey, ExportWebpackRequireRuntimeModule::new().boxed())?;
       }
 
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS if is_enabled_for_chunk => {
