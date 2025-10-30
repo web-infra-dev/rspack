@@ -16,7 +16,7 @@ function utf8BufferToString(buf: Uint8Array) {
 	// the `instanceof` check but they should be treated as of that type.
 	const isShared =
 		buf.buffer instanceof SharedArrayBuffer ||
-		buf.buffer.constructor.name === "SharedArrayBuffer";
+		buf.buffer.constructor?.name === "SharedArrayBuffer";
 
 	const str = decoder.decode(isShared ? Buffer.from(buf) : buf);
 	if (str.charCodeAt(0) === 0xfeff) {
