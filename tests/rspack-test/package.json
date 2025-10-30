@@ -45,6 +45,7 @@
     "lodash": "^4.17.21",
     "memfs": "4.48.1",
     "mini-svg-data-uri": "^1.4.4",
+    "node-polyfill-webpack-plugin": "^4.1.0",
     "postcss-loader": "^8.2.0",
     "postcss-pxtorem": "^6.1.0",
     "raw-loader": "^4.0.2",
