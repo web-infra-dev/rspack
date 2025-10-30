@@ -4,9 +4,10 @@ fn main() {
   let allocative = std::env::var("CARGO_FEATURE_ALLOCATIVE").is_ok();
 
   if sftrace_setup && allocative {
-    panic!(
-      "Features 'sftrace-setup' and 'allocative' are mutually exclusive and cannot be enabled together"
+    eprintln!(
+      "error: Features 'sftrace-setup' and 'allocative' are mutually exclusive and cannot be enabled together"
     );
+    std::process::exit(1);
   }
 
   rspack_binding_build::setup();
