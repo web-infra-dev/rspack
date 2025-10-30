@@ -41,7 +41,6 @@ use swc_core::{
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, Ref, SymbolRef},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS},
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -153,8 +152,8 @@ impl EsmLibraryPlugin {
 
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
-    let mut concate_modules_map = CONCATENATED_MODULES_MAP.lock().await;
-    let concate_modules_map = Arc::get_mut(concate_modules_map.get_mut_unwrap(&compilation.id().0))
+    let mut concate_modules_map = self.concatenated_modules_map.write().await;
+    let concate_modules_map = Arc::get_mut(&mut concate_modules_map)
       .expect("should have unique access to concatenated modules map");
 
     // analyze every modules and collect identifiers to concate_modules_map
@@ -408,7 +407,7 @@ impl EsmLibraryPlugin {
       chunk_link.namespace_object_sources.insert(module, source);
     }
 
-    LINKS.write().await.insert(compilation.id().0, link);
+    self.links.set(link).expect("should set chunk link");
     Ok(())
   }
 

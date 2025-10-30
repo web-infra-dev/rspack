@@ -7,8 +7,8 @@ use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
-  CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
+  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
+  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
@@ -22,9 +22,8 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{OnceCell, RwLock};
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
@@ -32,28 +31,27 @@ use crate::{
   runtime::RegisterModuleRuntime,
 };
 
-pub static CONCATENATED_MODULES_MAP_FOR_CODEGEN: LazyLock<
-  Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
-> = LazyLock::new(Default::default);
-
-pub static CONCATENATED_MODULES_MAP: LazyLock<
-  Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
-> = LazyLock::new(Default::default);
-
-pub static LINKS: LazyLock<RwLock<FxHashMap<u32, UkeyMap<ChunkUkey, ChunkLinkContext>>>> =
-  LazyLock::new(Default::default);
-
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
+  // module instance will hold this map till compile done, we can't mutate it,
+  // normal concatenateModule just read the info from it
+  pub(crate) concatenated_modules_map_for_codegen: OnceCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenated_modules_map: RwLock<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) links: OnceCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl EsmLibraryPlugin {
   pub fn new(preserve_modules: Option<PathBuf>) -> Self {
-    Self::new_inner(preserve_modules)
+    Self::new_inner(
+      preserve_modules,
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 }
 
@@ -68,6 +66,7 @@ async fn compilation(
   hooks
     .render_chunk_content
     .tap(render_chunk_content::new(self));
+  drop(hooks);
 
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
@@ -84,20 +83,6 @@ async fn render_chunk_content(
   asset_info: &mut AssetInfo,
 ) -> Result<Option<RenderSource>> {
   self.render_chunk(compilation, chunk_ukey, asset_info).await
-}
-
-#[plugin_hook(CompilationAfterSeal for EsmLibraryPlugin)]
-async fn after_seal(&self, compilation: &mut Compilation) -> Result<()> {
-  CONCATENATED_MODULES_MAP
-    .lock()
-    .await
-    .remove(&compilation.id().0);
-  CONCATENATED_MODULES_MAP_FOR_CODEGEN
-    .lock()
-    .await
-    .remove(&compilation.id().0);
-  LINKS.write().await.remove(&compilation.id().0);
-  Ok(())
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
@@ -260,16 +245,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  let id = compilation.id();
-
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
-  let mut self_modules_map = CONCATENATED_MODULES_MAP_FOR_CODEGEN.lock().await;
-  self_modules_map.insert(id.0, Arc::new(modules_map.clone()));
+  self
+    .concatenated_modules_map_for_codegen
+    .set(Arc::new(modules_map.clone()))
+    .expect("should set concatenated_modules_map_for_codegen");
 
-  let mut self_modules_map = CONCATENATED_MODULES_MAP.lock().await;
-  self_modules_map.insert(id.0, Arc::new(modules_map));
-
+  *self.concatenated_modules_map.write().await = Arc::new(modules_map);
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {
@@ -296,13 +279,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationConcatenationScope for EsmLibraryPlugin)]
 async fn concatenation_scope(
   &self,
-  compilation: &Compilation,
+  _compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
-  let modules_map = CONCATENATED_MODULES_MAP_FOR_CODEGEN.lock().await;
-  let modules_map = modules_map
-    .get(&compilation.id().0)
-    .expect("should has compilation");
+  let modules_map = self
+    .concatenated_modules_map_for_codegen
+    .get()
+    .expect("should already initialized");
 
   let Some(current_module) = modules_map.get(&module) else {
     return Ok(None);
@@ -331,10 +314,7 @@ async fn additional_chunk_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let info_map = CONCATENATED_MODULES_MAP.lock().await;
-  let info_map = info_map
-    .get(&compilation.id().0)
-    .expect("should have compilation info map");
+  let info_map = self.concatenated_modules_map.read().await;
 
   for m in compilation
     .chunk_graph
@@ -524,8 +504,6 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .concatenation_scope
       .tap(concatenation_scope::new(self));
-
-    ctx.compilation_hooks.after_seal.tap(after_seal::new(self));
 
     ctx
       .compilation_hooks
