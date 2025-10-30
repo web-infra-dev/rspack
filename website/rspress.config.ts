@@ -129,29 +129,9 @@ export default defineConfig({
   head: [
     ({ routePath }) => {
       const getOgImage = () => {
-        if (routePath.endsWith('blog/announcing-0-7')) {
-          return 'assets/rspack-og-image-v0-7.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-0-alpha')) {
-          return 'assets/rspack-og-image-v1-0-alpha.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-0')) {
-          return 'assets/rspack-og-image-v1-0.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-1')) {
-          return 'assets/rspack-og-image-v1-1.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-2')) {
-          return 'assets/rspack-og-image-v1-2.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-3')) {
-          return 'assets/rspack-og-image-v1-3.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-4')) {
-          return 'assets/rspack-og-image-v1-4.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-5')) {
-          return 'assets/rspack-og-image-v1-5.png';
+        if (routePath.includes('blog/announcing-')) {
+          const version = routePath.split('announcing-')[1];
+          return `assets/rspack-og-image-v${version}.png`;
         }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
@@ -163,9 +143,6 @@ export default defineConfig({
     },
   ],
   builderConfig: {
-    dev: {
-      lazyCompilation: true,
-    },
     plugins: [
       pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
