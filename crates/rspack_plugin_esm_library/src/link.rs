@@ -1,5 +1,5 @@
 use std::{
-  collections::{self, hash_map::Entry},
+  collections::{self},
   hash::BuildHasher,
   sync::Arc,
 };
@@ -27,7 +27,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
 use swc_core::{
@@ -821,17 +821,17 @@ impl EsmLibraryPlugin {
                   idents.push(ident);
                 }
 
-                let mut binding_to_ref: FxHashMap<
+                let mut binding_to_ref: FxIndexMap<
                   (Atom, SyntaxContext),
                   Vec<ConcatenatedModuleIdent>,
-                > = FxHashMap::default();
+                > = Default::default();
 
                 for ident in &idents {
                   match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-                    Entry::Occupied(mut occ) => {
+                    indexmap::map::Entry::Occupied(mut occ) => {
                       occ.get_mut().push(ident.clone());
                     }
-                    Entry::Vacant(vac) => {
+                    indexmap::map::Entry::Vacant(vac) => {
                       vac.insert(vec![ident.clone()]);
                     }
                   };
@@ -1517,7 +1517,14 @@ impl EsmLibraryPlugin {
 
     // link entry direct exports
     if let Some(preserve_modules) = &self.preserve_modules {
-      for module_id in module_graph.modules().keys() {
+      let modules = module_graph.modules();
+      let mut modules = modules.keys().collect::<Vec<_>>();
+      modules.sort_by(|a, b| {
+        let ad = module_graph.get_depth(a);
+        let bd = module_graph.get_depth(b);
+        ad.cmp(&bd)
+      });
+      for module_id in modules {
         if compilation.entry_modules().contains(module_id) {
           continue;
         }

@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::{BTreeMap, hash_map::Entry},
+  collections::BTreeMap,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
   sync::{Arc, LazyLock},
@@ -22,7 +22,8 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, itoa, json_stringify, source_map::SourceMapKind, swc::join_atom,
+  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind,
+  swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
@@ -204,7 +205,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
-  pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -2319,15 +2320,15 @@ impl ConcatenatedModule {
       }
       module_info.all_used_names = all_used_names;
 
-      let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-        HashMap::default();
+      let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+        Default::default();
 
       for ident in module_info.idents.iter() {
         match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-          Entry::Occupied(mut occ) => {
+          indexmap::map::Entry::Occupied(mut occ) => {
             occ.get_mut().push(ident.clone());
           }
-          Entry::Vacant(vac) => {
+          indexmap::map::Entry::Vacant(vac) => {
             vac.insert(vec![ident.clone()]);
           }
         };
