@@ -82,7 +82,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
         let chunk_name_expr = parser.evaluate_expression(&arg.expr);
         match chunk_name_expr.as_string() {
           Some(chunk_name_expr) => Some(chunk_name_expr),
-          None => return None,
+          None => None,
         }
       }
       None => None,
