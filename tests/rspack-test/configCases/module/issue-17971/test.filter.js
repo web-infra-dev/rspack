@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: Cannot use 'import.meta' outside a module";
+module.exports = () => true
