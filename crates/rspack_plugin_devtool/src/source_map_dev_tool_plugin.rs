@@ -15,9 +15,7 @@ use rspack_collections::DatabaseItem;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin,
-  rspack_sources::{
-    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, using_object_pool,
-  },
+  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
@@ -210,27 +208,25 @@ impl SourceMapDevToolPlugin {
     let map_options = MapOptions::new(self.columns);
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
-    let mut mapped_sources = using_object_pool(|| {
-      raw_assets
-        .into_par_iter()
-        .filter_map(|(file, asset)| {
-          let is_match = if need_match {
-            match_object(self, &file)
-          } else {
-            true
-          };
+    let mut mapped_sources = raw_assets
+      .into_par_iter()
+      .filter_map(|(file, asset)| {
+        let is_match = if need_match {
+          match_object(self, &file)
+        } else {
+          true
+        };
 
-          if is_match {
-            asset.get_source().map(|source| {
-              let source_map = source.map(&map_options);
-              (file, source, source_map)
-            })
-          } else {
-            None
-          }
-        })
-        .collect::<Vec<_>>()
-    });
+        if is_match {
+          asset.get_source().map(|source| {
+            let source_map = source.map(&map_options);
+            (file, source, source_map)
+          })
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<_>>();
 
     let source_map_modules = mapped_sources
       .par_iter()
