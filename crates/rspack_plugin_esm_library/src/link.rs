@@ -1,6 +1,7 @@
 use std::{
   collections::{self},
   hash::BuildHasher,
+  hint::black_box,
   sync::Arc,
 };
 
@@ -67,6 +68,12 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 struct ExportsContext {
   pub exports: FxHashMap<Atom, FxIndexSet<Atom>>,
   pub exported_symbols: FxHashMap<Atom, Atom>,
+}
+
+#[allow(clippy::mut_from_ref)]
+unsafe fn unsafe_get_mut<T>(r: &T) -> &mut T {
+  let a = black_box(r as *const T);
+  unsafe { &mut *(a as *mut T) }
 }
 
 impl EsmLibraryPlugin {
@@ -158,13 +165,14 @@ impl EsmLibraryPlugin {
 
     // analyze every modules and collect identifiers to concate_modules_map
     self
-      .analyze_module(compilation, concate_modules_map)
+      .analyze_modules(compilation, concate_modules_map)
       .await?;
 
     // initialize data for link chunks
     let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
       .chunk_by_ukey
       .keys()
+      .par_bridge()
       .map(|ukey| {
         let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
 
@@ -247,7 +255,7 @@ impl EsmLibraryPlugin {
         },
       );
 
-    for chunk_link in link.values_mut() {
+    link.par_iter_mut().for_each(|(_, chunk_link)| {
       self.deconflict_symbols(
         compilation,
         concate_modules_map,
@@ -255,7 +263,7 @@ impl EsmLibraryPlugin {
         &escaped_names,
         &escaped_identifiers,
       );
-    }
+    });
 
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = UkeyMap::default();
@@ -431,7 +439,7 @@ impl EsmLibraryPlugin {
   fn deconflict_symbols(
     &self,
     compilation: &Compilation,
-    concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<String, String>,
     escaped_identifiers: &FxHashMap<String, Vec<String>>,
@@ -445,6 +453,7 @@ impl EsmLibraryPlugin {
       .map(|s| Atom::new(*s))
       .chain(chunk_link.hoisted_modules.iter().flat_map(|m| {
         let info = &concate_modules_map[m];
+
         info
           .as_concatenated()
           .global_scope_ident
@@ -471,7 +480,12 @@ impl EsmLibraryPlugin {
       let exports_type = module.build_meta().exports_type;
       let default_object = module.build_meta().default_object;
 
-      let info = &mut concate_modules_map[id];
+      /*
+       * Safety:
+       * Scope hoisted module canonly exist in one chunk
+       * One chunk deconflict symbols won't access module in other chunk
+       */
+      let info = unsafe { unsafe_get_mut(&concate_modules_map[id]) };
       let readable_identifier = get_cached_readable_identifier(
         id,
         &module_graph,
@@ -636,31 +650,10 @@ impl EsmLibraryPlugin {
       }
     }
 
-    for external_module in chunk_link.decl_modules.iter() {
-      let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
-        unreachable!("should be un-scope-hoisted module");
-      };
-
-      if info.name.is_none() {
-        let readable_identifier = get_cached_readable_identifier(
-          external_module,
-          &module_graph,
-          &compilation.module_static_cache_artifact,
-          context,
-        );
-
-        info.name = Some(find_new_name(
-          "",
-          &chunk_link.used_names,
-          &escaped_identifiers[&readable_identifier],
-        ));
-      }
-    }
-
     chunk_link.used_names = all_used_names;
   }
 
-  async fn analyze_module(
+  async fn analyze_modules(
     &self,
     compilation: &Compilation,
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
@@ -728,6 +721,21 @@ impl EsmLibraryPlugin {
                 external_module_info
                   .runtime_requirements
                   .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
+
+                let splitted_readable_identifier: Vec<String> =
+                  split_readable_identifier(&get_cached_readable_identifier(
+                    &id,
+                    &module_graph,
+                    &compilation.module_static_cache_artifact,
+                    &compilation.options.context,
+                  ));
+                external_module_info.name = Some(
+                  splitted_readable_identifier
+                    .first()
+                    .map(|s| s.as_str())
+                    .expect("should have first")
+                    .into(),
+                );
                 Ok(ModuleInfo::External(external_module_info))
               }
               rspack_core::ModuleInfo::Concatenated(mut concate_info) => {

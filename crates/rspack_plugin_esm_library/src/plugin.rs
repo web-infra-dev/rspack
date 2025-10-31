@@ -3,6 +3,8 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use dashmap::DashSet;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
@@ -361,91 +363,101 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut replaced = vec![];
-  let mut removed = vec![];
+  let removed = DashSet::<String>::default();
+  let replaced = compilation
+    .assets()
+    .par_iter()
+    .filter_map(|(asset_name, asset)| {
+      if asset.get_info().javascript_module.unwrap_or_default() {
+        let source = asset.get_source()?;
 
-  for (asset_name, asset) in compilation.assets() {
-    if asset.get_info().javascript_module.unwrap_or_default() {
-      let Some(source) = asset.get_source() else {
-        continue;
-      };
+        let content = source.source().into_string_lossy();
 
-      let content = source.source().into_string_lossy();
-
-      if asset
-        .get_info()
-        .extras
-        .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
-        && content.trim().is_empty()
-      {
-        // remove empty runtime chunk
-        removed.push(asset_name.to_string());
-        continue;
-      }
-
-      let mut replace_source = ReplaceSource::new(source.clone());
-      let output_path = compilation.options.output.path.as_std_path();
-      let mut self_path = output_path.join(asset_name);
-
-      // only use the path, pop filename
-      self_path.pop();
-
-      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
-        let whole_str = captures.as_str();
-        let chunk_ukey = whole_str
-          .strip_prefix("__RSPACK_ESM_CHUNK_")
-          .expect("should have correct prefix");
-        let chunk_ukey =
-          ChunkUkey::from(chunk_ukey.parse::<u32>().expect("should have chunk ukey"));
-        let start = captures.range().start as u32;
-        let end = captures.range().end as u32;
-        let chunk = compilation
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-          .expect("should have chunk");
-
-        let js_files = chunk
-          .files()
-          .iter()
-          .filter(|f| f.ends_with("js"))
-          .collect::<Vec<_>>();
-        if js_files.len() > 1 {
-          return Err(rspack_error::error!(
-            "chunk has more than one file: {:?}, which is not supported in esm library",
-            js_files
-          ));
+        if asset
+          .get_info()
+          .extras
+          .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
+          && content.trim().is_empty()
+        {
+          // remove empty runtime chunk
+          removed.insert(asset_name.to_string());
+          return None;
         }
-        let chunk_path = output_path.join(
-          js_files
-            .first()
-            .unwrap_or_else(|| {
-              panic!(
-                "at least one path for chunk: {:?}",
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| { id.as_str() })
-              )
-            })
-            .as_str(),
-        );
-        let relative = chunk_path.relative(self_path.as_path());
-        let relative = relative
-          .to_slash()
-          .expect("should have correct to_str for chunk path");
 
-        // change relative path to unix style
-        let import_str = if relative.starts_with(".") {
-          relative
-        } else {
-          std::borrow::Cow::Owned(format!("./{relative}"))
-        };
-        replace_source.replace(start, end, &import_str, None);
+        let mut replace_source = ReplaceSource::new(source.clone());
+        let output_path = compilation.options.output.path.as_std_path();
+        let mut self_path = output_path.join(asset_name);
+
+        // only use the path, pop filename
+        self_path.pop();
+
+        for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
+          let whole_str = captures.as_str();
+          let chunk_ukey = whole_str
+            .strip_prefix("__RSPACK_ESM_CHUNK_")
+            .expect("should have correct prefix");
+          let chunk_ukey =
+            ChunkUkey::from(chunk_ukey.parse::<u32>().expect("should have chunk ukey"));
+          let start = captures.range().start as u32;
+          let end = captures.range().end as u32;
+          let chunk = compilation
+            .chunk_by_ukey
+            .get(&chunk_ukey)
+            .expect("should have chunk");
+
+          let js_files = chunk
+            .files()
+            .iter()
+            .filter(|f| f.ends_with("js"))
+            .collect::<Vec<_>>();
+          if js_files.len() > 1 {
+            return Some(Err(rspack_error::error!(
+              "chunk has more than one file: {:?}, which is not supported in esm library",
+              js_files
+            )));
+          }
+          let chunk_path = output_path.join(
+            js_files
+              .first()
+              .unwrap_or_else(|| {
+                panic!(
+                  "at least one path for chunk: {:?}",
+                  chunk
+                    .id(&compilation.chunk_ids_artifact)
+                    .map(|id| { id.as_str() })
+                )
+              })
+              .as_str(),
+          );
+          let relative = chunk_path.relative(self_path.as_path());
+          let relative = relative
+            .to_slash()
+            .expect("should have correct to_str for chunk path");
+
+          // change relative path to unix style
+          let import_str = if relative.starts_with(".") {
+            relative
+          } else {
+            std::borrow::Cow::Owned(format!("./{relative}"))
+          };
+          replace_source.replace(start, end, &import_str, None);
+        }
+
+        return Some(Ok((asset_name.clone(), replace_source)));
       }
+      None
+    })
+    .collect::<Vec<_>>();
 
-      replaced.push((asset_name.clone(), replace_source));
-    }
-  }
-  for (replace_name, replace_source) in replaced {
+  for replace_or_err in replaced {
+    let (replace_name, replace_source) = match replace_or_err {
+      Ok(v) => v,
+      Err(e) => {
+        compilation.push_diagnostic(e.into());
+        continue;
+      }
+    };
+
     compilation
       .assets_mut()
       .get_mut(&replace_name)
