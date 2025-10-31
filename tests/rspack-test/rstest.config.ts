@@ -32,7 +32,7 @@ const wasmConfig = process.env.WASM && defineConfig({
 	maxConcurrency: 1,
 	pool: {
 		maxWorkers: 1,
-		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
 	}
 });
 
