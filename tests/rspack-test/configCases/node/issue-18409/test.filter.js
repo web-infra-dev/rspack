@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: should generate correct chunk filename";
+module.exports = () => true;
