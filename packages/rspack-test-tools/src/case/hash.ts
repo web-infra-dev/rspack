@@ -98,8 +98,13 @@ async function check(env: ITestEnv, context: ITestContext, name: string) {
 	const stats = compiler.getStats();
 	const testConfig = context.getTestConfig();
 	if (!stats) {
-		env.expect(false);
-		return;
+		throw new Error(
+			"No stats found\n" +
+				context
+					.getError()
+					.map(e => e.stack)
+					.join("\n")
+		);
 	}
 	if (REG_ERROR_CASE.test(name)) {
 		env.expect(stats.hasErrors());
