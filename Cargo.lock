@@ -4949,11 +4949,12 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.13"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=d85a823f4da41d2007c381221de69a6f8cff5133#d85a823f4da41d2007c381221de69a6f8cff5133"
+source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=dd0f92ac0db7b82a423dc13a5d98538e1ab3e982#dd0f92ac0db7b82a423dc13a5d98538e1ab3e982"
 dependencies = [
  "dyn-clone",
  "memchr",
  "rustc-hash",
+ "self_cell",
  "serde",
  "serde_json",
  "simd-json",
@@ -5170,6 +5171,12 @@ name = "seahash"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
+
+[[package]]
+name = "self_cell"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16c2f82143577edb4921b71ede051dac62ca3c16084e918bf7b40c96ae10eb33"
 
 [[package]]
 name = "semver"

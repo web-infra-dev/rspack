@@ -157,7 +157,7 @@ impl JavaScriptCompiler {
         combined_source_map
           .source_contents()
           .flatten()
-          .map(ToString::to_string)
+          .map(|byte_str| Arc::from(byte_str.to_string()))
           .collect::<Vec<_>>(),
         combined_source_map
           .names()
