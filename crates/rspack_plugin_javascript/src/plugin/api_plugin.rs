@@ -45,8 +45,14 @@ async fn render_module_content(
     init_fragments.push(
       NormalInitFragment::new(
         format!(
-          "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n",
-          if need_prefix { "node:module" } else { "module" }
+          "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n{} __WEBPACK_EXTERNAL_createRequire_require = __WEBPACK_EXTERNAL_createRequire({}.url);\n",
+          if need_prefix { "node:module" } else { "module" },
+          if compilation.options.output.environment.supports_const() {
+            "const"
+          } else {
+            "var"
+          },
+          compilation.options.output.import_meta_name
         ),
         InitFragmentStage::StageESMImports,
         0,

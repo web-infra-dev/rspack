@@ -721,6 +721,10 @@ impl Module for ConcatenatedModule {
         self.build_info.top_level_declarations = None;
       }
 
+      if module_build_info.need_create_require {
+        self.build_info.need_create_require = true;
+      }
+
       // populate assets
       self
         .build_info
