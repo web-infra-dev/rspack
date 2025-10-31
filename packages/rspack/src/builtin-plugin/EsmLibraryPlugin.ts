@@ -28,16 +28,18 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
 	}
 
 	const { splitChunks } = options.optimization;
+	if (splitChunks === undefined) {
+		splitChunks = {};
+	}
 
 	if (splitChunks) {
 		splitChunks.chunks = "all";
 		splitChunks.minSize = 0;
 		splitChunks.maxAsyncRequests = Infinity;
 		splitChunks.maxInitialRequests = Infinity;
-		if (splitChunks.cacheGroups) {
-			splitChunks.cacheGroups.default = false;
-			splitChunks.cacheGroups.defaultVendors = false;
-		}
+		splitChunks.cacheGroups ??= {};
+		splitChunks.cacheGroups.default = false;
+		splitChunks.cacheGroups.defaultVendors = false;
 	}
 }
 
