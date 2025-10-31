@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18468
+- Update: main.LAST_HASH.hot-update.js, size: 18540
 
 ## Manifest
 
@@ -267,6 +267,7 @@ function applyHandler(options) {
 		console.warn(
 			"[HMR] unexpected require(" + module.id + ") to disposed module"
 		);
+		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
 	for (var moduleId in currentUpdate) {
