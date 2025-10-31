@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest,
-  ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  ExternalType, FactorizeInfo, ImportAttributes, ModuleDependency, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -18,7 +18,7 @@ pub struct ModernModuleImportDependency {
   external_type: ExternalType,
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   pub comments: Vec<(bool, String)>,
 }

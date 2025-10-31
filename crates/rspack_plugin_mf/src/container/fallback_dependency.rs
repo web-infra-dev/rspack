@@ -1,21 +1,21 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct FallbackDependency {
   id: DependencyId,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   pub requests: Vec<String>,
   factorize_info: FactorizeInfo,
 }
 
 impl FallbackDependency {
   pub fn new(requests: Vec<String>) -> Self {
-    let resource_identifier = format!("fallback {}", &requests.join(" "));
+    let resource_identifier = format!("fallback {}", &requests.join(" ")).into();
     Self {
       id: DependencyId::new(),
       resource_identifier,

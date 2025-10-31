@@ -82,7 +82,7 @@ impl RstestParserPlugin {
         {
           let range_expr: DependencyRange = first_arg.span().into();
           let dep = CommonJsRequireDependency::new(
-            lit.value.to_string(),
+            lit.value.to_string_lossy().to_string(),
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
@@ -130,7 +130,7 @@ impl RstestParserPlugin {
           let imported_span = call_expr.args.first().expect("should have one arg");
 
           let dep = Box::new(ImportDependency::new(
-            Atom::from(lit.value.as_ref()),
+            lit.value.to_atom_lossy().into_owned(),
             call_expr.span.into(),
             None,
             Some(attrs),
@@ -148,7 +148,7 @@ impl RstestParserPlugin {
             Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
             None,
             vec![dep],
-            Some(lit.value.to_string()),
+            Some(lit.value.to_string_lossy().to_string()),
           );
 
           parser.add_block(Box::new(block));
@@ -216,13 +216,13 @@ impl RstestParserPlugin {
         .and_then(|expr| expr.args.first())
         .and_then(|arg| arg.expr.as_lit())
         .and_then(|lit| lit.as_str())
-        .map(|lit| lit.value.as_str())
+        .and_then(|lit| lit.value.as_str())
     } else {
       first_arg
         .expr
         .as_lit()
         .and_then(|lit| lit.as_str())
-        .map(|lit| lit.value.as_str())
+        .and_then(|lit| lit.value.as_str())
     };
 
     lit_str.map(|s| s.to_string())
@@ -383,7 +383,10 @@ impl RstestParserPlugin {
         let first_arg = &call_expr.args[0];
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
-            if let Some(mocked_target) = self.calc_mocked_target(&lit.value).as_std_path().to_str()
+            if let Some(mocked_target) = self
+              .calc_mocked_target(&lit.value.to_string_lossy())
+              .as_std_path()
+              .to_str()
             {
               if is_esm {
                 let imported_span = call_expr.args.first().expect("should have one arg");

@@ -15,12 +15,8 @@ import { rspack } from '@rspack/core';
 
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
-  output: {
-    chunkFormat: false, // 将 chunkFormat 设成 false，EsmLibraryPlugin 会处理 chunk 的渲染和加载
-  },
   optimization: {
     runtimeChunk: true, // 推荐使用独立的 runtime chunk，否则使用者需要从入口导入 runtime 代码
-    concatenateModules: false, // 关闭 concatenateModules，EsmLibraryPlugin 有独立的 scope hoisting 实现
   },
 };
 ```

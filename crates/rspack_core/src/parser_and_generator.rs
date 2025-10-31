@@ -31,6 +31,7 @@ pub struct ParseContext<'a> {
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub module_source_map_kind: SourceMapKind,
+  pub module_match_resource: Option<&'a ResourceData>,
   #[debug(skip)]
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,

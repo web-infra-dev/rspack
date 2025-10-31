@@ -1,6 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "1.6.0-beta.1",
+  "version": "1.6.0",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -14,7 +14,11 @@
   "bin": {
     "create-rspack": "bin.js"
   },
-  "files": ["template-*", "dist", "bin.js"],
+  "files": [
+    "template-*",
+    "dist",
+    "bin.js"
+  ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w"

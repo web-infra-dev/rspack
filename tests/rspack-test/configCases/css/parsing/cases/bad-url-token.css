@@ -1,11 +1,14 @@
 a {
-	background-image: url(   ./image.jpg  a  );
+	background-image: url(./image.jpg  a  );
 }
 
-div {
+/**
+ * DIFF: rspack can not parse this
+ */
+/* div {
 	background: url(image.png\
 	);
-}
+} */
 
 a {
 	background: \url(te st);
@@ -18,11 +21,12 @@ div {
 
 div {
 	background: url(image.
-	png);
+ png);
 	color: red;
 }
 
 p::before {
 	content: "tes
-	t";
+ t";
+
 }

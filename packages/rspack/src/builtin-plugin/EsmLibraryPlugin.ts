@@ -2,7 +2,44 @@ import { BuiltinPluginName } from "@rspack/binding";
 import rspack from "..";
 import type { Compiler } from "../Compiler";
 import type { RspackOptionsNormalized } from "../config";
+import type { Logger } from "../logging/Logger";
 import { RemoveDuplicateModulesPlugin } from "./RemoveDuplicateModulesPlugin";
+
+function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
+	// concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
+	options.optimization.concatenateModules = false;
+
+	// chunk rendering is handled by EsmLibraryPlugin
+	options.output.chunkFormat = false;
+
+	if (options.output.chunkLoading && options.output.chunkLoading !== "import") {
+		logger.warn(
+			`\`output.chunkLoading\` should be \`"import"\` or \`false\`, but got ${options.output.chunkLoading}, changed it to \`"import"\``
+		);
+		options.output.chunkLoading = "import";
+	}
+
+	if (options.output.chunkLoading === undefined) {
+		options.output.chunkLoading = "import";
+	}
+
+	if (options.output.library) {
+		options.output.library = undefined;
+	}
+
+	const { splitChunks } = options.optimization;
+
+	if (splitChunks) {
+		splitChunks.chunks = "all";
+		splitChunks.minSize = 0;
+		splitChunks.maxAsyncRequests = Infinity;
+		splitChunks.maxInitialRequests = Infinity;
+		if (splitChunks.cacheGroups) {
+			splitChunks.cacheGroups.default = false;
+			splitChunks.cacheGroups.defaultVendors = false;
+		}
+	}
+}
 
 export class EsmLibraryPlugin {
 	static PLUGIN_NAME = "EsmLibraryPlugin";
@@ -13,14 +50,11 @@ export class EsmLibraryPlugin {
 	}
 
 	apply(compiler: Compiler) {
+		const logger = compiler.getInfrastructureLogger(
+			EsmLibraryPlugin.PLUGIN_NAME
+		);
+		applyLimits(compiler.options, logger);
 		new RemoveDuplicateModulesPlugin().apply(compiler);
-
-		const { splitChunks } = compiler.options.optimization;
-
-		if (splitChunks) {
-			splitChunks.chunks = "all";
-			splitChunks.minSize = 0;
-		}
 
 		let err;
 		if ((err = checkConfig(compiler.options))) {

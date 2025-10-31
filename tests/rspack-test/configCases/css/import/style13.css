@@ -1,4 +1,4 @@
-@import url(https://test.cases/path/@rspack/coreconfigCases/css/import/external2.css);
+@import url(https://test.cases/root/configCases/css/import/external2.css);
 
 div {
   color: red;

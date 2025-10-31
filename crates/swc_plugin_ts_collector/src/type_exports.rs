@@ -60,7 +60,7 @@ impl Visit for TypeExportsCollector<'_> {
                         .as_ref()
                         .unwrap_or(&specifier.orig)
                         .atom()
-                        .clone(),
+                        .into_owned(),
                     ),
                     _ => None,
                   }
@@ -76,17 +76,17 @@ impl Visit for TypeExportsCollector<'_> {
                           .as_ref()
                           .unwrap_or(&specifier.orig)
                           .atom()
-                          .clone(),
+                          .into_owned(),
                       );
                     } else if named_export.src.is_none() {
                       self.export_idents.insert(
-                        specifier.orig.atom().clone(),
+                        specifier.orig.atom().into_owned(),
                         specifier
                           .exported
                           .as_ref()
                           .unwrap_or(&specifier.orig)
                           .atom()
-                          .clone(),
+                          .into_owned(),
                       );
                     }
                   }
@@ -130,7 +130,7 @@ impl Visit for TypeExportsCollector<'_> {
       self
         .export_idents
         .iter()
-        .filter(|(export_ident, _)| self.type_idents.contains(export_ident))
+        .filter(|(export_ident, _)| self.type_idents.contains(*export_ident))
         .map(|(_, exported_as)| exported_as.clone()),
     );
   }

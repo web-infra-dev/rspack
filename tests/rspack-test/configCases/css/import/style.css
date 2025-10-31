@@ -61,8 +61,8 @@
 @import url(style2.css) screen and (orientation:landscape);
 @import url(style2.css) screen and (orientation:landscape);
 @import url(style2.css) (min-width: 100px);
-@import url(https://test.cases/path/@rspack/coreconfigCases/css/import/external.css);
-@import url(https://test.cases/path/@rspack/coreconfigCases/css/import/external.css) screen and (orientation:landscape);
+@import url(https://test.cases/root/configCases/css/import/external.css);
+@import url(https://test.cases/root/configCases/css/import/external.css) screen and (orientation:landscape);
 @import "//example.com/style.css";
 @import url('test.css?foo=1&bar=1');
 @import url('style2.css?foo=1&bar=1#hash');

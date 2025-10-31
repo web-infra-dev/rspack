@@ -124,7 +124,6 @@ fn parse_with_lexer(
   is_module: IsModule,
   with_tokens: bool,
 ) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
-  use swc_ecma_lexer::common::parser::{Parser as _, buffer::Buffer};
   let inner = || {
     // don't call capturing when with_tokens is false to avoid performance cost
     let (tokens, program_result, mut errors) = if with_tokens {

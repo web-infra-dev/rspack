@@ -10,9 +10,10 @@ use rspack_core::{
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  export_from_import, get_exports_type, property_access, to_normal_comment,
+  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
+  to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -46,7 +47,7 @@ pub struct ESMImportSpecifierDependency {
   used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,

@@ -11,7 +11,7 @@ use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
   ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, RuntimeSpec,
+  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, ResourceIdentifier, RuntimeSpec,
   create_exports_object_referenced,
 };
 
@@ -26,7 +26,7 @@ pub struct ContextElementDependency {
   pub category: DependencyCategory,
   pub context: Context,
   pub layer: Option<ModuleLayer>,
-  pub resource_identifier: String,
+  pub resource_identifier: ResourceIdentifier,
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub dependency_type: DependencyType,
@@ -39,12 +39,12 @@ impl ContextElementDependency {
     resource: &str,
     path: &str,
     attributes: Option<&ImportAttributes>,
-  ) -> String {
+  ) -> ResourceIdentifier {
     let mut ident = format!("context{resource}|{path}");
     if let Some(attributes) = attributes {
       ident += &json_stringify(&attributes);
     }
-    ident
+    ident.into()
   }
 }
 

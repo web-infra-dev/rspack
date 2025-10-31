@@ -1,4 +1,5 @@
 use rspack_core::ConstDependency;
+use swc_core::atoms::wtf8::Wtf8;
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
@@ -17,13 +18,10 @@ impl JavascriptParserPlugin for UseStrictPlugin {
     }
     .and_then(|i| i.as_expr());
     if let Some(first) = first
-      && matches!(
-        first.expr.as_lit().and_then(|i| match i {
-          swc_core::ecma::ast::Lit::Str(s) => Some(s.value.as_str()),
-          _ => None,
-        }),
-        Some("use strict")
-      )
+      && first.expr.as_lit().and_then(|i| match i {
+        swc_core::ecma::ast::Lit::Str(s) => Some(s.value.as_wtf8()),
+        _ => None,
+      }) == Some(Wtf8::from_str("use strict"))
     {
       // Remove "use strict" expression. It will be added later by the renderer again.
       // This is necessary in order to not break the strict mode when webpack prepends code.

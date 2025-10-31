@@ -613,6 +613,7 @@ impl Module for NormalModule {
         module_type: &inner.module_type,
         module_layer: inner.layer.as_ref(),
         module_user_request: &inner.user_request,
+        module_match_resource: inner.match_resource.as_ref(),
         module_source_map_kind: inner.source_map_kind,
         loaders: &inner.loaders,
         resource_data: &inner.resource_data,

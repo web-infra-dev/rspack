@@ -13,7 +13,6 @@ export default defineConfig({
 	include: process.env.WASM ? [] : [
 		"*.test.js",
 	],
-	exclude: ["Serial.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,
 	resolve: {
 		alias: {

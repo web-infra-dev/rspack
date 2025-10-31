@@ -117,6 +117,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_info,
       build_meta,
       loaders,
+      module_match_resource,
       ..
     } = parse_context;
 
@@ -134,6 +135,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let source = remove_bom(source);
     let source_code = source.source().into_string_lossy();
+    let resource_data = module_match_resource.unwrap_or(resource_data);
     let resource_path = resource_data.path();
     let cached_source_code = OnceCell::new();
     let get_source_code = || {

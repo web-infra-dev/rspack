@@ -6,8 +6,8 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, module_namespace_promise,
+  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -69,7 +69,7 @@ pub struct ImportDependency {
   referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
 }

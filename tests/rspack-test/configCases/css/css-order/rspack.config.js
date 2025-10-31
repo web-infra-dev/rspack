@@ -11,13 +11,16 @@ module.exports = {
 	optimization: {
 		concatenateModules: false
 	},
+	experiments: {
+		css: false
+	},
 	module: {
 		rules: [
 			{
 				test: /\.module\.css$/,
 				use: [
 					{
-						loader: MiniCssExtractPlugin.loader
+						loader: MiniCssExtractPlugin.loader,
 					},
 					{
 						loader: "css-loader",

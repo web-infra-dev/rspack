@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: __webpack_require__.C is not a function"
+module.exports = () => true

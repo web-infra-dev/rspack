@@ -99,7 +99,7 @@ const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(s) => Some(s.value.clone()),
+    Lit::Str(s) => Some(s.value.to_atom_lossy().into_owned()),
     _ => None,
   })
 }

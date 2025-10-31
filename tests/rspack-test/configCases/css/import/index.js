@@ -1,4 +1,5 @@
 import "./style.css";
+import path from "path";
 
 it("should compile", () => {
 	const links = document.getElementsByTagName("link");
@@ -9,5 +10,5 @@ it("should compile", () => {
 		css.push(link.sheet.css);
 	}
 
-	expect(css).toMatchSnapshot();
+	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
 });

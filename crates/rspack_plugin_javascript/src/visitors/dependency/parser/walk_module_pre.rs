@@ -40,7 +40,8 @@ impl JavascriptParser<'_> {
 
   pub fn module_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {
     let drive = self.plugin_drive.clone();
-    let source = &decl.src.value;
+    let atom = decl.src.value.to_atom_lossy();
+    let source = atom.as_ref();
     drive.import(self, decl, source.as_str());
 
     for specifier in &decl.specifiers {
@@ -52,9 +53,12 @@ impl JavascriptParser<'_> {
             .as_ref()
             .map(|imported| match imported {
               ModuleExportName::Ident(ident) => &ident.sym,
-              ModuleExportName::Str(s) => &s.value,
+              ModuleExportName::Str(s) => s
+                .value
+                .as_atom()
+                .expect("ModuleExportName should be a valid utf8"),
             })
-            .unwrap_or_else(|| &named.local.sym);
+            .unwrap_or(&named.local.sym);
           if drive
             .import_specifier(self, decl, source, Some(export_name), identifier_name)
             .unwrap_or_default()
