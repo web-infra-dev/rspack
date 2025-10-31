@@ -1,4 +1,4 @@
-import { Stability } from '@components/ApiMeta';
+import { Stability, ApiMeta } from '@components/ApiMeta';
 
 # ModuleFederationPlugin
 
@@ -154,6 +154,31 @@ export default {
 - strictVersion：用来强化 `requiredVersion`。如果设置为 `true`，那么必须精确地匹配 `requiredVersion` 中规定的版本，否则共享模块会报错并且不会加载该模块。如果设置为 `false`，那么可以容忍不精确的匹配。
 - version：显式地设置共享模块的版本。默认会使用 `package.json` 中的版本。
 
+### manifest
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+- 类型：
+  ```ts
+  type Manifest = boolean | ManifestConfig;
+  interface ManifestConfig {
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+  }
+  ```
+
+用于控制是否生成 manifest ，以及对应的生成配置。启用后插件会在每次构建中同时产出 `mf-manifest.json` 与 `mf-stats.json`（名称可通过 `fileName` 自定义），并写入到构建产物中，供其他工具在 `processAssets` 钩子或构建结果中直接读取。
+
+- `mf-stats.json`：包含完整的构建统计信息，如 exposes/shared/remotes 的资源列表、`metaData`（插件版本、构建信息、`remoteEntry` 等）以及额外的资产分析结果，适合用于后续合并或诊断。
+- `mf-manifest.json`：在 stats 基础上提炼出的运行时清单，结构稳定，供 Module Federation 消费端在加载远程模块时读取。文件中的 exposes/shared/remotes 对应线上对外暴露的能力。
+
+其中 `ManifestConfig` 选项说明如下：
+
+- filePath：manifest 文件路径，设置后同时作用于 stats 。
+- fileName：manifest 文件名称，如果设置了 `fileName`，对应的 stats 文件名会自动附加 `-stats` 后缀（例如 `fileName: 'mf.json'` 时会同时生成 `mf.json` 与 `mf-stats.json`）。所有文件都会写入 `filePath`（若配置）指定的子目录。
+- disableAssetsAnalyze：禁用产物分析，如果设置为 true ，那么 manifest 中将不会有 shared 、exposes 字段，且 remotes 中也不会有 assets 。
+
 ## 常见问题
 
 - 构建产物中存在未降级语法？
@@ -179,3 +204,7 @@ export default {
     },
   };
   ```
+
+- Multiple assets emit different content to the same filename mf-manifest.json
+
+  升级 `@module-federation` scope 下的 npm 包至 `0.21.0` 及以上版本。
