@@ -241,7 +241,7 @@ impl LightningCssLoader {
         source_map
           .get_sources_content()
           .iter()
-          .map(ToString::to_string)
+          .map(|source_content| Arc::from(source_content.to_string()))
           .collect::<Vec<_>>(),
         source_map
           .get_names()
