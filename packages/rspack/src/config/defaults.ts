@@ -46,7 +46,8 @@ import type {
 	ResolveOptions,
 	RspackFutureOptions,
 	RuleSetRules,
-	SnapshotOptions
+	SnapshotOptions,
+	WatchOptions
 } from "./types";
 
 export const applyRspackOptionsDefaults = (
@@ -187,6 +188,9 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
+
+	D(options, "watchOptions", {});
+	applyWatchOptionsDefaults(options.watchOptions, options.resolve);
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -1075,6 +1079,14 @@ const applyOptimizationDefaults = (
 			}));
 		}
 	}
+};
+
+const applyWatchOptionsDefaults = (
+	watchOptions: WatchOptions,
+	resolve: ResolveOptions
+) => {
+	const followSymlinks = resolve.symlinks ?? true;
+	watchOptions.followSymlinks = watchOptions.followSymlinks ?? followSymlinks;
 };
 
 const getResolveLoaderDefaults = () => {
