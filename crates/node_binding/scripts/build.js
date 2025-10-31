@@ -82,6 +82,9 @@ async function build() {
 			features.push("allocative");
 			rustflags.push("--cfg=allocative");
 		}
+		if (process.env.TRACY) {
+			features.push("tracy-client");
+		}
 		if (values.profile === "release") {
 			features.push("info-level");
 		}

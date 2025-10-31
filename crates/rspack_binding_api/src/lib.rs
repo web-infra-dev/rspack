@@ -498,6 +498,12 @@ fn init() {
     thread,
   };
 
+  #[cfg(feature = "tracy-client")]
+  {
+    use tracy_client::register_demangler;
+    tracy_client::Client::start();
+    register_demangler!();
+  }
   #[cfg(feature = "sftrace-setup")]
   if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
     unsafe {
