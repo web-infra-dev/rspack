@@ -41,7 +41,7 @@ Rspack 1.6 增强了对动态导入 tree shaking 的支持。在此前的版本�
 
 现在，Rspack 为动态导入引入了更全面的静态分析，能够识别并处理多种使用模式，从而精准地移除未被使用的导出内容，进一步减小最终打包产物的体积。
 
-```js title="rspack.config.mjs"
+```js
 // Rspack 1.5 - 仅支持分析解构赋值
 const { value } = await import('./module');
 console.log(value);
