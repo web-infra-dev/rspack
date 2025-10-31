@@ -8,13 +8,16 @@ module.exports = [
 		optimization: {
 			mangleExports: true,
 			usedExports: true,
-			providedExports: true
+			providedExports: true,
 		},
 		plugins: [
 			new DefinePlugin({
 				OPTIMIZATION: JSON.stringify("deterministic")
 			})
-		]
+		],
+		experiments: {
+			inlineConst: false
+		}
 	},
 	{
 		output: {
@@ -29,6 +32,9 @@ module.exports = [
 			new DefinePlugin({
 				OPTIMIZATION: JSON.stringify("size")
 			})
-		]
+		],
+		experiments: {
+			inlineConst: false
+		}
 	}
 ];
