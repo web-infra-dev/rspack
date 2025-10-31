@@ -42,12 +42,12 @@ use crate::{
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
-  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
-  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  EntryData, EntryDependency, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
@@ -60,6 +60,9 @@ use crate::{
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
+define_hook!(CompilationAddEntryItem: Series(compiler_id: CompilerId, compilation_id: CompilationId, entry: &EntryDependency, options: &EntryOptions));
+define_hook!(CompilationSucceedEntryItem: Series(compiler_id: CompilerId, compilation_id: CompilationId, entry: &EntryDependency, options: &EntryOptions, module: &BoxModule));
+define_hook!(CompilationFailedEntryItem: Series(compiler_id: CompilerId, compilation_id: CompilationId, entry: &EntryDependency, options: &EntryOptions, error: &rspack_error::Error));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
@@ -131,6 +134,9 @@ pub struct CompilationHooks {
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
   pub after_seal: CompilationAfterSealHook,
+  pub add_entry_item: CompilationAddEntryItemHook,
+  pub succeed_entry_item: CompilationSucceedEntryItemHook,
+  pub failed_entry_item: CompilationFailedEntryItemHook,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]

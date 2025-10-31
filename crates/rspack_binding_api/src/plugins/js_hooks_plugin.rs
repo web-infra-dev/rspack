@@ -46,6 +46,9 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_compilation_seal_taps: RegisterCompilationSealTaps,
   register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps,
+  register_compilation_add_entry_taps: RegisterCompilationAddEntryTaps,
+  register_compilation_succeed_entry_taps: RegisterCompilationSucceedEntryTaps,
+  register_compilation_failed_entry_taps: RegisterCompilationFailedEntryTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
   register_normal_module_factory_factorize_taps: RegisterNormalModuleFactoryFactorizeTaps,
   register_normal_module_factory_resolve_taps: RegisterNormalModuleFactoryResolveTaps,
@@ -198,6 +201,18 @@ impl Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .after_seal
       .intercept(self.register_compilation_after_seal_taps.clone());
+    ctx
+      .compilation_hooks
+      .add_entry_item
+      .intercept(self.register_compilation_add_entry_taps.clone());
+    ctx
+      .compilation_hooks
+      .succeed_entry_item
+      .intercept(self.register_compilation_succeed_entry_taps.clone());
+    ctx
+      .compilation_hooks
+      .failed_entry_item
+      .intercept(self.register_compilation_failed_entry_taps.clone());
 
     ctx.normal_module_factory_hooks.before_resolve.intercept(
       self
@@ -575,6 +590,18 @@ impl JsHooksAdapterPlugin {
         ),
         register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps::new(
           register_js_taps.register_compilation_after_seal_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_compilation_add_entry_taps: RegisterCompilationAddEntryTaps::new(
+          register_js_taps.register_compilation_add_entry_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_compilation_succeed_entry_taps: RegisterCompilationSucceedEntryTaps::new(
+          register_js_taps.register_compilation_succeed_entry_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_compilation_failed_entry_taps: RegisterCompilationFailedEntryTaps::new(
+          register_js_taps.register_compilation_failed_entry_taps,
           non_skippable_registers.clone(),
         ),
         register_normal_module_factory_before_resolve_taps:

@@ -411,6 +411,54 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					return await queried.promise();
 				};
 			}
+		),
+		registerCompilationAddEntryTaps: createTap(
+			binding.RegisterJsTapKind.CompilationAddEntry,
+
+			function () {
+				return getCompiler().__internal__get_compilation()!.hooks.addEntry;
+			},
+
+			function (queried) {
+				return function (entry: binding.EntryDependency, options: any) {
+					return queried.call(entry, options);
+				};
+			}
+		),
+		registerCompilationSucceedEntryTaps: createTap(
+			binding.RegisterJsTapKind.CompilationSucceedEntry,
+
+			function () {
+				return getCompiler().__internal__get_compilation()!.hooks.succeedEntry;
+			},
+
+			function (queried) {
+				return function (
+					entry: binding.EntryDependency,
+					options: any,
+					module: Module
+				) {
+					return queried.call(entry, options, module);
+				};
+			}
+		),
+		registerCompilationFailedEntryTaps: createTap(
+			binding.RegisterJsTapKind.CompilationFailedEntry,
+
+			function () {
+				return getCompiler().__internal__get_compilation()!.hooks.failedEntry;
+			},
+
+			function (queried) {
+				return function (
+					entry: binding.EntryDependency,
+					options: any,
+					errorMessage: string
+				) {
+					const error = new Error(errorMessage);
+					return queried.call(entry, options, error);
+				};
+			}
 		)
 	};
 };

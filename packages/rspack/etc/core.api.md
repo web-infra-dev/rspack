@@ -991,6 +991,17 @@ export class Compilation {
         seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+        addEntry: liteTapable.SyncHook<[binding.EntryDependency, EntryOptions]>;
+        failedEntry: liteTapable.SyncHook<[
+        binding.EntryDependency,
+        EntryOptions,
+        WebpackError_2
+        ]>;
+        succeedEntry: liteTapable.SyncHook<[
+        binding.EntryDependency,
+        EntryOptions,
+        Module
+        ]>;
     }>;
     // (undocumented)
     inputFileSystem: InputFileSystem | null;
