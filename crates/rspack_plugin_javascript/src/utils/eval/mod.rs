@@ -278,15 +278,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
       }
       Some(format!("[{}]", arr.join(", ")))
     } else if self.is_template_string() {
-      let mut s = String::new();
-      for p in self.parts() {
-        if let Some(p) = p.as_string() {
-          s += &p;
-        } else {
-          return None;
-        }
-      }
-      Some(s)
+      self
+        .parts()
+        .iter()
+        .map(|p| p.as_string())
+        .collect::<Option<String>>()
     } else {
       None
     }

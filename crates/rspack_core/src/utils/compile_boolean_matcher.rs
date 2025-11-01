@@ -104,11 +104,11 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   let mut items = items_arr.iter().cloned().collect::<BTreeSet<_>>();
 
   if count_of_single_char_items > 2 {
-    let mut single_char_items: String = String::new();
+    let mut single_char_items = String::with_capacity(count_of_single_char_items);
     let mut new_items = BTreeSet::new();
     for item in items {
       if item.chars().count() == 1 {
-        single_char_items += &item;
+        single_char_items.push_str(&item);
         continue;
       }
       new_items.insert(item);
