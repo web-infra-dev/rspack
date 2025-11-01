@@ -192,6 +192,7 @@ tiktok
 tokio
 Towhk
 Trae
+tsgo
 tsgolint
 tuchg
 typeofs

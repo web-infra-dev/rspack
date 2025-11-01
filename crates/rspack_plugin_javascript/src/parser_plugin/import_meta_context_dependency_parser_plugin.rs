@@ -30,7 +30,7 @@ fn create_import_meta_context_dependency(
     .as_lit()
     .and_then(|lit| {
       if let Lit::Str(str) = lit {
-        return Some(str.value.to_string());
+        return Some(str.value.to_string_lossy().to_string());
       }
       None
     })
@@ -57,7 +57,7 @@ fn create_import_meta_context_dependency(
     let exclude = get_regex_by_obj_prop(obj, "exclude")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let mode = get_literal_str_by_obj_prop(obj, "mode")
-      .map(|s| s.value.to_string().as_str().into())
+      .map(|s| s.value.to_string_lossy().as_ref().into())
       .unwrap_or(ContextMode::Sync);
     let recursive = get_bool_by_obj_prop(obj, "recursive")
       .map(|bool| bool.value)

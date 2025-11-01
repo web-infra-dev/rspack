@@ -585,7 +585,7 @@ impl JavascriptParser<'_> {
 
   fn walk_jsx_attr_value(&mut self, value: &JSXAttrValue) {
     match value {
-      JSXAttrValue::Lit(_) => (),
+      JSXAttrValue::Str(_) => (),
       JSXAttrValue::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
       JSXAttrValue::JSXElement(element) => self.walk_jsx_element(element),
       JSXAttrValue::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),

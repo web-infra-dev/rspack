@@ -1,6 +1,5 @@
 @import "./cases/at-rule.css";
-/* FIXME: Can't resolve 'image.png' */
-/* @import "./cases/bad-url-token.css"; */
+@import "./cases/bad-url-token.css";
 @import "./cases/cdo-and-cdc.css";
 @import "./cases/comment.css";
 @import "./cases/dashed-ident.css";

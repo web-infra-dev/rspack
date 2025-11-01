@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: can not find external const value";
+module.exports = () => true;

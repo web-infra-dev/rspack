@@ -4,10 +4,11 @@ document.body.innerHTML = Teaser();
 
 // https://github.com/webpack/webpack/issues/18961
 // https://github.com/jantimon/reproduction-webpack-css-order
-it("keep consistent css order", function() {
+it("keep consistent css order", function () {
 	const fs = __non_webpack_require__("fs");
+	const path = __non_webpack_require__("path");
 	let source = fs.readFileSync(__dirname + "/main.css", "utf-8");
-	expect(removeComments(source)).toMatchSnapshot()
+	expect(removeComments(source)).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'main.css.txt'))
 });
 
 function removeComments(source) {

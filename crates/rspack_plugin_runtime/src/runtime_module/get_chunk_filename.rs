@@ -97,13 +97,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
         } else {
           let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+
           if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
             .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
           {
             chunks.extend(
               compilation
                 .chunk_graph
-                .get_chunk_entry_dependent_chunks_iterable(
+                .get_runtime_chunk_dependent_chunks_iterable(
                   &chunk.ukey(),
                   &compilation.chunk_by_ukey,
                   &compilation.chunk_group_by_ukey,

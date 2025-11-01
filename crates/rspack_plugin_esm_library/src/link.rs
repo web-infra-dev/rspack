@@ -1,5 +1,5 @@
 use std::{
-  collections::{self, hash_map::Entry},
+  collections::{self},
   hash::BuildHasher,
   sync::Arc,
 };
@@ -27,7 +27,7 @@ use rspack_plugin_javascript::{
 };
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
 use swc_core::{
@@ -41,7 +41,6 @@ use swc_core::{
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, Ref, SymbolRef},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS},
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -129,7 +128,7 @@ impl EsmLibraryPlugin {
 
       // we find another name to export this symbol
       let mut idx = 0;
-      let mut new_export = format!("{exported}_{idx}").into();
+      let mut new_export = Atom::new(format!("{exported}_{idx}"));
       while ctx.exported_symbols.contains_key(&new_export) {
         idx += 1;
         new_export = format!("{exported}_{idx}").into();
@@ -153,8 +152,8 @@ impl EsmLibraryPlugin {
 
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
-    let mut concate_modules_map = CONCATENATED_MODULES_MAP.lock().await;
-    let concate_modules_map = Arc::get_mut(concate_modules_map.get_mut_unwrap(&compilation.id().0))
+    let mut concate_modules_map = self.concatenated_modules_map.write().await;
+    let concate_modules_map = Arc::get_mut(&mut concate_modules_map)
       .expect("should have unique access to concatenated modules map");
 
     // analyze every modules and collect identifiers to concate_modules_map
@@ -408,7 +407,7 @@ impl EsmLibraryPlugin {
       chunk_link.namespace_object_sources.insert(module, source);
     }
 
-    LINKS.write().await.insert(compilation.id().0, link);
+    self.links.set(link).expect("should set chunk link");
     Ok(())
   }
 
@@ -821,17 +820,17 @@ impl EsmLibraryPlugin {
                   idents.push(ident);
                 }
 
-                let mut binding_to_ref: FxHashMap<
+                let mut binding_to_ref: FxIndexMap<
                   (Atom, SyntaxContext),
                   Vec<ConcatenatedModuleIdent>,
-                > = FxHashMap::default();
+                > = Default::default();
 
                 for ident in &idents {
                   match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-                    Entry::Occupied(mut occ) => {
+                    indexmap::map::Entry::Occupied(mut occ) => {
                       occ.get_mut().push(ident.clone());
                     }
-                    Entry::Vacant(vac) => {
+                    indexmap::map::Entry::Vacant(vac) => {
                       vac.insert(vec![ident.clone()]);
                     }
                   };
@@ -1517,7 +1516,14 @@ impl EsmLibraryPlugin {
 
     // link entry direct exports
     if let Some(preserve_modules) = &self.preserve_modules {
-      for module_id in module_graph.modules().keys() {
+      let modules = module_graph.modules();
+      let mut modules = modules.keys().collect::<Vec<_>>();
+      modules.sort_by(|a, b| {
+        let ad = module_graph.get_depth(a);
+        let bd = module_graph.get_depth(b);
+        ad.cmp(&bd)
+      });
+      for module_id in modules {
         if compilation.entry_modules().contains(module_id) {
           continue;
         }

@@ -53,10 +53,8 @@ const config = {
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: process.env.WASM ? [
 		"<rootDir>/*.test.js",
-	] : [
-		"<rootDir>/Serial.test.js",
-		"<rootDir>/EsmOutput.test.js",
-	],
+	] : [],
+	testPathIgnorePatterns: ["<rootDir>"],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: "@rspack/test-tools/jest/slash",

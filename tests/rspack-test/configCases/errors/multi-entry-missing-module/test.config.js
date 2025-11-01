@@ -1,7 +1,7 @@
 module.exports = {
 	findBundle: function () {
 		return [
-			// FIXME: the entry depenedency should generate module even when it is ignored
+			// DIFF: if the entry is ignored, webpack will generate an empty module which only contains a comment in it
 			// "./a.js",
 			// "./b.js",
 			"./bundle0.js"

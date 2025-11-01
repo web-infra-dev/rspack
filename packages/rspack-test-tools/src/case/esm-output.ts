@@ -93,7 +93,7 @@ const creator = new BasicCaseCreator({
 		key: getMultiCompilerRunnerKey,
 		runner: createMultiCompilerRunner
 	},
-	concurrent: false
+	concurrent: 1
 });
 
 const defaultOptions = (

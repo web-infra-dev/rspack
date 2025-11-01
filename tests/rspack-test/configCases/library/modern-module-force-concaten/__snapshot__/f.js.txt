@@ -1,7 +1,8 @@
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
+const __WEBPACK_EXTERNAL_createRequire_require = __WEBPACK_EXTERNAL_createRequire(import.meta.url);
 var __webpack_modules__ = ({
 928: (function (module) {
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
+module.exports = __WEBPACK_EXTERNAL_createRequire_require("path");
 
 }),
 679: (function (module, __unused_webpack_exports, __webpack_require__) {

@@ -87,11 +87,10 @@ impl ExternalInterop {
     if let Some(namespace_object) = &self.namespace_object {
       namespace_object.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_namespace",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
@@ -112,11 +111,10 @@ impl ExternalInterop {
     if let Some(namespace_object) = &self.namespace_object2 {
       namespace_object.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_namespace2",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
@@ -137,11 +135,10 @@ impl ExternalInterop {
     if let Some(default_access) = &self.default_access {
       default_access.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_default",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
