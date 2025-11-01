@@ -633,8 +633,8 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.5)(webpack@5.102.1)
       core-js:
-        specifier: 3.45.1
-        version: 3.45.1
+        specifier: 3.46.0
+        version: 3.46.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.102.1)
@@ -750,8 +750,8 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       core-js:
-        specifier: 3.45.1
-        version: 3.45.1
+        specifier: 3.46.0
+        version: 3.46.0
       css-loader:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.102.1)
