@@ -16,6 +16,9 @@ export default defineConfig({
 	entry: {
 		main: "./src/main.jsx"
 	},
+	output: {
+		path: "./dist"
+	},
 	resolve: {
 		extensions: ["...", ".ts", ".tsx", ".jsx"]
 	},
