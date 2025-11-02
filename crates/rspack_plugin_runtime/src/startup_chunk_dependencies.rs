@@ -30,6 +30,14 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
+
+  // Skip adding STARTUP if async MF startup is active and STARTUP_ENTRYPOINT is already present.
+  if compilation.options.experiments.mf_async_startup
+    && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+  {
+    return Ok(());
+  }
+
   if compilation
     .chunk_graph
     .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)

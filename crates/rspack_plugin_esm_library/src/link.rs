@@ -1734,6 +1734,12 @@ impl EsmLibraryPlugin {
             continue;
           };
 
+          if !matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          ) {
+            continue;
+          }
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };

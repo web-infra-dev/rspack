@@ -6,6 +6,7 @@ pub use container::{
   container_reference_plugin::{
     ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
   },
+  embed_federation_runtime_module::EmbedFederationRuntimeModule,
   module_federation_runtime_plugin::{
     ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
   },
