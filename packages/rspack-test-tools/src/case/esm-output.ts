@@ -39,14 +39,16 @@ const creator = new BasicCaseCreator({
 						const testConfig = context.getTestConfig();
 						if (testConfig.esmLibPluginOptions) {
 							let target;
-							const otherPlugins = options.plugins?.filter(plugin => {
-								const isTarget =
-									plugin instanceof rspack.experiments.EsmLibraryPlugin;
-								if (isTarget) {
-									target = plugin;
-								}
-								return !isTarget;
-							})!;
+
+							const otherPlugins =
+								options.plugins?.filter(plugin => {
+									const isTarget =
+										plugin instanceof rspack.experiments.EsmLibraryPlugin;
+									if (isTarget) {
+										target = plugin;
+									}
+									return !isTarget;
+								}) ?? [];
 
 							options.plugins = [
 								...otherPlugins,

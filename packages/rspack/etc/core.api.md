@@ -22,7 +22,6 @@ import { ChunkGraph } from '@rspack/binding';
 import { ChunkGroup } from '@rspack/binding';
 import { ConcatenatedModule } from '@rspack/binding';
 import { ContextModule } from '@rspack/binding';
-import { createReadStream } from 'fs';
 import { Dependency } from '@rspack/binding';
 import type { DependencyLocation } from '@rspack/binding';
 import { EnforceExtension } from '@rspack/binding';
@@ -5450,7 +5449,6 @@ export interface OutputFileSystem {
 
 // @public (undocumented)
 type OutputFileSystem_2 = OutputFileSystem & {
-    createReadStream?: createReadStream;
     statSync: StatSyncFn;
     readFileSync: readFileSync;
 };
