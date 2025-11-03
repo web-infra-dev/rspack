@@ -31,6 +31,7 @@ fn get_simplified_template_result<'a>(
       TemplateStringKind::Cooked => quasi_expr
         .cooked
         .as_ref()
+        .and_then(|q| q.as_atom())
         .expect("quasic should be not empty"),
       TemplateStringKind::Raw => &quasi_expr.raw,
     };

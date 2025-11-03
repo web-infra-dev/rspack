@@ -1,6 +1,8 @@
 it("should generate a custom error content", async () => {
 	expect(__STATS__.modules.filter(m => m.moduleType !== "runtime").length).toEqual(14);
-	expect(__STATS__.assets.length).toEqual(19);
+	// DIFF: rspack will not generate a errored asset when failed
+	// expect(__STATS__.assets.length).toEqual(19);
+	expect(__STATS__.assets.length).toEqual(14);
 	expect(__STATS__.chunks.length).toEqual(12);
 
 	let errored;

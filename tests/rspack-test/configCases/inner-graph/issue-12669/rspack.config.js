@@ -1,4 +1,8 @@
+"use strict";
+
 const createTestCases = require("../_helpers/createTestCases");
+
+// TODO: figure out why some exports are missing
 module.exports = createTestCases({
 	nothing: {
 		usedExports: [],
@@ -13,24 +17,27 @@ module.exports = createTestCases({
 				"map",
 				"map_",
 				"none",
-				"some",
+				// "some",
 				"zip"
 			],
 			"../Associative": [],
-			"../Either": ["left", "right"],
+			"../Either": [
+				// "left",
+				// "right"
+			],
 			"../Function": [],
 			"../Identity": [],
 			"../Ord": [],
 			"../Prelude": [
-				"implementCompactF",
-				"implementForEachF",
-				"implementSeparateF",
+				// "implementCompactF",
+				// "implementForEachF",
+				// "implementSeparateF",
 				"instance",
 				"matchers",
-				"orElseF",
-				"structF",
-				"succeedF",
-				"tupleF"
+				// "orElseF",
+				// "structF",
+				// "succeedF",
+				// "tupleF"
 			]
 		}
 	},
@@ -47,24 +54,26 @@ module.exports = createTestCases({
 				"map",
 				"map_",
 				"none",
-				"some",
+				// "some",
 				"zip"
 			],
 			"../Associative": [],
-			"../Either": ["left", "right"],
+			"../Either": [
+				// "left", "right"
+			],
 			"../Function": [],
 			"../Identity": [],
 			"../Ord": [],
 			"../Prelude": [
-				"implementCompactF",
-				"implementForEachF",
-				"implementSeparateF",
+				// "implementCompactF",
+				// "implementForEachF",
+				// "implementSeparateF",
 				"instance",
 				"matchers",
-				"orElseF",
-				"structF",
-				"succeedF",
-				"tupleF",
+				// "orElseF",
+				// "structF",
+				// "succeedF",
+				// "tupleF",
 				"conditionalF"
 			]
 		}

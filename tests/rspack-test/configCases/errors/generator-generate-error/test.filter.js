@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: missing assets";
+module.exports = () => true;

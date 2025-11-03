@@ -49,10 +49,10 @@ pub fn get_attributes(obj: &ObjectLit) -> ImportAttributes {
       kv.key
         .as_ident()
         .map(|k| k.sym.as_str())
-        .or_else(|| kv.key.as_str().map(|k| k.value.as_str()))
+        .or_else(|| kv.key.as_str().and_then(|k| k.value.as_str()))
         .map(|s| s.to_string())
         .zip(kv.value.as_lit().and_then(|lit| match lit {
-          Lit::Str(s) => Some(s.value.to_string()),
+          Lit::Str(s) => Some(s.value.to_string_lossy().to_string()),
           _ => None,
         }))
     })
