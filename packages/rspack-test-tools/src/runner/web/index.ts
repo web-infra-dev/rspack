@@ -7,11 +7,7 @@ import { escapeSep } from "../../helper";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import type { TRunnerFile, TRunnerRequirer } from "../../type";
-import {
-	createLocatedError,
-	type INodeRunnerOptions,
-	NodeRunner
-} from "../node";
+import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 export interface IWebRunnerOptions extends INodeRunnerOptions {
 	location: string;
@@ -215,7 +211,8 @@ export class WebRunner extends NodeRunner {
 		{
 			exports: Record<string, unknown>;
 		},
-		string
+		string,
+		number
 	] {
 		const m = {
 			exports: {}
@@ -276,23 +273,6 @@ export class WebRunner extends NodeRunner {
 					return Reflect.set(target, prop, value, receiver);
 				}
 			});`;
-		const createJSDOMLocatedError = createLocatedError(
-			this._options.errors || ([] as Error[]),
-			proxyCode.split("\n").length + 2
-		);
-		const originIt = currentModuleScope.it;
-		currentModuleScope.it = (
-			description: string,
-			fn: () => Promise<void> | void
-		) => {
-			originIt(description, async () => {
-				try {
-					await fn();
-				} catch (err) {
-					throw createJSDOMLocatedError(err as Error, file);
-				}
-			});
-		};
 
 		const scopeKey = escapeSep(file!.path);
 		const args = Object.keys(currentModuleScope).filter(
@@ -303,19 +283,14 @@ export class WebRunner extends NodeRunner {
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
 		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
-		this.dom.window["__FILE__"] = file;
-		this.dom.window["__CREATE_LOCATED_ERROR__"] = createJSDOMLocatedError;
 
 		return [
 			m,
 			`${proxyCode}
 			(function(window, self, globalThis, console, ${args.join(", ")}) {
-				try {
-				  ${file.content}
-				} catch (err) {
-					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
-				}
-			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});`
+				${file.content}
+			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});`,
+			proxyCode.split("\n").length + 1
 		];
 	}
 
@@ -331,18 +306,23 @@ export class WebRunner extends NodeRunner {
 				return this.requireCache[file.path].exports;
 			}
 
-			const [m, code] = this.getModuleContent(file);
+			const [m, code, lineOffset] = this.getModuleContent(file);
 
 			this.preExecute(code, file);
 
 			try {
 				const script = new Script(code);
 				const vmContext = this.dom.getInternalVMContext();
-				script.runInContext(vmContext);
+				script.runInContext(vmContext, {
+					filename: file.path,
+					lineOffset: -lineOffset
+				});
 			} catch (e) {
-				throw new Error(
+				const error = new Error(
 					`Parse script '${file.path}' failed: ${(e as Error).message}`
 				);
+				this._options.errors?.push(error);
+				throw error;
 			}
 
 			this.postExecute(m, file);
