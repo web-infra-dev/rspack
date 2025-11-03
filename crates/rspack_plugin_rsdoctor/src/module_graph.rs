@@ -4,10 +4,12 @@ use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, rspack_sources::MapOptions,
+  ModuleIdsArtifact,
+  rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use thread_local::ThreadLocal;
 
 use crate::{
   ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleId,
@@ -125,6 +127,8 @@ pub fn collect_module_original_sources(
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
   let ifs = compilation.input_filesystem.clone();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -137,9 +141,10 @@ pub fn collect_module_original_sources(
       };
       let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource().to_owned();
+      let object_pool = tls.get_or(ObjectPool::default);
       let source = module
         .source()
-        .and_then(|s| s.map(&MapOptions::default()))
+        .and_then(|s| s.map(object_pool, &MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
           let source = s.sources_content().get(idx)?;
