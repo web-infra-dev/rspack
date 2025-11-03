@@ -75,10 +75,12 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let chunk_name = match expr
       .args
       .get(3)
-      .or(error_expr.as_ref().and(None)) // !errorExpression
-      .or(expr.args.get(2))
+      .or_else(|| if error_expr.is_some() { None } else { expr.args.get(2) }) // !errorExpression
     {
-      Some(arg) => parser.evaluate_expression(&arg.expr).as_string(),
+      Some(arg) => match parser.evaluate_expression(&arg.expr).as_string() {
+        Some(chunk_name) => Some(chunk_name),
+        None => return None,
+      },
       None => None,
     };
 
