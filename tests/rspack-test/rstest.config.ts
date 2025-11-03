@@ -21,13 +21,15 @@ const wasmConfig = process.env.WASM && defineConfig({
 		// Skip temporarily and should investigate in the future
 		"Cache.test.js",
 		"Compiler.test.js",
+		"MultiCompiler.test.js",
 		"Serial.test.js",
-		// "Example.test.js",
+		"Defaults.test.js",
+		"Example.test.js",
 		"Incremental-*.test.js",
 		"NativeWatcher*.test.js",
 
 		// Rstest ignored
-		"EsmOutput.test.js",
+		// "EsmOutput.test.js",
 	],
 	maxConcurrency: 1,
 	pool: {
@@ -41,7 +43,7 @@ export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
 	// TODO: test jest wasm
-	include: process.env.WASM ? [] : [
+	include: [
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
