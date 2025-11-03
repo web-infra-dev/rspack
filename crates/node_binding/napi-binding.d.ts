@@ -707,11 +707,11 @@ export interface JsBeforeEmitData {
 }
 
 export interface JsBuildMeta {
-  strictEsmModule: boolean
-  hasTopLevelAwait: boolean
-  esm: boolean
-  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  strictEsmModule?: boolean
+  hasTopLevelAwait?: boolean
+  esm?: boolean
+  exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
 }
