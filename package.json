@@ -74,7 +74,7 @@
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.6.1",
+    "@rstest/core": "https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d",
     "jest": "29.7.0",
     "jest-cli": "29.7.0",
     "lint-staged": "^15.5.2",

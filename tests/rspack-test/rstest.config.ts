@@ -29,7 +29,7 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"NativeWatcher*.test.js",
 
 		// Rstest ignored
-		"Config.test.js",
+		// "Config.test.js",
 		// "EsmOutput.test.js",
 	],
 	maxConcurrency: 1,
@@ -39,6 +39,13 @@ const wasmConfig = process.env.WASM && defineConfig({
 	}
 });
 
+const formatHeapUsed = (heap: number) => {
+  return `${Math.floor(heap / 1024 / 1024)} MB heap used in main`;
+};
+
+setTimeout(() => {
+	console.log(formatHeapUsed(process.memoryUsage().heapUsed));
+}, 10000);
 
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
