@@ -81,11 +81,10 @@ impl ImportMetaPlugin {
       for option in param.options() {
         self.process_import_meta_resolve_item(parser, option);
       }
-      parser.add_dependency(import_meta_resolve_header_dependency);
     } else {
       self.process_import_meta_resolve_item(parser, &param);
-      parser.add_dependency(import_meta_resolve_header_dependency);
     }
+    parser.add_dependency(import_meta_resolve_header_dependency);
   }
 
   fn process_import_meta_resolve_item(
