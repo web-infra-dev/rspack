@@ -7,6 +7,41 @@ const setupFilesAfterEnv = [
 ];
 
 /** @type {import('jest').Config} */
+const wasmConfig = process.env.WASM && {
+	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+	testPathIgnorePatterns: [
+		// Skip because they reply on snapshots
+		"Diagnostics.test.js",
+		"Error.test.js",
+		"StatsAPI.test.js",
+		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"HotWeb.test.js",
+		"HotWorker.test.js",
+		"HotNode.test.js",
+
+		// Skip temporarily and should investigate in the future
+		"HotSnapshot.hottest.js",
+		"Defaults.test.js",
+		"Cache.test.js",
+		"Compiler.test.js",
+		"Serial.test.js",
+		"Example.test.js",
+		"Incremental-async-node.test.js",
+		"Incremental-node.test.js",
+		"Incremental-watch-webpack.test.js",
+		"Incremental-watch.test.js",
+		"Incremental-web.test.js",
+		"Incremental-webworker.test.js",
+		"NativeWatcher.test.js",
+		"NativeWatcher-webpack.test.js"
+	],
+	maxWorkers: 1,
+	maxConcurrency: 1,
+	forceExit: true
+};
+
+/** @type {import('jest').Config} */
 const config = {
 	testEnvironment: "@rspack/test-tools/jest/patch-node-env",
 	setupFilesAfterEnv,
@@ -16,7 +51,9 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: [],
+	testMatch: process.env.WASM ? [
+		"<rootDir>/*.test.js",
+	] : [],
 	testPathIgnorePatterns: ["<rootDir>"],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
@@ -51,7 +88,8 @@ const config = {
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test",
 	},
+	...(wasmConfig || {}),
 	verbose: true,
 };
 
-module.exports = process.env.WASM ? { testPathIgnorePatterns: [".*"], passWithNoTests: true } : config;
+module.exports = config;
