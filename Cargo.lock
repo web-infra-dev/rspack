@@ -4685,11 +4685,12 @@ dependencies = [
 name = "rspack_plugin_rslib"
 version = "0.6.0"
 dependencies = [
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
  "rspack_plugin_javascript",
- "rspack_plugin_library",
+ "serde_json",
  "swc_core",
  "tracing",
 ]

@@ -2733,12 +2733,6 @@ export interface RawRslibPluginOptions {
    */
   interceptApiPlugin?: boolean
   /**
-   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
-   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
-   * @default `false`
-   */
-  compactExternalModuleDynamicImport?: boolean
-  /**
    * Add shims for javascript/esm modules
    * @default `false`
    */
