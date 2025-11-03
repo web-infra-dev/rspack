@@ -251,6 +251,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   // we mutably modify data in `self.concatenated_modules_map`
   let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
   *map = Arc::new(modules_map.clone());
+  drop(map);
 
   *self.concatenated_modules_map.write().await = Arc::new(modules_map);
   // mark all entry exports as used
