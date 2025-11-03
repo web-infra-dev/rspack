@@ -10,7 +10,10 @@ const config = (i, options) => ({
 		x: "./x" // also imports chunk but with different exports
 	},
 	output: {
-		filename: `${i}_[name].js`
+		filename: `${i}_[name].js`,
+	},
+	experiments: {
+		css: false
 	},
 	module: {
 		rules: [
@@ -41,16 +44,21 @@ const config = (i, options) => ({
 					.toJson({ all: false, chunks: true, ids: true })
 					.chunks.map(c => c.id)
 					.sort();
-				expect(chunkIds).toEqual([
+
+				expect(chunkIds).toEqual(process.env.WASM ? [
 					"a",
 					"b",
 					"c",
-					// CHANGE:
-					// "chunk_js-_43b60",
-					// "chunk_js-_43b61",
-					// "chunk_js-_43b62",
-					"chunk_js-_d2ab0",
-					"chunk_js-_d2ab1",
+					"chunk_js-_d5940",
+					"chunk_js-_d5941",
+					"d_css",
+					"x"
+				] : [
+					"a",
+					"b",
+					"c",
+					"chunk_js-_aaff0",
+					"chunk_js-_aaff1",
 					"d_css",
 					"x"
 				]);
