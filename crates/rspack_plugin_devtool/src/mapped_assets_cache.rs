@@ -13,17 +13,20 @@ impl MappedAssetsCache {
     Self(DashMap::new())
   }
 
-  pub async fn use_cache<'a, F, R>(
+  pub async fn use_cache<'a, Assets, Handle, Return>(
     &self,
-    assets: Vec<(&'a String, &'a CompilationAsset)>,
-    map_assets: F,
+    assets: Assets,
+    map_assets: Handle,
   ) -> Result<Vec<MappedAsset>>
   where
-    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
-    R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
+    Assets: Iterator<Item = (&'a String, &'a CompilationAsset)>,
+    Handle: FnOnce(Vec<(String, &'a CompilationAsset)>) -> Return,
+    Return: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
   {
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
-    let mut vanilla_assets = Vec::with_capacity(assets.len());
+    let capacity = assets.size_hint().1.unwrap_or_default();
+
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(capacity);
+    let mut vanilla_assets = Vec::with_capacity(capacity);
     for (filename, vanilla_asset) in assets {
       if let Some((_, mapped_asset)) = self.0.remove(filename)
         && !vanilla_asset.info.version.is_empty()

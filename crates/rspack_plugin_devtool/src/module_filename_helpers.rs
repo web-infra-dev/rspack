@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
+use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
 
 fn get_before(s: &str, token: &str) -> String {
   match s.rfind(token) {
@@ -37,7 +37,7 @@ pub struct ModuleFilenameHelpers;
 
 impl ModuleFilenameHelpers {
   fn create_module_filename_template_fn_ctx(
-    module_or_source: &ModuleOrSource,
+    module_or_source: &SourceReference,
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
@@ -46,7 +46,7 @@ impl ModuleFilenameHelpers {
     let context = &options.context;
 
     match module_or_source {
-      ModuleOrSource::Module(module_identifier) => {
+      SourceReference::Module(module_identifier) => {
         let module_graph = compilation.get_module_graph();
         let module = module_graph
           .module_by_identifier(module_identifier)
@@ -95,7 +95,7 @@ impl ModuleFilenameHelpers {
           namespace: namespace.to_string(),
         }
       }
-      ModuleOrSource::Source(source) => {
+      SourceReference::Source(source) => {
         let short_identifier = contextify(context, source);
         let identifier = short_identifier.clone();
 
@@ -137,7 +137,7 @@ impl ModuleFilenameHelpers {
   }
 
   pub async fn create_filename_of_fn_template(
-    module_or_source: &ModuleOrSource,
+    module_or_source: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
@@ -154,7 +154,7 @@ impl ModuleFilenameHelpers {
   }
 
   pub fn create_filename_of_string_template(
-    module_or_source: &ModuleOrSource,
+    module_or_source: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &str,
     output_options: &OutputOptions,

@@ -25,7 +25,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 
 use crate::{
-  ModuleFilenameTemplateFn, ModuleOrSource, generate_debug_id::generate_debug_id,
+  ModuleFilenameTemplateFn, SourceReference, generate_debug_id::generate_debug_id,
   mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
 };
 
@@ -246,11 +246,11 @@ impl SourceMapDevToolPlugin {
             .get_module_graph()
             .module_by_identifier(&identifier)
           {
-            Some(module) => ModuleOrSource::Module(module.identifier()),
-            None => ModuleOrSource::Source(source),
+            Some(module) => SourceReference::Module(module.identifier()),
+            None => SourceReference::Source(source),
           }
         } else {
-          ModuleOrSource::Source(source.to_string())
+          SourceReference::Source(source.to_string())
         };
 
         (source.to_string(), (file.to_string(), module_or_source))
@@ -274,7 +274,7 @@ impl SourceMapDevToolPlugin {
               };
               s.spawn(
                 |(namespace, compilation, file, module_or_source, file_to_chunk, template)| async move {
-                  if let ModuleOrSource::Source(source) = module_or_source
+                  if let SourceReference::Source(source) = module_or_source
                     && SCHEMA_SOURCE_REGEXP.is_match(source) {
                       return Ok(source.to_string());
                     }
@@ -328,7 +328,7 @@ impl SourceMapDevToolPlugin {
         let tasks = source_map_modules
           .values()
           .map(|(_, module_or_source)| async move {
-            if let ModuleOrSource::Source(source) = module_or_source
+            if let SourceReference::Source(source) = module_or_source
               && SCHEMA_SOURCE_REGEXP.is_match(source)
             {
               return Ok((module_or_source, source.to_string()));
@@ -358,12 +358,12 @@ impl SourceMapDevToolPlugin {
         .iter_mut()
         .sorted_by(|(key_a, _), (key_b, _)| {
           let ident_a = match key_a {
-            ModuleOrSource::Module(identifier) => identifier,
-            ModuleOrSource::Source(source) => source.as_str(),
+            SourceReference::Module(identifier) => identifier,
+            SourceReference::Source(source) => source.as_str(),
           };
           let ident_b = match key_b {
-            ModuleOrSource::Module(identifier) => identifier,
-            ModuleOrSource::Source(source) => source.as_str(),
+            SourceReference::Module(identifier) => identifier,
+            SourceReference::Source(source) => source.as_str(),
           };
           ident_a.len().cmp(&ident_b.len())
         })
@@ -692,8 +692,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let raw_assets = compilation
     .assets()
     .iter()
-    .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
-    .collect::<Vec<_>>();
+    .filter(|(_filename, asset)| asset.info.related.source_map.is_none());
   let mapped_asstes = self
     .mapped_assets_cache
     .use_cache(raw_assets, |assets| {

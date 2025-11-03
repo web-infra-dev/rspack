@@ -19,7 +19,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 
 use crate::{
-  ModuleFilenameTemplate, ModuleOrSource, SourceMapDevToolPluginOptions,
+  ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
   generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
 };
 
@@ -120,11 +120,11 @@ async fn eval_source_map_devtool_plugin_render_module_content(
               .get_module_graph()
               .module_by_identifier(&identifier)
             {
-              Some(module) => ModuleOrSource::Module(module.identifier()),
-              None => ModuleOrSource::Source(source),
+              Some(module) => SourceReference::Module(module.identifier()),
+              None => SourceReference::Source(source),
             }
           } else {
-            ModuleOrSource::Source(source.to_string())
+            SourceReference::Source(source.to_string())
           }
         });
         let path_data = PathData::default()

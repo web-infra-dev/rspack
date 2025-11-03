@@ -18,7 +18,7 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  ModuleFilenameTemplate, ModuleOrSource, module_filename_helpers::ModuleFilenameHelpers,
+  ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
 };
 
 #[derive(Clone, Debug)]
@@ -122,7 +122,7 @@ async fn eval_devtool_plugin_render_module_content(
   let output_options = &compilation.options.output;
   let str = match &self.module_filename_template {
     ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
-      &ModuleOrSource::Module(module.identifier()),
+      &SourceReference::Module(module.identifier()),
       compilation,
       s,
       output_options,
@@ -130,7 +130,7 @@ async fn eval_devtool_plugin_render_module_content(
     ),
     ModuleFilenameTemplate::Fn(f) => {
       ModuleFilenameHelpers::create_filename_of_fn_template(
-        &ModuleOrSource::Module(module.identifier()),
+        &SourceReference::Module(module.identifier()),
         compilation,
         f,
         output_options,
