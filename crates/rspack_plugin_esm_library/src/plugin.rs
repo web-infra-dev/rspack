@@ -3,6 +3,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
@@ -23,7 +24,7 @@ use rspack_plugin_javascript::{
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use sugar_path::SugarPath;
-use tokio::sync::{OnceCell, RwLock};
+use tokio::sync::RwLock;
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
@@ -39,9 +40,10 @@ pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
-  pub(crate) concatenated_modules_map_for_codegen: OnceCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenated_modules_map_for_codegen:
+    AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
   pub(crate) concatenated_modules_map: RwLock<Arc<IdentifierIndexMap<ModuleInfo>>>,
-  pub(crate) links: OnceCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
+  pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl EsmLibraryPlugin {
@@ -247,11 +249,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
-  self.concatenated_modules_map_for_codegen.take();
-  self
-    .concatenated_modules_map_for_codegen
-    .set(Arc::new(modules_map.clone()))
-    .expect("should set concatenated_modules_map_for_codegen");
+  let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
+  *map = Arc::new(modules_map.clone());
 
   *self.concatenated_modules_map.write().await = Arc::new(modules_map);
   // mark all entry exports as used
@@ -283,10 +282,7 @@ async fn concatenation_scope(
   _compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
-  let modules_map = self
-    .concatenated_modules_map_for_codegen
-    .get()
-    .expect("should already initialized");
+  let modules_map = self.concatenated_modules_map_for_codegen.borrow();
 
   let Some(current_module) = modules_map.get(&module) else {
     return Ok(None);

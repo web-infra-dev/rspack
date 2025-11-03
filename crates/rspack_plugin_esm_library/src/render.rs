@@ -76,9 +76,8 @@ impl EsmLibraryPlugin {
     asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
-    let chunk_link_guard = self.links.get().expect("should have chunk link");
-
-    let chunk_link = chunk_link_guard.get(chunk_ukey).expect("should have chunk");
+    let chunk_link_guard = self.links.borrow();
+    let chunk_link = &chunk_link_guard[chunk_ukey];
 
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
