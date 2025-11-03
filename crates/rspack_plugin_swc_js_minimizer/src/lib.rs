@@ -194,7 +194,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(&object_pool, &MapOptions::default());
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)

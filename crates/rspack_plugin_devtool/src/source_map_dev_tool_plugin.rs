@@ -222,7 +222,7 @@ impl SourceMapDevToolPlugin {
         if is_match {
           asset.get_source().map(|source| {
             let object_pool = tls.get_or(ObjectPool::default);
-            let source_map = source.map(&object_pool, &map_options);
+            let source_map = source.map(object_pool, &map_options);
             (file, source, source_map)
           })
         } else {
