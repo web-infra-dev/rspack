@@ -247,6 +247,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
+  self.concatenated_modules_map_for_codegen.take();
   self
     .concatenated_modules_map_for_codegen
     .set(Arc::new(modules_map.clone()))
