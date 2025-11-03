@@ -20,6 +20,9 @@ const baseConfig = {
 			type: 'modern-module',
 		},
 	},
+	plugins: [
+		new rspack.experiments.RslibPlugin()
+	],
 	optimization: {
 		avoidEntryIife: true,
 		minimize: false,
