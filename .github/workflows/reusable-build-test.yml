@@ -134,7 +134,7 @@ jobs:
         run: pnpm run test:ci
 
       - name: Debugger
-        uses: ./.github/actions/debugger/action.yml
+        uses: ./.github/actions/debugger
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
 
       ### WASM
