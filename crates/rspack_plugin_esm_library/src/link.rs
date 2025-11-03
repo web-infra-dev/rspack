@@ -407,7 +407,8 @@ impl EsmLibraryPlugin {
       chunk_link.namespace_object_sources.insert(module, source);
     }
 
-    self.links.set(link).expect("should set chunk link");
+    let mut links = self.links.borrow_mut();
+    *links = link;
     Ok(())
   }
 

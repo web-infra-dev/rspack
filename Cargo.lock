@@ -4274,6 +4274,7 @@ name = "rspack_plugin_esm_library"
 version = "0.6.0"
 dependencies = [
  "async-trait",
+ "atomic_refcell",
  "rayon",
  "regex",
  "rspack_cacheable",
