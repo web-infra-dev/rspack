@@ -29,7 +29,8 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveDependencyTemplate,
+    ImportMetaResolveHeaderDependencyTemplate, ModuleArgumentDependencyTemplate,
     ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
     ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
     PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
@@ -43,7 +44,6 @@ use crate::{
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
     local_module_dependency::LocalModuleDependencyTemplate,
     unsupported_dependency::UnsupportedDependencyTemplate,
-    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
 };

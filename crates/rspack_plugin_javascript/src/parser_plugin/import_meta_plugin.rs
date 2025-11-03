@@ -81,14 +81,10 @@ impl ImportMetaPlugin {
       for option in param.options() {
         self.process_import_meta_resolve_item(parser, option);
       }
-      parser
-        .dependencies
-        .push(import_meta_resolve_header_dependency);
+      parser.add_dependency(import_meta_resolve_header_dependency);
     } else {
       self.process_import_meta_resolve_item(parser, &param);
-      parser
-        .dependencies
-        .push(import_meta_resolve_header_dependency);
+      parser.add_dependency(import_meta_resolve_header_dependency);
     }
   }
 
@@ -99,13 +95,11 @@ impl ImportMetaPlugin {
   ) {
     if param.is_string() {
       let (start, end) = param.range();
-      parser
-        .dependencies
-        .push(Box::new(ImportMetaResolveDependency::new(
-          param.string().to_string(),
-          (start, end - 1).into(),
-          parser.in_try,
-        )));
+      parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
+        param.string().to_string(),
+        (start, end - 1).into(),
+        parser.in_try,
+      )));
     }
   }
 }
@@ -271,7 +265,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.destructuring_assignment_properties.get(&span)
       {
         let mut content = vec![];
-        for prop in referenced_properties_in_destructuring {
+        for prop in referenced_properties_in_destructuring.iter() {
           match prop.id.as_str() {
             "url" => {
               content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)));

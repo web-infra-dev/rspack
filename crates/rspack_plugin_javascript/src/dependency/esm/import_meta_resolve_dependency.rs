@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, module_id,
 };
 
 #[cacheable]
@@ -42,13 +42,14 @@ impl Dependency for ImportMetaResolveDependency {
     &DependencyType::ImportMetaResolve
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -71,10 +72,6 @@ impl ModuleDependency for ImportMetaResolveDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request;
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
