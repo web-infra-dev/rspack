@@ -40,9 +40,11 @@ pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
+  // the Arc here is to for module_codegen API, which needs to render module in parallel
+  // and read-only access the map, so it receives the map as an Arc
   pub(crate) concatenated_modules_map_for_codegen:
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
-  pub(crate) concatenated_modules_map: RwLock<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
   pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
@@ -253,7 +255,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   *map = Arc::new(modules_map.clone());
   drop(map);
 
-  *self.concatenated_modules_map.write().await = Arc::new(modules_map);
+  *self.concatenated_modules_map.write().await = modules_map;
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {
