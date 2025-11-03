@@ -11,7 +11,7 @@ const { values, positionals } = require("util").parseArgs({
 	allowPositionals: true
 });
 
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 
 const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
@@ -140,6 +140,16 @@ async function build() {
 				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
+				}
+
+				if(process.env.TRACY){
+					// split debug symbols for tracy
+				  spawnSync('dsymutil', [
+						path.resolve(__dirname, "..", "rspack.darwin-arm64.node")
+					], {
+						stdio: "inherit",
+						shell: true,
+					})
 				}
 			}
 			resolve(code);
