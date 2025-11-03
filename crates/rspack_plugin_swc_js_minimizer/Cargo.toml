@@ -34,4 +34,5 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
+thread_local = { workspace = true }
 tracing = { workspace = true }

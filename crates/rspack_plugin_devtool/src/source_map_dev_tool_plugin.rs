@@ -15,7 +15,7 @@ use rspack_collections::DatabaseItem;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin,
-  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
@@ -23,6 +23,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use thread_local::ThreadLocal;
 
 use crate::{
   ModuleFilenameTemplateFn, ModuleOrSource, generate_debug_id::generate_debug_id,
@@ -208,6 +209,7 @@ impl SourceMapDevToolPlugin {
     let map_options = MapOptions::new(self.columns);
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
+    let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
     let mut mapped_sources = raw_assets
       .into_par_iter()
       .filter_map(|(file, asset)| {
@@ -219,7 +221,8 @@ impl SourceMapDevToolPlugin {
 
         if is_match {
           asset.get_source().map(|source| {
-            let source_map = source.map(&map_options);
+            let object_pool = tls.get_or(ObjectPool::default);
+            let source_map = source.map(&object_pool, &map_options);
             (file, source, source_map)
           })
         } else {

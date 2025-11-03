@@ -4211,6 +4211,7 @@ dependencies = [
  "rustc-hash",
  "simd-json",
  "sugar_path",
+ "thread_local",
  "tracing",
 ]
 
@@ -4503,6 +4504,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
+ "thread_local",
  "tracing",
 ]
 
@@ -4673,6 +4675,7 @@ dependencies = [
  "rspack_plugin_devtool",
  "rspack_util",
  "rustc-hash",
+ "thread_local",
  "tokio",
  "tracing",
 ]
@@ -4854,6 +4857,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
+ "thread_local",
  "tracing",
 ]
 
@@ -4949,7 +4953,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.13"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=6ddd2b1cb8e90cc42127c1e1d951e79a164e9230#6ddd2b1cb8e90cc42127c1e1d951e79a164e9230"
+source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=a923139cba82f618ee70adfd609c12c905afcba0#a923139cba82f618ee70adfd609c12c905afcba0"
 dependencies = [
  "dashmap 6.1.0",
  "dyn-clone",
@@ -6764,12 +6768,11 @@ dependencies = [
 
 [[package]]
 name = "thread_local"
-version = "1.1.8"
+version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
+checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
- "once_cell",
 ]
 
 [[package]]
