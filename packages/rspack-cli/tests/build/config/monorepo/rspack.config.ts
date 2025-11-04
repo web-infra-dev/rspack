@@ -1,6 +1,5 @@
 // @ts-ignore: Because dynamically create {"type": "module"}
 
-
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import packageA_deps from "./packageA/index.ts";

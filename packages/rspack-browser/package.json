@@ -22,9 +22,7 @@
   "scripts": {
     "build": "pnpm run --fail-if-no-match --filter @rspack/core build:browser || pnpm --fail-if-no-match --filter @rspack-canary/core build:browser"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {

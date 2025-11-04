@@ -5,10 +5,13 @@ compiled/
 # Ignore lock files
 pnpm-lock.yaml
 
-# Ignore example fixtures
+# Ignore unknown format
+LICENSE
+gitignore
+.gitignore
+*.svg
 
 # Ignore test related
-
 packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/src/helper/legacy/**/*
