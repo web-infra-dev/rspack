@@ -1,7 +1,7 @@
-it("should not include sourcesContent if noSources option is used", function() {
+it("should not include sourcesContent if noSources option is used", function () {
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename, "utf-8");
-	var match = /\/\/# sourceMappingURL\s*=\s*data:application\/json;charset=utf-8;base64,(.*)\\n\/\/#/.exec(source);
+	var match = Array.from(source.matchAll(/\/\/# sourceMappingURL\s*=\s*data:application\/json;charset=utf-8;base64,(.*)\\n\/\/#/g))[1];
 	var mapString = Buffer.from(match[1], 'base64').toString('utf-8');
 	var map = JSON.parse(mapString);
 	expect(map).toHaveProperty("sourcesContent");

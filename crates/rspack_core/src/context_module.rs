@@ -17,6 +17,7 @@ use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
   fx_hash::FxIndexMap,
+  identifier::make_paths_relative,
   itoa, json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
@@ -186,7 +187,7 @@ impl ContextModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      identifier: create_identifier(&options),
+      identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
       build_info: Default::default(),
@@ -819,7 +820,7 @@ impl ContextModule {
         source_string,
         format!(
           "webpack://{}",
-          contextify(&compilation.options.context, self.identifier.as_str(),)
+          make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
         ),
       )
       .boxed()
@@ -868,8 +869,11 @@ impl Module for ContextModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &crate::Context) -> std::borrow::Cow<'_, str> {
-    self.identifier.as_str().into()
+  fn readable_identifier(&self, context: &crate::Context) -> std::borrow::Cow<'_, str> {
+    let identifier = contextify(context, self.options.resource.as_str());
+    create_identifier(&self.options, Some(identifier.as_str()))
+      .to_string()
+      .into()
   }
 
   fn size(
@@ -1098,8 +1102,8 @@ impl Identifiable for ContextModule {
   }
 }
 
-fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut id = options.resource.as_str().to_owned();
+fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
+  let mut id = resource.unwrap_or(options.resource.as_str()).to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;
