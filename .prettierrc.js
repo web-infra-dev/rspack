@@ -1,5 +1,4 @@
 module.exports = {
-	printWidth: 80,
 	useTabs: true,
 	tabWidth: 2,
 	trailingComma: "none",
@@ -21,7 +20,6 @@ module.exports = {
 		{
 			files: "website/**",
 			options: {
-				printWidth: 80,
 				singleQuote: true,
 				trailingComma: "all",
 				useTabs: false
