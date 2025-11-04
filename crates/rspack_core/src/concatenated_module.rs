@@ -1980,7 +1980,7 @@ impl ConcatenatedModule {
           root_module,
           MergedConcatenatedImport {
             runtime_condition: RuntimeCondition::Boolean(true),
-            non_defer_access: NonDeferAccess(false),
+            non_defer_access: NonDeferAccess(true),
           },
         );
 
@@ -2027,17 +2027,13 @@ impl ConcatenatedModule {
     imports_map: &IdentifierMap<Vec<ConcatenatedImport>>,
   ) {
     let module = import.connection.module_identifier();
-    let mut existing = match exists_entry.get(module) {
-      Some(existing)
-        if existing.runtime_condition == RuntimeCondition::Boolean(true)
-          && existing.non_defer_access == NonDeferAccess(true) =>
-      {
-        // runtime condition and non-defer access both no need to update
-        return;
-      }
-      None => None,
-      Some(existing) => Some(existing.clone()),
-    };
+    if let Some(existing) = exists_entry.get(module)
+      && existing.runtime_condition == RuntimeCondition::Boolean(true)
+      && existing.non_defer_access == NonDeferAccess(true)
+    {
+      // runtime condition and non-defer access both no need to update
+      return;
+    }
     if module_set.contains(module) {
       exists_entry.insert(
         *module,
@@ -2076,7 +2072,7 @@ impl ConcatenatedModule {
     } else {
       let reduced_runtime_condition;
       let reduced_non_defer_access;
-      if let Some(existing) = &mut existing {
+      if let Some(existing) = exists_entry.get_mut(module) {
         reduced_runtime_condition = subtract_runtime_condition(
           &import.runtime_condition,
           &existing.runtime_condition,
