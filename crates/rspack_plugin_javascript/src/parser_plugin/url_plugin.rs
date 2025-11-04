@@ -115,4 +115,14 @@ impl JavascriptParserPlugin for URLPlugin {
 
     None
   }
+
+  fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
+    let expr = expr.as_new()?;
+    let callee = expr.callee.as_ident()?;
+    if parser.get_free_info_from_variable(&callee.sym).is_none() || !callee.sym.eq("URL") {
+      return None;
+    }
+    get_url_request(parser, expr)?;
+    Some(true)
+  }
 }
