@@ -1,11 +1,10 @@
 Port of https://github.com/webpack/webpack/tree/main/lib/ids
 
-
 # Plan
 
 moduleIds
 
-- [ ] "natural" 
+- [ ] "natural"
 - [ ] "named"
 - [ ] "hashed"
 - [ ] "deterministic"

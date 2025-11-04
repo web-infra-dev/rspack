@@ -960,9 +960,6 @@ importers:
       heading-case:
         specifier: ^1.0.2
         version: 1.0.2
-      prettier:
-        specifier: 3.6.2
-        version: 3.6.2
       rsbuild-plugin-google-analytics:
         specifier: 1.0.4
         version: 1.0.4(@rsbuild/core@1.6.0)

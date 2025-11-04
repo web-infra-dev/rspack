@@ -24,12 +24,7 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
-  "files": [
-    "client",
-    "dist",
-    "template",
-    "jest.d.ts"
-  ],
+  "files": ["client", "dist", "template", "jest.d.ts"],
   "publishConfig": {
     "access": "public",
     "provenance": true
