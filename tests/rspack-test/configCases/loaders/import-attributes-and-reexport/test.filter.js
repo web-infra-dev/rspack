@@ -1,1 +1,0 @@
-module.exports = () => "FIXME: expect 'ab' but get 'abc'";

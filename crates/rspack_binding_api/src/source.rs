@@ -2,7 +2,7 @@ use std::{hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
+  BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
   WithoutOriginalOptions,
 };
@@ -101,7 +101,7 @@ impl From<JsSourceToJs> for BoxSource {
 }
 
 fn to_webpack_map(source: &dyn Source) -> Result<Option<String>> {
-  let map = source.map(&MapOptions::default());
+  let map = source.map(&ObjectPool::default(), &MapOptions::default());
 
   map.map(|m| m.to_json()).transpose().to_napi_result()
 }

@@ -415,7 +415,7 @@ function cachedWatchStats(
 ): () => StatsCompilation {
 	const compiler = context.getCompiler();
 	const watchContext = context.getValue("watchContext") as any;
-	const stepName: string = watchContext?.step!;
+	const stepName: string = watchContext?.step;
 	const statsGetter = (() => {
 		const cached: Record<string, StatsCompilation> = {};
 		return () => {

@@ -15,7 +15,9 @@ var source = require("fs")
 	.slice(0, 1)[0];
 
 const banner = parseBanner(source);
-const REGEXP_HASH = /^[A-Za-z0-9]{20}$/;
+// DIFF:
+// const REGEXP_HASH = /^[A-Za-z0-9]{20}$/;
+const REGEXP_HASH = /^[A-Za-z0-9]{16}$/;
 
 it("should interpolate file hash in chunk banner", () => {
 	expect(REGEXP_HASH.test(banner["fullhash"])).toBe(true);
@@ -30,7 +32,9 @@ it("should interpolate file into chunk banner", () => {
 });
 
 it("should interpolate name in chunk banner", () => {
-	expect(banner["name"]).toBe("dist/banner");
+	// DIFF:
+	// expect(banner["name"]).toBe("dist/banner");
+	expect(banner["name"]).toBe("banner");
 });
 
 it("should interpolate basename in chunk banner", () => {

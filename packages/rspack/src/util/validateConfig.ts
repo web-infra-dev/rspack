@@ -15,6 +15,14 @@ const validateContext = ({ context }: Configuration) => {
 	}
 };
 
+const validateOutputPath = ({ output }: Configuration) => {
+	if (output?.path && !isAbsolute(output.path)) {
+		throw new Error(
+			`${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`
+		);
+	}
+};
+
 const validateSplitChunks = ({ optimization }: Configuration) => {
 	if (optimization?.splitChunks) {
 		const { minChunks } = optimization.splitChunks;
@@ -84,6 +92,7 @@ const validateExternalUmd = ({
  */
 export function validateRspackConfig(config: Configuration) {
 	validateContext(config);
+	validateOutputPath(config);
 	validateSplitChunks(config);
 	validateExternalUmd(config);
 }

@@ -153,12 +153,10 @@ impl EsmLibraryPlugin {
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
     let mut concate_modules_map = self.concatenated_modules_map.write().await;
-    let concate_modules_map = Arc::get_mut(&mut concate_modules_map)
-      .expect("should have unique access to concatenated modules map");
 
     // analyze every modules and collect identifiers to concate_modules_map
     self
-      .analyze_module(compilation, concate_modules_map)
+      .analyze_module(compilation, &mut concate_modules_map)
       .await?;
 
     // initialize data for link chunks
@@ -250,7 +248,7 @@ impl EsmLibraryPlugin {
     for chunk_link in link.values_mut() {
       self.deconflict_symbols(
         compilation,
-        concate_modules_map,
+        &mut concate_modules_map,
         chunk_link,
         &escaped_names,
         &escaped_identifiers,
@@ -262,7 +260,7 @@ impl EsmLibraryPlugin {
     compilation.extend_diagnostics(self.link_imports_and_exports(
       compilation,
       &mut link,
-      concate_modules_map,
+      &mut concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
       &escaped_identifiers,
     ));
@@ -327,7 +325,7 @@ impl EsmLibraryPlugin {
                 &compilation.module_graph_cache_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
-                concate_modules_map,
+                &mut concate_modules_map,
                 &mut needed_namespace_objects,
                 false,
                 false,
@@ -407,7 +405,8 @@ impl EsmLibraryPlugin {
       chunk_link.namespace_object_sources.insert(module, source);
     }
 
-    self.links.set(link).expect("should set chunk link");
+    let mut links = self.links.borrow_mut();
+    *links = link;
     Ok(())
   }
 

@@ -13,6 +13,7 @@ parcel_sourcemap = { workspace = true }
 rayon            = { workspace = true }
 regex            = { workspace = true }
 ropey            = { workspace = true }
+thread_local     = { workspace = true }
 tracing          = { workspace = true }
 
 rspack_core  = { workspace = true }

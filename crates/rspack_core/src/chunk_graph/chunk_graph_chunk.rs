@@ -1,6 +1,6 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{borrow::Borrow, fmt, sync::Arc};
+use std::{borrow::Borrow, collections::VecDeque, fmt, sync::Arc};
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
@@ -806,6 +806,67 @@ impl ChunkGraph {
       }
     }
     false
+  }
+
+  pub fn get_runtime_chunk_dependent_chunks_iterable(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> impl Iterator<Item = ChunkUkey> {
+    let mut set = IndexSet::new();
+    let mut entrypoints = IndexSet::new();
+
+    let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+
+    for chunk_group_key in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
+      let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_key);
+      if chunk_group.kind.is_entrypoint() {
+        let mut queue = VecDeque::new();
+        queue.push_back(chunk_group);
+        while let Some(current) = queue.pop_front() {
+          entrypoints.insert(current.ukey);
+          let mut has_children_entrypoint = false;
+          for child in current.children_iterable() {
+            let child_chunk_group = chunk_group_by_ukey.expect_get(child);
+            if child_chunk_group.kind.is_entrypoint() {
+              has_children_entrypoint = true;
+              queue.push_back(child_chunk_group);
+            }
+          }
+
+          if has_children_entrypoint {
+            let entrypoint_chunk_ukey = current.get_entrypoint_chunk();
+            let entrypoint_chunk = chunk_by_ukey.expect_get(&entrypoint_chunk_ukey);
+            if entrypoint_chunk_ukey != *chunk_ukey
+              && !entrypoint_chunk.has_runtime(chunk_group_by_ukey)
+            {
+              set.insert(entrypoint_chunk_ukey);
+            }
+          }
+        }
+      }
+    }
+
+    for entrypoint_ukey in entrypoints {
+      let entrypoint = chunk_group_by_ukey.expect_get(&entrypoint_ukey);
+      let entrypoint_chunk_ukey = entrypoint.get_entrypoint_chunk();
+      let chunk_graph_chunk = self.expect_chunk_graph_chunk(&entrypoint_chunk_ukey);
+      for chunk_group_ukey in chunk_graph_chunk.entry_modules.values() {
+        let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+        for c in chunk_group.chunks.iter() {
+          let chunk = chunk_by_ukey.expect_get(c);
+          if c != chunk_ukey
+            && c != &entrypoint_chunk_ukey
+            && !chunk.has_runtime(chunk_group_by_ukey)
+          {
+            set.insert(*c);
+          }
+        }
+      }
+    }
+
+    set.into_iter()
   }
 
   pub fn get_chunk_entry_dependent_chunks_iterable(

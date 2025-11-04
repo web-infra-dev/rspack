@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: missing error"
+module.exports = () => "TODO: support case sensitive checking during emitting assets"

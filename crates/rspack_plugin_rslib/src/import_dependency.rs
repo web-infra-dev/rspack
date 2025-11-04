@@ -10,7 +10,7 @@ use swc_core::ecma::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct ModernModuleImportDependency {
+pub struct RslibImportDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -23,7 +23,7 @@ pub struct ModernModuleImportDependency {
   pub comments: Vec<(bool, String)>,
 }
 
-impl ModernModuleImportDependency {
+impl RslibImportDependency {
   pub fn new(
     id: DependencyId,
     request: Atom,
@@ -50,7 +50,7 @@ impl ModernModuleImportDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for ModernModuleImportDependency {
+impl Dependency for RslibImportDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -81,7 +81,7 @@ impl Dependency for ModernModuleImportDependency {
 }
 
 #[cacheable_dyn]
-impl ModuleDependency for ModernModuleImportDependency {
+impl ModuleDependency for RslibImportDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -100,24 +100,24 @@ impl ModuleDependency for ModernModuleImportDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyCodeGeneration for ModernModuleImportDependency {
+impl DependencyCodeGeneration for RslibImportDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(ModernModuleImportDependencyTemplate::template_type())
+    Some(RslibDependencyTemplate::template_type())
   }
 }
 
-impl AsContextDependency for ModernModuleImportDependency {}
+impl AsContextDependency for RslibImportDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub struct ModernModuleImportDependencyTemplate;
-impl ModernModuleImportDependencyTemplate {
+pub struct RslibDependencyTemplate;
+impl RslibDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Custom("ModernModuleImportDependency")
+    DependencyTemplateType::Custom("RslibImportDependency")
   }
 }
 
-impl DependencyTemplate for ModernModuleImportDependencyTemplate {
+impl DependencyTemplate for RslibDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
@@ -126,10 +126,8 @@ impl DependencyTemplate for ModernModuleImportDependencyTemplate {
   ) {
     let dep = dep
       .as_any()
-      .downcast_ref::<ModernModuleImportDependency>()
-      .expect(
-        "ModernModuleImportDependencyTemplate should be used for ModernModuleImportDependency",
-      );
+      .downcast_ref::<RslibImportDependency>()
+      .expect("RslibDependencyTemplate should be used for RslibImportDependency");
 
     let request_and_external_type = match &dep.target_request {
       ExternalRequest::Single(request) => (Some(request), &dep.external_type),
