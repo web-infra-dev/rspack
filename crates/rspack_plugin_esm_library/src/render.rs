@@ -76,15 +76,18 @@ impl EsmLibraryPlugin {
     asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
-    let chunk_link_guard = self.links.get().expect("should have chunk link");
 
-    let chunk_link = chunk_link_guard.get(chunk_ukey).expect("should have chunk");
+    // In this phase we only read from the lock, no write happen in this phase, the
+    // next write happen only happen for next compile start
+    let chunk_link_guard = self.links.borrow();
+    let chunk_link = &chunk_link_guard[chunk_ukey];
 
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
     let mut replace_auto_public_path = false;
     let mut replace_static_url = false;
 
+    // Same as above, we can only read here, the write happen only at the finish_modules phase
     let concatenated_modules_map = self.concatenated_modules_map.read().await;
 
     let chunk = get_chunk(compilation, *chunk_ukey);

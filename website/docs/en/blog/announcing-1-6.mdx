@@ -41,7 +41,7 @@ Rspack 1.6 improved tree shaking support for dynamic imports. In previous versio
 
 Now, Rspack introduces comprehensive static analysis for dynamic imports. It can recognize and handle a wider range of usage patterns. This allows Rspack to precisely eliminate unused exports and further reduce the size of the final bundle.
 
-```js title="rspack.config.mjs"
+```js
 // Rspack 1.5 – Only supported destructured imports
 const { value } = await import('./module');
 console.log(value);

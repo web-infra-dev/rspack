@@ -707,11 +707,11 @@ export interface JsBeforeEmitData {
 }
 
 export interface JsBuildMeta {
-  strictEsmModule: boolean
-  hasTopLevelAwait: boolean
-  esm: boolean
-  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  strictEsmModule?: boolean
+  hasTopLevelAwait?: boolean
+  esm?: boolean
+  exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
 }
@@ -2733,12 +2733,6 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   interceptApiPlugin?: boolean
-  /**
-   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
-   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
-   * @default `false`
-   */
-  compactExternalModuleDynamicImport?: boolean
   /**
    * Add shims for javascript/esm modules
    * @default `false`

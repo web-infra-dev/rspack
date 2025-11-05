@@ -105,9 +105,6 @@ export function createHotNormalCase(name: string, src: string, dist: string): vo
 export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
-export const createLocatedError: (collectedErrors: Error[], offset: number) => (e: Error, file: TRunnerFile) => Error;
-
-// @public (undocumented)
 export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
@@ -826,7 +823,8 @@ export class WebRunner extends NodeRunner {
         {
         exports: Record<string, unknown>;
     },
-    string
+    string,
+    number
     ];
     // (undocumented)
     protected log(message: string): void;
