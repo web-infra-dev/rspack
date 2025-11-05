@@ -1,1 +1,1 @@
-module.exports = () => "TODO: support context module of new URL";
+module.exports = () => "TODO: support webpackComments of new URL in new Worker";
