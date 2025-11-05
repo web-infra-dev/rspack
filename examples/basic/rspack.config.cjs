@@ -5,15 +5,15 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	mode: 'development',
+	mode: "development",
 	devtool: false,
 	output: {
 		module: true,
-		libraryTarget: 'module',
-		chunkFormat: 'module'
+		libraryTarget: "module",
+		chunkFormat: "module"
 	},
 	optimization: {
-		runtimeChunk: 'single'
+		runtimeChunk: "single"
 	},
 	experiments: {
 		mfAsyncStartup: false,
