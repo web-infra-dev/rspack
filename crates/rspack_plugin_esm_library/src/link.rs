@@ -1215,8 +1215,15 @@ impl EsmLibraryPlugin {
           .and_then(|dep| dep.downcast_ref::<ESMExportImportedSpecifierDependency>())
           .and_then(|dep| {
             module_graph
-              .get_module_by_dependency_id(&dep.id)
-              .map(|module| (dep, module))
+              .connection_by_dependency_id(&dep.id)
+              .map(|conn| {
+                (
+                  dep,
+                  module_graph
+                    .module_by_identifier(conn.module_identifier())
+                    .expect("should have module"),
+                )
+              })
           })
       })
       .map(|(export_imported_dep, module)| {
@@ -1266,7 +1273,6 @@ impl EsmLibraryPlugin {
         }
 
         let chunk_link = link.get_mut_unwrap(&current_chunk);
-
         match re_exports {
           rspack_core::ExportMode::Missing
           | rspack_core::ExportMode::LazyMake
@@ -1478,6 +1484,27 @@ impl EsmLibraryPlugin {
                   break;
                 };
                 export_info = target_export_info;
+              }
+
+              if ref_module != orig_ref_module
+                && let Some(external_module) = module_graph
+                  .module_by_identifier(&ref_module)
+                  .expect("should have module")
+                  .as_external_module()
+                && matches!(
+                  external_module.get_external_type().as_str(),
+                  "module-import" | "module"
+                )
+              {
+                // handle external module
+                Self::re_export_from_external_module(
+                  external_module,
+                  current_chunk,
+                  &rspack_core::ExportMode::NormalReexport(mode.clone()),
+                  link,
+                  export_dep,
+                );
+                continue;
               }
 
               let chunk_link = link.get_mut_unwrap(&current_chunk);
