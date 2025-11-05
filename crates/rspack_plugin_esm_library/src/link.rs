@@ -1,7 +1,7 @@
 use std::{
   collections::{self},
   hash::BuildHasher,
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use rayon::prelude::*;
@@ -11,18 +11,19 @@ use rspack_collections::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  IdentCollector, InitFragmentKey, InitFragmentStage, MaybeDynamicTargetExportInfoHashKey,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
-  NormalInitFragment, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode,
-  UsageState, UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
-  get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, ExternalModule, FindTargetResult,
+  GetUsedNameParam, IdentCollector, InitFragmentKey, InitFragmentStage,
+  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PathData, PrefetchExportsInfoMode,
+  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
+  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template, property_access,
+  property_name, reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
+  JS_DEFAULT_KEYWORD, JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
   visitors::swc_visitor::resolver,
 };
 use rspack_util::{
@@ -62,6 +63,8 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
     self.get_mut(key).expect("should have value in the map")
   }
 }
+
+static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
 
 #[derive(Default)]
 struct ExportsContext {
@@ -1056,6 +1059,22 @@ impl EsmLibraryPlugin {
             continue;
           }
 
+          if export_info.is_reexport()
+            && let Some((Some(dep), _)) = export_info.target().iter().next()
+          {
+            let module_id = module_graph
+              .module_identifier_by_dependency_id(dep)
+              .expect("should be ESMExportImportedSpecifierDependency");
+            let module = module_graph
+              .module_by_identifier(module_id)
+              .expect("should have module");
+            if module.as_external_module().is_some() {
+              // ignore re-exported symbol from external module
+              // we have special handle for external module re-exports
+              continue;
+            }
+          }
+
           let local = match export_info.used_name() {
             Some(UsedNameItem::Inlined(inlined)) => inlined.render().into(),
             Some(UsedNameItem::Str(name)) => {
@@ -1089,6 +1108,83 @@ impl EsmLibraryPlugin {
     );
 
     errors
+  }
+
+  fn re_export_from_external_module(
+    module: &ExternalModule,
+    current_chunk: ChunkUkey,
+    mode: &ExportMode,
+    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
+    export_dep: &ESMExportImportedSpecifierDependency,
+  ) {
+    match mode {
+      // render export * from 'external module'
+      ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(export_dep.request.to_string())
+          .or_default()
+          .insert(START_EXPORTS.clone());
+      }
+
+      ExportMode::Unused(mode) if mode.name == "*" => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(export_dep.request.to_string())
+          .or_default()
+          .insert(START_EXPORTS.clone());
+      }
+
+      ExportMode::ReexportUndefined(_)
+      | ExportMode::Missing
+      | ExportMode::LazyMake
+      | ExportMode::Unused(_) => {}
+
+      ExportMode::ReexportDynamicDefault(_) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link.add_re_export_from_request(
+          module.user_request().to_string(),
+          JS_DEFAULT_KEYWORD.clone(),
+          JS_DEFAULT_KEYWORD.clone(),
+        );
+      }
+      ExportMode::ReexportNamedDefault(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link.add_re_export_from_request(
+          module.user_request().to_string(),
+          JS_DEFAULT_KEYWORD.clone(),
+          mode.name.clone(),
+        );
+      }
+      ExportMode::ReexportNamespaceObject(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(module.user_request().to_string())
+          .or_default()
+          .insert(mode.name.clone());
+      }
+      ExportMode::ReexportFakeNamespaceObject(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(module.user_request().to_string())
+          .or_default()
+          .insert(mode.name.clone());
+      }
+      ExportMode::NormalReexport(normal) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        for item in &normal.items {
+          chunk_link.add_re_export_from_request(
+            module.user_request().into(),
+            item.ids.first().unwrap_or(&item.name).clone(),
+            item.name.clone(),
+          );
+        }
+      }
+    }
   }
 
   // export * from 'target'
@@ -1148,28 +1244,24 @@ impl EsmLibraryPlugin {
       for (export_dep, re_exports) in deps_and_modes {
         // reset ref_module for each dep
         let ref_module = orig_ref_module;
-        // optimize `export * from 'external module'`
-        let possible_to_optimize_mode = matches!(
-          &re_exports,
-          ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_)
-        ) || matches!(&re_exports, ExportMode::Unused(mode) if &mode.name == "*");
 
         let ref_box_module = module_graph
           .module_by_identifier(&ref_module)
           .expect("should have mode");
 
-        let optimize_reexport_star = possible_to_optimize_mode
-          && export_dep.name.is_none()
-          && ref_box_module
-            .as_external_module()
-            .is_some_and(|m| matches!(m.get_external_type().as_str(), "module-import" | "module"));
-
-        if optimize_reexport_star {
-          // render export * from 'external module'
-          let chunk_link = link.get_mut_unwrap(&current_chunk);
-          chunk_link
-            .raw_star_exports
-            .insert(export_dep.request.to_string());
+        if let Some(external_module) = ref_box_module.as_external_module()
+          && matches!(
+            external_module.get_external_type().as_str(),
+            "module-import" | "module"
+          )
+        {
+          Self::re_export_from_external_module(
+            external_module,
+            current_chunk,
+            &re_exports,
+            link,
+            export_dep,
+          );
           continue;
         }
 
@@ -1974,7 +2066,7 @@ impl EsmLibraryPlugin {
     we can remove the empty raw_import if there is star reexport.
     */
     for chunk_link in link.values_mut() {
-      for source in &chunk_link.raw_star_exports {
+      for (source, _) in &chunk_link.raw_star_exports {
         let key = (source.clone(), None);
         if let Some(import_spec) = chunk_link.raw_import_stmts.get(&key)
           && import_spec.atoms.is_empty()

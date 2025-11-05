@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
-import fs_0 , { readFile as external_fs_readFile } from "fs";
-
+import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
 // fs
 
 // ./lib.js
@@ -15,28 +14,41 @@ const starExports = 42
 
 // ./index.js
 
+// reexport named default
+
+// reexport default
 
 
 
 
 
+
+
+
+;
 
 it('should compile and import success', async () => {
+	// make sure fs usedName is Namespace
+	expect(__WEBPACK_EXTERNAL_MODULE_fs__).toBeDefined()
 	const {
 		fs,
 		/* star re-exported */ readFileSync,
 		/* renamed re-exported */ r,
+		default: defaultExport,
+		fsNs,
 		readFile
 	} = await import(/*webpackIgnore: true*/'./main.mjs')
-
 	expect(fs).toBeDefined()
+	expect(defaultExport).toBeDefined()
+	expect(fsNs).toBeDefined()
 	expect(readFileSync).toBeDefined()
 	expect(r).toBeDefined()
 	expect(readFile).toBeDefined()
 })
 
 export { named, starExports };
+export * as fsNs from "fs";
 export * from "fs";
-export { default as fs, readFile as r, readFile } from "fs";
+export { default, default as fs, readFile as r, readFile } from "fs";
 
 ```
