@@ -186,6 +186,7 @@ export type TTestConfig = {
 	esmLibPluginOptions?: {
 		preserveModules?: string;
 	};
+	resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 
 export type TTestFilter = (
