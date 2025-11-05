@@ -57,15 +57,17 @@ Then follow the prompts in your terminal.
 
 ### Non-interactive mode
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) provides several CLI options. With these options, you can skip interactive prompts and create an app directly in non-interactive mode.
+[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) support a non-interactive mode through command-line options. This mode lets you skip all prompts and create a project directly, which is useful for scripts, CI, and coding agents.
 
 For example, the following command creates a React app in the `my-app` directory:
 
 ```bash
 # Rspack CLI
 npx -y create-rspack --dir my-app --template react
+
 # Rsbuild
 npx -y create-rsbuild --dir my-app --template react
+
 # Using abbreviations
 npx -y create-rsbuild -d my-app -t react
 ```
