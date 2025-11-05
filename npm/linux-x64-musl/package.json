@@ -13,17 +13,9 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": [
-      "linux"
-    ],
-    "cpu": [
-      "x64"
-    ],
-    "libc": [
-      "musl"
-    ]
+    "os": ["linux"],
+    "cpu": ["x64"],
+    "libc": ["musl"]
   },
-  "files": [
-    "rspack.linux-x64-musl.node"
-  ]
+  "files": ["rspack.linux-x64-musl.node"]
 }
