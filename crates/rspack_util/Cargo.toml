@@ -17,7 +17,7 @@ cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
-regex            = { workspace = true }
+regex            = { workspace = true, features = ["pattern"] }
 ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
@@ -46,5 +46,5 @@ debug_tool = ["signal-hook"]                                                    
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

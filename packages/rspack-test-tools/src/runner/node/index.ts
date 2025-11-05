@@ -192,6 +192,7 @@ export class NodeRunner implements ITestRunner {
 			Buffer,
 			setImmediate,
 			self: this.globalContext,
+			__TEST_PATH__: __TEST_PATH__,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			Worker: createFakeWorker(this._options.env, {
