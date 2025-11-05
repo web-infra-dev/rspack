@@ -1,4 +1,3 @@
-const path = require("path")
 const rspack = require("@rspack/core");
 
 /** @type {rspack.Configuration} */
