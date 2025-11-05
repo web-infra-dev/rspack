@@ -4,6 +4,7 @@ use swc_core::{
   common::Spanned,
   ecma::ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
 };
+use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -24,23 +25,50 @@ pub fn get_url_request(
   parser: &mut JavascriptParser,
   expr: &NewExpr,
 ) -> Option<(String, u32, u32)> {
-  if let Some(args) = &expr.args
-    && let Some(ExprOrSpread {
+  let args = expr.args.as_ref()?;
+  let ExprOrSpread {
+    spread: None,
+    expr: arg1,
+  } = args.first()?
+  else {
+    return None;
+  };
+  let arg2 = args.get(1);
+
+  if let Some(arg2) = arg2 {
+    // new URL(xx, import.meta.url)
+    let ExprOrSpread {
       spread: None,
-      expr: arg1,
-    }) = args.first()
-    && let Some(ExprOrSpread {
-      spread: None,
-      expr: arg2_expr,
-    }) = args.get(1)
-    && let Expr::Member(arg2) = &**arg2_expr
-    && is_meta_url(parser, arg2)
-  {
-    return parser
-      .evaluate_expression(arg1)
-      .as_string()
-      .map(|req| (req, arg1.span().real_lo(), arg2.span().real_hi()));
+      expr: arg2,
+    } = arg2
+    else {
+      return None;
+    };
+    let Expr::Member(arg2) = &**arg2 else {
+      return None;
+    };
+    if is_meta_url(parser, arg2) {
+      return parser
+        .evaluate_expression(arg1)
+        .as_string()
+        .map(|req| (req, arg1.span().real_lo(), arg2.span().real_hi()));
+    }
+  } else {
+    // new URL(import.meta.url)
+    let Expr::Member(arg1) = &**arg1 else {
+      return None;
+    };
+    if is_meta_url(parser, arg1) {
+      return Some((
+        Url::from_file_path(parser.resource_data.resource())
+          .expect("should be a path")
+          .to_string(),
+        arg1.span().real_lo(),
+        arg1.span().real_hi(),
+      ));
+    }
   }
+
   None
 }
 
