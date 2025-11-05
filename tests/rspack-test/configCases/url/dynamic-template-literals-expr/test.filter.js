@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: should be string";
+module.exports = () => "TODO: support context module of new URL";
