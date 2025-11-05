@@ -427,6 +427,10 @@ pub trait JavascriptParserPlugin {
   fn finish(&self, _parser: &mut JavascriptParser) -> Option<bool> {
     None
   }
+
+  fn is_pure(&self, _parser: &mut JavascriptParser, _expr: &Expr) -> Option<bool> {
+    None
+  }
 }
 
 pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin + Send + Sync>;
