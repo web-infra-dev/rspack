@@ -591,9 +591,9 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     if iife {
       sources.add(RawStringSource::from(if supports_arrow_function {
-        "(() => { // webpackBootstrap\n"
+        "(() => {\n"
       } else {
-        "(function() { // webpackBootstrap\n"
+        "(function() {\n"
       }));
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {

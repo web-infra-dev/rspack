@@ -4,7 +4,7 @@ ERROR in main.js
          ╭─[1:6]
        1 │ const a {}
          ·       ─
-       2 │ (() => { // webpackBootstrap
+       2 │ (() => {
        3 │ console.log(0);
          ╰────
 
@@ -14,7 +14,7 @@ ERROR in main.js
          ╭─[1:8]
        1 │ const a {}
          ·         ─
-       2 │ (() => { // webpackBootstrap
+       2 │ (() => {
        3 │ console.log(0);
          ╰────
 

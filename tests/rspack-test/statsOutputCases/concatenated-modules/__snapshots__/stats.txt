@@ -1,4 +1,4 @@
-asset main.js 234 bytes [emitted] (name: main)
+asset main.js 214 bytes [emitted] (name: main)
 orphan modules 141 bytes [orphan] 4 modules
 ./index.js + 3 modules 141 bytes [code generated]
 Rspack x.x.x compiled successfully in X s
