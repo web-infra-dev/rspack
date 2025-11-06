@@ -4,18 +4,22 @@ use std::{
 };
 
 use rspack_core::{
-  Compilation, CompilationParams, CompilerCompilation, CompilerFinishMake, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, CompilerFinishMake, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, get_module_directives,
+  get_module_hashbang,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_asset::AssetParserAndGenerator;
 use rspack_plugin_javascript::{
-  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
+  BoxJavascriptParserPlugin, JavascriptModulesRender, JsPlugin, RenderSource,
+  parser_and_generator::JavaScriptParserAndGenerator,
 };
 
 use crate::{
-  asset::RslibAssetParserAndGenerator, import_dependency::RslibDependencyTemplate,
+  asset::RslibAssetParserAndGenerator, directives_parser_plugin::DirectivesParserPlugin,
+  hashbang_parser_plugin::HashbangParserPlugin, import_dependency::RslibDependencyTemplate,
   import_external::replace_import_dependencies_for_external_modules,
   parser_plugin::RslibParserPlugin,
 };
@@ -54,6 +58,12 @@ async fn nmf_parser(
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
     if module_type.is_js_like() {
+      // Register HashbangParserPlugin first to ensure it runs before CompatibilityPlugin
+      parser.add_parser_plugin(Box::new(HashbangParserPlugin) as BoxJavascriptParserPlugin);
+
+      // Register DirectivesParserPlugin to handle React directives
+      parser.add_parser_plugin(Box::new(DirectivesParserPlugin) as BoxJavascriptParserPlugin);
+
       parser.add_parser_plugin(
         Box::new(RslibParserPlugin::new(self.options.intercept_api_plugin))
           as BoxJavascriptParserPlugin,
@@ -88,6 +98,77 @@ async fn compilation(
     RslibDependencyTemplate::template_type(),
     Arc::new(RslibDependencyTemplate::default()),
   );
+
+  // Register render hook for hashbang and directives handling during chunk generation
+  let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.write().await;
+  hooks.render.tap(render::new(self));
+  drop(hooks);
+
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesRender for RslibPlugin)]
+async fn render(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  render_source: &mut RenderSource,
+) -> Result<()> {
+  let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+  if entry_modules.is_empty() {
+    return Ok(());
+  }
+
+  let module_graph = compilation.get_module_graph();
+
+  // Find the first entry module with a hashbang or directives
+  for entry_module_id in &entry_modules {
+    let hashbang = get_module_hashbang(&module_graph, entry_module_id);
+    let directives = get_module_directives(&module_graph, entry_module_id);
+
+    if hashbang.is_none() && directives.is_none() {
+      continue;
+    }
+
+    use rspack_core::rspack_sources::Source;
+    let original_source_str = render_source.source.source().into_string_lossy();
+
+    let mut new_source = ConcatSource::default();
+
+    // Prepend the hashbang first (if exists)
+    if let Some(hashbang) = hashbang {
+      new_source.add(RawStringSource::from(format!("{}\n", hashbang)));
+    }
+
+    // Handle directives placement considering "use strict"
+    if let Some(directives) = directives {
+      let use_strict_prefix = "\"use strict\";\n";
+      if let Some(rest) = original_source_str.strip_prefix(use_strict_prefix) {
+        // Insert directives after "use strict"
+        new_source.add(RawStringSource::from(use_strict_prefix));
+        for directive in directives {
+          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+        }
+        new_source.add(RawStringSource::from(rest));
+      } else {
+        // Insert directives before everything else
+        for directive in directives {
+          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+        }
+        new_source.add(render_source.source.clone());
+      }
+    } else {
+      // No directives, just add the original source
+      new_source.add(render_source.source.clone());
+    }
+
+    render_source.source = new_source.boxed();
+
+    // Only use the first entry module with hashbang or directives
+    break;
+  }
+
   Ok(())
 }
 

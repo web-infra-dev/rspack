@@ -4,7 +4,8 @@ use rspack_collections::Identifier;
 use rspack_util::comparators::{compare_ids, compare_numbers};
 
 use crate::{
-  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
+  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
+  ConcatenatedModule, ModuleGraph, ModuleIdentifier,
 };
 mod comment;
 mod compile_boolean_matcher;
@@ -143,6 +144,65 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
 
 pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
   compare_ids(&a.identifier(), &b.identifier())
+}
+
+/// # Returns
+/// - `Some(String)` if a hashbang is found in the module's build_info extras
+/// - `None` if no hashbang is present or the module doesn't exist
+pub fn get_module_hashbang(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<String> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("hashbang")
+    .and_then(|v| v.as_str())
+    .map(|s| s.to_string())
+}
+
+/// # Returns
+/// - `Some(Vec<String>)` if directives are found in the module's build_info extras
+/// - `None` if no directives are present or the module doesn't exist
+pub fn get_module_directives(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<Vec<String>> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("directives")
+    .and_then(|v| v.as_array())
+    .map(|arr| {
+      arr
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect()
+    })
 }
 
 pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
