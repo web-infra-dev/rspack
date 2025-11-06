@@ -1,3 +1,0 @@
-function doNotImportCss() {
-  return 'doNotImportCss';
-}

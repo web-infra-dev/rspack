@@ -2,10 +2,7 @@ const { DefinePlugin } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	cache: {
-		type: "memory",
-		cacheUnaffected: false
-	},
+	cache: true,
 	plugins: [
 		compiler => {
 			const base = {
