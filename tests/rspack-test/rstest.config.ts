@@ -29,7 +29,6 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"NativeWatcher*.test.js",
 
 		// Rstest ignored
-		// "Config.test.js",
 		// "EsmOutput.test.js",
 	],
 	maxConcurrency: 1,
@@ -50,7 +49,7 @@ setTimeout(() => {
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
-	include: [
+	include: process.env.WASM ? ["Config.test.js",] :[
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
