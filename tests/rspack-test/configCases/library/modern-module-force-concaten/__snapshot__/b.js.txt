@@ -5,7 +5,6 @@ module.exports = 'b'
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -29,7 +28,6 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined

@@ -13,7 +13,6 @@ module.exports = "c";
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -37,7 +36,6 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // webpack/runtime/compat_get_default_export
 (() => {
 // getDefaultExport function for compatibility with non-ESM modules
@@ -64,7 +62,6 @@ __webpack_require__.d = (exports, definition) => {
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
-/************************************************************************/
 // This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
 (() => {
 "use strict";
