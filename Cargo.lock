@@ -5577,9 +5577,9 @@ dependencies = [
 
 [[package]]
 name = "swc_atoms"
-version = "8.0.1"
+version = "8.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d3c59621f6909ec8b0f2d4f467c4d802650f4a9d19bb9911b9ff413162f7748"
+checksum = "b40c2b43a19b5d0706aca8669ae5b77b92bd141f7f8ce5e980e0e52430f54b20"
 dependencies = [
  "bytecheck 0.8.0",
  "hstr",
@@ -5681,9 +5681,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "46.0.2"
+version = "46.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af7fd770b41d96857fa84524a68985cd83347f6221099b2ad08b5a2cc2941963"
+checksum = "f062270a2c008b097af0f2f512fb7f6137c3ef26527fcfa7e1477acc7dc78bba"
 dependencies = [
  "par-core",
  "swc",
