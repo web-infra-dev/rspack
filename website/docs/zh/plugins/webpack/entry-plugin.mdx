@@ -40,3 +40,35 @@ type EntryOptions =
 当 `options` 为字符串时，它的值会被作为 `name` 使用。
 
 请参考 [入口描述对象](/config/entry#入口描述对象) 了解所有可用的选项。
+
+## 全局入口
+
+当 `options.name` 为 `undefined` 时，该入口会被视为**全局入口**。全局入口是特殊的入口，其依赖项和包含的依赖项会被注入到：
+
+1. **常规入口点** - 普通入口 chunk
+2. **异步入口点** - 由 `new Worker()` 或其他异步入口机制创建的入口 chunk
+
+此行为确保全局依赖项（例如 webpack-dev-server 添加的热模块替换相关代码，或 ModuleFederationPlugin 添加的运行时初始化代码）在所有上下文中都可用，包括 Web Workers。
+
+### 使用场景
+
+全局入口通常由以下场景使用：
+
+- **webpack-dev-server**：注入 HMR（热模块替换）运行时代码
+- **ModuleFederationPlugin**：注入模块联邦运行时初始化代码
+- **自定义插件**：可以注入需要在所有入口上下文中可用的代码
+
+### 示例
+
+```js
+// 创建一个全局入口（name 为 undefined）
+new rspack.EntryPlugin(
+  context,
+  './global-runtime.js',
+  { name: undefined }
+);
+
+// 此全局入口将被包含在：
+// - 常规入口 chunk
+// - 使用 new Worker() 创建的 worker 入口 chunk
+```

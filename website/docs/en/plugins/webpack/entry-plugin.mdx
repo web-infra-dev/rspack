@@ -40,3 +40,35 @@ type EntryOptions =
 If `options` is a string, its value will be used as `name`.
 
 Please refer to [Entry Description Object](/config/entry#entry-description-object) for all available options.
+
+## Global Entry
+
+When `options.name` is `undefined`, the entry is treated as a **global entry**. Global entries are special entries whose dependencies and included dependencies are injected into:
+
+1. **Regular entrypoints** - Normal entry chunks
+2. **Async entrypoints** - Entry chunks created by `new Worker()` or other async entry mechanisms
+
+This behavior ensures that global dependencies (such as those added by webpack-dev-server for hot module replacement, or by ModuleFederationPlugin for runtime initialization) are available in all contexts, including Web Workers.
+
+### Use Cases
+
+Global entries are typically used by:
+
+- **webpack-dev-server**: Injects HMR (Hot Module Replacement) runtime code
+- **ModuleFederationPlugin**: Injects Module Federation runtime initialization code
+- **Custom plugins**: Can inject code that needs to be available across all entry contexts
+
+### Example
+
+```js
+// Creating a global entry (name is undefined)
+new rspack.EntryPlugin(
+  context,
+  './global-runtime.js',
+  { name: undefined }
+);
+
+// This global entry will be included in both:
+// - Regular entry chunks
+// - Worker entry chunks created with new Worker()
+```
