@@ -30,7 +30,7 @@ use tokio::sync::RwLock;
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
   ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
-  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
+  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime, split_chunks::CacheGroup,
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -39,6 +39,8 @@ pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
+  pub(crate) split_chunks: Option<Vec<CacheGroup>>,
+
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
   // the Arc here is to for module_codegen API, which needs to render module in parallel
@@ -51,9 +53,10 @@ pub struct EsmLibraryPlugin {
 }
 
 impl EsmLibraryPlugin {
-  pub fn new(preserve_modules: Option<PathBuf>) -> Self {
+  pub fn new(preserve_modules: Option<PathBuf>, split_chunks: Option<Vec<CacheGroup>>) -> Self {
     Self::new_inner(
       preserve_modules,
+      split_chunks,
       Default::default(),
       Default::default(),
       Default::default(),
@@ -486,6 +489,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       compilation.extend_diagnostics(errors);
     }
   } else {
+    if let Some(cache_groups) = &self.split_chunks {
+      crate::split_chunks::split(cache_groups, compilation, true);
+    }
     ensure_entry_exports(compilation);
   }
 
