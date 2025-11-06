@@ -34,25 +34,25 @@ module.exports = {
 						}));
 						assetsInfo.sort((a, b) => (a.path > b.path ? 1 : -1));
 						expect(assetsInfo).toMatchInlineSnapshot(`
-				Array [
-				  Object {
-				    path: a.js,
-				    size: 4249,
-				  },
-				  Object {
-				    path: b.js,
-				    size: 4249,
-				  },
-				  Object {
-				    path: c_js.js,
-				    size: 235,
-				  },
-				  Object {
-				    path: d_js.js,
-				    size: 235,
-				  },
-				]
-			`);
+							Array [
+							  Object {
+							    path: a.js,
+							    size: 4229,
+							  },
+							  Object {
+							    path: b.js,
+							    size: 4229,
+							  },
+							  Object {
+							    path: c_js.js,
+							    size: 235,
+							  },
+							  Object {
+							    path: d_js.js,
+							    size: 235,
+							  },
+							]
+						`);
 					});
 				});
 			}

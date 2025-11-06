@@ -1,5 +1,5 @@
 ```js title=main.js
-(() => { // webpackBootstrap
+(() => {
 var __webpack_modules__ = ({
 "../../normalModuleFactory​#afterResolve/duplicate/a.js": (function (module) {
 module.exports = "a";
