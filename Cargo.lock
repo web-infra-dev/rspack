@@ -2929,6 +2929,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pkg-config"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
+
+[[package]]
 name = "pnp"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3391,6 +3397,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpmalloc"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86179c13cdc0bcedbb60e63c1aebe3bac82162ddfa746320de6dcea31ebe2b06"
+dependencies = [
+ "rpmalloc-sys",
+]
+
+[[package]]
+name = "rpmalloc-sys"
+version = "0.2.3+b097fd0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d4b7d5e225a53887ee57fcec492eaf114b8e290f7072d035adc6ddd6810b67b"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
 name = "rspack"
 version = "0.6.1"
 dependencies = [
@@ -3481,6 +3507,7 @@ name = "rspack_allocator"
 version = "0.6.1"
 dependencies = [
  "mimalloc-rspack",
+ "rpmalloc",
  "sftrace-setup",
 ]
 

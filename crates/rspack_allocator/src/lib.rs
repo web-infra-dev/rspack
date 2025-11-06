@@ -1,7 +1,7 @@
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]
 #[cfg(not(feature = "sftrace-setup"))]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
 
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]
