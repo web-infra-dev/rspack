@@ -47,7 +47,7 @@
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
-    "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
+    "bench:ci": "pnpm run bench:prepare && cargo codspeed run",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "homepage": "https://rspack.rs",
