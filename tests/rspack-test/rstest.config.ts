@@ -42,7 +42,7 @@ const wasmConfig = process.env.WASM && defineConfig({
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
-	include: process.env.WASM ? ["Config.test.js",] :[
+	include: [
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
