@@ -20,7 +20,8 @@ use crate::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   },
   visitors::{
-    JavascriptParser, Statement, TagInfoData, VariableDeclaration, scope_info::VariableInfoFlags,
+    ExportedVariableInfo, JavascriptParser, Statement, TagInfoData, VariableDeclaration,
+    scope_info::VariableInfoFlags,
   },
 };
 
@@ -639,19 +640,42 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
   fn class_body_element(
     &self,
     parser: &mut JavascriptParser,
-    _element: &swc_core::ecma::ast::ClassMember,
+    element: &ClassMember,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
-
-    if parser
+    if let Some(top_level_symbol) = parser
       .inner_graph
       .class_with_top_level_symbol
-      .contains_key(&class_decl_or_expr.span())
+      .get(&class_decl_or_expr.span())
     {
+      let top_level_symbol_variable_name = top_level_symbol.name.clone();
       parser.inner_graph.set_top_level_symbol(None);
+      /*
+       * ```js
+       * var A = class B {
+       *   static {
+       *     this;
+       *     B;
+       *   }
+       * }
+       * ```
+       * Alias `this` and `B` (class ident) to top level symbol `A` here, so `A` is used if `this` or `B`
+       * is used in static block (`add_usage` in identifier hook and this hook), even `A` is not used in
+       * any other place.
+       */
+      if let ClassMember::StaticBlock(_) = element {
+        let class_var = parser
+          .get_variable_info(&top_level_symbol_variable_name)
+          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
+        if let Some(class_ident) = class_decl_or_expr.ident() {
+          parser.set_variable(class_ident.sym.clone(), class_var.clone());
+        }
+        parser.set_variable("this".into(), class_var);
+      }
     }
 
     None
@@ -799,6 +823,16 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     &self,
     parser: &mut JavascriptParser,
     _ident: &swc_core::ecma::ast::Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    Self::for_each_expression(parser, for_name);
+    None
+  }
+
+  fn this(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::ThisExpr,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);

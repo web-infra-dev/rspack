@@ -302,7 +302,12 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn this(&self, _parser: &mut JavascriptParser, _expr: &ThisExpr) -> Option<bool> {
+  fn this(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &ThisExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
     None
   }
 

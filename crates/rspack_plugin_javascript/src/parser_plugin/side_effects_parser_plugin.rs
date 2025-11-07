@@ -454,8 +454,8 @@ pub fn is_pure_class(
       }
       ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => true,
-      ClassMember::StaticBlock(_) => true,
-      ClassMember::AutoAccessor(_) => true,
+      ClassMember::StaticBlock(_) => false, // TODO: support is pure analyze for statements
+      ClassMember::AutoAccessor(_) => false,
     }
   })
 }
