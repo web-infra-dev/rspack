@@ -9,8 +9,11 @@ const formatHeapUsed = (heap) => {
 };
 
 if (process.env.WASM) {
-	afterEach(() => {
+	afterAll(() => {
 		console.log(formatHeapUsed(process.memoryUsage().heapUsed));
 	});
 }
+process.on('exit', (code) => {
+	console.trace('exit', process.pid, code)
+});
 

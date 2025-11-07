@@ -29,8 +29,8 @@ importers:
         specifier: workspace:*
         version: link:packages/rspack-cli
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d(jsdom@26.1.0)
+        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d
+        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -699,8 +699,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d
-        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d(jsdom@26.1.0)
+        specifier: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d
+        version: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.17
         version: 0.5.17
@@ -3269,9 +3269,9 @@ packages:
   '@rstack-dev/doc-ui@1.11.0':
     resolution: {integrity: sha512-5GZ8EwvmKj8LXomEElC4GhDlDW2SazCeHbA+ieacJrlcGduuiJXGTBzVA2rNnPLjAb41H0esuy0aH0skRIQAqA==}
 
-  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d':
-    resolution: {tarball: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d}
-    version: 0.6.1
+  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d':
+    resolution: {tarball: https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d}
+    version: 0.6.2
     engines: {node: '>=18.12.0'}
     hasBin: true
     peerDependencies:
@@ -11241,7 +11241,7 @@ snapshots:
       - react
       - react-dom
 
-  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@44daf8d(jsdom@26.1.0)':
+  '@rstest/core@https://pkg.pr.new/web-infra-dev/rstest/@rstest/core@8ac9a4d(jsdom@26.1.0)':
     dependencies:
       '@rsbuild/core': 1.6.0-beta.1
       '@types/chai': 5.2.3
