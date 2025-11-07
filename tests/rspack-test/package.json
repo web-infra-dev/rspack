@@ -55,7 +55,7 @@
     "source-map": "^0.7.6",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
-    "terser": "5.43.1",
+    "terser": "5.44.1",
     "toml": "^3.0.0",
     "typescript": "^5.9.3",
     "wast-loader": "^1.14.1",
