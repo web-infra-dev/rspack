@@ -133,9 +133,9 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
-      - name: Debugger
-        uses: ./.github/actions/debugger
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+      # - name: Debugger
+      #   uses: ./.github/actions/debugger
+      #   if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
 
       ### WASM
       - name: Test WASM
