@@ -32,7 +32,7 @@
     "@rspress/plugin-llms": "2.0.0-beta.35",
     "@rspress/plugin-rss": "2.0.0-beta.35",
     "@rspress/plugin-sitemap": "2.0.0-beta.35",
-    "@shikijs/transformers": "^3.13.0",
+    "@shikijs/transformers": "^3.15.0",
     "@types/node": "^20.19.24",
     "@types/react": "^19.1.13",
     "@types/semver": "^7.7.1",
