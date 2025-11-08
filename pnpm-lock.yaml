@@ -351,8 +351,8 @@ importers:
         specifier: 4.48.1
         version: 4.48.1
       prebundle:
-        specifier: ^1.4.2
-        version: 1.4.2(typescript@5.9.3)
+        specifier: ^1.5.0
+        version: 1.5.0(typescript@5.9.3)
       tinypool:
         specifier: ^1.1.1
         version: 1.1.1
@@ -3738,8 +3738,8 @@ packages:
     peerDependencies:
       react: '>=18.3.1'
 
-  '@vercel/ncc@0.38.3':
-    resolution: {integrity: sha512-rnK6hJBS6mwc+Bkab+PGPs9OiS0i/3kdTO+CkI8V0/VrW3vmz7O2Pxjw/owOlmo6PKEIxRSeZKv/kuL9itnpYA==}
+  '@vercel/ncc@0.38.4':
+    resolution: {integrity: sha512-8LwjnlP39s08C08J5NstzriPvW1SP8Zfpp1BvC2sI35kPeZnHfxVkCwu4/+Wodgnd60UtT1n8K8zw+Mp7J9JmQ==}
     hasBin: true
 
   '@vitest/expect@3.2.4':
@@ -7112,8 +7112,8 @@ packages:
   preact@10.27.2:
     resolution: {integrity: sha512-5SYSgFKSyhCbk6SrXyMpqjb5+MQBgfvEKE/OC+PujcY34sOpqtr+0AZQtPYx5IA6VxynQ7rUPCtKzyovpj9Bpg==}
 
-  prebundle@1.4.2:
-    resolution: {integrity: sha512-XurCQRE/Irns5mqH7V7VC5C7auIfz431DtBdOhfReb+ypsBdrLO6V5pVjwgrzVJwOx3jbjTvPXUHiw9LqalZPw==}
+  prebundle@1.5.0:
+    resolution: {integrity: sha512-LSSMKEdfKfpBFggevmoe+gjM9un1U9yFk5TE1G+fmOo9JaPpblimQk+Q3PQYJd6jWFMTyCKoJ5gREAMZBBEMjA==}
     hasBin: true
 
   prettier@2.8.8:
@@ -11815,7 +11815,7 @@ snapshots:
       react: 19.1.1
       unhead: 2.0.19
 
-  '@vercel/ncc@0.38.3': {}
+  '@vercel/ncc@0.38.4': {}
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -15968,13 +15968,13 @@ snapshots:
 
   preact@10.27.2: {}
 
-  prebundle@1.4.2(typescript@5.9.3):
+  prebundle@1.5.0(typescript@5.9.3):
     dependencies:
-      '@vercel/ncc': 0.38.3
+      '@vercel/ncc': 0.38.4
       prettier: 3.6.2
       rollup: 4.52.3
       rollup-plugin-dts: 6.2.3(rollup@4.52.3)(typescript@5.9.3)
-      terser: 5.43.1
+      terser: 5.44.1
     transitivePeerDependencies:
       - typescript
 
