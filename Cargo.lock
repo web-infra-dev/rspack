@@ -4955,7 +4955,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.14"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=ffd7181a77b174475a11aaec05375bf2364837d7#ffd7181a77b174475a11aaec05375bf2364837d7"
+source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=3c1808df2e2194efdc284ce9a55aa5f85cee041e#3c1808df2e2194efdc284ce9a55aa5f85cee041e"
 dependencies = [
  "dyn-clone",
  "memchr",
