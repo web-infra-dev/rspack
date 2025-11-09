@@ -64,7 +64,7 @@ micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.5.0", default-features = false }
 mimalloc            = { version = "0.2.4", package = "mimalloc-rspack", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
-notify              = { version = "8.1.0", default-features = false }
+notify              = { version = "8.2.0", default-features = false }
 num-bigint          = { version = "0.4.6", default-features = false }
 once_cell           = { version = "1.20.2", default-features = false }
 oneshot             = { version = "0.1.8", default-features = false, features = ["std", "async"] }
