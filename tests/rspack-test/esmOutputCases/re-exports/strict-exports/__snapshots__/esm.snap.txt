@@ -48,7 +48,6 @@ export { index_value as value };
 ```
 
 ```mjs title=main.mjs
-import "./index_js.mjs";
 
 export { value } from "./index_js.mjs";
 
