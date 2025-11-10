@@ -68,7 +68,7 @@ pub fn get_terminal_binding(
     .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
-pub(crate) fn find_target_from_export_info(
+pub fn find_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,

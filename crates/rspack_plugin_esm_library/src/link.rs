@@ -5,19 +5,18 @@ use std::{
 };
 
 use rayon::prelude::*;
-use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
-};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, ExternalModule, FindTargetResult,
-  GetUsedNameParam, IdentCollector, InitFragmentKey, InitFragmentStage,
-  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PathData, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
-  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template, property_access,
-  property_name, reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  ExportMode, ExportModeNormalReexport, ExportProvided, ExportsInfoGetter, ExportsType,
+  ExternalModule, FindTargetResult, GetUsedNameParam, IdentCollector, InitFragmentKey,
+  InitFragmentStage, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalReexportItem,
+  PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
+  get_js_chunk_filename_template, get_target, property_access, property_name,
+  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
   split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
@@ -1430,7 +1429,7 @@ impl EsmLibraryPlugin {
           rspack_core::ExportMode::NormalReexport(mode) => {
             let exports_info = module_graph.get_exports_info(&ref_module);
 
-            for item in &mode.items {
+            for item in mode.items {
               let mut ref_module = orig_ref_module;
 
               if item.hidden {
@@ -1447,7 +1446,6 @@ impl EsmLibraryPlugin {
 
               let name = item.ids.first().unwrap_or(&item.name);
               let mut unknown_export_info = false;
-
               let mut export_info =
                 if let Some(export_info) = exports_info.as_data(module_graph).named_exports(name) {
                   export_info
@@ -1457,34 +1455,24 @@ impl EsmLibraryPlugin {
                   item.export_info.as_data(module_graph)
                 };
 
-              let mut visited_modules = IdentifierSet::default();
-              visited_modules.insert(ref_module);
-              while export_info.is_reexport() {
-                let targets = export_info.get_max_target();
-                let (dep, _) = targets
-                  .iter()
-                  .next()
-                  .expect("should have target if export info is reexport");
-                let dep = dep.expect("should have dependency for re-exported export info");
+              let resolved_target = get_target(export_info, module_graph);
 
-                let Some(module) = module_graph.module_identifier_by_dependency_id(&dep) else {
-                  unreachable!("should have module for re-exported dependency");
-                };
-                ref_module = *module;
-                if !visited_modules.insert(*module) {
-                  break;
+              let ids = match resolved_target {
+                Some(result) => {
+                  ref_module = result.module;
+                  if let Some(export_name) = &result.export {
+                    export_info = module_graph
+                      .get_exports_info(&ref_module)
+                      .as_data(module_graph)
+                      .named_exports(&export_name[0])
+                      .unwrap_or(export_info);
+                    export_name.clone()
+                  } else {
+                    item.ids.clone()
+                  }
                 }
-                let Some(target_export_info) = module_graph
-                  .get_exports_info(&ref_module)
-                  .as_data(module_graph)
-                  .named_exports(name)
-                else {
-                  // unknown export info, break
-                  unknown_export_info = true;
-                  break;
-                };
-                export_info = target_export_info;
-              }
+                None => item.ids.clone(),
+              };
 
               if ref_module != orig_ref_module
                 && let Some(external_module) = module_graph
@@ -1500,7 +1488,15 @@ impl EsmLibraryPlugin {
                 Self::re_export_from_external_module(
                   external_module,
                   current_chunk,
-                  &rspack_core::ExportMode::NormalReexport(mode.clone()),
+                  &rspack_core::ExportMode::NormalReexport(ExportModeNormalReexport {
+                    items: vec![NormalReexportItem {
+                      name: item.name.clone(),
+                      ids: ids.clone(),
+                      hidden: false,
+                      checked: item.checked,
+                      export_info: item.export_info.clone(),
+                    }],
+                  }),
                   link,
                   export_dep,
                 );
@@ -1508,7 +1504,6 @@ impl EsmLibraryPlugin {
               }
 
               let chunk_link = link.get_mut_unwrap(&current_chunk);
-
               let used_name = if unknown_export_info {
                 UsedNameItem::Str(item.name.clone())
               } else {
@@ -1570,7 +1565,7 @@ impl EsmLibraryPlugin {
                 }
                 ModuleInfo::Concatenated(ref_info) => {
                   let Some(internal_name) =
-                    ref_info.get_internal_name(item.ids.first().unwrap_or(&item.name))
+                    ref_info.get_internal_name(ids.first().unwrap_or(&item.name))
                   else {
                     continue;
                   };
@@ -2419,7 +2414,27 @@ impl EsmLibraryPlugin {
         );
         match reexport {
           FindTargetResult::NoTarget => {}
-          FindTargetResult::InvalidTarget(_) => {
+          FindTargetResult::InvalidTarget(target) => {
+            if let Some(export) = target.export {
+              let exports_info = mg.get_prefetched_exports_info(
+                &target.module,
+                PrefetchExportsInfoMode::Nested(&export),
+              );
+              if let Some(UsedName::Inlined(inlined)) = ExportsInfoGetter::get_used_name(
+                GetUsedNameParam::WithNames(&exports_info),
+                None,
+                &export,
+              ) {
+                return Ref::Inline(format!(
+                  "{} {}",
+                  to_normal_comment(&format!(
+                    "inlined export {}",
+                    property_access(&export_name, 0)
+                  )),
+                  inlined.inlined_value().render()
+                ));
+              }
+            }
             panic!(
               "Target module of reexport is not part of the concatenation (export '{:?}')",
               &export_id
@@ -2431,6 +2446,7 @@ impl EsmLibraryPlugin {
                 .module_by_identifier(&ref_info.id())
                 .expect("should have module")
                 .build_meta();
+
               return Self::get_binding(
                 from,
                 mg,
