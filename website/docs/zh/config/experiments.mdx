@@ -86,66 +86,6 @@ export default {
 };
 ```
 
-## experiments.topLevelAwait
-
-:::warning
-
-该配置项已经废弃，将在 Rspack v2.0 中被移除。
-
-未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
-
-:::
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
-
-默认开启，可通过该配置关闭：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-:::warning
-该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
-:::
-
-控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
-
-`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
-
-模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
 ## experiments.incremental
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
@@ -896,3 +836,80 @@ export default {
 :::
 
 > 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。目前仅支持 `import defer * as ns from "./module"`，`import.defer()` 会在后续版本支持。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+## experiments.topLevelAwait
+
+:::warning
+
+该配置项已经废弃，将在 Rspack v2.0 中被移除。
+
+未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
+
+:::
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
+
+默认开启，可通过该配置关闭：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    topLevelAwait: false,
+  },
+};
+```
+
+## experiments.lazyCompilation
+
+<ApiMeta deprecatedVersion="1.5.0" />
+
+:::warning
+
+该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
+
+:::
+
+## experiments.layers
+
+<ApiMeta deprecatedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+:::warning
+该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
+:::
+
+控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
+
+`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
+
+模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    layers: true,
+  },
+};
+```

@@ -53,7 +53,6 @@ type Headers =
 	  }[]
 	| Record<string, string | string[]>;
 type OutputFileSystem = import("..").OutputFileSystem & {
-	createReadStream?: typeof import("fs").createReadStream;
 	statSync: import("fs").StatSyncFn;
 	readFileSync: typeof import("fs").readFileSync;
 };

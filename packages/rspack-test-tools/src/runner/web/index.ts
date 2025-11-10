@@ -7,11 +7,7 @@ import { escapeSep } from "../../helper";
 import EventSource from "../../helper/legacy/EventSourceForNode";
 import urlToRelativePath from "../../helper/legacy/urlToRelativePath";
 import type { TRunnerFile, TRunnerRequirer } from "../../type";
-import {
-	createLocatedError,
-	type INodeRunnerOptions,
-	NodeRunner
-} from "../node";
+import { type INodeRunnerOptions, NodeRunner } from "../node";
 
 export interface IWebRunnerOptions extends INodeRunnerOptions {
 	location: string;
@@ -107,10 +103,25 @@ export class WebRunner extends NodeRunner {
 	protected createResourceLoader() {
 		const that = this;
 		class CustomResourceLoader extends ResourceLoader {
-			fetch(url: string, _: { element: HTMLScriptElement }) {
+			fetch(url: string, options: { element: HTMLScriptElement }) {
+				if (that._options.testConfig.resourceLoader) {
+					that.log(`resource custom loader: start ${url}`);
+					const content = that._options.testConfig.resourceLoader(
+						url,
+						options.element
+					);
+					if (content !== undefined) {
+						that.log(`resource custom loader: accepted`);
+						return Promise.resolve(content) as any;
+					} else {
+						that.log(`resource custom loader: not found`);
+					}
+				}
+
 				const filePath = that.urlToPath(url);
 				that.log(`resource loader: ${url} -> ${filePath}`);
 				let finalCode: string | Buffer | void;
+
 				if (path.extname(filePath) === ".js") {
 					const currentDirectory = path.dirname(filePath);
 					const file = that.getFile(filePath, currentDirectory);
@@ -215,7 +226,8 @@ export class WebRunner extends NodeRunner {
 		{
 			exports: Record<string, unknown>;
 		},
-		string
+		string,
+		number
 	] {
 		const m = {
 			exports: {}
@@ -276,20 +288,23 @@ export class WebRunner extends NodeRunner {
 					return Reflect.set(target, prop, value, receiver);
 				}
 			});`;
-		const createJSDOMLocatedError = createLocatedError(
-			this._options.errors || ([] as Error[]),
-			proxyCode.split("\n").length + 2
+
+		const proxyLines = proxyCode.split("\n");
+
+		const locatedError = createLocatedError(
+			this._options.errors || [],
+			proxyLines.length + 1
 		);
 		const originIt = currentModuleScope.it;
 		currentModuleScope.it = (
 			description: string,
-			fn: () => Promise<void> | void
+			fn: (...args: any[]) => Promise<void>
 		) => {
-			originIt(description, async () => {
+			return originIt(description, async (...args: any[]) => {
 				try {
-					await fn();
-				} catch (err) {
-					throw createJSDOMLocatedError(err as Error, file);
+					return await fn(...args);
+				} catch (e) {
+					throw locatedError(e as Error, file);
 				}
 			});
 		};
@@ -303,19 +318,18 @@ export class WebRunner extends NodeRunner {
 			.join(", ");
 		this.dom.window[scopeKey] = currentModuleScope;
 		this.dom.window["__GLOBAL_SHARED__"] = this.globalContext;
+		this.dom.window["__LOCATED_ERROR__"] = locatedError;
 		this.dom.window["__FILE__"] = file;
-		this.dom.window["__CREATE_LOCATED_ERROR__"] = createJSDOMLocatedError;
 
 		return [
 			m,
 			`${proxyCode}
-			(function(window, self, globalThis, console, ${args.join(", ")}) {
-				try {
-				  ${file.content}
-				} catch (err) {
-					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
-				}
-			})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});`
+			(function(window, self, globalThis, console, ${args.join(", ")}) { try {
+				${file.content}
+			} catch (e) {
+				throw __LOCATED_ERROR__(e, window["__FILE__"]);
+			}})($$g$$, $$self$$, $$g$$, window["console"], ${argValues});`,
+			proxyLines.length + 1
 		];
 	}
 
@@ -331,18 +345,24 @@ export class WebRunner extends NodeRunner {
 				return this.requireCache[file.path].exports;
 			}
 
-			const [m, code] = this.getModuleContent(file);
+			const [m, code, lineOffset] = this.getModuleContent(file);
 
 			this.preExecute(code, file);
 
 			try {
 				const script = new Script(code);
 				const vmContext = this.dom.getInternalVMContext();
-				script.runInContext(vmContext);
+				script.runInContext(vmContext, {
+					filename: file.path,
+					lineOffset: -lineOffset
+				});
 			} catch (e) {
-				throw new Error(
-					`Parse script '${file.path}' failed: ${(e as Error).message}`
+				const error = new Error(
+					`Parse script '${file.path}' failed:\n${(e as Error).message}`
 				);
+				error.stack = `${error.message}\n${(e as Error).stack}`;
+				this._options.errors?.push(error);
+				throw error;
 			}
 
 			this.postExecute(m, file);
@@ -357,3 +377,31 @@ export class WebRunner extends NodeRunner {
 		this.requirers.set("cjs", this.createJSDOMRequirer());
 	}
 }
+
+export const createLocatedError = (
+	collectedErrors: Error[],
+	offset: number
+) => {
+	return (e: Error, file: TRunnerFile) => {
+		const match = (e.stack || e.message).match(/<anonymous>:(\d+)/);
+		if (match) {
+			const [, line] = match;
+			const realLine = Number(line) - offset;
+			const codeLines = file.content.split("\n");
+			const lineContents = [
+				...codeLines
+					.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
+					.map(line => `│  ${line}`),
+				`│> ${codeLines[realLine - 1]}`,
+				...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
+			];
+			const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
+			const finalError = new Error(message);
+			finalError.stack = `${message}\n${e.stack}`;
+			collectedErrors.push(finalError);
+			return finalError;
+		} else {
+			return e;
+		}
+	};
+};

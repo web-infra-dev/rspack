@@ -1,5 +1,0 @@
-@import "./layer-deep-nested.css" layer(bar);
-
-.class {
-	nested: 1;
-}

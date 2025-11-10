@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, SyntaxContext, comments::Comments, input::SourceFileInput},
+  common::{FileName, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -24,7 +24,7 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+  BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
@@ -175,7 +175,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
-      source.source().to_string(),
+      source.source().into_string_lossy().into_owned(),
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -239,6 +239,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       blocks,
       presentational_dependencies,
       mut warning_diagnostics,
+      mut side_effects_item,
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
@@ -270,25 +271,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
-      ast.transform(|program, context| {
-        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-        let mut visitor = SideEffectsFlagPluginVisitor::new(
-          SyntaxContextInfo::new(unresolved_ctxt),
-          program.comments.as_ref().map(|c| c as &dyn Comments),
-        );
-        program.visit_with(&mut visitor);
-        build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
-        // Take the item from visitor is safe, because the field is only used in this place
-        side_effects_bailout = visitor
-          .side_effects_item
-          .take()
-          .and_then(|item| -> Option<_> {
-            let source = source.source();
-            let msg = Into::<DependencyRange>::into(item.span)
-              .to_loc(Some(source.as_ref()))?
-              .to_string();
-            Some(SideEffectsBailoutItem { msg, ty: item.ty })
-          })
+      build_meta.side_effect_free = Some(side_effects_item.is_none());
+      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
+        let source = source.source().into_string_lossy();
+        let msg = Into::<DependencyRange>::into(item.span)
+          .to_loc(Some(source.as_ref()))?
+          .to_string();
+        Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
 

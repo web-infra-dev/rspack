@@ -11,14 +11,14 @@ module.exports = [
 			css: true
 		}
 	},
-	{
-		target: "web",
-		optimization: {
-			chunkIds: "named"
-		},
-		experiments: {
-			css: true,
-			outputModule: true
-		}
-	}
+	// {
+	// 	target: "web",
+	// 	optimization: {
+	// 		chunkIds: "named"
+	// 	},
+	// 	experiments: {
+	// 		css: true,
+	// 		outputModule: true
+	// 	}
+	// }
 ];

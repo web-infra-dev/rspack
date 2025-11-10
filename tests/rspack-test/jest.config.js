@@ -10,7 +10,7 @@ const setupFilesAfterEnv = [
 const wasmConfig = process.env.WASM && {
 	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	testPathIgnorePatterns: [
-		// Skip because they reply on snapshots
+		// Skip because they rely on snapshots
 		"Diagnostics.test.js",
 		"Error.test.js",
 		"StatsAPI.test.js",
@@ -53,25 +53,8 @@ const config = {
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: process.env.WASM ? [
 		"<rootDir>/*.test.js",
-		"<rootDir>/legacy-test/*.test.js"
-	] : [
-		"<rootDir>/legacy-test/*.test.js",
-		"<rootDir>/Cache.test.js",
-		"<rootDir>/Incremental-async-node.test.js",
-		"<rootDir>/Incremental-node.test.js",
-		"<rootDir>/Incremental-watch-webpack.test.js",
-		"<rootDir>/Incremental-watch.test.js",
-		"<rootDir>/Incremental-web.test.js",
-		"<rootDir>/Incremental-webworker.test.js",
-		"<rootDir>/HotWeb.test.js",
-		"<rootDir>/HotWorker.test.js",
-		"<rootDir>/HotNode.test.js",
-		"<rootDir>/Serial.test.js",
-		"<rootDir>/Diagnostics.test.js",
-		"<rootDir>/EsmOutput.test.js",
-		"<rootDir>/NativeWatcher.test.js",
-		"<rootDir>/NativeWatcher-webpack.test.js",
-	],
+	] : [],
+	testPathIgnorePatterns: ["<rootDir>"],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: "@rspack/test-tools/jest/slash",

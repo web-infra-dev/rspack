@@ -23,7 +23,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  TypeReexportPresenceMode,
+  SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::SpanExt;
@@ -105,7 +105,6 @@ pub enum MemberExpressionInfo {
 #[derive(Debug)]
 pub struct CallExpressionInfo {
   pub call: CallExpr,
-  pub callee_name: String,
   pub root_info: ExportedVariableInfo,
   pub callee_members: Vec<Atom>,
   pub members: Vec<Atom>,
@@ -326,7 +325,7 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
-  pub(crate) module_type: &'parser ModuleType,
+  pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -351,6 +350,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) has_inlinable_const_decls: bool,
+  pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -472,6 +472,12 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
+    if compiler_options.optimization.side_effects.is_true() {
+      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
+        unresolved_mark,
+      )));
+    }
+
     if !matches!(
       javascript_options
         .type_reexports_presence
@@ -525,6 +531,7 @@ impl<'parser> JavascriptParser<'parser> {
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
+      side_effects_item: None,
     }
   }
 
@@ -535,6 +542,7 @@ impl<'parser> JavascriptParser<'parser> {
         blocks: self.blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
+        side_effects_item: self.side_effects_item,
       })
     } else {
       Err(self.errors)
@@ -555,6 +563,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn next_dependency_idx(&self) -> usize {
     self.dependencies.len()
+  }
+
+  pub fn get_dependencies(&self) -> &[BoxDependency] {
+    &self.dependencies
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
@@ -618,6 +630,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
     self.warning_diagnostics.extend(warnings);
+  }
+
+  pub fn source_file(&self) -> &SourceFile {
+    self.source_file
   }
 
   pub fn is_top_level_scope(&self) -> bool {
@@ -880,18 +896,15 @@ impl<'parser> JavascriptParser<'parser> {
           (callee.get_root_name()?, vec![])
         };
         let NameInfo {
-          name: resolved_root,
-          info: root_info,
+          info: root_info, ..
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let callee_name = object_and_members_to_name(resolved_root.to_string(), &root_members);
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
-          callee_name,
           root_info: root_info
             .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
             .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
@@ -985,10 +998,12 @@ impl<'parser> JavascriptParser<'parser> {
               Lit::Null(_) => "null".into(),
               Lit::Num(n) => n.value.to_string().into(),
               Lit::BigInt(i) => i.value.to_string().into(),
-              Lit::Regex(r) => r.exp.clone(),
+              Lit::Regex(r) => r.exp.clone().into(),
               Lit::JSXText(_) => unreachable!(),
             };
-            members.push(value);
+            // Since members are not used across rspack javascript parser plugin,
+            // we directly makes it atom here
+            members.push(value.to_atom_lossy().into_owned());
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
             members.push(ident.sym.clone());
@@ -1254,7 +1269,7 @@ impl<'parser> JavascriptParser<'parser> {
       return;
     };
 
-    if str.value.as_str() == "use strict" {
+    if str.value == "use strict" {
       self.set_strict(true);
     }
   }

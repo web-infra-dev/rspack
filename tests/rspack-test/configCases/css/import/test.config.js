@@ -1,10 +1,11 @@
 "use strict";
 
 module.exports = {
-	moduleScope(scope) {
+	moduleScope(scope, stats) {
+		const __STATS_I__ = stats().__index__;
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";
-		link.href = `bundle${scope.__STATS_I__}.css`;
+		link.href = `bundle${__STATS_I__}.css`;
 		scope.window.document.head.appendChild(link);
 	}
 };

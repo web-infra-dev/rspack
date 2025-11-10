@@ -652,7 +652,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
       };
 
-      entry_point.unshift_chunk(chunk);
+      entry_point.unshift_chunk(chunk.ukey());
       chunk.add_group(entry_point.ukey);
       entry_point.set_runtime_chunk(chunk.ukey());
     }
@@ -1223,6 +1223,30 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     tracing::trace!("process_entry_block {:?}", item);
 
     self.stat_processed_blocks += 1;
+
+    let module_graph = compilation.get_module_graph();
+    for dep in &compilation.global_entry.dependencies {
+      if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
+        self.queue.push(QueueAction::AddAndEnterEntryModule(
+          AddAndEnterEntryModule {
+            chunk: item.chunk,
+            chunk_group_info: item.chunk_group_info,
+            module: *module,
+          },
+        ));
+      }
+    }
+    for dep in &compilation.global_entry.include_dependencies {
+      if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            chunk: item.chunk,
+            chunk_group_info: item.chunk_group_info,
+            module: *module,
+          }));
+      }
+    }
 
     let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
 

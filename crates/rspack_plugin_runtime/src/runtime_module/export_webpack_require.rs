@@ -1,5 +1,12 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+
+const EXPORT_TEMP_NAME: &str = "__webpack_require_temp__";
+
+pub static EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID: LazyLock<Identifier> =
+  LazyLock::new(|| Identifier::from("webpack/runtime/export_webpack_require"));
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -9,7 +16,7 @@ pub struct ExportWebpackRequireRuntimeModule {
 
 impl ExportWebpackRequireRuntimeModule {
   pub fn new() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/export_webpack_runtime"))
+    Self::with_default(*EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID)
   }
 }
 
@@ -20,7 +27,11 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   }
 
   async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(format!("export default {};", RuntimeGlobals::REQUIRE))
+    Ok(format!(
+      "var {EXPORT_TEMP_NAME} = {};\nexport {{ {EXPORT_TEMP_NAME} as {} }};\n",
+      RuntimeGlobals::REQUIRE,
+      RuntimeGlobals::REQUIRE
+    ))
   }
 
   fn should_isolate(&self) -> bool {

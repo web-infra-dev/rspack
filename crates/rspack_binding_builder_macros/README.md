@@ -24,10 +24,12 @@ to be used in the host.
 #### Parameters
 
 `register_plugin` macro accepts two arguments:
+
 - The name of the plugin
 - A resolver function that returns a `rspack_core::BoxPlugin`
 
 The resolver function accepts two arguments:
+
 - `env`: The environment of the plugin, it is the same as `napi::bindgen_prelude::Env`
 - `options`: The options of the plugin, it is the same as `napi::bindgen_prelude::Unknown<'_>`
 
@@ -63,7 +65,7 @@ impl rspack_core::Plugin for MyBannerPlugin {
 The `registerMyBannerPlugin` function will be exposed to the final N-API binding.
 
 ```js
-const { registerMyBannerPlugin } = require('your-custom-binding');
+const { registerMyBannerPlugin } = require("your-custom-binding");
 
 const plugin = registerMyBannerPlugin();
 ```
@@ -71,5 +73,8 @@ const plugin = registerMyBannerPlugin();
 To actually use the plugin, you need to wrap it with `require('@rspack/core').experiments.createNativePlugin`:
 
 ```js
-require('@rspack/core').experiments.createNativePlugin("MyBannerPlugin", (options) => options)
+require("@rspack/core").experiments.createNativePlugin(
+	"MyBannerPlugin",
+	options => options
+);
 ```

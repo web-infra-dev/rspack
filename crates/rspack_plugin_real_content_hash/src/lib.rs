@@ -14,7 +14,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -315,9 +315,8 @@ impl AssetData {
   pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
-    let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
-      for hash in hash_ac.find_iter(&content) {
+    let content = if let SourceValue::String(content) = source.source() {
+      for hash in hash_ac.find_iter(content.as_ref()) {
         let hash = &content[hash.range()];
         if info.content_hash.contains(hash) {
           own_hashes.insert(hash.to_string());
@@ -325,7 +324,7 @@ impl AssetData {
         }
         referenced_hashes.insert(hash.to_string());
       }
-      AssetDataContent::String(content)
+      AssetDataContent::String(content.into_owned())
     } else {
       AssetDataContent::Buffer
     };

@@ -126,15 +126,15 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
-    if let Ok(index) = self.chunks.binary_search(&chunk.ukey()) {
+  pub fn unshift_chunk(&mut self, chunk: ChunkUkey) -> bool {
+    if let Ok(index) = self.chunks.binary_search(&chunk) {
       if index > 0 {
         self.chunks.remove(index);
-        self.chunks.insert(0, chunk.ukey());
+        self.chunks.insert(0, chunk);
       }
       false
     } else {
-      self.chunks.insert(0, chunk.ukey());
+      self.chunks.insert(0, chunk);
       true
     }
   }

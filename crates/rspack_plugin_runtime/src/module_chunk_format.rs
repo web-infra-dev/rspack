@@ -162,7 +162,7 @@ async fn render_chunk(
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
-      "import __webpack_require__ from '{}';\n",
+      "import {{ __webpack_require__ }} from '{}';\n",
       get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -297,6 +297,7 @@ async fn render_startup(
         &compilation.chunk_by_ukey,
         &compilation.chunk_group_by_ukey,
       );
+
     let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
     let mut dependent_load = ConcatSource::default();

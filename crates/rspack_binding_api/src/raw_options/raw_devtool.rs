@@ -106,6 +106,8 @@ pub struct SourceMapDevToolPluginOptions {
   pub file_context: Option<String>,
   #[napi(ts_type = "(false | null) | string")]
   pub filename: Option<RawFilename>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub ignore_list: Option<RawAssetConditions>,
   pub module: Option<bool>,
   #[napi(ts_type = "string | ((info: RawModuleFilenameTemplateFnCtx) => string)")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
@@ -125,6 +127,7 @@ pub struct SourceMapDevToolPluginOptions {
 impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDevToolPluginOptions {
   fn from(opts: SourceMapDevToolPluginOptions) -> Self {
     let append = opts.append.map(normalize_raw_append);
+
     let filename = opts.filename.and_then(|raw| match raw {
       Either3::A(_) | Either3::B(_) => None,
       Either3::C(s) => Some(s),
@@ -146,6 +149,7 @@ impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDev
       fallback_module_filename_template,
       file_context: opts.file_context,
       filename,
+      ignore_list: opts.ignore_list.map(into_asset_conditions),
       namespace: opts.namespace,
       no_sources,
       public_path: opts.public_path,

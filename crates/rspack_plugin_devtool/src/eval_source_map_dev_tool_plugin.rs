@@ -7,7 +7,7 @@ use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
   Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
-  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -16,7 +16,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rspack_util::{base64, identifier::make_paths_absolute};
+use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 
 use crate::{
   ModuleFilenameTemplate, ModuleOrSource, SourceMapDevToolPluginOptions,
@@ -35,6 +35,8 @@ pub struct EvalSourceMapDevToolPlugin {
   namespace: String,
   source_root: Option<String>,
   debug_ids: bool,
+  ignore_list: Option<AssetConditions>,
+
   // TODO: memory leak if not clear across multiple compilations
   cache: DashMap<RspackHashDigest, BoxSource>,
 }
@@ -57,6 +59,7 @@ impl EvalSourceMapDevToolPlugin {
       namespace,
       options.source_root,
       options.debug_ids,
+      options.ignore_list,
       Default::default(),
     )
   }
@@ -104,9 +107,11 @@ async fn eval_source_map_devtool_plugin_render_module_content(
   if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
+  } else if let Some(mut map) =
+    origin_source.map(&ObjectPool::default(), &MapOptions::new(self.columns))
+  {
     let source = {
-      let source = &origin_source.source();
+      let source = origin_source.source().into_string_lossy();
 
       {
         let modules = map.sources().iter().map(|source| {
@@ -174,6 +179,22 @@ async fn eval_source_map_devtool_plugin_render_module_content(
             filename
           });
         map.set_sources(module_filenames);
+      }
+
+      if let Some(asset_conditions) = &self.ignore_list {
+        let ignore_list = map
+          .sources()
+          .iter()
+          .enumerate()
+          .filter_map(|(idx, source)| {
+            if asset_conditions.try_match(source) {
+              Some(idx as u32)
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<_>>();
+        map.set_ignore_list(Some(ignore_list));
       }
 
       if self.no_sources {

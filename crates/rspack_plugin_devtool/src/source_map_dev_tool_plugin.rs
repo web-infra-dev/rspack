@@ -15,7 +15,7 @@ use rspack_collections::DatabaseItem;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin,
-  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
@@ -23,6 +23,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use thread_local::ThreadLocal;
 
 use crate::{
   ModuleFilenameTemplateFn, ModuleOrSource, generate_debug_id::generate_debug_id,
@@ -67,6 +68,8 @@ pub struct SourceMapDevToolPluginOptions {
   pub file_context: Option<String>,
   // Defines the output filename of the SourceMap (will be inlined if no value is provided).
   pub filename: Option<String>,
+  // Decide whether to ignore source files that match the specified value in the SourceMap.
+  pub ignore_list: Option<AssetConditions>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
@@ -106,6 +109,7 @@ pub(crate) struct MappedAsset {
 #[derive(Debug)]
 pub struct SourceMapDevToolPlugin {
   source_map_filename: Option<Filename>,
+  ignore_list: Option<AssetConditions>,
   #[debug(skip)]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
@@ -124,6 +128,7 @@ pub struct SourceMapDevToolPlugin {
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
   debug_ids: bool,
+
   mapped_assets_cache: MappedAssetsCache,
 }
 
@@ -175,6 +180,7 @@ impl SourceMapDevToolPlugin {
 
     Self::new_inner(
       options.filename.map(Filename::from),
+      options.ignore_list,
       source_mapping_url_comment,
       options.file_context,
       module_filename_template,
@@ -203,6 +209,7 @@ impl SourceMapDevToolPlugin {
     let map_options = MapOptions::new(self.columns);
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
+    let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
     let mut mapped_sources = raw_assets
       .into_par_iter()
       .filter_map(|(file, asset)| {
@@ -214,7 +221,8 @@ impl SourceMapDevToolPlugin {
 
         if is_match {
           asset.get_source().map(|source| {
-            let source_map = source.map(&map_options);
+            let object_pool = tls.get_or(ObjectPool::default);
+            let source_map = source.map(object_pool, &map_options);
             (file, source, source_map)
           })
         } else {
@@ -427,6 +435,23 @@ impl SourceMapDevToolPlugin {
             })
             .collect::<Vec<_>>(),
         );
+
+        if let Some(asset_conditions) = &self.ignore_list {
+          let ignore_list = source_map
+            .sources()
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, source)| {
+              if asset_conditions.try_match(source) {
+                Some(idx as u32)
+              } else {
+                None
+              }
+            })
+            .collect::<Vec<_>>();
+          source_map.set_ignore_list(Some(ignore_list));
+        }
+
         if self.no_sources {
           source_map.set_sources_content([]);
         }

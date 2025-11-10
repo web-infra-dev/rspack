@@ -25,7 +25,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
-use rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -1348,10 +1348,7 @@ impl Compilation {
 
         self.emit_asset(
           filename.clone(),
-          CompilationAsset::new(
-            Some(CachedSource::new(file_manifest.source).boxed()),
-            file_manifest.info,
-          ),
+          CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
         );
 
         _ = self
@@ -1427,6 +1424,11 @@ impl Compilation {
     self.chunk_group_by_ukey.expect_get(ukey)
   }
 
+  pub fn entrypoint_by_name_mut(&mut self, name: &str) -> &mut Entrypoint {
+    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
+    self.chunk_group_by_ukey.expect_get_mut(ukey)
+  }
+
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
@@ -1445,8 +1447,15 @@ impl Compilation {
 
     // make finished, make artifact should be readonly thereafter.
 
-    // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
+      mutations.extend(
+        self
+          .make_artifact
+          .affected_dependencies
+          .updated()
+          .iter()
+          .map(|&dependency| Mutation::DependencyUpdate { dependency }),
+      );
       mutations.extend(
         self
           .make_artifact

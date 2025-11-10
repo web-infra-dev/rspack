@@ -33,15 +33,7 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(document.head._children).toHaveLength(6);
 
 	// Test normal script loading
-	// Test preload of chunk1-b
 	link = document.head._children[3];
-	expect(link._type).toBe("link");
-	expect(link.rel).toBe("modulepreload");
-	expect(link.href).toBe("https://example.com/public/path/chunk1-b.mjs");
-	expect(link.getAttribute("nonce")).toBe("nonce");
-	expect(link.crossOrigin).toBe("anonymous");
-
-	link = document.head._children[4];
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("preload");
 	expect(link.as).toBe("style");
@@ -49,13 +41,20 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 
-	link = document.head._children[5];
+	link = document.head._children[4];
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("modulepreload");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-a-css.mjs");
 	expect(link.getAttribute("nonce")).toBe("nonce");
 	expect(link.crossOrigin).toBe("anonymous");
 
+	// Test preload of chunk1-b
+	link = document.head._children[5];
+	expect(link._type).toBe("link");
+	expect(link.rel).toBe("modulepreload");
+	expect(link.href).toBe("https://example.com/public/path/chunk1-b.mjs");
+	expect(link.getAttribute("nonce")).toBe("nonce");
+	expect(link.crossOrigin).toBe("anonymous");
 
 	return promise.then(() => {
 		expect(document.head._children).toHaveLength(8);

@@ -3,42 +3,34 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationAfterSeal, CompilationConcatenationScope,
-  CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  get_target, is_esm_dep_like,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
+  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
+  RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource, dependency::ImportDependencyTemplate,
+  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
+  ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
   preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
 };
-
-pub static CONCATENATED_MODULES_MAP_FOR_CODEGEN: LazyLock<
-  Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
-> = LazyLock::new(Default::default);
-
-pub static CONCATENATED_MODULES_MAP: LazyLock<
-  Mutex<FxHashMap<u32, Arc<IdentifierIndexMap<ModuleInfo>>>>,
-> = LazyLock::new(Default::default);
-
-pub static LINKS: LazyLock<RwLock<FxHashMap<u32, UkeyMap<ChunkUkey, ChunkLinkContext>>>> =
-  LazyLock::new(Default::default);
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
@@ -46,11 +38,24 @@ pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
+  // module instance will hold this map till compile done, we can't mutate it,
+  // normal concatenateModule just read the info from it
+  // the Arc here is to for module_codegen API, which needs to render module in parallel
+  // and read-only access the map, so it receives the map as an Arc
+  pub(crate) concatenated_modules_map_for_codegen:
+    AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
+  pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
 impl EsmLibraryPlugin {
   pub fn new(preserve_modules: Option<PathBuf>) -> Self {
-    Self::new_inner(preserve_modules)
+    Self::new_inner(
+      preserve_modules,
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
   }
 }
 
@@ -65,6 +70,7 @@ async fn compilation(
   hooks
     .render_chunk_content
     .tap(render_chunk_content::new(self));
+  drop(hooks);
 
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
@@ -81,20 +87,6 @@ async fn render_chunk_content(
   asset_info: &mut AssetInfo,
 ) -> Result<Option<RenderSource>> {
   self.render_chunk(compilation, chunk_ukey, asset_info).await
-}
-
-#[plugin_hook(CompilationAfterSeal for EsmLibraryPlugin)]
-async fn after_seal(&self, compilation: &mut Compilation) -> Result<()> {
-  CONCATENATED_MODULES_MAP
-    .lock()
-    .await
-    .remove(&compilation.id().0);
-  CONCATENATED_MODULES_MAP_FOR_CODEGEN
-    .lock()
-    .await
-    .remove(&compilation.id().0);
-  LINKS.write().await.remove(&compilation.id().0);
-  Ok(())
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
@@ -120,10 +112,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     } else if ModuleGraph::is_async(compilation, module_identifier) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
-    } else if !module.build_info().strict {
-      logger.debug(format!("module {module_identifier} is not strict module"));
-      should_scope_hoisting = false;
-    } else if module_graph
+    }
+    // TODO: support config to disable scope hoisting for non strict module
+    //  else if !module.build_info().strict {
+    //   logger.debug(format!("module {module_identifier} is not strict module"));
+    //   should_scope_hoisting = false;
+    // }
+    else if module_graph
       .get_incoming_connections(module_identifier)
       .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
@@ -173,19 +168,11 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         })),
       );
     } else {
-      let exports_info = module_graph.get_exports_info(module_identifier);
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &exports_info,
-        &module_graph,
-        None,
-        false,
-      );
       modules_map.insert(
         *module_identifier,
         ModuleInfo::External(ExternalModuleInfo {
           index: idx,
           module: *module_identifier,
-          runtime_condition: RuntimeCondition::Boolean(exports_info.is_used()),
           interop_namespace_object_used: false,
           interop_namespace_object_name: None,
           interop_namespace_object2_used: false,
@@ -225,17 +212,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = modules_map.get_mut(dep_module)
         && let ModuleInfo::Concatenated(concate_info) = info
       {
-        let exports_info = module_graph.get_exports_info(dep_module);
-        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-          &exports_info,
-          &module_graph,
-          None,
-          false,
-        );
         *info = ModuleInfo::External(ExternalModuleInfo {
           index: concate_info.index,
           module: concate_info.module,
-          runtime_condition: RuntimeCondition::Boolean(exports_info.is_used()),
           interop_namespace_object_used: false,
           interop_namespace_object_name: None,
           interop_namespace_object2_used: false,
@@ -254,16 +233,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  let id = compilation.id();
-
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
-  let mut self_modules_map = CONCATENATED_MODULES_MAP_FOR_CODEGEN.lock().await;
-  self_modules_map.insert(id.0, Arc::new(modules_map.clone()));
+  let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
+  *map = Arc::new(modules_map.clone());
+  drop(map);
 
-  let mut self_modules_map = CONCATENATED_MODULES_MAP.lock().await;
-  self_modules_map.insert(id.0, Arc::new(modules_map));
-
+  *self.concatenated_modules_map.write().await = modules_map;
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {
@@ -290,13 +266,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationConcatenationScope for EsmLibraryPlugin)]
 async fn concatenation_scope(
   &self,
-  compilation: &Compilation,
+  _compilation: &Compilation,
   module: ModuleIdentifier,
 ) -> Result<Option<ConcatenationScope>> {
-  let modules_map = CONCATENATED_MODULES_MAP_FOR_CODEGEN.lock().await;
-  let modules_map = modules_map
-    .get(&compilation.id().0)
-    .expect("should has compilation");
+  let modules_map = self.concatenated_modules_map_for_codegen.borrow();
 
   let Some(current_module) = modules_map.get(&module) else {
     return Ok(None);
@@ -325,10 +298,7 @@ async fn additional_chunk_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let info_map = CONCATENATED_MODULES_MAP.lock().await;
-  let info_map = info_map
-    .get(&compilation.id().0)
-    .expect("should have compilation info map");
+  let info_map = self.concatenated_modules_map.read().await;
 
   for m in compilation
     .chunk_graph
@@ -370,6 +340,19 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  _compilation: &mut Compilation,
+  _chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  // avoid generate startup runtime, eg. entry dependent chunk loading runtime
+  runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
+
+  Ok(())
+}
+
 static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"__RSPACK_ESM_CHUNK_(\d*)").expect("should have regex"));
 
@@ -384,11 +367,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       };
 
+      let content = source.source().into_string_lossy();
+
       if asset
         .get_info()
         .extras
         .contains_key(RSPACK_ESM_RUNTIME_CHUNK)
-        && source.source().trim().is_empty()
+        && content.trim().is_empty()
       {
         // remove empty runtime chunk
         removed.push(asset_name.to_string());
@@ -402,7 +387,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // only use the path, pop filename
       self_path.pop();
 
-      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&source.source()) {
+      for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let whole_str = captures.as_str();
         let chunk_ukey = whole_str
           .strip_prefix("__RSPACK_ESM_CHUNK_")
@@ -473,14 +458,32 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  // check if we have to generate proxy chunks
   if let Some(preserve_modules_root) = &self.preserve_modules {
     let errors = preserve_modules(preserve_modules_root, compilation).await;
     if !errors.is_empty() {
       compilation.extend_diagnostics(errors);
     }
+  } else {
+    ensure_entry_exports(compilation);
   }
 
   Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryParser for EsmLibraryPlugin)]
+async fn parse(
+  &self,
+  module_type: &ModuleType,
+  parser: &mut dyn ParserAndGenerator,
+  _parser_options: Option<&ParserOptions>,
+) -> Result<()> {
+  if module_type.is_js_like()
+    && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
+  {
+    parser.add_parser_plugin(Box::new(EsmLibParserPlugin {}));
+  }
+  Ok(())
 }
 
 impl Plugin for EsmLibraryPlugin {
@@ -502,8 +505,6 @@ impl Plugin for EsmLibraryPlugin {
       .concatenation_scope
       .tap(concatenation_scope::new(self));
 
-    ctx.compilation_hooks.after_seal.tap(after_seal::new(self));
-
     ctx
       .compilation_hooks
       .process_assets
@@ -521,8 +522,15 @@ impl Plugin for EsmLibraryPlugin {
 
     ctx
       .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
+
+    ctx
+      .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
+
+    ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
 
     Ok(())
   }

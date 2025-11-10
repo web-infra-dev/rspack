@@ -1,2 +1,2 @@
 
-module.exports = () => "FIXME: expect number"
+module.exports = () => "TODO: support compile time evaluation of optional chaining"

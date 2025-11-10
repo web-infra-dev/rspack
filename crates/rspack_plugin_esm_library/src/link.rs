@@ -1,7 +1,7 @@
 use std::{
-  collections::{self, hash_map::Entry},
+  collections::{self},
   hash::BuildHasher,
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use rayon::prelude::*;
@@ -11,23 +11,24 @@ use rspack_collections::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  IdentCollector, InitFragmentKey, InitFragmentStage, MaybeDynamicTargetExportInfoHashKey,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
-  NormalInitFragment, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode,
-  UsageState, UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
-  get_js_chunk_filename_template, property_access, property_name, reserved_names::RESERVED_NAMES,
-  returning_function, rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, ExternalModule, FindTargetResult,
+  GetUsedNameParam, IdentCollector, InitFragmentKey, InitFragmentStage,
+  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PathData, PrefetchExportsInfoMode,
+  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
+  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template, property_access,
+  property_name, reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
-  JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
+  JS_DEFAULT_KEYWORD, JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
   visitors::swc_visitor::resolver,
 };
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
 use swc_core::{
@@ -41,7 +42,6 @@ use swc_core::{
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, Ref, SymbolRef},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS},
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -63,6 +63,8 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
     self.get_mut(key).expect("should have value in the map")
   }
 }
+
+static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
 
 #[derive(Default)]
 struct ExportsContext {
@@ -129,7 +131,7 @@ impl EsmLibraryPlugin {
 
       // we find another name to export this symbol
       let mut idx = 0;
-      let mut new_export = format!("{exported}_{idx}").into();
+      let mut new_export = Atom::new(format!("{exported}_{idx}"));
       while ctx.exported_symbols.contains_key(&new_export) {
         idx += 1;
         new_export = format!("{exported}_{idx}").into();
@@ -153,13 +155,11 @@ impl EsmLibraryPlugin {
 
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
-    let mut concate_modules_map = CONCATENATED_MODULES_MAP.lock().await;
-    let concate_modules_map = Arc::get_mut(concate_modules_map.get_mut_unwrap(&compilation.id().0))
-      .expect("should have unique access to concatenated modules map");
+    let mut concate_modules_map = self.concatenated_modules_map.write().await;
 
     // analyze every modules and collect identifiers to concate_modules_map
     self
-      .analyze_module(compilation, concate_modules_map)
+      .analyze_module(compilation, &mut concate_modules_map)
       .await?;
 
     // initialize data for link chunks
@@ -251,7 +251,7 @@ impl EsmLibraryPlugin {
     for chunk_link in link.values_mut() {
       self.deconflict_symbols(
         compilation,
-        concate_modules_map,
+        &mut concate_modules_map,
         chunk_link,
         &escaped_names,
         &escaped_identifiers,
@@ -263,7 +263,7 @@ impl EsmLibraryPlugin {
     compilation.extend_diagnostics(self.link_imports_and_exports(
       compilation,
       &mut link,
-      concate_modules_map,
+      &mut concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
       &escaped_identifiers,
     ));
@@ -328,7 +328,7 @@ impl EsmLibraryPlugin {
                 &compilation.module_graph_cache_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
-                concate_modules_map,
+                &mut concate_modules_map,
                 &mut needed_namespace_objects,
                 false,
                 false,
@@ -408,7 +408,8 @@ impl EsmLibraryPlugin {
       chunk_link.namespace_object_sources.insert(module, source);
     }
 
-    LINKS.write().await.insert(compilation.id().0, link);
+    let mut links = self.links.borrow_mut();
+    *links = link;
     Ok(())
   }
 
@@ -774,7 +775,11 @@ impl EsmLibraryPlugin {
                 let readable_identifier = m.readable_identifier(&compilation.options.context);
                 let fm = cm.new_source_file(
                   Arc::new(FileName::Custom(readable_identifier.clone().into_owned())),
-                  render_source.source.source().to_string(),
+                  render_source
+                    .source
+                    .source()
+                    .into_string_lossy()
+                    .into_owned(),
                 );
                 let mut errors = vec![];
                 let module = parse_file_as_module(
@@ -817,17 +822,17 @@ impl EsmLibraryPlugin {
                   idents.push(ident);
                 }
 
-                let mut binding_to_ref: FxHashMap<
+                let mut binding_to_ref: FxIndexMap<
                   (Atom, SyntaxContext),
                   Vec<ConcatenatedModuleIdent>,
-                > = FxHashMap::default();
+                > = Default::default();
 
                 for ident in &idents {
                   match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-                    Entry::Occupied(mut occ) => {
+                    indexmap::map::Entry::Occupied(mut occ) => {
                       occ.get_mut().push(ident.clone());
                     }
-                    Entry::Vacant(vac) => {
+                    indexmap::map::Entry::Vacant(vac) => {
                       vac.insert(vec![ident.clone()]);
                     }
                   };
@@ -945,6 +950,7 @@ impl EsmLibraryPlugin {
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     escaped_identifiers: &FxHashMap<String, Vec<String>>,
     keep_export_name: bool,
+    link_re_export: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1054,6 +1060,22 @@ impl EsmLibraryPlugin {
             continue;
           }
 
+          if export_info.is_reexport()
+            && let Some((Some(dep), _)) = export_info.target().iter().next()
+          {
+            let module_id = module_graph
+              .module_identifier_by_dependency_id(dep)
+              .expect("should be ESMExportImportedSpecifierDependency");
+            let module = module_graph
+              .module_by_identifier(module_id)
+              .expect("should have module");
+            if module.as_external_module().is_some() {
+              // ignore re-exported symbol from external module
+              // we have special handle for external module re-exports
+              continue;
+            }
+          }
+
           let local = match export_info.used_name() {
             Some(UsedNameItem::Inlined(inlined)) => inlined.render().into(),
             Some(UsedNameItem::Str(name)) => {
@@ -1072,21 +1094,100 @@ impl EsmLibraryPlugin {
       }
     }
 
-    // handle star exports
-    Self::link_re_export(
-      current,
-      current_chunk,
-      compilation,
-      concate_modules_map,
-      required,
-      link,
-      &module_graph,
-      needed_namespace_objects,
-      entry_imports,
-      exports,
-    );
+    if link_re_export {
+      Self::link_re_export(
+        current,
+        current_chunk,
+        compilation,
+        concate_modules_map,
+        required,
+        link,
+        &module_graph,
+        needed_namespace_objects,
+        entry_imports,
+        exports,
+      );
+    }
 
     errors
+  }
+
+  fn re_export_from_external_module(
+    module: &ExternalModule,
+    current_chunk: ChunkUkey,
+    mode: &ExportMode,
+    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
+  ) {
+    match mode {
+      // render export * from 'external module'
+      ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+
+        chunk_link
+          .raw_star_exports
+          .entry(module.get_request().primary().into())
+          .or_default()
+          .insert(START_EXPORTS.clone());
+      }
+
+      ExportMode::Unused(mode) if mode.name == "*" => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+
+        chunk_link
+          .raw_star_exports
+          .entry(module.get_request().primary().into())
+          .or_default()
+          .insert(START_EXPORTS.clone());
+      }
+
+      ExportMode::ReexportUndefined(_)
+      | ExportMode::Missing
+      | ExportMode::LazyMake
+      | ExportMode::Unused(_) => {}
+
+      ExportMode::ReexportDynamicDefault(_) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link.add_re_export_from_request(
+          module.get_request().primary().into(),
+          JS_DEFAULT_KEYWORD.clone(),
+          JS_DEFAULT_KEYWORD.clone(),
+        );
+      }
+      ExportMode::ReexportNamedDefault(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link.add_re_export_from_request(
+          module.get_request().primary().into(),
+          JS_DEFAULT_KEYWORD.clone(),
+          mode.name.clone(),
+        );
+      }
+      ExportMode::ReexportNamespaceObject(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(module.get_request().primary().into())
+          .or_default()
+          .insert(mode.name.clone());
+      }
+      ExportMode::ReexportFakeNamespaceObject(mode) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        chunk_link
+          .raw_star_exports
+          .entry(module.get_request().primary().into())
+          .or_default()
+          .insert(mode.name.clone());
+      }
+      ExportMode::NormalReexport(normal) => {
+        let chunk_link = link.get_mut_unwrap(&current_chunk);
+        for item in &normal.items {
+          chunk_link.add_re_export_from_request(
+            module.get_request().primary().into(),
+            item.ids.first().unwrap_or(&item.name).clone(),
+            item.name.clone(),
+          );
+        }
+      }
+    }
   }
 
   // export * from 'target'
@@ -1117,8 +1218,15 @@ impl EsmLibraryPlugin {
           .and_then(|dep| dep.downcast_ref::<ESMExportImportedSpecifierDependency>())
           .and_then(|dep| {
             module_graph
-              .get_module_by_dependency_id(&dep.id)
-              .map(|module| (dep, module))
+              .connection_by_dependency_id(&dep.id)
+              .map(|conn| {
+                (
+                  dep,
+                  module_graph
+                    .module_by_identifier(conn.module_identifier())
+                    .expect("should have module"),
+                )
+              })
           })
       })
       .map(|(export_imported_dep, module)| {
@@ -1146,33 +1254,22 @@ impl EsmLibraryPlugin {
       for (export_dep, re_exports) in deps_and_modes {
         // reset ref_module for each dep
         let ref_module = orig_ref_module;
-        // optimize `export * from 'external module'`
-        let possible_to_optimize_mode = matches!(
-          &re_exports,
-          ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_)
-        ) || matches!(&re_exports, ExportMode::Unused(mode) if &mode.name == "*");
 
         let ref_box_module = module_graph
           .module_by_identifier(&ref_module)
           .expect("should have mode");
 
-        let optimize_reexport_star = possible_to_optimize_mode
-          && export_dep.name.is_none()
-          && ref_box_module
-            .as_external_module()
-            .is_some_and(|m| matches!(m.get_external_type().as_str(), "module-import" | "module"));
-
-        if optimize_reexport_star {
-          // render export * from 'external module'
-          let chunk_link = link.get_mut_unwrap(&current_chunk);
-          chunk_link
-            .raw_star_exports
-            .insert(export_dep.request.to_string());
+        if let Some(external_module) = ref_box_module.as_external_module()
+          && matches!(
+            external_module.get_external_type().as_str(),
+            "module-import" | "module"
+          )
+        {
+          Self::re_export_from_external_module(external_module, current_chunk, &re_exports, link);
           continue;
         }
 
         let chunk_link = link.get_mut_unwrap(&current_chunk);
-
         match re_exports {
           rspack_core::ExportMode::Missing
           | rspack_core::ExportMode::LazyMake
@@ -1386,6 +1483,26 @@ impl EsmLibraryPlugin {
                 export_info = target_export_info;
               }
 
+              if ref_module != orig_ref_module
+                && let Some(external_module) = module_graph
+                  .module_by_identifier(&ref_module)
+                  .expect("should have module")
+                  .as_external_module()
+                && matches!(
+                  external_module.get_external_type().as_str(),
+                  "module-import" | "module"
+                )
+              {
+                // handle external module
+                Self::re_export_from_external_module(
+                  external_module,
+                  current_chunk,
+                  &rspack_core::ExportMode::NormalReexport(mode.clone()),
+                  link,
+                );
+                continue;
+              }
+
               let chunk_link = link.get_mut_unwrap(&current_chunk);
 
               let used_name = if unknown_export_info {
@@ -1513,7 +1630,14 @@ impl EsmLibraryPlugin {
 
     // link entry direct exports
     if let Some(preserve_modules) = &self.preserve_modules {
-      for module_id in module_graph.modules().keys() {
+      let modules = module_graph.modules();
+      let mut modules = modules.keys().collect::<Vec<_>>();
+      modules.sort_by(|a, b| {
+        let ad = module_graph.get_depth(a);
+        let bd = module_graph.get_depth(b);
+        ad.cmp(&bd)
+      });
+      for module_id in modules {
         if compilation.entry_modules().contains(module_id) {
           continue;
         }
@@ -1551,6 +1675,7 @@ impl EsmLibraryPlugin {
           &mut exports,
           escaped_identifiers,
           true,
+          true,
         ));
       }
     }
@@ -1572,10 +1697,12 @@ impl EsmLibraryPlugin {
 
       for entry_module in entry_data
         .all_dependencies()
+        .chain(compilation.global_entry.all_dependencies())
         .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         .copied()
       {
         let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
+        entry_imports.entry(entry_module).or_default();
 
         /*
         entry module sometimes are splitted to whatever chunk user needs,
@@ -1596,6 +1723,7 @@ impl EsmLibraryPlugin {
           &mut exports,
           escaped_identifiers,
           !needs_reexport,
+          false,
         ));
 
         if needs_reexport {
@@ -1691,6 +1819,19 @@ impl EsmLibraryPlugin {
             }
           }
         }
+
+        Self::link_re_export(
+          entry_module,
+          entry_chunk_ukey,
+          compilation,
+          concate_modules_map,
+          required,
+          link,
+          &module_graph,
+          needed_namespace,
+          entry_imports,
+          &mut exports,
+        );
       }
     }
 
@@ -1724,10 +1865,6 @@ impl EsmLibraryPlugin {
             continue;
           };
 
-          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
-            continue;
-          }
-
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
@@ -1743,6 +1880,10 @@ impl EsmLibraryPlugin {
           let ref_module = *conn.module_identifier();
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
+
+          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
+            continue;
+          }
 
           if outgoing_module_info.is_external() {
             if ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module).is_none() {
@@ -1965,7 +2106,7 @@ impl EsmLibraryPlugin {
     we can remove the empty raw_import if there is star reexport.
     */
     for chunk_link in link.values_mut() {
-      for source in &chunk_link.raw_star_exports {
+      for (source, _) in &chunk_link.raw_star_exports {
         let key = (source.clone(), None);
         if let Some(import_spec) = chunk_link.raw_import_stmts.get(&key)
           && import_spec.atoms.is_empty()

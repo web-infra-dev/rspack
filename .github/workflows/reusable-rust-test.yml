@@ -17,7 +17,7 @@ jobs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
@@ -36,7 +36,7 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install cargo-binstall
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        uses: cargo-bins/cargo-binstall@a66119fbb1c952daba62640c2609111fe0803621 # v1.15.7
+        uses: cargo-bins/cargo-binstall@afcf9780305558bcc9e4bc94b7589ab2bb8b6106 # v1.15.9
 
       - name: Install cargo-workspaces
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
@@ -86,7 +86,7 @@ jobs:
     name: Check Rust Dependencies
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - uses: ./.github/actions/rustup
         with:
           key: check
@@ -95,7 +95,7 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@5b5de1b4da26ad411330c0454bdd72929bfcbeb2 # v2
+        uses: taiki-e/install-action@41ef8c65f4034ff24ab1cc2cef52f3000bcf9523 # v2
         with:
           tool: cargo-deny@0.18.3
       - name: Check licenses
@@ -103,7 +103,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@a66119fbb1c952daba62640c2609111fe0803621 # v1.15.7
+      - uses: cargo-bins/cargo-binstall@afcf9780305558bcc9e4bc94b7589ab2bb8b6106 # v1.15.9
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
       - run: cargo shear
 
@@ -113,7 +113,7 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup

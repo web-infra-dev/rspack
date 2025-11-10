@@ -9,5 +9,5 @@ cacheable modules 724 bytes
     ./templates/baz.js 38 bytes [built] [code generated]
     ./templates/foo.js 38 bytes [built] [code generated]
   ./entry.js 450 bytes [built] [code generated]
-  <TEST_ROOT>/statsOutputCases/import-context-filter/templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object 160 bytes [built] [code generated]
+  ./templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object 160 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

@@ -1,4 +1,4 @@
-asset main.js 802 bytes [emitted] (name: main)
+asset main.js 632 bytes [emitted] (name: main)
 orphan modules 64 bytes [orphan] 2 modules
 runtime modules 274 bytes 1 module
 ./index.js + 1 modules 64 bytes [code generated]

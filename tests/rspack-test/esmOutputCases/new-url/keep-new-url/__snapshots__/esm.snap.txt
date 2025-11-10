@@ -5,19 +5,6 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./index.js": 
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-(function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
-
-function neverUse() {
-	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
-}
-neverUse.bind(neverUse)
-
-
-}),
 "./asset.js": 
 /*!******************!*\
   !*** ./asset.js ***!
@@ -27,7 +14,12 @@ module.exports = __webpack_require__.p + "ef46db3751d8e999.js";
 
 }),
 });
-const index = __webpack_require__("./index.js");
+// ./index.js
+
+function neverUse() {
+	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
+}
+neverUse.bind(neverUse)
 
 
 ```

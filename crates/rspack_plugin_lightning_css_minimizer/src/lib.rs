@@ -16,13 +16,15 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+    MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
+use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
@@ -143,6 +145,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -165,8 +169,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().into_owned();
-        let input_source_map = original_source.map(&MapOptions::default());
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
@@ -279,7 +284,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .to_rspack_result()?,
             )
             .expect("should be able to generate source-map"),
-            original_source: Some(input),
+            original_source: Some(Arc::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
           })

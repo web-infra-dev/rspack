@@ -137,12 +137,14 @@ pub async fn preserve_modules(
       }
 
       let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      compilation.chunk_graph.add_chunk(new_chunk_ukey);
       let [Some(new_chunk), Some(old_chunk)] = compilation
         .chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, &chunk])
       else {
         unreachable!("new_chunk and old_chunk should be inserted already")
       };
+
       new_chunk.set_filename_template(Some(new_filename));
       old_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
       // disconnect module from other chunks
@@ -174,13 +176,13 @@ pub async fn preserve_modules(
           .chunk_graph
           .disconnect_chunk_and_entry_module(&chunk, module_id);
 
-        let entrypoint = compilation.entrypoint_by_name(entry_names.iter().next().unwrap());
+        let entrypoint = compilation.entrypoint_by_name_mut(entry_names.iter().next().unwrap());
+        let ukey = entrypoint.ukey;
+        entrypoint.set_entrypoint_chunk(new_chunk_ukey);
 
-        compilation.chunk_graph.connect_chunk_and_entry_module(
-          new_chunk_ukey,
-          module_id,
-          entrypoint.ukey,
-        );
+        compilation
+          .chunk_graph
+          .connect_chunk_and_entry_module(new_chunk_ukey, module_id, ukey);
       }
     }
   }

@@ -1,8 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{
-  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyIndexMap,
-};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleIdentifier,
   RuntimeGlobals, find_new_name,
@@ -87,11 +85,10 @@ impl ExternalInterop {
     if let Some(namespace_object) = &self.namespace_object {
       namespace_object.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_namespace",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
@@ -112,11 +109,10 @@ impl ExternalInterop {
     if let Some(namespace_object) = &self.namespace_object2 {
       namespace_object.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_namespace2",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
@@ -137,11 +133,10 @@ impl ExternalInterop {
     if let Some(default_access) = &self.default_access {
       default_access.clone()
     } else {
-      let mut new_name = format!(
+      let mut new_name = Atom::new(format!(
         "{}_default",
         self.required_symbol.as_ref().expect("already set")
-      )
-      .into();
+      ));
 
       if used_names.contains(&new_name) {
         new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
@@ -256,6 +251,12 @@ impl ExternalInterop {
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ReExportFrom {
+  Chunk(ChunkUkey),
+  Request(String),
+}
+
 #[derive(Debug, Clone)]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
@@ -275,12 +276,12 @@ pub struct ChunkLinkContext {
   exports that need to be re-exported
   Map<chunk, Map<local_name, export_name>>
   */
-  re_exports: UkeyIndexMap<ChunkUkey, FxHashMap<Atom, FxHashSet<Atom>>>,
+  re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
 
   /**
    * re exports in raw form, used for rendering export * from 'module'
    */
-  pub raw_star_exports: FxIndexSet<String>,
+  pub raw_star_exports: FxIndexMap<String, FxIndexSet<Atom>>,
 
   /**
   import order matters, it affects execution order
@@ -373,7 +374,22 @@ impl ChunkLinkContext {
     set.get(&exported).expect("just inserted")
   }
 
-  pub fn star_re_exports() {}
+  pub fn add_re_export_from_request(
+    &mut self,
+    request: String,
+    imported_name: Atom,
+    export_name: Atom,
+  ) {
+    self.exported_symbols.insert(export_name.clone());
+
+    self
+      .re_exports
+      .entry(ReExportFrom::Request(request))
+      .or_default()
+      .entry(imported_name)
+      .or_default()
+      .insert(export_name);
+  }
 
   pub fn add_re_export(&mut self, chunk: ChunkUkey, local_name: Atom, export_name: Atom) -> &Atom {
     let export_name = if self.exported_symbols.insert(export_name.clone()) {
@@ -387,7 +403,7 @@ impl ChunkLinkContext {
 
     let set = self
       .re_exports
-      .entry(chunk)
+      .entry(ReExportFrom::Chunk(chunk))
       .or_default()
       .entry(local_name)
       .or_default();
@@ -404,7 +420,7 @@ impl ChunkLinkContext {
     &mut self.exports
   }
 
-  pub fn re_exports(&self) -> &UkeyIndexMap<ChunkUkey, FxHashMap<Atom, FxHashSet<Atom>>> {
+  pub fn re_exports(&self) -> &FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>> {
     &self.re_exports
   }
 }

@@ -14,7 +14,7 @@ use rspack_core::{
   CompilerCompilation, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
@@ -33,6 +33,7 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
+use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -172,6 +173,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
     });
   let enter_span = tracing::Span::current();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -189,8 +192,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().to_string();
-        let input_source_map = original_source.map(&MapOptions::default());
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)

@@ -7,13 +7,41 @@ const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
 ];
 
+const wasmConfig = process.env.WASM && defineConfig({
+	setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+	exclude: [
+		// Skip because they rely on snapshots
+		"Diagnostics.test.js",
+		"Error.test.js",
+		"StatsAPI.test.js",
+		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"Hot*.test.js",
+
+		// Skip temporarily and should investigate in the future
+		"Cache.test.js",
+		"Compiler.test.js",
+		"MultiCompiler.test.js",
+		"Serial.test.js",
+		"Defaults.test.js",
+		"Example.test.js",
+		"Incremental-*.test.js",
+		"NativeWatcher*.test.js",
+	],
+	maxConcurrency: 1,
+	pool: {
+		maxWorkers: 1,
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
+	}
+});
+
+
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
-	include: process.env.WASM ? [] : [
+	include: [
 		"*.test.js",
 	],
-	exclude: ["Cache.test.js", "Incremental-*.test.js", "Hot*.test.js", "Serial.test.js", "NativeWatcher*.test.js", "Diagnostics.test.js", "EsmOutput.test.js"],
 	slowTestThreshold: 5000,
 	resolve: {
 		alias: {
@@ -26,6 +54,7 @@ export default defineConfig({
 	source: {
 		exclude: [root],
 	},
+	disableConsoleIntercept: true,
 	globals: true,
 	output: {
 		externals: [/.*/],
@@ -53,7 +82,7 @@ export default defineConfig({
 					: process.argv.indexOf("--test")) + 1
 				]
 				: undefined,
-		printLogger: process.argv.includes("--verbose") ? 'true' : 'false',
+		printLogger: process.env.DEBUG === "test" ? 'true' : 'false',
 		__TEST_PATH__: __dirname,
 		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
 		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
@@ -62,7 +91,7 @@ export default defineConfig({
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
-	reporters: process.env.CI ? undefined : ["verbose"],
 	hideSkippedTests: true,
+	...(wasmConfig || {}),
 });
 

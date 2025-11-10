@@ -1,2 +1,2 @@
 
-module.exports = () => "FIXME: expect loader not matched"
+module.exports = () => "TODO: support rule match by compiler name"

@@ -266,7 +266,14 @@ You **must not** specify an absolute path here. However, feel free to include fo
 
 ## output.devtoolFallbackModuleFilenameTemplate
 
-- **Type:** `string` | `function (info)`
+- **Type:**
+
+```ts
+type DevtoolFallbackModuleFilenameTemplate =
+  | string
+  | ((context: ModuleFilenameTemplateContext) => string);
+```
+
 - **Default:** `undefined`
 
 A fallback is used when the template string or function above yields duplicates.
@@ -275,8 +282,15 @@ See [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulef
 
 ## output.devtoolModuleFilenameTemplate
 
-- **Type:** `string = 'webpack://[namespace]/[resource-path]?[loaders]'` | `function (info) => string`
-- **Default:** `undefined`
+- **Type:**
+
+```ts
+type DevtoolModuleFilenameTemplate =
+  | string
+  | ((context: ModuleFilenameTemplateContext) => string);
+```
+
+- **Default:** `webpack://[namespace]/[resource-path]?[loaders]'`
 
 This option is only used when [`devtool`](/config/devtool.html) uses an option that requires module names.
 
@@ -1615,7 +1629,10 @@ module.exports = {
 Note that `[fullhash]` in this parameter will be replaced with a hash of the compilation.
 
 :::warning
-The path must not contain an exclamation mark (`!`) as it is reserved by Rspack for loader syntax).
+
+- The path must not contain an exclamation mark (`!`) as it is reserved by Rspack for loader syntax.
+- `output.path` must be an absolute path.
+
 :::
 
 ## output.pathinfo

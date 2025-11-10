@@ -1038,7 +1038,7 @@ Array [
       "type": "Buffer",
     },
     "outputPath": "<HOOK_DIST_DIR>/compiler#assetEmitted/basic",
-    "source": (() => { // webpackBootstrap
+    "source": (() => {
 var __webpack_modules__ = ({
 402: (function (module) {
 module.exports = "This is hook"

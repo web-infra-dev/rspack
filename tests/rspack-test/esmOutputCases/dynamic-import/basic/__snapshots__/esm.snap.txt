@@ -1,89 +1,18 @@
 ```mjs title=dynamic_js.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-__webpack_require__.add({
-"./dynamic.js": 
-/*!********************!*\
-  !*** ./dynamic.js ***!
-  \********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-});
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (42);
+// ./dynamic.js
+/* ESM default export */ const dynamic = (42);
 
-
-}),
-});
+export { dynamic };
 
 ```
 
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-__webpack_require__.add({
-"./index.js": 
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-(function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+// ./index.js
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic_js.mjs").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js"))
+	const value = await import("./dynamic_js.mjs").then((mod) => ({ default: mod.dynamic }))
 	expect(value.default).toBe(42)
 })
 
 
-
-}),
-});
-const index = __webpack_require__("./index.js");
-
-
-```
-
-```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
-
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
-};
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-})();
-
-export { __webpack_require__ };
 
 ```

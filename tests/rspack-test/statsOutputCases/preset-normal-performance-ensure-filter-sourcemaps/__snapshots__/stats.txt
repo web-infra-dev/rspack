@@ -3,7 +3,7 @@ runtime modules 88 bytes 1 module
 modules by path ./*.js xx KiB
   ./index.js 52 bytes [built] [code generated] [2 warnings]
   ./a.js xx KiB [built] [code generated]
-<TEST_ROOT>/statsOutputCases/preset-normal-performance-ensure-filter-sourcemaps|sync 160 bytes [built] [code generated]
+./.|sync 160 bytes [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
   │   main.js (xx KiB)

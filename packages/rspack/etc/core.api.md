@@ -22,7 +22,6 @@ import { ChunkGraph } from '@rspack/binding';
 import { ChunkGroup } from '@rspack/binding';
 import { ConcatenatedModule } from '@rspack/binding';
 import { ContextModule } from '@rspack/binding';
-import { createReadStream } from 'fs';
 import { Dependency } from '@rspack/binding';
 import type { DependencyLocation } from '@rspack/binding';
 import { EnforceExtension } from '@rspack/binding';
@@ -1808,7 +1807,7 @@ type DevToolDebugIds = "-debugids" | "";
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
 
 // @public
-export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
+export type DevtoolModuleFilenameTemplate = string | ((context: ModuleFilenameTemplateContext) => string);
 
 // @public
 export type DevtoolNamespace = string;
@@ -4586,6 +4585,20 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
+type ManifestExposeOption = {
+    path: string;
+    name: string;
+};
+
+// @public (undocumented)
+type ManifestSharedOption = {
+    name: string;
+    version?: string;
+    requiredVersion?: string;
+    singleton?: boolean;
+};
+
+// @public (undocumented)
 interface MapOptions {
     	columns?: boolean;
 
@@ -4687,6 +4700,18 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
+type ModuleFederationManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    remoteAliasMap?: RemoteAliasMap;
+    exposes?: ManifestExposeOption[];
+    shared?: ManifestSharedOption[];
+};
+
+// @public (undocumented)
 class ModuleFederationPlugin {
     constructor(_options: ModuleFederationPluginOptions);
     // (undocumented)
@@ -4697,6 +4722,8 @@ class ModuleFederationPlugin {
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
     implementation?: string;
+    // (undocumented)
+    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
@@ -4743,6 +4770,21 @@ declare namespace ModuleFilenameHelpers {
     }
 }
 export { ModuleFilenameHelpers }
+
+// @public (undocumented)
+export interface ModuleFilenameTemplateContext {
+    absoluteResourcePath: string;
+    allLoaders: string;
+    hash: string;
+    identifier: string;
+    loaders: string;
+    moduleId: string;
+    namespace: string;
+    query: string;
+    resource: string;
+    resourcePath: string;
+    shortIdentifier: string;
+}
 
 // @public (undocumented)
 type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type: any) => boolean);
@@ -5432,7 +5474,6 @@ export interface OutputFileSystem {
 
 // @public (undocumented)
 type OutputFileSystem_2 = OutputFileSystem & {
-    createReadStream?: createReadStream;
     statSync: StatSyncFn;
     readFileSync: readFileSync;
 };
@@ -6034,6 +6075,12 @@ interface RegExpLiteral extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+type RemoteAliasMap = Record<string, {
+    name: string;
+    entry?: string;
+}>;
+
+// @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
 
 // @public (undocumented)
@@ -6079,7 +6126,17 @@ export type ResolveAlias = {
 type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
 
 // @public (undocumented)
-type ResolveContext = {};
+type ResolveContext = {
+    contextDependencies?: {
+        add: (context: string) => void;
+    };
+    missingDependencies?: {
+        add: (dependency: string) => void;
+    };
+    fileDependencies?: {
+        add: (dependency: string) => void;
+    };
+};
 
 // @public (undocumented)
 export type ResolveData = binding.JsResolveData;
@@ -6128,11 +6185,17 @@ class Resolver {
 // @public (undocumented)
 interface ResolveRequest {
     // (undocumented)
+    contextDependencies?: string[];
+    // (undocumented)
     descriptionFileData?: string;
     // (undocumented)
     descriptionFilePath?: string;
     // (undocumented)
+    fileDependencies?: string[];
+    // (undocumented)
     fragment: string;
+    // (undocumented)
+    missingDependencies?: string[];
     // (undocumented)
     path: string;
     // (undocumented)
@@ -6556,6 +6619,7 @@ declare namespace rspackExports {
         HashSalt,
         SourceMapFilename,
         DevtoolNamespace,
+        ModuleFilenameTemplateContext,
         DevtoolModuleFilenameTemplate,
         DevtoolFallbackModuleFilenameTemplate,
         Environment,
