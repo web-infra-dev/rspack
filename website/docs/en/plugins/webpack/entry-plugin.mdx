@@ -51,9 +51,5 @@ When the plugin's `name` option is set to `undefined`, the entry is treated as a
 This allows you to inject global runtime code, such as the dev server's HMR runtime or the initialization logic for module federation.
 
 ```js
-new rspack.EntryPlugin(
-  context,
-  './global-runtime.js',
-  { name: undefined }
-);
+new rspack.EntryPlugin(context, './global-runtime.js', { name: undefined });
 ```

@@ -51,9 +51,5 @@ type EntryOptions =
 这可以用于注入一段全局代码，例如 dev server 的热更新运行时代码，或是模块联邦的初始化逻辑。
 
 ```js
-new rspack.EntryPlugin(
-  context,
-  './global-runtime.js',
-  { name: undefined }
-);
+new rspack.EntryPlugin(context, './global-runtime.js', { name: undefined });
 ```
