@@ -6,26 +6,26 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: worker_js.chunk.CURRENT_HASH.js
+- Manifest: 82972a065b3b6dad.LAST_HASH.hot-update.json, size: 62
 - Manifest: [runtime of worker_js_1].LAST_HASH.hot-update.json, size: 61
-- Manifest: d034dd2aafd4d854.LAST_HASH.hot-update.json, size: 62
 - Manifest: main.LAST_HASH.hot-update.json, size: 43
 - Update: main.LAST_HASH.hot-update.js, size: 1002
-- Update: worker_js.LAST_HASH.hot-update.js, size: 14367
+- Update: worker_js.LAST_HASH.hot-update.js, size: 14439
 
 ## Manifest
+
+### 82972a065b3b6dad.LAST_HASH.hot-update.json
+
+```json
+{"c":[],"r":["worker_js"],"m":["./worker.js","./worker.js?1"]}
+```
+
+
 
 ### [runtime of worker_js_1].LAST_HASH.hot-update.json
 
 ```json
 {"c":["worker_js"],"r":["worker_js_1"],"m":["./worker.js?1"]}
-```
-
-
-
-### d034dd2aafd4d854.LAST_HASH.hot-update.json
-
-```json
-{"c":[],"r":["worker_js"],"m":["./worker.js","./worker.js?1"]}
 ```
 
 
@@ -227,6 +227,7 @@ function applyHandler(options) {
 		console.warn(
 			"[HMR] unexpected require(" + module.id + ") to disposed module"
 		);
+		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
 	for (var moduleId in currentUpdate) {

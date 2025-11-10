@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -29,12 +29,7 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": [
-    "dist",
-    "hot",
-    "compiled",
-    "module.d.ts"
-  ],
+  "files": ["dist", "hot", "compiled", "module.d.ts"],
   "engines": {
     "node": ">=18.12.0"
   },
@@ -57,7 +52,7 @@
     "enhanced-resolve": "5.18.3",
     "glob-to-regexp": "^0.4.1",
     "memfs": "4.48.1",
-    "prebundle": "^1.4.2",
+    "prebundle": "^1.5.0",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

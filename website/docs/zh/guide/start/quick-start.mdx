@@ -55,19 +55,19 @@ Rspack CLI 是对标 webpack CLI 的工具，提供基础的 `serve` 和 `build`
 
 然后按照提示操作。
 
-### 快速创建
+### 非交互模式
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 提供了一些 CLI 选项。通过设置这些 CLI 选项，你可以跳过交互式的选择步骤，一键创建项目。
+[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 支持通过命令行选项进入非交互模式。使用该模式可以跳过所有提示，直接创建项目，适合脚本、CI 以及 coding agents 等自动化场景。
 
-比如，一键创建 React 项目到 `my-project` 目录：
+例如，以下命令将在 `my-app` 目录中创建一个 React 应用：
 
 ```bash
 # Rspack CLI
-npx create-rspack --dir my-project --template react
+npx -y create-rspack --dir my-app --template react
 # Rsbuild
-npx create-rsbuild --dir my-project --template react
+npx -y create-rsbuild --dir my-app --template react
 # 使用缩写
-npx create-rsbuild -d my-project -t react
+npx -y create-rsbuild -d my-app -t react
 ```
 
 ## 在线示例
@@ -100,7 +100,8 @@ npm init -y
 {
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build"
+    "build": "rspack build",
+    "preview": "rspack preview"
   }
 }
 ```

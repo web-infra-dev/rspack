@@ -488,8 +488,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_this_expression(&mut self, expr: &ThisExpr) {
-    // TODO: `this.hooks.call_hooks_for_names`
-    self.plugin_drive.clone().this(self, expr);
+    "this".call_hooks_name(self, |this, for_name| {
+      this.plugin_drive.clone().this(this, expr, for_name)
+    });
   }
 
   pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
@@ -1533,9 +1534,12 @@ impl JavascriptParser<'_> {
       self.walk_expression(super_class);
     }
 
-    let scope_params = if let Some(pat) = class_decl_or_expr
-      .ident()
-      .map(|ident| warp_ident_to_pat(ident.clone()))
+    // TODO: define variable for class expression in block pre walk
+    let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
+      && let Some(pat) = class_expr
+        .ident
+        .as_ref()
+        .map(|ident| warp_ident_to_pat(ident.clone()))
     {
       vec![Cow::Owned(pat)]
     } else {

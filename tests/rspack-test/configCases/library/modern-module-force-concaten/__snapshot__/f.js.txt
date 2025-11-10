@@ -5,7 +5,7 @@ var __webpack_modules__ = ({
 module.exports = __WEBPACK_EXTERNAL_createRequire_require("path");
 
 }),
-679: (function (module, __unused_webpack_exports, __webpack_require__) {
+227: (function (module, __unused_webpack_exports, __webpack_require__) {
 const path = __webpack_require__(928)
 
 module.exports = path.sep
@@ -14,7 +14,6 @@ module.exports = path.sep
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -38,7 +37,6 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // webpack/runtime/compat_get_default_export
 (() => {
 // getDefaultExport function for compatibility with non-ESM modules
@@ -65,10 +63,9 @@ __webpack_require__.d = (exports, definition) => {
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
-/************************************************************************/
 
 // EXTERNAL MODULE: ./f/bar.cjs
-var bar = __webpack_require__(679);
+var bar = __webpack_require__(227);
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 ;// CONCATENATED MODULE: ./f/index.js
 

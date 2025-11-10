@@ -6092,7 +6092,17 @@ export type ResolveAlias = {
 type ResolveCallback = (err: null | ErrorWithDetails, res?: string | false, req?: ResolveRequest) => void;
 
 // @public (undocumented)
-type ResolveContext = {};
+type ResolveContext = {
+    contextDependencies?: {
+        add: (context: string) => void;
+    };
+    missingDependencies?: {
+        add: (dependency: string) => void;
+    };
+    fileDependencies?: {
+        add: (dependency: string) => void;
+    };
+};
 
 // @public (undocumented)
 export type ResolveData = binding.JsResolveData;
@@ -6141,11 +6151,17 @@ class Resolver {
 // @public (undocumented)
 interface ResolveRequest {
     // (undocumented)
+    contextDependencies?: string[];
+    // (undocumented)
     descriptionFileData?: string;
     // (undocumented)
     descriptionFilePath?: string;
     // (undocumented)
+    fileDependencies?: string[];
+    // (undocumented)
     fragment: string;
+    // (undocumented)
+    missingDependencies?: string[];
     // (undocumented)
     path: string;
     // (undocumented)

@@ -197,8 +197,16 @@ impl ModuleTracker {
     }
   }
 
-  /// Check if a dep_id is running
-  pub fn is_running(&self, dep_id: &DependencyId) -> bool {
+  /// Check if a entry dep_id is running
+  pub fn is_entry_running(&self, dep_id: &DependencyId) -> bool {
     self.entry_finish_tasks.contains_key(dep_id)
+  }
+
+  /// Check if a module is building
+  pub fn is_module_building(&self, mid: &ModuleIdentifier) -> bool {
+    let Some(child) = self.unfinished_module.get(mid) else {
+      return false;
+    };
+    child == &usize::MAX
   }
 }

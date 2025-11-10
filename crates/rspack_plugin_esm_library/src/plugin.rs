@@ -11,10 +11,9 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExportsInfoGetter, ExternalModuleInfo, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, get_target,
-  is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
+  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -40,9 +39,11 @@ pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
+  // the Arc here is to for module_codegen API, which needs to render module in parallel
+  // and read-only access the map, so it receives the map as an Arc
   pub(crate) concatenated_modules_map_for_codegen:
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
-  pub(crate) concatenated_modules_map: RwLock<Arc<IdentifierIndexMap<ModuleInfo>>>,
+  pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
   pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
 }
 
@@ -166,19 +167,11 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         })),
       );
     } else {
-      let exports_info = module_graph.get_exports_info(module_identifier);
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &exports_info,
-        &module_graph,
-        None,
-        false,
-      );
       modules_map.insert(
         *module_identifier,
         ModuleInfo::External(ExternalModuleInfo {
           index: idx,
           module: *module_identifier,
-          runtime_condition: RuntimeCondition::Boolean(exports_info.is_used()),
           interop_namespace_object_used: false,
           interop_namespace_object_name: None,
           interop_namespace_object2_used: false,
@@ -218,17 +211,9 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = modules_map.get_mut(dep_module)
         && let ModuleInfo::Concatenated(concate_info) = info
       {
-        let exports_info = module_graph.get_exports_info(dep_module);
-        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-          &exports_info,
-          &module_graph,
-          None,
-          false,
-        );
         *info = ModuleInfo::External(ExternalModuleInfo {
           index: concate_info.index,
           module: concate_info.module,
-          runtime_condition: RuntimeCondition::Boolean(exports_info.is_used()),
           interop_namespace_object_used: false,
           interop_namespace_object_name: None,
           interop_namespace_object2_used: false,
@@ -253,7 +238,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   *map = Arc::new(modules_map.clone());
   drop(map);
 
-  *self.concatenated_modules_map.write().await = Arc::new(modules_map);
+  *self.concatenated_modules_map.write().await = modules_map;
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {

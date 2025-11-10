@@ -4,7 +4,7 @@ asset 98396dbfd5c74c34.png 7 bytes ({889}) [emitted] [immutable] [from: raw.png]
 Entrypoint main xx KiB (7 bytes) = bundle.js xx KiB (98396dbfd5c74c34.png 7 bytes)
 chunk {889} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./index main
-  ./index.js + 1 modules [765] 117 bytes {889} [depth 0] [code generated]
+  ./index.js + 1 modules [587] 117 bytes {889} [depth 0] [code generated]
     [no exports]
     [no exports used]
     entry ./index
@@ -12,11 +12,11 @@ chunk {889} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     |   [no exports]
     |   [no exports used]
     |   ModuleConcatenation bailout: Module is an entry point
-    | ./raw.png [970] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
+    | ./raw.png [294] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
     |   [exports: default]
     |   [no exports used]
     |   esm import ./raw.png ./index.js 2:0-33
-  ./raw.png [970] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
+  ./raw.png [294] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
     [exports: default]
     [no exports used]
     esm import ./raw.png ./index.js 2:0-33
@@ -29,9 +29,9 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
     ./stringModule.js 1 bytes [depth 1] [orphan] [built]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      [inactive] esm import ./stringModule [765] ./index.js 1:0-41
+      [inactive] esm import ./stringModule [587] ./index.js 1:0-41
   code generated modules 159 bytes (javascript) 7 bytes (asset) [code generated]
-    ./index.js + 1 modules [765] 117 bytes {889} [depth 0] [code generated]
+    ./index.js + 1 modules [587] 117 bytes {889} [depth 0] [code generated]
       [no exports]
       [no exports used]
       entry ./index
@@ -39,11 +39,11 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       |   [no exports]
       |   [no exports used]
       |   ModuleConcatenation bailout: Module is an entry point
-      | ./raw.png [970] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
+      | ./raw.png [294] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
       |   [exports: default]
       |   [no exports used]
       |   esm import ./raw.png ./index.js 2:0-33
-    ./raw.png [970] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
+    ./raw.png [294] 42 bytes (javascript) 7 bytes (asset) {889} [depth 1] [built] [code generated]
       [exports: default]
       [no exports used]
       esm import ./raw.png ./index.js 2:0-33
@@ -55,4 +55,4 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (069708a247d75c94)
+Rspack compiled successfully (9144b3b47bff02b3)

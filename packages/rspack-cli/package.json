@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -23,10 +23,7 @@
   "bin": {
     "rspack": "./bin/rspack.js"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",

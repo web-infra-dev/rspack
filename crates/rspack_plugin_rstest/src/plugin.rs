@@ -177,6 +177,11 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
+      // Only handles JavaScript.
+      if info.javascript_module.is_none() {
+        return Ok((old, info));
+      }
+
       let content = old.source().into_string_lossy();
       let captures: Vec<_> = regex.captures_iter(&content).collect();
 

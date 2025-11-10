@@ -462,20 +462,29 @@ impl EsmLibraryPlugin {
     }
 
     // render star exports
-    for source in &chunk_link.raw_star_exports {
-      final_source.add(RawStringSource::from(format!(
-        "export * from {};\n",
-        serde_json::to_string(source).expect("should have correct request")
-      )));
+    for (source, export_names) in &chunk_link.raw_star_exports {
+      for name in export_names {
+        if name == "*" {
+          final_source.add(RawStringSource::from(format!(
+            "export * from {};\n",
+            serde_json::to_string(source).expect("should have correct request")
+          )));
+        } else {
+          final_source.add(RawStringSource::from(format!(
+            "export * as {name} from {};\n",
+            serde_json::to_string(source).expect("should have correct request")
+          )));
+        }
+      }
     }
 
     // render re-exports
-    for (chunk, export_symbols) in chunk_link.re_exports() {
+    for (re_export_from, export_symbols) in chunk_link.re_exports() {
       let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
       export_symbols.sort_by(|a, b| a.0.cmp(b.0));
 
       final_source.add(RawStringSource::from(format!(
-        "export {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+        "export {{ {} }} from \"{}\";\n",
         export_symbols
           .iter()
           .flat_map(|(imported, exports)| {
@@ -491,7 +500,14 @@ impl EsmLibraryPlugin {
           })
           .collect::<Vec<_>>()
           .join(", "),
-        chunk.as_u32()
+        match re_export_from {
+          crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk_ukey.as_u32()))
+          }
+          crate::chunk_link::ReExportFrom::Request(request) => {
+            Cow::Borrowed(request)
+          }
+        }
       )));
     }
 

@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: timeout"
+module.exports = () => true

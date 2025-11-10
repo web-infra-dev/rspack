@@ -33,6 +33,7 @@ import {
 	type LoaderContext
 } from "../config/adapterRuleUse";
 import { NormalModule } from "../NormalModule";
+import type { ResolveContext } from "../Resolver";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import { JavaScriptTracer } from "../trace";
 import {
@@ -518,24 +519,21 @@ export async function runLoaders(
 	const getResolveContext = () => {
 		return {
 			fileDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addDependency(d);
 				}
 			},
 			contextDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addContextDependency(d);
 				}
 			},
 			missingDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addMissingDependency(d);
 				}
 			}
-		};
+		} as ResolveContext;
 	};
 
 	const getResolver = memoize(() => {

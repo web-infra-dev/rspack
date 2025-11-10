@@ -83,14 +83,12 @@ module.exports = __WEBPACK_EXTERNAL_MODULE_fs__;
 }),
 });
 const index = __webpack_require__("./index.js");
-var fs = index.fs;
 var named = index.named;
-var r = index.r;
-var readFile = index.readFile;
 var starExports = index.starExports;
 
-export { fs, named, r, readFile, starExports };
+export { named, starExports };
 export * from "fs";
+export { default as fs, readFile as r, readFile } from "fs";
 
 ```
 
