@@ -10,7 +10,7 @@ Object.defineProperty(ChunkGraph.prototype, "getOrderedChunkModulesIterable", {
 	value(
 		this: ChunkGraph,
 		chunk: Chunk,
-		compareFn: (a: Module, b: Module) => number
+		compareFn: (_a: Module, _b: Module) => number
 	): Iterable<Module> {
 		const modules = this.getChunkModules(chunk);
 		modules.sort(compareFn);
