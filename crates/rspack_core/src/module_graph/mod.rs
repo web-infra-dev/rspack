@@ -210,14 +210,7 @@ impl<'a> ModuleGraph<'a> {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      match map.entry(*con.module_identifier()) {
-        Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con);
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(vec![con]);
-        }
-      }
+      map.entry(*con.module_identifier()).or_default().push(con);
     }
     map
   }
@@ -242,14 +235,7 @@ impl<'a> ModuleGraph<'a> {
       if !con.is_active(module_graph, runtime, module_graph_cache) {
         continue;
       }
-      match map.entry(*con.module_identifier()) {
-        Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con);
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(vec![con]);
-        }
-      }
+      map.entry(*con.module_identifier()).or_default().push(con);
     }
     map
   }
