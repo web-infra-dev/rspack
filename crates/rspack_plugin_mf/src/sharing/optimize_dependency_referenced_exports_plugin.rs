@@ -289,12 +289,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
           runtime_reference_exports.iter().all(|(runtime_name, _)| {
             let runtime_spec = RuntimeSpec::from_iter([runtime_name.clone().into()]);
             exports_view.iter().all(|(name, export_info)| {
-              dbg!("get_used export_info : ", &export_info);
-
               let used = export_info.get_used(Some(&runtime_spec));
-              dbg!("export runtime_spec: ", &runtime_spec);
-              dbg!("export name: ", &name);
-              dbg!("export used: ", &used);
               // if unknown module is all we mark, means we have known all module exports info , and can shake
               if used != rspack_core::UsageState::Unknown {
                 runtime_reference_exports
@@ -306,11 +301,6 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
             })
           })
         };
-        dbg!(
-          "can_update_module_used_stage: ",
-          &can_update_module_used_stage
-        );
-
         if can_update_module_used_stage {
           // mark used exports for dependencies and blocks dependencies
           // create a helper closure to update dependency's export info
@@ -326,7 +316,8 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
                 );
                 let export_used_status: rspack_core::UsageState =
                   export_info.get_used(Some(&runtime_spec));
-                dbg!("export_used_status:", &export_used_status);
+                export_info.set_can_mangle_provide(Some(false));
+                export_info.set_can_mangle_use(Some(false));
               }
               exports_info_data
                 .other_exports_info_mut()

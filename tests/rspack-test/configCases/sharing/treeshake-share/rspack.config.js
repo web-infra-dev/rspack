@@ -6,29 +6,29 @@ const { ShareContainerPlugin, OptimizeDependencyReferencedExportsPlugin,SharePlu
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	optimization:{
+		minimize: true,
+		chunkIds:'named',
+		moduleIds: 'named'
+	},
+	output: {
+		chunkFilename: "[id].js"
+	},
 	entry: {
 		main: "./index.js"
 	},
 	plugins: [
 		new SharePlugin({
 			shared: {
-				'ui-lib': {}
+				'ui-lib': {
+					requiredVersion:'*'
+				}
 			}
 		}),
-		// new ShareContainerPlugin({
-		// 	library: {
-		// 		name:'ui_lib',
-		// 		type:'commonjs2'
-		// 	},
-		// 	mfName: "host",
-		// 	shareName: "ui-lib",
-		// 	version: "1.0.0",
-		// 	request: path.resolve(__dirname, "node_modules/ui-lib/index.js")
-		// }),
 		new OptimizeDependencyReferencedExportsPlugin([
 			['ui-lib',{
 				treeshake:true,
-				usedExports: ['Badge']
+				// usedExports: ['Badge']
 			}]
 		])
 	]

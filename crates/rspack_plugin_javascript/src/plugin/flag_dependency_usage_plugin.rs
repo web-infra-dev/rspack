@@ -375,7 +375,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
         };
         if used_exports.is_empty() {
-          dbg!("runtime ref: ", &runtime.as_ref());
           let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
 
           if flag {
@@ -713,11 +712,6 @@ fn process_referenced_module_without_nested(
         }
       };
       if used_exports.is_empty() {
-        dbg!(
-          "set_owned_used_in_unknown_way runtime ref: ",
-          &runtime.as_ref()
-        );
-
         let flag = exports_info.set_owned_used_in_unknown_way(runtime.as_ref());
 
         if flag {
