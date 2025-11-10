@@ -1117,24 +1117,25 @@ impl EsmLibraryPlugin {
     current_chunk: ChunkUkey,
     mode: &ExportMode,
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
-    export_dep: &ESMExportImportedSpecifierDependency,
   ) {
     match mode {
       // render export * from 'external module'
       ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_) => {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
+
         chunk_link
           .raw_star_exports
-          .entry(export_dep.request.to_string())
+          .entry(module.get_request().primary().into())
           .or_default()
           .insert(START_EXPORTS.clone());
       }
 
       ExportMode::Unused(mode) if mode.name == "*" => {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
+
         chunk_link
           .raw_star_exports
-          .entry(export_dep.request.to_string())
+          .entry(module.get_request().primary().into())
           .or_default()
           .insert(START_EXPORTS.clone());
       }
@@ -1147,7 +1148,7 @@ impl EsmLibraryPlugin {
       ExportMode::ReexportDynamicDefault(_) => {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         chunk_link.add_re_export_from_request(
-          module.user_request().to_string(),
+          module.get_request().primary().into(),
           JS_DEFAULT_KEYWORD.clone(),
           JS_DEFAULT_KEYWORD.clone(),
         );
@@ -1155,7 +1156,7 @@ impl EsmLibraryPlugin {
       ExportMode::ReexportNamedDefault(mode) => {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         chunk_link.add_re_export_from_request(
-          module.user_request().to_string(),
+          module.get_request().primary().into(),
           JS_DEFAULT_KEYWORD.clone(),
           mode.name.clone(),
         );
@@ -1164,7 +1165,7 @@ impl EsmLibraryPlugin {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         chunk_link
           .raw_star_exports
-          .entry(module.user_request().to_string())
+          .entry(module.get_request().primary().into())
           .or_default()
           .insert(mode.name.clone());
       }
@@ -1172,7 +1173,7 @@ impl EsmLibraryPlugin {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         chunk_link
           .raw_star_exports
-          .entry(module.user_request().to_string())
+          .entry(module.get_request().primary().into())
           .or_default()
           .insert(mode.name.clone());
       }
@@ -1180,7 +1181,7 @@ impl EsmLibraryPlugin {
         let chunk_link = link.get_mut_unwrap(&current_chunk);
         for item in &normal.items {
           chunk_link.add_re_export_from_request(
-            module.user_request().into(),
+            module.get_request().primary().into(),
             item.ids.first().unwrap_or(&item.name).clone(),
             item.name.clone(),
           );
@@ -1264,13 +1265,7 @@ impl EsmLibraryPlugin {
             "module-import" | "module"
           )
         {
-          Self::re_export_from_external_module(
-            external_module,
-            current_chunk,
-            &re_exports,
-            link,
-            export_dep,
-          );
+          Self::re_export_from_external_module(external_module, current_chunk, &re_exports, link);
           continue;
         }
 
@@ -1504,7 +1499,6 @@ impl EsmLibraryPlugin {
                   current_chunk,
                   &rspack_core::ExportMode::NormalReexport(mode.clone()),
                   link,
-                  export_dep,
                 );
                 continue;
               }
