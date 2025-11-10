@@ -4954,8 +4954,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.14"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=3c1808df2e2194efdc284ce9a55aa5f85cee041e#3c1808df2e2194efdc284ce9a55aa5f85cee041e"
+version = "0.4.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "646955b2a5abd85cd4af1f21165e6c97bd39967fe5b3a7309c655e4f545f902c"
 dependencies = [
  "dyn-clone",
  "memchr",
