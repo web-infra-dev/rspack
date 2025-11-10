@@ -3508,6 +3508,7 @@ dependencies = [
  "mimalloc-rspack",
  "sftrace-setup",
  "tracy-client",
+ "tracy-client-sys",
 ]
 
 [[package]]
@@ -7008,9 +7009,9 @@ dependencies = [
 
 [[package]]
 name = "tracy-client-sys"
-version = "0.26.1"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "319c70195101a93f56db4c74733e272d720768e13471f400c78406a326b172b0"
+checksum = "5f9612d9503675b07b244922ea6f6f3cdd88c43add1b3498084613fc88cdf69d"
 dependencies = [
  "cc",
  "windows-targets 0.52.6",
