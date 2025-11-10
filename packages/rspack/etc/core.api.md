@@ -4585,6 +4585,20 @@ type MakeDirectoryOptions = {
 };
 
 // @public (undocumented)
+type ManifestExposeOption = {
+    path: string;
+    name: string;
+};
+
+// @public (undocumented)
+type ManifestSharedOption = {
+    name: string;
+    version?: string;
+    requiredVersion?: string;
+    singleton?: boolean;
+};
+
+// @public (undocumented)
 interface MapOptions {
     	columns?: boolean;
 
@@ -4686,6 +4700,18 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
+type ModuleFederationManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    remoteAliasMap?: RemoteAliasMap;
+    exposes?: ManifestExposeOption[];
+    shared?: ManifestSharedOption[];
+};
+
+// @public (undocumented)
 class ModuleFederationPlugin {
     constructor(_options: ModuleFederationPluginOptions);
     // (undocumented)
@@ -4696,6 +4722,8 @@ class ModuleFederationPlugin {
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
     implementation?: string;
+    // (undocumented)
+    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
@@ -6045,6 +6073,12 @@ interface RegExpLiteral extends Node_4, HasSpan {
     // (undocumented)
     type: "RegExpLiteral";
 }
+
+// @public (undocumented)
+type RemoteAliasMap = Record<string, {
+    name: string;
+    entry?: string;
+}>;
 
 // @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;

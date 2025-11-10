@@ -1272,7 +1272,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
                   .chunk_by_ukey
                   .expect_get_mut(&runtime_chunk_ukey)
               };
-              entrypoint.unshift_chunk(rt_chunk);
+              entrypoint.unshift_chunk(rt_chunk.ukey());
               rt_chunk.set_runtime(runtime);
               rt_chunk.add_group(entrypoint.ukey);
               entrypoint.set_runtime_chunk(rt_chunk.ukey());

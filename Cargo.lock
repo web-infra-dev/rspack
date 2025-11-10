@@ -4275,6 +4275,7 @@ dependencies = [
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
+ "rspack_plugin_runtime",
  "rspack_util",
  "serde",
  "serde_json",
@@ -4943,9 +4944,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5f8ab2ee9b7bc3eff7bd03e3845203ff06b4cf18f277740d262f022bb8e18d"
+checksum = "646955b2a5abd85cd4af1f21165e6c97bd39967fe5b3a7309c655e4f545f902c"
 dependencies = [
  "dyn-clone",
  "memchr",

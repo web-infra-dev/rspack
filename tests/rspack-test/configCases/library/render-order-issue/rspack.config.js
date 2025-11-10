@@ -49,7 +49,7 @@ module.exports = {
 							/** @type {Record<string, import("webpack-sources").Source>} */ assets
 						) => {
 							const source = assets["entry.mjs"].source();
-							expect(source).toMatchFileSnapshot(path.join(__dirname, "__snapshots__", `entry.mjs.txt`));
+							expect(source).toMatchFileSnapshotSync(path.join(__dirname, "__snapshots__", `entry.mjs.txt`));
 						}
 					);
 				}

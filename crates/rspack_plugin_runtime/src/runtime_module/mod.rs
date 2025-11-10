@@ -60,7 +60,9 @@ pub use create_script_url::CreateScriptUrlRuntimeModule;
 pub use define_property_getters::DefinePropertyGettersRuntimeModule;
 pub use ensure_chunk::EnsureChunkRuntimeModule;
 pub use esm_module_decorator::ESMModuleDecoratorRuntimeModule;
-pub use export_webpack_require::ExportWebpackRequireRuntimeModule;
+pub use export_webpack_require::{
+  EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID, ExportWebpackRequireRuntimeModule,
+};
 pub use get_chunk_filename::GetChunkFilenameRuntimeModule;
 pub use get_chunk_update_filename::GetChunkUpdateFilenameRuntimeModule;
 pub use get_full_hash::GetFullHashRuntimeModule;

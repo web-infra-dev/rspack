@@ -10,12 +10,12 @@ function toMatchInlineSnapshot() {
 	return { pass: true, message: () => "" };
 }
 
-function toMatchFileSnapshot() {
+function toMatchFileSnapshotSync() {
 	return { pass: true, message: () => "" };
 }
 
 expect.extend({
 	toMatchSnapshot,
 	toMatchInlineSnapshot,
-	toMatchFileSnapshot
+	toMatchFileSnapshotSync
 });
