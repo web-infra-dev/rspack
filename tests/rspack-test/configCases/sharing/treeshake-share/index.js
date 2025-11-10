@@ -11,6 +11,7 @@ it("should generate share container bundle with expected content", async () => {
 	);
 	const bundleContent = fs.readFileSync(bundlePath, "utf-8");
 	expect(bundleContent).toContain("Button");
-	expect(bundleContent).not.toContain("Badge");
+	// add extra usedExports by maunally
+	expect(bundleContent).toContain("Badge");
 	expect(bundleContent).not.toContain("List");
 });

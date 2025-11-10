@@ -28,7 +28,7 @@ module.exports = {
 		new OptimizeDependencyReferencedExportsPlugin([
 			['ui-lib',{
 				treeshake:true,
-				// usedExports: ['Badge']
+				usedExports: ['Badge']
 			}]
 		])
 	]
