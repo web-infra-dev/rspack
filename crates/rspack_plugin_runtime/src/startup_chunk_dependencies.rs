@@ -1,6 +1,6 @@
 use rspack_core::{
-  ChunkLoading, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModuleExt,
+  ChunkLoading, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin,
+  RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
