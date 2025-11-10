@@ -9,7 +9,7 @@
   "scripts": {
     "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
     "testu": "pnpm run --stream /^test:.*/ -u",
-    "test:rstest": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/@rstest/core/bin/rstest",
+    "test:rstest": "rstest",
     "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/@rstest/core/bin/rstest --config ./rstest.config.hot.ts --passWithNoTests"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@ const setupFilesAfterEnv = [
 const wasmConfig = process.env.WASM && defineConfig({
 	setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	exclude: [
-		// Skip because they reply on snapshots
+		// Skip because they rely on snapshots
 		"Diagnostics.test.js",
 		"Error.test.js",
 		"StatsAPI.test.js",
@@ -27,9 +27,6 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"Example.test.js",
 		"Incremental-*.test.js",
 		"NativeWatcher*.test.js",
-
-		// Rstest ignored
-		// "EsmOutput.test.js",
 	],
 	maxConcurrency: 1,
 	pool: {
@@ -95,6 +92,6 @@ export default defineConfig({
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
 	hideSkippedTests: true,
-		...(wasmConfig || {}),
+	...(wasmConfig || {}),
 });
 

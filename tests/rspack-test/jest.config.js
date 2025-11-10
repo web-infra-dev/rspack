@@ -10,7 +10,7 @@ const setupFilesAfterEnv = [
 const wasmConfig = process.env.WASM && {
 	setupFilesAfterEnv: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	testPathIgnorePatterns: [
-		// Skip because they reply on snapshots
+		// Skip because they rely on snapshots
 		"Diagnostics.test.js",
 		"Error.test.js",
 		"StatsAPI.test.js",
