@@ -4,7 +4,7 @@ function handleCssComposes(exports, composes) {
 		var moduleId = composes[i];
 		var composeFrom = composes[i + 1];
 		var composeVar = composes[i + 2];
-		var composedId = __webpack_require__(composeFrom)[composeVar];
+		var composedId = <%- REQUIRE %>(composeFrom)[composeVar];
 		exports[moduleId] = exports[moduleId] + " " + composedId
 	}
 }
@@ -19,9 +19,9 @@ var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority")
 		for (var i = 0; i < links.length; i++) {
 			var l = links[i];
 			var href = l.getAttribute("href") || l.href;
-			if (href && !href.startsWith(__webpack_require__.p)) {
+			if (href && !href.startsWith(<%- PUBLIC_PATH %>)) {
 				href =
-					__webpack_require__.p + (href.startsWith("/") ? href.slice(1) : href);
+					<%- PUBLIC_PATH %> + (href.startsWith("/") ? href.slice(1) : href);
 			}
 			if (
 				l.rel == "stylesheet" &&
@@ -37,8 +37,8 @@ var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority")
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
-		if (__webpack_require__.nc) {
-			link.setAttribute("nonce", __webpack_require__.nc);
+		if (<%- SCRIPT_NONCE %>) {
+			link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
 		}
 		link.setAttribute("data-webpack", uniqueName + ":" + key);
 		if (fetchPriority) {

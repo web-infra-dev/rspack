@@ -9,6 +9,6 @@ it(`should work with URLs in CSS`, () => new Promise(done => {
 		css.push(link.sheet.css);
 	}
 
-	expect(css).toMatchFileSnapshot(`${__SNAPSHOT__}/css.txt`);
+	expect(css).toMatchFileSnapshotSync(`${__SNAPSHOT__}/css.txt`);
 	done();
 }));

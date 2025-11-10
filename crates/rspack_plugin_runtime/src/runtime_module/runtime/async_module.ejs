@@ -1,9 +1,9 @@
 var hasSymbol = typeof Symbol === "function";
-var webpackQueues = hasSymbol ? Symbol("webpack queues") : "__webpack_queues__";
+var webpackQueues = hasSymbol ? Symbol("webpack queues") : "<%- queues %>";
 var webpackExports = <%- ASYNC_MODULE_EXPORT_SYMBOL %> = hasSymbol ? Symbol("webpack exports") : "<%- EXPORTS %>";
-var webpackError = hasSymbol ? Symbol("webpack error") : "__webpack_error__";
-var webpackDone = hasSymbol ? Symbol("webpack done") : "__webpack_done__";
-var webpackDefer = <%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %> = hasSymbol ? Symbol("webpack defer") : "__webpack_defer__";
+var webpackError = hasSymbol ? Symbol("webpack error") : "<%- error %>";
+var webpackDone = hasSymbol ? Symbol("webpack done") : "<%- done %>";
+var webpackDefer = <%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %> = hasSymbol ? Symbol("webpack defer") : "<%- defer %>";
 var resolveQueue = <%- basicFunction("queue") %> {
   if (queue && queue.d < 1) {
     queue.d = 1;
@@ -17,14 +17,14 @@ var wrapDeps = <%- basicFunction("deps") %> {
 			if(!dep[webpackQueues] && dep[webpackDefer]) {
 				var asyncDeps = dep[webpackDefer];
 				var hasUnresolvedAsyncSubgraph = asyncDeps.some(<%- basicFunction("id") %> {
-					var cache = __webpack_module_cache__[id];
+					var cache = <%- module_cache %>[id];
 					return !cache || cache[webpackDone] === false;
 				});
 				if (hasUnresolvedAsyncSubgraph) {
 					var d = dep;
 					dep = {
 						then(callback) {
-							Promise.all(asyncDeps.map(__webpack_require__)).then(<%- returningFunction("callback(d)", "") %>)
+							Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(<%- returningFunction("callback(d)", "") %>)
 						}
 					};
 				} else return dep;
