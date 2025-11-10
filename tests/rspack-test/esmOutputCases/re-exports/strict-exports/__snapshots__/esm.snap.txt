@@ -1,0 +1,90 @@
+```mjs title=chunk_js.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./index_js.mjs";
+
+// ./chunk.js
+const cjs = __webpack_require__("./cjs.js");
+// this will import from the entry chunk
+
+
+cjs.foo;
+
+
+```
+
+```mjs title=index_js.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+__webpack_require__.add({
+"./cjs.js": 
+/*!****************!*\
+  !*** ./cjs.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
+exports.foo = () => 42
+
+
+}),
+});
+// ./index.js
+const cjs = __webpack_require__("./cjs.js");
+
+
+it('should only contains needed exports', async () => {
+	await import("./chunk_js.mjs")
+	expect((0,cjs.foo)()).toBe(42)
+
+	const exports = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(Reflect.ownKeys(exports).filter(t => typeof t === 'string').length).toBe(1)
+	const {value} = exports
+
+	expect(value()()).toBe(42)
+})
+
+const index_value = () => cjs.foo
+
+export { index_value as value };
+
+```
+
+```mjs title=main.mjs
+import "./index_js.mjs";
+
+export { value } from "./index_js.mjs";
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// esm library register module runtime
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

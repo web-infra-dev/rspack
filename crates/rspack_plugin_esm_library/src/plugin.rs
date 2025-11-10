@@ -8,12 +8,13 @@ use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
   ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
-  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
+  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
+  RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -27,8 +28,8 @@ use tokio::sync::RwLock;
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
-  esm_lib_parser_plugin::EsmLibParserPlugin, preserve_modules::preserve_modules,
-  runtime::RegisterModuleRuntime,
+  ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
+  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -339,6 +340,19 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  _compilation: &mut Compilation,
+  _chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  // avoid generate startup runtime, eg. entry dependent chunk loading runtime
+  runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
+
+  Ok(())
+}
+
 static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"__RSPACK_ESM_CHUNK_(\d*)").expect("should have regex"));
 
@@ -444,11 +458,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  // check if we have to generate proxy chunks
   if let Some(preserve_modules_root) = &self.preserve_modules {
     let errors = preserve_modules(preserve_modules_root, compilation).await;
     if !errors.is_empty() {
       compilation.extend_diagnostics(errors);
     }
+  } else {
+    ensure_entry_exports(compilation);
   }
 
   Ok(None)
@@ -502,6 +519,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
 
     ctx
       .compilation_hooks

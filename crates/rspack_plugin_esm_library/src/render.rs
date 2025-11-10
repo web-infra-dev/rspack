@@ -15,6 +15,7 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
+use rspack_plugin_runtime::EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -203,7 +204,13 @@ impl EsmLibraryPlugin {
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      if tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
+      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already
+      if !compilation
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .any(|m| m.contains(EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID.as_str()))
+        && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+      {
         export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));
       }
     }
@@ -423,9 +430,18 @@ impl EsmLibraryPlugin {
       final_source.add(RawStringSource::from_static("\n"));
     }
 
-    final_source.add(runtime_source);
-    final_source.add(decl_source);
-    final_source.add(render_source);
+    // render init fragments
+    let mut final_source = ConcatSource::new([
+      render_init_fragments(
+        final_source.boxed(),
+        chunk_init_fragments,
+        &mut ChunkRenderContext {},
+      )?,
+      Arc::new(runtime_source),
+      Arc::new(decl_source),
+      Arc::new(render_source),
+    ]);
+
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
 
@@ -516,13 +532,6 @@ impl EsmLibraryPlugin {
         "export default {default_export};\n",
       )));
     }
-
-    // render init fragments
-    let final_source = render_init_fragments(
-      final_source.boxed(),
-      chunk_init_fragments,
-      &mut ChunkRenderContext {},
-    )?;
 
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
@@ -625,8 +634,7 @@ impl EsmLibraryPlugin {
       )));
     }
 
-    if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
-    {
+    if module_factories {
       source.add(RawStringSource::from(format!(
         "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
         RuntimeGlobals::MODULE_FACTORIES
