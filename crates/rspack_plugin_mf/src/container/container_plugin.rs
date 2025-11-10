@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
-  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals,
+  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -110,6 +110,11 @@ async fn additional_tree_runtime_requirements(
     return Ok(());
   };
   if matches!(&entry_options.name, Some(name) if name == &self.options.name)
+    && compilation.chunk_graph.has_chunk_module_by_source_type(
+      chunk_ukey,
+      SourceType::Expose,
+      &compilation.get_module_graph(),
+    )
     && compilation
       .chunk_graph
       .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)

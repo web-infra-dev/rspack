@@ -36,6 +36,10 @@ pub use drive::*;
 pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
   match loading_type {
     ChunkLoadingType::Jsonp => {
+      plugins.push(
+        StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Jsonp), true)
+          .boxed(),
+      );
       plugins.push(JsonpChunkLoadingPlugin::default().boxed());
     }
     ChunkLoadingType::Require => {
@@ -65,7 +69,13 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
       );
       plugins.push(ImportScriptsChunkLoadingPlugin::default().boxed());
     }
-    ChunkLoadingType::Import => plugins.push(ModuleChunkLoadingPlugin::default().boxed()),
+    ChunkLoadingType::Import => {
+      plugins.push(
+        StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Import), true)
+          .boxed(),
+      );
+      plugins.push(ModuleChunkLoadingPlugin::default().boxed())
+    }
     ChunkLoadingType::Custom(_) => (),
   }
 }
