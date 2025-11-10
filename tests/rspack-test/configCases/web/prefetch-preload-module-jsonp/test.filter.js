@@ -1,1 +1,0 @@
-module.exports = () => "FIXME: jsdom does not work well with prefetch/preload"

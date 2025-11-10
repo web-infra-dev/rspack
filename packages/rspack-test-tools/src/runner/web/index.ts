@@ -279,11 +279,17 @@ export class WebRunner extends NodeRunner {
 				  if (prop === "__HMR_UPDATED_RUNTIME__") {
 					  return window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"];
 					}
+					if (prop === "webpackChunk") {
+						return window["__GLOBAL_SHARED__"]["webpackChunk"];
+					}
 					return Reflect.get(target, prop, receiver);
 				},
 				set(target, prop, value, receiver) {
 					if (prop === "__HMR_UPDATED_RUNTIME__") {
 						window["__GLOBAL_SHARED__"]["__HMR_UPDATED_RUNTIME__"] = value;
+					}
+					if (prop === "webpackChunk") {
+						window["__GLOBAL_SHARED__"]["webpackChunk"] = value;
 					}
 					return Reflect.set(target, prop, value, receiver);
 				}
