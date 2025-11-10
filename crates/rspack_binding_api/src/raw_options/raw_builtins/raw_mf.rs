@@ -220,7 +220,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
 #[napi(object)]
 pub struct RawOptimizeDependencyReferencedExportsPluginOptions {
   pub shared: Vec<RawOptimizeSharedConfig>,
-  pub ignored_runtime: Option<Vec<String>>,
+  pub inject_used_exports: Option<bool>,
 }
 
 impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
@@ -233,7 +233,7 @@ impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
         .into_iter()
         .map(|config| config.into())
         .collect(),
-      ignored_runtime: value.ignored_runtime.unwrap_or_default(),
+      inject_used_exports: value.inject_used_exports.unwrap_or(true),
     }
   }
 }

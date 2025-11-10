@@ -33,7 +33,7 @@ pub struct OptimizeSharedConfig {
 #[derive(Debug, Clone)]
 pub struct OptimizeDependencyReferencedExportsPluginOptions {
   pub shared: Vec<OptimizeSharedConfig>,
-  pub ignored_runtime: Vec<String>,
+  pub inject_used_exports: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -45,13 +45,14 @@ struct SharedEntryData {
 #[derive(Debug, Clone)]
 pub struct OptimizeDependencyReferencedExportsPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
-  ignored_runtime: FxHashSet<String>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashMap<String, FxHashSet<String>>>>>,
+  inject_used_exports: bool,
 }
 
 impl OptimizeDependencyReferencedExportsPlugin {
   pub fn new(options: OptimizeDependencyReferencedExportsPluginOptions) -> Self {
     let mut shared_map = FxHashMap::default();
+    let inject_used_exports = options.inject_used_exports.clone();
     for config in options.shared.into_iter().filter(|c| c.treeshake) {
       let atoms = config
         .used_exports
@@ -66,13 +67,12 @@ impl OptimizeDependencyReferencedExportsPlugin {
       );
     }
 
-    let ignored_runtime = options.ignored_runtime.into_iter().collect();
     let shared_referenced_exports = Arc::new(RwLock::new(FxHashMap::<
       String,
       FxHashMap<String, FxHashSet<String>>,
     >::default()));
 
-    Self::new_inner(shared_map, ignored_runtime, shared_referenced_exports)
+    Self::new_inner(shared_map, shared_referenced_exports, inject_used_exports)
   }
 
   fn apply_custom_exports(&self) {
@@ -267,11 +267,11 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
           let exports_info = module_graph_mut.get_exports_info(module_id);
           let exports_info_data = exports_info.as_data_mut(&mut module_graph_mut);
 
-          for (runtime, exports) in runtime_reference_exports.iter() {
+          for (_runtime, exports) in runtime_reference_exports.iter() {
             for export_name in exports {
               let export_atom = Atom::from(export_name.as_str());
               if let Some(export_info) = exports_info_data.named_exports_mut(&export_atom) {
-                let runtime_spec = RuntimeSpec::from_iter([runtime.clone().into()]);
+                // let runtime_spec = RuntimeSpec::from_iter([runtime.clone().into()]);
                 // let status =
                 //   export_info.set_used(rspack_core::UsageState::Used, Some(&runtime_spec));
                 // set used by runtime when set_owned_used_in_unknown_way remove
@@ -304,29 +304,23 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         if can_update_module_used_stage {
           // mark used exports for dependencies and blocks dependencies
           // create a helper closure to update dependency's export info
-          runtime_reference_exports
-            .iter()
-            .for_each(|(runtime_name, _)| {
-              let runtime_spec = RuntimeSpec::from_iter([runtime_name.clone().into()]);
-              for export_info in exports_info_data.exports_mut().values_mut() {
-                export_info.set_used_conditionally(
-                  Box::new(|used| *used == rspack_core::UsageState::Unknown),
-                  rspack_core::UsageState::Unused,
-                  None,
-                );
-                let export_used_status: rspack_core::UsageState =
-                  export_info.get_used(Some(&runtime_spec));
-                export_info.set_can_mangle_provide(Some(false));
-                export_info.set_can_mangle_use(Some(false));
-              }
-              exports_info_data
-                .other_exports_info_mut()
-                .set_used_conditionally(
-                  Box::new(|used| *used == rspack_core::UsageState::Unknown),
-                  rspack_core::UsageState::Unused,
-                  None,
-                );
-            });
+          // set used by runtime when set_owned_used_in_unknown_way remove
+          for export_info in exports_info_data.exports_mut().values_mut() {
+            export_info.set_used_conditionally(
+              Box::new(|used| *used == rspack_core::UsageState::Unknown),
+              rspack_core::UsageState::Unused,
+              None,
+            );
+            export_info.set_can_mangle_provide(Some(false));
+            export_info.set_can_mangle_use(Some(false));
+          }
+          exports_info_data
+            .other_exports_info_mut()
+            .set_used_conditionally(
+              Box::new(|used| *used == rspack_core::UsageState::Unknown),
+              rspack_core::UsageState::Unused,
+              None,
+            );
         }
       }
     }
@@ -492,10 +486,12 @@ impl Plugin for OptimizeDependencyReferencedExportsPlugin {
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
-    ctx
-      .compilation_hooks
-      .additional_tree_runtime_requirements
-      .tap(additional_tree_runtime_requirements::new(self));
+    if self.inject_used_exports {
+      ctx
+        .compilation_hooks
+        .additional_tree_runtime_requirements
+        .tap(additional_tree_runtime_requirements::new(self));
+    }
     Ok(())
   }
 }

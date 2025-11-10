@@ -15,21 +15,21 @@ type OptimizeSharedConfig = {
 
 type OptimizeDependencyReferencedExportsOptions = {
 	shared: OptimizeSharedConfig[];
-	ignoredRuntime: string[];
+	injectUsedExports?: Boolean;
 };
 
 export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.OptimizeDependencyReferencedExportsPlugin;
 	private sharedOptions: [string, SharedConfig][];
-	private ignoredRuntime: string[];
+	private injectUsedExports: Boolean;
 
 	constructor(
 		sharedOptions: [string, SharedConfig][],
-		ignoredRuntime?: string[]
+		injectUsedExports?: Boolean
 	) {
 		super();
 		this.sharedOptions = sharedOptions;
-		this.ignoredRuntime = ignoredRuntime ?? [];
+		this.injectUsedExports = injectUsedExports ?? true;
 	}
 
 	private buildOptions(): OptimizeDependencyReferencedExportsOptions {
@@ -42,7 +42,7 @@ export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlug
 		);
 		return {
 			shared,
-			ignoredRuntime: this.ignoredRuntime
+			injectUsedExports: this.injectUsedExports
 		};
 	}
 
