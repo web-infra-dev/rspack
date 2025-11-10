@@ -40,7 +40,7 @@ dashmap             = { version = "6.1.0", default-features = false }
 derive_more         = { version = "2.0.1", default-features = false }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.17", default-features = false }
-either              = { version = "1.13.0", default-features = false }
+either              = { version = "1.15.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "0.4.4", default-features = false }
 futures             = { version = "0.3.31", default-features = false, features = ["std"] }
