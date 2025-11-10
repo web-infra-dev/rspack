@@ -25,6 +25,12 @@ module.exports = {
 			shared: {
 				'ui-lib': {
 					requiredVersion:'*'
+				},
+				'ui-lib2': {
+					requiredVersion:'*'
+				},
+				'ui-lib-side-effect': {
+					requiredVersion:'*'
 				}
 			}
 		}),
@@ -32,6 +38,12 @@ module.exports = {
 			['ui-lib',{
 				treeshake:true,
 				usedExports: ['Badge']
+			}],
+			['ui-lib2',{
+				treeshake:true,
+			}],
+			['ui-lib-side-effect',{
+				treeshake:true,
 			}]
 		])
 	]
