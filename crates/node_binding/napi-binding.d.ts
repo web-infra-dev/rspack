@@ -2834,11 +2834,10 @@ export interface RawRuntimeChunkOptions {
 
 export interface RawShareContainerPluginOptions {
   name: string
-  shareName: string
   request: string
   version: string
-  globalName: string
   fileName?: string
+  library: JsLibraryOptions
 }
 
 export interface RawSizeLimitsPluginOptions {

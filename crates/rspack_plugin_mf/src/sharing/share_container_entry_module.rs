@@ -18,7 +18,6 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use rustc_hash::FxHashSet;
 
 use super::share_container_dependency::ShareContainerDependency;
-use crate::utils::json_stringify;
 
 #[cacheable]
 #[derive(Debug)]
@@ -28,10 +27,8 @@ pub struct ShareContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   name: String,
-  share_name: String,
   request: String,
   version: String,
-  global_name: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -39,27 +36,16 @@ pub struct ShareContainerEntryModule {
 }
 
 impl ShareContainerEntryModule {
-  pub fn new(
-    name: String,
-    share_name: String,
-    request: String,
-    version: String,
-    global_name: String,
-  ) -> Self {
+  pub fn new(name: String, request: String, version: String) -> Self {
     let lib_ident = format!("webpack/share/container/{}", &name);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(format!(
-        "share container entry {}@{}",
-        &share_name, &version,
-      )),
+      identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
       name,
-      share_name,
       request,
       version,
-      global_name,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -113,11 +99,11 @@ impl Module for ShareContainerEntryModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
+    &ModuleType::ShareContainerShared
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::JavaScript]
+    &[SourceType::ShareContainerShared]
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -138,10 +124,7 @@ impl Module for ShareContainerEntryModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
-    dependencies.push(Box::new(ShareContainerDependency::new(
-      self.share_name.clone(),
-      self.request.clone(),
-    )));
+    dependencies.push(Box::new(ShareContainerDependency::new(self.name.clone())));
 
     dependencies.push(Box::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
@@ -168,9 +151,12 @@ impl Module for ShareContainerEntryModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::EXPORTS);
+    code_generation_result
+      .runtime_requirements
+      .insert(RuntimeGlobals::REQUIRE);
 
     let module_graph = compilation.get_module_graph();
-    let mut module_map_entries = Vec::new();
+    let mut factory = String::new();
     for dependency_id in self.get_dependencies() {
       let dependency = module_graph
         .dependency_by_id(dependency_id)
@@ -183,54 +169,37 @@ impl Module for ShareContainerEntryModule {
           dependency.user_request(),
           false,
         );
-        let factory = returning_function(&compilation.options.output.environment, &module_expr, "");
-        let loader = format!(
-          "function() {{ return Promise.resolve().then({}); }}",
-          returning_function(&compilation.options.output.environment, &factory, "")
-        );
-        module_map_entries.push(format!(
-          "{}: {{ loader: {}, promise: undefined }}",
-          json_stringify(&dependency.share_key),
-          loader
-        ));
+        factory = returning_function(&compilation.options.output.environment, &module_expr, "");
       }
     }
 
-    let module_map = module_map_entries.join(",\n");
+    let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
 
     let source = format!(
-      "const __container_name__ = {};
-const moduleMap = {{
-{}
-}};
-
-function load(module) {{
-  const entry = moduleMap[module];
-  if (!entry) {{
-    return Promise.reject(new Error(\"Shared module \" + module + \" is not available in container \" + __container_name__ + \".\"));
-  }}
-  if (!entry.promise) {{
-    entry.promise = entry.loader();
-  }}
-  return entry.promise;
+      r#"
+      __webpack_require__.federation = {{ instance: undefined,bundlerRuntime: undefined }}
+      var factory = {factory}
+{runtime}(exports, {{
+	get: function() {{
+		return factory;
+	}},
+	init: function(mfInstance, bundlerRuntime) {{
+  {federation_global}.instance = mfInstance;
+  {federation_global}.bundlerRuntime = bundlerRuntime;
+if({federation_global}.installInitialConsumes){{ return {federation_global}.installInitialConsumes(); }};
 }}
 
-export function get(module) {{
-  return load(module).then(factory => factory());
-}}
 
-export function init(shareScope, initScope) {{
-  return Promise.resolve();
-}}
-",
-      json_stringify(&self.global_name),
-      module_map
+}});"#,
+      runtime = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      factory = factory,
+      federation_global = federation_global
     );
 
-    code_generation_result.add(
-      SourceType::JavaScript,
-      RawStringSource::from(source).boxed(),
-    );
+    code_generation_result =
+      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
+
     Ok(code_generation_result)
   }
 

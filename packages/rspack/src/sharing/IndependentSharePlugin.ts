@@ -14,7 +14,7 @@ import {
 import type { Shared, SharedConfig } from "./SharePlugin";
 import { encodeName, isRequiredVersion } from "./utils";
 
-const VIRTUAL_ENTRY = "virtual-entry.js";
+const VIRTUAL_ENTRY = "./virtual-entry.js";
 const VIRTUAL_ENTRY_NAME = "virtual-entry";
 
 export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> &
@@ -100,8 +100,6 @@ export class IndependentSharePlugin {
 		"independent-share-build-assets.json";
 
 	apply(compiler: Compiler) {
-		const { treeshake } = this;
-
 		compiler.hooks.beforeRun.tapAsync(
 			"IndependentSharePlugin",
 			async (compiler, callback) => {
@@ -139,15 +137,13 @@ export class IndependentSharePlugin {
 				},
 				async () => {
 					// if treeshake is enabled, it means current is second-build -- re-shake assets, no need to modify stats.
-					if (treeshake) {
-						compilation.emitAsset(
-							IndependentSharePlugin.IndependentShareBuildAssetsFilename,
-							new compiler.webpack.sources.RawSource(
-								JSON.stringify(this.buildAssets)
-							)
-						);
-						return;
-					}
+					compilation.emitAsset(
+						IndependentSharePlugin.IndependentShareBuildAssetsFilename,
+						new compiler.webpack.sources.RawSource(
+							JSON.stringify(this.buildAssets)
+						)
+					);
+					return;
 
 					// add until manifest merge
 					// const stats = compilation.getAsset(StatsFileName);
@@ -181,12 +177,9 @@ export class IndependentSharePlugin {
 
 	private createEntry() {
 		const { sharedOptions } = this;
-		const entryContent = Object.entries(sharedOptions).reduce<string>(
-			(acc, cur, index) => {
-				return `${acc}import shared_${index} from '${cur[0]}';\n`;
-			},
-			""
-		);
+		const entryContent = sharedOptions.reduce<string>((acc, cur, index) => {
+			return `${acc}import shared_${index} from '${cur[0]}';\n`;
+		}, "");
 		return entryContent;
 	}
 
@@ -324,7 +317,7 @@ export class IndependentSharePlugin {
 		finalPlugins.push(extraPlugin);
 		finalPlugins.push(
 			new rspack.experiments.VirtualModulesPlugin({
-				[VIRTUAL_ENTRY_NAME]: this.createEntry()
+				[VIRTUAL_ENTRY]: this.createEntry()
 			})
 		);
 		const fullOutputDir = resolve(
@@ -381,7 +374,14 @@ export class IndependentSharePlugin {
 			compiler.run((err: any, stats: any) => {
 				if (err || stats?.hasErrors()) {
 					const target = currentShare ? currentShare.shareName : "收集依赖";
-					console.error(`❌ ${target} 编译失败:`, err || stats?.toString());
+					console.error(
+						`❌ ${target} 编译失败:`,
+						err ||
+							stats
+								.toJson()
+								.errors.map((e: Error) => e.message)
+								.join("\n")
+					);
 					reject(err || new Error(`${target} 编译失败`));
 					return;
 				}

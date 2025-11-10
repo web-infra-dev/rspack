@@ -5400,6 +5400,15 @@ interface Optimize {
 export const optimize: Optimize;
 
 // @public (undocumented)
+class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
+    constructor(sharedOptions: [string, SharedConfig][], ignoredRuntime?: string[]);
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(): BuiltinPlugin | undefined;
+}
+
+// @public (undocumented)
 interface OptimizerConfig {
     // (undocumented)
     globals?: GlobalPassOption;
@@ -7295,7 +7304,9 @@ class ShareContainerPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     _options: RawShareContainerPluginOptions;
     // (undocumented)
-    raw(_compiler: Compiler): BuiltinPlugin;
+    raw(compiler: Compiler): BuiltinPlugin;
+    // (undocumented)
+    _shareName: string;
 }
 
 // @public (undocumented)
@@ -7304,6 +7315,7 @@ export type ShareContainerPluginOptions = {
     shareName: string;
     version: string;
     request: string;
+    library?: LibraryOptions;
 };
 
 // @public (undocumented)
@@ -7410,6 +7422,7 @@ export const sharing: {
     CollectShareEntryPlugin: typeof CollectShareEntryPlugin;
     IndependentSharePlugin: typeof IndependentSharePlugin;
     ShareContainerPlugin: typeof ShareContainerPlugin;
+    OptimizeDependencyReferencedExportsPlugin: typeof OptimizeDependencyReferencedExportsPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
     SharePlugin: typeof SharePlugin;
 };

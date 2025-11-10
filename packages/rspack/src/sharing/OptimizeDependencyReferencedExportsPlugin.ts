@@ -18,7 +18,7 @@ type OptimizeDependencyReferencedExportsOptions = {
 	ignoredRuntime: string[];
 };
 
-export default class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
+export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.OptimizeDependencyReferencedExportsPlugin;
 	private sharedOptions: [string, SharedConfig][];
 	private ignoredRuntime: string[];

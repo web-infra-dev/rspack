@@ -4395,6 +4395,7 @@ dependencies = [
  "cow-utils",
  "either",
  "fast-glob",
+ "futures",
  "indexmap",
  "indoc",
  "itertools 0.14.0",

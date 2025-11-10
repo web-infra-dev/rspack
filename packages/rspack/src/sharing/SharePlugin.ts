@@ -1,7 +1,7 @@
 import type { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
-import OptimizeDependencyReferencedExportsPlugin from "./OptimizeDependencyReferencedExportsPlugin";
+import { OptimizeDependencyReferencedExportsPlugin } from "./OptimizeDependencyReferencedExportsPlugin";
 import { ProvideSharedPlugin } from "./ProvideSharedPlugin";
 import { isRequiredVersion } from "./utils";
 

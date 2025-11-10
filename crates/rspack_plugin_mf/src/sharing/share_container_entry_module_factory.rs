@@ -19,14 +19,8 @@ impl ModuleFactory for ShareContainerEntryModuleFactory {
         "dependency of ShareContainerEntryModuleFactory should be ShareContainerEntryDependency",
       );
     Ok(ModuleFactoryResult::new_with_module(
-      ShareContainerEntryModule::new(
-        dep.name.clone(),
-        dep.share_name.clone(),
-        dep.request.clone(),
-        dep.version.clone(),
-        dep.global_name.clone(),
-      )
-      .boxed(),
+      ShareContainerEntryModule::new(dep.name.clone(), dep.request.clone(), dep.version.clone())
+        .boxed(),
     ))
   }
 }

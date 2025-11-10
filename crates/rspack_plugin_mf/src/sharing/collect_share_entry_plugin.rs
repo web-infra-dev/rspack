@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation, Logger,
+  Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
   ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };

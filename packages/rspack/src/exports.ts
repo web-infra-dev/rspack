@@ -270,6 +270,7 @@ export const container = {
 import { CollectShareEntryPlugin } from "./sharing/CollectShareEntryPlugin";
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
 import { IndependentSharePlugin } from "./sharing/IndependentSharePlugin";
+import { OptimizeDependencyReferencedExportsPlugin } from "./sharing/OptimizeDependencyReferencedExportsPlugin";
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { ShareContainerPlugin } from "./sharing/ShareContainerPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
@@ -303,6 +304,7 @@ export const sharing = {
 	CollectShareEntryPlugin,
 	IndependentSharePlugin,
 	ShareContainerPlugin,
+	OptimizeDependencyReferencedExportsPlugin,
 	ConsumeSharedPlugin,
 	SharePlugin
 };

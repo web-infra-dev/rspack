@@ -1,27 +1,27 @@
 use std::{
   collections::{BTreeMap, HashMap},
-  sync::{Arc, Mutex, OnceLock},
+  sync::{Arc, RwLock},
 };
 
+use rspack_collections::Identifiable;
 use rspack_core::{
-  BoxModule, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationId, CompilationOptimizeDependencies,
-  CompilationParams, CompilationProcessAssets, CompilerCompilation, DependencyType,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Plugin,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, UsageState,
+  AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
+  CompilationOptimizeDependencies, DependenciesBlock, DependencyId, DependencyType, ExportsType,
+  ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier, NormalModule, Plugin,
+  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
-use rspack_error::{Result, error};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_sources::{RawStringSource, SourceExt};
-use rspack_util::{
-  atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
-};
-use tracing::warn;
+use rspack_plugin_javascript::dependency::ESMImportSpecifierDependency;
+use rspack_util::atom::Atom;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
+  consume_shared_module::ConsumeSharedModule,
   optimize_dependency_referenced_exports_runtime_module::OptimizeDependencyReferencedExportsRuntimeModule,
   provide_shared_module::ProvideSharedModule,
+  share_container_entry_module::ShareContainerEntryModule,
 };
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
@@ -36,129 +36,17 @@ pub struct OptimizeDependencyReferencedExportsPluginOptions {
   pub ignored_runtime: Vec<String>,
 }
 
-#[derive(Debug, Default)]
-struct RuntimeExportsEntry {
-  runtime: RuntimeSpec,
-  exports: FxHashSet<Atom>,
-}
-
-#[derive(Debug, Default)]
-struct OptimizeCompilationState {
-  shared_referenced_exports: FxHashMap<String, Vec<RuntimeExportsEntry>>,
-  runtime_specs: FxHashMap<String, RuntimeSpec>,
-  share_key_to_modules: FxHashMap<String, (ModuleIdentifier, ModuleIdentifier)>,
-}
-
-impl OptimizeCompilationState {
-  fn new(shared_keys: impl Iterator<Item = String>) -> Self {
-    let mut shared_referenced_exports = FxHashMap::default();
-    for key in shared_keys {
-      shared_referenced_exports.insert(key, Vec::new());
-    }
-    Self {
-      shared_referenced_exports,
-      runtime_specs: FxHashMap::default(),
-      share_key_to_modules: FxHashMap::default(),
-    }
-  }
-
-  fn reset(&mut self, shared_keys: impl Iterator<Item = String>) {
-    self.shared_referenced_exports.clear();
-    for key in shared_keys {
-      self.shared_referenced_exports.insert(key, Vec::new());
-    }
-    self.runtime_specs.clear();
-    self.share_key_to_modules.clear();
-  }
-
-  fn get_runtime_entry_mut(
-    &mut self,
-    share_key: &str,
-    runtime: &RuntimeSpec,
-  ) -> &mut FxHashSet<Atom> {
-    let runtime_entries = self
-      .shared_referenced_exports
-      .entry(share_key.to_string())
-      .or_default();
-    if let Some(index) = runtime_entries
-      .iter()
-      .position(|entry| entry.runtime == *runtime)
-    {
-      let entry = runtime_entries
-        .get_mut(index)
-        .expect("should have runtime entry");
-      return &mut entry.exports;
-    }
-    runtime_entries.push(RuntimeExportsEntry {
-      runtime: runtime.clone(),
-      exports: FxHashSet::default(),
-    });
-    let entry = runtime_entries
-      .last_mut()
-      .expect("should have runtime entry");
-    &mut entry.exports
-  }
-
-  fn clear_exports_for_share(&mut self, share_key: &str) {
-    if let Some(entries) = self.shared_referenced_exports.get_mut(share_key) {
-      for entry in entries {
-        entry.exports.clear();
-      }
-    }
-  }
-
-  fn build_runtime_used_exports_map(&self) -> BTreeMap<String, BTreeMap<String, Vec<String>>> {
-    let mut result: BTreeMap<String, BTreeMap<String, Vec<String>>> = BTreeMap::new();
-    for (share_key, entries) in &self.shared_referenced_exports {
-      let mut runtime_map: BTreeMap<String, Vec<String>> = BTreeMap::new();
-      for entry in entries {
-        if entry.exports.is_empty() {
-          continue;
-        }
-        let runtime_key = entry.runtime.as_str().to_string();
-        let exports = runtime_map.entry(runtime_key).or_default();
-        for atom in entry.exports.iter() {
-          exports.push(atom.to_string());
-        }
-        exports.sort();
-        exports.dedup();
-      }
-      if !runtime_map.is_empty() {
-        result.insert(share_key.clone(), runtime_map);
-      }
-    }
-    result
-  }
-
-  fn build_flat_used_exports(&self) -> BTreeMap<String, Vec<String>> {
-    let mut result: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for (share_key, entries) in &self.shared_referenced_exports {
-      let mut exports_set: FxHashSet<Atom> = FxHashSet::default();
-      for entry in entries {
-        exports_set.extend(entry.exports.iter().cloned());
-      }
-      if exports_set.is_empty() {
-        continue;
-      }
-      let mut exports_vec: Vec<String> = exports_set.iter().map(|atom| atom.to_string()).collect();
-      exports_vec.sort();
-      result.insert(share_key.clone(), exports_vec);
-    }
-    result
-  }
-}
-
 #[derive(Debug, Clone)]
 struct SharedEntryData {
   used_exports: Vec<Atom>,
 }
 
 #[plugin]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OptimizeDependencyReferencedExportsPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
   ignored_runtime: FxHashSet<String>,
-  custom_referenced_exports: FxHashMap<String, Vec<Atom>>,
+  shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashMap<String, FxHashSet<String>>>>>,
 }
 
 impl OptimizeDependencyReferencedExportsPlugin {
@@ -179,388 +67,281 @@ impl OptimizeDependencyReferencedExportsPlugin {
     }
 
     let ignored_runtime = options.ignored_runtime.into_iter().collect();
-    let custom_referenced_exports = Self::load_custom_referenced_exports();
+    let shared_referenced_exports = Arc::new(RwLock::new(FxHashMap::<
+      String,
+      FxHashMap<String, FxHashSet<String>>,
+    >::default()));
 
-    Self::new_inner(shared_map, ignored_runtime, custom_referenced_exports)
+    Self::new_inner(shared_map, ignored_runtime, shared_referenced_exports)
   }
 
-  fn load_custom_referenced_exports() -> FxHashMap<String, Vec<Atom>> {
-    match std::env::var("MF_CUSTOM_REFERENCED_EXPORTS") {
-      Ok(raw) if !raw.trim().is_empty() => {
-        match serde_json::from_str::<HashMap<String, Vec<String>>>(&raw) {
-          Ok(map) => map
-            .into_iter()
-            .map(|(k, v)| (k, v.into_iter().map(Atom::from).collect()))
-            .collect(),
-          Err(err) => {
-            warn!(
-              "OptimizeDependencyReferencedExportsPlugin: failed to parse MF_CUSTOM_REFERENCED_EXPORTS: {err}"
+  fn apply_custom_exports(&self) {
+    let mut shared_referenced_exports = self
+      .shared_referenced_exports
+      .write()
+      .expect("lock poisoned");
+    for (share_key, shared_entry_data) in &self.shared_map {
+      if let Some(runtime_map) = shared_referenced_exports.get_mut(share_key) {
+        for export_set in runtime_map.values_mut() {
+          for used_export in &shared_entry_data.used_exports {
+            export_set.insert(used_export.to_string());
+          }
+        }
+      }
+    }
+  }
+}
+
+fn collect_processed_modules(
+  module_graph: &ModuleGraph<'_>,
+  module_blocks: &[AsyncDependenciesBlockIdentifier],
+  module_deps: &[DependencyId],
+  out: &mut Vec<ModuleIdentifier>,
+) {
+  for dep_id in module_deps {
+    if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+      out.push(*target_id);
+    }
+  }
+
+  for block_id in module_blocks {
+    if let Some(block) = module_graph.block_by_id(block_id) {
+      for dep_id in block.get_dependencies() {
+        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+          out.push(*target_id);
+        }
+      }
+    }
+  }
+}
+
+#[plugin_hook(
+  CompilationOptimizeDependencies for OptimizeDependencyReferencedExportsPlugin,
+  stage = 1
+)]
+async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let module_ids: Vec<_> = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .modules()
+      .into_iter()
+      .map(|(id, _)| id)
+      .collect()
+  };
+  self.apply_custom_exports();
+
+  for module_id in module_ids {
+    let (share_key, modules_to_process) = match {
+      let module_graph = compilation.get_module_graph();
+      let module = module_graph.module_by_identifier(&module_id);
+      module.and_then(|module| {
+        let module_type = module.module_type();
+        if !matches!(
+          module_type,
+          rspack_core::ModuleType::ConsumeShared
+            | rspack_core::ModuleType::ProvideShared
+            | rspack_core::ModuleType::ShareContainerShared
+        ) {
+          return None;
+        }
+
+        let mut modules_to_process = Vec::new();
+        let share_key = match module_type {
+          rspack_core::ModuleType::ConsumeShared => {
+            let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
+            // Use the readable_identifier to extract the share key
+            // The share key is part of the identifier string in format "consume shared module ({share_scope}) {share_key}@..."
+            let identifier =
+              consume_shared_module.readable_identifier(&rspack_core::Context::default());
+            let identifier_str = identifier.to_string();
+            let parts: Vec<&str> = identifier_str.split(") ").collect();
+            if parts.len() < 2 {
+              return None;
+            }
+            let share_key_part = parts[1];
+            let share_key_end = share_key_part.find('@').unwrap_or(share_key_part.len());
+            let sk: String = share_key_part[..share_key_end].to_string();
+            collect_processed_modules(
+              &module_graph,
+              consume_shared_module.get_blocks(),
+              consume_shared_module.get_dependencies(),
+              &mut modules_to_process,
             );
-            FxHashMap::default()
+            sk
           }
-        }
-      }
-      _ => FxHashMap::default(),
+          rspack_core::ModuleType::ProvideShared => {
+            let provide_shared_module = module.as_any().downcast_ref::<ProvideSharedModule>()?;
+            let sk = provide_shared_module.share_key().to_string();
+            collect_processed_modules(
+              &module_graph,
+              provide_shared_module.get_blocks(),
+              provide_shared_module.get_dependencies(),
+              &mut modules_to_process,
+            );
+            sk
+          }
+          rspack_core::ModuleType::ShareContainerShared => {
+            let share_container_entry_module = module
+              .as_any()
+              .downcast_ref::<ShareContainerEntryModule>()?;
+            // Use the identifier to extract the share key
+            // The identifier is in format "share container entry {name}@{version}"
+            let identifier = share_container_entry_module.identifier().to_string();
+            let parts: Vec<&str> = identifier.split(' ').collect();
+            if parts.len() < 3 {
+              return None;
+            }
+            let name_part = parts[2];
+            let name_end = name_part.find('@').unwrap_or(name_part.len());
+            let sk = name_part[..name_end].to_string();
+            collect_processed_modules(
+              &module_graph,
+              share_container_entry_module.get_blocks(),
+              share_container_entry_module.get_dependencies(),
+              &mut modules_to_process,
+            );
+            sk
+          }
+          _ => return None,
+        };
+        Some((share_key, modules_to_process))
+      })
+    } {
+      Some(result) => result,
+      None => continue,
+    };
+
+    if share_key.is_empty() {
+      continue;
     }
-  }
 
-  fn compilation_states() -> &'static Mutex<HashMap<CompilationId, OptimizeCompilationState>> {
-    static STATES: OnceLock<Mutex<HashMap<CompilationId, OptimizeCompilationState>>> =
-      OnceLock::new();
-    STATES.get_or_init(|| Mutex::new(HashMap::new()))
-  }
-
-  fn shared_keys(&self) -> impl Iterator<Item = String> + '_ {
-    self.shared_map.keys().cloned()
-  }
-
-  fn extend_referenced_exports(
-    target: &mut FxHashSet<Atom>,
-    referenced: &[ExtendedReferencedExport],
-  ) {
-    for item in referenced {
-      match item {
-        ExtendedReferencedExport::Array(arr) => {
-          target.extend(arr.iter().cloned());
-        }
-        ExtendedReferencedExport::Export(export) => {
-          target.extend(export.name.iter().cloned());
-        }
-      }
-    }
-  }
-
-  fn populate_provide_mappings(
-    &self,
-    module_graph: &ModuleGraph,
-    state: &mut OptimizeCompilationState,
-  ) {
-    for (module_id, module) in module_graph.modules().into_iter() {
-      let module_id = module_id;
-      let module: &BoxModule = module;
-      if let Some(provide_module) = module
-        .as_ref()
-        .as_any()
-        .downcast_ref::<ProvideSharedModule>()
-      {
-        let share_key = provide_module.share_key();
-        if !self.shared_map.contains_key(share_key) {
-          continue;
-        }
-        if let Some(fallback) = Self::find_fallback_module(module_graph, module_id) {
-          state
-            .share_key_to_modules
-            .insert(share_key.to_string(), (module_id, fallback));
-        }
-      }
-    }
-  }
-
-  fn find_fallback_module(
-    module_graph: &ModuleGraph,
-    module_identifier: ModuleIdentifier,
-  ) -> Option<ModuleIdentifier> {
-    for connection in module_graph.get_outgoing_connections(&module_identifier) {
-      let dep_id = connection.dependency_id;
-      let dependency = module_graph.dependency_by_id(&dep_id)?;
-      if dependency.dependency_type() == &DependencyType::ProvideModuleForShared {
-        return Some(*connection.module_identifier());
-      }
-    }
-    None
-  }
-
-  fn collect_referenced_exports(
-    &self,
-    module_graph: &ModuleGraph,
-    chunk_graph: &ChunkGraph,
-    chunk_by_ukey: &ChunkByUkey,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    state: &mut OptimizeCompilationState,
-  ) {
-    for (module_id, _module) in module_graph.modules().into_iter() {
-      let runtimes: Vec<RuntimeSpec> = chunk_graph
-        .get_module_runtimes_iter(module_id, chunk_by_ukey)
+    // Get the runtime referenced exports for this share key
+    let runtime_reference_exports = {
+      self
+        .shared_referenced_exports
+        .read()
+        .expect("lock poisoned")
+        .get(&share_key)
         .cloned()
-        .collect();
-      if runtimes.is_empty() {
+    };
+
+    // Check if this share key is in our shared map and has treeshake enabled
+    if !self.shared_map.contains_key(&share_key) {
+      continue;
+    }
+
+    if let Some(runtime_reference_exports) = runtime_reference_exports {
+      if runtime_reference_exports.is_empty() {
         continue;
       }
 
-      for connection in module_graph.get_outgoing_connections(&module_id) {
-        let dep_id = connection.dependency_id;
-        let dependency = match module_graph.dependency_by_id(&dep_id) {
-          Some(dep) => dep,
-          None => continue,
-        };
-        let Some(module_dep) = dependency.as_module_dependency() else {
-          continue;
-        };
-        if dependency.dependency_type() != &DependencyType::EsmImportSpecifier {
-          continue;
-        }
-
-        let request = module_dep.request();
-        let Some(shared_entry) = self.shared_map.get(request) else {
-          continue;
-        };
-
-        for runtime in &runtimes {
-          let runtime_key = runtime.as_str().to_string();
-          if self.ignored_runtime.contains(&runtime_key) {
-            continue;
-          }
-
-          let active_state =
-            connection.active_state(module_graph, Some(runtime), module_graph_cache);
-          if !active_state.is_true() {
-            continue;
-          }
-
-          let runtime_spec = state
-            .runtime_specs
-            .entry(runtime_key.clone())
-            .or_insert_with(|| runtime.clone())
-            .clone();
-
-          let referenced_exports =
-            module_dep.get_referenced_exports(module_graph, module_graph_cache, Some(runtime));
-
-          if referenced_exports.is_empty()
-            && shared_entry.used_exports.is_empty()
-            && !self
-              .custom_referenced_exports
-              .get(request)
-              .map_or(false, |v| !v.is_empty())
-          {
-            continue;
-          }
-
-          let exports_set = state.get_runtime_entry_mut(request, &runtime_spec);
-          Self::extend_referenced_exports(exports_set, &referenced_exports);
-        }
-      }
-    }
-  }
-
-  fn apply_custom_exports(&self, state: &mut OptimizeCompilationState) {
-    if state.runtime_specs.is_empty() {
-      return;
-    }
-
-    for (share_key, shared_entry) in self.shared_map.iter() {
-      let custom_entry = self.custom_referenced_exports.get(share_key);
-      if shared_entry.used_exports.is_empty() && custom_entry.map_or(true, |entry| entry.is_empty())
-      {
-        continue;
-      }
-
-      let runtime_specs: Vec<(String, RuntimeSpec)> = state
-        .runtime_specs
-        .iter()
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect();
-      for (runtime_key, runtime_spec) in runtime_specs {
-        if self.ignored_runtime.contains(&runtime_key) {
-          continue;
-        }
-        let exports_set = state.get_runtime_entry_mut(share_key, &runtime_spec);
-        exports_set.extend(shared_entry.used_exports.iter().cloned());
-        if let Some(custom) = custom_entry {
-          exports_set.extend(custom.iter().cloned());
-        }
-      }
-    }
-  }
-
-  fn mark_exports(&self, compilation: &mut Compilation, state: &mut OptimizeCompilationState) {
-    let mut module_graph = compilation.get_module_graph_mut();
-    let module_pairs: Vec<(String, (ModuleIdentifier, ModuleIdentifier))> = state
-      .share_key_to_modules
-      .iter()
-      .map(|(k, v)| (k.clone(), *v))
-      .collect();
-    for (share_key, (provide_id, fallback_id)) in module_pairs {
-      if let Some(module) = module_graph.module_by_identifier_mut(&provide_id) {
-        let mut meta = module.factory_meta().cloned().unwrap_or_default();
-        if meta.side_effect_free != Some(true) {
-          meta.side_effect_free = Some(true);
-          module.set_factory_meta(meta);
-        }
-      }
-
-      let fallback_module = match module_graph.module_by_identifier(&fallback_id) {
-        Some(module) => module,
-        None => continue,
+      let real_shared_identifier = {
+        let module_graph = compilation.get_module_graph();
+        module_graph.modules().into_iter().find_map(|(id, module)| {
+          module
+            .as_any()
+            .downcast_ref::<NormalModule>()
+            .filter(|normal| normal.raw_request() == share_key)
+            .map(|_| id)
+        })
       };
-      let is_side_effect_free = fallback_module
-        .factory_meta()
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or(false);
 
-      if !is_side_effect_free {
-        state.clear_exports_for_share(&share_key);
-        continue;
-      }
+      // Check if the real shared module is side effect free
+      if let Some(real_shared_identifier) = real_shared_identifier {
+        let is_side_effect_free = {
+          let module_graph = compilation.get_module_graph();
+          module_graph
+            .module_by_identifier(&real_shared_identifier)
+            .and_then(|module| module.factory_meta().and_then(|meta| meta.side_effect_free))
+            .unwrap_or(false)
+        };
 
-      let exports_info = module_graph.get_exports_info(&fallback_id);
-      let exports_info_data = exports_info.as_data_mut(&mut module_graph);
+        if !is_side_effect_free {
+          continue;
+        }
 
-      if let Some(runtime_entries) = state.shared_referenced_exports.get(&share_key) {
-        for entry in runtime_entries {
-          for atom in &entry.exports {
-            let export_info = exports_info_data.ensure_owned_export_info(atom);
-            export_info.set_used(UsageState::Used, Some(&entry.runtime));
+        let mut module_graph_mut = compilation.get_module_graph_mut();
+        module_graph_mut.active_all_exports_info();
+        // mark used for collected modules
+        for module_id in &modules_to_process {
+          let exports_info = module_graph_mut.get_exports_info(module_id);
+          let exports_info_data = exports_info.as_data_mut(&mut module_graph_mut);
+
+          for (runtime, exports) in runtime_reference_exports.iter() {
+            for export_name in exports {
+              let export_atom = Atom::from(export_name.as_str());
+              if let Some(export_info) = exports_info_data.named_exports_mut(&export_atom) {
+                let runtime_spec = RuntimeSpec::from_iter([runtime.clone().into()]);
+                // let status =
+                //   export_info.set_used(rspack_core::UsageState::Used, Some(&runtime_spec));
+                // set used by runtime when set_owned_used_in_unknown_way remove
+                export_info.set_used(rspack_core::UsageState::Used, None);
+              }
+            }
           }
         }
 
-        for entry in runtime_entries {
-          if entry.exports.is_empty() {
-            continue;
-          }
-
-          let can_update = {
-            let exports_view = exports_info_data.exports();
+        // find if can update real share module
+        let exports_info = module_graph_mut.get_exports_info(&real_shared_identifier);
+        let exports_info_data = exports_info.as_data_mut(&mut module_graph_mut);
+        let can_update_module_used_stage = {
+          let exports_view = exports_info_data.exports();
+          runtime_reference_exports.iter().all(|(runtime_name, _)| {
+            let runtime_spec = RuntimeSpec::from_iter([runtime_name.clone().into()]);
             exports_view.iter().all(|(name, export_info)| {
-              let used = export_info.get_used(Some(&entry.runtime));
-              if used != UsageState::Unknown {
-                entry.exports.contains(name)
+              dbg!("get_used export_info : ", &export_info);
+
+              let used = export_info.get_used(Some(&runtime_spec));
+              dbg!("export runtime_spec: ", &runtime_spec);
+              dbg!("export name: ", &name);
+              dbg!("export used: ", &used);
+              // if unknown module is all we mark, means we have known all module exports info , and can shake
+              if used != rspack_core::UsageState::Unknown {
+                runtime_reference_exports
+                  .values()
+                  .any(|exports| exports.contains(&name.to_string()))
               } else {
                 true
               }
             })
-          };
+          })
+        };
+        dbg!(
+          "can_update_module_used_stage: ",
+          &can_update_module_used_stage
+        );
 
-          if can_update {
-            for export_info in exports_info_data.exports_mut().values_mut() {
-              export_info.set_used_conditionally(
-                Box::new(|used| *used == UsageState::Unknown),
-                UsageState::Unused,
-                Some(&entry.runtime),
-              );
-            }
-            exports_info_data
-              .other_exports_info_mut()
-              .set_used_conditionally(
-                Box::new(|used| *used == UsageState::Unknown),
-                UsageState::Unused,
-                Some(&entry.runtime),
-              );
-          }
+        if can_update_module_used_stage {
+          // mark used exports for dependencies and blocks dependencies
+          // create a helper closure to update dependency's export info
+          runtime_reference_exports
+            .iter()
+            .for_each(|(runtime_name, _)| {
+              let runtime_spec = RuntimeSpec::from_iter([runtime_name.clone().into()]);
+              for export_info in exports_info_data.exports_mut().values_mut() {
+                export_info.set_used_conditionally(
+                  Box::new(|used| *used == rspack_core::UsageState::Unknown),
+                  rspack_core::UsageState::Unused,
+                  None,
+                );
+                let export_used_status: rspack_core::UsageState =
+                  export_info.get_used(Some(&runtime_spec));
+                dbg!("export_used_status:", &export_used_status);
+              }
+              exports_info_data
+                .other_exports_info_mut()
+                .set_used_conditionally(
+                  Box::new(|used| *used == rspack_core::UsageState::Unknown),
+                  rspack_core::UsageState::Unused,
+                  None,
+                );
+            });
         }
       }
     }
   }
-}
-
-#[plugin_hook(CompilerCompilation for OptimizeDependencyReferencedExportsPlugin)]
-async fn compilation(
-  &self,
-  compilation: &mut Compilation,
-  _params: &mut CompilationParams,
-) -> Result<()> {
-  if self.shared_map.is_empty() {
-    return Ok(());
-  }
-  let mut states = Self::compilation_states()
-    .lock()
-    .expect("state lock poisoned");
-  states.insert(
-    compilation.id(),
-    OptimizeCompilationState::new(self.shared_keys()),
-  );
-  Ok(())
-}
-
-#[plugin_hook(CompilationOptimizeDependencies for OptimizeDependencyReferencedExportsPlugin)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  if self.shared_map.is_empty() {
-    return Ok(None);
-  }
-
-  let mut states = Self::compilation_states()
-    .lock()
-    .expect("state lock poisoned");
-  let Some(state) = states.get_mut(&compilation.id()) else {
-    return Ok(None);
-  };
-
-  state.reset(self.shared_keys());
-
-  {
-    let module_graph = compilation.get_module_graph();
-    self.populate_provide_mappings(&module_graph, state);
-    self.collect_referenced_exports(
-      &module_graph,
-      &compilation.chunk_graph,
-      &compilation.chunk_by_ukey,
-      &compilation.module_graph_cache_artifact,
-      state,
-    );
-  }
-  self.apply_custom_exports(state);
-  self.mark_exports(compilation, state);
 
   Ok(None)
-}
-
-#[plugin_hook(
-  CompilationProcessAssets for OptimizeDependencyReferencedExportsPlugin,
-  stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  if self.shared_map.is_empty() {
-    return Ok(());
-  }
-
-  let flat_exports = {
-    let states = Self::compilation_states()
-      .lock()
-      .expect("state lock poisoned");
-    states
-      .get(&compilation.id())
-      .map(|state| state.build_flat_used_exports())
-      .unwrap_or_default()
-  };
-
-  if flat_exports.is_empty() {
-    return Ok(());
-  }
-
-  if !compilation.assets().contains_key("mf-stats.json") {
-    return Ok(());
-  }
-
-  compilation.update_asset("mf-stats.json", |old_source, info| {
-    let content = old_source.source().to_string();
-    let mut json: serde_json::Value = serde_json::from_str(&content).map_err(|err| {
-      error!("OptimizeDependencyReferencedExportsPlugin: Failed to parse mf-stats.json: {err}")
-    })?;
-
-    if let Some(shared) = json.get_mut("shared").and_then(|v| v.as_array_mut()) {
-      for entry in shared.iter_mut() {
-        let Some(name) = entry.get("name").and_then(|v| v.as_str()) else {
-          continue;
-        };
-        if let Some(exports) = flat_exports.get(name) {
-          entry
-            .as_object_mut()
-            .expect("shared entry should be an object")
-            .insert(
-              "usedExports".to_string(),
-              serde_json::Value::Array(exports.iter().map(|e| e.clone().into()).collect()),
-            );
-        }
-      }
-    }
-
-    let updated = serde_json::to_string(&json).map_err(|err| {
-      error!("OptimizeDependencyReferencedExportsPlugin: Failed to serialize mf-stats.json: {err}")
-    })?;
-    Ok((RawStringSource::from(updated).boxed(), info))
-  })?;
-
-  Ok(())
 }
 
 #[plugin_hook(
@@ -576,26 +357,130 @@ async fn additional_tree_runtime_requirements(
     return Ok(());
   }
 
-  let runtime_map = {
-    let states = Self::compilation_states()
-      .lock()
-      .expect("state lock poisoned");
-    states
-      .get(&compilation.id())
-      .map(|state| state.build_runtime_used_exports_map())
-      .unwrap_or_default()
-  };
-
-  if runtime_map.is_empty() {
-    return Ok(());
-  }
-
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
   compilation.add_runtime_module(
     chunk_ukey,
-    OptimizeDependencyReferencedExportsRuntimeModule::new(Arc::new(runtime_map)).boxed(),
+    OptimizeDependencyReferencedExportsRuntimeModule::new(
+      self
+        .shared_referenced_exports
+        .read()
+        .expect("lock poisoned")
+        .iter()
+        .map(|(share_key, runtime_map)| {
+          (
+            share_key.clone(),
+            runtime_map
+              .iter()
+              .map(|(runtime, exports)| {
+                (runtime.clone(), exports.iter().cloned().collect::<Vec<_>>())
+              })
+              .collect::<BTreeMap<_, _>>(),
+          )
+        })
+        .collect::<BTreeMap<_, _>>()
+        .into(),
+    )
+    .boxed(),
   )?;
 
+  Ok(())
+}
+
+#[plugin_hook(CompilationDependencyReferencedExports for OptimizeDependencyReferencedExportsPlugin)]
+async fn dependency_referenced_exports(
+  &self,
+  compilation: &Compilation,
+  dependency_id: &DependencyId,
+  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  runtime: Option<&RuntimeSpec>,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
+
+  if referenced_exports.is_none() {
+    return Ok(());
+  }
+  let Some(exports) = referenced_exports else {
+    return Ok(());
+  };
+
+  let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
+    return Ok(());
+  };
+
+  let Some(module_dependency) = dependency.as_module_dependency() else {
+    return Ok(());
+  };
+
+  let share_key = module_dependency.request();
+
+  // Check if dependency type is EsmImportSpecifier and share_key is in shared_map
+  if !self.shared_map.contains_key(share_key) {
+    return Ok(());
+  }
+  let mut final_exports = exports.clone();
+  if final_exports.is_empty() {
+    if dependency.dependency_type() == &DependencyType::EsmImportSpecifier {
+      if let Some(esm_dep) = dependency
+        .as_any()
+        .downcast_ref::<ESMImportSpecifierDependency>()
+      {
+        let ids = esm_dep.get_ids(&module_graph);
+        if ids.is_empty() {
+          return Ok(());
+        }
+        final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
+          &module_graph,
+          Some(ExportsType::DefaultWithNamed),
+        );
+      }
+    }
+  }
+  if final_exports.is_empty() {
+    return Ok(());
+  }
+
+  // Process each referenced export
+  if let Some(runtime) = runtime {
+    if self.shared_map.contains_key(share_key) {
+      let mut shared_referenced_exports = self
+        .shared_referenced_exports
+        .write()
+        .expect("lock poisoned");
+      let runtime_map: &mut HashMap<
+        String,
+        std::collections::HashSet<String, rustc_hash::FxBuildHasher>,
+        rustc_hash::FxBuildHasher,
+      > = shared_referenced_exports
+        .entry(share_key.to_string())
+        .or_insert_with(|| FxHashMap::default());
+
+      let export_set = runtime_map
+        .entry(runtime.as_str().to_string())
+        .or_insert_with(|| FxHashSet::default());
+
+      for referenced_export in &final_exports {
+        match referenced_export {
+          ExtendedReferencedExport::Array(exports_array) => {
+            for export in exports_array {
+              export_set.insert(export.to_string());
+            }
+          }
+          ExtendedReferencedExport::Export(referenced) => {
+            if referenced.name.is_empty() {
+              continue;
+            }
+            let flattened = referenced
+              .name
+              .iter()
+              .map(|atom| atom.to_string())
+              .collect::<Vec<_>>()
+              .join(".");
+            export_set.insert(flattened);
+          }
+        }
+      }
+    }
+  }
   Ok(())
 }
 
@@ -608,25 +493,18 @@ impl Plugin for OptimizeDependencyReferencedExportsPlugin {
     if self.shared_map.is_empty() {
       return Ok(());
     }
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .compilation_hooks
+      .dependency_referenced_exports
+      .tap(dependency_referenced_exports::new(self));
     ctx
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
     ctx
       .compilation_hooks
-      .process_assets
-      .tap(process_assets::new(self));
-    ctx
-      .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
     Ok(())
-  }
-
-  fn clear_cache(&self, id: CompilationId) {
-    if let Ok(mut states) = Self::compilation_states().lock() {
-      states.remove(&id);
-    }
   }
 }

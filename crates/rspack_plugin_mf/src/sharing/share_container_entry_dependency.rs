@@ -10,10 +10,8 @@ use serde::Serialize;
 pub struct ShareContainerEntryDependency {
   id: DependencyId,
   pub name: String,
-  pub share_name: String,
   pub request: String,
   pub version: String,
-  pub global_name: String,
   resource_identifier: String,
   factorize_info: FactorizeInfo,
 }
@@ -21,26 +19,17 @@ pub struct ShareContainerEntryDependency {
 #[cacheable]
 #[derive(Debug, Clone, Serialize)]
 pub struct ShareContainerEntryOptions {
-  pub share_key: String,
   pub request: String,
 }
 
 impl ShareContainerEntryDependency {
-  pub fn new(
-    name: String,
-    share_name: String,
-    request: String,
-    version: String,
-    global_name: String,
-  ) -> Self {
+  pub fn new(name: String, request: String, version: String) -> Self {
     let resource_identifier = format!("share-container-entry-{}", &name);
     Self {
       id: DependencyId::new(),
       name,
-      share_name,
       request,
       version,
-      global_name,
       resource_identifier,
       factorize_info: Default::default(),
     }

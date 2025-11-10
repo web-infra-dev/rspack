@@ -15,5 +15,6 @@ pub mod share_container_entry_dependency;
 pub mod share_container_entry_module;
 pub mod share_container_entry_module_factory;
 pub mod share_container_plugin;
+pub mod share_container_runtime_module;
 pub mod share_runtime_module;
 pub mod share_runtime_plugin;

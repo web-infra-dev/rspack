@@ -9,13 +9,10 @@ export const encodeName = function (
 	prefix = "",
 	withExt = false
 ): string {
-	try {
-		const ext = withExt ? ".js" : "";
-		return `${prefix}${name
-			.replace(/@/g, "scope_")
-			.replace(/-/g, "_")
-			.replace(/\//g, "__")}${ext}`;
-	} catch (err) {
-		throw err;
-	}
+	const ext = withExt ? ".js" : "";
+	return `${prefix}${name
+		.replace(/@/g, "scope_")
+		.replace(/-/g, "_")
+		.replace(/\//g, "__")
+		.replace(/\./g, "")}${ext}`;
 };

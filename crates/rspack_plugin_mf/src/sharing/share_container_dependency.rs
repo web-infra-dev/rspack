@@ -9,18 +9,16 @@ use rspack_core::{
 pub struct ShareContainerDependency {
   id: DependencyId,
   request: String,
-  pub share_key: String,
   resource_identifier: String,
   factorize_info: FactorizeInfo,
 }
 
 impl ShareContainerDependency {
-  pub fn new(share_key: String, request: String) -> Self {
-    let resource_identifier = format!("share-container-fallback:{}", share_key);
+  pub fn new(request: String) -> Self {
+    let resource_identifier = format!("share-container-fallback:{}", request);
     Self {
       id: DependencyId::new(),
       request,
-      share_key,
       resource_identifier,
       factorize_info: Default::default(),
     }

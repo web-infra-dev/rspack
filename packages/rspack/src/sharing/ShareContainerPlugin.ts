@@ -9,6 +9,7 @@ import {
 } from "../builtin-plugin/base";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import type { LibraryOptions } from "../config";
 import { encodeName } from "./utils";
 
 export type ShareContainerPluginOptions = {
@@ -16,6 +17,7 @@ export type ShareContainerPluginOptions = {
 	shareName: string;
 	version: string;
 	request: string;
+	library?: LibraryOptions;
 };
 
 function assert(condition: any, msg: string): asserts condition {
@@ -30,24 +32,23 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ShareContainerPlugin;
 	filename = "";
 	_options: RawShareContainerPluginOptions;
+	_shareName: string;
 
 	constructor(options: ShareContainerPluginOptions) {
 		super();
+		const { shareName, mfName, library, request } = options;
 		const version = options.version || "0.0.0";
-		const containerName = encodeName(
-			`${options.mfName}_${options.shareName}_${version}`
-		);
-		const globalName = encodeName(
-			`${options.mfName}_${options.shareName}_${version}_global`
-		);
-		const fileName = `independent-share/${options.shareName}@${version}/${options.mfName}.container.js`;
-
+		const globalName = encodeName(`${options.mfName}_${shareName}_${version}`);
+		const fileName = `independent-share-${encodeName(mfName)}/${encodeName(shareName)}/${version}/share-entry.js`;
+		this._shareName = shareName;
 		this._options = {
-			name: containerName,
-			shareName: options.shareName,
-			request: options.request,
+			name: shareName,
+			request: request,
+			library: library || {
+				type: "var",
+				name: globalName
+			},
 			version,
-			globalName,
 			fileName
 		};
 	}
@@ -55,12 +56,17 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 		return this.name;
 	}
 
-	raw(_compiler: Compiler): BuiltinPlugin {
+	raw(compiler: Compiler): BuiltinPlugin {
+		const { library } = this._options;
+		if (!compiler.options.output.enabledLibraryTypes!.includes(library.type)) {
+			compiler.options.output.enabledLibraryTypes!.push(library.type);
+		}
 		return createBuiltinPlugin(this.name, this._options);
 	}
 
 	apply(compiler: Compiler) {
-		const { shareName } = this._options;
+		super.apply(compiler);
+		const shareName = this._shareName;
 		compiler.hooks.thisCompilation.tap(
 			this.name,
 			(compilation: Compilation, { normalModuleFactory }) => {

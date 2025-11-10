@@ -159,21 +159,19 @@ impl From<RawCollectShareEntryPluginOptions> for CollectShareEntryPluginOptions 
 #[napi(object)]
 pub struct RawShareContainerPluginOptions {
   pub name: String,
-  pub share_name: String,
   pub request: String,
   pub version: String,
-  pub global_name: String,
   pub file_name: Option<String>,
+  pub library: JsLibraryOptions,
 }
 
 impl From<RawShareContainerPluginOptions> for ShareContainerPluginOptions {
   fn from(value: RawShareContainerPluginOptions) -> Self {
     ShareContainerPluginOptions {
       name: value.name,
-      share_name: value.share_name,
       request: value.request,
       version: value.version,
-      global_name: value.global_name,
+      library: value.library.into(),
       file_name: value.file_name.clone().map(Into::into),
     }
   }
