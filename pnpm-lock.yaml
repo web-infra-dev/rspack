@@ -29,7 +29,7 @@ importers:
         specifier: workspace:*
         version: link:packages/rspack-cli
       '@rstest/core':
-        specifier: 0.6.3
+        specifier: ^0.6.3
         version: 0.6.3(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
@@ -699,7 +699,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: 0.6.3
+        specifier: ^0.6.3
         version: 0.6.3(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.17
