@@ -1,8 +1,9 @@
 const path = require("path");
 
-const { sharing } = require("@rspack/core");
+const { container ,sharing} = require("@rspack/core");
 
-const { ShareContainerPlugin, OptimizeDependencyReferencedExportsPlugin,SharePlugin } = sharing;
+const {OptimizeDependencyReferencedExportsPlugin } = sharing;
+const { ModuleFederationPlugin } = container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -18,7 +19,9 @@ module.exports = {
 		main: "./index.js"
 	},
 	plugins: [
-		new SharePlugin({
+		new ModuleFederationPlugin({
+			name:'treeshake_share',
+			manifest: true,
 			shared: {
 				'ui-lib': {
 					requiredVersion:'*'

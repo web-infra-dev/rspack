@@ -2587,7 +2587,9 @@ export interface RawOptimizationOptions {
 
 export interface RawOptimizeDependencyReferencedExportsPluginOptions {
   shared: Array<RawOptimizeSharedConfig>
-  ignoredRuntime?: Array<string>
+  injectUsedExports?: boolean
+  manifestFileName?: string
+  statsFileName?: string
 }
 
 export interface RawOptimizeSharedConfig {

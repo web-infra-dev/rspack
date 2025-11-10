@@ -5401,7 +5401,7 @@ export const optimize: Optimize;
 
 // @public (undocumented)
 class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
-    constructor(sharedOptions: [string, SharedConfig][], injectUsedExports?: Boolean);
+    constructor(sharedOptions: [string, SharedConfig][], injectUsedExports?: boolean, manifestOptions?: ModuleFederationManifestPluginOptions);
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)

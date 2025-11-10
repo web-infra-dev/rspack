@@ -1,5 +1,5 @@
 use std::{
-  collections::{BTreeMap, HashMap},
+  collections::{BTreeMap, HashMap, HashSet},
   sync::{Arc, RwLock},
 };
 
@@ -7,9 +7,10 @@ use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
-  CompilationOptimizeDependencies, DependenciesBlock, DependencyId, DependencyType, ExportsType,
-  ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier, NormalModule, Plugin,
-  RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyId,
+  DependencyType, ExportsType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
+  NormalModule, Plugin, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -23,6 +24,7 @@ use super::{
   provide_shared_module::ProvideSharedModule,
   share_container_entry_module::ShareContainerEntryModule,
 };
+use crate::manifest::StatsRoot;
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
   pub share_key: String,
@@ -34,6 +36,8 @@ pub struct OptimizeSharedConfig {
 pub struct OptimizeDependencyReferencedExportsPluginOptions {
   pub shared: Vec<OptimizeSharedConfig>,
   pub inject_used_exports: bool,
+  pub stats_file_name: Option<String>,
+  pub manifest_file_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +51,8 @@ pub struct OptimizeDependencyReferencedExportsPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashMap<String, FxHashSet<String>>>>>,
   inject_used_exports: bool,
+  stats_file_name: Option<String>,
+  manifest_file_name: Option<String>,
 }
 
 impl OptimizeDependencyReferencedExportsPlugin {
@@ -72,7 +78,13 @@ impl OptimizeDependencyReferencedExportsPlugin {
       FxHashMap<String, FxHashSet<String>>,
     >::default()));
 
-    Self::new_inner(shared_map, shared_referenced_exports, inject_used_exports)
+    Self::new_inner(
+      shared_map,
+      shared_referenced_exports,
+      inject_used_exports,
+      options.stats_file_name,
+      options.manifest_file_name,
+    )
   }
 
   fn apply_custom_exports(&self) {
@@ -329,6 +341,71 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   Ok(None)
 }
 
+#[plugin_hook(CompilationProcessAssets for OptimizeDependencyReferencedExportsPlugin)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let file_names = vec![
+    self.stats_file_name.clone(),
+    self.manifest_file_name.clone(),
+  ];
+  for file_name in file_names {
+    if let Some(file_name) = &file_name {
+      if let Some(file) = compilation.assets().get(file_name) {
+        if let Some(source) = file.get_source() {
+          if let SourceValue::String(content) = source.source() {
+            if let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content) {
+              let shared_referenced_exports = self
+                .shared_referenced_exports
+                .read()
+                .expect("lock poisoned");
+
+              for shared in &mut stats_root.shared {
+                if let Some(runtime_map) = shared_referenced_exports.get(&shared.name) {
+                  let mut used_exports_set = HashSet::new();
+
+                  for (_runtime, exports) in runtime_map {
+                    if !exports.is_empty() {
+                      for export in exports {
+                        used_exports_set.insert(export.clone());
+                      }
+                    }
+                  }
+
+                  shared.usedExports = used_exports_set.into_iter().collect::<Vec<_>>();
+                }
+              }
+
+              let updated_content = serde_json::to_string_pretty(&stats_root)
+                .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
+
+              compilation.update_asset(file_name, |_, info| {
+                Ok((RawStringSource::from(updated_content).boxed(), info))
+              })?;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let assets = compilation.assets();
+  if let Some(manifest_file_name) = &self.manifest_file_name {
+    let manifest = assets.get(manifest_file_name);
+    if manifest.is_none() {
+      return Ok(());
+    }
+  }
+  if let Some(stats_file_name) = &self.stats_file_name {
+    let stats = assets.get(stats_file_name);
+    if stats.is_none() {
+      return Ok(());
+    }
+  }
+
+  // let manifest_name = self.
+  // let stats = compilation.assets().get()
+  Ok(())
+}
+
 #[plugin_hook(
   CompilationAdditionalTreeRuntimeRequirements for OptimizeDependencyReferencedExportsPlugin
 )]
@@ -486,6 +563,10 @@ impl Plugin for OptimizeDependencyReferencedExportsPlugin {
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
     if self.inject_used_exports {
       ctx
         .compilation_hooks

@@ -221,6 +221,8 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
 pub struct RawOptimizeDependencyReferencedExportsPluginOptions {
   pub shared: Vec<RawOptimizeSharedConfig>,
   pub inject_used_exports: Option<bool>,
+  pub manifest_file_name: Option<String>,
+  pub stats_file_name: Option<String>,
 }
 
 impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
@@ -234,6 +236,8 @@ impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
         .map(|config| config.into())
         .collect(),
       inject_used_exports: value.inject_used_exports.unwrap_or(true),
+      manifest_file_name: value.manifest_file_name,
+      stats_file_name: value.stats_file_name,
     }
   }
 }

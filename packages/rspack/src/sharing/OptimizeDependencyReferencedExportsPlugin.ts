@@ -1,10 +1,17 @@
-import type { BuiltinPlugin } from "@rspack/binding";
+import type {
+	BuiltinPlugin,
+	RawOptimizeDependencyReferencedExportsPluginOptions
+} from "@rspack/binding";
 import { BuiltinPluginName } from "@rspack/binding";
 
 import {
 	createBuiltinPlugin,
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
+import {
+	getFileName,
+	type ModuleFederationManifestPluginOptions
+} from "../container/ModuleFederationManifestPlugin";
 import type { SharedConfig } from "./SharePlugin";
 
 type OptimizeSharedConfig = {
@@ -13,26 +20,24 @@ type OptimizeSharedConfig = {
 	usedExports?: string[];
 };
 
-type OptimizeDependencyReferencedExportsOptions = {
-	shared: OptimizeSharedConfig[];
-	injectUsedExports?: Boolean;
-};
-
 export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.OptimizeDependencyReferencedExportsPlugin;
 	private sharedOptions: [string, SharedConfig][];
-	private injectUsedExports: Boolean;
+	private injectUsedExports: boolean;
+	private manifestOptions: ModuleFederationManifestPluginOptions;
 
 	constructor(
 		sharedOptions: [string, SharedConfig][],
-		injectUsedExports?: Boolean
+		injectUsedExports?: boolean,
+		manifestOptions?: ModuleFederationManifestPluginOptions
 	) {
 		super();
 		this.sharedOptions = sharedOptions;
 		this.injectUsedExports = injectUsedExports ?? true;
+		this.manifestOptions = manifestOptions ?? {};
 	}
 
-	private buildOptions(): OptimizeDependencyReferencedExportsOptions {
+	private buildOptions(): RawOptimizeDependencyReferencedExportsPluginOptions {
 		const shared: OptimizeSharedConfig[] = this.sharedOptions.map(
 			([shareKey, config]) => ({
 				shareKey,
@@ -40,9 +45,14 @@ export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlug
 				usedExports: config.usedExports
 			})
 		);
+		const { manifestFileName, statsFileName } = getFileName(
+			this.manifestOptions
+		);
 		return {
 			shared,
-			injectUsedExports: this.injectUsedExports
+			injectUsedExports: this.injectUsedExports,
+			manifestFileName,
+			statsFileName
 		};
 	}
 
