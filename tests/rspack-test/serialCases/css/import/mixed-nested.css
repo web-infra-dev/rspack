@@ -1,5 +1,0 @@
-@import "./mixed-deep-nested.css" supports(display: flex);
-
-.class {
-	nested: 1;
-}

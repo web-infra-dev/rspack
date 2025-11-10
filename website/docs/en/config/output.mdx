@@ -1629,7 +1629,10 @@ module.exports = {
 Note that `[fullhash]` in this parameter will be replaced with a hash of the compilation.
 
 :::warning
-The path must not contain an exclamation mark (`!`) as it is reserved by Rspack for loader syntax).
+
+- The path must not contain an exclamation mark (`!`) as it is reserved by Rspack for loader syntax.
+- `output.path` must be an absolute path.
+
 :::
 
 ## output.pathinfo

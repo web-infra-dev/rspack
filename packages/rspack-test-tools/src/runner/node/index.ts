@@ -22,8 +22,6 @@ declare global {
 	var printLogger: boolean;
 }
 
-const EVAL_LOCATION_REGEX = /<anonymous>:(\d+)/;
-
 const isRelativePath = (p: string) => /^\.\.?\//.test(p);
 const getSubPath = (p: string) => {
 	const lastSlash = p.lastIndexOf("/");
@@ -194,6 +192,7 @@ export class NodeRunner implements ITestRunner {
 			Buffer,
 			setImmediate,
 			self: this.globalContext,
+			__TEST_PATH__: __TEST_PATH__,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			Worker: createFakeWorker(this._options.env, {
@@ -397,49 +396,38 @@ export class NodeRunner implements ITestRunner {
 					currentModuleScope.__STATS_I__ = statsIndex;
 				}
 			}
-			const createNodeLocatedError = createLocatedError(
-				this._options.errors || ([] as Error[]),
-				2
-			);
-			const originIt = currentModuleScope.it;
-			currentModuleScope.it = (
-				description: string,
-				fn: () => Promise<void> | void
-			) => {
-				originIt(description, async () => {
-					try {
-						await fn();
-					} catch (err) {
-						throw createNodeLocatedError(err as Error, file);
-					}
-				});
-			};
-			currentModuleScope.__CREATE_LOCATED_ERROR__ = createNodeLocatedError;
-			currentModuleScope.__FILE__ = file;
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {
-				try {
-					${file.content}
-				} catch(err) {
-					throw __CREATE_LOCATED_ERROR__(err, __FILE__);
-				}
+				${file.content}
       })`;
 
 			this.preExecute(code, file);
 			this.log(
 				`run mode: ${this._options.runInNewContext ? "new context" : "this context"}`
 			);
-			const fn = this._options.runInNewContext
-				? vm.runInNewContext(code, this.globalContext!)
-				: vm.runInThisContext(code);
 
-			fn.call(
-				this._options.testConfig.nonEsmThis
-					? this._options.testConfig.nonEsmThis(modulePath)
-					: m.exports,
-				...argValues
-			);
+			try {
+				const fn = this._options.runInNewContext
+					? vm.runInNewContext(code, this.globalContext!, {
+							filename: file.path,
+							lineOffset: -1
+						})
+					: vm.runInThisContext(code, {
+							filename: file.path,
+							lineOffset: -1
+						});
+
+				fn.call(
+					this._options.testConfig.nonEsmThis
+						? this._options.testConfig.nonEsmThis(modulePath)
+						: m.exports,
+					...argValues
+				);
+			} catch (e) {
+				this._options.errors?.push(e as Error);
+				throw e;
+			}
 
 			this.postExecute(m, file);
 			this.log(`end cjs: ${modulePath}`);
@@ -543,31 +531,3 @@ export class NodeRunner implements ITestRunner {
 		};
 	}
 }
-
-export const createLocatedError = (
-	collectedErrors: Error[],
-	offset: number
-) => {
-	return (e: Error, file: TRunnerFile) => {
-		const match = (e.stack || e.message).match(EVAL_LOCATION_REGEX);
-		if (match) {
-			const [, line] = match;
-			const realLine = Number(line) - offset;
-			const codeLines = file.content.split("\n");
-			const lineContents = [
-				...codeLines
-					.slice(Math.max(0, realLine - 3), Math.max(0, realLine - 1))
-					.map(line => `│  ${line}`),
-				`│> ${codeLines[realLine - 1]}`,
-				...codeLines.slice(realLine, realLine + 2).map(line => `│  ${line}`)
-			];
-			const message = `Error in JSDOM when running file '${file.path}' at line ${realLine}: ${e.message}\n${lineContents.join("\n")}`;
-			const finalError = new Error(message);
-			finalError.stack = undefined;
-			collectedErrors.push(finalError);
-			return finalError;
-		} else {
-			return e;
-		}
-	};
-};

@@ -1,6 +1,6 @@
-```js title=main.ed2c875d512c4424.js
+```js title=main.c34b4be3af721682.js
 // UPDATED
-(() => { // webpackBootstrap
+(() => {
 var __webpack_modules__ = ({
 402: (function (module) {
 module.exports = "This is hook"
@@ -9,7 +9,6 @@ module.exports = "This is hook"
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -33,7 +32,6 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined

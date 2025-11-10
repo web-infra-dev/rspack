@@ -129,9 +129,13 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 						targetPath,
 						outputPath,
 						get source() {
-							return getCompiler()
+							const source = getCompiler()
 								.__internal__get_compilation()!
-								.getAsset(filename)?.source!;
+								.getAsset(filename)?.source;
+							if (!source) {
+								throw new Error(`Asset ${filename} not found`);
+							}
+							return source;
 						},
 						get content() {
 							return this.source?.buffer();

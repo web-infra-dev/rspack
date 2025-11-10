@@ -1,2 +1,2 @@
 
-module.exports = () => "FIXME: recovery failed"
+module.exports = () => "TODO: support root error recovery"

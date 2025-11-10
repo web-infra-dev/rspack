@@ -5,16 +5,16 @@ it("should work", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());
 	expect(pureStyle).toEqual(nsObj({}));
 	const style = getComputedStyle(document.body);
-	expect(style.getPropertyValue("background")).toBe(" red");
-  expect(styles.foo).toBe('_style_modules_css-foo');
+	expect(style.getPropertyValue("background")).toBe("red");
+	expect(styles.foo).toBe('_style_modules_css-foo');
 
 	import(/* webpackPrefetch: true */ "./style2.css").then(x => {
 		expect(x).toEqual(nsObj({}));
 		const style = getComputedStyle(document.body);
-		expect(style.getPropertyValue("color")).toBe(" blue");
+		expect(style.getPropertyValue("color")).toBe("rgb(0, 0, 255)");
 
 		import(/* webpackPrefetch: true */ "./style2.modules.css").then(x => {
-		  expect(x.bar).toBe("_style2_modules_css-bar");
+			expect(x.bar).toBe("_style2_modules_css-bar");
 			done();
 		}, done);
 	}, done);

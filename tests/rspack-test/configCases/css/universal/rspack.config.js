@@ -1,6 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: ["web", "node"],
+	// DIFF: no css file is generated in node target
+	// target: ["web", "node"],
+	target: "web",
 	mode: "development",
 	experiments: {
 		css: true,

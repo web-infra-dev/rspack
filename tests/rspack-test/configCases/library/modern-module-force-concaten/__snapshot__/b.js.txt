@@ -1,11 +1,10 @@
 var __webpack_modules__ = ({
-497: (function (module) {
+917: (function (module) {
 module.exports = 'b'
 
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -29,8 +28,7 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__(497);
+var __webpack_exports__ = __webpack_require__(917);

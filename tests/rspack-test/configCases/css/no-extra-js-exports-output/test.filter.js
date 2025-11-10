@@ -1,1 +1,0 @@
-module.exports = () => "FIXME: generated js modules";

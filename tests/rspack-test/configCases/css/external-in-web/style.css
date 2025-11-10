@@ -1,4 +1,4 @@
-@import "https://test.cases/path/@rspack/coreconfigCases/css/external-in-web/external.css";
+@import "https://test.cases/root/configCases/css/external-in-web/external.css";
 
 body {
 	padding: 10px;

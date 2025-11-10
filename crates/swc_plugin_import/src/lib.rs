@@ -11,6 +11,7 @@ use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Deserialize;
 use swc_core::{
+  atoms::Wtf8Atom,
   common::{BytePos, DUMMY_SP, Span, SyntaxContext, errors::HANDLER, util::take::Take},
   ecma::{
     ast::{
@@ -398,7 +399,10 @@ impl VisitMut for ImportPlugin<'_> {
       if let ModuleItem::ModuleDecl(ModuleDecl::Import(var)) = item {
         let source = &*var.src.value;
 
-        if let Some(child_config) = config.iter().find(|&c| c.library_name == source) {
+        if let Some(child_config) = config
+          .iter()
+          .find(|&c| c.library_name == source.to_string_lossy())
+        {
           let mut rm_specifier = HashSet::default();
 
           for (specifier_idx, specifier) in var.specifiers.iter().enumerate() {
@@ -406,7 +410,7 @@ impl VisitMut for ImportPlugin<'_> {
               ImportSpecifier::Named(s) => {
                 let imported = s.imported.as_ref().map(|imported| match imported {
                   ModuleExportName::Ident(ident) => ident.sym.to_string(),
-                  ModuleExportName::Str(str) => str.value.to_string(),
+                  ModuleExportName::Str(str) => str.value.to_string_lossy().to_string(),
                 });
 
                 let as_name: Option<String> = imported.is_some().then(|| s.local.sym.to_string());
@@ -510,7 +514,7 @@ impl VisitMut for ImportPlugin<'_> {
         },
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: Atom::from(js_source_ref),
+          value: Wtf8Atom::from(js_source_ref),
           raw: None,
         }),
         type_only: false,
@@ -526,7 +530,7 @@ impl VisitMut for ImportPlugin<'_> {
         specifiers: vec![],
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: Atom::from(css_source),
+          value: Wtf8Atom::from(css_source),
           raw: None,
         }),
         type_only: false,

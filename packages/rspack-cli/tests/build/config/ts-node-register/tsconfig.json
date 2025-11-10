@@ -7,12 +7,7 @@
     "noEmit": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "types": [
-      "./namespace.d.ts"
-    ]
+    "types": ["./namespace.d.ts"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js"
-  ]
+  "include": ["**/*.ts", "**/*.js"]
 }

@@ -1,4 +1,4 @@
-asset bundle.js 2 KiB [emitted] (name: main)
+asset bundle.js xx KiB [emitted] (name: main)
 runtime modules 637 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.6.0-beta.1",
+  "version": "1.6.1",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -23,10 +23,7 @@
   "bin": {
     "rspack": "./bin/rspack.js"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
@@ -39,7 +36,7 @@
     "webpack-bundle-analyzer": "4.10.2"
   },
   "devDependencies": {
-    "@rslib/core": "0.16.1",
+    "@rslib/core": "0.17.0",
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",

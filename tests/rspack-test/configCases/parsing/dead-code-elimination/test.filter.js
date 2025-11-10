@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: build failed";
+module.exports = () => "TODO: support parser.scope.terminated"

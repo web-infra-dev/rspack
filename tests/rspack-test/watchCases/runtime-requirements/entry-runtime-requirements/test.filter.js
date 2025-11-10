@@ -1,1 +1,0 @@
-module.exports = () => "FIXME: global variable is not accessible in require files by vm"

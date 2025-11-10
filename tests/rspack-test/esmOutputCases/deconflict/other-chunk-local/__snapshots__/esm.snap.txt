@@ -6,13 +6,13 @@ const value = 42
 // ./index.js
 
 
-const index_local_0 = 'index'
-const index_local = ''
+const index_local = 'index'
+const index_index_local = ''
 
 it('should have deconflicted symbol', async () => {
 	expect(value).toBe(42)
-	expect(index_local_0).toBe('index')
-	expect(index_local).toBe('')
+	expect(index_local).toBe('index')
+	expect(index_index_local).toBe('')
 	const {value: v} = await import("./other_js.mjs").then((mod) => ({ value: mod.value }))
 	expect(v).toBe(value)
 })

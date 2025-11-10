@@ -1,6 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "1.6.0-beta.1",
+  "version": "1.6.1",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -20,10 +20,10 @@
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "1.7.1"
+    "create-rstack": "1.7.2"
   },
   "devDependencies": {
-    "@rslib/core": "0.16.1",
+    "@rslib/core": "0.17.0",
     "typescript": "^5.9.3"
   },
   "publishConfig": {

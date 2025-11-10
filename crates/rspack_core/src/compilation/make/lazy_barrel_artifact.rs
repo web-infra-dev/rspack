@@ -137,7 +137,7 @@ impl LazyDependencies {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set) => set
         .iter()
-        .filter(|forward_id| !self.terminal_forward_ids.contains(forward_id))
+        .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
         .flat_map(|forward_id| {
           self
             .forward_id_to_request

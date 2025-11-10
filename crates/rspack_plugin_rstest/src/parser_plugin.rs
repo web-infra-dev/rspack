@@ -9,7 +9,7 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::{JavascriptParser, Statement, VariableDeclaration},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify, swc::get_swc_comments};
 use swc_core::{
@@ -82,7 +82,7 @@ impl RstestParserPlugin {
         {
           let range_expr: DependencyRange = first_arg.span().into();
           let dep = CommonJsRequireDependency::new(
-            lit.value.to_string(),
+            lit.value.to_string_lossy().to_string(),
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
@@ -106,7 +106,15 @@ impl RstestParserPlugin {
         }
       }
       _ => {
-        panic!("`rs.importActual` function expects 1 argument");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.requireActual` function expects 1 argument".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
       }
     }
 
@@ -130,7 +138,7 @@ impl RstestParserPlugin {
           let imported_span = call_expr.args.first().expect("should have one arg");
 
           let dep = Box::new(ImportDependency::new(
-            Atom::from(lit.value.as_ref()),
+            lit.value.to_atom_lossy().into_owned(),
             call_expr.span.into(),
             None,
             Some(attrs),
@@ -148,7 +156,7 @@ impl RstestParserPlugin {
             Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
             None,
             vec![dep],
-            Some(lit.value.to_string()),
+            Some(lit.value.to_string_lossy().to_string()),
           );
 
           parser.add_block(Box::new(block));
@@ -156,7 +164,15 @@ impl RstestParserPlugin {
         }
       }
       _ => {
-        panic!("`rs.importActual` function expects 1 argument");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.importActual` function expects 1 argument".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
       }
     }
 
@@ -216,13 +232,13 @@ impl RstestParserPlugin {
         .and_then(|expr| expr.args.first())
         .and_then(|arg| arg.expr.as_lit())
         .and_then(|lit| lit.as_str())
-        .map(|lit| lit.value.as_str())
+        .and_then(|lit| lit.value.as_str())
     } else {
       first_arg
         .expr
         .as_lit()
         .and_then(|lit| lit.as_str())
-        .map(|lit| lit.value.as_str())
+        .and_then(|lit| lit.value.as_str())
     };
 
     lit_str.map(|s| s.to_string())
@@ -330,11 +346,27 @@ impl RstestParserPlugin {
           )));
           parser.add_dependency(Box::new(module_dep));
         } else {
-          panic!("`rs.mock` function expects a string literal as the first argument");
+          parser.add_error(
+            create_traceable_error(
+              "Invalid function call".into(),
+              "`rs.mock` function expects a string literal as the first argument".into(),
+              parser.source_file(),
+              call_expr.span.into(),
+            )
+            .into(),
+          );
         }
       }
       _ => {
-        panic!("`rs.mock` function expects 1 or 2 arguments, got more than 2");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.mock` function expects 1 or 2 arguments".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
       }
     }
   }
@@ -351,7 +383,15 @@ impl RstestParserPlugin {
         )));
       }
       _ => {
-        panic!("`rs.hoisted` function expects 1 argument, got more than 1");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.hoisted` function expects 1 argument".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
       }
     }
   }
@@ -367,7 +407,16 @@ impl RstestParserPlugin {
         Some(true)
       }
       _ => {
-        panic!("`rs.resetModules` function expects 0 arguments, got more than 0");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.resetModules` function expects 0 arguments".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
+        Some(false)
       }
     }
   }
@@ -383,7 +432,10 @@ impl RstestParserPlugin {
         let first_arg = &call_expr.args[0];
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
-            if let Some(mocked_target) = self.calc_mocked_target(&lit.value).as_std_path().to_str()
+            if let Some(mocked_target) = self
+              .calc_mocked_target(&lit.value.to_string_lossy())
+              .as_std_path()
+              .to_str()
             {
               if is_esm {
                 let imported_span = call_expr.args.first().expect("should have one arg");
@@ -442,7 +494,16 @@ impl RstestParserPlugin {
         None
       }
       _ => {
-        panic!("`load_mock` function expects 1 argument, got more than 1");
+        parser.add_error(
+          create_traceable_error(
+            "Invalid function call".into(),
+            "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
+            parser.source_file(),
+            call_expr.span.into(),
+          )
+          .into(),
+        );
+        Some(false)
       }
     }
   }

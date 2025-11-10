@@ -330,10 +330,10 @@ fn mangle_exports_info(
         let mut name;
         loop {
           name = number_to_identifier(i);
+          i += 1;
           if !used_names.contains(&name) {
             break;
           }
-          i += 1;
         }
         changes.push((export_info, UsedNameItem::Str(name.into())));
       }

@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: can not resolve errors";
+module.exports = () => "TODO: support css/global";

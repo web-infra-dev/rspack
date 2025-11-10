@@ -6,12 +6,12 @@ import PropertyType from '@components/PropertyType';
 
 # Experiments
 
-Enable and try out some experimental features.
+Enables experimental features.
 
 - **Type:** `object`
 
 :::tip
-In minor releases, Rspack may make changes to the APIs of these experimental features and provide detailed explanations of these changes in the release notes. So if you are using experimental features, please pay attention to the minor release notes.
+In minor releases, Rspack may change the APIs of experimental features. If you're using experimental features, pay attention to the minor release notes for detailed explanations of changes.
 :::
 
 ## experiments.asyncWebAssembly
@@ -19,7 +19,7 @@ In minor releases, Rspack may make changes to the APIs of these experimental fea
 - **Type:** `boolean`
 - **Default:** `false`
 
-Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+Supports the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), making WebAssembly modules async.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -29,14 +29,14 @@ export default {
 };
 ```
 
-And it is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
+This is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
 
 ## experiments.outputModule
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Once enabled, Rspack will output ECMAScript module syntax whenever possible. For instance, `import()` to load chunks, ESM exports to expose chunk data, among others.
+When enabled, Rspack outputs ECMAScript module syntax whenever possible. For example, `import()` to load chunks, ESM exports to expose chunk data, and more.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -51,7 +51,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
+When enabled, Rspack enables native CSS support and CSS-related parser and generator options.
 
 - [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
 - [`module.parser.css`](/config/module#moduleparsercss)
@@ -75,72 +75,12 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Use defaults of the next major Rspack and show warnings in any problematic places.
+Uses defaults from the next major Rspack version and shows warnings for any problematic configuration.
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
     futureDefaults: true,
-  },
-};
-```
-
-## experiments.topLevelAwait
-
-:::warning
-
-This option has been deprecated and will be removed in Rspack v2.0.
-
-Top-level await will be always enabled in the future. Please remove this option from your Rspack configuration."
-
-:::
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-await), `Top-level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
-
-Enabled by default and can be disabled with this configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-:::warning
-This config is deprecated, layers is enabled at all time. Please remove this option from your Rspack configuration.
-:::
-
-Controls whether to enable the layer feature. Layers can add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
-
-The `layer` of the `index.js` module is by default `null`, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` will become `(client)/./index.js`. At this point, the `index.js` modules in these two different layers will be treated as distinct modules, because their unique `identifier`s are different. As a result, the final output will include the artifacts of both modules.
-
-By default, a module's layer is `null`, and it will inherit its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and you can add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
   },
 };
 ```
@@ -904,3 +844,71 @@ A side-effect-free module is a module that meets one of the following conditions
 - **Default:** `false`
 
 When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Currently, only `import defer * as ns from "./module"` is supported, while `import.defer()` will be supported in future versions.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+## experiments.topLevelAwait
+
+:::warning
+
+This option has been deprecated and will be removed in Rspack v2.0.
+
+Top-level await will always be enabled in the future. Remove this option from your Rspack configuration.
+
+:::
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module#ruletype) set to `javascript/esm`.
+
+Enabled by default. Can be disabled with this configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    topLevelAwait: false,
+  },
+};
+```
+
+## experiments.lazyCompilation
+
+<ApiMeta deprecatedVersion="1.5.0" />
+
+:::warning
+
+This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
+
+:::
+
+## experiments.layers
+
+<ApiMeta deprecatedVersion="1.6.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+:::warning
+This option is deprecated. Layers are now always enabled. Remove this option from your Rspack configuration.
+:::
+
+Controls whether to enable the layer feature. Layers add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
+
+The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
+
+By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    layers: true,
+  },
+};
+```

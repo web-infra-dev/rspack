@@ -9,7 +9,7 @@ use super::BasicEvaluatedExpression;
 #[inline]
 pub fn eval_str(str: &Str) -> BasicEvaluatedExpression<'_> {
   let mut res = BasicEvaluatedExpression::with_range(str.span().real_lo(), str.span().real_hi());
-  res.set_string(str.value.to_string());
+  res.set_string(str.value.to_string_lossy().to_string());
   res
 }
 

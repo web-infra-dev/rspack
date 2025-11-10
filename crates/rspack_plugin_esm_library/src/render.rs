@@ -24,7 +24,7 @@ use swc_core::common::sync::Lazy;
 
 use crate::{
   chunk_link::{ChunkLinkContext, Ref},
-  plugin::{CONCATENATED_MODULES_MAP, LINKS, RSPACK_ESM_RUNTIME_CHUNK},
+  plugin::RSPACK_ESM_RUNTIME_CHUNK,
   runtime::RegisterModuleRuntime,
 };
 
@@ -76,23 +76,19 @@ impl EsmLibraryPlugin {
     asset_info: &mut AssetInfo,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
-    let chunk_link_guard = LINKS.read().await;
 
-    let chunk_link = chunk_link_guard
-      .get(&compilation.id().0)
-      .expect("should have chunk link for compilation")
-      .get(chunk_ukey)
-      .expect("should have chunk");
+    // In this phase we only read from the lock, no write happen in this phase, the
+    // next write happen only happen for next compile start
+    let chunk_link_guard = self.links.borrow();
+    let chunk_link = &chunk_link_guard[chunk_ukey];
 
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
     let mut replace_auto_public_path = false;
     let mut replace_static_url = false;
 
-    let concatenated_modules_map_by_compilation = CONCATENATED_MODULES_MAP.lock().await;
-    let concatenated_modules_map = concatenated_modules_map_by_compilation
-      .get(&compilation.id().0)
-      .expect("should have map for compilation");
+    // Same as above, we can only read here, the write happen only at the finish_modules phase
+    let concatenated_modules_map = self.concatenated_modules_map.read().await;
 
     let chunk = get_chunk(compilation, *chunk_ukey);
     let filename_template = get_js_chunk_filename_template(
@@ -132,13 +128,14 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-      let hooks = hooks.read().await;
+
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
 
+        let hooks = hooks.read().await;
         let Some((module_source, init_frags, init_frags2)) = render_module(
           compilation,
           chunk_ukey,
@@ -152,12 +149,12 @@ impl EsmLibraryPlugin {
         else {
           continue;
         };
+        drop(hooks);
 
         chunk_init_fragments.extend(init_frags);
         chunk_init_fragments.extend(init_frags2);
         decl_inner.add(module_source.clone());
       }
-      drop(hooks);
 
       if !decl_inner.source().is_empty() {
         // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
@@ -465,20 +462,29 @@ impl EsmLibraryPlugin {
     }
 
     // render star exports
-    for source in &chunk_link.raw_star_exports {
-      final_source.add(RawStringSource::from(format!(
-        "export * from {};\n",
-        serde_json::to_string(source).expect("should have correct request")
-      )));
+    for (source, export_names) in &chunk_link.raw_star_exports {
+      for name in export_names {
+        if name == "*" {
+          final_source.add(RawStringSource::from(format!(
+            "export * from {};\n",
+            serde_json::to_string(source).expect("should have correct request")
+          )));
+        } else {
+          final_source.add(RawStringSource::from(format!(
+            "export * as {name} from {};\n",
+            serde_json::to_string(source).expect("should have correct request")
+          )));
+        }
+      }
     }
 
     // render re-exports
-    for (chunk, export_symbols) in chunk_link.re_exports() {
+    for (re_export_from, export_symbols) in chunk_link.re_exports() {
       let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
       export_symbols.sort_by(|a, b| a.0.cmp(b.0));
 
       final_source.add(RawStringSource::from(format!(
-        "export {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+        "export {{ {} }} from \"{}\";\n",
         export_symbols
           .iter()
           .flat_map(|(imported, exports)| {
@@ -494,7 +500,14 @@ impl EsmLibraryPlugin {
           })
           .collect::<Vec<_>>()
           .join(", "),
-        chunk.as_u32()
+        match re_export_from {
+          crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk_ukey.as_u32()))
+          }
+          crate::chunk_link::ReExportFrom::Request(request) => {
+            Cow::Borrowed(request)
+          }
+        }
       )));
     }
 

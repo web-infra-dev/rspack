@@ -782,6 +782,7 @@ export type TTestConfig = {
     esmLibPluginOptions?: {
         preserveModules?: string;
     };
+    resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 
 // @public (undocumented)
@@ -813,7 +814,7 @@ export class WebRunner extends NodeRunner {
     protected createJSDOMRequirer(): TRunnerRequirer;
     // (undocumented)
     protected createResourceLoader(): {
-        fetch(url: string, _: {
+        fetch(url: string, options: {
             element: HTMLScriptElement;
         }): any;
     };
@@ -826,7 +827,8 @@ export class WebRunner extends NodeRunner {
         {
         exports: Record<string, unknown>;
     },
-    string
+    string,
+    number
     ];
     // (undocumented)
     protected log(message: string): void;

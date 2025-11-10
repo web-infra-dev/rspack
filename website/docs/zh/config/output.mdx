@@ -1621,7 +1621,10 @@ module.exports = {
 注意 `[fullhash]` 将会被替换为构建过程中的 hash 值。
 
 :::warning
-路径中不能包含感叹号（!），因为感叹号在 Rspack 中被用作 loader 语法。
+
+- 路径中不能包含感叹号（!），因为感叹号在 Rspack 中被用作 loader 语法。
+- `output.path` 必须是一个绝对路径。
+
 :::
 
 ## output.pathinfo

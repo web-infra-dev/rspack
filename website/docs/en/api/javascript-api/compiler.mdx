@@ -12,21 +12,21 @@ import { Badge } from '@theme';
 
 # Compiler
 
-The Compiler is a core object in Rspack. A Compiler instance is created whenever you call Rspack's [JavaScript API](/api/javascript-api/index) or [CLI](/api/cli).
+The Compiler is a core object in Rspack. A Compiler instance is created when you call Rspack's [JavaScript API](/api/javascript-api/index) or [CLI](/api/cli).
 
-It provides methods like [run](#run) and [watch](#watch) to start builds, while exposing various [Compiler hooks](/api/plugin-api/compiler-hooks) that allow Rspack plugins to intervene at different stages of the build process.
+It provides methods like [run](#run) and [watch](#watch) to start builds, and exposes [Compiler hooks](/api/plugin-api/compiler-hooks) that allow plugins to hook into different stages of the build process.
 
 ## Compiler methods
 
 ### run
 
-Start a compilation, and calls back when the compilation is completed or aborted due to an error.
+Starts a compilation and calls the callback when compilation completes or fails with an error.
 
 ```ts
 function run(
   callback: (
-    error: Error, // Only including compiler-related errors, such as configuration errors, not including compilation errors
-    stats: Stats, // detailed information generated during the compilation
+    error: Error, // Only includes compiler-related errors, such as configuration errors, not compilation errors
+    stats: Stats, // Detailed information generated during compilation
   ) => void,
   options?: {
     modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
@@ -37,10 +37,10 @@ function run(
 
 :::warning
 
-If you need to call the `run` method of the same `compiler` object multiple times, please note the following:
+If you need to call the `run` method on the same `compiler` object multiple times, note the following:
 
-1. This API does not support concurrent compilation. Before starting a new compilation, you must call `compiler.close()` in the callback function of `compiler.run` and wait for it to finish. Only then can you proceed with the next `compiler.run` call. Running multiple compilation processes simultaneously can lead to unexpected results in the output files.
-2. Rspack's cache invalidation detection relies on the `modifiedFiles` and `removedFiles` parameters. When caching is enabled and you're using a custom watcher to watch file changes, you need to pass these values to Rspack via the `options` parameter.
+1. This API doesn't support concurrent compilation. Before starting a new compilation, call `compiler.close()` in the `compiler.run` callback and wait for it to finish before calling `compiler.run` again. Running multiple compilations simultaneously can produce unexpected output files.
+2. Rspack's cache invalidation relies on the `modifiedFiles` and `removedFiles` parameters. When caching is enabled and you're using a custom watcher, pass these values to Rspack via the `options` parameter.
 
 :::
 
@@ -68,17 +68,17 @@ compiler.run((err, stats) => {
 
 ### watch
 
-Watching files and directories, start a compilation process after they change, and calls back every time the compilation is completed or aborted due to an error.
+Watches files and directories, starting a compilation after they change. Calls the handler after each compilation completes or fails.
 
 ```ts
 function watch(
-  watchOptions: WatchOptions, // options for starting the watching
-  handler: (error: Error, stats: Stats) => void, // callback when every compilation ends
-): Watching; // watching controller
+  watchOptions: WatchOptions, // Options for starting the watcher
+  handler: (error: Error, stats: Stats) => void, // Callback after each compilation
+): Watching; // Watching controller
 ```
 
 :::warning Warning
-This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.watch` callback and wait for it to finish before executing `compiler.watch` again. Concurrent compilations will damage the output files.
+This API only supports one compilation at a time. Call `compiler.close` in the `compiler.watch` callback and wait for it to finish before calling `compiler.watch` again. Concurrent compilations will corrupt output files.
 :::
 
 ```js
@@ -98,19 +98,19 @@ The Watching object provides the following methods:
 
 - `watch`:
   - **Type**: `(files: string[], dirs: string[], missing: string[]): void`
-  - **Usage**: Add the files and directories that need to be watched.
+  - **Usage**: Adds files and directories to watch.
 - `invalidate`:
   - **Type**: `(callback: () => void): void`
-  - **Usage**: Immediately end this round of watching and start a compilation with the currently recorded file changes, without stopping the watcher.
+  - **Usage**: Immediately ends the current watch cycle and starts a new compilation with the recorded file changes, without stopping the watcher.
 - `suspend`:
   - **Type**: `(): void`
-  - **Usage**: Enter the state of only watching and will not start a new compilation.
+  - **Usage**: Enters watch-only mode and doesn't start new compilations.
 - `resume`:
   - **Type**: `(): void`
-  - **Usage**: Exit the state of only watching and start a compilation with the currently recorded file changes.
+  - **Usage**: Exits watch-only mode and starts a compilation with the recorded file changes.
 - `close`:
   - **Type**: `(callback: () => void): void`
-  - **Usage**: Stop the watcher.
+  - **Usage**: Stops the watcher.
 
 <Collapse>
   <CollapsePanel
@@ -133,11 +133,11 @@ The Watching object provides the following methods:
 
 ### close
 
-Close the current compiler, and handle low-priority tasks such as caching during this period.
+Closes the compiler and handles low-priority tasks like caching.
 
 ```ts
 function close(
-  callback: (err: Error) => void, // callback after closing
+  callback: (err: Error) => void, // Callback after closing
 ): void;
 ```
 
@@ -161,7 +161,7 @@ function getInfrastructureLogger(name: string): Logger;
 
 ### getCache
 
-Create a cache object to share data in the build process.
+Creates a cache object to share data during the build process.
 
 ```ts
 function getCache(name: string): CacheFacade;
@@ -175,7 +175,7 @@ function getCache(name: string): CacheFacade;
 
 ### purgeInputFileSystem
 
-Stop the read loop of the input file system, which internally contains a timer and may cause the process to still not be able to exit after calling `compiler.close`.
+Stops the input file system read loop, which contains an internal timer that may prevent the process from exiting after calling `compiler.close`.
 
 ```ts
 function purgeInputFileSystem(): void;
@@ -183,7 +183,7 @@ function purgeInputFileSystem(): void;
 
 ### createChildCompiler
 
-Allows running another instance of Rspack inside of Rspack. However, as a child with different settings and configurations applied. It copies all hooks and plugins from the parent (or top-level compiler) and creates a child `Compiler` instance. Returns the created `Compiler`.
+Runs another Rspack instance inside Rspack as a child compiler with different settings. Copies all hooks and plugins from the parent (or top-level) compiler and creates a child `Compiler` instance. Returns the created `Compiler`.
 
 ```ts
 function createChildCompiler(
@@ -225,14 +225,14 @@ function createChildCompiler(
 
 ### runAsChild
 
-Running the child compiler, which will doing a complete compiling and generate the assets.
+Runs the child compiler, performing a complete compilation and generating assets.
 
 ```ts
 function runAsChild(
   callback(
-    err: Error, // error related to the child compiler
-    entries: Chunk[], // chunks generated by the child compiler
-    compilation: Compilation, // the compilation created by the child compiler
+    err: Error, // Error related to the child compiler
+    entries: Chunk[], // Chunks generated by the child compiler
+    compilation: Compilation, // The compilation created by the child compiler
   ): void;
 ): void;
 ```

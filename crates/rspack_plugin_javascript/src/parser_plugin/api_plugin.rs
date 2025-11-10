@@ -198,11 +198,7 @@ impl JavascriptParserPlugin for APIPlugin {
       NON_WEBPACK_REQUIRE => {
         let content = if self.options.module {
           parser.build_info.need_create_require = true;
-          format!(
-            "__WEBPACK_EXTERNAL_createRequire({}.url)",
-            parser.compiler_options.output.import_meta_name
-          )
-          .into()
+          "__WEBPACK_EXTERNAL_createRequire_require".into()
         } else {
           "require".into()
         };
