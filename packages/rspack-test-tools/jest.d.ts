@@ -9,14 +9,14 @@ declare interface FileMatcherOptions {
 declare global {
 	namespace jest {
 		interface Matchers<R, T> {
-			toMatchFileSnapshot: (
+			toMatchFileSnapshotSync: (
 				filename?: string,
 				options?: FileMatcherOptions
 			) => void;
 		}
 
 		interface Expect {
-			toMatchFileSnapshot: (
+			toMatchFileSnapshotSync: (
 				filename?: string,
 				options?: FileMatcherOptions
 			) => void;

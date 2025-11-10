@@ -311,7 +311,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			})
 			.trim();
 
-		env.expect(content).toMatchFileSnapshot(snapshotPath);
+		env.expect(content).toMatchFileSnapshotSync(snapshotPath);
 	}
 
 	const originRun = processor.run;

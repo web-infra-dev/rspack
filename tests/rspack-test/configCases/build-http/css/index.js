@@ -10,5 +10,5 @@ it(`should work with URLs in CSS`, async () => {
 		css.push(getLinkSheet(link));
 	}
 
-	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
+	expect(css).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
 });
