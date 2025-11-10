@@ -1,6 +1,7 @@
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, RuntimeGlobals,
+  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
+  RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -19,6 +20,29 @@ impl CommonJsChunkLoadingPlugin {
   pub fn new(async_chunk_loading: bool) -> Self {
     Self::new_inner(async_chunk_loading)
   }
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for CommonJsChunkLoadingPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk_loading_value = if self.async_chunk_loading {
+    ChunkLoading::Enable(ChunkLoadingType::AsyncNode)
+  } else {
+    ChunkLoading::Enable(ChunkLoadingType::Require)
+  };
+  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  if is_enabled_for_chunk
+    && compilation
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+  }
+  Ok(())
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for CommonJsChunkLoadingPlugin)]
@@ -91,6 +115,10 @@ impl Plugin for CommonJsChunkLoadingPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree
