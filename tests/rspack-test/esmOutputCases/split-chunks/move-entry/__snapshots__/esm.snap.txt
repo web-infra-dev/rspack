@@ -1,4 +1,6 @@
 ```mjs title=lib.mjs
+import "./lib_js.mjs";
+
 
 ```
 

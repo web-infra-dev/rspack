@@ -950,6 +950,7 @@ impl EsmLibraryPlugin {
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     escaped_identifiers: &FxHashMap<String, Vec<String>>,
     keep_export_name: bool,
+    link_re_export: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1093,19 +1094,20 @@ impl EsmLibraryPlugin {
       }
     }
 
-    // handle star exports
-    Self::link_re_export(
-      current,
-      current_chunk,
-      compilation,
-      concate_modules_map,
-      required,
-      link,
-      &module_graph,
-      needed_namespace_objects,
-      entry_imports,
-      exports,
-    );
+    if link_re_export {
+      Self::link_re_export(
+        current,
+        current_chunk,
+        compilation,
+        concate_modules_map,
+        required,
+        link,
+        &module_graph,
+        needed_namespace_objects,
+        entry_imports,
+        exports,
+      );
+    }
 
     errors
   }
@@ -1679,6 +1681,7 @@ impl EsmLibraryPlugin {
           &mut exports,
           escaped_identifiers,
           true,
+          true,
         ));
       }
     }
@@ -1700,10 +1703,12 @@ impl EsmLibraryPlugin {
 
       for entry_module in entry_data
         .all_dependencies()
+        .chain(compilation.global_entry.all_dependencies())
         .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         .copied()
       {
         let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
+        entry_imports.entry(entry_module).or_default();
 
         /*
         entry module sometimes are splitted to whatever chunk user needs,
@@ -1724,6 +1729,7 @@ impl EsmLibraryPlugin {
           &mut exports,
           escaped_identifiers,
           !needs_reexport,
+          false,
         ));
 
         if needs_reexport {
@@ -1819,6 +1825,19 @@ impl EsmLibraryPlugin {
             }
           }
         }
+
+        Self::link_re_export(
+          entry_module,
+          entry_chunk_ukey,
+          compilation,
+          concate_modules_map,
+          required,
+          link,
+          &module_graph,
+          needed_namespace,
+          entry_imports,
+          &mut exports,
+        );
       }
     }
 
