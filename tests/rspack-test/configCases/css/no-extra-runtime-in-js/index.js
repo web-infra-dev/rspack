@@ -10,7 +10,7 @@ it("should compile", () => {
 		css.push(getLinkSheet(link));
 	}
 
-	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, `css.txt`));
+	expect(css).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `css.txt`));
 	expect(Object.keys(__webpack_modules__).length).toBe(7);
 	expect(__webpack_modules__['./index.js']).toBeDefined();
 	expect(__webpack_modules__['./shared-external.png']).toBeDefined();

@@ -267,7 +267,7 @@ export async function checkSnapshot(
 					path.join("__snapshots__", `${snapshot}${total > 1 ? `-${i}` : ""}`)
 				);
 
-		env.expect(content).toMatchFileSnapshot(snapshotPath);
+		env.expect(content).toMatchFileSnapshotSync(snapshotPath);
 	}
 }
 

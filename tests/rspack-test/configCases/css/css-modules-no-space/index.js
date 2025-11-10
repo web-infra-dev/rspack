@@ -10,7 +10,7 @@ it("should allow to create css modules", () => new Promise((resolve, reject) => 
 			const fs = __non_webpack_require__("fs");
 			const path = __non_webpack_require__("path");
 
-			expect(x).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'x.txt'));
+			expect(x).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'x.txt'));
 
 			const cssOutputFilename = "use-style_js.bundle0.css";
 
@@ -18,7 +18,7 @@ it("should allow to create css modules", () => new Promise((resolve, reject) => 
 				path.join(__dirname, cssOutputFilename),
 				"utf-8"
 			);
-			expect(cssContent).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'cssContent.txt'));
+			expect(cssContent).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'cssContent.txt'));
 		} catch (e) {
 			return done(e);
 		}

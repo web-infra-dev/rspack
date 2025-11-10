@@ -214,7 +214,7 @@ async function check(
 		? snapshot
 		: path.resolve(context.getSource(), `./__snapshots__/${snapshot}`);
 
-	env.expect(new RspackStats(actual)).toMatchFileSnapshot(snapshotPath);
+	env.expect(new RspackStats(actual)).toMatchFileSnapshotSync(snapshotPath);
 
 	const testConfig = context.getTestConfig();
 	if (typeof testConfig?.validate === "function") {

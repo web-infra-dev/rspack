@@ -31,7 +31,7 @@ const isEqual = (a: string | Buffer, b: string | Buffer): boolean => {
  * @param filepath Path to the file to match against
  * @param options Additional options for matching
  */
-export function toMatchFileSnapshot(
+export function toMatchFileSnapshotSync(
 	this: {
 		testPath: string;
 		currentTestName: string;

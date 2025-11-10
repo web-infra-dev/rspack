@@ -40,12 +40,12 @@ it("should have correct convention for css exports name", () => new Promise((res
 		import("./style.module.css?dashes-only"),
 		import("./style.module.css?upper"),
 	]).then(([asIs, camelCase, camelCaseOnly, dashes, dashesOnly, upper]) => {
-		expect(asIs).toMatchFileSnapshot(`${__SNAPSHOT__}/as-is.txt`);
-		expect(camelCase).toMatchFileSnapshot(`${__SNAPSHOT__}/camel-case.txt`);
-		expect(camelCaseOnly).toMatchFileSnapshot(`${__SNAPSHOT__}/camel-case-only.txt`);
-		expect(dashes).toMatchFileSnapshot(`${__SNAPSHOT__}/dashes.txt`);
-		expect(dashesOnly).toMatchFileSnapshot(`${__SNAPSHOT__}/dashes-only.txt`);
-		expect(upper).toMatchFileSnapshot(`${__SNAPSHOT__}/upper.txt`);
+		expect(asIs).toMatchFileSnapshotSync(`${__SNAPSHOT__}/as-is.txt`);
+		expect(camelCase).toMatchFileSnapshotSync(`${__SNAPSHOT__}/camel-case.txt`);
+		expect(camelCaseOnly).toMatchFileSnapshotSync(`${__SNAPSHOT__}/camel-case-only.txt`);
+		expect(dashes).toMatchFileSnapshotSync(`${__SNAPSHOT__}/dashes.txt`);
+		expect(dashesOnly).toMatchFileSnapshotSync(`${__SNAPSHOT__}/dashes-only.txt`);
+		expect(upper).toMatchFileSnapshotSync(`${__SNAPSHOT__}/upper.txt`);
 		done()
 	}).catch(done)
 }));
