@@ -6,7 +6,6 @@ module.exports = 'foo'
 }),
 
 });
-/************************************************************************/
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -30,7 +29,6 @@ return module.exports;
 
 }
 
-/************************************************************************/
 // webpack/runtime/compat_get_default_export
 (() => {
 // getDefaultExport function for compatibility with non-ESM modules
@@ -57,7 +55,6 @@ __webpack_require__.d = (exports, definition) => {
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
-/************************************************************************/
 
 // EXTERNAL MODULE: ./g/foo.js
 var foo = __webpack_require__(547);

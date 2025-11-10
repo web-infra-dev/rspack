@@ -1,3 +1,3 @@
-asset main.js 69 bytes [emitted111] (name: main) [testA: aaaaaa]
+asset main.js 49 bytes [emitted111] (name: main) [testA: aaaaaa]
 ./index.js 26 bytes [built] [code generated]
 Rspack compiled successfully

@@ -5,8 +5,8 @@ it("should not include layer or type in absoluteResourcePath", function () {
 	var map = JSON.parse(source);
 	expect(map.sources).toContain(
 		path.resolve(
-			__dirname,
-			"@rspack/core/configCases/source-map/resource-path/test.js"
+			__TEST_PATH__,
+			"configCases/source-map/resource-path/test.js"
 		)
 	);
 });

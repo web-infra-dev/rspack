@@ -1,5 +1,0 @@
-@import "./all-deep-nested.css" layer(bar) supports(display: grid) screen and (min-width: 500px);
-
-.class {
-	nested: 1;
-}

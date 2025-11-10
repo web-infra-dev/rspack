@@ -71,7 +71,7 @@ jobs:
       comment-id: ${{ steps.create-comment.outputs.result }}
     steps:
       - id: create-comment
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           result-encoding: string
@@ -105,7 +105,7 @@ jobs:
       suites: ${{ steps.calculate.outputs.result }}
     steps:
       - id: calculate
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           result-encoding: string
@@ -139,11 +139,11 @@ jobs:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
       fail-fast: false
     name: eco-ci (${{ matrix.suite }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     #    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
 
@@ -239,7 +239,7 @@ jobs:
           path: results
           pattern: eco-ci-result-*
           merge-multiple: true
-      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

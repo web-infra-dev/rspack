@@ -2,7 +2,9 @@ const isMain = typeof window !== "undefined";
 
 if (isMain) {
 	it("should allow to import itself", async () => {
-		const worker = new Worker(import.meta.url);
+		const worker = new Worker(import.meta.url, {
+			type: MODULE_FLAG
+		});
 		worker.postMessage("ok");
 		const result = await new Promise(resolve => {
 			worker.onmessage = event => {
@@ -14,7 +16,9 @@ if (isMain) {
 	});
 
 	it("should allow to import itself", async () => {
-		const worker = new Worker(new URL(import.meta.url));
+		const worker = new Worker(new URL(import.meta.url), {
+			type: MODULE_FLAG
+		});
 		worker.postMessage("ok");
 		const result = await new Promise(resolve => {
 			worker.onmessage = event => {

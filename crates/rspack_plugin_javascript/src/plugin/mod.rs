@@ -930,9 +930,9 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     if iife {
       sources.add(RawStringSource::from(if supports_arrow_function {
-        "(() => { // webpackBootstrap\n"
+        "(() => {\n"
       } else {
-        "(function() { // webpackBootstrap\n"
+        "(function() {\n"
       }));
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
@@ -985,17 +985,11 @@ impl JsPlugin {
       sources.add(RawStringSource::from_static("var __webpack_modules__ = ("));
       sources.add(chunk_modules_source);
       sources.add(RawStringSource::from_static(");\n"));
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
       sources.add(RawStringSource::from(header));
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
 
     if compilation
@@ -1003,9 +997,6 @@ impl JsPlugin {
       .has_chunk_runtime_modules(chunk_ukey)
     {
       sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
     if let Some(inlined_modules) = inlined_modules {
       let last_entry_module = inlined_modules

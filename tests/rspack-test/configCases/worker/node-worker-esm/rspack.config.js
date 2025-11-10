@@ -2,10 +2,10 @@
 
 /** @type {import("../../../../").Configuration} */
 module.exports = {
-	target: "node14",
+	target: "node",
 	entry: "./index.js",
 	optimization: {
-		chunkIds: "named"
+		chunkIds: "named",
 	},
 	output: {
 		module: true,

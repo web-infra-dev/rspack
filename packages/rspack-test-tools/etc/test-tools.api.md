@@ -105,6 +105,9 @@ export function createHotNormalCase(name: string, src: string, dist: string): vo
 export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
+export const createLocatedError: (collectedErrors: Error[], offset: number) => (e: Error, file: TRunnerFile) => Error;
+
+// @public (undocumented)
 export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
@@ -779,6 +782,7 @@ export type TTestConfig = {
     esmLibPluginOptions?: {
         preserveModules?: string;
     };
+    resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 
 // @public (undocumented)
@@ -810,7 +814,7 @@ export class WebRunner extends NodeRunner {
     protected createJSDOMRequirer(): TRunnerRequirer;
     // (undocumented)
     protected createResourceLoader(): {
-        fetch(url: string, _: {
+        fetch(url: string, options: {
             element: HTMLScriptElement;
         }): any;
     };

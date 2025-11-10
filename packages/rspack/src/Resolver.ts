@@ -1,7 +1,17 @@
 import type binding from "@rspack/binding";
 import type { ResolveCallback } from "./config/adapterRuleUse";
 
-type ResolveContext = {};
+export type ResolveContext = {
+	contextDependencies?: {
+		add: (context: string) => void;
+	};
+	missingDependencies?: {
+		add: (dependency: string) => void;
+	};
+	fileDependencies?: {
+		add: (dependency: string) => void;
+	};
+};
 
 export type ResourceData = binding.JsResourceData;
 
@@ -30,6 +40,9 @@ export interface ResolveRequest {
 	fragment: string;
 	descriptionFileData?: string;
 	descriptionFilePath?: string;
+	fileDependencies?: string[];
+	missingDependencies?: string[];
+	contextDependencies?: string[];
 }
 
 export class Resolver {
@@ -56,6 +69,19 @@ export class Resolver {
 				return;
 			}
 			const req = text ? (JSON.parse(text) as ResolveRequest) : undefined;
+
+			if (req?.fileDependencies) {
+				req.fileDependencies.forEach(file => {
+					resolveContext.fileDependencies?.add(file);
+				});
+			}
+
+			if (req?.missingDependencies) {
+				req.missingDependencies.forEach(missing => {
+					resolveContext.missingDependencies?.add(missing);
+				});
+			}
+
 			callback(
 				error,
 				req

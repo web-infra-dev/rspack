@@ -632,6 +632,10 @@ impl<'parser> JavascriptParser<'parser> {
     self.warning_diagnostics.extend(warnings);
   }
 
+  pub fn source_file(&self) -> &SourceFile {
+    self.source_file
+  }
+
   pub fn is_top_level_scope(&self) -> bool {
     matches!(self.top_level_scope, TopLevelScope::Top)
   }

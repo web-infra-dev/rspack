@@ -55,19 +55,21 @@ Run the following command to create an Rspack CLI project:
 
 Then follow the prompts in your terminal.
 
-### Quick creation
+### Non-interactive mode
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) provides some CLI flags. By setting these CLI flags, you can skip the interactive selection steps and create the project with one command.
+[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) support a non-interactive mode through command-line options. This mode lets you skip all prompts and create a project directly, which is useful for scripts, CI, and coding agents.
 
-For example, to create a React project in the `my-project` directory with one command:
+For example, the following command creates a React app in the `my-app` directory:
 
 ```bash
 # Rspack CLI
-npx create-rspack --dir my-project --template react
+npx -y create-rspack --dir my-app --template react
+
 # Rsbuild
-npx create-rsbuild --dir my-project --template react
+npx -y create-rsbuild --dir my-app --template react
+
 # Using abbreviations
-npx create-rsbuild -d my-project -t react
+npx -y create-rsbuild -d my-app -t react
 ```
 
 ## Online examples
@@ -100,7 +102,8 @@ Update your build scripts to use Rspack CLI:
 {
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build"
+    "build": "rspack build",
+    "preview": "rspack preview"
   }
 }
 ```

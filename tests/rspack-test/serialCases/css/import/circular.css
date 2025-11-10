@@ -1,8 +1,0 @@
-@import url(circular.css);
-@import url(circular.css);
-@import url(circular-nested.css);
-@import url("./style2.css");
-
-.circular {
-	color: red;
-}

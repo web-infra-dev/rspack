@@ -3,9 +3,10 @@ use rspack_core::{
   RuntimeGlobals, get_context, parse_resource,
 };
 use sugar_path::SugarPath;
+use swc_core::{common::Spanned, ecma::ast::Expr};
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::ExternalModuleDependency, utils::eval};
+use crate::{dependency::ExternalModuleDependency, utils::eval, visitors::JavascriptParser};
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -16,7 +17,7 @@ pub struct NodeStuffPlugin;
 impl JavascriptParserPlugin for NodeStuffPlugin {
   fn identifier(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -145,9 +146,29 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     None
   }
 
+  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+    let Some(node_option) = parser.compiler_options.node.as_ref() else {
+      unreachable!("ensure only invoke `NodeStuffPlugin` when node options is enabled");
+    };
+    if for_name == GLOBAL
+      && matches!(
+        node_option.global,
+        NodeGlobalOption::True | NodeGlobalOption::Warn
+      )
+    {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span().into(),
+        RuntimeGlobals::GLOBAL.name().into(),
+        Some(RuntimeGlobals::GLOBAL),
+      )));
+      return Some(false);
+    }
+    None
+  }
+
   fn evaluate_identifier(
     &self,
-    parser: &mut crate::visitors::JavascriptParser,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,

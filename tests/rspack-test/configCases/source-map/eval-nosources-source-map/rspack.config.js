@@ -23,6 +23,7 @@ module.exports = [
 			moduleIds: "deterministic"
 		}
 	},
+	// TODO: support size module ids 
 	// {
 	// 	devtool,
 	// 	optimization: {
@@ -72,10 +73,7 @@ module.exports = [
 			rules: [
 				{
 					test: /\.ts$/,
-					loader: "ts-loader",
-					options: {
-						transpileOnly: true
-					}
+					loader: 'builtin:swc-loader',
 				}
 			]
 		}
