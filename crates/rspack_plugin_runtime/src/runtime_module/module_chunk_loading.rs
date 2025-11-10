@@ -181,6 +181,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let raw_source = compilation.runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
+          "_ids": "__webpack_ids__",
+          "_modules": "__webpack_modules__",
+          "_runtime": "__webpack_runtime__",
           "_with_on_chunk_load": match with_on_chunk_load {
             true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
             false => "".to_string(),
@@ -380,6 +383,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({
+            "_ids": "__webpack_ids__",
+            "_modules": "__webpack_modules__",
+            "_runtime": "__webpack_runtime__",
             "importFunctionName": import_function_name,
           })),
         )?

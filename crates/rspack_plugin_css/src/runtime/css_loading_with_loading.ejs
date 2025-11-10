@@ -42,7 +42,7 @@
 								error.request = realSrc;
 								installedChunkData[1](error);
 							} else {
-								loadCssChunkData(__webpack_require__.m, chunkId);
+								loadCssChunkData(<%- MODULE_FACTORIES %>, chunkId);
 								installedChunkData[0]();
 							}
 						}
