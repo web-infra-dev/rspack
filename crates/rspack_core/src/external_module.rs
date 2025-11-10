@@ -294,6 +294,13 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn get_request(&self) -> &ExternalRequestValue {
+    match &self.request {
+      ExternalRequest::Single(request) => request,
+      ExternalRequest::Map(map) => &map[&self.external_type],
+    }
+  }
+
   fn get_request_and_external_type(&self) -> (Option<&ExternalRequestValue>, &ExternalType) {
     match &self.request {
       ExternalRequest::Single(request) => (Some(request), &self.external_type),

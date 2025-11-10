@@ -1424,6 +1424,11 @@ impl Compilation {
     self.chunk_group_by_ukey.expect_get(ukey)
   }
 
+  pub fn entrypoint_by_name_mut(&mut self, name: &str) -> &mut Entrypoint {
+    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
+    self.chunk_group_by_ukey.expect_get_mut(ukey)
+  }
+
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);

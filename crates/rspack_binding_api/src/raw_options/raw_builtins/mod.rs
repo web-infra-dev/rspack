@@ -32,7 +32,7 @@ use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
-use raw_mf::RawModuleFederationRuntimePluginOptions;
+use raw_mf::{RawModuleFederationManifestPluginOptions, RawModuleFederationRuntimePluginOptions};
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -75,8 +75,8 @@ use rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
-  ProvideSharedPlugin, ShareRuntimePlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationManifestPlugin,
+  ModuleFederationRuntimePlugin, ProvideSharedPlugin, ShareRuntimePlugin,
 };
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
@@ -172,6 +172,7 @@ pub enum BuiltinPluginName {
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
   ModuleFederationRuntimePlugin,
+  ModuleFederationManifestPlugin,
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
@@ -508,6 +509,11 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawModuleFederationRuntimePluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ModuleFederationRuntimePlugin::new(options.into()).boxed())
+      }
+      BuiltinPluginName::ModuleFederationManifestPlugin => {
+        let options = downcast_into::<RawModuleFederationManifestPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(ModuleFederationManifestPlugin::new(options.into()).boxed())
       }
       BuiltinPluginName::NamedModuleIdsPlugin => {
         plugins.push(NamedModuleIdsPlugin::default().boxed())
