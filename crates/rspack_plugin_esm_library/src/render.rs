@@ -24,7 +24,7 @@ use rspack_util::{
 use swc_core::common::sync::Lazy;
 
 use crate::{
-  chunk_link::{ChunkLinkContext, Ref},
+  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
   runtime::RegisterModuleRuntime,
 };
@@ -402,6 +402,14 @@ impl EsmLibraryPlugin {
     }
 
     for (chunk, imported) in &imported_chunks {
+      if imported.is_empty()
+        && chunk_link
+          .re_exports()
+          .contains_key(&ReExportFrom::Chunk(*chunk))
+      {
+        continue;
+      }
+
       final_source.add(RawStringSource::from(format!(
         "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
         if imported.is_empty() {
