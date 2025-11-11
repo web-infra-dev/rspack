@@ -104,13 +104,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         add_module(mid, chunk, &mut initial_consumes);
       }
     }
-    let runtime_requirements =
-      ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey);
-
-    if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
-      initial_consumes.clear();
-    }
-
     let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
       "{}".to_string()
     } else {
@@ -142,7 +135,9 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
-      if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+      if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
+        .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      {
         source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
       }
       return Ok(source);
@@ -151,7 +146,9 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     if !initial_consumes.is_empty() {
       source += include_str!("./consumesInitial.js");
     }
-    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
+      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
       source += include_str!("./consumesLoading.js");
     }
     Ok(source)
