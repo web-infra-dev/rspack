@@ -108,6 +108,9 @@ impl ApiName {
 
   fn from_str_with_property(name: &str) -> Option<(Self, String)> {
     let splitted = name.split('.').collect::<Vec<_>>();
+    if splitted.len() < 2 {
+      return None;
+    }
     let api_name = Self::from_str(splitted[0], true)?;
     let property = splitted[1..].join(".");
     Some((api_name, property))
