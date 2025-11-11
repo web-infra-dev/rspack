@@ -8,12 +8,19 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+indexmap                   = { workspace = true }
 rspack_cacheable           = { workspace = true }
+rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true }
+rspack_error               = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
 rspack_loader_runner       = { workspace = true }
+rspack_plugin_javascript   = { workspace = true }
+rustc-hash                 = { workspace = true }
 swc_core                   = { workspace = true }
+tracing                    = { workspace = true }
+ustr                       = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

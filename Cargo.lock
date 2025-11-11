@@ -3560,6 +3560,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsc",
  "rspack_plugin_rsdoctor",
  "rspack_plugin_rslib",
  "rspack_plugin_rstest",
@@ -4654,14 +4655,21 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsc"
-version = "0.6.0-beta.1"
+version = "0.6.1"
 dependencies = [
+ "indexmap",
  "rspack_cacheable",
+ "rspack_collections",
  "rspack_core",
+ "rspack_error",
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_loader_runner",
+ "rspack_plugin_javascript",
+ "rustc-hash",
  "swc_core",
+ "tracing",
+ "ustr-fxhash",
 ]
 
 [[package]]

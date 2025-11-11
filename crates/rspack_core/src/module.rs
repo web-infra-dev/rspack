@@ -69,6 +69,8 @@ pub struct RSCMeta {
   #[cacheable(with=AsVec<AsPreset>)]
   pub client_refs: Vec<Wtf8Atom>,
   pub client_entry_type: Option<ClientEntryType>,
+  pub action_ids: Option<HashMap<Arc<str>, Arc<str>>>,
+  pub is_client_ref: bool,
 }
 
 #[cacheable]

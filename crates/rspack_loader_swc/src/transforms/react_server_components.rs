@@ -7,7 +7,6 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use swc::atoms::Wtf8Atom;
 use swc_core::{
-  atoms::{Atom, atom},
   common::{DUMMY_SP, FileName, Span, errors::HANDLER, util::take::Take},
   ecma::{
     ast::*,
@@ -197,6 +196,8 @@ impl ReactServerComponents {
       } else {
         Some(ClientEntryType::Auto)
       },
+      action_ids: todo!(),
+      is_client_ref: todo!(),
     });
   }
 }
@@ -550,6 +551,8 @@ pub fn server_components(filename: Arc<FileName>, config: Config) -> impl Pass +
       module_type: RSCModuleType::Server,
       client_refs: vec![],
       client_entry_type: None,
+      action_ids: todo!(),
+      is_client_ref: todo!(),
     }),
     filepath: match &*filename {
       FileName::Custom(path) => format!("<{path}>"),

@@ -11,17 +11,17 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-browser         = ["dep:rspack_browser", "rspack_napi/browser"]
-color-backtrace = ["dep:color-backtrace"]
-debug_tool      = ["rspack_core/debug_tool"]
-plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
-allocative      = [
+allocative = [
   "rspack_util/allocative",
   "rspack_collections/allocative",
   "rspack_cacheable/allocative",
   "rspack_tracing_perfetto/allocative",
 ]
+browser = ["dep:rspack_browser", "rspack_napi/browser"]
+color-backtrace = ["dep:color-backtrace"]
+debug_tool = ["rspack_core/debug_tool"]
+plugin = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 
 [dependencies]
 anyhow                    = { workspace = true }
@@ -108,6 +108,7 @@ rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }
 rspack_plugin_remove_duplicate_modules = { workspace = true }
 rspack_plugin_remove_empty_chunks      = { workspace = true }
+rspack_plugin_rsc                      = { workspace = true }
 rspack_plugin_runtime_chunk            = { workspace = true }
 rspack_plugin_schemes                  = { workspace = true }
 rspack_plugin_size_limits              = { workspace = true }
