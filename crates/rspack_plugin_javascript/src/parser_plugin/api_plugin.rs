@@ -212,8 +212,8 @@ impl JavascriptParserPlugin for APIPlugin {
       API_SYSTEM_CONTEXT => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          RuntimeGlobals::API_SYSTEM_CONTEXT.name().into(),
-          Some(RuntimeGlobals::API_SYSTEM_CONTEXT),
+          RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
+          Some(RuntimeGlobals::SYSTEM_CONTEXT),
         )));
         Some(true)
       }

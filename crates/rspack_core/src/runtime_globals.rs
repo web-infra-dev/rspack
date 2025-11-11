@@ -216,7 +216,7 @@ bitflags! {
     /**
      * the System.register context object
      */
-    const API_SYSTEM_CONTEXT = 1 << 48;
+    const SYSTEM_CONTEXT = 1 << 48;
 
     const THIS_AS_EXPORTS = 1 << 49;
 
@@ -336,7 +336,7 @@ impl RuntimeGlobals {
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
       R::ESM_MODULE_DECORATOR => "__webpack_require__.hmd",
       R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
-      R::API_SYSTEM_CONTEXT => "__webpack_require__.y",
+      R::SYSTEM_CONTEXT => "__webpack_require__.y",
       R::THIS_AS_EXPORTS => "top-level-this-exports",
       R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
       R::SHARE_SCOPE_MAP => "__webpack_require__.S",

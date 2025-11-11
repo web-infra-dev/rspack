@@ -79,7 +79,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(CREATE_FAKE_NAMESPACE_OBJECT);
   declare_runtime_global!(NODE_MODULE_DECORATOR);
   declare_runtime_global!(ESM_MODULE_DECORATOR);
-  declare_runtime_global!(API_SYSTEM_CONTEXT);
+  declare_runtime_global!(SYSTEM_CONTEXT);
   declare_runtime_global!(THIS_AS_EXPORTS);
   declare_runtime_global!(CURRENT_REMOTE_GET_SCOPE);
   declare_runtime_global!(SHARE_SCOPE_MAP);
