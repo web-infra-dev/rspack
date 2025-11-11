@@ -22,3 +22,6 @@ mimalloc = { workspace = true, features = ["v3"] }
 
 [target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dependencies]
 mimalloc = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracy-client-sys"]
