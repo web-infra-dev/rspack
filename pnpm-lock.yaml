@@ -460,8 +460,8 @@ importers:
         specifier: ^11.3.2
         version: 11.3.2
       iconv-lite:
-        specifier: ^0.6.3
-        version: 0.6.3
+        specifier: ^0.7.0
+        version: 0.7.0
       javascript-stringify:
         specifier: ^2.1.0
         version: 2.1.0
