@@ -54,7 +54,7 @@ impl Loader<RunnerContext> for ReactRefreshLoader {
     };
     let mut source = content.try_into_string()?;
 
-    source.reserve(REFRESH_SNIPPET.len());
+    source.reserve_exact(REFRESH_SNIPPET.len());
     source.push_str(REFRESH_SNIPPET);
 
     let sm = loader_context.take_source_map();
