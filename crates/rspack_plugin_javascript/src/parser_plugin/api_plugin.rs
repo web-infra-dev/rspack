@@ -1,3 +1,6 @@
+use std::sync::LazyLock;
+
+use regex::Regex;
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
@@ -40,24 +43,76 @@ fn expression_not_supported(
   )
 }
 
-const API_HASH: &str = "__webpack_hash__";
-const API_LAYER: &str = "__webpack_layer__";
-const API_PUBLIC_PATH: &str = "__webpack_public_path__";
-const API_MODULES: &str = "__webpack_modules__";
-const API_MODULE: &str = "__webpack_module__";
-const API_CHUNK_LOAD: &str = "__webpack_chunk_load__";
-const API_BASE_URI: &str = "__webpack_base_uri__";
-const API_NON_REQUIRE: &str = "__non_webpack_require__";
-const API_SYSTEM_CONTEXT: &str = "__system_context__";
-const API_SHARE_SCOPES: &str = "__webpack_share_scopes__";
-const API_INIT_SHARING: &str = "__webpack_init_sharing__";
-const API_NONCE: &str = "__webpack_nonce__";
-const API_CHUNK_NAME: &str = "__webpack_chunkname__";
-const API_RUNTIME_ID: &str = "__webpack_runtime_id__";
-const API_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
-const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
-const API_VERSION: &str = "__rspack_version__";
-const API_UNIQUE_ID: &str = "__rspack_unique_id__";
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum ApiName {
+  Hash,
+  Layer,
+  PublicPath,
+  Modules,
+  Module,
+  ChunkLoad,
+  BaseUri,
+  NonRequire,
+  SystemContext,
+  ShareScopes,
+  InitSharing,
+  Nonce,
+  ChunkName,
+  RuntimeId,
+  Require,
+  GetScriptFilename,
+  Version,
+  UniqueId,
+}
+
+static API_NAME_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^__(webpack|rspack)_(.*?)__$").expect("should init regex"));
+
+impl ApiName {
+  fn from_str(name: &str, compatibility: bool) -> Option<Self> {
+    let Some(caps) = API_NAME_REGEX.captures(name) else {
+      if name == "__system_context__" {
+        return Some(ApiName::SystemContext);
+      }
+      if (name == "__non_webpack_require__" && compatibility) || name == "__non_rspack_require__" {
+        return Some(ApiName::NonRequire);
+      }
+      return None;
+    };
+
+    let scope = caps.get(1)?.as_str();
+    if scope == "webpack" && !compatibility {
+      return None;
+    }
+    let name = caps.get(2)?.as_str();
+    match name {
+      "hash" => Some(ApiName::Hash),
+      "layer" => Some(ApiName::Layer),
+      "public_path" => Some(ApiName::PublicPath),
+      "modules" => Some(ApiName::Modules),
+      "module" => Some(ApiName::Module),
+      "chunk_load" => Some(ApiName::ChunkLoad),
+      "base_uri" => Some(ApiName::BaseUri),
+      "share_scopes" => Some(ApiName::ShareScopes),
+      "init_sharing" => Some(ApiName::InitSharing),
+      "nonce" => Some(ApiName::Nonce),
+      "chunkname" => Some(ApiName::ChunkName),
+      "runtime_id" => Some(ApiName::RuntimeId),
+      "require" => Some(ApiName::Require),
+      "get_script_filename" => Some(ApiName::GetScriptFilename),
+      "version" => Some(ApiName::Version),
+      "unique_id" => Some(ApiName::UniqueId),
+      _ => None,
+    }
+  }
+
+  fn from_str_with_property(name: &str) -> Option<(Self, String)> {
+    let splitted = name.split('.').collect::<Vec<_>>();
+    let api_name = Self::from_str(splitted[0], true)?;
+    let property = splitted[1..].join(".");
+    Some((api_name, property))
+  }
+}
 
 pub struct APIPluginOptions {
   module: bool,
@@ -74,25 +129,25 @@ impl APIPlugin {
   }
 }
 
-fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
-  match sym {
-    API_REQUIRE => Some("function"),
-    API_HASH => Some("string"),
-    API_PUBLIC_PATH => Some("string"),
-    API_MODULES => Some("object"),
-    API_MODULE => Some("object"),
-    API_CHUNK_LOAD => Some("function"),
-    API_BASE_URI => Some("string"),
-    API_NON_REQUIRE => None,
-    API_SYSTEM_CONTEXT => Some("object"),
-    API_SHARE_SCOPES => Some("object"),
-    API_INIT_SHARING => Some("function"),
-    API_NONCE => Some("string"),
-    API_CHUNK_NAME => Some("string"),
-    API_RUNTIME_ID => None,
-    API_GET_SCRIPT_FILENAME => Some("function"),
-    API_VERSION => Some("string"),
-    API_UNIQUE_ID => Some("string"),
+fn get_typeof_evaluate_of_api(api_name: &ApiName) -> Option<&str> {
+  match api_name {
+    ApiName::Require => Some("function"),
+    ApiName::Hash => Some("string"),
+    ApiName::PublicPath => Some("string"),
+    ApiName::Modules => Some("object"),
+    ApiName::Module => Some("object"),
+    ApiName::ChunkLoad => Some("function"),
+    ApiName::BaseUri => Some("string"),
+    ApiName::NonRequire => None,
+    ApiName::SystemContext => Some("object"),
+    ApiName::ShareScopes => Some("object"),
+    ApiName::InitSharing => Some("function"),
+    ApiName::Nonce => Some("string"),
+    ApiName::ChunkName => Some("string"),
+    ApiName::RuntimeId => None,
+    ApiName::GetScriptFilename => Some("function"),
+    ApiName::Version => Some("string"),
+    ApiName::UniqueId => Some("string"),
     _ => None,
   }
 }
@@ -104,7 +159,8 @@ impl JavascriptParserPlugin for APIPlugin {
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if for_name == API_LAYER {
+    let api_name = ApiName::from_str(for_name, true)?;
+    if api_name == ApiName::Layer {
       let value = if parser.module_layer.is_none() {
         "object"
       } else {
@@ -116,7 +172,7 @@ impl JavascriptParserPlugin for APIPlugin {
         expr.span.real_hi(),
       ))
     } else {
-      get_typeof_evaluate_of_api(for_name).map(|res| {
+      get_typeof_evaluate_of_api(&api_name).map(|res| {
         eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
       })
     }
@@ -128,8 +184,9 @@ impl JavascriptParserPlugin for APIPlugin {
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    match for_name {
-      API_REQUIRE => {
+    let api_name = ApiName::from_str(for_name, true)?;
+    match api_name {
+      ApiName::Require => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::REQUIRE.name().into(),
@@ -137,7 +194,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_HASH => {
+      ApiName::Hash => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
@@ -145,7 +202,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_LAYER => {
+      ApiName::Layer => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           serde_json::to_string(&parser.module_layer)
@@ -155,7 +212,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_PUBLIC_PATH => {
+      ApiName::PublicPath => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::PUBLIC_PATH.name().into(),
@@ -163,7 +220,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_MODULES => {
+      ApiName::Modules => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::MODULE_FACTORIES.name().into(),
@@ -171,7 +228,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_CHUNK_LOAD => {
+      ApiName::ChunkLoad => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::ENSURE_CHUNK.name().into(),
@@ -179,7 +236,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_MODULE => {
+      ApiName::Module => {
         parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
           None,
           ident.span.into(),
@@ -187,7 +244,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_BASE_URI => {
+      ApiName::BaseUri => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::BASE_URI.name().into(),
@@ -195,7 +252,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_NON_REQUIRE => {
+      ApiName::NonRequire => {
         let content = if self.options.module {
           parser.build_info.need_create_require = true;
           "__WEBPACK_EXTERNAL_createRequire_require".into()
@@ -209,7 +266,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_SYSTEM_CONTEXT => {
+      ApiName::SystemContext => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
@@ -217,7 +274,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_SHARE_SCOPES => {
+      ApiName::ShareScopes => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::SHARE_SCOPE_MAP.name().into(),
@@ -225,7 +282,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_INIT_SHARING => {
+      ApiName::InitSharing => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::INITIALIZE_SHARING.name().into(),
@@ -233,7 +290,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_NONCE => {
+      ApiName::Nonce => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::SCRIPT_NONCE.name().into(),
@@ -241,7 +298,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_CHUNK_NAME => {
+      ApiName::ChunkName => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::CHUNK_NAME.name().into(),
@@ -249,7 +306,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_RUNTIME_ID => {
+      ApiName::RuntimeId => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::RUNTIME_ID.name().into(),
@@ -257,7 +314,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_GET_SCRIPT_FILENAME => {
+      ApiName::GetScriptFilename => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.name().into(),
@@ -266,7 +323,7 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       // rspack specific
-      API_VERSION => {
+      ApiName::Version => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
@@ -274,7 +331,7 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      API_UNIQUE_ID => {
+      ApiName::UniqueId => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
@@ -282,7 +339,6 @@ impl JavascriptParserPlugin for APIPlugin {
         )));
         Some(true)
       }
-      _ => None,
     }
   }
 
@@ -293,7 +349,8 @@ impl JavascriptParserPlugin for APIPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == API_LAYER {
+    let api_name = ApiName::from_str(for_name, true)?;
+    if api_name == ApiName::Layer {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))
       } else {
@@ -351,7 +408,10 @@ impl JavascriptParserPlugin for APIPlugin {
       return Some(true);
     }
 
-    if for_name == "__webpack_module__.id" {
+    if let Some((api_name, property)) = ApiName::from_str_with_property(for_name)
+      && api_name == ApiName::Module
+      && property == "id"
+    {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_ID,
       )));
