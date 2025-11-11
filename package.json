@@ -60,14 +60,14 @@
     "pnpm": "10.20.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.3",
+    "@biomejs/biome": "^2.3.5",
     "@microsoft/api-extractor": "7.54.0",
     "@microsoft/api-extractor-model": "7.31.3",
     "@rslint/core": "0.1.13",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
-    "@types/node": "^20.19.24",
+    "@types/node": "^20.19.25",
     "check-dependency-version-consistency": "^5.0.1",
     "commander": "13.1.0",
     "cross-env": "^10.1.0",
