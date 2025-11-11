@@ -29,14 +29,13 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ModuleArgumentDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, IsIncludedDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
-    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
@@ -163,7 +162,7 @@ async fn compilation(
   );
   // other
   compilation.set_dependency_factory(
-    DependencyType::WebpackIsIncluded,
+    DependencyType::IsIncluded,
     Arc::new(IgnoreErrorModuleFactory {
       normal_module_factory: params.normal_module_factory.clone(),
     }),
@@ -351,8 +350,8 @@ async fn compilation(
     Arc::new(ExportInfoDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    WebpackIsIncludedDependencyTemplate::template_type(),
-    Arc::new(WebpackIsIncludedDependencyTemplate::default()),
+    IsIncludedDependencyTemplate::template_type(),
+    Arc::new(IsIncludedDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ModuleArgumentDependencyTemplate::template_type(),

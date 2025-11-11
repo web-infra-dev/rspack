@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::runtime_module::{
-  ExportWebpackRequireRuntimeModule, ModuleChunkLoadingRuntimeModule, is_enabled_for_chunk,
+  ExportRequireRuntimeModule, ModuleChunkLoadingRuntimeModule, is_enabled_for_chunk,
 };
 
 #[plugin]
@@ -39,8 +39,7 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
         has_chunk_loading = true;
 
-        compilation
-          .add_runtime_module(chunk_ukey, ExportWebpackRequireRuntimeModule::new().boxed())?;
+        compilation.add_runtime_module(chunk_ukey, ExportRequireRuntimeModule::new().boxed())?;
       }
 
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS if is_enabled_for_chunk => {

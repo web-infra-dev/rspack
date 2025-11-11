@@ -76,7 +76,7 @@ const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
   RuntimeGlobals::SHARE_SCOPE_MAP,
   RuntimeGlobals::INITIALIZE_SHARING,
   RuntimeGlobals::LOAD_SCRIPT,
-  RuntimeGlobals::SYSTEM_CONTEXT,
+  RuntimeGlobals::API_SYSTEM_CONTEXT,
   RuntimeGlobals::ON_CHUNKS_LOADED,
   RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
 ];
@@ -488,7 +488,7 @@ async fn runtime_requirements_in_tree(
           NodeModuleDecoratorRuntimeModule::default().boxed(),
         )?;
       }
-      RuntimeGlobals::SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
+      RuntimeGlobals::API_SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
         compilation
           .add_runtime_module(chunk_ukey, SystemContextRuntimeModule::default().boxed())?;
       }

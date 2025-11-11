@@ -68,12 +68,12 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
       parser.build_meta.esm = true;
       parser.build_meta.exports_type = BuildMetaExportsType::Namespace;
       parser.build_info.strict = true;
-      parser.build_info.exports_argument = ExportsArgument::WebpackExports;
+      parser.build_info.exports_argument = ExportsArgument::RspackExports;
     }
 
     if is_strict_esm {
       parser.build_meta.strict_esm_module = true;
-      parser.build_info.module_argument = ModuleArgument::WebpackModule;
+      parser.build_info.module_argument = ModuleArgument::RspackModule;
     }
 
     None

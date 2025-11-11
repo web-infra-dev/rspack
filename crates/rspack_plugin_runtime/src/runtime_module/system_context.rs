@@ -22,7 +22,7 @@ impl RuntimeModule for SystemContextRuntimeModule {
   async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
+      RuntimeGlobals::API_SYSTEM_CONTEXT
     ))
   }
 }

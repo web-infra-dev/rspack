@@ -6,15 +6,15 @@ use swc_core::{
 };
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::WebpackIsIncludedDependency, visitors::JavascriptParser};
+use crate::{dependency::IsIncludeDependency, visitors::JavascriptParser};
 
-const WEBPACK_IS_INCLUDED: &str = "__webpack_is_included__";
+const IS_INCLUDED: &str = "__webpack_is_included__";
 
-pub struct WebpackIsIncludedPlugin;
+pub struct IsIncludedPlugin;
 
-impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
+impl JavascriptParserPlugin for IsIncludedPlugin {
   fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {
-    if name != WEBPACK_IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
+    if name != IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
       return None;
     }
 
@@ -23,7 +23,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
       return None;
     }
 
-    parser.add_dependency(Box::new(WebpackIsIncludedDependency::new(
+    parser.add_dependency(Box::new(IsIncludeDependency::new(
       (expr.span().real_lo(), expr.span().real_hi()).into(),
       request.string().to_string(),
     )));
@@ -37,7 +37,7 @@ impl JavascriptParserPlugin for WebpackIsIncludedPlugin {
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    (for_name == WEBPACK_IS_INCLUDED).then(|| {
+    (for_name == IS_INCLUDED).then(|| {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         (expr.span().real_lo(), expr.span().real_hi()).into(),
         "'function'".into(),
