@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@napi-rs/wasm-runtime": "1.0.7",
-    "@rspack/lite-tapable": "1.0.1",
+    "@rspack/lite-tapable": "1.1.0",
     "@swc/types": "0.1.25",
     "@types/watchpack": "^2.4.4",
     "memfs": "4.48.1",
