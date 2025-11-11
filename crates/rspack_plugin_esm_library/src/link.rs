@@ -1642,6 +1642,14 @@ impl EsmLibraryPlugin {
           continue;
         }
 
+        if compilation
+          .chunk_graph
+          .get_module_chunks(*module_id)
+          .is_empty()
+        {
+          continue;
+        }
+
         let Some(module) = module_graph
           .module_by_identifier(module_id)
           .expect("should have module")
@@ -1878,6 +1886,7 @@ impl EsmLibraryPlugin {
 
           let outgoing_module_info = &concate_modules_map[conn.module_identifier()];
           let ref_module = *conn.module_identifier();
+
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
 
@@ -2089,9 +2098,19 @@ impl EsmLibraryPlugin {
           .module_by_identifier(m)
           .expect("should have module");
         for dep_id in module.get_dependencies() {
-          let Some(ref_module) = module_graph.module_identifier_by_dependency_id(dep_id) else {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
+
+          if !conn.is_target_active(
+            &module_graph,
+            None,
+            &compilation.module_graph_cache_artifact,
+          ) {
+            continue;
+          }
+
+          let ref_module = conn.module_identifier();
           chunk_imports.entry(*ref_module).or_default();
         }
       }
