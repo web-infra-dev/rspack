@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -194,7 +193,7 @@ async fn render_startup(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
-  render_source: &mut RenderSource,
+  _render_source: &mut RenderSource,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
