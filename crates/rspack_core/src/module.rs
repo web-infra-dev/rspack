@@ -25,6 +25,7 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
@@ -66,7 +67,7 @@ pub enum ClientEntryType {
 pub struct RSCMeta {
   pub module_type: RSCModuleType,
   #[cacheable(with=AsVec<AsPreset>)]
-  pub client_refs: Vec<Atom>,
+  pub client_refs: Vec<Wtf8Atom>,
   pub client_entry_type: Option<ClientEntryType>,
 }
 

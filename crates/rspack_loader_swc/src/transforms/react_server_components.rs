@@ -5,6 +5,7 @@ use regex::Regex;
 use rspack_core::{ClientEntryType, RSCMeta, RSCModuleType};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
+use swc::atoms::Wtf8Atom;
 use swc_core::{
   atoms::{Atom, atom},
   common::{DUMMY_SP, FileName, Span, errors::HANDLER, util::take::Take},
@@ -50,13 +51,13 @@ struct ReactServerComponents {
   is_react_server_layer: bool,
   filepath: String,
   rsc_meta: Option<RSCMeta>,
-  directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Atom>)>,
+  directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Wtf8Atom>)>,
 }
 
 #[derive(Clone, Debug)]
 struct ModuleImports {
-  source: (Atom, Span),
-  specifiers: Vec<(Atom, Span)>,
+  source: (Wtf8Atom, Span),
+  specifiers: Vec<(Wtf8Atom, Span)>,
 }
 
 enum RSCErrorKind {
@@ -235,13 +236,13 @@ fn report_error(error_kind: RSCErrorKind) {
 /// Collects top level directives and imports
 fn collect_top_level_directives_and_imports(
   module: &Module,
-) -> (bool, bool, Vec<ModuleImports>, Vec<Atom>) {
+) -> (bool, bool, Vec<ModuleImports>, Vec<Wtf8Atom>) {
   let mut imports: Vec<ModuleImports> = vec![];
   let mut finished_directives = false;
   let mut is_client_entry = false;
   let mut is_action_file = false;
 
-  let mut export_names = vec![];
+  let mut export_names: Vec<Wtf8Atom> = vec![];
 
   let _ = &module.body.iter().for_each(|item| {
     match item {
@@ -317,13 +318,13 @@ fn collect_top_level_directives_and_imports(
           .map(|specifier| match specifier {
             ImportSpecifier::Named(named) => match &named.imported {
               Some(imported) => match &imported {
-                ModuleExportName::Ident(i) => (i.to_id().0, i.span),
+                ModuleExportName::Ident(i) => (Wtf8Atom::from(i.to_id().0), i.span),
                 ModuleExportName::Str(s) => (s.value.clone(), s.span),
               },
-              None => (named.local.to_id().0, named.local.span),
+              None => (Wtf8Atom::from(named.local.to_id().0), named.local.span),
             },
-            ImportSpecifier::Default(d) => (atom!(""), d.span),
-            ImportSpecifier::Namespace(n) => (atom!("*"), n.span),
+            ImportSpecifier::Default(d) => (Wtf8Atom::from(""), d.span),
+            ImportSpecifier::Namespace(n) => (Wtf8Atom::from("*"), n.span),
           })
           .collect();
 
@@ -338,15 +339,15 @@ fn collect_top_level_directives_and_imports(
       ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(e)) => {
         for specifier in &e.specifiers {
           export_names.push(match specifier {
-            ExportSpecifier::Default(_) => atom!("default"),
-            ExportSpecifier::Namespace(_) => atom!("*"),
+            ExportSpecifier::Default(_) => Wtf8Atom::from("default"),
+            ExportSpecifier::Namespace(_) => Wtf8Atom::from("*"),
             ExportSpecifier::Named(named) => match &named.exported {
               Some(exported) => match &exported {
-                ModuleExportName::Ident(i) => i.sym.clone(),
+                ModuleExportName::Ident(i) => Wtf8Atom::from(i.sym.clone()),
                 ModuleExportName::Str(s) => s.value.clone(),
               },
               _ => match &named.orig {
-                ModuleExportName::Ident(i) => i.sym.clone(),
+                ModuleExportName::Ident(i) => Wtf8Atom::from(i.sym.clone()),
                 ModuleExportName::Str(s) => s.value.clone(),
               },
             },
@@ -357,15 +358,15 @@ fn collect_top_level_directives_and_imports(
       ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl { decl, .. })) => {
         match decl {
           Decl::Class(ClassDecl { ident, .. }) => {
-            export_names.push(ident.sym.clone());
+            export_names.push(Wtf8Atom::from(ident.sym.clone()));
           }
           Decl::Fn(FnDecl { ident, .. }) => {
-            export_names.push(ident.sym.clone());
+            export_names.push(Wtf8Atom::from(ident.sym.clone()));
           }
           Decl::Var(var) => {
             for decl in &var.decls {
               if let Pat::Ident(ident) = &decl.name {
-                export_names.push(ident.id.sym.clone());
+                export_names.push(Wtf8Atom::from(ident.id.sym.clone()));
               }
             }
           }
@@ -376,17 +377,17 @@ fn collect_top_level_directives_and_imports(
       ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(ExportDefaultDecl {
         decl: _, ..
       })) => {
-        export_names.push(atom!("default"));
+        export_names.push(Wtf8Atom::from("default"));
         finished_directives = true;
       }
       ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(ExportDefaultExpr {
         expr: _, ..
       })) => {
-        export_names.push(atom!("default"));
+        export_names.push(Wtf8Atom::from("default"));
         finished_directives = true;
       }
       ModuleItem::ModuleDecl(ModuleDecl::ExportAll(_)) => {
-        export_names.push(atom!("*"));
+        export_names.push(Wtf8Atom::from("*"));
       }
       _ => {
         finished_directives = true;
@@ -402,7 +403,7 @@ struct ReactServerComponentValidator {
   is_react_server_layer: bool,
   filepath: String,
   invalid_server_lib_apis_mapping: FxHashMap<&'static str, Vec<&'static str>>,
-  pub directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Atom>)>,
+  pub directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Wtf8Atom>)>,
   imports: ImportMap,
 }
 
@@ -463,15 +464,15 @@ impl ReactServerComponentValidator {
   // e.g.
   // assert_invalid_server_lib_apis("react", import)
   // assert_invalid_server_lib_apis("react-dom", import)
-  fn assert_invalid_server_lib_apis(&self, import_source: String, import: &ModuleImports) {
-    let invalid_apis = self
-      .invalid_server_lib_apis_mapping
-      .get(import_source.as_str());
+  fn assert_invalid_server_lib_apis(&self, import_source: &str, import: &ModuleImports) {
+    let invalid_apis = self.invalid_server_lib_apis_mapping.get(import_source);
     if let Some(invalid_apis) = invalid_apis {
       for specifier in &import.specifiers {
-        if invalid_apis.contains(&specifier.0.as_str()) {
+        if let Some(specifier_name) = specifier.0.as_str()
+          && invalid_apis.contains(&specifier_name)
+        {
           report_error(RSCErrorKind::ErrReactApi((
-            specifier.0.to_string(),
+            specifier_name.to_string(),
             specifier.1,
           )));
         }
@@ -486,8 +487,9 @@ impl ReactServerComponentValidator {
     }
     for import in imports {
       let source = import.source.0.clone();
-      let source_str = source.to_string();
-      self.assert_invalid_server_lib_apis(source_str, import);
+      if let Some(source_str) = source.as_str() {
+        self.assert_invalid_server_lib_apis(source_str, import);
+      }
     }
   }
 }
