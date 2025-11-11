@@ -77,6 +77,7 @@ use crate::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   },
+  dependency::DependencyWrapper,
   html::{
     JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
     JsBeforeAssetTagGenerationData, JsBeforeEmitData,
@@ -93,7 +94,7 @@ use crate::{
   runtime::{
     JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
     JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
-    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, JsRuntimeSpec,
   },
   source::JsSourceToJs,
 };

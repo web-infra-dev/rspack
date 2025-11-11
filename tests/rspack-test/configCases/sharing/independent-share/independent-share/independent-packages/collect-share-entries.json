@@ -1,0 +1,13 @@
+{
+  "shared": {
+    "ui-lib": {
+      "shareScope": "default",
+      "requests": [
+        [
+          "/Users/bytedance/fork_repo/rspack/tests/rspack-test/configCases/sharing/independent-share/node_modules/ui-lib/index.js",
+          "1.0.0"
+        ]
+      ]
+    }
+  }
+}

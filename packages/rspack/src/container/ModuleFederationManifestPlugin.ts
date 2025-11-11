@@ -99,7 +99,9 @@ export type ModuleFederationManifestPluginOptions = {
 	shared?: ManifestSharedOption[];
 };
 
-function getFileName(manifestOptions: ModuleFederationManifestPluginOptions): {
+export function getFileName(
+	manifestOptions: ModuleFederationManifestPluginOptions
+): {
 	statsFileName: string;
 	manifestFileName: string;
 } {
