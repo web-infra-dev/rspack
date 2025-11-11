@@ -1,0 +1,75 @@
+{
+  "id": "app_04",
+  "name": "app_04",
+  "metaData": {
+    "name": "app_04",
+    "type": "app",
+    "buildInfo": {
+      "buildVersion": "1.0.0",
+      "buildName": "comprehensive-demo-react18_app-04"
+    },
+    "remoteEntry": {
+      "name": "remoteEntry.js",
+      "path": "",
+      "type": "global"
+    },
+    "types": {
+      "path": "",
+      "name": "",
+      "zip": "",
+      "api": ""
+    },
+    "globalName": "app_04",
+    "pluginVersion": "0.21.3",
+    "prefetchInterface": false,
+    "publicPath": "auto"
+  },
+  "shared": [],
+  "remotes": [],
+  "exposes": [
+    {
+      "path": "./App",
+      "id": "app_04:App",
+      "name": "App",
+      "requires": [],
+      "file": "src/main.js",
+      "assets": {
+        "js": {
+          "sync": [
+            "vendors-node_modules_pnpm_svelte_4_2_18_node_modules_svelte_src_runtime_internal_disclose-ver-76afa5.6052ee23.js",
+            "__federation_expose_App.c84f77ed.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [
+            "__federation_expose_App.8e3244cb.css"
+          ],
+          "async": []
+        }
+      }
+    },
+    {
+      "path": "./loadApp",
+      "id": "app_04:loadApp",
+      "name": "loadApp",
+      "requires": [],
+      "file": "src/loadApp.js",
+      "assets": {
+        "js": {
+          "sync": [
+            "vendors-node_modules_pnpm_svelte_4_2_18_node_modules_svelte_src_runtime_internal_disclose-ver-76afa5.6052ee23.js",
+            "__federation_expose_loadApp.dbe65074.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [
+            "__federation_expose_loadApp.8e3244cb.css"
+          ],
+          "async": []
+        }
+      }
+    }
+  ]
+}

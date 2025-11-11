@@ -32,9 +32,7 @@ async fn additional_tree_runtime_requirements(
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
 
   // Skip adding STARTUP if async MF startup is active and STARTUP_ENTRYPOINT is already present.
-  if compilation.options.experiments.mf_async_startup
-    && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-  {
+  if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
     return Ok(());
   }
 
@@ -66,6 +64,13 @@ async fn runtime_requirements_in_tree(
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
 
   if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) && is_enabled_for_chunk {
+    // Skip adding STARTUP_ENTRYPOINT runtime module if MF async startup is enabled
+    // because the JavaScript plugin (plugin/mod.rs) already generates the complete
+    // async startup wrapper with federation initialization
+    if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
+      return Ok(None);
+    }
+
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);

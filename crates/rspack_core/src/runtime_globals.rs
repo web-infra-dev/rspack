@@ -262,6 +262,11 @@ bitflags! {
     const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
     const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
     const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
+
+    /**
+     * indicates that Module Federation async startup wrapper is already emitted
+     */
+    const ASYNC_FEDERATION_STARTUP = 1 << 72;
   }
 }
 
@@ -329,6 +334,7 @@ impl RuntimeGlobals {
       R::MAKE_NAMESPACE_OBJECT => "__webpack_require__.r",
       R::MAKE_DEFERRED_NAMESPACE_OBJECT => "__webpack_require__.z",
       R::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => "__webpack_require__.zS",
+      R::ASYNC_FEDERATION_STARTUP => "__webpack_require__.mfAsyncStartup",
       R::EXPORTS => "__webpack_exports__",
       R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",

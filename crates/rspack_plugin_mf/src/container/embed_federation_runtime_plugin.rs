@@ -108,6 +108,7 @@ async fn additional_chunk_runtime_requirements_tree(
     if use_async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
     } else {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
     }
@@ -238,22 +239,7 @@ async fn render_startup(
     return Ok(());
   }
 
-  // Entry chunks delegating to runtime need explicit startup calls
-  if !has_runtime && has_entry_modules {
-    let mut startup_with_call = ConcatSource::default();
-
-    // Add startup call
-    startup_with_call.add(RawStringSource::from_static(
-      "\n// Federation startup call\n",
-    ));
-    startup_with_call.add(RawStringSource::from(format!(
-      "{}();\n",
-      RuntimeGlobals::STARTUP.name()
-    )));
-
-    startup_with_call.add(render_source.source.clone());
-    render_source.source = startup_with_call.boxed();
-  }
+  // Do not inject an explicit startup call; JS plugin emits the startup call.
 
   Ok(())
 }
