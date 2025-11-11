@@ -145,9 +145,7 @@ function defaultOptions(
 	} as RspackOptions;
 
 	options.plugins ??= [];
-	(options as RspackOptions).plugins!.push(
-		new rspack.HotModuleReplacementPlugin()
-	);
+	options.plugins.push(new rspack.HotModuleReplacementPlugin());
 
 	return options;
 }

@@ -1,4 +1,4 @@
-/// <reference types="../jest.d.ts" />
+/// <reference types="../rstest.d.ts" />
 
 import type EventEmitter from "node:events";
 import type {
@@ -137,11 +137,11 @@ export type TDiffStatsItem = {
 
 export type TDiffStats = {
 	root: string;
-	data: Array<TDiffStatsItem>;
+	data: TDiffStatsItem[];
 };
 
 export interface ITestEnv {
-	expect: jest.Expect;
+	expect: Expect;
 	it: (...args: any[]) => void;
 	beforeEach: (...args: any[]) => void;
 	afterEach: (...args: any[]) => void;
@@ -242,7 +242,7 @@ export enum EEsmMode {
 
 export interface IModuleScope extends ITestEnv {
 	console: Record<string, (...args: any[]) => void>;
-	expect: jest.Expect;
+	expect: Expect;
 	[key: string]: any;
 }
 
