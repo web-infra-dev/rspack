@@ -62,13 +62,14 @@ napi-derive = { workspace = true, features = ["compat-mode"] }
 
 color-backtrace = { workspace = true, optional = true }
 
-derive_more                            = { workspace = true, features = ["debug"] }
-futures                                = { workspace = true }
-glob                                   = { workspace = true }
-heck                                   = { workspace = true }
-once_cell                              = { workspace = true }
-rayon                                  = { workspace = true }
-regex                                  = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
+futures     = { workspace = true }
+glob        = { workspace = true }
+heck        = { workspace = true }
+once_cell   = { workspace = true }
+rayon       = { workspace = true }
+regex       = { workspace = true }
+
 rspack_browser                         = { workspace = true, optional = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
@@ -127,7 +128,6 @@ serde_json                             = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
-
 [package.metadata.cargo-shear]
 ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
