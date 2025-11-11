@@ -17,7 +17,7 @@ export function describeByWalk(
 		source?: string;
 		dist?: string;
 		absoluteDist?: boolean;
-		describe?: jest.Describe;
+		describe?: Describe;
 		exclude?: RegExp[];
 	} = {}
 ) {

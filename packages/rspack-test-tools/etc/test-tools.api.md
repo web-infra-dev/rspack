@@ -144,7 +144,7 @@ export function describeByWalk(testFile: string, createCase: (name: string, src:
     source?: string;
     dist?: string;
     absoluteDist?: boolean;
-    describe?: jest.Describe;
+    describe?: Describe;
     exclude?: RegExp[];
 }): void;
 
@@ -236,7 +236,7 @@ export interface IModuleScope extends ITestEnv {
     // (undocumented)
     console: Record<string, (...args: any[]) => void>;
     // (undocumented)
-    expect: jest.Expect;
+    expect: Expect;
 }
 
 // @public (undocumented)
@@ -348,7 +348,7 @@ export interface ITestEnv {
     // (undocumented)
     beforeEach: (...args: any[]) => void;
     // (undocumented)
-    expect: jest.Expect;
+    expect: Expect;
     // (undocumented)
     it: (...args: any[]) => void;
 }
@@ -576,7 +576,7 @@ export type TConfigCaseConfig = Omit<TTestConfig, "validate">;
 export type TDefaultsCaseConfig = {
     options?: (context: ITestContext) => RspackOptions;
     cwd?: string;
-    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<RspackOptions>) => Promise<void>;
+    diff: (diff: Assertion<RspackTestDiff>, defaults: Assertion<RspackOptions>) => Promise<void>;
     description: string;
 };
 
@@ -591,7 +591,7 @@ export type TDiagnosticOptions = {
 // @public (undocumented)
 export type TDiffStats = {
     root: string;
-    data: Array<TDiffStatsItem>;
+    data: TDiffStatsItem[];
 };
 
 // @public (undocumented)
