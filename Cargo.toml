@@ -56,7 +56,7 @@ itertools = { version = "0.14.0", default-features = false, features = ["use_std
 itoa = { version = "1.0.14", default-features = false }
 json = { version = "0.12.4", default-features = false }
 jsonc-parser = { version = "0.26.2", default-features = false, features = ["serde"] }
-libmimalloc-sys = { version = "*", default-features = false, features = [
+libmimalloc-sys = { version = "0.2.4", default-features = false, features = [
   "extended",
   "v3",
 ], package = "rspack-libmimalloc-sys" }
