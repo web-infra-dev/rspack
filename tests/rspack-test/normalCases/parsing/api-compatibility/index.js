@@ -1,5 +1,5 @@
 
-it("should parser rspack style api", function () {
+it("should parse rspack style api", function () {
 	expect(__rspack_hash__).toEqual(__webpack_hash__);
 	expect(__rspack_layer__).toEqual(__webpack_layer__);
 	expect(__rspack_public_path__).toEqual(__webpack_public_path__);
