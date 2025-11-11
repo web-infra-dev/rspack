@@ -1,0 +1,85 @@
+```js title=main.js
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+const { pathToFileURL } = __webpack_require__("url");
+const url = pathToFileURL(
+	"./tests/builtinCases/plugin-javascript/import-meta/index.js",
+).toString();
+
+const filename = "/index.js";
+const dirname = "/";
+
+it('typeof import.meta === "object"', () => {
+	expect('object').toBe("object");
+	if (false) {}
+});
+
+it('typeof import.meta.url === "string"', () => {
+	expect('string').toBe("string");
+	if (false) {}
+});
+
+it('typeof import.meta.filename === "string"', () => {
+	expect('string').toBe("string");
+	if (false) {}
+});
+
+it('typeof import.meta.dirname === "string"', () => {
+	expect('string').toBe("string");
+	if (false) {}
+});
+
+// [TODO]: import.meta.url behaves differently on Windows - needs investigation and fix
+// it("should return correct import.meta.url", () => {
+// 	expect(import.meta.url).toBe(url);
+// 	expect(import.meta["url"]).toBe(url);
+// 	expect("my" + import.meta.url).toBe("my" + url);
+// 	if (import.meta.url.indexOf("index.js") === -1) require("fail");
+// });
+
+it("should return correct import.meta.filename", () => {
+	expect('<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta/index.js').toBe(filename);
+	expect('<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta/index.js').toBe(filename);
+	expect("my" + '<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta/index.js').toBe("my" + filename);
+	if (false) {}
+});
+
+it("should return correct import.meta.dirname", () => {
+	expect('<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta').toBe(dirname);
+	expect('<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta').toBe(dirname);
+	expect("my" + '<TEST_TOOLS_ROOT>/tests/builtinCases/plugin-javascript/import-meta').toBe("my" + dirname);
+	if (false) {}
+});
+
+it("should return correct import.meta.resolve", () => {
+	expect('function').toBe("function");
+	if (false) {}
+	expect(/*import.meta.resolve*/("./index.js")).toBe("/index.js");
+	expect(/*import.meta.resolve*/("./index.js")).toBe("/index.js");
+});
+
+it("should return undefined for unknown property", () => {
+	expect(/* unsupported import.meta.other */ undefined).toBe(undefined);
+	if (false) {}
+	expect(() => /* unsupported import.meta.other.other.other */ undefined.other.other).toThrow();
+});
+
+it("should add warning on direct import.meta usage", () => {
+	expect(Object.keys(({}))).toHaveLength(0);
+});
+
+
+}),
+"url": (function (module) {
+"use strict";
+module.exports = require("url");
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

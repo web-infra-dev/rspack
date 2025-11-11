@@ -8,6 +8,8 @@ mod esm_import_specifier_dependency;
 mod external_module_dependency;
 mod import_dependency;
 mod import_eager_dependency;
+mod import_meta_resolve_dependency;
+mod import_meta_resolve_header_dependency;
 mod provide_dependency;
 
 use rspack_core::{DependencyCategory, ImportAttributes, ResourceIdentifier};
@@ -36,6 +38,12 @@ pub use self::{
   external_module_dependency::{ExternalModuleDependency, ExternalModuleDependencyTemplate},
   import_dependency::{ImportDependency, ImportDependencyTemplate},
   import_eager_dependency::{ImportEagerDependency, ImportEagerDependencyTemplate},
+  import_meta_resolve_dependency::{
+    ImportMetaResolveDependency, ImportMetaResolveDependencyTemplate,
+  },
+  import_meta_resolve_header_dependency::{
+    ImportMetaResolveHeaderDependency, ImportMetaResolveHeaderDependencyTemplate,
+  },
   provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };
 
