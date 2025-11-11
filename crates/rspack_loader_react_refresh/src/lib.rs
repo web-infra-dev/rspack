@@ -29,6 +29,18 @@ impl ReactRefreshLoader {
   }
 }
 
+const REFRESH_SNIPPET: &str = r#"
+function $RefreshSig$() {
+  return $ReactRefreshRuntime$.createSignatureFunctionForTransform();
+}
+function $RefreshReg$(type, id) {
+  $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id);
+}
+Promise.resolve().then(function() {
+  $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
+});
+"#;
+
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for ReactRefreshLoader {
@@ -41,17 +53,10 @@ impl Loader<RunnerContext> for ReactRefreshLoader {
       return Ok(());
     };
     let mut source = content.try_into_string()?;
-    source += r#"
-function $RefreshSig$() {
-  return $ReactRefreshRuntime$.createSignatureFunctionForTransform();
-}
-function $RefreshReg$(type, id) {
-  $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id);
-}
-Promise.resolve().then(function() {
-  $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
-});
-"#;
+
+    source.reserve(REFRESH_SNIPPET.len());
+    source.push_str(REFRESH_SNIPPET);
+
     let sm = loader_context.take_source_map();
     loader_context.finish_with((source, sm));
     Ok(())
