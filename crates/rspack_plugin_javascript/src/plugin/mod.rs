@@ -724,15 +724,15 @@ impl JsPlugin {
           .map(|r| r.contains(RuntimeGlobals::EXPORTS))
           .unwrap_or_default();
         let exports_argument = m.get_exports_argument();
-        let webpack_exports_argument = matches!(exports_argument, ExportsArgument::WebpackExports);
-        let webpack_exports = exports && webpack_exports_argument;
+        let rspack_exports_argument = matches!(exports_argument, ExportsArgument::RspackExports);
+        let rspack_exports = exports && rspack_exports_argument;
         let iife: Option<Cow<str>> = if inner_strict {
           Some("it needs to be in strict mode.".into())
         } else if inlined_modules.len() > 1 {
           Some("it needs to be isolated against other entry modules.".into())
         } else if has_chunk_modules_result && renamed_inline_modules.is_none() {
           Some("it needs to be isolated against other modules in the chunk.".into())
-        } else if exports && !webpack_exports {
+        } else if exports && !rspack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
           hooks
@@ -764,7 +764,7 @@ impl JsPlugin {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {{}};\n"
             )));
-          } else if !webpack_exports_argument {
+          } else if !rspack_exports_argument {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {};\n",
               RuntimeGlobals::EXPORTS

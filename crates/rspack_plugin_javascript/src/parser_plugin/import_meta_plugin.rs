@@ -26,7 +26,7 @@ impl ImportMetaPlugin {
       .to_string()
   }
 
-  fn import_meta_webpack_version(&self) -> String {
+  fn import_meta_version(&self) -> String {
     "5".to_string()
   }
 
@@ -51,7 +51,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       evaluated = Some("object".to_string());
     } else if for_name == expr_name::IMPORT_META_URL {
       evaluated = Some("string".to_string());
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+    } else if for_name == expr_name::IMPORT_META_VERSION {
       evaluated = Some("number".to_string())
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
@@ -76,7 +76,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK {
+    if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
       Some(eval::evaluate_to_string(
@@ -136,7 +136,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         None,
       )));
       Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+    } else if for_name == expr_name::IMPORT_META_VERSION {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         unary_expr.span().into(),
         "'number'".into(),
@@ -174,10 +174,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           if prop.id == "url" {
             content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
           } else if prop.id == "webpack" {
-            content.push(format!(
-              r#"webpack: {}"#,
-              self.import_meta_webpack_version()
-            ));
+            content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
@@ -235,11 +232,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         None,
       )));
       Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+    } else if for_name == expr_name::IMPORT_META_VERSION {
       // import.meta.webpack
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
-        self.import_meta_webpack_version().into(),
+        self.import_meta_version().into(),
         None,
       )));
       Some(true)

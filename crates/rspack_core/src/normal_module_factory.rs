@@ -350,7 +350,7 @@ impl NormalModuleFactory {
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_webpack_ext(match_resource_data.resource())
+      && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
@@ -915,7 +915,7 @@ fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   Ok((res, whole_matched))
 }
 
-fn match_webpack_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
+fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   use winnow::{
     combinator::{delimited, eof, preceded, terminated},
     token::take_until,
@@ -937,14 +937,14 @@ fn test_split_element() {
 }
 
 #[test]
-fn test_match_webpack_ext() {
-  assert!(match_webpack_ext("foo.webpack[type/javascript]").is_ok());
-  let cap = match_webpack_ext("foo.webpack[type/javascript]").unwrap();
+fn test_match_ext() {
+  assert!(match_ext("foo.webpack[type/javascript]").is_ok());
+  let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
-    match_webpack_ext("foo.css.webpack[javascript/auto]"),
+    match_ext("foo.css.webpack[javascript/auto]"),
     Ok(("foo.css", "javascript/auto"))
   );
 }

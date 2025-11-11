@@ -5,23 +5,23 @@ use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_modul
 
 const EXPORT_TEMP_NAME: &str = "__webpack_require_temp__";
 
-pub static EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID: LazyLock<Identifier> =
+pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: LazyLock<Identifier> =
   LazyLock::new(|| Identifier::from("webpack/runtime/export_webpack_require"));
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
-pub struct ExportWebpackRequireRuntimeModule {
+pub struct ExportRequireRuntimeModule {
   id: Identifier,
 }
 
-impl ExportWebpackRequireRuntimeModule {
+impl ExportRequireRuntimeModule {
   pub fn new() -> Self {
-    Self::with_default(*EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID)
+    Self::with_default(*EXPORT_REQUIRE_RUNTIME_MODULE_ID)
   }
 }
 
 #[async_trait::async_trait]
-impl RuntimeModule for ExportWebpackRequireRuntimeModule {
+impl RuntimeModule for ExportRequireRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }

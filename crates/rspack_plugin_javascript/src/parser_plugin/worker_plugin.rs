@@ -22,10 +22,10 @@ use super::{
 };
 use crate::{
   dependency::{CreateScriptUrlDependency, WorkerDependency},
+  magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,
   utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
-  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 #[derive(Debug)]
@@ -63,13 +63,11 @@ fn parse_new_worker_options_from_comments(
   span: Span,
   diagnostic_span: Span,
 ) -> Option<ParsedNewWorkerImportOptions> {
-  let comments = try_extract_webpack_magic_comment(parser, diagnostic_span, span);
-  if comments.get_webpack_ignore().is_some() || comments.get_webpack_chunk_name().is_some() {
+  let comments = try_extract_magic_comment(parser, diagnostic_span, span);
+  if comments.get_ignore().is_some() || comments.get_chunk_name().is_some() {
     Some(ParsedNewWorkerImportOptions {
-      name: comments
-        .get_webpack_chunk_name()
-        .map(|name| name.to_string()),
-      ignored: comments.get_webpack_ignore(),
+      name: comments.get_chunk_name().map(|name| name.to_string()),
+      ignored: comments.get_ignore(),
     })
   } else {
     None

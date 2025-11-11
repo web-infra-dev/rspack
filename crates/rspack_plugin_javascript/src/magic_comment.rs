@@ -15,7 +15,7 @@ use swc_core::common::{
 use crate::visitors::{JavascriptParser, create_traceable_error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WebpackComment {
+pub enum RspackComment {
   ChunkName,
   Prefetch,
   Preload,
@@ -30,35 +30,35 @@ pub enum WebpackComment {
 }
 
 #[derive(Debug)]
-pub struct WebpackCommentMap(FxHashMap<WebpackComment, String>);
+pub struct RspackCommentMap(FxHashMap<RspackComment, String>);
 
-impl WebpackCommentMap {
+impl RspackCommentMap {
   fn new() -> Self {
     Self(Default::default())
   }
 
-  fn insert(&mut self, key: WebpackComment, value: String) {
+  fn insert(&mut self, key: RspackComment, value: String) {
     self.0.insert(key, value);
   }
 
-  pub fn get_webpack_mode(&self) -> Option<&String> {
-    self.0.get(&WebpackComment::Mode)
+  pub fn get_mode(&self) -> Option<&String> {
+    self.0.get(&RspackComment::Mode)
   }
 
-  pub fn get_webpack_chunk_name(&self) -> Option<&String> {
-    self.0.get(&WebpackComment::ChunkName)
+  pub fn get_chunk_name(&self) -> Option<&String> {
+    self.0.get(&RspackComment::ChunkName)
   }
 
-  pub fn get_webpack_prefetch(&self) -> Option<&String> {
-    self.0.get(&WebpackComment::Prefetch)
+  pub fn get_prefetch(&self) -> Option<&String> {
+    self.0.get(&RspackComment::Prefetch)
   }
 
-  pub fn get_webpack_preload(&self) -> Option<&String> {
-    self.0.get(&WebpackComment::Preload)
+  pub fn get_preload(&self) -> Option<&String> {
+    self.0.get(&RspackComment::Preload)
   }
 
-  pub fn get_webpack_ignore(&self) -> Option<bool> {
-    self.0.get(&WebpackComment::Ignore).and_then(|item| {
+  pub fn get_ignore(&self) -> Option<bool> {
+    self.0.get(&RspackComment::Ignore).and_then(|item| {
       if item == "true" {
         Some(true)
       } else if item == "false" {
@@ -70,14 +70,14 @@ impl WebpackCommentMap {
   }
 
   pub fn get_fetch_priority(&self) -> Option<&String> {
-    self.0.get(&WebpackComment::FetchPriority)
+    self.0.get(&RspackComment::FetchPriority)
   }
 
-  pub fn get_webpack_include(&self) -> Option<RspackRegex> {
-    self.0.get(&WebpackComment::IncludeRegexp).map(|expr| {
+  pub fn get_include(&self) -> Option<RspackRegex> {
+    self.0.get(&RspackComment::IncludeRegexp).map(|expr| {
       let flags = self
         .0
-        .get(&WebpackComment::IncludeFlags)
+        .get(&RspackComment::IncludeFlags)
         .map(|x| x.as_str())
         .unwrap_or_default();
 
@@ -88,11 +88,11 @@ impl WebpackCommentMap {
     })
   }
 
-  pub fn get_webpack_exclude(&self) -> Option<RspackRegex> {
-    self.0.get(&WebpackComment::ExcludeRegexp).map(|expr| {
+  pub fn get_exclude(&self) -> Option<RspackRegex> {
+    self.0.get(&RspackComment::ExcludeRegexp).map(|expr| {
       let flags = self
         .0
-        .get(&WebpackComment::ExcludeFlags)
+        .get(&RspackComment::ExcludeFlags)
         .map(|x| x.as_str())
         .unwrap_or_default();
 
@@ -103,8 +103,8 @@ impl WebpackCommentMap {
     })
   }
 
-  pub fn get_webpack_exports(&self) -> Option<Vec<String>> {
-    self.0.get(&WebpackComment::Exports).map(|expr| {
+  pub fn get_exports(&self) -> Option<Vec<String>> {
+    self.0.get(&RspackComment::Exports).map(|expr| {
       expr
         .split(',')
         .filter_map(|x| {
@@ -152,20 +152,20 @@ fn add_magic_comment_warning(
 // _7 for array
 // _8 for identifier
 // _9 for item value as a whole
-static WEBPACK_MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
+static MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:(?:[^\\/\]\[]+)|(?:\[[^\]]+\])|(?:\\/)|(?:\\.))*)/([dgimsuvy]*))|\[(?P<_7>[^\]]*)|(?P<_8>([^,]+)))"#)
     .expect("invalid regex")
 });
 
-static WEBAPCK_EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
+static EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
-pub fn try_extract_webpack_magic_comment(
+pub fn try_extract_magic_comment(
   parser: &mut JavascriptParser,
   error_span: Span,
   span: Span,
-) -> WebpackCommentMap {
-  let mut result = WebpackCommentMap::new();
+) -> RspackCommentMap {
+  let mut result = RspackCommentMap::new();
   let mut warning_diagnostics = Vec::new();
   parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
@@ -275,7 +275,7 @@ fn analyze_comments(
   comments: &[Comment],
   error_span: Span,
   warning_diagnostics: &mut Vec<Diagnostic>,
-  result: &mut WebpackCommentMap,
+  result: &mut RspackCommentMap,
 ) {
   // TODO: remove this, parser.comments contains two same block comment
   let mut parsed_comment = FxHashSet::<Span>::default();
@@ -288,7 +288,7 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
-    for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
+    for captures in MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
         let error_span = || {
@@ -313,7 +313,7 @@ fn analyze_comments(
               .or(captures.name("_3"))
             {
               result.insert(
-                WebpackComment::ChunkName,
+                RspackComment::ChunkName,
                 item_value_match.as_str().to_string(),
               );
               continue;
@@ -330,7 +330,7 @@ fn analyze_comments(
           "webpackPrefetch" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
               result.insert(
-                WebpackComment::Prefetch,
+                RspackComment::Prefetch,
                 item_value_match.as_str().to_string(),
               );
               continue;
@@ -347,7 +347,7 @@ fn analyze_comments(
           "webpackPreload" => {
             if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
               result.insert(
-                WebpackComment::Preload,
+                RspackComment::Preload,
                 item_value_match.as_str().to_string(),
               );
               continue;
@@ -363,10 +363,7 @@ fn analyze_comments(
           }
           "webpackIgnore" => {
             if let Some(item_value_match) = captures.name("_5") {
-              result.insert(
-                WebpackComment::Ignore,
-                item_value_match.as_str().to_string(),
-              );
+              result.insert(RspackComment::Ignore, item_value_match.as_str().to_string());
               continue;
             }
             add_magic_comment_warning(
@@ -384,7 +381,7 @@ fn analyze_comments(
               .or(captures.name("_2"))
               .or(captures.name("_3"))
             {
-              result.insert(WebpackComment::Mode, item_value_match.as_str().to_string());
+              result.insert(RspackComment::Mode, item_value_match.as_str().to_string());
               continue;
             }
             add_magic_comment_warning(
@@ -404,7 +401,7 @@ fn analyze_comments(
             {
               let priority = item_value_match.as_str();
               if priority == "low" || priority == "high" || priority == "auto" {
-                result.insert(WebpackComment::FetchPriority, priority.to_string());
+                result.insert(RspackComment::FetchPriority, priority.to_string());
                 continue;
               }
             }
@@ -423,8 +420,8 @@ fn analyze_comments(
             {
               let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
               if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(WebpackComment::IncludeRegexp, regexp.to_string());
-                result.insert(WebpackComment::IncludeFlags, flags.to_string());
+                result.insert(RspackComment::IncludeRegexp, regexp.to_string());
+                result.insert(RspackComment::IncludeFlags, flags.to_string());
                 continue;
               }
             }
@@ -443,8 +440,8 @@ fn analyze_comments(
             {
               let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
               if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(WebpackComment::ExcludeRegexp, regexp.to_string());
-                result.insert(WebpackComment::ExcludeFlags, flags.to_string());
+                result.insert(RspackComment::ExcludeRegexp, regexp.to_string());
+                result.insert(RspackComment::ExcludeFlags, flags.to_string());
                 continue;
               }
             }
@@ -464,7 +461,7 @@ fn analyze_comments(
               .or(captures.name("_3"))
             {
               result.insert(
-                WebpackComment::Exports,
+                RspackComment::Exports,
                 item_value_match.as_str().trim().to_string(),
               );
               continue;
@@ -474,13 +471,13 @@ fn analyze_comments(
                   .as_str()
                   .split(',')
                   .try_fold("".to_string(), |acc, item| {
-                    WEBAPCK_EXPORT_NAME_REGEXP
+                    EXPORT_NAME_REGEXP
                       .captures(item.trim())
                       .and_then(|matched| matched.get(1).map(|x| x.as_str()))
                       .map(|name| format!("{acc},{name}"))
                   })
               {
-                result.insert(WebpackComment::Exports, exports);
+                result.insert(RspackComment::Exports, exports);
               }
               continue;
             }
@@ -505,7 +502,7 @@ mod tests_extract_regex {
   use super::*;
 
   fn try_match(raw: &str, index: usize) -> Option<(String, String)> {
-    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
+    let captures = MAGIC_COMMENT_REGEXP.captures(raw)?;
     let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
     let item_value = captures
       .name(&format!("_{index}"))
@@ -514,7 +511,7 @@ mod tests_extract_regex {
   }
 
   fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
-    let captures = WEBPACK_MAGIC_COMMENT_REGEXP.captures(raw)?;
+    let captures = MAGIC_COMMENT_REGEXP.captures(raw)?;
     let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
     if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
       let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
