@@ -14,47 +14,47 @@ bitflags! {
     /**
      * the internal module object
      */
-    const MODULE = 1 << 3;
+    const MODULE = 1 << 1;
 
     /**
      * the internal module object
      */
-    const MODULE_ID = 1 << 4;
+    const MODULE_ID = 1 << 2;
 
     /**
      * the internal require function
      */
-    const REQUIRE = 1 << 5;
+    const REQUIRE = 1 << 3;
 
     /**
      * the module cache
      */
-    const MODULE_CACHE = 1 << 6;
+    const MODULE_CACHE = 1 << 4;
 
     /**
      * the chunk ensure function
      */
-    const ENSURE_CHUNK = 1 << 7;
+    const ENSURE_CHUNK = 1 << 5;
 
     /**
      * an object with handlers to ensure a chunk
      */
-    const ENSURE_CHUNK_HANDLERS = 1 << 8;
+    const ENSURE_CHUNK_HANDLERS = 1 << 6;
 
     /**
      * the bundle public path
      */
-    const PUBLIC_PATH = 1 << 9;
+    const PUBLIC_PATH = 1 << 7;
 
     /**
      * the filename of the script part of the chunk
      */
-    const GET_CHUNK_SCRIPT_FILENAME = 1 << 10;
+    const GET_CHUNK_SCRIPT_FILENAME = 1 << 8;
 
     /**
      * the filename of the css part of the chunk
      */
-    const GET_CHUNK_CSS_FILENAME = 1 << 11;
+    const GET_CHUNK_CSS_FILENAME = 1 << 9;
 
     /**
      * function to load a script tag.
@@ -62,18 +62,18 @@ bitflags! {
      * done function is called when loading has finished or timeout occurred.
      * It will attach to existing script tags with data-webpack == uniqueName + ":" + key or src == url.
      */
-    const LOAD_SCRIPT = 1 << 12;
+    const LOAD_SCRIPT = 1 << 10;
 
     /**
      * the shorthand for Object.prototype.hasOwnProperty
      * using of it decreases the compiled bundle size
      */
-    const HAS_OWN_PROPERTY = 1 << 13;
+    const HAS_OWN_PROPERTY = 1 << 11;
 
     /**
      * the module functions, with only write access
      */
-    const MODULE_FACTORIES_ADD_ONLY = 1 << 14;
+    const MODULE_FACTORIES_ADD_ONLY = 1 << 12;
 
     /**
      * register deferred code, which will run when certain
@@ -83,83 +83,83 @@ bitflags! {
      * When (priority & 1) it will wait for all other handlers with lower priority to
      * be executed before itself is executed
      */
-    const ON_CHUNKS_LOADED = 1 << 15;
+    const ON_CHUNKS_LOADED = 1 << 13;
 
     /**
      * global callback functions for installing chunks
      */
-    const CHUNK_CALLBACK = 1 << 16;
+    const CHUNK_CALLBACK = 1 << 14;
 
     /**
      * the module functions
      */
-    const MODULE_FACTORIES = 1 << 17;
+    const MODULE_FACTORIES = 1 << 15;
 
     /**
      * interceptor for module executions
      */
-    const INTERCEPT_MODULE_EXECUTION = 1 << 18;
+    const INTERCEPT_MODULE_EXECUTION = 1 << 16;
 
     /**
      * function downloading the update manifest
      */
-    const HMR_DOWNLOAD_MANIFEST = 1 << 19;
+    const HMR_DOWNLOAD_MANIFEST = 1 << 17;
 
     /**
      * array with handler functions to download chunk updates
      */
-    const HMR_DOWNLOAD_UPDATE_HANDLERS = 1 << 20;
+    const HMR_DOWNLOAD_UPDATE_HANDLERS = 1 << 18;
 
     /**
      * the filename of the HMR manifest
      */
-    const GET_UPDATE_MANIFEST_FILENAME = 1 << 21;
+    const GET_UPDATE_MANIFEST_FILENAME = 1 << 19;
 
     /**
      * the filename of the script part of the hot update chunk
      */
-    const GET_CHUNK_UPDATE_SCRIPT_FILENAME = 1 << 22;
+    const GET_CHUNK_UPDATE_SCRIPT_FILENAME = 1 << 20;
 
     /**
      * the filename of the css part of the hot update chunk
      */
-    const GET_CHUNK_UPDATE_CSS_FILENAME = 1 << 23;
+    const GET_CHUNK_UPDATE_CSS_FILENAME = 1 << 21;
 
     /**
      * object with all hmr module data for all modules
      */
-    const HMR_MODULE_DATA = 1 << 24;
+    const HMR_MODULE_DATA = 1 << 22;
 
     /**
      * the prefix for storing state of runtime modules when hmr is enabled
      */
-    const HMR_RUNTIME_STATE_PREFIX = 1 << 25;
+    const HMR_RUNTIME_STATE_PREFIX = 1 << 23;
 
     /**
      * method to install a chunk that was loaded somehow
      * Signature: ({ id, ids, modules, runtime }) => void
      */
-    const EXTERNAL_INSTALL_CHUNK = 1 << 26;
+    const EXTERNAL_INSTALL_CHUNK = 1 << 24;
 
     /**
      * the webpack hash
      */
-    const GET_FULL_HASH = 1 << 27;
+    const GET_FULL_HASH = 1 << 25;
 
     /**
      * the global object
      */
-    const GLOBAL = 1 << 28;
+    const GLOBAL = 1 << 26;
 
     /**
      * runtime need to return the exports of the last entry module
      */
-    const RETURN_EXPORTS_FROM_RUNTIME = 1 << 29;
+    const RETURN_EXPORTS_FROM_RUNTIME = 1 << 27;
 
     /**
      * instantiate a wasm instance from module exports object, id, hash and importsObject
      */
-    const INSTANTIATE_WASM = 1 << 30;
+    const INSTANTIATE_WASM = 1 << 28;
 
     /**
      * Creates an async module. The body function must be a async function.
@@ -173,95 +173,96 @@ bitflags! {
      * hasAwaitAfterDependencies?: boolean
      * ) => void
      */
-    const ASYNC_MODULE = 1 << 31;
+    const ASYNC_MODULE = 1 << 29;
 
     /**
      * the baseURI of current document
      */
-    const BASE_URI = 1 << 32;
+    const BASE_URI = 1 << 30;
 
-    const MODULE_LOADED = 1 << 33;
+    const MODULE_LOADED = 1 << 31;
 
-    const STARTUP_ENTRYPOINT = 1 << 34;
+    const STARTUP_ENTRYPOINT = 1 << 32;
+    const STARTUP_CHUNK_DEPENDENCIES = 1 << 33;
 
-    const CREATE_SCRIPT_URL = 1 << 35;
+    const CREATE_SCRIPT_URL = 1 << 34;
 
-    const CREATE_SCRIPT = 1 << 36;
+    const CREATE_SCRIPT = 1 << 35;
 
-    const GET_TRUSTED_TYPES_POLICY = 1 << 37;
+    const GET_TRUSTED_TYPES_POLICY = 1 << 36;
 
-    const DEFINE_PROPERTY_GETTERS = 1 << 38;
+    const DEFINE_PROPERTY_GETTERS = 1 << 37;
 
-    const ENTRY_MODULE_ID = 1 << 39;
+    const ENTRY_MODULE_ID = 1 << 38;
 
-    const STARTUP_NO_DEFAULT = 1 << 40;
+    const STARTUP_NO_DEFAULT = 1 << 39;
 
-    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 41;
+    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 40;
 
-    const STARTUP = 1 << 42;
+    const STARTUP = 1 << 41;
 
-    const MAKE_NAMESPACE_OBJECT = 1 << 43;
+    const MAKE_NAMESPACE_OBJECT = 1 << 42;
 
-    const EXPORTS = 1 << 44;
+    const EXPORTS = 1 << 43;
 
-    const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
+    const COMPAT_GET_DEFAULT_EXPORT = 1 << 44;
 
-    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
+    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 45;
 
-    const NODE_MODULE_DECORATOR = 1 << 47;
+    const NODE_MODULE_DECORATOR = 1 << 46;
 
-    const ESM_MODULE_DECORATOR = 1 << 48;
+    const ESM_MODULE_DECORATOR = 1 << 47;
 
     /**
      * the System.register context object
      */
-    const SYSTEM_CONTEXT = 1 << 49;
+    const SYSTEM_CONTEXT = 1 << 48;
 
-    const THIS_AS_EXPORTS = 1 << 50;
+    const THIS_AS_EXPORTS = 1 << 49;
 
-    const CURRENT_REMOTE_GET_SCOPE = 1 << 51;
+    const CURRENT_REMOTE_GET_SCOPE = 1 << 50;
 
-    const SHARE_SCOPE_MAP = 1 << 52;
+    const SHARE_SCOPE_MAP = 1 << 51;
 
-    const INITIALIZE_SHARING = 1 << 53;
+    const INITIALIZE_SHARING = 1 << 52;
 
-    const SCRIPT_NONCE = 1 << 54;
+    const SCRIPT_NONCE = 1 << 53;
 
-    const RELATIVE_URL = 1 << 55;
+    const RELATIVE_URL = 1 << 54;
 
-    const CHUNK_NAME = 1 << 56;
+    const CHUNK_NAME = 1 << 55;
 
-    const RUNTIME_ID = 1 << 57;
+    const RUNTIME_ID = 1 << 56;
 
     // prefetch and preload
-    const PREFETCH_CHUNK = 1 << 58;
+    const PREFETCH_CHUNK = 1 << 57;
 
-    const PREFETCH_CHUNK_HANDLERS = 1 << 59;
+    const PREFETCH_CHUNK_HANDLERS = 1 << 58;
 
-    const PRELOAD_CHUNK = 1 << 60;
+    const PRELOAD_CHUNK = 1 << 59;
 
-    const PRELOAD_CHUNK_HANDLERS = 1 << 61;
+    const PRELOAD_CHUNK_HANDLERS = 1 << 60;
 
-    const UNCAUGHT_ERROR_HANDLER = 1 << 62;
-
-    // rspack only
-    const RSPACK_VERSION = 1 << 63;
-
-    const HAS_CSS_MODULES = 1 << 64;
+    const UNCAUGHT_ERROR_HANDLER = 1 << 61;
 
     // rspack only
-    const RSPACK_UNIQUE_ID = 1 << 65;
+    const RSPACK_VERSION = 1 << 62;
 
-    const HAS_FETCH_PRIORITY = 1 << 66;
+    const HAS_CSS_MODULES = 1 << 63;
+
+    // rspack only
+    const RSPACK_UNIQUE_ID = 1 << 64;
+
+    const HAS_FETCH_PRIORITY = 1 << 65;
 
     // amd module support
-    const AMD_DEFINE = 1 << 67;
-    const AMD_OPTIONS = 1 << 68;
+    const AMD_DEFINE = 1 << 66;
+    const AMD_OPTIONS = 1 << 67;
 
     // defer import support
-    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
+    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 68;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 69;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 70;
   }
 }
 
@@ -318,6 +319,7 @@ impl RuntimeGlobals {
       R::ASYNC_MODULE_EXPORT_SYMBOL => "__webpack_require__.aE",
       R::BASE_URI => "__webpack_require__.b",
       R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
+      R::STARTUP_CHUNK_DEPENDENCIES => "__webpack_require__.x (chunk dependencies)",
       R::CREATE_SCRIPT_URL => "__webpack_require__.tu",
       R::CREATE_SCRIPT => "__webpack_require__.ts",
       R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
