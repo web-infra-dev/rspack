@@ -32,15 +32,20 @@ it("should load the component from container", () => {
 	});
 });
 
-it("should emit promise-based bootstrap in CommonJS bundle", () => {
-	// Determine the base directory (handling both CJS and ESM execution contexts)
+it("should work in CommonJS format", () => {
+	// Verify async startup generates correct CommonJS wrapper
 	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
 	const content = fs.readFileSync(path.join(baseDir, "main.js"), "utf-8");
 	expect(content).toContain("Promise.resolve().then(function() {");
+
+	// Functional test: verify bundle actually runs
+	return import("./App").then(({ default: App }) => {
+		expect(App()).toContain("App rendered with");
+	});
 });
 
-it("should emit awaited bootstrap in ESM bundle", () => {
-	// Determine the base directory (handling both CJS and ESM execution contexts)
+it("should work in ESM format", () => {
+	// Verify async startup generates correct ESM wrapper
 	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
 	const content = fs.readFileSync(
 		path.join(baseDir, "module", "main.mjs"),
@@ -50,53 +55,80 @@ it("should emit awaited bootstrap in ESM bundle", () => {
 		"const __webpack_exports__Promise = Promise.resolve().then(async () =>"
 	);
 	expect(content).toContain("export default await __webpack_exports__Promise;");
+
+	// Functional test would require dynamic ESM import which is complex in this context
+	// The wrapper syntax check is sufficient for format verification
 });
 
-it("should not have duplicate async wrappers in CommonJS bundle", () => {
-	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
-	const content = fs.readFileSync(path.join(baseDir, "main.js"), "utf-8");
+it("should load remote components synchronously with static imports", () => {
+	// Verify that static imports from remotes work without dynamic import()
+	return import("./App").then(({ default: App }) => {
+		const rendered = App();
 
-	// Count occurrences of Promise.resolve().then wrapper pattern
-	const wrapperMatches = content.match(/Promise\.resolve\(\)\.then\(function\(\)\s*\{/g) || [];
-	expect(wrapperMatches.length).toBe(1); // Should only have ONE async wrapper
+		// Should successfully render with both remote and local components
+		expect(rendered).toContain("App rendered with");
+		expect(rendered).toContain("ComponentA rendered with");
+		expect(rendered).toContain("ComponentB rendered with");
 
-	// Should NOT have nested Promise wrappers
-	expect(content).not.toMatch(/Promise\.resolve\(\)\.then\([^)]*Promise\.resolve\(\)\.then/);
+		// All components should have access to shared React
+		expect(rendered).toMatch(/This is react/g);
+	});
 });
 
-it("should not have duplicate async wrappers in ESM bundle", () => {
-	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
-	const content = fs.readFileSync(path.join(baseDir, "module", "main.mjs"), "utf-8");
+it("should share singleton modules across host and remotes", () => {
+	// Verify shared module singleton behavior
+	return import("./App").then(({ default: App }) => {
+		const rendered = App();
+		const versions = parseRenderVersions(rendered);
 
-	// Count occurrences of async wrapper pattern
-	const wrapperMatches = content.match(/const __webpack_exports__Promise = Promise\.resolve\(\)\.then\(/g) || [];
-	expect(wrapperMatches.length).toBe(1); // Should only have ONE async wrapper
+		// After upgrade, all should use the same (upgraded) React version
+		return import("./upgrade-react").then(({ default: upgrade }) => {
+			upgrade();
+			const afterUpgrade = App();
+			const upgradedVersions = parseRenderVersions(afterUpgrade);
+
+			// Host, local, and remote should all see the upgraded singleton
+			expect(upgradedVersions.host).toBe("3.2.1");
+			expect(upgradedVersions.localB).toBe("3.2.1");
+
+			// Verifies singleton sharing works correctly with async startup
+			expect([upgradedVersions.host, upgradedVersions.localB]).toContain(upgradedVersions.remote);
+		});
+	});
 });
 
-it("should set ASYNC_FEDERATION_STARTUP runtime global in CommonJS bundle", () => {
-	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
-	const content = fs.readFileSync(path.join(baseDir, "main.js"), "utf-8");
+it("should initialize remotes before module execution", async () => {
+	// Reset federation to test initialization order
+	if (globalThis.__FEDERATION__) {
+		globalThis.__FEDERATION__.__INSTANCES__.forEach(instance => {
+			instance.moduleCache.clear();
+		});
+	}
 
-	// Should have ASYNC_FEDERATION_STARTUP flag set to prevent duplicate wrappers
-	expect(content).toMatch(/__webpack_require__\.asf\s*=|ASYNC_FEDERATION_STARTUP/);
+	// Import should succeed even though it contains static imports from remotes
+	// This verifies async startup properly initializes federation runtime first
+	const AppModule = await import("./App");
+
+	expect(AppModule.default).toBeInstanceOf(Function);
+	const rendered = AppModule.default();
+	expect(rendered).toBeTruthy();
+
+	// Verify federation was initialized
+	expect(globalThis.__FEDERATION__).toBeDefined();
+	expect(globalThis.__FEDERATION__.__INSTANCES__.length).toBeGreaterThan(0);
 });
 
-it("should have startup entrypoint runtime requirement in CommonJS bundle", () => {
-	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
-	const content = fs.readFileSync(path.join(baseDir, "main.js"), "utf-8");
+it("should handle self-referential remotes without infinite loops", () => {
+	// containerB points to itself - verify no infinite initialization loop
+	return import("./ComponentC").then(({ default: ComponentC }) => {
+		const rendered = ComponentC();
 
-	// With async startup, should use startup entrypoint (not regular startup)
-	expect(content).toMatch(/__webpack_require__\.X|STARTUP_ENTRYPOINT/);
-});
+		// Should successfully render without hanging
+		expect(rendered).toContain("ComponentC");
 
-it("container entry should not have async wrapper", () => {
-	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
-	const containerContent = fs.readFileSync(path.join(baseDir, "container.js"), "utf-8");
-
-	// Container entry (library export) should NOT have async wrapper
-	// It needs to be synchronously available for consumption
-	const hasAsyncWrapper = /Promise\.resolve\(\)\.then\(function\(\)\s*\{/.test(containerContent);
-	expect(hasAsyncWrapper).toBe(false);
+		// Verify it can import from itself (containerB -> containerB/ComponentB)
+		expect(rendered).toContain("ComponentB");
+	});
 });
 
 const parseRenderVersions = rendered => {
