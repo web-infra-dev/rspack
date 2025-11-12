@@ -666,7 +666,7 @@ export interface ExperimentsNormalized {
 	layers?: boolean;
 	incremental?: false | Incremental;
 	/**
-	 * @deprecated This options is deprecated, as it has huge regression in some edge cases where the chunk graph have lots cycles, we will improve performance of build_chunk_graph
+	 * @deprecated This option is deprecated, as it has a huge regression in some edge cases where the chunk graph has lots of cycles. We will improve performance of build_chunk_graph.
 	 */
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;

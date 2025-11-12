@@ -148,36 +148,6 @@ The table below shows the results of incremental in different scenarios:
 
 Starting from v1.4.0, Rspack enables incremental builds for all phases by default using `'advance-silent'` mode. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
 
-## experiments.parallelCodeSplitting
-
-<ApiMeta deprecatedVersion="1.6.2" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
-
-:::warning
-This options is deprecated, it has huge performance regression in some edge cases where the chunk graph has lots of cycles, we'll improve the performance of build_chunk_graph in the future instead.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
-
-This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
-:::
-
 ## experiments.parallelLoader
 
 <ApiMeta addedVersion="1.3.1" />
@@ -912,3 +882,33 @@ export default {
   },
 };
 ```
+
+## experiments.parallelCodeSplitting
+
+<ApiMeta deprecatedVersion="1.6.2" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
+
+:::warning
+This option is deprecated, it has a huge performance regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead.
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+  optimization: {
+    removeAvailableModules: true,
+  },
+};
+```
+
+:::warning
+When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
+
+This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
+:::
