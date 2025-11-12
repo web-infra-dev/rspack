@@ -13,14 +13,8 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": [
-      "darwin"
-    ],
-    "cpu": [
-      "arm64"
-    ]
+    "os": ["darwin"],
+    "cpu": ["arm64"]
   },
-  "files": [
-    "rspack.darwin-arm64.node"
-  ]
+  "files": ["rspack.darwin-arm64.node"]
 }
