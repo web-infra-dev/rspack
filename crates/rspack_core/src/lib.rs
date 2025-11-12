@@ -8,8 +8,8 @@ mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
 pub use compilation::{
-  compilation::*,
   make::{ExecuteModuleId, ForwardId, LazyUntil},
+  *,
 };
 pub use exports::*;
 pub use value_cache_versions::ValueCacheVersions;
