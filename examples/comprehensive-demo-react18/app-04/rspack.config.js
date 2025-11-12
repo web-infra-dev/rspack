@@ -1,6 +1,7 @@
 const rspack = require("../../../packages/rspack/dist/index.js");
 const {
-	container: { ModuleFederationPlugin }
+	container: { ModuleFederationPlugin },
+	HtmlRspackPlugin
 } = rspack;
 const buildId = Date.now();
 const path = require("path");
@@ -55,6 +56,11 @@ module.exports = {
 	},
 
 	plugins: [
+		new HtmlRspackPlugin({
+			template: "./public/index.html",
+			filename: "index.html",
+			chunks: ["bundle"]
+		}),
 		new ModuleFederationPlugin({
 			name: "app_04",
 			filename: "remoteEntry.js",
