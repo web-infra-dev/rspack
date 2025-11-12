@@ -12,7 +12,6 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Wtf8Atom;
-use ustr::Ustr;
 
 use crate::utils::ServerEntryModules;
 
