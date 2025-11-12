@@ -40,18 +40,28 @@ impl Loader<RunnerContext> for ReactRefreshLoader {
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
+    let supports_arrow_function = loader_context
+      .context
+      .options
+      .output
+      .environment
+      .supports_arrow_function();
+
     let mut source = content.try_into_string()?;
-    source += r#"
-function $RefreshSig$() {
-  return $ReactRefreshRuntime$.createSignatureFunctionForTransform();
-}
-function $RefreshReg$(type, id) {
-  $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id);
-}
-Promise.resolve().then(function() {
-  $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
-});
+
+    if supports_arrow_function {
+      source += r#"
+function $RefreshSig$() { return $ReactRefreshRuntime$.createSignatureFunctionForTransform() }
+function $RefreshReg$(type, id) { $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id) }
+Promise.resolve().then(() => { $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot) });
 "#;
+    } else {
+      source += r#"
+function $RefreshSig$() { return $ReactRefreshRuntime$.createSignatureFunctionForTransform() }
+function $RefreshReg$(type, id) { $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id) }
+Promise.resolve().then(function() { $ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot) });
+"#;
+    }
     let sm = loader_context.take_source_map();
     loader_context.finish_with((source, sm));
     Ok(())
