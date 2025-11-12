@@ -334,8 +334,7 @@ export class BasicCaseCreator {
 				expect(typeof fn === "function");
 				afterTasks.push(fn);
 			},
-			jest: global.jest || global.rstest,
-			rstest: global.rstest
+			rstest
 		};
 	}
 
@@ -351,8 +350,7 @@ export class BasicCaseCreator {
 			it,
 			beforeEach,
 			afterEach,
-			jest: global.jest || global.rstest,
-			rstest: global.rstest
+			rstest
 		};
 	}
 

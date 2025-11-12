@@ -41,7 +41,7 @@ Rspack 的测试用例包括如下：
 也可以进入 `tests/rspack-test` 文件夹并运行 `npm run test` 来运行测试用例，并且对测试流程进行更精细的控制：
 
 - **需要刷新测试快照时**：添加 `-u` 参数，如 `npm run test -- -u`
-- **需要过滤测试用例时**：添加 `-t` 参数，如 `npm run test -- -t configCases/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例。匹配支持正则，详见 [jest](https://jestjs.io/docs/cli#--testnamepatternregex)
+- **需要过滤测试用例时**：添加 `-t` 参数，如 `npm run test -- -t configCases/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例。匹配支持正则，详见 [rstest](https://rstest.rs/config/test/testNamePattern)
 
 ### 运行测试
 
@@ -50,7 +50,7 @@ Rspack 的测试用例包括如下：
 - 根目录下运行 `./x test unit` 或 `pnpm run test:unit`。
 - 或在 `tests/rspack-test` 目录下运行 `npm run test`。
 - 如需更新 snapshot，在 `tests/rspack-test` 目录下运行 `npm run test -- -u`。
-- 如需传入特定 jest cli 参数，在 `tests/rspack-test` 目录下运行 `npm run test -- {args}`。
+- 如需传入特定 rstest cli 参数，在 `tests/rspack-test` 目录下运行 `npm run test -- {args}`。
 - 如需过滤特定测试用例，在 `tests/rspack-test` 目录下运行 `npm run test  -- -t path-of-spec`。
   - 如 `npm run test -- -t configCases/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
 - 如需使用 Rspack Wasm 运行测试用例，需要额外配置以下环境变量：
@@ -353,8 +353,8 @@ interface TDefaultsCaseConfig {
   cwd?: string; // 用例的生成构建配置时的 process.cwd，默认为 `tests/rspack-test` 目录
   options?: (context: ITestContext) => TCompilerOptions<ECompilerType.Rspack>; // 用例构建配置
   diff: (
-    diff: jest.JestMatchers<Diff>,
-    defaults: jest.JestMatchers<TCompilerOptions<ECompilerType.Rspack>>,
+    diff: Assertion<Diff>,
+    defaults: Assertion<TCompilerOptions<ECompilerType.Rspack>>,
   ) => Promise<void>; // 与默认配置之间的差异
 }
 

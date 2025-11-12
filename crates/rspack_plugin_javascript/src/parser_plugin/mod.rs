@@ -18,6 +18,7 @@ mod import_parser_plugin;
 mod initialize_evaluating;
 mod inline_const;
 mod inner_graph;
+mod is_included_plugin;
 mod javascript_meta_info_plugin;
 pub mod node_stuff_plugin;
 mod override_strict_plugin;
@@ -26,7 +27,6 @@ mod require_ensure_dependencies_block_parse_plugin;
 mod r#trait;
 mod url_plugin;
 mod use_strict_plugin;
-mod webpack_included_plugin;
 mod worker_plugin;
 
 pub mod define_plugin;
@@ -61,6 +61,7 @@ pub(crate) use self::{
     connection_active_inline_value_for_esm_import_specifier, is_export_inlined,
   },
   inner_graph::{connection_active_used_by_exports, plugin::*, state::InnerGraphState},
+  is_included_plugin::IsIncludedPlugin,
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,
   override_strict_plugin::OverrideStrictPlugin,
@@ -69,7 +70,6 @@ pub(crate) use self::{
   side_effects_parser_plugin::SideEffectsParserPlugin,
   url_plugin::URLPlugin,
   use_strict_plugin::UseStrictPlugin,
-  webpack_included_plugin::WebpackIsIncludedPlugin,
   worker_plugin::WorkerPlugin,
 };
 

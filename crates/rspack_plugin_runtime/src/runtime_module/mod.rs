@@ -15,7 +15,7 @@ mod create_script_url;
 mod define_property_getters;
 mod ensure_chunk;
 mod esm_module_decorator;
-mod export_webpack_require;
+mod export_require;
 mod get_chunk_filename;
 mod get_chunk_update_filename;
 mod get_full_hash;
@@ -60,9 +60,7 @@ pub use create_script_url::CreateScriptUrlRuntimeModule;
 pub use define_property_getters::DefinePropertyGettersRuntimeModule;
 pub use ensure_chunk::EnsureChunkRuntimeModule;
 pub use esm_module_decorator::ESMModuleDecoratorRuntimeModule;
-pub use export_webpack_require::{
-  EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID, ExportWebpackRequireRuntimeModule,
-};
+pub use export_require::{EXPORT_REQUIRE_RUNTIME_MODULE_ID, ExportRequireRuntimeModule};
 pub use get_chunk_filename::GetChunkFilenameRuntimeModule;
 pub use get_chunk_update_filename::GetChunkUpdateFilenameRuntimeModule;
 pub use get_full_hash::GetFullHashRuntimeModule;

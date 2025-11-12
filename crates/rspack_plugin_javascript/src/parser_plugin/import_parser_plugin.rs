@@ -19,6 +19,7 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
+  magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
     AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
@@ -26,7 +27,6 @@ use crate::{
     context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
     parse_order_string,
   },
-  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 const DYNAMIC_IMPORT_TAG: &str = "dynamic import";
@@ -259,37 +259,31 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options =
-      try_extract_webpack_magic_comment(parser, node.span, dyn_imported.span());
-    if magic_comment_options
-      .get_webpack_ignore()
-      .unwrap_or_default()
-    {
+    let magic_comment_options = try_extract_magic_comment(parser, node.span, dyn_imported.span());
+    if magic_comment_options.get_ignore().unwrap_or_default() {
       return None;
     }
 
     let mode = magic_comment_options
-      .get_webpack_mode()
+      .get_mode()
       .map(|x| DynamicImportMode::from(x.as_str()))
       .unwrap_or(dynamic_import_mode.expect("should have dynamic_import_mode"));
-    let chunk_name = magic_comment_options
-      .get_webpack_chunk_name()
-      .map(|x| x.to_owned());
+    let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
-      .get_webpack_prefetch()
+      .get_prefetch()
       .and_then(|x| parse_order_string(x.as_str()))
       .or(dynamic_import_prefetch);
     let chunk_preload = magic_comment_options
-      .get_webpack_preload()
+      .get_preload()
       .and_then(|x| parse_order_string(x.as_str()))
       .or(dynamic_import_preload);
     let fetch_priority = magic_comment_options
       .get_fetch_priority()
       .map(|x| DynamicImportFetchPriority::from(x.as_str()))
       .or(dynamic_import_fetch_priority);
-    let include = magic_comment_options.get_webpack_include();
-    let exclude = magic_comment_options.get_webpack_exclude();
-    let mut exports = magic_comment_options.get_webpack_exports().map(|x| {
+    let include = magic_comment_options.get_include();
+    let exclude = magic_comment_options.get_exclude();
+    let mut exports = magic_comment_options.get_exports().map(|x| {
       x.iter()
         .map(|name| vec![Atom::from(name.as_str())])
         .collect::<Vec<_>>()

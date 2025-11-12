@@ -1,6 +1,7 @@
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, RuntimeGlobals, RuntimeModuleExt,
+  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
+  RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -10,6 +11,25 @@ use crate::runtime_module::{ImportScriptsChunkLoadingRuntimeModule, is_enabled_f
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ImportScriptsChunkLoadingPlugin;
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ImportScriptsChunkLoadingPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::ImportScripts);
+  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  if is_enabled_for_chunk
+    && compilation
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+  }
+  Ok(())
+}
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for ImportScriptsChunkLoadingPlugin)]
 async fn runtime_requirements_in_tree(
@@ -72,6 +92,10 @@ impl Plugin for ImportScriptsChunkLoadingPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree
