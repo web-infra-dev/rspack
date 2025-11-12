@@ -41,12 +41,12 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.39.7",
+    "@ast-grep/napi": "^0.39.9",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.17.0",
+    "@rslib/core": "0.17.1",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.24",
+    "@types/node": "^20.19.25",
     "@types/watchpack": "^2.4.4",
     "browserslist-load-config": "^1.0.1",
     "enhanced-resolve": "5.18.3",
@@ -60,7 +60,7 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.21.3",
+    "@module-federation/runtime-tools": "0.21.4",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1"
   },
