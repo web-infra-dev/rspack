@@ -7,9 +7,8 @@ dist/
 dist-webpack/
 .rspack/
 .webpack/
-*/public/*.js
-*/public/*.json
-*/public/*.map
+*/public/*
+!*/public/index.html
 
 # Test outputs
 test-results/
