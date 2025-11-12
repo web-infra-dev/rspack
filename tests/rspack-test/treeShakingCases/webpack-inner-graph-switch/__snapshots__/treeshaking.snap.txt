@@ -18,7 +18,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: () => (test)
 });
-/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
+/* import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
 
 
 function test() {
@@ -42,7 +42,7 @@ it("should generate correct code when pure expressions are in dead branches", ()
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./some-module.js");
+/* import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./some-module.js");
 
 
 function getType(obj) {
@@ -83,7 +83,7 @@ function useDocument(obj) {
 }
 
 
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (doSomething);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (doSomething);
 
 
 }),

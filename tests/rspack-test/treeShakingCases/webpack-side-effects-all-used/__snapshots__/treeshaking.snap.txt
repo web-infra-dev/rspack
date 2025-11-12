@@ -5,7 +5,7 @@
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
-/* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
+/* import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var a = "a";
 var b = "b";
 var c = "c";
@@ -21,7 +21,7 @@ var c = "c";
 __webpack_require__.d(__webpack_exports__, {
   x: () => (x)
 });
-/* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
+/* import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
 var y = "y";
 
@@ -37,7 +37,7 @@ var y = "y";
 __webpack_require__.d(__webpack_exports__, {
   z: () => (z)
 });
-/* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
+/* import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
 
 
@@ -51,14 +51,14 @@ var z = "z";
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
+/* import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 
 
 
 
 (0,_tracker__WEBPACK_IMPORTED_MODULE_0__.track)("index.js");
 
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("def");
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = ("def");
 
 
 }),
@@ -81,11 +81,11 @@ function reset() {
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("../node_modules/pmodule/tracker.js");
-/* ESM import */var pmodule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("../node_modules/pmodule/a.js");
-/* ESM import */var pmodule__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("../node_modules/pmodule/b.js");
-/* ESM import */var pmodule__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("../node_modules/pmodule/c.js");
-/* ESM import */var pmodule__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/index.js");
+/* import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("../node_modules/pmodule/tracker.js");
+/* import */var pmodule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("../node_modules/pmodule/a.js");
+/* import */var pmodule__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("../node_modules/pmodule/b.js");
+/* import */var pmodule__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("../node_modules/pmodule/c.js");
+/* import */var pmodule__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/index.js");
 
 
 

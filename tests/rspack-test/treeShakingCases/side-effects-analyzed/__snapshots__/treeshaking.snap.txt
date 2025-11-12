@@ -2,7 +2,7 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
+/* import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 
 (0,_app__WEBPACK_IMPORTED_MODULE_0__["default"])();
@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 const secret = "888";
 const result = 20000;
 const something = function () {};
-/* ESM default export */ function __WEBPACK_DEFAULT_EXPORT__() {}
+/* export default */ function __WEBPACK_DEFAULT_EXPORT__() {}
 
 
 }),
