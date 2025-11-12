@@ -13,32 +13,33 @@ use napi::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
-  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
+  Compilation, CompilationAddEntryItem, CompilationAddEntryItemHook,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFailedEntryItem,
+  CompilationFailedEntryItemHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedEntryItem, CompilationSucceedEntryItemHook, CompilationSucceedModule,
   CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
   CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
   CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
   CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
   CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  ContextModuleFactoryBeforeResolveHook, Dependency, EntryDependency, EntryOptions,
+  ExecuteModuleId, Module, ModuleDependency, ModuleFactoryCreateData, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   Scheme, parse_resource, rspack_sources::RawStringSource,
@@ -77,14 +78,15 @@ use crate::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   },
+  dependencies::EntryDependency as JsEntryDependency,
   html::{
     JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
     JsBeforeAssetTagGenerationData, JsBeforeEmitData,
   },
   module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
   normal_module_factory::{
-    JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
-    JsResolveForSchemeOutput,
+    ContextInfo, JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData,
+    JsResolveForSchemeArgs, JsResolveForSchemeOutput,
   },
   rsdoctor::{
     JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
@@ -335,6 +337,9 @@ pub enum RegisterJsTapKind {
   CompilationStillValidModule,
   CompilationSucceedModule,
   CompilationExecuteModule,
+  CompilationAddEntry,
+  CompilationFailedEntry,
+  CompilationSucceedEntry,
   CompilationFinishModules,
   CompilationOptimizeModules,
   CompilationAfterOptimizeModules,
@@ -497,6 +502,21 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_after_seal_taps: RegisterFunction<(), Promise<()>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((entry: any, options: any) => void); stage: number; }>"
+  )]
+  pub register_compilation_add_entry_taps:
+    RegisterFunction<(JsEntryDependency, serde_json::Value), ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((entry: any, options: any, module: Module) => void); stage: number; }>"
+  )]
+  pub register_compilation_succeed_entry_taps:
+    RegisterFunction<(JsEntryDependency, serde_json::Value, ModuleObject), ()>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((entry: any, options: any, error: string) => void); stage: number; }>"
+  )]
+  pub register_compilation_failed_entry_taps:
+    RegisterFunction<(JsEntryDependency, serde_json::Value, String), ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
@@ -803,6 +823,27 @@ define_register!(
   tap = CompilationAfterSealTap<(), Promise<()>> @ CompilationAfterSealHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationAfterSeal,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationAddEntryTaps,
+  tap = CompilationAddEntryTap<(JsEntryDependency, serde_json::Value), ()> @ CompilationAddEntryItemHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationAddEntry,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationSucceedEntryTaps,
+  tap = CompilationSucceedEntryTap<(JsEntryDependency, serde_json::Value, ModuleObject), ()> @ CompilationSucceedEntryItemHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationSucceedEntry,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationFailedEntryTaps,
+  tap = CompilationFailedEntryTap<(JsEntryDependency, serde_json::Value, String), ()> @ CompilationFailedEntryItemHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationFailedEntry,
   skip = true,
 );
 
@@ -1440,6 +1481,124 @@ impl CompilationSeal for CompilationSealTap {
 impl CompilationAfterSeal for CompilationAfterSealTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationAddEntryItem for CompilationAddEntryTap {
+  async fn run(
+    &self,
+    _compiler_id: CompilerId,
+    _compilation_id: CompilationId,
+    entry: &rspack_core::EntryDependency,
+    options: &rspack_core::EntryOptions,
+  ) -> rspack_error::Result<()> {
+    let js_entry = JsEntryDependency {
+      request: entry.request().to_string(),
+      dependency_id: Some(*Dependency::id(entry)),
+    };
+
+    let js_options = serde_json::json!({
+      "name": options.name,
+      "runtime": options.runtime.as_ref().map(|r| match r {
+        rspack_core::EntryRuntime::String(s) => serde_json::Value::String(s.clone()),
+        rspack_core::EntryRuntime::False => serde_json::Value::Bool(false),
+      }),
+      "asyncChunks": options.async_chunks,
+      "baseUri": options.base_uri,
+      "dependOn": options.depend_on,
+      "layer": options.layer,
+    });
+
+    self.function.call_with_sync((js_entry, js_options)).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationSucceedEntryItem for CompilationSucceedEntryTap {
+  async fn run(
+    &self,
+    compiler_id: CompilerId,
+    _compilation_id: CompilationId,
+    entry: &rspack_core::EntryDependency,
+    options: &rspack_core::EntryOptions,
+    module: &BoxModule,
+  ) -> rspack_error::Result<()> {
+    let js_entry = JsEntryDependency {
+      request: entry.request().to_string(),
+      dependency_id: Some(*Dependency::id(entry)),
+    };
+
+    let js_options = serde_json::json!({
+      "name": options.name,
+      "runtime": options.runtime.as_ref().map(|r| match r {
+        rspack_core::EntryRuntime::String(s) => serde_json::Value::String(s.clone()),
+        rspack_core::EntryRuntime::False => serde_json::Value::Bool(false),
+      }),
+      "asyncChunks": options.async_chunks,
+      "baseUri": options.base_uri,
+      "dependOn": options.depend_on,
+      "layer": options.layer,
+    });
+
+    #[allow(clippy::unwrap_used)]
+    self
+      .function
+      .call_with_sync((
+        js_entry,
+        js_options,
+        ModuleObject::with_ptr(
+          NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+          compiler_id,
+        ),
+      ))
+      .await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationFailedEntryItem for CompilationFailedEntryTap {
+  async fn run(
+    &self,
+    _compiler_id: CompilerId,
+    _compilation_id: CompilationId,
+    entry: &rspack_core::EntryDependency,
+    options: &rspack_core::EntryOptions,
+    error: &rspack_error::Error,
+  ) -> rspack_error::Result<()> {
+    let js_entry = JsEntryDependency {
+      request: entry.request().to_string(),
+      dependency_id: Some(*Dependency::id(entry)),
+    };
+
+    let js_options = serde_json::json!({
+      "name": options.name,
+      "runtime": options.runtime.as_ref().map(|r| match r {
+        rspack_core::EntryRuntime::String(s) => serde_json::Value::String(s.clone()),
+        rspack_core::EntryRuntime::False => serde_json::Value::Bool(false),
+      }),
+      "asyncChunks": options.async_chunks,
+      "baseUri": options.base_uri,
+      "dependOn": options.depend_on,
+      "layer": options.layer,
+    });
+
+    self
+      .function
+      .call_with_sync((js_entry, js_options, error.to_string()))
+      .await
   }
 
   fn stage(&self) -> i32 {

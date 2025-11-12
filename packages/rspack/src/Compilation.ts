@@ -256,6 +256,14 @@ export class Compilation {
 		seal: liteTapable.SyncHook<[]>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+
+		addEntry: liteTapable.SyncHook<[binding.EntryDependency, EntryOptions]>;
+		failedEntry: liteTapable.SyncHook<
+			[binding.EntryDependency, EntryOptions, WebpackError]
+		>;
+		succeedEntry: liteTapable.SyncHook<
+			[binding.EntryDependency, EntryOptions, Module]
+		>;
 	}>;
 	name?: string;
 	startTime?: number;
@@ -388,7 +396,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
 			afterSeal: new liteTapable.AsyncSeriesHook([]),
-			needAdditionalPass: new liteTapable.SyncBailHook([])
+			needAdditionalPass: new liteTapable.SyncBailHook([]),
+
+			addEntry: new liteTapable.SyncHook(["entry", "options"]),
+			failedEntry: new liteTapable.SyncHook(["entry", "options", "error"]),
+			succeedEntry: new liteTapable.SyncHook(["entry", "options", "module"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -404,10 +416,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 
 		this.#addIncludeDispatcher = new AddEntryItemDispatcher(
-			inner.addInclude.bind(inner)
+			inner.addInclude.bind(inner),
+			this.hooks
 		);
 		this.#addEntryDispatcher = new AddEntryItemDispatcher(
-			inner.addEntry.bind(inner)
+			inner.addEntry.bind(inner),
+			this.hooks
 		);
 		this[binding.COMPILATION_HOOKS_MAP_SYMBOL] = new WeakMap();
 	}
@@ -1109,12 +1123,14 @@ class AddEntryItemDispatcher {
 		| binding.JsCompilation["addInclude"]
 		| binding.JsCompilation["addEntry"];
 	#running: boolean;
+	#hooks: Compilation["hooks"];
 	#args: [
 		string,
 		binding.EntryDependency,
 		binding.JsEntryOptions | undefined
 	][] = [];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+	#entries: [binding.EntryDependency, EntryOptions][] = [];
 
 	#execute = () => {
 		if (this.#running) {
@@ -1125,6 +1141,14 @@ class AddEntryItemDispatcher {
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
+		const entries = this.#entries;
+		this.#entries = [];
+
+		// Call addEntry hook for each entry before processing
+		for (const [dependency, options] of entries) {
+			this.#hooks.addEntry.call(dependency, options);
+		}
+
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
 				queueMicrotask(this.#execute.bind(this));
@@ -1132,6 +1156,10 @@ class AddEntryItemDispatcher {
 
 			if (wholeErr) {
 				const webpackError = new WebpackError(wholeErr.message);
+				for (let i = 0; i < entries.length; i++) {
+					const [dependency, options] = entries[i];
+					this.#hooks.failedEntry.call(dependency, options, webpackError);
+				}
 				for (const cb of cbs) {
 					cb(webpackError);
 				}
@@ -1139,8 +1167,17 @@ class AddEntryItemDispatcher {
 			}
 			for (let i = 0; i < results.length; i++) {
 				const [errMsg, module] = results[i];
+				const [dependency, options] = entries[i];
 				const cb = cbs[i];
-				cb(errMsg ? new WebpackError(errMsg) : null, module);
+
+				if (errMsg) {
+					const error = new WebpackError(errMsg);
+					this.#hooks.failedEntry.call(dependency, options, error);
+					cb(error, module);
+				} else {
+					this.#hooks.succeedEntry.call(dependency, options, module);
+					cb(null, module);
+				}
 			}
 		});
 	};
@@ -1148,9 +1185,11 @@ class AddEntryItemDispatcher {
 	constructor(
 		binding:
 			| binding.JsCompilation["addInclude"]
-			| binding.JsCompilation["addEntry"]
+			| binding.JsCompilation["addEntry"],
+		hooks: Compilation["hooks"]
 	) {
 		this.#inner = binding;
+		this.#hooks = hooks;
 		this.#running = false;
 	}
 
@@ -1166,6 +1205,7 @@ class AddEntryItemDispatcher {
 
 		this.#args.push([context, dependency, options as any]);
 		this.#cbs.push(callback);
+		this.#entries.push([dependency, options]);
 	}
 }
 
