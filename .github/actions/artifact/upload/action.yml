@@ -24,3 +24,11 @@ runs:
         path: ${{ inputs.path }}
         if-no-files-found: error
         overwrite: true
+    - name: Upload artifact to local
+      uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092 # https://github.com/lynx-infra/upload-artifact/tree/dev
+      if: ${{ runner.environment == 'self-hosted' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
+        overwrite: true
