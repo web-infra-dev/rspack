@@ -9,7 +9,7 @@
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 50
 - Update: 10.LAST_HASH.hot-update.js, size: 350
-- Update: main.LAST_HASH.hot-update.js, size: 702
+- Update: main.LAST_HASH.hot-update.js, size: 698
 
 ## Manifest
 
@@ -75,7 +75,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => __webpack_require__.e(/*! import() | 1e1 */ "1e1").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js")));
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (() => __webpack_require__.e(/*! import() | 1e1 */ "1e1").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js")));
 
 
 }),
