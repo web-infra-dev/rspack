@@ -359,7 +359,3 @@ where
   cache.module_idx = map;
   Ok(())
 }
-
-pub struct BuildChunkGraphArtifact {
-  code_splitting_cache: CodeSplittingCache,
-}
