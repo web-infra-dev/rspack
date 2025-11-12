@@ -106,9 +106,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     }
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
-    if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
-      initial_consumes.clear();
-    }
+    // With async startup we still need the chunk mapping metadata, but defer execution of
+    // initial consumes to the runtime bundler.  We keep the module ids so the bundler runtime can
+    // hydrate them while preventing double-invocation during bootstrap.
+    let defer_initial_consumes =
+      runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
 
     let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
       "{}".to_string()
@@ -141,14 +143,28 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
+      if defer_initial_consumes && !initial_consumes.is_empty() {
+        source += "var __webpack_initial_consumes__ = __webpack_require__.consumesLoadingData.initialConsumes;\n";
+        source += "__webpack_require__.consumesLoadingData.initialConsumes = [];\n";
+      }
       if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
         source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+      }
+      if defer_initial_consumes && !initial_consumes.is_empty() {
+        source += "__webpack_require__.consumesLoadingData.initialConsumes = __webpack_initial_consumes__;\n";
       }
       return Ok(source);
     }
     source += include_str!("./consumesCommon.js");
     if !initial_consumes.is_empty() {
+      if defer_initial_consumes {
+        source += "var __webpack_initial_consumes__ = __webpack_require__.consumesLoadingData.initialConsumes;\n";
+        source += "__webpack_require__.consumesLoadingData.initialConsumes = [];\n";
+      }
       source += include_str!("./consumesInitial.js");
+      if defer_initial_consumes {
+        source += "__webpack_require__.consumesLoadingData.initialConsumes = __webpack_initial_consumes__;\n";
+      }
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       source += include_str!("./consumesLoading.js");
