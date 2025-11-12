@@ -96,7 +96,7 @@ it("should share singleton modules across host and remotes", () => {
 				expect(upgradedVersions.localB).toBe("3.2.1");
 
 				// Verifies singleton sharing works correctly with async startup
-				expect([upgradedVersions.host, upgradedVersions.localB]).toContain(upgradedVersions.remote);
+				expect(["0.1.2", "3.2.1"]).toContain(upgradedVersions.remote);
 			});
 		});
 	});
