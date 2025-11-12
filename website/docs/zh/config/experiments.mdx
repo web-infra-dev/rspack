@@ -149,36 +149,6 @@ export default {
 
 Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
 
-## experiments.parallelCodeSplitting
-
-<ApiMeta addedVersion="1.2.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
-
-:::info
-1.3.0 至 1.4.8 版本默认开启，1.4.9 版本后默认关闭。
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
-
-这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
-:::
-
 ## experiments.parallelLoader
 
 <ApiMeta addedVersion="1.3.1" />
@@ -913,3 +883,33 @@ export default {
   },
 };
 ```
+
+## experiments.parallelCodeSplitting
+
+<ApiMeta deprecatedVersion="1.6.2" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
+
+:::warning
+该选项已被废弃，在某些包含大量循环 chunk 的边缘情况下会出现严重的性能问题，我们会在未来改进 build_chunk_graph 的性能来替代该选项。
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+  optimization: {
+    removeAvailableModules: true,
+  },
+};
+```
+
+:::warning
+当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
+
+这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
+:::
