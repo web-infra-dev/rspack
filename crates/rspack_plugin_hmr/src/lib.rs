@@ -421,7 +421,7 @@ async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>)
 async fn normal_module_factory_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
