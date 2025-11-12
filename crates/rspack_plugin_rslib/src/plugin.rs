@@ -66,7 +66,7 @@ async fn nmf_parser(
       ) as BoxJavascriptParserPlugin);
     }
   } else if parser.is::<AssetParserAndGenerator>() {
-    // Already added RslibParserPlugin, do nothing
+    // Wrap AssetParserAndGenerator to customize source types
     *parser = Box::new(RslibAssetParserAndGenerator(
       parser
         .downcast_ref::<AssetParserAndGenerator>()
