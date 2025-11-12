@@ -33,7 +33,6 @@ use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 
-use super::{CompilerId, rebuild::CompilationRecords};
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
@@ -52,6 +51,7 @@ use crate::{
   compilation::make::{
     MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
+  compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
