@@ -154,7 +154,7 @@ tracy-client = { version = "=0.18.2", default-features = false, features = [
   "system-tracing",
 ] }
 wasi-common = { version = "35.0.0", default-features = false }
-wasmtime = { version = "35.0.0", default-features = false }
+wasmtime = { version = "36.0.0", default-features = false }
 
 
 # all rspack workspace dependencies
