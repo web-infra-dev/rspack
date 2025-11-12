@@ -16,7 +16,7 @@ pub use self::{
   diagnostic::Diagnostic,
   diagnostic_array::{IntoTWithDiagnosticArray, TWithDiagnosticArray},
   displayer::{Display, Renderer, StdioDisplayer, StringDisplayer},
-  error::{Error, Label, Severity},
+  error::{Error, ErrorData, Label, Severity},
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
