@@ -475,7 +475,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 async fn parse(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
