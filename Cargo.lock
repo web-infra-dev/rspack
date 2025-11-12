@@ -3508,7 +3508,6 @@ dependencies = [
  "mimalloc-rspack",
  "sftrace-setup",
  "tracy-client",
- "tracy-client-sys",
 ]
 
 [[package]]
