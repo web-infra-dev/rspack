@@ -11,6 +11,7 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -249,7 +250,7 @@ async fn render_startup(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
-  _render_source: &mut RenderSource,
+  render_source: &mut RenderSource,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -289,12 +290,22 @@ async fn render_startup(
     return Ok(());
   }
 
-  // When async startup is enabled, bootstrap manipulation happens in the JavaScript plugin
-  if compilation.options.experiments.mf_async_startup {
-    return Ok(());
-  }
+  // Entry chunks delegating to runtime need explicit startup calls
+  if !has_runtime && has_entry_modules {
+    let mut startup_with_call = ConcatSource::default();
 
-  // Do not inject an explicit startup call; JS plugin emits the startup call.
+    // Add startup call
+    startup_with_call.add(RawStringSource::from_static(
+      "\n// Federation startup call\n",
+    ));
+    startup_with_call.add(RawStringSource::from(format!(
+      "{}();\n",
+      RuntimeGlobals::STARTUP.name()
+    )));
+
+    startup_with_call.add(render_source.source.clone());
+    render_source.source = startup_with_call.boxed();
+  }
 
   Ok(())
 }
