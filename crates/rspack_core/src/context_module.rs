@@ -36,8 +36,8 @@ use crate::{
   impl_module_meta_info, module_update_hash, returning_function, to_path,
 };
 
-static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
-static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
+static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
+static CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -526,7 +526,7 @@ impl ContextModule {
       true,
       if short_mode { "invalid" } else { "ids[1]" },
     );
-    let webpack_async_context = if has_no_chunk {
+    let async_context = if has_no_chunk {
       formatdoc! {r#"
         function webpackAsyncContext(req) {{
           return Promise.resolve().then(function() {{
@@ -570,7 +570,7 @@ impl ContextModule {
     };
     formatdoc! {r#"
       var map = {map};
-      {webpack_async_context}
+      {async_context}
       webpackAsyncContext.keys = {keys};
       webpackAsyncContext.id = {id};
       module.exports = webpackAsyncContext;
@@ -967,17 +967,17 @@ impl Module for ContextModule {
         let name = group_options
           .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
-            let name = if !(name.contains(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER)
-              || name.contains(WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER))
+            let name = if !(name.contains(CHUNK_NAME_INDEX_PLACEHOLDER)
+              || name.contains(CHUNK_NAME_REQUEST_PLACEHOLDER))
             {
-              Cow::Owned(format!("{name}{WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER}"))
+              Cow::Owned(format!("{name}{CHUNK_NAME_INDEX_PLACEHOLDER}"))
             } else {
               Cow::Borrowed(name)
             };
 
-            let name = name.cow_replace(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
+            let name = name.cow_replace(CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
             let name = name.cow_replace(
-              WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER,
+              CHUNK_NAME_REQUEST_PLACEHOLDER,
               &to_path(&context_element_dependency.user_request),
             );
 

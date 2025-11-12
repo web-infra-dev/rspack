@@ -20,7 +20,7 @@ use crate::{
   utils::calc_value_dependency_key,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
+static DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
   RspackRegex::new(
     r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
   )
@@ -183,7 +183,7 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if WEBPACK_DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
+  if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
         module_factory_create_data.compiler_id,

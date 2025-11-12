@@ -17,11 +17,11 @@ use crate::{
     RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
     RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
   },
+  magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     JavascriptParser, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
   },
-  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 fn create_commonjs_require_context_dependency(
@@ -127,11 +127,7 @@ impl CallOrNewExpr<'_> {
 pub struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
-  fn has_webpack_ignore_comment(
-    parser: &mut JavascriptParser,
-    error_span: Span,
-    span: Span,
-  ) -> bool {
+  fn has_ignore_comment(parser: &mut JavascriptParser, error_span: Span, span: Span) -> bool {
     if !parser
       .javascript_options
       .commonjs_magic_comments
@@ -140,8 +136,8 @@ impl CommonJsImportsParserPlugin {
       return false;
     }
 
-    try_extract_webpack_magic_comment(parser, error_span, span)
-      .get_webpack_ignore()
+    try_extract_magic_comment(parser, error_span, span)
+      .get_ignore()
       .unwrap_or_default()
   }
 
@@ -154,7 +150,7 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = &call_expr.args[0]
-      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
+      && Self::has_ignore_comment(parser, call_expr.span, argument_expr.span())
     {
       return;
     }
@@ -228,7 +224,7 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = arg
-      && Self::has_webpack_ignore_comment(parser, call_expr.span, argument_expr.span())
+      && Self::has_ignore_comment(parser, call_expr.span, argument_expr.span())
     {
       return None;
     }
@@ -292,7 +288,7 @@ impl CommonJsImportsParserPlugin {
       spread: None,
       expr: argument_expr,
     } = &args[0]
-      && Self::has_webpack_ignore_comment(parser, expr.span(), argument_expr.span())
+      && Self::has_ignore_comment(parser, expr.span(), argument_expr.span())
     {
       return Some(true);
     }

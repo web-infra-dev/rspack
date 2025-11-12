@@ -202,7 +202,7 @@ export async function checkSnapshot(
 ) {
 	if (path.extname(snapshot) === ".snap") {
 		throw new Error(
-			"Snapshot with `.snap` will be managed by jest, please use `.snap.txt` instead"
+			"Snapshot with `.snap` will be managed by rstest, please use `.snap.txt` instead"
 		);
 	}
 

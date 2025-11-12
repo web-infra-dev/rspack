@@ -64,6 +64,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(BASE_URI);
   declare_runtime_global!(MODULE_LOADED);
   declare_runtime_global!(STARTUP_ENTRYPOINT);
+  declare_runtime_global!(STARTUP_CHUNK_DEPENDENCIES);
   declare_runtime_global!(CREATE_SCRIPT_URL);
   declare_runtime_global!(CREATE_SCRIPT);
   declare_runtime_global!(GET_TRUSTED_TYPES_POLICY);

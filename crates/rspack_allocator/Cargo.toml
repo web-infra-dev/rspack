@@ -6,9 +6,12 @@ name              = "rspack_allocator"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-sftrace-setup = { workspace = true, optional = true }
+sftrace-setup    = { workspace = true, optional = true }
+tracy-client     = { workspace = true, optional = true }
+tracy-client-sys = { version = "=0.26.0" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Turned on `local_dynamic_tls` to avoid issue: https://github.com/microsoft/mimalloc/issues/147
@@ -19,3 +22,6 @@ mimalloc = { workspace = true, features = ["v3"] }
 
 [target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dependencies]
 mimalloc = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracy-client-sys"]
