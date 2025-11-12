@@ -4,7 +4,7 @@
 use tracing::instrument;
 
 use crate::{Compilation, incremental::IncrementalPasses};
-
+pub(crate) mod artifact;
 mod available_modules;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;

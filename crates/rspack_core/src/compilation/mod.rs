@@ -1,5 +1,5 @@
+pub mod build_chunk_graph;
 pub mod make;
-
 use std::{
   collections::{VecDeque, hash_map},
   fmt::Debug,
@@ -10,6 +10,10 @@ use std::{
   },
 };
 
+use build_chunk_graph::{
+  artifact::{CodeSplittingCache, use_code_splitting_cache},
+  build_chunk_graph, build_chunk_graph_new,
+};
 use dashmap::DashSet;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
@@ -49,7 +53,6 @@ use crate::{
   ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
   RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
-  build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   compilation::make::{
     MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
@@ -57,7 +60,7 @@ use crate::{
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
-  old_cache::{Cache as OldCache, CodeSplittingCache, use_code_splitting_cache},
+  old_cache::Cache as OldCache,
   to_identifier,
 };
 
