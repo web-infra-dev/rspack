@@ -28,7 +28,7 @@ define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFac
 define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
-define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>),tracing=false);
+define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
@@ -513,7 +513,7 @@ impl NormalModuleFactory {
       .parser
       .call(
         &resolved_module_type,
-        resolved_parser_and_generator.as_mut(),
+        &mut resolved_parser_and_generator,
         resolved_parser_options.as_ref(),
       )
       .await?;

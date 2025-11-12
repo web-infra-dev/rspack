@@ -1,3 +1,4 @@
+mod asset;
 mod import_dependency;
 mod import_external;
 mod parser_plugin;
