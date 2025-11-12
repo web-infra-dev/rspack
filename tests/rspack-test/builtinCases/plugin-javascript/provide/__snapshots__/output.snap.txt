@@ -30,7 +30,7 @@ const lib = {
 	}
 };
 
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (lib);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (lib);
 
 
 }),

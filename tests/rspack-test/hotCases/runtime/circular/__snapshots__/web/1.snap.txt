@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1104
+- Update: main.LAST_HASH.hot-update.js, size: 1088
 
 ## Manifest
 
@@ -43,11 +43,11 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM import */var ___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ */ "./index.js");
-/* ESM import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */ "./b.js");
+/* import */var ___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ */ "./index.js");
+/* import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./b */ "./b.js");
 
 
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
 }),
@@ -60,7 +60,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
 }),

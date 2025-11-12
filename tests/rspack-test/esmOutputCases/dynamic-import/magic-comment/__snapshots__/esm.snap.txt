@@ -93,11 +93,11 @@ export { __webpack_require__ };
 
 ```mjs title=shared.mjs
 // ./m1.js
-/* ESM default export */ const m1 = (42);
+/* export default */ const m1 = (42);
 const value = 1
 
 // ./m2.js
-/* ESM default export */ const m2 = (42);
+/* export default */ const m2 = (42);
 const m2_value = 2
 
 export { m1, m2, m2_value, value };
