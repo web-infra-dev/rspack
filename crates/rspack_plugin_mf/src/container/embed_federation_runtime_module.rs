@@ -87,41 +87,45 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.pop();
     }
 
-    // Generate prevStartup wrapper pattern with defensive checks
-    // When mf_async_startup is enabled, wrap __webpack_require__.x instead of STARTUP_ENTRYPOINT
-    // This ensures federation runtime modules execute BEFORE __webpack_require__.x() is called
-    let result = if compilation.options.experiments.mf_async_startup {
-      format!(
-        r#"var prevX = __webpack_require__.x;
-var hasRun = false;
-__webpack_require__.x = function() {{
-	if (!hasRun) {{
-		hasRun = true;
-{module_executions}
-	}}
-	if (typeof prevX === 'function') {{
-		return prevX.apply(this, arguments);
-	}}
-}};"#
-      )
+    let module_exec_body = if module_executions.is_empty() {
+      "\t// no federation runtime modules to execute\n".to_string()
+    } else {
+      format!("{module_executions}\n")
+    };
+
+    let run_function = format!(
+      "function runFederationRuntime() {{\n\tif (hasRun) return;\n\thasRun = true;\n{module_exec_body}}}\n",
+      module_exec_body = module_exec_body
+    );
+
+    let install_chunk = RuntimeGlobals::EXTERNAL_INSTALL_CHUNK.name();
+
+    // Generate wrapper pattern ensuring federation runtime executes before startup or chunk installation runs
+    let mut result = String::new();
+    if compilation.options.experiments.mf_async_startup {
+      result.push_str("var prevX = __webpack_require__.x;\n");
+      result.push_str("var hasRun = false;\n");
+      result.push_str(&run_function);
+      result.push_str(
+        "__webpack_require__.x = function() {\n\trunFederationRuntime();\n\tif (typeof prevX === 'function') {\n\t\treturn prevX.apply(this, arguments);\n\t}\n};\n",
+      );
     } else {
       let startup = RuntimeGlobals::STARTUP.name();
-      format!(
-        r#"var prevStartup = {startup};
-var hasRun = false;
-{startup} = function() {{
-	if (!hasRun) {{
-		hasRun = true;
-{module_executions}
-	}}
-	if (typeof prevStartup === 'function') {{
-		return prevStartup();
-	}} else {{
-		console.warn('[MF] Invalid prevStartup');
-	}}
-}};"#
-      )
-    };
+      result.push_str(&format!("var prevStartup = {startup};\n"));
+      result.push_str("var hasRun = false;\n");
+      result.push_str(&run_function);
+      result.push_str(&format!(
+        "{startup} = function() {{\n\trunFederationRuntime();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
+        startup = startup
+      ));
+    }
+
+    result.push_str(&format!(
+      "var prevExternalInstallChunk = {install_chunk};\nif (typeof prevExternalInstallChunk === 'function') {{\n\t{install_chunk} = function() {{\n\t\trunFederationRuntime();\n\t\treturn prevExternalInstallChunk.apply(this, arguments);\n\t}};\n}}\n",
+      install_chunk = install_chunk
+    ));
+
+    result.push_str("runFederationRuntime();\n");
 
     Ok(result)
   }
