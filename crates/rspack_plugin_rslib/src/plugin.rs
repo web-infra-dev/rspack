@@ -4,9 +4,9 @@ use std::{
 };
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, CompilerFinishMake, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, get_module_directives,
-  get_module_hashbang,
+  AssetEmittedInfo, ChunkUkey, Compilation, CompilationParams, CompilerAssetEmitted,
+  CompilerCompilation, CompilerFinishMake, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -179,6 +179,30 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilerAssetEmitted for RslibPlugin)]
+async fn asset_emitted(
+  &self,
+  compilation: &Compilation,
+  _filename: &str,
+  info: &AssetEmittedInfo,
+) -> Result<()> {
+  use rspack_core::rspack_sources::Source;
+  use rspack_fs::FilePermissions;
+
+  // Check if the file content starts with a hashbang
+  let content = info.source.source().into_string_lossy();
+  if content.starts_with("#!") {
+    // Set file permissions to 0o755 (rwxr-xr-x) using the file system interface
+    // This will work on Unix/macOS and be a no-op on Windows/WASM
+    let output_fs = &compilation.output_filesystem;
+    let permissions = FilePermissions::from_mode(0o755);
+    output_fs
+      .set_permissions(&info.target_path, permissions)
+      .await?;
+  }
+  Ok(())
+}
+
 impl Plugin for RslibPlugin {
   fn name(&self) -> &'static str {
     "rslib"
@@ -192,6 +216,10 @@ impl Plugin for RslibPlugin {
       .tap(nmf_parser::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+    ctx
+      .compiler_hooks
+      .asset_emitted
+      .tap(asset_emitted::new(self));
 
     Ok(())
   }

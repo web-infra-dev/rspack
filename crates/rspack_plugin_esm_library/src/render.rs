@@ -101,7 +101,7 @@ impl EsmLibraryPlugin {
         chunk_init_fragments.insert(
           0,
           Box::new(rspack_core::NormalInitFragment::new(
-            format!("{}\n", hashbang),
+            format!("{hashbang}\n"),
             rspack_core::InitFragmentStage::StageConstants,
             i32::MIN,
             rspack_core::InitFragmentKey::unique(),
@@ -117,7 +117,7 @@ impl EsmLibraryPlugin {
           chunk_init_fragments.insert(
             insert_pos,
             Box::new(rspack_core::NormalInitFragment::new(
-              format!("{}\n", directive),
+              format!("{directive}\n"),
               rspack_core::InitFragmentStage::StageConstants,
               i32::MIN + 1 + idx as i32,
               rspack_core::InitFragmentKey::unique(),

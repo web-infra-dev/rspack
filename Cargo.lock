@@ -4715,6 +4715,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_asset",
