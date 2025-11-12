@@ -76,23 +76,28 @@ it("should load remote components synchronously with static imports", () => {
 });
 
 it("should share singleton modules across host and remotes", () => {
-	// Verify shared module singleton behavior
-	return import("./App").then(({ default: App }) => {
-		const rendered = App();
-		const versions = parseRenderVersions(rendered);
+	// Reset React version to ensure test isolation
+	return import("./reset-react").then(({ default: reset }) => {
+		reset();
 
-		// After upgrade, all should use the same (upgraded) React version
-		return import("./upgrade-react").then(({ default: upgrade }) => {
-			upgrade();
-			const afterUpgrade = App();
-			const upgradedVersions = parseRenderVersions(afterUpgrade);
+		// Verify shared module singleton behavior
+		return import("./App").then(({ default: App }) => {
+			const rendered = App();
+			const versions = parseRenderVersions(rendered);
 
-			// Host, local, and remote should all see the upgraded singleton
-			expect(upgradedVersions.host).toBe("3.2.1");
-			expect(upgradedVersions.localB).toBe("3.2.1");
+			// After upgrade, all should use the same (upgraded) React version
+			return import("./upgrade-react").then(({ default: upgrade }) => {
+				upgrade();
+				const afterUpgrade = App();
+				const upgradedVersions = parseRenderVersions(afterUpgrade);
 
-			// Verifies singleton sharing works correctly with async startup
-			expect([upgradedVersions.host, upgradedVersions.localB]).toContain(upgradedVersions.remote);
+				// Host, local, and remote should all see the upgraded singleton
+				expect(upgradedVersions.host).toBe("3.2.1");
+				expect(upgradedVersions.localB).toBe("3.2.1");
+
+				// Verifies singleton sharing works correctly with async startup
+				expect([upgradedVersions.host, upgradedVersions.localB]).toContain(upgradedVersions.remote);
+			});
 		});
 	});
 });
