@@ -18,7 +18,7 @@
     "legacy:e2e:ci": "pnpm legacy:build && npx playwright install --with-deps && LEGACY_START=true npx playwright test --reporter=list"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.56.0",
     "@rsdoctor/rspack-plugin": "0.3.7",
     "@rsdoctor/webpack-plugin": "0.3.7",
     "concurrently": "8.2.2",
