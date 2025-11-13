@@ -10,7 +10,7 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
   CompilerId, CompilerOptions, DependencyParents, ModuleProfile, ResolverFactory,
   SharedPluginDriver,
-  compilation::make::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},

@@ -6,7 +6,7 @@ mod module_executor;
 use rspack_error::Result;
 
 pub use self::{
-  artifact::{MakeArtifact, MakeArtifactState},
+  artifact::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   graph_updater::{UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
@@ -19,7 +19,10 @@ use crate::Compilation;
 ///
 /// The main method for updating the module graph in the make phase,
 /// it will use entries, modified_files, removed_files to update the module graph.
-pub async fn make(compilation: &Compilation, mut artifact: MakeArtifact) -> Result<MakeArtifact> {
+pub async fn build_module_graph(
+  compilation: &Compilation,
+  mut artifact: BuildModuleGraphArtifact,
+) -> Result<BuildModuleGraphArtifact> {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -56,10 +59,10 @@ pub async fn make(compilation: &Compilation, mut artifact: MakeArtifact) -> Resu
 /// so the current approach is to split the make stage into `make` and `finish_make`.
 ///
 /// TODO after hooks support using artifact as a parameter, consider merging make and finish_make.
-pub async fn finish_make(
+pub async fn finish_build_module_graph(
   compilation: &Compilation,
-  artifact: MakeArtifact,
-) -> Result<MakeArtifact> {
+  artifact: BuildModuleGraphArtifact,
+) -> Result<BuildModuleGraphArtifact> {
   update_module_graph(
     compilation,
     artifact,

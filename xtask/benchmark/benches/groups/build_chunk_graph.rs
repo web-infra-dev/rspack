@@ -173,7 +173,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .call(&mut compiler.compilation)
       .await
       .unwrap();
-    compiler.compilation.make().await.unwrap();
+    compiler.compilation.build_module_graph().await.unwrap();
 
     while matches!(
       compiler
@@ -188,7 +188,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
 
     compiler
       .compilation
-      .finish(compiler.plugin_driver.clone())
+      .finish_build_module_graph()
       .await
       .unwrap();
   });
