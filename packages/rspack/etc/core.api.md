@@ -3094,7 +3094,7 @@ export type HtmlRspackPluginOptions = {
 // @public (undocumented)
 interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     // (undocumented)
-    logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
+    logLevel?: "debug" | "info" | "warn" | "error" | "silent";
     // (undocumented)
     logProvider?: LogProviderCallback;
     // (undocumented)
@@ -3115,8 +3115,8 @@ interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     } | ((path: string, req: Request_2) => string) | ((path: string, req: Request_2) => Promise<string>);
     // (undocumented)
     router?: {
-        [hostOrPath: string]: HttpProxyServerOptions['target'];
-    } | ((req: Request_2) => HttpProxyServerOptions['target']) | ((req: Request_2) => Promise<HttpProxyServerOptions['target']>);
+        [hostOrPath: string]: HttpProxyServerOptions["target"];
+    } | ((req: Request_2) => HttpProxyServerOptions["target"]) | ((req: Request_2) => Promise<HttpProxyServerOptions["target"]>);
 }
 
 // @public (undocumented)
