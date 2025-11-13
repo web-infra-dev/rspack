@@ -129,7 +129,11 @@ export default {
 ```
 
 :::tip
-When using [Module Federation](/guide/features/module-federation), if the application uses `exposes` to expose remote modules, `chunks: 'all'` cannot be used as it would break the remote module splitting.
+
+Before Rspack v1.6.2, projects using [Module Federation](/guide/features/module-federation) with exposes could not enable `chunks: 'all'`, as it would break remote module splitting.
+
+Starting from v1.6.2, Module Federation works seamlessly with `chunks: 'all'`.
+
 :::
 
 The `chunks` option can be set to a regular expression, which is a shorthand for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
