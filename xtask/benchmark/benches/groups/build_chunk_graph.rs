@@ -188,7 +188,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
 
     compiler
       .compilation
-      .finish_build_module_graph(compiler.plugin_driver.clone())
+      .finish_build_module_graph()
       .await
       .unwrap();
   });
