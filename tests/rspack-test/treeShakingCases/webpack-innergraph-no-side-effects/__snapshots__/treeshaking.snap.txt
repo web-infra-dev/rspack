@@ -14,10 +14,10 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
   test: () => (test)
 });
-/* ESM import */var _package__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package/index.js");
+/* import */var _package__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package/index.js");
 
 
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_package__WEBPACK_IMPORTED_MODULE_0__.a);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_package__WEBPACK_IMPORTED_MODULE_0__.a);
 
 function test() {}
 

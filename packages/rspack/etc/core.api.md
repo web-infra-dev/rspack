@@ -2486,7 +2486,7 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     parallelCodeSplitting?: boolean;
     // (undocumented)
     parallelLoader?: boolean;

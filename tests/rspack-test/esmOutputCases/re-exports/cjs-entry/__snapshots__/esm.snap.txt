@@ -20,7 +20,7 @@ __webpack_require__.d(__webpack_exports__, {
   bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
   foo: () => (foo)
 });
-/* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */ "./bar.js");
+/* import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 

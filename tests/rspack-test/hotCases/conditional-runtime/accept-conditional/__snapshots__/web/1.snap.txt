@@ -10,8 +10,8 @@
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 49
 - Manifest: main.LAST_HASH.hot-update.json, size: 48
-- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 580
-- Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 441
+- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 576
+- Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 437
 - Update: main.LAST_HASH.hot-update.js, size: 182
 
 ## Manifest
@@ -55,7 +55,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (43);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (43);
 
 
 }),
@@ -93,7 +93,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (43);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (43);
 
 
 }),

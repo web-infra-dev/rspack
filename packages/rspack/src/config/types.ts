@@ -2787,6 +2787,7 @@ export type Experiments = {
 	incremental?: IncrementalPresets | Incremental;
 	/**
 	 * Enable multi-threaded code splitting algorithm.
+	 * @deprecated This option is deprecated, it has a huge regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead
 	 */
 	parallelCodeSplitting?: boolean;
 	/**

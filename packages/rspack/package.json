@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -62,7 +62,7 @@
   "dependencies": {
     "@module-federation/runtime-tools": "0.21.4",
     "@rspack/binding": "workspace:*",
-    "@rspack/lite-tapable": "1.0.1"
+    "@rspack/lite-tapable": "1.1.0"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"

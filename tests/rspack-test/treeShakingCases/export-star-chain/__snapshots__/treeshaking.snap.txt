@@ -21,7 +21,7 @@ const blue = "blue";
 __webpack_require__.d(__webpack_exports__, {
   result: () => (/* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_0__.result)
 });
-/* ESM import */var _result__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/result.js");
+/* import */var _result__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/result.js");
 
 
 
@@ -33,9 +33,9 @@ __webpack_require__.d(__webpack_exports__, {
   red: () => (/* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.red),
   result: () => (/* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_2__.result)
 });
-/* ESM import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/a.js");
-/* ESM import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./colors/b.js");
-/* ESM import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./colors/c.js");
+/* import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/a.js");
+/* import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./colors/b.js");
+/* import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./colors/c.js");
 
 
 
@@ -51,8 +51,8 @@ const result = "ssss";
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/index.js");
-/* ESM import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./something/Something.js");
+/* import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./colors/index.js");
+/* import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./something/Something.js");
 
 
 _export__WEBPACK_IMPORTED_MODULE_0__;

@@ -11,7 +11,7 @@ __webpack_require__.d(__webpack_exports__, {
   cR: () => (lib),
   up: () => (/* reexport safe */ _lib2__WEBPACK_IMPORTED_MODULE_0__.u)
 });
-/* ESM import */var _lib2__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+/* import */var _lib2__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 
 
 const lib = 42
@@ -29,7 +29,7 @@ __webpack_require__.d(__webpack_exports__, {
   B: () => (/* reexport safe */ _lib3__WEBPACK_IMPORTED_MODULE_0__.B),
   u: () => (lib2)
 });
-/* ESM import */var _lib3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib3 */ "./lib3.js");
+/* import */var _lib3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib3 */ "./lib3.js");
 
 
 const lib2 = 42

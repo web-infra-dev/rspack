@@ -1,6 +1,6 @@
 ```mjs title=dynamic_js.mjs
 // ./dynamic.js
-/* ESM default export */ const dynamic = (42);
+/* export default */ const dynamic = (42);
 
 export { dynamic };
 

@@ -40,14 +40,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
       executed_entry_deps,
     } = context;
 
-    if tracker.is_module_building(&meta.origin_module_identifier) {
-      execute_task.finish_with_error(rspack_error::error!(
-        "Nested calls to importModule are not supported. MetaInfo: {:?}",
-        meta
-      ));
-      return Ok(vec![]);
-    }
-
     let mut res = vec![];
     let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
@@ -98,7 +90,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
     // mark as executed
     executed_entry_deps.insert(dep_id);
 
-    if tracker.is_entry_running(&dep_id) {
+    if tracker.is_running(&dep_id) {
       let mg = origin_context.artifact.get_module_graph();
       // the module in module executor need to check.
       if mg

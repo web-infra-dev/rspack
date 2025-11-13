@@ -27,13 +27,13 @@ function _create_class(Constructor, protoProps, staticProps) {
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _util_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./util.js");
+/* import */var _util_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./util.js");
 
 
 
 }),
 "./util.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../../../../node_modules/<PNPM_INNER>/@swc/helpers/esm/_create_class.js");
+/* import */var _swc_helpers_create_class__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../../../../node_modules/<PNPM_INNER>/@swc/helpers/esm/_create_class.js");
 
 var ConsoleExporterWeb;
 ConsoleExporterWeb = (function () {
@@ -60,7 +60,7 @@ ConsoleExporterWeb = (function () {
 	return ConsoleExporterWeb;
 })();
 
-/* unused ESM default export */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (ConsoleExporterWeb)));
+/* unused export default */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (ConsoleExporterWeb)));
 
 
 }),

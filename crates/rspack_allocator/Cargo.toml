@@ -9,9 +9,8 @@ version.workspace = true
 [dependencies]
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-sftrace-setup    = { workspace = true, optional = true }
-tracy-client     = { workspace = true, optional = true }
-tracy-client-sys = { version = "=0.26.0" }
+sftrace-setup = { workspace = true, optional = true }
+tracy-client  = { workspace = true, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Turned on `local_dynamic_tls` to avoid issue: https://github.com/microsoft/mimalloc/issues/147
