@@ -224,10 +224,8 @@ impl EsmLibraryPlugin {
 
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported_atoms) in import_map.iter() {
-                escaped_identifiers.insert(
-                  source.to_string(),
-                  split_readable_identifier(source.as_str()),
-                );
+                escaped_identifiers
+                  .insert(source.clone(), split_readable_identifier(source.as_str()));
                 for atom in imported_atoms {
                   escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
                 }
@@ -758,14 +756,12 @@ impl EsmLibraryPlugin {
                     &mut chunk_init_fragments,
                   )
                   .await?;
-                concate_info = Box::new(
-                  codegen_res
-                    .concatenation_scope
-                    .as_ref()
-                    .expect("should have concatenation scope")
-                    .current_module
-                    .clone(),
-                );
+                *concate_info = codegen_res
+                  .concatenation_scope
+                  .as_ref()
+                  .expect("should have concatenation scope")
+                  .current_module
+                  .clone();
 
                 let m = module_graph
                   .module_by_identifier(&id)
@@ -2394,7 +2390,7 @@ impl EsmLibraryPlugin {
           if let Some(used_name) = used_name {
             match used_name {
               UsedName::Normal(used_name) => {
-                let direct_export = Atom::new(direct_export.to_string());
+                let direct_export = Atom::new(direct_export.clone());
                 let symbol = info
                   .get_internal_name(&direct_export)
                   .unwrap_or_else(|| panic!("should set internal name for {direct_export}"));

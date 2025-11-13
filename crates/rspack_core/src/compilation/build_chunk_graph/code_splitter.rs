@@ -636,7 +636,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
         None => {
           let (chunk_ukey, created) = Compilation::add_named_chunk(
-            runtime.to_string(),
+            runtime.clone(),
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );

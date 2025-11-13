@@ -381,7 +381,7 @@ impl Compiler {
             .incremental
             .passes_enabled(IncrementalPasses::EMIT_ASSETS)
           {
-            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+            new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
           if let Some(old_version) = self.emitted_asset_versions.get(filename)

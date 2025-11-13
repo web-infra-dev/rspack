@@ -596,7 +596,7 @@ impl Compilation {
     let import_var_map_of_module = runtime_map
       .entry(
         runtime
-          .map(|r| get_runtime_key(r).to_string())
+          .map(|r| get_runtime_key(r).clone())
           .unwrap_or_default(),
       )
       .or_default();
@@ -838,7 +838,7 @@ impl Compilation {
       if let Some(related_in_info) = self.assets_related_in.get(filename) {
         for name in related_in_info {
           if let Some(asset) = self.assets.get_mut(name) {
-            asset.get_info_mut().related.source_map = Some(new_name.to_string());
+            asset.get_info_mut().related.source_map = Some(new_name.clone());
           }
         }
       }

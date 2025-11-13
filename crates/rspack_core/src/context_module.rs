@@ -231,7 +231,7 @@ impl ContextModule {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
           .map(|id| (id.to_string(), dep))
       })
-      .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
+      .sorted_unstable_by_key(|(module_id, _)| module_id.clone());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
         &compilation.get_module_graph(),
