@@ -15,7 +15,8 @@ use tracing::instrument;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
-  KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::make::ModuleExecutor,
   fast_set, include_hash,
@@ -349,7 +350,15 @@ impl Compiler {
 
   #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    self.run_clean_options().await?;
+    let output_path_str = self
+      .compilation
+      .get_path(
+        &Filename::from(&self.options.output.path),
+        Default::default(),
+      )
+      .await?;
+    let output_path = Utf8Path::new(&output_path_str);
+    self.run_clean_options(output_path).await?;
 
     self
       .plugin_driver
@@ -383,10 +392,10 @@ impl Compiler {
           }
 
           // SAFETY: await immediately and trust caller to poll future entirely
-          let s = unsafe { token.used((&self, filename, asset)) };
+          let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
-          s.spawn(|(this, filename, asset)| {
-            this.emit_asset(&this.options.output.path, filename, asset)
+          s.spawn(|(this, filename, asset, output_path)| {
+            this.emit_asset(output_path, filename, asset)
           });
         })
     })
@@ -480,7 +489,7 @@ impl Compiler {
     Ok(())
   }
 
-  async fn run_clean_options(&mut self) -> Result<()> {
+  async fn run_clean_options(&mut self, output_path: &Utf8Path) -> Result<()> {
     let clean_options = &self.options.output.clean;
 
     // keep all
@@ -491,37 +500,24 @@ impl Compiler {
     if self.emitted_asset_versions.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
-          self
-            .output_filesystem
-            .remove_dir_all(&self.options.output.path)
-            .await?;
+          self.output_filesystem.remove_dir_all(output_path).await?;
         }
         CleanOptions::KeepPath(p) => {
           let path = self.options.output.path.join(p);
           trim_dir(
             &*self.output_filesystem,
-            &self.options.output.path,
+            output_path,
             KeepPattern::Path(&path),
           )
           .await?;
         }
         CleanOptions::KeepRegex(r) => {
           let keep_pattern = KeepPattern::Regex(r);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
+          trim_dir(&*self.output_filesystem, output_path, keep_pattern).await?;
         }
         CleanOptions::KeepFunc(f) => {
           let keep_pattern = KeepPattern::Func(f);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
+          trim_dir(&*self.output_filesystem, output_path, keep_pattern).await?;
         }
         _ => {}
       }
