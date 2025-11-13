@@ -110,5 +110,10 @@ if (process.env.DEBUG_INFO) {
 // It leaks an Error object on construction
 // so it leaks the whole stack trace
 require("wast-loader");
-process.removeAllListeners("uncaughtException");
-process.removeAllListeners("unhandledRejection");
+
+// remove the last uncaughtException / unhandledRejection listener added by wast
+const listeners = process.listeners("uncaughtException");
+process.off("uncaughtException", listeners[listeners.length - 1]);
+
+const listeners1 = process.listeners("unhandledRejection");
+process.off("unhandledRejection", listeners1[listeners1.length - 1]);
