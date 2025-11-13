@@ -101,7 +101,7 @@ impl ChunkGraph {
         .map(|chunk_name| format!("    <tr><td>{chunk_name}</td></tr>"))
         .join("\n");
 
-      let table_body = requests.to_string();
+      let table_body = requests.clone();
 
       format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
     };

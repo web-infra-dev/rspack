@@ -376,7 +376,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         && content.trim().is_empty()
       {
         // remove empty runtime chunk
-        removed.push(asset_name.to_string());
+        removed.push(asset_name.clone());
         continue;
       }
 
