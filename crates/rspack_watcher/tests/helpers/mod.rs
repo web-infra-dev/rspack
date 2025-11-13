@@ -4,8 +4,7 @@ use std::{
   mem::ManuallyDrop,
   path::PathBuf,
   sync::{
-    Arc,
-    atomic::AtomicBool,
+    Arc, Condvar, Mutex,
     mpsc::{Receiver, Sender},
   },
   time::SystemTime,
@@ -206,7 +205,10 @@ impl TestHelper {
   ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 
-    let ready = Arc::new(AtomicBool::new(false));
+    #[derive(Default)]
+    struct State(Arc<Mutex<bool>>, Condvar);
+
+    let state = Arc::new(State::default());
 
     macro_rules! collect_paths {
       ($expr:expr) => {{
@@ -234,8 +236,10 @@ impl TestHelper {
     let watcher = self.watcher.clone();
 
     std::thread::spawn({
-      let ready = ready.clone();
+      let state = state.clone();
       move || {
+        let (ready, cvar) = (&state.0, &state.1);
+
         let handle = TOKIO_RUNTIME.handle();
         handle.block_on(async {
           watcher
@@ -251,7 +255,9 @@ impl TestHelper {
             )
             .await;
 
-          ready.store(true, std::sync::atomic::Ordering::SeqCst);
+          let mut started = ready.lock().unwrap();
+          *started = true;
+          cvar.notify_one();
         })
       }
     });
@@ -264,13 +270,10 @@ impl TestHelper {
         changed_files: FxHashSet<String>,
         deleted_files: FxHashSet<String>,
       ) {
-        self
-          .0
-          .send(Event::Aggregated(AggregatedEvent {
-            changed_files,
-            deleted_files,
-          }))
-          .unwrap();
+        let _ = self.0.send(Event::Aggregated(AggregatedEvent {
+          changed_files,
+          deleted_files,
+        }));
       }
     }
 
@@ -278,24 +281,26 @@ impl TestHelper {
 
     impl EventHandler for ChangeHandler {
       fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-        self
+        let _ = self
           .0
-          .send(Event::Changed(ChangedEvent::Changed(changed_file)))
-          .unwrap();
+          .send(Event::Changed(ChangedEvent::Changed(changed_file)));
         Ok(())
       }
 
       fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
-        self
+        let _ = self
           .0
-          .send(Event::Changed(ChangedEvent::Deleted(deleted_file)))
-          .unwrap();
+          .send(Event::Changed(ChangedEvent::Deleted(deleted_file)));
         Ok(())
       }
     }
 
-    // Wait until the watcher is ready
-    while !ready.load(std::sync::atomic::Ordering::SeqCst) {}
+    // Wait until the watcher is started
+    let (ready, cvar) = (&state.0, &state.1);
+    let mut started = ready.lock().unwrap();
+    while !*started {
+      started = cvar.wait(started).unwrap();
+    }
 
     rx
   }
@@ -303,6 +308,9 @@ impl TestHelper {
 
 impl Drop for TestHelper {
   fn drop(&mut self) {
+    TOKIO_RUNTIME.handle().block_on(async {
+      let _ = self.watcher.write().await.close().await;
+    });
     // SAFETY: ManuallyDrop is not used afterwards.
     let temp_dir = unsafe { ManuallyDrop::take(&mut self.temp_dir) };
 
