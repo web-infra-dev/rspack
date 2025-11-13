@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ClientEntryType, Compilation, CompilerFinishMake, Module, ModuleType, Plugin, RSCMeta,
+  ClientEntryType, Compilation, CompilerFinishMake, ExportsInfoGetter, Module, ModuleType, Plugin,
+  PrefetchExportsInfoMode, RSCMeta, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -11,7 +12,7 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::atoms::Wtf8Atom;
+use swc_core::{atoms::Wtf8Atom, ecma::transforms::react::Runtime};
 
 use crate::utils::ServerEntryModules;
 
@@ -43,7 +44,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
   let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
-  for server_entry_module in server_entry_modules {
+  // 从 server entry 开始遍历依赖图，收集 "use client" 组件和 "use server"
+  for (server_entry_module, runtime) in server_entry_modules {
     let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
     let mut client_entries_to_inject = Vec::new();
     let mut merged_css_imports: CssImports = CssImports::default();
@@ -67,6 +69,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       };
       let component_info = self.collect_component_info_from_server_entry_dependency(
         &entry_request,
+        runtime.as_ref(),
         &compilation,
         resolved_module.as_ref(),
       );
@@ -78,9 +81,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       merged_css_imports.extend(component_info.css_imports);
 
       client_entries_to_inject.push(ClientEntry {
-        // entry_name: name.to_string(),
         client_imports: component_info.client_component_imports,
-        // bundle_path: bundle_path.clone(),
         absolute_page_path: entry_request.to_string(),
       });
     }
@@ -256,6 +257,7 @@ impl ReactServerComponentPlugin {
   fn collect_component_info_from_server_entry_dependency(
     &self,
     entry_request: &str,
+    runtime: Option<&RuntimeSpec>,
     compilation: &Compilation,
     resolved_module: &dyn Module,
   ) -> ComponentInfo {
@@ -270,6 +272,7 @@ impl ReactServerComponentPlugin {
     // Traverse the module graph to find all client components.
     self.filter_client_components(
       resolved_module,
+      runtime,
       &[],
       &mut visited_of_client_components_traverse,
       &mut client_component_imports,
@@ -291,6 +294,7 @@ impl ReactServerComponentPlugin {
   fn filter_client_components(
     &self,
     module: &dyn Module,
+    runtime: Option<&RuntimeSpec>,
     imported_identifiers: &[String],
     visited: &mut FxHashSet<String>,
     client_component_imports: &mut ClientComponentImports,
@@ -331,18 +335,21 @@ impl ReactServerComponentPlugin {
     if is_css_mod(module) {
       let side_effect_free = module
         .factory_meta()
-        .map_or(false, |meta| meta.side_effect_free.unwrap_or(false));
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or(false);
 
-      // TODO
-      // if side_effect_free {
-      //   let unused = !module_graph
-      //     .get_exports_info(&module.identifier())
-      //     .is_module_used(&module_graph, Some(&self.webpack_runtime));
-
-      //   if unused {
-      //     return;
-      //   }
-      // }
+      if side_effect_free {
+        let exports_info = module_graph.get_exports_info(&module.identifier());
+        let prefetched_exports_info = ExportsInfoGetter::prefetch(
+          &exports_info,
+          &module_graph,
+          PrefetchExportsInfoMode::Default,
+        );
+        let unused = !prefetched_exports_info.is_module_used(runtime);
+        if unused {
+          return;
+        }
+      }
 
       css_imports.insert(mod_resource);
     } else if is_client_component_entry_module(module) {
@@ -396,6 +403,7 @@ impl ReactServerComponentPlugin {
       };
       self.filter_client_components(
         resolved_module.as_ref(),
+        runtime,
         &dependency_ids,
         visited,
         client_component_imports,
