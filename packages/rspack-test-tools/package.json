@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -23,7 +23,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
-  "files": ["client", "dist", "template", "rstest.d.ts"],
+  "files": [
+    "client",
+    "dist",
+    "template",
+    "rstest.d.ts"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
