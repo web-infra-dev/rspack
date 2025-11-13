@@ -243,6 +243,11 @@ impl JsPlugin {
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
+    let supports_arrow_function = compilation
+      .options
+      .output
+      .environment
+      .supports_arrow_function();
 
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
@@ -419,9 +424,17 @@ impl JsPlugin {
           }
 
           if !chunk_ids.is_empty() {
+            let on_chunks_loaded_callback = if supports_arrow_function {
+              format!("() => {}({module_id_expr})", RuntimeGlobals::REQUIRE)
+            } else {
+              format!(
+                "function() {{ return {}({module_id_expr}) }}",
+                RuntimeGlobals::REQUIRE
+              )
+            };
             buf2.push(
               format!(
-                "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
+                "{}{}(undefined, {}, {});",
                 if i + 1 == entries.len() {
                   format!("var {} = ", RuntimeGlobals::EXPORTS)
                 } else {
@@ -429,7 +442,7 @@ impl JsPlugin {
                 },
                 RuntimeGlobals::ON_CHUNKS_LOADED,
                 stringify_array(&chunk_ids),
-                RuntimeGlobals::REQUIRE
+                on_chunks_loaded_callback
               )
               .into(),
             );
