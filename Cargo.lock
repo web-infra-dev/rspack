@@ -1132,6 +1132,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f211af61d8efdd104f96e57adf5e426ba1bc3ed7a4ead616e15e5881fd79c4d"
 
 [[package]]
+name = "cty"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
+
+[[package]]
 name = "darling"
 version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3498,6 +3504,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c741844b1fbe0cfbae8dfeb73b5e5fdc95daf7be58bdd72afb3fd85c86bccdb"
 dependencies = [
  "cc",
+ "cty",
  "libc",
 ]
 
@@ -3506,6 +3513,7 @@ name = "rspack_allocator"
 version = "0.6.2"
 dependencies = [
  "mimalloc-rspack",
+ "rspack-libmimalloc-sys",
  "sftrace-setup",
  "tracy-client",
 ]

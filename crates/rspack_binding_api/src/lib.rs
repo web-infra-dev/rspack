@@ -114,6 +114,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
+use rspack_util::env::should_debug_memory;
 use rustc_hash::FxHashMap;
 use swc_core::common::util::take::Take;
 
@@ -345,6 +346,10 @@ impl JsCompiler {
             compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
             })?;
+            if (should_debug_memory()) {
+              rspack_allocator::print_memory_stats();
+            }
+
             tracing::debug!("build ok");
             Ok(())
           },
@@ -381,6 +386,9 @@ impl JsCompiler {
               .to_napi_result_with_message(|e| {
                 print_error_diagnostic(e, compiler.options.stats.colors)
               })?;
+            if (should_debug_memory()) {
+              rspack_allocator::print_memory_stats();
+            }
             tracing::debug!("rebuild ok");
             Ok(())
           },
