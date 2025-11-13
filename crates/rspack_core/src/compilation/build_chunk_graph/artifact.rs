@@ -46,11 +46,13 @@ impl CodeSplittingCache {
   fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
-    if !this_compilation
-      .entries
-      .keys()
-      .eq(this_compilation.code_splitting_cache.entrypoints.keys())
-    {
+    if !this_compilation.entries.keys().eq(
+      this_compilation
+        .build_chunk_graph_artifact
+        .code_splitting_cache
+        .entrypoints
+        .keys(),
+    ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
     }
@@ -171,11 +173,13 @@ impl CodeSplittingCache {
   fn can_skip_rebuilding_new(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
-    if !this_compilation
-      .entries
-      .keys()
-      .eq(this_compilation.code_splitting_cache.entrypoints.keys())
-    {
+    if !this_compilation.entries.keys().eq(
+      this_compilation
+        .build_chunk_graph_artifact
+        .code_splitting_cache
+        .entrypoints
+        .keys(),
+    ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
     }
@@ -303,11 +307,12 @@ where
     .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let new_code_splitting = compilation.options.experiments.parallel_code_splitting;
   let no_change = compilation
+    .build_chunk_graph_artifact
     .code_splitting_cache
     .can_skip_rebuilding(compilation);
 
   if (incremental_code_splitting && !new_code_splitting) || no_change {
-    let cache = &mut compilation.code_splitting_cache;
+    let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
       s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
@@ -335,7 +340,7 @@ where
   }
 
   let compilation = task(compilation).await?;
-  let cache = &mut compilation.code_splitting_cache;
+  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
   rayon::scope(|s| {
     s.spawn(|_| cache.chunk_by_ukey = compilation.chunk_by_ukey.clone());
     s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
@@ -355,7 +360,12 @@ where
 
     map.insert(mid, (pre, post));
   }
-  let cache = &mut compilation.code_splitting_cache;
+  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
   cache.module_idx = map;
   Ok(())
+}
+
+#[derive(Debug, Default)]
+pub struct BuildChunkGraphArtifact {
+  pub code_splitting_cache: CodeSplittingCache,
 }

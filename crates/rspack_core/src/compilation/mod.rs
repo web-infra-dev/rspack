@@ -11,8 +11,7 @@ use std::{
 };
 
 use build_chunk_graph::{
-  artifact::{CodeSplittingCache, use_code_splitting_cache},
-  build_chunk_graph, build_chunk_graph_new,
+  artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
 };
 use dashmap::DashSet;
 use futures::future::BoxFuture;
@@ -53,6 +52,7 @@ use crate::{
   ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
   RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::make::{
     MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
   },
@@ -274,7 +274,7 @@ pub struct Compilation {
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
-  pub code_splitting_cache: CodeSplittingCache,
+  pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -405,7 +405,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       old_cache,
       incremental,
-      code_splitting_cache: Default::default(),
+      build_chunk_graph_artifact: Default::default(),
 
       hash: None,
 

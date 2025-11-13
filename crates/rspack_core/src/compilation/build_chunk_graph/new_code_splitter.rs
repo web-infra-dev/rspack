@@ -1809,6 +1809,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   let module_graph: &ModuleGraph<'_> = &compilation.get_module_graph();
 
   let mut splitter = if !compilation
+    .build_chunk_graph_artifact
     .code_splitting_cache
     .new_code_splitter
     .module_ordinal
@@ -1823,7 +1824,12 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     affected.extend(removed);
 
     // reuse data from last computation
-    let mut splitter = std::mem::take(&mut compilation.code_splitting_cache.new_code_splitter);
+    let mut splitter = std::mem::take(
+      &mut compilation
+        .build_chunk_graph_artifact
+        .code_splitting_cache
+        .new_code_splitter,
+    );
     splitter.invalidate(affected.into_iter());
     splitter
   } else {
@@ -1833,7 +1839,10 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
   // fill chunks with its modules
   splitter.create_chunks(compilation, &outgoings)?;
 
-  compilation.code_splitting_cache.new_code_splitter = splitter;
+  compilation
+    .build_chunk_graph_artifact
+    .code_splitting_cache
+    .new_code_splitter = splitter;
 
   Ok(())
 }
