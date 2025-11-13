@@ -144,6 +144,7 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
       - name: Run rspack test
+        shell: bash
         run: |
           cargo test --workspace \
             --exclude rspack_binding_api \
