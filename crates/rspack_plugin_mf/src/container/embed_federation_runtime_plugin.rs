@@ -7,14 +7,15 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -108,9 +109,65 @@ async fn additional_chunk_runtime_requirements_tree(
     if use_async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
     } else {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
     }
+  }
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EmbedFederationRuntimePlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  // Skip build time chunks
+  if chunk.name() == Some("build time chunk") {
+    return Ok(());
+  }
+
+  // Check if chunk needs federation runtime support
+  let has_entry_modules = compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0;
+
+  // Only add requirements for entry chunks (non-runtime chunks with entries)
+  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  if has_runtime || !has_entry_modules {
+    return Ok(());
+  }
+
+  // Only process chunks that have federation dependencies
+  let collected_deps = self
+    .collected_dependency_ids
+    .lock()
+    .expect("Failed to lock collected_dependency_ids")
+    .iter()
+    .cloned()
+    .collect::<Vec<DependencyId>>();
+  let has_federation_deps = !collected_deps.is_empty();
+
+  if !has_federation_deps {
+    return Ok(());
+  }
+
+  let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
+  let use_async_startup =
+    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
+
+  if use_async_startup {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+  } else {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP);
   }
 
   Ok(())
@@ -233,11 +290,6 @@ async fn render_startup(
     return Ok(());
   }
 
-  // When async startup is enabled, bootstrap manipulation happens in the JavaScript plugin
-  if compilation.options.experiments.mf_async_startup {
-    return Ok(());
-  }
-
   // Entry chunks delegating to runtime need explicit startup calls
   if !has_runtime && has_entry_modules {
     let mut startup_with_call = ConcatSource::default();
@@ -269,6 +321,10 @@ impl Plugin for EmbedFederationRuntimePlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements_tree::new(self));
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree

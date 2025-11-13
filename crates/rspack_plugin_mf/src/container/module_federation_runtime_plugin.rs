@@ -41,28 +41,10 @@ async fn additional_tree_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
   compilation.add_runtime_module(chunk_ukey, Box::<FederationDataRuntimeModule>::default())?;
-
-  // When mf_async_startup experiment is enabled, add STARTUP_ENTRYPOINT and related requirements
-  // for runtime chunks with entry modules
-  if compilation.options.experiments.mf_async_startup {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey)
-      && compilation
-        .chunk_graph
-        .get_number_of_entry_modules(chunk_ukey)
-        > 0
-    {
-      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    }
-  }
 
   Ok(())
 }

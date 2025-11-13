@@ -243,6 +243,7 @@ impl JsPlugin {
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
+    let mut mf_async_startup = false;
 
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
@@ -360,6 +361,7 @@ impl JsPlugin {
           && !is_container_entry_chunk;
 
         if use_federation_async {
+          mf_async_startup = true;
           let mut buf2: Vec<Cow<str>> = Vec::new();
 
           buf2.push("// Module Federation async startup".into());
@@ -840,6 +842,8 @@ impl JsPlugin {
       } else if compilation.options.experiments.mf_async_startup
         && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
       {
+        // Mark that async federation startup is active for this chunk (runtime chunk without entry)
+        mf_async_startup = true;
         header.push(
           format!(
             "// the startup function (async)\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
@@ -883,6 +887,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
+      mf_async_startup,
     })
   }
 
@@ -910,6 +915,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
+      mf_async_startup: _mf_async_startup,
     } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
@@ -1140,16 +1146,25 @@ impl JsPlugin {
       .keys()
       .next_back()
     {
-      // Check if this entry chunk needs federation startup
+      // Determine if this chunk already received the async federation bootstrap.
+      // Rely exclusively on structured runtime requirement set by MF plugin.
+      let has_async_federation_wrapper =
+        runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+      // Only generate fallback wrapper when async startup is requested for this chunk
+      // and MF plugin didn't mark it as already handled.
       let needs_federation = compilation.options.experiments.mf_async_startup
-        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
+        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+        && !has_async_federation_wrapper;
       let is_esm_output = compilation.options.output.module;
 
-      let source = if needs_federation && is_esm_output {
+      let startup_str = startup.join("\n");
+
+      let source = if has_async_federation_wrapper {
+        RawStringSource::from(startup_str.clone() + "\n").boxed()
+      } else if needs_federation && is_esm_output {
         // ESM async mode with federation - use top-level await
         let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
         let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
-        let startup_str = startup.join("\n");
 
         let mut result = ConcatSource::default();
 
@@ -1189,7 +1204,6 @@ impl JsPlugin {
         // CJS output with federation - use Promise chain
         let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
         let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
-        let startup_str = startup.join("\n");
 
         let mut result = ConcatSource::default();
 
@@ -1231,25 +1245,9 @@ impl JsPlugin {
         result.add(RawStringSource::from("});\n"));
 
         result.boxed()
-      } else if compilation.options.experiments.mf_async_startup
-        && !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-        && !startup.is_empty()
-      {
-        // Check for sync federation startup case
-        let mut result = ConcatSource::default();
-        result.add(RawStringSource::from_static(
-          "\n// Federation startup call\n",
-        ));
-        result.add(RawStringSource::from(format!(
-          "{}();\n",
-          RuntimeGlobals::STARTUP.name()
-        )));
-        result.add(RawStringSource::from(startup.join("\n")));
-        result.add(RawStringSource::from("\n"));
-        result.boxed()
       } else {
         // Normal case - no federation
-        RawStringSource::from(startup.join("\n") + "\n").boxed()
+        RawStringSource::from(startup_str + "\n").boxed()
       };
 
       // Still call render_startup hook for other plugins that might need it
@@ -1739,6 +1737,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
+      mf_async_startup: _,
     } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
@@ -1758,4 +1757,5 @@ pub struct RenderBootstrapResult<'a> {
   pub header: Vec<Cow<'a, str>>,
   pub startup: Vec<Cow<'a, str>>,
   pub allow_inline_startup: bool,
+  pub mf_async_startup: bool,
 }
