@@ -1,7 +1,7 @@
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnosable;
 
-use super::MakeArtifact;
+use super::BuildModuleGraphArtifact;
 use crate::{BuildMeta, Module};
 
 /// A toolkit for cutout to fix build meta
@@ -14,7 +14,11 @@ pub struct FixBuildMeta {
 }
 
 impl FixBuildMeta {
-  pub fn analyze_force_build_modules(&mut self, artifact: &MakeArtifact, ids: &IdentifierSet) {
+  pub fn analyze_force_build_modules(
+    &mut self,
+    artifact: &BuildModuleGraphArtifact,
+    ids: &IdentifierSet,
+  ) {
     let module_graph = artifact.get_module_graph();
     for module_identifier in ids {
       let module = module_graph
@@ -26,7 +30,7 @@ impl FixBuildMeta {
     }
   }
 
-  pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
+  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let mut module_graph = artifact.get_module_graph_mut();
     for (id, build_meta) in self.origin_module_build_meta {
       if let Some(module) = module_graph.module_by_identifier_mut(&id)

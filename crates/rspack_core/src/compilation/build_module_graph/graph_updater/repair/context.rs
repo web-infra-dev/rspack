@@ -4,7 +4,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::MakeArtifact;
+use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, SharedPluginDriver,
@@ -30,11 +30,11 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
 
-  pub artifact: MakeArtifact,
+  pub artifact: BuildModuleGraphArtifact,
 }
 
 impl TaskContext {
-  pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
+  pub fn new(compilation: &Compilation, artifact: BuildModuleGraphArtifact) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -83,11 +83,11 @@ impl TaskContext {
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
-    compilation.swap_make_artifact(&mut self.artifact);
+    compilation.swap_build_module_graph_artifact(&mut self.artifact);
     compilation
   }
 
   pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
-    compilation.swap_make_artifact(&mut self.artifact);
+    compilation.swap_build_module_graph_artifact(&mut self.artifact);
   }
 }

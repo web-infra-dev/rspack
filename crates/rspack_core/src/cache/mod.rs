@@ -8,7 +8,8 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
 use crate::{
-  Compilation, CompilerOptions, ExperimentCacheOptions, compilation::make::MakeArtifact,
+  Compilation, CompilerOptions, ExperimentCacheOptions,
+  compilation::build_module_graph::BuildModuleGraphArtifact,
 };
 
 /// Cache trait
@@ -31,8 +32,8 @@ pub trait Cache: Debug + Send + Sync {
   }
   async fn after_compile(&mut self, _compilation: &Compilation) {}
 
-  async fn before_make(&mut self, _make_artifact: &mut MakeArtifact) {}
-  async fn after_make(&mut self, _make_artifact: &MakeArtifact) {}
+  async fn before_build_module_graph(&mut self, _make_artifact: &mut BuildModuleGraphArtifact) {}
+  async fn after_build_module_graph(&mut self, _make_artifact: &BuildModuleGraphArtifact) {}
 }
 
 pub fn new_cache(

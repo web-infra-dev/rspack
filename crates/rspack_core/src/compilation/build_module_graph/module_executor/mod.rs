@@ -24,7 +24,7 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
 };
 use super::{
-  MakeArtifact,
+  BuildModuleGraphArtifact,
   graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph},
 };
 use crate::{
@@ -34,7 +34,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
   // data
-  pub make_artifact: MakeArtifact,
+  pub make_artifact: BuildModuleGraphArtifact,
   pub entries: HashMap<ImportModuleMeta, DependencyId>,
 
   // temporary data, used by hook_after_finish_modules
@@ -101,7 +101,7 @@ impl ModuleExecutor {
 
     // clean removed entries
     let removed_module = compilation
-      .make_artifact
+      .build_module_graph_artifact
       .revoked_modules()
       .chain(self.make_artifact.revoked_modules())
       .collect::<HashSet<_>>();
@@ -117,7 +117,9 @@ impl ModuleExecutor {
     )
     .await?;
 
-    let mut mg = compilation.make_artifact.get_module_graph_mut();
+    let mut mg = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {
       // recursive import module may not exist the module, just skip it

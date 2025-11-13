@@ -17,7 +17,7 @@ use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
   Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
-  compilation::make::ExecutedRuntimeModule,
+  compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
@@ -783,7 +783,7 @@ impl Stats<'_> {
     } else {
       self
         .compilation
-        .make_artifact
+        .build_module_graph_artifact
         .built_modules()
         .contains(&identifier)
     };

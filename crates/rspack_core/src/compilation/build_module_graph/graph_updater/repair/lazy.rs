@@ -1,7 +1,7 @@
 use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
   DependencyId, ModuleIdentifier,
-  compilation::make::ForwardedIdSet,
+  compilation::build_module_graph::ForwardedIdSet,
   task_loop::{Task, TaskResult, TaskType},
 };
 

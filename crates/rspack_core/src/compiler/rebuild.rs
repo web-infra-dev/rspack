@@ -11,7 +11,7 @@ use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
-  compilation::make::ModuleExecutor,
+  compilation::build_module_graph::ModuleExecutor,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
 };
@@ -86,7 +86,7 @@ impl Compiler {
         // make stage used
         self
           .compilation
-          .swap_make_artifact_with_compilation(&mut new_compilation);
+          .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
 
         // seal stage used
         new_compilation.build_chunk_graph_artifact =

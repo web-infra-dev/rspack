@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  compilation::make::ModuleToLazyMake,
+  compilation::build_module_graph::ModuleToLazyMake,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
 };
@@ -17,7 +17,7 @@ use crate::{
 /// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
 /// the previous MakeArtifact, so persistent cache will never recovery again.
 #[derive(Debug, Default)]
-pub enum MakeArtifactState {
+pub enum BuildModuleGraphArtifactState {
   #[default]
   Uninitialized,
   Initialized,
@@ -25,13 +25,13 @@ pub enum MakeArtifactState {
 
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug, Default)]
-pub struct MakeArtifact {
-  // temporary data, used by subsequent steps of make, should be reset when rebuild.
-  /// Make stage affected modules.
+pub struct BuildModuleGraphArtifact {
+  // temporary data, used by subsequent steps of BuildModuleGraph, should be reset when rebuild.
+  /// BuildModuleGraph stage affected modules.
   ///
   /// This field will contain added modules, updated modules, removed modules.
   pub affected_modules: IncrementalInfo<ModuleIdentifier, BuildHasherDefault<IdentifierHasher>>,
-  /// Make stage affected dependencies.
+  /// BuildModuleGraph stage affected dependencies.
   ///
   /// This field will contain added dependencies, updated dependencies, removed dependencies.
   pub affected_dependencies: IncrementalInfo<DependencyId>,
@@ -44,8 +44,8 @@ pub struct MakeArtifact {
   /// Field to mark whether artifact has been initialized.
   ///
   /// Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
-  /// Persistent cache will update MakeArtifact and set force_build_deps to this field when this is Uninitialized.
-  pub state: MakeArtifactState,
+  /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
+  pub state: BuildModuleGraphArtifactState,
   /// Module graph data
   pub module_graph_partial: ModuleGraphPartial,
   pub module_to_lazy_make: ModuleToLazyMake,
@@ -67,7 +67,7 @@ pub struct MakeArtifact {
   pub build_dependencies: FileCounter,
 }
 
-impl MakeArtifact {
+impl BuildModuleGraphArtifact {
   pub fn get_module_graph(&self) -> ModuleGraph<'_> {
     ModuleGraph::new([Some(&self.module_graph_partial), None], None)
   }

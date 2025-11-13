@@ -17,7 +17,7 @@ use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
   KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
-  compilation::make::ModuleExecutor,
+  compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
@@ -252,9 +252,7 @@ impl Compiler {
 
     Ok(())
   }
-
-  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn compile(&mut self) -> Result<()> {
+  async fn build_module_graph(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
     // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
@@ -279,7 +277,7 @@ impl Compiler {
     let make_hook_start = logger.time("make hook");
     self
       .cache
-      .before_make(&mut self.compilation.make_artifact)
+      .before_build_module_graph(&mut self.compilation.build_module_graph_artifact)
       .await;
 
     self
@@ -289,7 +287,7 @@ impl Compiler {
       .call(&mut self.compilation)
       .await?;
     logger.time_end(make_hook_start);
-    self.compilation.make().await?;
+    self.compilation.build_module_graph().await?;
     logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
@@ -302,16 +300,29 @@ impl Compiler {
     logger.time_end(start);
 
     let start = logger.time("finish compilation");
-    self.compilation.finish(self.plugin_driver.clone()).await?;
-    self.cache.after_make(&self.compilation.make_artifact).await;
+    self.compilation.finish_build_module_graph().await?;
+    self
+      .cache
+      .after_build_module_graph(&self.compilation.build_module_graph_artifact)
+      .await;
+
     logger.time_end(start);
+    Ok(())
+  }
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
+  async fn compile(&mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.Compiler");
     let start = logger.time("seal compilation");
     #[cfg(feature = "debug_tool")]
     {
       use rspack_util::debug_tool::wait_for_signal;
       wait_for_signal("seal compilation");
     }
-
+    self.build_module_graph().await?;
+    self
+      .compilation
+      .collect_build_module_graph_effects()
+      .await?;
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 
