@@ -503,7 +503,7 @@ impl Compiler {
           self.output_filesystem.remove_dir_all(output_path).await?;
         }
         CleanOptions::KeepPath(p) => {
-          let path = self.options.output.path.join(p);
+          let path = output_path.join(p);
           trim_dir(
             &*self.output_filesystem,
             output_path,
@@ -535,7 +535,7 @@ impl Compiler {
             let filename = filename.to_owned();
             Some(async {
               if !clean_options.keep(&filename).await {
-                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let filename = output_path.join(filename);
                 let _ = self.output_filesystem.remove_file(&filename).await;
               }
             })
