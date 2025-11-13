@@ -33,6 +33,7 @@ import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
+import type http from 'http';
 import { IncomingMessage } from 'http';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -59,6 +60,7 @@ import type { JsStatsError } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Module } from '@rspack/binding';
 import type { ModuleGraphConnection } from '@rspack/binding';
+import type net from 'net';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
@@ -84,12 +86,14 @@ import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
+import type stream from 'stream';
 import { sync } from '@rspack/binding';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import type { TransformOutput } from '@rspack/binding';
 import { Url } from 'url';
+import type url from 'url';
 
 // @public (undocumented)
 type Accessibility = "public" | "protected" | "private";
@@ -935,7 +939,7 @@ export class Compilation {
     // (undocumented)
     getErrors(): WebpackError_2[];
     // (undocumented)
-    getLogger(name: string | (() => string)): Logger;
+    getLogger(name: string | (() => string)): Logger_2;
     // (undocumented)
     getPath(filename: string, data?: PathData): string;
     // (undocumented)
@@ -1124,7 +1128,7 @@ export class Compiler {
     // (undocumented)
     getCache(name: string): CacheFacade;
     // (undocumented)
-    getInfrastructureLogger(name: string | (() => string)): Logger;
+    getInfrastructureLogger(name: string | (() => string)): Logger_2;
     // (undocumented)
     hooks: CompilerHooks;
     // (undocumented)
@@ -1734,7 +1738,7 @@ type DevMiddlewareContext<_RequestInternal extends IncomingMessage_2 = IncomingM
     options: any;
     compiler: Compiler | MultiCompiler;
     watching: Watching | MultiWatching_2 | undefined;
-    logger: Logger_2;
+    logger: Logger;
     outputFileSystem: OutputFileSystem_2;
 };
 
@@ -2854,7 +2858,7 @@ export type GeneratorOptionsByModuleTypeKnown = {
 export type GeneratorOptionsByModuleTypeUnknown = Record<string, Record<string, any>>;
 
 // @public (undocumented)
-type GetChildLogger = (name: string | (() => string)) => Logger;
+type GetChildLogger = (name: string | (() => string)) => Logger_2;
 
 // @public (undocumented)
 export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOptionsNormalized;
@@ -3088,7 +3092,105 @@ export type HtmlRspackPluginOptions = {
 };
 
 // @public (undocumented)
+interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
+    // (undocumented)
+    logLevel?: "debug" | "info" | "warn" | "error" | "silent";
+    // (undocumented)
+    logProvider?: LogProviderCallback;
+    // (undocumented)
+    onClose?: OnCloseCallback;
+    // (undocumented)
+    onError?: OnErrorCallback;
+    // (undocumented)
+    onOpen?: OnOpenCallback;
+    // (undocumented)
+    onProxyReq?: OnProxyReqCallback;
+    // (undocumented)
+    onProxyReqWs?: OnProxyReqWsCallback;
+    // (undocumented)
+    onProxyRes?: OnProxyResCallback;
+    // (undocumented)
+    pathRewrite?: {
+        [regexp: string]: string;
+    } | ((path: string, req: Request_2) => string) | ((path: string, req: Request_2) => Promise<string>);
+    // (undocumented)
+    router?: {
+        [hostOrPath: string]: HttpProxyServerOptions["target"];
+    } | ((req: Request_2) => HttpProxyServerOptions["target"]) | ((req: Request_2) => Promise<HttpProxyServerOptions["target"]>);
+}
+
+// @public (undocumented)
 type HttpProxyMiddlewareOptionsFilter = any;
+
+// @public (undocumented)
+interface HttpProxyServerOptions {
+    agent?: any;
+    auth?: string | undefined;
+    autoRewrite?: boolean | undefined;
+    buffer?: stream.Stream | undefined;
+    changeOrigin?: boolean | undefined;
+    cookieDomainRewrite?: false | string | {
+        [oldDomain: string]: string;
+    } | undefined;
+    cookiePathRewrite?: false | string | {
+        [oldPath: string]: string;
+    } | undefined;
+    followRedirects?: boolean | undefined;
+    forward?: HttpProxyTargetUrl | undefined;
+    headers?: {
+        [header: string]: string;
+    } | undefined;
+    hostRewrite?: string | undefined;
+    ignorePath?: boolean | undefined;
+    localAddress?: string | undefined;
+    method?: string | undefined;
+    prependPath?: boolean | undefined;
+    preserveHeaderKeyCase?: boolean | undefined;
+    protocolRewrite?: string | undefined;
+    proxyTimeout?: number | undefined;
+    secure?: boolean | undefined;
+    selfHandleResponse?: boolean | undefined;
+    ssl?: any;
+    target?: HttpProxyTarget | undefined;
+    timeout?: number | undefined;
+    toProxy?: boolean | undefined;
+    ws?: boolean | undefined;
+    xfwd?: boolean | undefined;
+}
+
+// @public (undocumented)
+type HttpProxyTarget = HttpProxyTargetUrl | HttpProxyTargetDetailed;
+
+// @public (undocumented)
+interface HttpProxyTargetDetailed {
+    // (undocumented)
+    ca?: string | undefined;
+    // (undocumented)
+    cert?: string | undefined;
+    // (undocumented)
+    ciphers?: string | undefined;
+    // (undocumented)
+    host: string;
+    // (undocumented)
+    hostname?: string | undefined;
+    // (undocumented)
+    key?: string | undefined;
+    // (undocumented)
+    passphrase?: string | undefined;
+    // (undocumented)
+    pfx?: Buffer | string | undefined;
+    // (undocumented)
+    port: number;
+    // (undocumented)
+    protocol?: string | undefined;
+    // (undocumented)
+    secureProtocol?: string | undefined;
+    // (undocumented)
+    socketPath?: string | undefined;
+}
+
+// @public (undocumented)
+type HttpProxyTargetUrl = string | Partial<url.Url>;
 
 // @public
 export type HttpUriOptions = HttpUriPluginOptions;
@@ -4330,7 +4432,7 @@ export interface LoaderContext<OptionsType = {}> {
     getContextDependencies(): string[];
     // (undocumented)
     getDependencies(): string[];
-    getLogger(name: string): Logger;
+    getLogger(name: string): Logger_2;
     // (undocumented)
     getMissingDependencies(): string[];
     getOptions(schema?: any): OptionsType;
@@ -4467,7 +4569,10 @@ export interface LogEntry {
 type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 
 // @public (undocumented)
-class Logger {
+type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
+
+// @public (undocumented)
+class Logger_2 {
     // (undocumented)
     [LOG_SYMBOL]: any;
     // (undocumented)
@@ -4518,7 +4623,21 @@ class Logger {
 }
 
 // @public (undocumented)
-type Logger_2 = ReturnType<Compiler["getInfrastructureLogger"]>;
+interface LogProvider {
+    // (undocumented)
+    debug?: Logger;
+    // (undocumented)
+    error?: Logger;
+    // (undocumented)
+    info?: Logger;
+    // (undocumented)
+    log: Logger;
+    // (undocumented)
+    warn?: Logger;
+}
+
+// @public (undocumented)
+type LogProviderCallback = (provider: LogProvider) => LogProvider;
 
 // @public
 const LogType: Readonly<{
@@ -4860,7 +4979,7 @@ export class MultiCompiler {
     // (undocumented)
     dependencies: WeakMap<Compiler, string[]>;
     // (undocumented)
-    getInfrastructureLogger(name: string): Logger;
+    getInfrastructureLogger(name: string): Logger_2;
     // (undocumented)
     hooks: {
         done: liteTapable.SyncHook<MultiStats>;
@@ -5209,6 +5328,24 @@ interface ObjectPattern extends PatternBase {
 
 // @public (undocumented)
 type ObjectPatternProperty = KeyValuePatternProperty | AssignmentPatternProperty | RestElement;
+
+// @public (undocumented)
+type OnCloseCallback = (proxyRes: Response_2, proxySocket: net.Socket, proxyHead: any) => void;
+
+// @public (undocumented)
+type OnErrorCallback = (err: Error, req: Request_2, res: Response_2, target?: string | Partial<url.Url>) => void;
+
+// @public (undocumented)
+type OnOpenCallback = (proxySocket: net.Socket) => void;
+
+// @public (undocumented)
+type OnProxyReqCallback = (proxyReq: http.ClientRequest, req: Request_2, res: Response_2, options: HttpProxyServerOptions) => void;
+
+// @public (undocumented)
+type OnProxyReqWsCallback = (proxyReq: http.ClientRequest, req: Request_2, socket: net.Socket, options: HttpProxyServerOptions, head: any) => void;
+
+// @public (undocumented)
+type OnProxyResCallback = (proxyRes: http.IncomingMessage, req: Request_2, res: Response_2) => void;
 
 // @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
@@ -5837,9 +5974,7 @@ type ProxyConfigArrayItem = {
     context?: HttpProxyMiddlewareOptionsFilter;
 } & {
     bypass?: ByPass;
-} & {
-    [key: string]: any;
-};
+} & HttpProxyMiddlewareOptions;
 
 // @public (undocumented)
 interface PseudoClasses {
