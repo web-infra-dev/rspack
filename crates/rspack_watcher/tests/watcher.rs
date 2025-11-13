@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::sync::atomic::AtomicU8;
 
 use rspack_paths::ArcPath;
@@ -22,7 +24,7 @@ macro_rules! h {
     h!($options, Default::default())
   };
   ($options:expr, $ignore:expr) => {
-    helpers::TestHelper::new(|| FsWatcher::new($options, Default::default()))
+    helpers::TestHelper::new(|| FsWatcher::new($options, $ignore))
   };
 }
 
