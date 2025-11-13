@@ -6,7 +6,6 @@ pub struct HashbangParserPlugin;
 
 impl JavascriptParserPlugin for HashbangParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
-    // Extract hashbang from AST (module or script)
     let hashbang = ast
       .as_module()
       .and_then(|m| m.shebang.as_ref())

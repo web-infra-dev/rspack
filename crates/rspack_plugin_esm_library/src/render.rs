@@ -86,7 +86,8 @@ impl EsmLibraryPlugin {
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
 
-    // Check if this chunk contains entry modules and extract hashbang/directives if present
+    // NOTE: Similar hashbang and directives handling logic.
+    // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
     let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
     for entry_module_id in &entry_modules {
       let hashbang = get_module_hashbang(&module_graph, entry_module_id);
@@ -96,7 +97,6 @@ impl EsmLibraryPlugin {
         continue;
       }
 
-      // Prepend hashbang if present
       if let Some(hashbang) = &hashbang {
         chunk_init_fragments.insert(
           0,
@@ -110,7 +110,6 @@ impl EsmLibraryPlugin {
         );
       }
 
-      // Prepend directives if present
       if let Some(directives) = directives {
         for (idx, directive) in directives.iter().enumerate() {
           let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
@@ -126,9 +125,6 @@ impl EsmLibraryPlugin {
           );
         }
       }
-
-      // Only use the first entry module with hashbang or directives
-      break;
     }
 
     let mut replace_auto_public_path = false;

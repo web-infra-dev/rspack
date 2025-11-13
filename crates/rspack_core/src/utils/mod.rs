@@ -195,7 +195,7 @@ pub fn get_module_directives(
 
   build_info
     .extras
-    .get("directives")
+    .get("react_directives")
     .and_then(|v| v.as_array())
     .map(|arr| {
       arr
