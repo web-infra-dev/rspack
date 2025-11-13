@@ -10,6 +10,10 @@ on:
         description: "Strategy for cargo check: all (default) or separated"
 
 jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
   check-changed:
     runs-on: ubuntu-latest
     name: Check Source Changed
@@ -108,12 +112,18 @@ jobs:
       - run: cargo shear
 
   rust_test:
-    name: Rust test on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Rust test on ${{ matrix.array.os }}
+    runs-on: ${{ fromJSON(matrix.array.runner) }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    needs: [check-changed]
+        array:
+          - os: ubuntu-latest
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - os: windows-latest
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - os: macos-latest
+            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+    needs: [check-changed, get-runner-labels]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
