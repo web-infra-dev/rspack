@@ -206,8 +206,6 @@ impl TestHelper {
   ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 
-    // This does not actually guarantee the watcher is ready,
-    // but it is sufficient for testing purposes.
     let ready = Arc::new(AtomicBool::new(false));
 
     macro_rules! collect_paths {
@@ -240,8 +238,6 @@ impl TestHelper {
       move || {
         let handle = TOKIO_RUNTIME.handle();
         handle.block_on(async {
-          ready.store(true, std::sync::atomic::Ordering::SeqCst);
-
           watcher
             .write()
             .await
@@ -254,6 +250,8 @@ impl TestHelper {
               Box::new(ChangeHandler(tx)),
             )
             .await;
+
+          ready.store(true, std::sync::atomic::Ordering::SeqCst);
         })
       }
     });
@@ -296,7 +294,7 @@ impl TestHelper {
       }
     }
 
-    // Wait until the watcher thread is ready
+    // Wait until the watcher is ready
     while !ready.load(std::sync::atomic::Ordering::SeqCst) {}
 
     rx
