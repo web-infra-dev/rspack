@@ -156,6 +156,7 @@ export async function version_handler(version, options) {
 	}
 
 	await $`cargo codegen`;
+	await $`pnpm run format:js`;
 
 	console.log("Cargo codegen done");
 }
