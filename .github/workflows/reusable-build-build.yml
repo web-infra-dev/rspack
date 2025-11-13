@@ -24,7 +24,7 @@ on:
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
-  CARGO_INCREMENTAL: 0
+  CARGO_INCREMENTAL: 1
 
 jobs:
   build:
@@ -64,7 +64,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: ${{ inputs.target }}-${{ inputs.profile }}
+          key: ${{ inputs.target }}-${{ inputs.profile }}-pshu-${{ inputs.prefer_docker == 'true' && 'docker' || 'native' }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
 
