@@ -42,7 +42,7 @@ export function getNextName(name, scopePostfix = "canary") {
 		return name;
 	}
 	if (name === "create-rspack") {
-		return "create-rspack-canary";
+		return `create-rspack-${scopePostfix}`;
 	}
 	return name.replace(/^@rspack/, `@rspack-${scopePostfix}`);
 }
