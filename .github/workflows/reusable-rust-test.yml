@@ -108,8 +108,11 @@ jobs:
       - run: cargo shear
 
   rust_test:
-    name: Rust test
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    name: Rust test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
