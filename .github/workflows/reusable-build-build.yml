@@ -64,7 +64,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: ${{ inputs.target }}-${{ inputs.profile }}-pshu-${{ inputs.prefer_docker == 'true' && 'docker' || 'native' }}
+          key: ${{ inputs.target }}-${{ inputs.profile }}-pshu-1-${{ inputs.prefer_docker == 'true' && 'docker' || 'native' }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
 
