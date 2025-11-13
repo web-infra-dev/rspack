@@ -3289,60 +3289,6 @@ export type Incremental = {
 // @public
 export type IncrementalPresets = boolean | "none" | "safe" | "advance" | "advance-silent";
 
-// @public (undocumented)
-class IndependentSharePlugin {
-    constructor(options: IndependentSharePluginOptions);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    buildAssets: ShareFallback;
-    // (undocumented)
-    compilers: Map<string, Compiler>;
-    // (undocumented)
-    getCompilationResults(): {
-        name: string;
-        outputPath: string;
-        entry: EntryNormalized;
-        library: LibraryOptions | undefined;
-    }[];
-    // (undocumented)
-    getCompilerStatus(): {
-        name: string;
-        running: boolean;
-        watching: Watching | undefined;
-    }[];
-    // (undocumented)
-    static IndependentShareBuildAssetsFilename: string;
-    // (undocumented)
-    mfName: string;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    outputDir: string;
-    // (undocumented)
-    plugins: Plugins;
-    // (undocumented)
-    shared: Shared;
-    // (undocumented)
-    sharedOptions: [string, SharedConfig][];
-    // (undocumented)
-    treeshake?: boolean;
-}
-
-// @public (undocumented)
-export interface IndependentSharePluginOptions {
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    outputDir?: string;
-    // (undocumented)
-    plugins?: Plugins;
-    // (undocumented)
-    shared: Shared;
-    // (undocumented)
-    treeshake?: boolean;
-}
-
 // @public
 export type InfrastructureLogging = {
     appendOnly?: boolean;
@@ -3386,6 +3332,18 @@ type IntermediateFileSystemExtras = {
     open: Open;
     read: Read;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
+};
+
+// @public (undocumented)
+type InternalManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    remoteAliasMap?: RemoteAliasMap;
+    exposes?: ManifestExposeOption[];
+    shared?: ManifestSharedOption[];
 };
 
 // @public (undocumented)
@@ -4778,16 +4736,7 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
-type ModuleFederationManifestPluginOptions = {
-    name?: string;
-    globalName?: string;
-    filePath?: string;
-    disableAssetsAnalyze?: boolean;
-    fileName?: string;
-    remoteAliasMap?: RemoteAliasMap;
-    exposes?: ManifestExposeOption[];
-    shared?: ManifestSharedOption[];
-};
+type ModuleFederationManifestPluginOptions = boolean | Pick<InternalManifestPluginOptions, 'disableAssetsAnalyze' | 'filePath' | 'fileName'>;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -4801,7 +4750,11 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
+    independentShareDir?: string;
+    // (undocumented)
+    injectUsedExports?: boolean;
+    // (undocumented)
+    manifest?: ModuleFederationManifestPluginOptions;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
@@ -6573,7 +6526,7 @@ declare namespace rspackExports {
         ConsumesConfig,
         ConsumesItem,
         ConsumesObject,
-        IndependentSharePluginOptions,
+        TreeshakeSharePluginOptions,
         ProvideSharedPluginOptions,
         Provides,
         ProvidesConfig,
@@ -7298,7 +7251,9 @@ class ShareContainerPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     filename: string;
     // (undocumented)
-    getData(): BuiltinPluginName;
+    getData(): string[];
+    // (undocumented)
+    _globalName: string;
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
@@ -7363,9 +7318,6 @@ type SharedOptimizationSplitChunksCacheGroup = {
 };
 
 // @public (undocumented)
-type ShareFallback = Record<string, [string, string][]>;
-
-// @public (undocumented)
 class SharePlugin {
     constructor(options: SharePluginOptions);
     // (undocumented)
@@ -7420,7 +7372,7 @@ type ShareRequestsMap = Record<string, {
 export const sharing: {
     ProvideSharedPlugin: typeof ProvideSharedPlugin;
     CollectShareEntryPlugin: typeof CollectShareEntryPlugin;
-    IndependentSharePlugin: typeof IndependentSharePlugin;
+    TreeshakeSharePlugin: typeof TreeshakeSharePlugin;
     ShareContainerPlugin: typeof ShareContainerPlugin;
     OptimizeDependencyReferencedExportsPlugin: typeof OptimizeDependencyReferencedExportsPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
@@ -8405,6 +8357,33 @@ interface TransformConfig {
 
 // @public (undocumented)
 function transformSync(source: string, options?: Options): TransformOutput;
+
+// @public (undocumented)
+class TreeshakeSharePlugin {
+    constructor(options: TreeshakeSharePluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    outputDir: string;
+    // (undocumented)
+    plugins?: Plugins;
+    // (undocumented)
+    reshake?: boolean;
+}
+
+// @public (undocumented)
+export interface TreeshakeSharePluginOptions {
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    plugins?: Plugins;
+    // (undocumented)
+    reshake?: boolean;
+}
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";

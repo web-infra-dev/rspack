@@ -1834,7 +1834,7 @@ export interface RawCircularDependencyRspackPluginOptions {
 }
 
 export interface RawCollectShareEntryPluginOptions {
-  provides: Array<RawProvideOptions>
+  consumes: Array<RawConsumeOptions>
   filename?: string
 }
 

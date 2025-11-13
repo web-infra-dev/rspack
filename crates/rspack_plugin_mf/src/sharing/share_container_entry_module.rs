@@ -103,7 +103,7 @@ impl Module for ShareContainerEntryModule {
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::ShareContainerShared]
+    &[SourceType::JavaScript, SourceType::Expose]
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -124,12 +124,12 @@ impl Module for ShareContainerEntryModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
-    dependencies.push(Box::new(ShareContainerDependency::new(self.name.clone())));
 
     dependencies.push(Box::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
       false,
     )));
+    dependencies.push(Box::new(ShareContainerDependency::new(self.name.clone())));
 
     Ok(BuildResult {
       dependencies,
@@ -184,22 +184,27 @@ impl Module for ShareContainerEntryModule {
 		return factory;
 	}},
 	init: function(mfInstance, bundlerRuntime) {{
+  var installedModules = {{}};
   {federation_global}.instance = mfInstance;
   {federation_global}.bundlerRuntime = bundlerRuntime;
-if({federation_global}.installInitialConsumes){{ return {federation_global}.installInitialConsumes(); }};
+  {federation_global}.installInitialConsumes = function() {{
+    return {federation_global}.bundlerRuntime.installInitialConsumes({{
+      installedModules,
+      initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes,
+      moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
+      webpackRequire: __webpack_require__,
+      asyncLoad: true
+}});
+}};
 }}
-
-
 }});"#,
       runtime = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
       factory = factory,
       federation_global = federation_global
     );
-
     code_generation_result =
       code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
-
     Ok(code_generation_result)
   }
 

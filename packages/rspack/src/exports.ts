@@ -269,11 +269,11 @@ export const container = {
 
 import { CollectShareEntryPlugin } from "./sharing/CollectShareEntryPlugin";
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
-import { IndependentSharePlugin } from "./sharing/IndependentSharePlugin";
 import { OptimizeDependencyReferencedExportsPlugin } from "./sharing/OptimizeDependencyReferencedExportsPlugin";
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
 import { ShareContainerPlugin } from "./sharing/ShareContainerPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
+import { TreeshakeSharePlugin } from "./sharing/TreeShakeSharePlugin";
 
 export type { CollectShareEntryPluginOptions } from "./sharing/CollectShareEntryPlugin";
 export type {
@@ -283,7 +283,6 @@ export type {
 	ConsumesItem,
 	ConsumesObject
 } from "./sharing/ConsumeSharedPlugin";
-export type { IndependentSharePluginOptions } from "./sharing/IndependentSharePlugin";
 export type {
 	ProvideSharedPluginOptions,
 	Provides,
@@ -299,10 +298,11 @@ export type {
 	SharedObject,
 	SharePluginOptions
 } from "./sharing/SharePlugin";
+export type { TreeshakeSharePluginOptions } from "./sharing/TreeShakeSharePlugin";
 export const sharing = {
 	ProvideSharedPlugin,
 	CollectShareEntryPlugin,
-	IndependentSharePlugin,
+	TreeshakeSharePlugin,
 	ShareContainerPlugin,
 	OptimizeDependencyReferencedExportsPlugin,
 	ConsumeSharedPlugin,

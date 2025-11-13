@@ -8,9 +8,9 @@ import {
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
 import type { Compiler } from "../Compiler";
-import { normalizeProvideShareOptions } from "./ProvideSharedPlugin";
+import { normalizeConsumeShareOptions } from "./ConsumeSharedPlugin";
 import {
-	createProvideShareOptions,
+	createConsumeShareOptions,
 	type NormalizedSharedOptions
 } from "./SharePlugin";
 
@@ -138,13 +138,13 @@ export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(): BuiltinPlugin {
-		const provideShareOptions = createProvideShareOptions(this.sharedOptions);
-		const normalizedProvideShareOptions =
-			normalizeProvideShareOptions(provideShareOptions);
+		const consumeShareOptions = createConsumeShareOptions(this.sharedOptions);
+		const normalizedConsumeShareOptions =
+			normalizeConsumeShareOptions(consumeShareOptions);
 		const rawOptions: RawCollectShareEntryPluginOptions = {
-			provides: normalizedProvideShareOptions.map(([key, value]) => ({
+			consumes: normalizedConsumeShareOptions.map(([key, v]) => ({
 				key,
-				...value
+				...v
 			})),
 			filename: this.getFilename()
 		};

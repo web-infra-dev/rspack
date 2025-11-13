@@ -33,27 +33,28 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 	filename = "";
 	_options: RawShareContainerPluginOptions;
 	_shareName: string;
+	_globalName: string;
 
 	constructor(options: ShareContainerPluginOptions) {
 		super();
-		const { shareName, mfName, library, request } = options;
+		const { shareName, library, request } = options;
 		const version = options.version || "0.0.0";
-		const globalName = encodeName(`${options.mfName}_${shareName}_${version}`);
-		const fileName = `independent-share-${encodeName(mfName)}/${encodeName(shareName)}/${version}/share-entry.js`;
+		this._globalName = encodeName(`${options.mfName}_${shareName}_${version}`);
+		const fileName = `${version}/share-entry.js`;
 		this._shareName = shareName;
 		this._options = {
 			name: shareName,
 			request: request,
 			library: library || {
 				type: "var",
-				name: globalName
+				name: this._globalName
 			},
 			version,
 			fileName
 		};
 	}
 	getData() {
-		return this.name;
+		return [this.name, this._globalName];
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
@@ -69,7 +70,7 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 		const shareName = this._shareName;
 		compiler.hooks.thisCompilation.tap(
 			this.name,
-			(compilation: Compilation, { normalModuleFactory }) => {
+			(compilation: Compilation) => {
 				compilation.hooks.processAssets.tapPromise(
 					{
 						name: "getShareContainerFile"

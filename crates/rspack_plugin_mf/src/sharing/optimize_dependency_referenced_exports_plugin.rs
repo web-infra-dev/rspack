@@ -203,7 +203,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
             if parts.len() < 3 {
               return None;
             }
-            let name_part = parts[2];
+            let name_part = parts[3];
             let name_end = name_part.find('@').unwrap_or(name_part.len());
             let sk = name_part[..name_end].to_string();
             collect_processed_modules(

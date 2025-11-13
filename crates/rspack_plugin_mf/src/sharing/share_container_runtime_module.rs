@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -32,5 +32,9 @@ impl RuntimeModule for ShareContainerRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }

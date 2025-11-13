@@ -138,17 +138,20 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawCollectShareEntryPluginOptions {
-  pub provides: Vec<RawProvideOptions>,
+  pub consumes: Vec<RawConsumeOptions>,
   pub filename: Option<String>,
 }
 
 impl From<RawCollectShareEntryPluginOptions> for CollectShareEntryPluginOptions {
   fn from(value: RawCollectShareEntryPluginOptions) -> Self {
     Self {
-      provides: value
-        .provides
+      consumes: value
+        .consumes
         .into_iter()
-        .map(|provide| provide.into())
+        .map(|provide| {
+          let (key, consume_options): (String, ConsumeOptions) = provide.into();
+          (key, std::sync::Arc::new(consume_options))
+        })
         .collect(),
       filename: value.filename,
     }

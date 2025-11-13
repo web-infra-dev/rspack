@@ -1,26 +1,29 @@
 use std::{
   collections::hash_map::Entry,
-  sync::{Arc, LazyLock},
+  path::{Path, PathBuf},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
+use camino::Utf8Path;
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
-  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
+  CompilerThisCompilation, Context, DependencyCategory, DependencyType, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   rspack_sources::{RawStringSource, SourceExt},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result, error};
+use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use tokio::sync::RwLock;
 
-use super::provide_shared_plugin::{ProvideOptions, ProvideVersion};
-
-static RELATIVE_REQUEST: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(?:\.\.?(?:/|$))").expect("invalid relative request regex"));
-static ABSOLUTE_REQUEST: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(?:/|[A-Za-z]:\\|\\\\)").expect("invalid absolute request regex"));
+use super::consume_shared_plugin::{
+  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, PACKAGE_NAME,
+  RELATIVE_REQUEST, get_description_file, get_required_version_from_description_file,
+  resolve_matched_configs,
+};
 
 const DEFAULT_FILENAME: &str = "collect-share-entries.json";
 
@@ -30,7 +33,7 @@ struct CollectShareEntryMeta {
   share_key: String,
   share_scope: String,
   is_prefix: bool,
-  provide: ProvideOptions,
+  consume: Arc<ConsumeOptions>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,10 +48,8 @@ struct CollectedShareRequest {
   version: String,
 }
 
-#[derive(Debug, Serialize)]
-struct CollectShareEntryAsset<'a> {
-  shared: FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>,
-}
+// 直接输出共享模块映射，移除 shared 层级
+type CollectShareEntryAsset<'a> = FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>;
 
 #[derive(Debug, Serialize)]
 struct CollectShareEntryAssetItem<'a> {
@@ -59,74 +60,237 @@ struct CollectShareEntryAssetItem<'a> {
 
 #[derive(Debug)]
 pub struct CollectShareEntryPluginOptions {
-  pub provides: Vec<(String, ProvideOptions)>,
+  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
   pub filename: Option<String>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CollectShareEntryPlugin {
-  provides: Arc<Vec<CollectShareEntryMeta>>,
-  match_provides: RwLock<FxHashMap<String, CollectShareEntryMeta>>,
-  prefix_match_provides: RwLock<FxHashMap<String, CollectShareEntryMeta>>,
+  options: CollectShareEntryPluginOptions,
+  resolver: OnceLock<Arc<Resolver>>,
+  compiler_context: OnceLock<Context>,
+  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
   resolved_entries: RwLock<FxHashMap<String, CollectShareEntryRecord>>,
-  filename: String,
 }
 
 impl CollectShareEntryPlugin {
   pub fn new(options: CollectShareEntryPluginOptions) -> Self {
-    let provides: Vec<CollectShareEntryMeta> = options
-      .provides
-      .into_iter()
-      .map(|(request, provide)| {
-        let provide = provide.clone();
-        let share_key = provide.share_key.clone();
-        let share_scope = provide.share_scope.clone();
-        let is_prefix = request.ends_with('/');
-        CollectShareEntryMeta {
-          request,
-          share_key,
-          share_scope,
-          is_prefix,
-          provide,
-        }
-      })
-      .collect();
+    // let consumes: Vec<CollectShareEntryMeta> = options
+    //   .consumes
+    //   .into_iter()
+    //   .map(|(request, consume)| {
+    //     let consume = consume.clone();
+    //     let share_key = consume.share_key.clone();
+    //     let share_scope = consume.share_scope.clone();
+    //     let is_prefix = request.ends_with('/');
+    //     CollectShareEntryMeta {
+    //       request,
+    //       share_key,
+    //       share_scope,
+    //       is_prefix,
+    //       consume,
+    //     }
+    //   })
+    //   .collect();
 
     Self::new_inner(
-      Arc::new(provides),
+      options,
       Default::default(),
       Default::default(),
       Default::default(),
-      options
-        .filename
-        .unwrap_or_else(|| DEFAULT_FILENAME.to_string()),
+      Default::default(),
     )
+  }
+
+  /// 根据模块请求路径推断版本信息
+  /// 例如：../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
+  /// 会找到 react-dom 的 package.json 并读取 version 字段
+  async fn infer_version(&self, request: &str) -> Option<String> {
+    // 将请求路径转换为 Path
+    let path = Path::new(request);
+
+    // 查找包含 node_modules 的路径段
+    let mut node_modules_found = false;
+    let mut package_path = None;
+
+    for component in path.components() {
+      let comp_str = component.as_os_str().to_string_lossy();
+      if comp_str == "node_modules" {
+        node_modules_found = true;
+        continue;
+      }
+
+      if node_modules_found {
+        // 下一个组件应该是包名
+        package_path = Some(comp_str.to_string());
+        break;
+      }
+    }
+
+    if let Some(package_name) = package_path {
+      // 构建 package.json 的完整路径
+      let mut package_json_path = PathBuf::new();
+      let mut found_node_modules = false;
+
+      for component in path.components() {
+        let comp_str = component.as_os_str().to_string_lossy();
+        package_json_path.push(comp_str.as_ref());
+
+        if comp_str == "node_modules" {
+          found_node_modules = true;
+          // 添加包名目录
+          package_json_path.push(&package_name);
+          // 添加 package.json
+          package_json_path.push("package.json");
+          break;
+        }
+      }
+
+      if found_node_modules && package_json_path.exists() {
+        // 尝试读取 package.json
+        if let Ok(content) = std::fs::read_to_string(&package_json_path) {
+          if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            // 读取 version 字段
+            if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
+              return Some(version.to_string());
+            }
+          }
+        }
+      }
+    }
+
+    None
+  }
+
+  fn init_context(&self, compilation: &Compilation) {
+    self
+      .compiler_context
+      .set(compilation.options.context.clone())
+      .expect("failed to set compiler context");
+  }
+
+  fn get_context(&self) -> Context {
+    self
+      .compiler_context
+      .get()
+      .expect("init_context first")
+      .clone()
+  }
+
+  fn init_resolver(&self, compilation: &Compilation) {
+    self
+      .resolver
+      .set(
+        compilation
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: None,
+            resolve_to_context: false,
+            dependency_category: DependencyCategory::Esm,
+          }),
+      )
+      .expect("failed to set resolver for multiple times");
+  }
+
+  fn get_resolver(&self) -> Arc<Resolver> {
+    self.resolver.get().expect("init_resolver first").clone()
+  }
+
+  async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
+    let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
+    self
+      .matched_consumes
+      .set(Arc::new(config))
+      .expect("failed to set matched consumes");
+  }
+
+  fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
+    self
+      .matched_consumes
+      .get()
+      .expect("init_matched_consumes first")
+      .clone()
   }
 
   async fn record_entry(
     &self,
-    share_key: String,
-    share_scope: String,
-    request: String,
-    provide: &ProvideOptions,
-    resource_data: &rspack_loader_runner::ResourceData,
+    context: &Context,
+    request: &str,
+    config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
-    let Some(version) = infer_version(provide, resource_data) else {
-      return;
+    let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
+    let import_resolved = match &config.import {
+      None => None,
+      Some(import) => {
+        let resolver = self.get_resolver();
+        resolver
+          .resolve(
+            if direct_fallback {
+              self.get_context()
+            } else {
+              context.clone()
+            }
+            .as_ref(),
+            import,
+          )
+          .await
+          .map_err(|_e| {
+            add_diagnostic(Diagnostic::error(
+              "ModuleNotFoundError".into(),
+              format!("resolving fallback for shared module {request}"),
+            ))
+          })
+          .ok()
+      }
+    }
+    .and_then(|i| match i {
+      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
+      ResolveResult::Ignored => None,
+    });
+
+    // 首先尝试从 import_resolved 路径推断版本
+    let version = if let Some(ref resolved_path) = import_resolved {
+      if let Some(inferred) = self.infer_version(resolved_path).await {
+        Some(ConsumeVersion::Version(inferred))
+      } else {
+        // 如果推断失败，直接返回 None，不记录这个条目
+        None
+      }
+    } else {
+      // 如果没有 resolved 路径，也直接返回 None
+      None
     };
+
+    // 如果无法获取版本信息，直接结束方法
+    let version = match version {
+      Some(v) => v,
+      None => return, // 直接结束 record_entry 方法
+    };
+
+    let share_key = config.share_key.clone();
+    let share_scope = config.share_scope.clone();
     let mut resolved_entries = self.resolved_entries.write().await;
     match resolved_entries.entry(share_key) {
       Entry::Occupied(mut entry) => {
         let record = entry.get_mut();
         record.share_scope = share_scope;
-        record
-          .requests
-          .insert(CollectedShareRequest { request, version });
+        record.requests.insert(CollectedShareRequest {
+          request: import_resolved
+            .clone()
+            .unwrap_or_else(|| request.to_string()),
+          version: version.to_string(),
+        });
       }
       Entry::Vacant(entry) => {
         let mut requests = FxHashSet::default();
-        requests.insert(CollectedShareRequest { request, version });
+        requests.insert(CollectedShareRequest {
+          request: import_resolved
+            .clone()
+            .unwrap_or_else(|| request.to_string()),
+          version: version.to_string(),
+        });
         entry.insert(CollectShareEntryRecord {
           share_scope,
           requests,
@@ -136,46 +300,22 @@ impl CollectShareEntryPlugin {
   }
 }
 
-#[plugin_hook(CompilerCompilation for CollectShareEntryPlugin)]
-async fn compilation(
+#[plugin_hook(CompilerThisCompilation for CollectShareEntryPlugin)]
+async fn this_compilation(
   &self,
-  _compilation: &mut Compilation,
+  compilation: &mut Compilation,
   _params: &mut rspack_core::CompilationParams,
 ) -> Result<()> {
-  {
-    let mut match_provides = self.match_provides.write().await;
-    match_provides.clear();
-    for meta in self.provides.iter() {
-      if !meta.is_prefix
-        && !RELATIVE_REQUEST.is_match(&meta.request)
-        && !ABSOLUTE_REQUEST.is_match(&meta.request)
-      {
-        match_provides.insert(meta.request.clone(), meta.clone());
-      }
-    }
+  if self.compiler_context.get().is_none() {
+    self.init_context(compilation);
   }
-
-  {
-    let mut prefix_matches = self.prefix_match_provides.write().await;
-    prefix_matches.clear();
-    for meta in self.provides.iter() {
-      if meta.is_prefix {
-        prefix_matches.insert(meta.request.clone(), meta.clone());
-      }
-    }
+  if self.resolver.get().is_none() {
+    self.init_resolver(compilation);
   }
-
-  {
-    let mut resolved_entries = self.resolved_entries.write().await;
-    resolved_entries.clear();
-    for meta in self.provides.iter() {
-      resolved_entries
-        .entry(meta.share_key.clone())
-        .or_insert_with(|| CollectShareEntryRecord {
-          share_scope: meta.share_scope.clone(),
-          requests: FxHashSet::default(),
-        });
-    }
+  if self.matched_consumes.get().is_none() {
+    self
+      .init_matched_consumes(compilation, self.get_resolver())
+      .await;
   }
   Ok(())
 }
@@ -217,12 +357,19 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     );
   }
 
-  let asset = CollectShareEntryAsset { shared };
-  let json = serde_json::to_string_pretty(&asset)
+  let json = serde_json::to_string_pretty(&shared)
     .expect("CollectShareEntryPlugin: failed to serialize share entries");
 
+  // 获取文件名，如果不存在则使用默认值
+  let filename = self
+    .options
+    .filename
+    .as_ref()
+    .map(|f| f.clone())
+    .unwrap_or_else(|| DEFAULT_FILENAME.to_string());
+
   compilation.emit_asset(
-    self.filename.clone(),
+    filename,
     CompilationAsset::new(
       Some(RawStringSource::from(json).boxed()),
       Default::default(),
@@ -231,80 +378,59 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(NormalModuleFactoryModule for CollectShareEntryPlugin)]
-async fn normal_module_factory_module(
-  &self,
-  _data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
-  _module: &mut rspack_core::BoxModule,
-) -> Result<()> {
-  let resource_data = &create_data.resource_resolve_data;
-  if resource_data.resource().is_empty() {
-    return Ok(());
+#[plugin_hook(NormalModuleFactoryFactorize for CollectShareEntryPlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dep = data.dependencies[0]
+    .as_module_dependency()
+    .expect("should be module dependency");
+  if matches!(
+    dep.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
   }
+  let request = dep.request();
 
-  let request = create_data.raw_request.clone();
-  let resource = resource_data.resource().to_string();
+  // 直接复用 consume_shared_plugin 的匹配逻辑
+  let consumes = self.get_matched_consumes();
 
-  // Exact match
-  if let Some(meta) = self.match_provides.read().await.get(&request).cloned() {
+  // 1. 精确匹配 - 使用 unresolved
+  if let Some(matched) = consumes.unresolved.get(request) {
     self
-      .record_entry(
-        meta.share_key,
-        meta.share_scope,
-        resource.clone(),
-        &meta.provide,
-        resource_data,
-      )
+      .record_entry(&data.context, request, matched.clone(), |d| {
+        data.diagnostics.push(d)
+      })
       .await;
-    return Ok(());
+    return Ok(None);
   }
 
-  // Prefix match
-  let mut matched_prefix: Option<(CollectShareEntryMeta, String)> = None;
-  {
-    let prefix_matches = self.prefix_match_provides.read().await;
-    for (prefix, meta) in prefix_matches.iter() {
-      if request.starts_with(prefix) {
-        let remainder = request[prefix.len()..].to_string();
-        matched_prefix = Some((meta.clone(), remainder));
-        break;
-      }
-    }
-  }
-
-  if let Some((meta, remainder)) = matched_prefix {
-    let share_key = format!("{}{}", meta.share_key, remainder);
-    self
-      .record_entry(
-        share_key,
-        meta.share_scope,
-        resource.clone(),
-        &meta.provide,
-        resource_data,
-      )
-      .await;
-  } else if RELATIVE_REQUEST.is_match(&request) || ABSOLUTE_REQUEST.is_match(&request) {
-    // Direct resource mapping for absolute/relative requests
-    if let Some(meta) = self
-      .provides
-      .iter()
-      .find(|entry| entry.request == request && !entry.is_prefix)
-      .cloned()
-    {
+  // 2. 前缀匹配 - 使用 prefixed
+  for (prefix, options) in &consumes.prefixed {
+    if request.starts_with(prefix) {
+      let remainder = &request[prefix.len()..];
       self
         .record_entry(
-          meta.share_key,
-          meta.share_scope,
-          resource,
-          &meta.provide,
-          resource_data,
+          &data.context,
+          request,
+          Arc::new(ConsumeOptions {
+            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+            import_resolved: options.import_resolved.clone(),
+            share_key: options.share_key.clone() + remainder,
+            share_scope: options.share_scope.clone(),
+            required_version: options.required_version.clone(),
+            package_name: options.package_name.clone(),
+            strict_version: options.strict_version,
+            singleton: options.singleton,
+            eager: options.eager,
+          }),
+          |d| data.diagnostics.push(d),
         )
         .await;
+      return Ok(None);
     }
   }
 
-  Ok(())
+  Ok(None)
 }
 
 impl Plugin for CollectShareEntryPlugin {
@@ -313,38 +439,18 @@ impl Plugin for CollectShareEntryPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
     ctx
       .normal_module_factory_hooks
-      .module
-      .tap(normal_module_factory_module::new(self));
+      .factorize
+      .tap(factorize::new(self));
     ctx
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
     Ok(())
   }
-}
-
-fn infer_version(
-  provide: &ProvideOptions,
-  resource_data: &rspack_loader_runner::ResourceData,
-) -> Option<String> {
-  if let Some(version) = provide.version.as_ref() {
-    if let ProvideVersion::Version(v) = version {
-      return Some(v.clone());
-    }
-  }
-
-  if let Some(description) = resource_data.description() {
-    if let Some(obj) = description.json().as_object() {
-      if let Some(version) = obj.get("version").and_then(|v| v.as_str()) {
-        if !version.is_empty() {
-          return Some(version.to_string());
-        }
-      }
-    }
-  }
-
-  None
 }

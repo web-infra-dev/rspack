@@ -2,11 +2,17 @@ import { basename, join, resolve } from "node:path";
 
 import type { Compiler } from "../Compiler";
 import type { Plugins, RspackOptions } from "../config";
+import {
+	getFileName,
+	type ModuleFederationManifestPluginOptions
+} from "../container/ModuleFederationManifestPlugin";
 import { parseOptions } from "../container/options";
 import {
 	CollectShareEntryPlugin,
 	type ShareRequestsMap
 } from "./CollectShareEntryPlugin";
+import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
+import { OptimizeDependencyReferencedExportsPlugin } from "./OptimizeDependencyReferencedExportsPlugin";
 import {
 	ShareContainerPlugin,
 	type ShareContainerPluginOptions
@@ -29,6 +35,7 @@ const filterPlugin = (plugin: Plugins[0]) => {
 		return true;
 	}
 	return ![
+		"TreeshakeSharePlugin",
 		"IndependentSharePlugin",
 		"ModuleFederationPlugin",
 		"OptimizeDependencyReferencedExportsPlugin",
@@ -42,9 +49,61 @@ export interface IndependentSharePluginOptions {
 	outputDir?: string;
 	plugins?: Plugins;
 	treeshake?: boolean;
+	manifest?: ModuleFederationManifestPluginOptions;
+	injectUsedExports?: boolean;
 }
 
-export type ShareFallback = Record<string, [string, string][]>;
+// { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
+export type ShareFallback = Record<string, [string, string, string][]>;
+
+class VirtualEntryPlugin {
+	sharedOptions: [string, SharedConfig][];
+	constructor(sharedOptions: [string, SharedConfig][]) {
+		this.sharedOptions = sharedOptions;
+	}
+	createEntry() {
+		const { sharedOptions } = this;
+		const entryContent = sharedOptions.reduce<string>((acc, cur, index) => {
+			return `${acc}import shared_${index} from '${cur[0]}';\n`;
+		}, "");
+		return entryContent;
+	}
+
+	static entry() {
+		return {
+			[VIRTUAL_ENTRY_NAME]: VIRTUAL_ENTRY
+		};
+	}
+
+	apply(compiler: Compiler) {
+		new compiler.rspack.experiments.VirtualModulesPlugin({
+			[VIRTUAL_ENTRY]: this.createEntry()
+		}).apply(compiler);
+
+		compiler.hooks.thisCompilation.tap(
+			"RemoveVirtualEntryAsset",
+			compilation => {
+				compilation.hooks.processAssets.tapPromise(
+					{
+						name: "RemoveVirtualEntryAsset",
+						stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+					},
+					async () => {
+						try {
+							const chunk = compilation.namedChunks.get(VIRTUAL_ENTRY);
+
+							chunk?.files.forEach(f => {
+								compilation.deleteAsset(f);
+							});
+						} catch (_e) {
+							console.error("Failed to remove virtual entry file!");
+						}
+					}
+				);
+			}
+		);
+	}
+}
 
 export class IndependentSharePlugin {
 	mfName: string;
@@ -54,23 +113,28 @@ export class IndependentSharePlugin {
 	plugins: Plugins;
 	compilers: Map<string, Compiler> = new Map();
 	treeshake?: boolean;
-	// { react: [  [ react/19.0.0/index.js , 19.0.0 ]  ] }
+	manifest?: ModuleFederationManifestPluginOptions;
 	buildAssets: ShareFallback = {};
+	injectUsedExports?: boolean;
 
 	name = "IndependentSharePlugin";
 	constructor(options: IndependentSharePluginOptions) {
-		const { outputDir, plugins, treeshake, shared, name } = options;
-		if (!shared) {
-			throw new Error("mfConfig.shared is required for share treeshake");
-		}
-		if (!name) {
-			throw new Error("mfConfig.name is required for share treeshake");
-		}
+		const {
+			outputDir,
+			plugins,
+			treeshake,
+			shared,
+			name,
+			manifest,
+			injectUsedExports
+		} = options;
 		this.shared = shared;
 		this.mfName = name;
 		this.outputDir = outputDir || "independent-packages";
 		this.plugins = plugins || [];
 		this.treeshake = treeshake;
+		this.manifest = manifest;
+		this.injectUsedExports = injectUsedExports ?? true;
 		this.sharedOptions = parseOptions(
 			shared,
 			(item, key) => {
@@ -103,9 +167,7 @@ export class IndependentSharePlugin {
 		compiler.hooks.beforeRun.tapAsync(
 			"IndependentSharePlugin",
 			async (compiler, callback) => {
-				// only call once
 				await this.createIndependentCompilers(compiler);
-				console.log("createIndependentCompilers done");
 				callback();
 			}
 		);
@@ -117,70 +179,60 @@ export class IndependentSharePlugin {
 			callback();
 		});
 
+		// inject buildAssets to stats
 		compiler.hooks.compilation.tap("IndependentSharePlugin", compilation => {
-			// compilation.hooks.additionalTreeRuntimeRequirements.tap(
-			// 	'OptimizeDependencyReferencedExportsPlugin',
-			// 	(chunk) => {
-			// 		compilation.addRuntimeModule(
-			// 			chunk,
-			// 			new IndependentShareRuntimeModule(this.buildAssets),
-			// 		);
-			// 	},
-			// );
-
-			// inject buildAssets to stats
 			compilation.hooks.processAssets.tapPromise(
 				{
-					name: "injectReferenceExports",
+					name: "injectBuildAssets",
 					stage: (compilation.constructor as any)
 						.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
 				},
 				async () => {
-					// if treeshake is enabled, it means current is second-build -- re-shake assets, no need to modify stats.
 					compilation.emitAsset(
 						IndependentSharePlugin.IndependentShareBuildAssetsFilename,
 						new compiler.webpack.sources.RawSource(
 							JSON.stringify(this.buildAssets)
 						)
 					);
-					return;
 
-					// add until manifest merge
-					// const stats = compilation.getAsset(StatsFileName);
-					// if (!stats) {
-					// 	return;
-					// }
-					// const statsContent = JSON.parse(
-					// 	stats.source.source().toString(),
-					// ) as Stats;
+					if (!this.manifest) {
+						return;
+					}
+					const { statsFileName } = getFileName(this.manifest);
+					const stats = compilation.getAsset(statsFileName);
+					if (!stats) {
+						return;
+					}
+					const statsContent = JSON.parse(stats.source.source().toString()) as {
+						shared: Array<{
+							name: string;
+							version: string;
+							fallback?: string;
+							fallbackName?: string;
+						}>;
+					};
 
-					// const { shared } = statsContent;
-					// Object.entries(this.buildAssets).forEach(([key, [name, entry]]) => {
-					// 	const targetShared = shared.find((s) => s.name === key);
-					// 	if (!targetShared) {
-					// 		return;
-					// 	}
-					// 	targetShared.fallback = entry;
-					// 	targetShared.fallbackName = name;
-					// });
+					const { shared } = statsContent;
+					Object.entries(this.buildAssets).forEach(([key, item]) => {
+						const targetShared = shared.find(s => s.name === key);
+						if (!targetShared) {
+							return;
+						}
+						item.forEach(([entry, version, globalName]) => {
+							if (version === targetShared.version) {
+								targetShared.fallback = entry;
+								targetShared.fallbackName = globalName;
+							}
+						});
+					});
 
-					// compilation.updateAsset(
-					// 	StatsFileName,
-					// 	new compiler.webpack.sources.RawSource(
-					// 		JSON.stringify(statsContent),
-					// 	),
-					// );
+					compilation.updateAsset(
+						statsFileName,
+						new compiler.webpack.sources.RawSource(JSON.stringify(statsContent))
+					);
 				}
 			);
 		});
-	}
-
-	private createEntry() {
-		const { sharedOptions } = this;
-		const entryContent = sharedOptions.reduce<string>((acc, cur, index) => {
-			return `${acc}import shared_${index} from '${cur[0]}';\n`;
-		}, "");
-		return entryContent;
 	}
 
 	private async createIndependentCompilers(parentCompiler: Compiler) {
@@ -190,32 +242,34 @@ export class IndependentSharePlugin {
 		const parentOutputDir = parentCompiler.options.output.path
 			? basename(parentCompiler.options.output.path)
 			: "";
+		// collect share requests for each shareName and then build share container
 		const shareRequestsMap: ShareRequestsMap =
 			await this.createIndependentCompiler(parentCompiler, parentOutputDir);
 
 		await Promise.all(
 			sharedOptions.map(async ([shareName, shareConfig]) => {
-				if (!shareConfig.treeshake) {
+				if (!shareConfig.treeshake && shareConfig.import !== false) {
 					return;
 				}
 				const shareRequests = shareRequestsMap[shareName].requests;
 				await Promise.all(
 					shareRequests.map(async ([request, version]) => {
-						const shareFileName = await this.createIndependentCompiler(
-							parentCompiler,
-							parentOutputDir,
-							{
-								shareRequestsMap,
-								currentShare: {
-									shareName,
-									version,
-									request
+						const [shareFileName, globalName] =
+							await this.createIndependentCompiler(
+								parentCompiler,
+								parentOutputDir,
+								{
+									shareRequestsMap,
+									currentShare: {
+										shareName,
+										version,
+										request
+									}
 								}
-							}
-						);
+							);
 						if (typeof shareFileName === "string") {
 							buildAssets[shareName] ||= [];
-							buildAssets[shareName].push([shareFileName, version]);
+							buildAssets[shareName].push([shareFileName, version, globalName]);
 						}
 					})
 				);
@@ -233,7 +287,7 @@ export class IndependentSharePlugin {
 			shareRequestsMap: ShareRequestsMap;
 		}
 	) {
-		const { name, plugins, outputDir, sharedOptions } = this;
+		const { mfName, plugins, outputDir, sharedOptions, treeshake } = this;
 		const outputDirWithShareName = join(
 			outputDir,
 			encodeName(extraOptions?.currentShare?.shareName || "")
@@ -242,7 +296,6 @@ export class IndependentSharePlugin {
 		const parentConfig = parentCompiler.options;
 
 		const finalPlugins = [];
-		// 创建独立的  compiler 实例
 		const rspack = parentCompiler.rspack;
 		let extraPlugin: CollectShareEntryPlugin | ShareContainerPlugin;
 		if (!extraOptions) {
@@ -252,7 +305,7 @@ export class IndependentSharePlugin {
 			});
 		} else {
 			extraPlugin = new ShareContainerPlugin({
-				mfName: name,
+				mfName,
 				...extraOptions.currentShare
 			});
 		}
@@ -268,102 +321,76 @@ export class IndependentSharePlugin {
 		plugins.forEach(plugin => {
 			finalPlugins.push(plugin);
 		});
-		// finalPlugins.push(
-		// 	new TreeshakeConsumeSharedPlugin({
-		// 		consumes: Object.keys(mfConfig.shared as Record<string, any>).reduce(
-		// 			(acc, cur) => {
-		// 				if (cur !== currentShare) {
-		// 					// @ts-ignore
-		// 					acc[cur] = {
-		// 						// use current host shared
-		// 						import: false,
-		// 					};
-		// 				}
-		// 				return acc;
-		// 			},
-		// 			{},
-		// 		),
-		// 	}),
-		// );
-
-		// if (treeshake) {
-		// 	finalPlugins.push(
-		// 		new OptimizeDependencyReferencedExportsPlugin(
-		// 			parseOptions(
-		// 				mfConfig.shared,
-		// 				(item, key) => {
-		// 					if (typeof item !== 'string')
-		// 						throw new Error(
-		// 							`Unexpected array in shared configuration for key "${key}"`,
-		// 						);
-		// 					const config: SharedConfig =
-		// 						item === key || !isRequiredVersion(item)
-		// 							? {
-		// 								import: item,
-		// 							}
-		// 							: {
-		// 								import: key,
-		// 								requiredVersion: item,
-		// 							};
-
-		// 					return config;
-		// 				},
-		// 				(item) => item,
-		// 			),
-		// 			[IGNORED_ENTRY],
-		// 		),
-		// 	);
-		// }
 		finalPlugins.push(extraPlugin);
+
 		finalPlugins.push(
-			new rspack.experiments.VirtualModulesPlugin({
-				[VIRTUAL_ENTRY]: this.createEntry()
+			new ConsumeSharedPlugin({
+				consumes: sharedOptions
+					.filter(
+						([key, options]) =>
+							extraOptions?.currentShare.shareName !== (options.shareKey || key)
+					)
+					.map(([key, options]) => ({
+						[key]: {
+							import: false,
+							shareKey: options.shareKey || key,
+							shareScope: options.shareScope,
+							requiredVersion: options.requiredVersion,
+							strictVersion: options.strictVersion,
+							singleton: options.singleton,
+							packageName: options.packageName,
+							eager: options.eager
+						}
+					})),
+				enhanced: true
 			})
 		);
+
+		if (treeshake) {
+			finalPlugins.push(
+				new OptimizeDependencyReferencedExportsPlugin(
+					sharedOptions,
+					this.injectUsedExports
+				)
+			);
+		}
+		finalPlugins.push(
+			new VirtualEntryPlugin(sharedOptions)
+			// new rspack.experiments.VirtualModulesPlugin({
+			// 	[VIRTUAL_ENTRY]: this.createEntry()
+			// })
+		);
 		const fullOutputDir = resolve(
-			parentCompiler.context,
-			parentOutputDir,
+			parentCompiler.outputPath,
 			outputDirWithShareName
 		);
 		const compilerConfig: RspackOptions = {
 			...parentConfig,
 			mode: parentConfig.mode || "development",
 
-			entry: {
-				[VIRTUAL_ENTRY_NAME]: VIRTUAL_ENTRY
-			},
+			entry: VirtualEntryPlugin.entry,
 
-			// 输出配置
 			output: {
 				path: fullOutputDir,
-				// filename: output || `${name}.js`,
-				// library: {
-				//   type: 'umd',
-				//   name: libraryName || `__${name.replace(/-/g, '_')}__`,
-				// },
 				clean: true,
 				publicPath: parentConfig.output?.publicPath || "auto"
 			},
 
-			// 插件继承
 			plugins: finalPlugins,
 
-			// 优化配置继承
 			optimization: {
 				...parentConfig.optimization,
-				splitChunks: false // 每个包独立，不拆分
+				splitChunks: false
 			}
 		};
 
 		const compiler = rspack.rspack(compilerConfig);
 
-		// 设置文件系统
 		compiler.inputFileSystem = parentCompiler.inputFileSystem;
 		compiler.outputFileSystem = parentCompiler.outputFileSystem;
 		compiler.intermediateFileSystem = parentCompiler.intermediateFileSystem;
 
 		const { currentShare } = extraOptions || {};
-		// 存储编译器引用
 		currentShare &&
 			this.compilers.set(
 				`${currentShare.shareName}@${currentShare.version}`,
@@ -387,10 +414,7 @@ export class IndependentSharePlugin {
 				}
 
 				currentShare &&
-					console.log(
-						// `✅ 独立包 ${name} 编译成功: ${join(outputPath, output || `${name}.js`)}`,
-						`✅ 独立包 ${currentShare.shareName} 编译成功`
-					);
+					console.log(`✅ 独立包 ${currentShare.shareName} 编译成功`);
 
 				if (stats) {
 					currentShare && console.log(`📊 ${currentShare.shareName} 编译统计:`);
@@ -408,26 +432,6 @@ export class IndependentSharePlugin {
 		});
 	}
 
-	// 获取所有编译器的状态
-	getCompilerStatus() {
-		return Array.from(this.compilers.entries()).map(([name, compiler]) => ({
-			name,
-			running: compiler.running,
-			watching: compiler.watching
-		}));
-	}
-
-	// 获取编译结果信息
-	getCompilationResults() {
-		return Array.from(this.compilers.entries()).map(([name, compiler]) => ({
-			name,
-			outputPath: resolve(compiler.options.output?.path || ""),
-			entry: compiler.options.entry,
-			library: compiler.options.output?.library
-		}));
-	}
-
-	// 清理所有编译器
 	private cleanup() {
 		this.compilers.forEach(compiler => {
 			if (compiler.watching) {

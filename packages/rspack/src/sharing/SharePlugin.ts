@@ -72,6 +72,22 @@ export function createProvideShareOptions(
 		}));
 }
 
+export function createConsumeShareOptions(
+	normalizedSharedOptions: NormalizedSharedOptions
+) {
+	return normalizedSharedOptions.map(([key, options]) => ({
+		[key]: {
+			import: options.import,
+			shareKey: options.shareKey || key,
+			shareScope: options.shareScope,
+			requiredVersion: options.requiredVersion,
+			strictVersion: options.strictVersion,
+			singleton: options.singleton,
+			packageName: options.packageName,
+			eager: options.eager
+		}
+	}));
+}
 export class SharePlugin {
 	_shareScope;
 	_consumes;
@@ -81,18 +97,7 @@ export class SharePlugin {
 
 	constructor(options: SharePluginOptions) {
 		const sharedOptions = normalizeSharedOptions(options.shared);
-		const consumes = sharedOptions.map(([key, options]) => ({
-			[key]: {
-				import: options.import,
-				shareKey: options.shareKey || key,
-				shareScope: options.shareScope,
-				requiredVersion: options.requiredVersion,
-				strictVersion: options.strictVersion,
-				singleton: options.singleton,
-				packageName: options.packageName,
-				eager: options.eager
-			}
-		}));
+		const consumes = createConsumeShareOptions(sharedOptions);
 		const provides = createProvideShareOptions(sharedOptions);
 		this._shareScope = options.shareScope;
 		this._consumes = consumes;
