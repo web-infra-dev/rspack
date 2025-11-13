@@ -14,7 +14,7 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &Compilation) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
@@ -76,7 +76,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 fn set_sync_modules(
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
   mutations: &mut Option<Mutations>,
 ) {
@@ -147,7 +147,7 @@ fn set_sync_modules(
 }
 
 fn set_async_modules(
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
   mutations: &mut Option<Mutations>,
 ) {
