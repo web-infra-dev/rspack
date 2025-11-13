@@ -83,7 +83,7 @@ impl Compiler {
         .mutations_readable(IncrementalPasses::MAKE)
       {
         // copy field from old compilation
-        // make stage used
+        // build_module_graph stage used
         self
           .compilation
           .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
