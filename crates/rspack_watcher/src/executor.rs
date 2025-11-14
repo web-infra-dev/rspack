@@ -53,7 +53,7 @@ pub struct Executor {
   ///
   /// For example, if the last event was triggered at time T, and the aggregate timeout is 100ms,
   /// the event handler will only be executed if no new events are received until time T + 100ms.
-  last_changed: Arc<RwLock<Option<Instant>>>,
+  last_changed: Arc<Mutex<Option<Instant>>>,
 }
 
 const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
@@ -157,7 +157,7 @@ impl Executor {
           let paused = paused.load(Ordering::Relaxed);
 
           if !paused {
-            last_changed.write().await.replace(Instant::now());
+            last_changed.lock().await.replace(Instant::now());
           }
 
           let _ = exec_tx.send(ExecEvent::Execute(events));
@@ -240,7 +240,7 @@ fn create_execute_aggregate_task(
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
-  last_changed: Arc<RwLock<Option<Instant>>>,
+  last_changed: Arc<Mutex<Option<Instant>>>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
@@ -249,10 +249,8 @@ fn create_execute_aggregate_task(
         break;
       }
 
-      let time_elapsed_since_last_change = last_changed
-        .read()
-        .await
-        .map(|t| t.elapsed().as_millis() as u64);
+      let mut last_changed = last_changed.lock().await;
+      let time_elapsed_since_last_change = last_changed.map(|t| t.elapsed().as_millis() as u64);
 
       let on_timeout = if let Some(elapsed) = time_elapsed_since_last_change {
         elapsed >= aggregate_timeout
@@ -275,7 +273,7 @@ fn create_execute_aggregate_task(
       }
 
       running.store(true, Ordering::Relaxed);
-      *last_changed.write().await = None;
+      *last_changed = None;
 
       // Get the files to process
       let files = {
