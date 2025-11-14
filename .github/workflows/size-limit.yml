@@ -10,6 +10,16 @@ permissions:
 jobs:
   size-limit:
     name: Binding Size Limit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            id: linux
+          - target: aarch64-apple-darwin
+            id: mac
+          - target: x86_64-pc-windows-msvc
+            id: win
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -27,13 +37,11 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: x86_64-unknown-linux-gnu-release
-          # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
+          key: ${{ matrix.target }}-release
           save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
 
-      # setup rust target for native runner
       - name: Setup Rust Target
-        run: rustup target add x86_64-unknown-linux-gnu
+        run: rustup target add ${{ matrix.target }}
 
       - name: Run Cargo codegen
         run: cargo codegen
@@ -50,13 +58,76 @@ jobs:
         with:
           tool-cache: fals
 
-      - name: Build x86_64-unknown-linux-gnu native
+      - name: Build ${{ matrix.target }} native
         run: |
-          rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+          rustup target add ${{ matrix.target }}
+          RUST_TARGET=${{ matrix.target }} pnpm build:binding:release
 
       - name: Binary Size-limit
+        id: size
         uses: ./.github/actions/binary-limit
         with:
           # 50k 50*1024
           size-threshold: 51200
+          platform: ${{ matrix.target }}
+
+      - name: Save size result
+        if: steps.size.outputs.result != ''
+        shell: bash
+        env:
+          RESULT: ${{ steps.size.outputs.result }}
+        run: |
+          printf '%s' "$RESULT" > size-result.json
+
+      - name: Upload size result
+        if: steps.size.outputs.result != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-size-${{ matrix.id }}
+          path: size-result.json
+          if-no-files-found: error
+
+  gather-results:
+    name: Gather Binary Size Results
+    needs: size-limit
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Download size reports
+        uses: actions/download-artifact@4.1.7
+        with:
+          pattern: binary-size-*
+          merge-multiple: true
+          path: size-results
+          if-no-files-found: error
+
+      - name: Post combined report
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          RESULTS_DIR: size-results
+        with:
+          script: |
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const action = require("./.github/actions/binary-limit/binary-limit-script.js");
+            const dir = process.env.RESULTS_DIR;
+            if (!fs.existsSync(dir)) {
+              core.info("No size reports found");
+              return;
+            }
+            const files = fs.readdirSync(dir).filter(name => name.endsWith(".json"));
+            if (!files.length) {
+              core.info("No size reports to process");
+              return;
+            }
+            const entries = files.map(file => {
+              const raw = fs.readFileSync(path.join(dir, file), "utf8");
+              return JSON.parse(raw);
+            });
+            const body = action.formatReport(entries);
+            await action.commentToPullRequest(github, context, body);
+            if (entries.some(entry => entry.exceeded)) {
+              core.setFailed("Binary size limit exceeded");
+            }

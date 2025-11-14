@@ -7,15 +7,27 @@ inputs:
     description: "the increase size limit in bytes, default is 50kb"
     default: "51200"
     required: false
+  platform:
+    description: "target triple name used to locate the binary"
+    default: "x86_64-unknown-linux-gnu"
+    required: false
+
+outputs:
+  result:
+    description: "JSON encoded size report"
+    value: ${{ steps.size-report.outputs.result }}
 
 runs:
   using: composite
 
   steps:
     - name: GitHub Script
+      id: size-report
       uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
       with:
         script: |
           const limit = parseInt("${{ inputs.size-threshold }}") || 51200;
+          const platform = inputs.platform;
           const action = require("./.github/actions/binary-limit/binary-limit-script.js");
-          await action({github, context, limit});
+          const result = await action({github, context, limit, platform});
+          core.setOutput("result", JSON.stringify(result));
