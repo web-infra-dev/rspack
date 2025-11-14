@@ -273,6 +273,16 @@ fn create_execute_aggregate_task(
       }
 
       running.store(true, Ordering::Relaxed);
+
+      // Lock to `last_changed` should be held until we reset it to `None`
+      // to avoid race conditions where new events arrive just before we reset it.
+      //
+      // Failed to do so may cause missing aggregate events. For example (the bad case):
+      // - Event A arrives, `last_changed` is set to T1
+      // - Timeout occurs, we are about to process events
+      // - Before we reset `last_changed`, Event B arrives, `last_changed` is set to T2
+      // - We reset `last_changed` to None, losing the information about Event B
+      // - Event B is never processed because `last_changed` is None and `on_timeout` is always a `false`.
       *last_changed = None;
 
       // Get the files to process
