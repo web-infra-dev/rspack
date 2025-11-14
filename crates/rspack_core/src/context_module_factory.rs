@@ -142,7 +142,7 @@ impl ContextModuleFactory {
         &resolver.options(),
         resolver.inner_fs(),
       )?;
-      context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
+      context_element_dependencies.sort_by_cached_key(|d| d.user_request.clone());
 
       tracing::trace!(
         "resolving dependencies for {:?}",
@@ -296,7 +296,7 @@ impl ContextModuleFactory {
         dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
 
         let options = ContextModuleOptions {
-          addon: loader_request.to_string(),
+          addon: loader_request.clone(),
           resource: resource.path,
           resource_query: resource.query,
           resource_fragment: resource.fragment,
@@ -376,10 +376,10 @@ impl ContextModuleFactory {
         let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
         if let Some(parsed_resource) = parsed_resource {
           if let Some(query) = &parsed_resource.query {
-            context_module_options.resource_query = query.to_string();
+            context_module_options.resource_query = query.clone();
           }
           if let Some(fragment) = &parsed_resource.fragment {
-            context_module_options.resource_fragment = fragment.to_string();
+            context_module_options.resource_fragment = fragment.clone();
           }
         }
 
@@ -493,7 +493,7 @@ fn visit_dirs(
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
           request,
-          user_request: r.request.to_string(),
+          user_request: r.request.clone(),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),

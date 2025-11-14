@@ -19,13 +19,13 @@ runs:
   steps:
     - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ inputs.force-use-github == 'true' || runner.environment == 'github-hosted' }}
+      if: ${{ runner.environment == 'github-hosted' || inputs.force-use-github == 'true' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download artifact from local
-      uses: lynx-infra/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #dev
-      if: ${{ inputs.force-use-github != 'true' && runner.environment == 'self-hosted' }}
+      if: ${{ runner.environment == 'self-hosted' && inputs.force-use-github != 'true' }}
+      uses: lynx-infra/download-artifact@79d9914484f933089c2840552cf439bac85debad # https://github.com/lynx-infra/download-artifact/tree/dev
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}

@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashSet as HashSet;
 
-use super::MakeArtifact;
+use super::BuildModuleGraphArtifact;
 use crate::{DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer};
 
 /// Result of IssuerHelper.is_issuer.
@@ -116,7 +116,11 @@ impl FixIssuers {
   /// This function will
   /// 1. save the issuer of force_build_module to self.force_build_module_issuers.
   /// 2. add force_build_module and the child module whose issuer is this force_build_module to self.need_check_modules.
-  pub fn analyze_force_build_modules(&mut self, artifact: &MakeArtifact, ids: &IdentifierSet) {
+  pub fn analyze_force_build_modules(
+    &mut self,
+    artifact: &BuildModuleGraphArtifact,
+    ids: &IdentifierSet,
+  ) {
     let module_graph = artifact.get_module_graph();
     for module_identifier in ids {
       let mgm = module_graph
@@ -157,7 +161,7 @@ impl FixIssuers {
   /// this function will add the dependency target module to self.need_check_modules
   pub fn analyze_force_build_dependencies(
     &mut self,
-    artifact: &MakeArtifact,
+    artifact: &BuildModuleGraphArtifact,
     ids: &HashSet<DependencyId>,
   ) {
     let module_graph = artifact.get_module_graph();
@@ -201,7 +205,7 @@ impl FixIssuers {
   /// 4. return the module with invalid issuer and its parents.
   fn apply_force_build_module_issuer(
     self,
-    artifact: &mut MakeArtifact,
+    artifact: &mut BuildModuleGraphArtifact,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let Self {
       mut force_build_module_issuers,
@@ -249,7 +253,7 @@ impl FixIssuers {
   ///
   /// After this step, the issuer of all module are valid and we can use IssuerHelper in next steps.
   fn try_set_first_incoming(
-    artifact: &mut MakeArtifact,
+    artifact: &mut BuildModuleGraphArtifact,
     need_update_issuer_modules: IdentifierMap<Vec<Option<ModuleIdentifier>>>,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut queue = VecDeque::with_capacity(need_update_issuer_modules.len());
@@ -345,7 +349,7 @@ impl FixIssuers {
   ///    - any module set issuer success should check if the current module affects modules in `need_clean_cycle_modules`.
   /// 4. return need_clean_cycle_modules but remove cycle_paths info.
   fn set_available_issuer(
-    artifact: &mut MakeArtifact,
+    artifact: &mut BuildModuleGraphArtifact,
     helper: &mut IssuerHelper,
     need_check_available_modules: IdentifierMap<Vec<Option<ModuleIdentifier>>>,
   ) -> IdentifierMap<IdentifierSet> {
@@ -405,7 +409,7 @@ impl FixIssuers {
   /// - if a module can be modified to be an available issuer, then starting from the current module,
   ///   re-update the issuers of all checked modules.
   fn clean_cycle_module(
-    artifact: &mut MakeArtifact,
+    artifact: &mut BuildModuleGraphArtifact,
     helper: &mut IssuerHelper,
     clean_modules: IdentifierMap<IdentifierSet>,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
@@ -519,7 +523,7 @@ impl FixIssuers {
   }
 
   /// fix artifact module graph issuers
-  pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
+  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
 
     let mut helper = IssuerHelper::default();

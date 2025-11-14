@@ -5,7 +5,7 @@ use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
-use super::{MakeArtifact, UpdateParam};
+use super::{BuildModuleGraphArtifact, UpdateParam};
 use crate::{BuildDependency, Compilation, ResourceId};
 
 /// Cutout module graph.
@@ -28,7 +28,7 @@ impl Cutout {
   pub fn cutout_artifact(
     &mut self,
     compilation: &Compilation,
-    artifact: &mut MakeArtifact,
+    artifact: &mut BuildModuleGraphArtifact,
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
     // the entry dependencies after update module graph
@@ -156,7 +156,7 @@ impl Cutout {
   }
 
   /// Fix artifact, the last step to incrementally update MakeArtifact.
-  pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
+  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let Self {
       fix_issuers,
       fix_build_meta,

@@ -23,7 +23,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilerOptions, Logger,
-  compilation::make::{MakeArtifact, MakeArtifactState},
+  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -186,9 +186,12 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) {
+  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if matches!(make_artifact.state, MakeArtifactState::Uninitialized) {
+    if matches!(
+      make_artifact.state,
+      BuildModuleGraphArtifactState::Uninitialized
+    ) {
       match self.make_occasion.recovery().await {
         Ok(artifact) => *make_artifact = artifact,
         Err(err) => self.warnings.push(err.to_string()),
@@ -196,7 +199,7 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn after_make(&mut self, make_artifact: &MakeArtifact) {
+  async fn after_build_module_graph(&mut self, make_artifact: &BuildModuleGraphArtifact) {
     self.make_occasion.save(make_artifact);
   }
 }

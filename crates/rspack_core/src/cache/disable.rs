@@ -1,5 +1,5 @@
 use super::Cache;
-use crate::compilation::make::MakeArtifact;
+use crate::compilation::build_module_graph::BuildModuleGraphArtifact;
 
 /// Disable cache implementation
 ///
@@ -9,7 +9,7 @@ pub struct DisableCache;
 
 #[async_trait::async_trait]
 impl Cache for DisableCache {
-  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) {
+  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     *make_artifact = Default::default();
   }
 }

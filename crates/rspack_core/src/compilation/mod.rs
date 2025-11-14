@@ -1,5 +1,5 @@
 pub mod build_chunk_graph;
-pub mod make;
+pub mod build_module_graph;
 use std::{
   collections::{VecDeque, hash_map},
   fmt::Debug,
@@ -11,8 +11,7 @@ use std::{
 };
 
 use build_chunk_graph::{
-  artifact::{CodeSplittingCache, use_code_splitting_cache},
-  build_chunk_graph, build_chunk_graph_new,
+  artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
 };
 use dashmap::DashSet;
 use futures::future::BoxFuture;
@@ -53,8 +52,10 @@ use crate::{
   ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
   RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
-  compilation::make::{
-    MakeArtifact, ModuleExecutor, UpdateParam, finish_make, make, update_module_graph,
+  build_chunk_graph::artifact::BuildChunkGraphArtifact,
+  compilation::build_module_graph::{
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
+    finish_build_module_graph, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -274,7 +275,7 @@ pub struct Compilation {
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
-  pub code_splitting_cache: CodeSplittingCache,
+  pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -294,7 +295,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub make_artifact: MakeArtifact,
+  pub build_module_graph_artifact: BuildModuleGraphArtifact,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -405,7 +406,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       old_cache,
       incremental,
-      code_splitting_cache: Default::default(),
+      build_chunk_graph_artifact: Default::default(),
 
       hash: None,
 
@@ -421,7 +422,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      make_artifact: Default::default(),
+      build_module_graph_artifact: Default::default(),
       modified_files,
       removed_files,
       input_filesystem,
@@ -441,25 +442,31 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_make_artifact_with_compilation(&mut self, other: &mut Compilation) {
-    std::mem::swap(&mut self.make_artifact, &mut other.make_artifact);
+  pub fn swap_build_module_graph_artifact_with_compilation(&mut self, other: &mut Compilation) {
+    std::mem::swap(
+      &mut self.build_module_graph_artifact,
+      &mut other.build_module_graph_artifact,
+    );
   }
-  pub fn swap_make_artifact(&mut self, make_artifact: &mut MakeArtifact) {
-    std::mem::swap(&mut self.make_artifact, make_artifact);
+  pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
+    std::mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraph<'_> {
     if let Some(other_module_graph) = &self.other_module_graph {
       ModuleGraph::new(
         [
-          Some(self.make_artifact.get_module_graph_partial()),
+          Some(self.build_module_graph_artifact.get_module_graph_partial()),
           Some(other_module_graph),
         ],
         None,
       )
     } else {
       ModuleGraph::new(
-        [Some(self.make_artifact.get_module_graph_partial()), None],
+        [
+          Some(self.build_module_graph_artifact.get_module_graph_partial()),
+          None,
+        ],
         None,
       )
     }
@@ -474,7 +481,7 @@ impl Compilation {
     };
 
     if let Some(module) = self
-      .make_artifact
+      .build_module_graph_artifact
       .get_module_graph_partial()
       .modules
       .get(identifier)
@@ -488,13 +495,20 @@ impl Compilation {
   pub fn get_module_graph_mut(&mut self) -> ModuleGraph<'_> {
     if let Some(other) = &mut self.other_module_graph {
       ModuleGraph::new(
-        [Some(self.make_artifact.get_module_graph_partial()), None],
+        [
+          Some(self.build_module_graph_artifact.get_module_graph_partial()),
+          None,
+        ],
         Some(other),
       )
     } else {
       ModuleGraph::new(
         [None, None],
-        Some(self.make_artifact.get_module_graph_partial_mut()),
+        Some(
+          self
+            .build_module_graph_artifact
+            .get_module_graph_partial_mut(),
+        ),
       )
     }
   }
@@ -507,16 +521,19 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .file_dependencies
       .files()
       .chain(&self.file_dependencies);
     let added_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .file_dependencies
       .added_files()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.file_dependencies.removed_files();
+    let removed_files = self
+      .build_module_graph_artifact
+      .file_dependencies
+      .removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -528,16 +545,19 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .context_dependencies
       .files()
       .chain(&self.context_dependencies);
     let added_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .context_dependencies
       .added_files()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.context_dependencies.removed_files();
+    let removed_files = self
+      .build_module_graph_artifact
+      .context_dependencies
+      .removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -549,16 +569,19 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .missing_dependencies
       .files()
       .chain(&self.missing_dependencies);
     let added_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .missing_dependencies
       .added_files()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.missing_dependencies.removed_files();
+    let removed_files = self
+      .build_module_graph_artifact
+      .missing_dependencies
+      .removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -570,16 +593,19 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .build_dependencies
       .files()
       .chain(&self.build_dependencies);
     let added_files = self
-      .make_artifact
+      .build_module_graph_artifact
       .build_dependencies
       .added_files()
       .chain(&self.file_dependencies);
-    let removed_files = self.make_artifact.build_dependencies.removed_files();
+    let removed_files = self
+      .build_module_graph_artifact
+      .build_dependencies
+      .removed_files();
     (all_files, added_files, removed_files)
   }
 
@@ -596,7 +622,7 @@ impl Compilation {
     let import_var_map_of_module = runtime_map
       .entry(
         runtime
-          .map(|r| get_runtime_key(r).to_string())
+          .map(|r| get_runtime_key(r).clone())
           .unwrap_or_default(),
       )
       .or_default();
@@ -662,8 +688,8 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
+    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
       vec![UpdateParam::BuildEntry(
@@ -709,8 +735,8 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
+    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
       vec![UpdateParam::BuildEntry(
@@ -838,7 +864,7 @@ impl Compilation {
       if let Some(related_in_info) = self.assets_related_in.get(filename) {
         for name in related_in_info {
           if let Some(asset) = self.assets.get_mut(name) {
-            asset.get_info_mut().related.source_map = Some(new_name.to_string());
+            asset.get_info_mut().related.source_map = Some(new_name.clone());
           }
         }
       }
@@ -1011,8 +1037,8 @@ impl Compilation {
     ukey
   }
 
-  #[instrument("Compilation:make",target=TRACING_BENCH_TARGET, skip_all)]
-  pub async fn make(&mut self) -> Result<()> {
+  #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
+  pub async fn build_module_graph(&mut self) -> Result<()> {
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1020,8 +1046,8 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make(self, artifact).await?;
+    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1033,12 +1059,12 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.make_artifact);
+    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.make_artifact = update_module_graph(
+    self.build_module_graph_artifact = update_module_graph(
       self,
       artifact,
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
@@ -1435,27 +1461,28 @@ impl Compilation {
   }
 
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
-  pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+  pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = finish_make(self, make_artifact).await?;
-
-    let logger = self.get_logger("rspack.Compilation");
-
+    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
       module_executor.hook_after_finish_modules(self).await?;
       self.module_executor = Some(module_executor);
     }
-
     // make finished, make artifact should be readonly thereafter.
-
+    Ok(())
+  }
+  // collect build module graph effects for incremental compilation
+  #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
+  pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
     if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
         self
-          .make_artifact
+          .build_module_graph_artifact
           .affected_dependencies
           .updated()
           .iter()
@@ -1463,7 +1490,7 @@ impl Compilation {
       );
       mutations.extend(
         self
-          .make_artifact
+          .build_module_graph_artifact
           .affected_modules
           .removed()
           .iter()
@@ -1471,7 +1498,7 @@ impl Compilation {
       );
       mutations.extend(
         self
-          .make_artifact
+          .build_module_graph_artifact
           .affected_modules
           .updated()
           .iter()
@@ -1479,7 +1506,7 @@ impl Compilation {
       );
       mutations.extend(
         self
-          .make_artifact
+          .build_module_graph_artifact
           .affected_modules
           .added()
           .iter()
@@ -1493,7 +1520,10 @@ impl Compilation {
     // frozen and start to optimize (provided exports, infer async, etc.) based on the
     // module graph, so any kind of change that affect these should be done before the
     // finish_modules
-    plugin_driver
+
+    self
+      .plugin_driver
+      .clone()
       .compilation_hooks
       .finish_modules
       .call(self)
@@ -1510,11 +1540,10 @@ impl Compilation {
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
-    let diagnostics = self.make_artifact.diagnostics();
+    let diagnostics = self.build_module_graph_artifact.diagnostics();
     self.extend_diagnostics(diagnostics);
     Ok(())
   }
-
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
     let mutations = self
