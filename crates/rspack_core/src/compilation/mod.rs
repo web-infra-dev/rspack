@@ -48,10 +48,11 @@ use crate::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
   EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
   ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
-  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef,
+  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
+  RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -452,23 +453,17 @@ impl Compilation {
     std::mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
 
-  pub fn get_module_graph(&self) -> ModuleGraph<'_> {
+  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
     if let Some(other_module_graph) = &self.other_module_graph {
-      ModuleGraph::new(
-        [
-          Some(self.build_module_graph_artifact.get_module_graph_partial()),
-          Some(other_module_graph),
-        ],
-        None,
-      )
+      ModuleGraph::new_ref([
+        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        Some(other_module_graph),
+      ])
     } else {
-      ModuleGraph::new(
-        [
-          Some(self.build_module_graph_artifact.get_module_graph_partial()),
-          None,
-        ],
+      ModuleGraph::new_ref([
+        Some(self.build_module_graph_artifact.get_module_graph_partial()),
         None,
-      )
+      ])
     }
   }
 
@@ -492,23 +487,21 @@ impl Compilation {
     None
   }
 
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraph<'_> {
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
     if let Some(other) = &mut self.other_module_graph {
-      ModuleGraph::new(
+      ModuleGraph::new_mut(
         [
           Some(self.build_module_graph_artifact.get_module_graph_partial()),
           None,
         ],
-        Some(other),
+        other,
       )
     } else {
-      ModuleGraph::new(
+      ModuleGraph::new_mut(
         [None, None],
-        Some(
-          self
-            .build_module_graph_artifact
-            .get_module_graph_partial_mut(),
-        ),
+        self
+          .build_module_graph_artifact
+          .get_module_graph_partial_mut(),
       )
     }
   }
