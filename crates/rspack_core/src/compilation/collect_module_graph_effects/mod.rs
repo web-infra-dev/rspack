@@ -15,8 +15,16 @@ pub async fn collect_build_module_graph_effects(compilation: &mut Compilation) -
   let mut artifact = mem::take(&mut compilation.collect_build_module_graph_effects_artifact);
   let mut incremental = mem::take(&mut compilation.incremental);
   collect_build_module_graph_effects_inner(compilation, &mut artifact, &mut incremental).await?;
+  compilation.diagnostics.extend(
+    artifact
+      .dependencies_diagnostics
+      .clone()
+      .into_values()
+      .flatten(),
+  );
   compilation.collect_build_module_graph_effects_artifact = artifact;
   compilation.incremental = incremental;
+
   Ok(())
 }
 // collect build module graph effects for incremental compilation
@@ -86,10 +94,6 @@ pub async fn collect_build_module_graph_effects_inner(
   // 2. before optimize dependencies: side effects free module hasn't been skipped
   collect_dependencies_diagnostics(ctx, artifact);
   ctx.module_graph_cache_artifact.unfreeze();
-
-  // take make diagnostics
-  let diagnostics = ctx.build_module_graph_artifact.diagnostics();
-  artifact.diagnostics.extend(diagnostics);
   Ok(())
 }
 #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
@@ -150,15 +154,8 @@ fn collect_dependencies_diagnostics(
       (*module_identifier, diagnostics)
     })
     .collect();
-  let all_modules_diagnostics = if mutations.is_some() {
-    artifact
-      .dependencies_diagnostics
-      .extend(dependencies_diagnostics);
-    artifact.dependencies_diagnostics.clone()
-  } else {
-    dependencies_diagnostics
-  };
+
   artifact
-    .diagnostics
-    .extend(all_modules_diagnostics.into_values().flatten());
+    .dependencies_diagnostics
+    .extend(dependencies_diagnostics);
 }
