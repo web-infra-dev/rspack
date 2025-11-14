@@ -5,7 +5,7 @@
 __webpack_require__.d(__webpack_exports__, {
   v: () => (v)
 });
-/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
+/* import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 
 
 class Lib extends (/* unused pure expression or super */ null && (OriginLib)) {}
@@ -19,7 +19,7 @@ const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* ESM import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
+/* import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./app.js");
 
 
 _app__WEBPACK_IMPORTED_MODULE_0__.v;

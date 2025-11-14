@@ -9,12 +9,13 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_asset::AssetParserAndGenerator;
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 
 use crate::{
-  import_dependency::RslibDependencyTemplate,
+  asset::RslibAssetParserAndGenerator, import_dependency::RslibDependencyTemplate,
   import_external::replace_import_dependencies_for_external_modules,
   parser_plugin::RslibParserPlugin,
 };
@@ -48,7 +49,7 @@ impl RslibPlugin {
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
@@ -64,6 +65,14 @@ async fn nmf_parser(
         rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin,
       ) as BoxJavascriptParserPlugin);
     }
+  } else if parser.is::<AssetParserAndGenerator>() {
+    // Wrap AssetParserAndGenerator to customize source types
+    *parser = Box::new(RslibAssetParserAndGenerator(
+      parser
+        .downcast_ref::<AssetParserAndGenerator>()
+        .expect("is AssetParser")
+        .clone(),
+    ))
   }
 
   Ok(())

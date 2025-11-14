@@ -15,7 +15,7 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
-use rspack_plugin_runtime::EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID;
+use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -208,7 +208,7 @@ impl EsmLibraryPlugin {
       if !compilation
         .chunk_graph
         .get_chunk_runtime_modules_iterable(chunk_ukey)
-        .any(|m| m.contains(EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE_ID.as_str()))
+        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID.as_str()))
         && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
       {
         export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));

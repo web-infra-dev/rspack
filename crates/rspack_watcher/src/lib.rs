@@ -72,7 +72,7 @@ pub trait EventHandler {
 }
 
 /// `FsWatcherOptions` contains options for configuring the file system watcher.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FsWatcherOptions {
   /// Whether to follow symbolic links when watching files.
   pub follow_symlinks: bool,

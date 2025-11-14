@@ -162,14 +162,14 @@ pub enum BuildMetaDefaultObject {
 pub enum ModuleArgument {
   #[default]
   Module,
-  WebpackModule,
+  RspackModule,
 }
 
 impl Display for ModuleArgument {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       ModuleArgument::Module => write!(f, "module"),
-      ModuleArgument::WebpackModule => write!(f, "__webpack_module__"),
+      ModuleArgument::RspackModule => write!(f, "__webpack_module__"),
     }
   }
 }
@@ -180,14 +180,14 @@ impl Display for ModuleArgument {
 pub enum ExportsArgument {
   #[default]
   Exports,
-  WebpackExports,
+  RspackExports,
 }
 
 impl Display for ExportsArgument {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       ExportsArgument::Exports => write!(f, "exports"),
-      ExportsArgument::WebpackExports => write!(f, "__webpack_exports__"),
+      ExportsArgument::RspackExports => write!(f, "__webpack_exports__"),
     }
   }
 }

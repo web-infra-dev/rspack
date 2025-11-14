@@ -14,7 +14,7 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-pub const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
+pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
 #[derive(Debug, Clone)]
 pub struct NestedRequireData {
@@ -65,7 +65,7 @@ impl CompatibilityPlugin {
   ) {
     parser.tag_variable(
       name,
-      NESTED_WEBPACK_IDENTIFIER_TAG,
+      NESTED_IDENTIFIER_TAG,
       Some(NestedRequireData {
         name: rename,
         update: false,
@@ -206,7 +206,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != NESTED_WEBPACK_IDENTIFIER_TAG {
+    if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
     let tag_info = parser

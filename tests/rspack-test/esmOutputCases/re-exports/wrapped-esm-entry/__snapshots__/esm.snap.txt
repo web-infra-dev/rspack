@@ -14,9 +14,9 @@ __webpack_require__.d(__webpack_exports__, {
   readFile: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__.readFile),
   starExports: () => (/* reexport safe */ _lib2__WEBPACK_IMPORTED_MODULE_2__.i)
 });
-/* ESM import */var fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! fs */ "fs");
-/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./lib */ "./lib.js");
-/* ESM import */var _lib2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+/* import */var fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! fs */ "fs");
+/* import */var _lib__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./lib */ "./lib.js");
+/* import */var _lib2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

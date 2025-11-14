@@ -2,10 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::CompilerOptions;
 
-mod local;
 mod occasion;
 mod storage;
-pub use local::*;
 use occasion::{CodeGenerateOccasion, ProcessRuntimeRequirementsOccasion};
 use storage::new_storage;
 

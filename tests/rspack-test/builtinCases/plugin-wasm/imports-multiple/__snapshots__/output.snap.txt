@@ -28,7 +28,7 @@ __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber),
   result: () => (result)
 });
-/* ESM import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
+/* import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
 
@@ -48,7 +48,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber)
 });
-/* ESM import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
+/* import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
 _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
 
@@ -73,8 +73,8 @@ return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
 }
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {
   try {
-/* ESM import */var WEBPACK_IMPORTED_MODULE_0 = __webpack_require__("./module.js");
-/* ESM import */var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
+/* import */var WEBPACK_IMPORTED_MODULE_0 = __webpack_require__("./module.js");
+/* import */var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
 
     var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]);
     var [WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;

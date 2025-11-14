@@ -205,7 +205,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .make_artifact
+        .build_module_graph_artifact
         .built_modules()
         .filter_map(|module_id| {
           compilation

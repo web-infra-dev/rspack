@@ -210,7 +210,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       source.replace(
         dep.range_stmt.start,
         dep.range.start,
-        format!("/* ESM default export */ {}", dep.prefix).as_str(),
+        format!("/* export default */ {}", dep.prefix).as_str(),
         None,
       );
     } else {
@@ -219,7 +219,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       let content = if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(
-          "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
+          "/* export default */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
@@ -244,19 +244,19 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                 DEFAULT_EXPORT.into(),
               )],
             )));
-            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+            format!("/* export default */ const {DEFAULT_EXPORT} = ")
           } else {
             format!(
-              r#"/* ESM default export */ {}{} = "#,
+              r#"/* export default */ {}{} = "#,
               module.get_exports_argument(),
               property_access(used, 0)
             )
           }
         } else {
-          format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
+          format!("/* inlined export default */ var {DEFAULT_EXPORT} = ")
         }
       } else {
-        format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
+        format!("/* unused export default */ var {DEFAULT_EXPORT} = ")
       };
 
       source.replace(

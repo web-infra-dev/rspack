@@ -141,7 +141,7 @@ impl ModernModuleLibraryPlugin {
 
     // Reexport star from external module.
     // Only preserve star reexports for module graph entry, nested reexports are not supported.
-    for dep_id in &compilation.make_artifact.entry_dependencies {
+    for dep_id in &compilation.build_module_graph_artifact.entry_dependencies {
       let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };

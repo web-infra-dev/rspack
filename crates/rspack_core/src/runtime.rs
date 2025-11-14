@@ -395,16 +395,12 @@ impl<T> RuntimeSpecMap<T> {
 
           self
             .map
-            .insert(get_runtime_key(&single_runtime).to_string(), single_value);
-          self
-            .map
-            .insert(get_runtime_key(&runtime).to_string(), value);
+            .insert(get_runtime_key(&single_runtime).clone(), single_value);
+          self.map.insert(get_runtime_key(&runtime).clone(), value);
         }
       }
       RuntimeMode::Map => {
-        self
-          .map
-          .insert(get_runtime_key(&runtime).to_string(), value);
+        self.map.insert(get_runtime_key(&runtime).clone(), value);
       }
     }
   }
@@ -455,9 +451,7 @@ impl RuntimeSpecSet {
   }
 
   pub fn set(&mut self, runtime: RuntimeSpec) {
-    self
-      .map
-      .insert(get_runtime_key(&runtime).to_string(), runtime);
+    self.map.insert(get_runtime_key(&runtime).clone(), runtime);
   }
 
   pub fn contains(&self, runtime: &RuntimeSpec) -> bool {

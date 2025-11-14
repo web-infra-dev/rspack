@@ -42,7 +42,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
-    module.source().map_or(0, |source| source.size()) as f64
+    module
+      .build_info()
+      .json_data
+      .as_ref()
+      .map(|data| stringify(data.clone()).len() as f64)
+      .unwrap_or(0.0)
   }
 
   async fn parse<'a>(

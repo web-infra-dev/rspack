@@ -199,9 +199,9 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
+    if for_name == expr_name::IMPORT_META_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_HOT.into(),
+        expr_name::IMPORT_META_HOT.into(),
         expr_name::IMPORT_META.into(),
         Some(true),
         start,
@@ -218,7 +218,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
+    if for_name == expr_name::IMPORT_META_HOT {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -232,11 +232,11 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     call_expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT_ACCEPT {
+    if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
         Box::new(ImportMetaHotAcceptDependency::new(request, range))
       })
-    } else if for_name == expr_name::IMPORT_META_WEBPACK_HOT_DECLINE {
+    } else if for_name == expr_name::IMPORT_META_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
         Box::new(ImportMetaHotDeclineDependency::new(request, range))
       })

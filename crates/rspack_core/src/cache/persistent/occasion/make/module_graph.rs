@@ -15,7 +15,7 @@ use crate::{
   DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
   cache::persistent::cacheable_context::CacheableContext,
-  compilation::make::{LazyDependencies, ModuleToLazyMake},
+  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
 const SCOPE: &str = "occasion_make_module_graph";

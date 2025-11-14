@@ -35,7 +35,7 @@ fn replace_runtime_globals(template: String) -> String {
       RUNTIME_GLOBALS_VALUE
         .get(name)
         .map(|value| match value {
-          Value::String(value) => value.to_string(),
+          Value::String(value) => value.clone(),
           _ => unreachable!(),
         })
         .expect("value should be a string")

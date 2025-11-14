@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: [runtime of 889].LAST_HASH.hot-update.json, size: 27
-- Update: 889.LAST_HASH.hot-update.js, size: 485
+- Update: 889.LAST_HASH.hot-update.js, size: 481
 
 ## Manifest
 
@@ -38,7 +38,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
 }),

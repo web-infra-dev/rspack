@@ -8,9 +8,9 @@ use rspack_core::{
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyType, Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph,
+  NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
@@ -44,7 +44,7 @@ static ASSET_TYPES: &[SourceType; 1] = &[SourceType::Asset];
 const DEFAULT_ENCODING: &str = "base64";
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum DataUrlOptions {
   Inline(bool),
   Source,
@@ -58,31 +58,31 @@ const ASSET_RESOURCE: bool = false;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-enum CanonicalizedDataUrlOption {
+pub enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
 }
 
 impl CanonicalizedDataUrlOption {
-  fn is_source(&self) -> bool {
+  pub fn is_source(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Source)
   }
 
-  fn is_inline(&self) -> bool {
+  pub fn is_inline(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_INLINE))
   }
 
-  fn is_resource(&self) -> bool {
+  pub fn is_resource(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_RESOURCE))
   }
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AssetParserAndGenerator {
   emit: bool,
   data_url: DataUrlOptions,
-  parsed_asset_config: Option<CanonicalizedDataUrlOption>,
+  pub parsed_asset_config: Option<CanonicalizedDataUrlOption>,
 }
 
 impl AssetParserAndGenerator {
@@ -320,7 +320,7 @@ impl AssetParserAndGenerator {
     Ok((public_path, info))
   }
 
-  fn get_import_mode(
+  pub fn get_import_mode(
     &self,
     module_generator_options: Option<&GeneratorOptions>,
   ) -> Result<AssetGeneratorImportMode> {
@@ -354,6 +354,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       {
         let module_type = module.module_type();
         source_types.insert(SourceType::from(module_type));
+      } else if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id)
+        && matches!(dependency.dependency_type(), DependencyType::LoaderImport)
+      {
+        source_types.insert(SourceType::JavaScript);
       }
     }
 

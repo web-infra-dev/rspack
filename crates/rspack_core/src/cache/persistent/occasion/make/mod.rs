@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet;
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
   FactorizeInfo, ModuleGraph,
-  compilation::make::{MakeArtifact, MakeArtifactState},
+  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   utils::{FileCounter, ResourceId},
 };
 
@@ -27,8 +27,8 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  pub fn save(&self, artifact: &MakeArtifact) {
-    let MakeArtifact {
+  pub fn save(&self, artifact: &BuildModuleGraphArtifact) {
+    let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph_partial,
@@ -69,7 +69,7 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<MakeArtifact> {
+  pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
     let (partial, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
 
@@ -108,14 +108,14 @@ impl MakeOccasion {
       }
     }
 
-    Ok(MakeArtifact {
+    Ok(BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
 
-      state: MakeArtifactState::Initialized,
+      state: BuildModuleGraphArtifactState::Initialized,
       module_graph_partial: partial,
       module_to_lazy_make,
 
