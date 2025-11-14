@@ -94,6 +94,8 @@ jobs:
           rustup target add x86_64-unknown-linux-gnu
           CARGO_INCREMENTAL=1 RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
 
+      - uses: ./.github/actions/debugger
+
       - name: Build x86_64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker }}
         uses: ./.github/actions/docker/linux-build
