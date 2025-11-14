@@ -71,7 +71,7 @@ impl ModernModuleLibraryPlugin {
   // Force trigger concatenation for single modules what bails from `ModuleConcatenationPlugin.is_empty`,
   // to keep all chunks can benefit from runtime optimization.
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let module_graph: rspack_core::ModuleGraph = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()

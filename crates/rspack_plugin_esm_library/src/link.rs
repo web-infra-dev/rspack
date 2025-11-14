@@ -437,7 +437,7 @@ impl EsmLibraryPlugin {
   ) {
     let context = &compilation.options.context;
 
-    let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES
       .iter()
@@ -1599,7 +1599,7 @@ impl EsmLibraryPlugin {
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
-    let module_graph: rspack_core::ModuleGraph<'_> = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     // we don't modify exports and imports in chunk_link directly unless,
     // we re-borrow data from the chunk_link many times to avoid borrow
