@@ -5,7 +5,7 @@ use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator};
 use rspack_error::Result;
 
 use crate::{
-  Compilation, Logger as _, ModuleIdentifier,
+  Compilation, Logger as _,
   collect_module_graph_effects::artifact::{
     CollectModuleGraphEffectsArtifact, DependenciesDiagnostics,
   },
@@ -22,7 +22,7 @@ pub async fn collect_build_module_graph_effects(compilation: &mut Compilation) -
 // collect build module graph effects for incremental compilation
 #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
 pub async fn collect_build_module_graph_effects_inner(
-  ctx: &Compilation,
+  ctx: &mut Compilation,
   artifact: &mut CollectModuleGraphEffectsArtifact,
   incremental: &mut incremental::Incremental,
 ) -> Result<()> {

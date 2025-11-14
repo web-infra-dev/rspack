@@ -14,7 +14,7 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
-async fn finish_modules(&self, compilation: &Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
@@ -29,7 +29,10 @@ async fn finish_modules(&self, compilation: &Compilation) -> Result<()> {
         }
       })
       .for_each(|module| {
-        compilation.async_modules_artifact.remove(module);
+        compilation
+          .collect_build_module_graph_effects_artifact
+          .async_module_info
+          .remove(module);
       });
   }
 
@@ -76,7 +79,7 @@ async fn finish_modules(&self, compilation: &Compilation) -> Result<()> {
 }
 
 fn set_sync_modules(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
   mutations: &mut Option<Mutations>,
 ) {
@@ -112,14 +115,23 @@ fn set_sync_modules(
           .collect::<Vec<_>>()
       })
       .iter()
-      .any(|out| ModuleGraph::is_async(compilation, out))
+      .any(|out| {
+        ModuleGraph::is_async(
+          &compilation.collect_build_module_graph_effects_artifact,
+          out,
+        )
+      })
     {
       // We can't safely reset is_async to false if there are any outgoing module is async
       continue;
     }
     // The module is_async = false will also decide its parent module is_async, so if the module is_async = false
     // is not changed, this means its parent module will be not affected, so we stop the infer at here.
-    if ModuleGraph::set_async(compilation, module, false) {
+    if ModuleGraph::set_async(
+      &mut compilation.collect_build_module_graph_effects_artifact,
+      module,
+      false,
+    ) {
       if let Some(mutations) = mutations {
         mutations.add(Mutation::ModuleSetAsync { module });
       }
@@ -147,7 +159,7 @@ fn set_sync_modules(
 }
 
 fn set_async_modules(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
   mutations: &mut Option<Mutations>,
 ) {
@@ -155,8 +167,11 @@ fn set_async_modules(
   let mut visited = IdentifierSet::from_iter(queue.iter().copied());
 
   while let Some(module) = queue.pop_front() {
-    if ModuleGraph::set_async(compilation, module, true)
-      && let Some(mutations) = mutations
+    if ModuleGraph::set_async(
+      &mut compilation.collect_build_module_graph_effects_artifact,
+      module,
+      true,
+    ) && let Some(mutations) = mutations
     {
       mutations.add(Mutation::ModuleSetAsync { module });
     }

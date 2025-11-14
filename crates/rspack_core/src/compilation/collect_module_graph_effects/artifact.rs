@@ -5,7 +5,7 @@ use rspack_error::Diagnostic;
 pub struct CollectModuleGraphEffectsArtifact {
   pub(crate) diagnostics: Vec<Diagnostic>,
   pub(crate) dependencies_diagnostics: DependenciesDiagnostics,
-  pub(crate) async_module_info: IdentifierSet,
+  pub async_module_info: IdentifierSet,
 }
 
 pub type DependenciesDiagnostics = IdentifierMap<Vec<Diagnostic>>;

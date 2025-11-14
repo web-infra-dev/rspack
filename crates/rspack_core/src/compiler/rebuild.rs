@@ -99,6 +99,9 @@ impl Compiler {
       if new_compilation
         .incremental
         .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+        || new_compilation
+          .incremental
+          .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
       {
         new_compilation.collect_build_module_graph_effects_artifact =
           std::mem::take(&mut self.compilation.collect_build_module_graph_effects_artifact);

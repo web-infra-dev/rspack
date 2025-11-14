@@ -446,7 +446,7 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.exports = assign_tuple.3;
 
     let is_async = ModuleGraph::is_async(
-      &mut compilation.collect_build_module_graph_effects_artifact,
+      &compilation.collect_build_module_graph_effects_artifact,
       source_module,
     );
     ModuleGraph::set_async(
