@@ -87,7 +87,7 @@ async function build() {
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
-			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.startsWith("windows-msvc")) {
+			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
 				rustflags.push("-Cforce-unwind-tables=no");
 			}
 		}
