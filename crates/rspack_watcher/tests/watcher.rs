@@ -66,8 +66,9 @@ fn should_not_watch_a_single_ignored_file_glob() {
           },
         );
       }
-
-      assert_no_events!(change_events, aggregated_events);
+      h.tick_ms(1000, || {
+        assert_no_events!(change_events, aggregated_events);
+      });
     });
   });
 }
@@ -104,8 +105,9 @@ fn should_not_watch_a_single_ignored_file_regexp() {
           },
         );
       }
-
-      assert_no_events!(change_events, aggregated_events);
+      h.tick_ms(1000, || {
+        assert_no_events!(change_events, aggregated_events);
+      });
     });
   });
 }

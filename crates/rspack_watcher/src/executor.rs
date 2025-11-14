@@ -8,7 +8,7 @@ use std::{
 
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
-  Mutex, RwLock,
+  Mutex,
   mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 
@@ -134,7 +134,6 @@ impl Executor {
       let exec_aggregate_tx = self.exec_aggregate_tx.clone();
       let exec_tx = self.exec_tx.clone();
       let paused = Arc::clone(&self.paused);
-      // let aggregate_running = Arc::clone(&self.aggregate_running);
       let last_changed = Arc::clone(&self.last_changed);
 
       let future = async move {

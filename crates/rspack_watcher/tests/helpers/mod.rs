@@ -203,7 +203,7 @@ impl TestHelper {
   ///
   /// The `on_changed` and `on_aggregated` callbacks are invoked for each respective event.
   /// If either callback sets the `abort` flag to `true`, the collection stops.
-  ////
+  ///
   /// The function will timeout after a predefined duration (10s) if no events are received.
   pub fn collect_events(
     &self,
