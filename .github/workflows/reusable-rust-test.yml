@@ -180,7 +180,7 @@ jobs:
 
   test_required_check:
     name: Rust Test Required Check
-    needs: [rust_test, rust_check, rust_unused_dependencies, check-changed]
+    needs: [rust_test, rust_check, rust_unused_dependencies, rust_watcher_test, check-changed]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
