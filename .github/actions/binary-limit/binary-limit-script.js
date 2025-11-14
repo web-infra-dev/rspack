@@ -1,10 +1,25 @@
 const fs = require("node:fs");
 
+const SIZE_LIMIT_HEADING = "## 📦 Binary Size-limit";
+const DEFAULT_PLATFORM = "x86_64-unknown-linux-gnu";
+
+const BINARY_PATHS = {
+	"x86_64-unknown-linux-gnu": "rspack.linux-x64-gnu.node",
+	"aarch64-apple-darwin": "rspack.darwin-arm64.node",
+	"x86_64-pc-windows-msvc": "rspack.win32-x64-msvc.node"
+};
+
+const PLATFORM_LABELS = {
+	"x86_64-unknown-linux-gnu": "Linux x64 (glibc)",
+	"aarch64-apple-darwin": "macOS arm64",
+	"x86_64-pc-windows-msvc": "Windows x64"
+};
+
 /**
- * @param {import("@octokit/rest")} github
- * @param {Number} limit
+ * @param {{ github: import('@octokit/rest'), context: any, limit: number, platform?: string }} options
  */
-module.exports = async function action({ github, context, limit }) {
+async function run({ github, context, limit, platform }) {
+	const target = platform || DEFAULT_PLATFORM;
 	const commits = await github.rest.repos.listCommits({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
@@ -18,10 +33,13 @@ module.exports = async function action({ github, context, limit }) {
 		console.log(commit.sha);
 		try {
 			const data = await fetchDataBySha(commit.sha);
-			if (data?.size) {
+			const size = data?.sizes?.[target] ?? data?.size;
+			if (typeof size === "number") {
 				baseCommit = commit;
-				baseSize = data.size;
-				console.log(`Commit ${commit.sha} has binary size: ${data.size}`);
+				baseSize = size;
+				console.log(
+					`Commit ${commit.sha} has binary size (${target}): ${size}`
+				);
 				break;
 			}
 		} catch (e) {
@@ -35,48 +53,49 @@ module.exports = async function action({ github, context, limit }) {
 		throw new Error(error);
 	}
 
-	const headSize = fs.statSync(
-		"./crates/node_binding/rspack.linux-x64-gnu.node"
-	).size;
+	const file = getBinaryPath(target);
+	console.log(`Checking binary size for ${file}`);
+	const headSize = fs.statSync(file).size;
 
-	console.log(`Base commit size: ${baseSize}`);
-	console.log(`Head commit size: ${headSize}`);
-
-	const comment = compareBinarySize(headSize, baseSize, context, baseCommit);
-
-	try {
-		await commentToPullRequest(github, context, comment);
-	} catch (e) {
-		console.error("Failed to comment on pull request:", e);
-	}
+	console.log(`Base commit size (${target}): ${baseSize}`);
+	console.log(`Head commit size (${target}): ${headSize}`);
 
 	const increasedSize = headSize - baseSize;
-	if (increasedSize > limit) {
-		throw new Error(
-			`Binary size increased by ${increasedSize} bytes, exceeding the limit of ${limit} bytes`
-		);
-	}
-};
+	return {
+		platform: target,
+		baseSize,
+		headSize,
+		increasedSize,
+		exceeded: increasedSize > limit,
+		comment: compareBinarySize(headSize, baseSize, context, baseCommit)
+	};
+}
 
-async function commentToPullRequest(github, context, comment) {
+module.exports = run;
+module.exports.commentToPullRequest = commentToPullRequest;
+module.exports.formatReport = formatReport;
+module.exports.getBinaryPath = getBinaryPath;
+module.exports.SIZE_LIMIT_HEADING = SIZE_LIMIT_HEADING;
+
+async function commentToPullRequest(github, context, body) {
 	const { data: comments } = await github.rest.issues.listComments({
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 		issue_number: context.payload.number
 	});
 
-	const prevComment = comments.filter(
+	const prevComment = comments.find(
 		comment =>
 			comment.user.login === "github-actions[bot]" &&
 			comment.body.startsWith(SIZE_LIMIT_HEADING)
-	)[0];
+	);
 
 	if (prevComment) {
 		await github.rest.issues.updateComment({
 			owner: context.repo.owner,
 			repo: context.repo.repo,
 			comment_id: prevComment.id,
-			body: `${SIZE_LIMIT_HEADING}\n${comment}`
+			body
 		});
 		return;
 	}
@@ -85,8 +104,19 @@ async function commentToPullRequest(github, context, comment) {
 		owner: context.repo.owner,
 		repo: context.repo.repo,
 		issue_number: context.payload.number,
-		body: `${SIZE_LIMIT_HEADING}\n${comment}`
+		body
 	});
+}
+
+function formatReport(entries) {
+	const ordered = [...entries].sort((a, b) =>
+		a.platform.localeCompare(b.platform)
+	);
+	const sections = ordered.map(entry => {
+		const title = PLATFORM_LABELS[entry.platform] || entry.platform;
+		return `### ${title}\n${entry.comment}`;
+	});
+	return `${SIZE_LIMIT_HEADING}\n\n${sections.join("\n\n")}`.trim();
 }
 
 function fetchDataBySha(sha) {
@@ -94,8 +124,6 @@ function fetchDataBySha(sha) {
 	console.log("fetching", dataUrl, "...");
 	return fetch(dataUrl).then(res => res.json());
 }
-
-const SIZE_LIMIT_HEADING = "## 📦 Binary Size-limit";
 
 const DATA_URL_BASE =
 	"https://raw.githubusercontent.com/web-infra-dev/rspack-ecosystem-benchmark/data";
@@ -116,6 +144,15 @@ function compareBinarySize(headSize, baseSize, context, baseCommit) {
 		return `${info}🎉 Size decreased by ${toHumanReadable(-diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬇️${percentage}%)`;
 	}
 	return `${info}🙈 Size remains the same at ${toHumanReadable(headSize)}`;
+}
+
+function getBinaryPath(platform) {
+	const target = platform || DEFAULT_PLATFORM;
+	const filename = BINARY_PATHS[target];
+	if (!filename) {
+		throw new Error(`Unsupported platform: ${target}`);
+	}
+	return `./crates/node_binding/${filename}`;
 }
 
 function toHumanReadable(size) {
