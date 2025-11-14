@@ -8,14 +8,14 @@ const testCases = [
 ];
 
 testCases.forEach(({ name, file }) => {
-	it (`should include React directives with double quotes (${name})`, () => {
+	it(`should include React directives with double quotes (${name})`, () => {
 		const filePath = path.resolve(__dirname, file);
 		const content = fs.readFileSync(filePath, 'utf-8');
 
 		expect(content).toContain('"use client"');
 	});
 
-	it (`should place directives before actual code (${name})`, () => {
+	it(`should place directives before actual code (${name})`, () => {
 		const filePath = path.resolve(__dirname, file);
 		const content = fs.readFileSync(filePath, 'utf-8');
 		const clientIndex = content.indexOf('"use client"');

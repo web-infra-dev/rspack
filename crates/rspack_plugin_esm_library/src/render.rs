@@ -125,6 +125,7 @@ impl EsmLibraryPlugin {
           );
         }
       }
+      break; // Only process the first entry module with hashbang/directives
     }
 
     let mut replace_auto_public_path = false;

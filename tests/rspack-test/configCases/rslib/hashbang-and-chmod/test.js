@@ -8,7 +8,7 @@ const testCases = [
 ];
 
 testCases.forEach(({ name, file }) => {
-	it (`should include hashbang at the first line (${name})`, () => {
+	it(`should include hashbang at the first line (${name})`, () => {
 		const filePath = path.resolve(__dirname, file);
 		const content = fs.readFileSync(filePath, 'utf-8');
 

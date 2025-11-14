@@ -156,6 +156,7 @@ async fn render(
     }
 
     render_source.source = new_source.boxed();
+    break;
   }
 
   Ok(())
