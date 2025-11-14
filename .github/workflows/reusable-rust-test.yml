@@ -144,18 +144,15 @@ jobs:
             -- --nocapture
 
   rust_watcher_test:
-    name: Rust Watcher test ${{ matrix.array.os }}
+    name: Rust watcher test - ${{ matrix.array.runner }}
     runs-on: ${{ fromJSON(matrix.array.runner) }}
     strategy:
       fail-fast: false # run all tests even if some fail
       matrix:
         array:
-          - os: ubuntu
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-          - os: windows
-            runner: ${{ '"windows-latest"' }}
-          - os: macOS
-            runner: ${{ '"macos-latest"' }}
+          - runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - runner: ${{ '"windows-latest"' }}
+          - runner: ${{ '"macos-latest"' }}
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
@@ -165,7 +162,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           save-if: true
-          key: test
+          key: test-os-${{ matrix.array.runner }}
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test
@@ -180,14 +177,21 @@ jobs:
 
   test_required_check:
     name: Rust Test Required Check
-    needs: [rust_test, rust_check, rust_unused_dependencies, rust_watcher_test, check-changed]
+    needs:
+      [
+        rust_test,
+        rust_check,
+        rust_unused_dependencies,
+        rust_watcher_test,
+        check-changed
+      ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success' }}
         run: echo "Tests Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
