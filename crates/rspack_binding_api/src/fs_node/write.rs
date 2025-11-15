@@ -134,7 +134,10 @@ impl WritableFileSystem for NodeFileSystem {
       && let Some(chmod) = &self.0.chmod
     {
       let file = path.as_str().to_string();
-      return chmod.call_with_promise((file, mode)).await.to_fs_result();
+      return chmod
+        .call_with_promise((file, mode).into())
+        .await
+        .to_fs_result();
     }
     Ok(())
   }

@@ -11,6 +11,7 @@ version.workspace = true
 rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
+rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_asset      = { workspace = true }
