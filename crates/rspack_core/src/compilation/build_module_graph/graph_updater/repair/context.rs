@@ -9,7 +9,7 @@ use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, SharedPluginDriver,
   incremental::Incremental,
-  module_graph::{ModuleGraph, ModuleGraphPartial},
+  module_graph::{ModuleGraph, ModuleGraphMut, ModuleGraphPartial},
   old_cache::Cache as OldCache,
 };
 
@@ -54,8 +54,8 @@ impl TaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraph<'_> {
-    ModuleGraph::new([None, None], Some(partial))
+  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraphMut<'_> {
+    ModuleGraph::new_mut([None, None], partial)
   }
 
   // TODO remove it after incremental rebuild cover all stage

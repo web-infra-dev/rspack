@@ -5,7 +5,8 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphMut, ModuleGraphPartial,
+  ModuleGraphRef, ModuleIdentifier,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
@@ -68,11 +69,11 @@ pub struct BuildModuleGraphArtifact {
 }
 
 impl BuildModuleGraphArtifact {
-  pub fn get_module_graph(&self) -> ModuleGraph<'_> {
-    ModuleGraph::new([Some(&self.module_graph_partial), None], None)
+  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
+    ModuleGraph::new_ref([Some(&self.module_graph_partial), None])
   }
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraph<'_> {
-    ModuleGraph::new([None, None], Some(&mut self.module_graph_partial))
+  pub fn get_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
+    ModuleGraph::new_mut([None, None], &mut self.module_graph_partial)
   }
   // TODO remove it
   pub fn get_module_graph_partial(&self) -> &ModuleGraphPartial {
@@ -87,7 +88,7 @@ impl BuildModuleGraphArtifact {
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new_mut([None, None], &mut self.module_graph_partial);
     let module = mg
       .module_by_identifier(module_identifier)
       .expect("should have module");
@@ -150,7 +151,7 @@ impl BuildModuleGraphArtifact {
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     self.make_failed_dependencies.remove(dep_id);
 
-    let mut mg = ModuleGraph::new([None, None], Some(&mut self.module_graph_partial));
+    let mut mg = ModuleGraph::new_mut([None, None], &mut self.module_graph_partial);
     let revoke_dep_ids = if let Some(factorize_info) = mg
       .dependency_by_id_mut(dep_id)
       .and_then(FactorizeInfo::revoke)

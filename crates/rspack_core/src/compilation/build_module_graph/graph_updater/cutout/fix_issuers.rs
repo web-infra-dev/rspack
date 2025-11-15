@@ -211,7 +211,7 @@ impl FixIssuers {
       mut force_build_module_issuers,
       need_check_modules,
     } = self;
-    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
+    let mut module_graph = ModuleGraph::new_mut([None, None], &mut artifact.module_graph_partial);
     need_check_modules
       .into_iter()
       .filter_map(|mid| {
@@ -261,7 +261,7 @@ impl FixIssuers {
       queue.push_back((mid, parents));
     }
 
-    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
+    let mut module_graph = ModuleGraph::new_mut([None, None], &mut artifact.module_graph_partial);
     let mut revoke_module = IdentifierSet::default();
     let mut need_check_available_modules = IdentifierMap::default();
     loop {
@@ -353,7 +353,7 @@ impl FixIssuers {
     helper: &mut IssuerHelper,
     need_check_available_modules: IdentifierMap<Vec<Option<ModuleIdentifier>>>,
   ) -> IdentifierMap<IdentifierSet> {
-    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
+    let mut module_graph = ModuleGraph::new_mut([None, None], &mut artifact.module_graph_partial);
     let mut need_clean_cycle_modules: IdentifierMap<IdentifierMap<IdentifierSet>> =
       IdentifierMap::default();
     for (mid, parents) in need_check_available_modules {
@@ -414,7 +414,7 @@ impl FixIssuers {
     clean_modules: IdentifierMap<IdentifierSet>,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut revoke_module = IdentifierSet::default();
-    let mut module_graph = ModuleGraph::new([None, None], Some(&mut artifact.module_graph_partial));
+    let mut module_graph = ModuleGraph::new_mut([None, None], &mut artifact.module_graph_partial);
     for (mid, paths) in clean_modules {
       if revoke_module.contains(&mid) {
         continue;

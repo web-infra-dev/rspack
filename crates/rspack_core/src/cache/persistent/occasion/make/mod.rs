@@ -51,7 +51,7 @@ impl MakeOccasion {
     need_update_modules.extend(affected_modules.active());
 
     // The updated dependencies should be synced to persistent cache.
-    let mg = ModuleGraph::new([Some(module_graph_partial), None], None);
+    let mg = ModuleGraph::new_ref([Some(module_graph_partial), None]);
     for dep_id in affected_dependencies.updated() {
       if let Some(m) = mg.get_parent_module(dep_id) {
         need_update_modules.insert(*m);
@@ -74,7 +74,7 @@ impl MakeOccasion {
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
 
     // regenerate statistical data
-    let mg = ModuleGraph::new([Some(&partial), None], None);
+    let mg = ModuleGraph::new_ref([Some(&partial), None]);
     // recovery make_failed_module
     let mut make_failed_module = IdentifierSet::default();
     // recovery *_dep
