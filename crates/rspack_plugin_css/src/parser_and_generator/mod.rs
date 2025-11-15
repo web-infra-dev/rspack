@@ -391,28 +391,40 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )));
           }
 
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
           let exports = self.exports.get_or_insert_default();
           for name in names {
             for local_class in local_classes.iter() {
-              if let Some(existing) = exports.get(name.as_str())
-                && from.is_none()
+              let convention_names = export_locals_convention(&name, convention);
+              let convention_local_class = export_locals_convention(local_class, convention);
+
+              for (name, local_class) in convention_names
+                .into_iter()
+                .zip(convention_local_class.into_iter())
               {
-                let existing = existing.clone();
-                exports
-                  .get_mut(local_class.as_str())
-                  .expect("composes local class must already added to exports")
-                  .extend(existing);
-              } else {
-                exports
-                  .get_mut(local_class.as_str())
-                  .expect("composes local class must already added to exports")
-                  .insert(CssExport {
-                    ident: name.to_string(),
-                    from: from
-                      .filter(|f| *f != "global")
-                      .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
-                    id: dep_id,
-                  });
+                if let Some(existing) = exports.get(name.as_str())
+                  && from.is_none()
+                {
+                  let existing = existing.clone();
+                  exports
+                    .get_mut(local_class.as_str())
+                    .expect("composes local class must already added to exports")
+                    .extend(existing);
+                } else {
+                  exports
+                    .get_mut(local_class.as_str())
+                    .expect("composes local class must already added to exports")
+                    .insert(CssExport {
+                      ident: name.to_string(),
+                      from: from
+                        .filter(|f| *f != "global")
+                        .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
+                      id: dep_id,
+                    });
+                }
               }
             }
           }
