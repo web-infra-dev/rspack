@@ -9,6 +9,7 @@ packages:
   - "crates/rspack_binding_builder_testing"
   - "examples/**"
   - "!examples/three"
+  - "!examples/comprehensive-demo-react18"
   - "tests/e2e"
   - "tests/rspack-test"
   - "tests/bench"
