@@ -3994,6 +3994,8 @@ version = "0.6.3"
 dependencies = [
  "async-trait",
  "either",
+ "once_cell",
+ "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
@@ -4690,6 +4692,18 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rsc"
+version = "0.6.0-beta.1"
+dependencies = [
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_hook",
+ "rspack_javascript_compiler",
+ "rspack_loader_runner",
+ "swc_core",
 ]
 
 [[package]]
