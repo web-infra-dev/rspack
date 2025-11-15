@@ -102,10 +102,10 @@ impl AsyncDependenciesBlock {
     Self {
       id: format!(
         "{parent}|dep={}{}{}",
-        dependencies.iter().fold(String::default(), |mut s, dep| {
-          s += dep.resource_identifier().unwrap_or_default();
-          s
-        }),
+        dependencies
+          .iter()
+          .map(|dep| dep.resource_identifier().unwrap_or_default())
+          .collect::<String>(),
         loc_str,
         modifier_str
       )
