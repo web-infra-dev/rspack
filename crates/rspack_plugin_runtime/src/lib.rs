@@ -40,12 +40,10 @@ pub fn enable_chunk_loading_plugin(
 ) {
   match loading_type {
     ChunkLoadingType::Jsonp => {
-      if mf_async_startup {
-        plugins.push(
-          StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Jsonp), true)
-            .boxed(),
-        );
-      }
+      plugins.push(
+        StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Jsonp), true)
+          .boxed(),
+      );
       plugins.push(JsonpChunkLoadingPlugin::default().boxed());
     }
     ChunkLoadingType::Require => {
@@ -78,7 +76,13 @@ pub fn enable_chunk_loading_plugin(
       );
       plugins.push(ImportScriptsChunkLoadingPlugin::default().boxed());
     }
-    ChunkLoadingType::Import => plugins.push(ModuleChunkLoadingPlugin::default().boxed()),
+    ChunkLoadingType::Import => {
+      plugins.push(
+        StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Import), true)
+          .boxed(),
+      );
+      plugins.push(ModuleChunkLoadingPlugin::default().boxed())
+    }
     ChunkLoadingType::Custom(_) => (),
   }
 }
