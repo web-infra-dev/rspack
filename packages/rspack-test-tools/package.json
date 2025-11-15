@@ -47,7 +47,7 @@
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
-    "jsdom": "^26.1.0",
+    "jsdom": "^27.2.0",
     "memfs": "4.48.1",
     "path-serializer": "0.5.1",
     "pretty-format": "29.7.0",
@@ -64,7 +64,7 @@
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
-    "@types/jsdom": "^21.1.7",
+    "@types/jsdom": "^27.0.0",
     "typescript": "^5.9.3",
     "wast-loader": "^1.14.1"
   },
