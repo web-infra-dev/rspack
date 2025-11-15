@@ -109,7 +109,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         "module {module_identifier} has bailout reason: {reason}",
       ));
       should_scope_hoisting = false;
-    } else if ModuleGraph::is_async(compilation, module_identifier) {
+    } else if ModuleGraph::is_async(
+      &compilation.collect_build_module_graph_effects_artifact,
+      module_identifier,
+    ) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
     }

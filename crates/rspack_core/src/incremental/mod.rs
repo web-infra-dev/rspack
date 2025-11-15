@@ -108,6 +108,15 @@ pub struct Incremental {
   state: IncrementalState,
 }
 
+impl Default for Incremental {
+  fn default() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::empty(),
+      state: IncrementalState::Cold,
+    }
+  }
+}
 impl Incremental {
   pub fn new_cold(options: IncrementalOptions) -> Self {
     Self {
