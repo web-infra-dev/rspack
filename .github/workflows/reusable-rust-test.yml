@@ -140,18 +140,58 @@ jobs:
             --exclude rspack_binding_builder_testing \
             --exclude rspack_binding_build \
             --exclude rspack_napi \
+            --exclude rspack_watcher \
             -- --nocapture
+
+  rust_watcher_test:
+    name: Rust watcher test - ${{ matrix.array.runner }}
+    runs-on: ${{ fromJSON(matrix.array.runner) }}
+    strategy:
+      fail-fast: false # run all tests even if some fail
+      matrix:
+        array:
+          - runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - runner: ${{ '"windows-latest"' }}
+          - runner: ${{ '"macos-latest"' }}
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: test-os-${{ matrix.array.runner }}
+
+      # Compile test without debug info for reducing the CI cache size
+      - name: Change profile.test
+        shell: bash
+        run: |
+          echo '[profile.test]' >> Cargo.toml
+          echo 'debug = false' >> Cargo.toml
+
+      - name: Run rspack test
+        run: |
+          cargo test -p rspack_watcher -- --nocapture
 
   test_required_check:
     name: Rust Test Required Check
-    needs: [rust_test, rust_check, rust_unused_dependencies, check-changed]
+    needs:
+      [
+        rust_test,
+        rust_check,
+        rust_unused_dependencies,
+        rust_watcher_test,
+        check-changed
+      ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
       - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success' }}
+        if: ${{ needs.check-changed.outputs.code_changed == 'true' && join(needs.*.result, ',')!='success,success,success,success,success' }}
         run: echo "Tests Failed" && exit 1
       - name: No check to Run test
         run: echo "Success"
