@@ -388,7 +388,8 @@ export const getNormalizedRspackOptions = (
 				parallelCodeSplitting: experiments.parallelCodeSplitting,
 				buildHttp: experiments.buildHttp,
 				parallelLoader: experiments.parallelLoader,
-				useInputFileSystem: experiments.useInputFileSystem
+				useInputFileSystem: experiments.useInputFileSystem,
+				mfAsyncStartup: experiments.mfAsyncStartup ?? false
 			};
 		}),
 		watch: config.watch,
@@ -680,6 +681,7 @@ export interface ExperimentsNormalized {
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
 	deferImport?: boolean;
+	mfAsyncStartup?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

@@ -7,17 +7,19 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rustc_hash::FxHashSet;
 
 use super::{
+  container_entry_module::ContainerEntryModule,
   embed_federation_runtime_module::{
     EmbedFederationRuntimeModule, EmbedFederationRuntimeModuleOptions,
   },
@@ -51,6 +53,28 @@ impl EmbedFederationRuntimePlugin {
   pub fn new() -> Self {
     Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
   }
+
+  /// Check if the chunk is a container entry chunk (should NOT use async startup)
+  fn is_container_entry_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+    let entries = compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+
+    // Inspect the last entry module (final entry) and its chunk group metadata
+    if let Some((module_id, chunk_group_ukey)) = entries.iter().next_back() {
+      let module_graph = compilation.get_module_graph();
+      if let Some(module) = module_graph.module_by_identifier(module_id) {
+        return module.as_any().is::<ContainerEntryModule>();
+      }
+      let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      if let Some(entry_options) = chunk_group.kind.get_entry_options()
+        && entry_options.library.is_some()
+      {
+        return true;
+      }
+    }
+    false
+  }
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
@@ -76,9 +100,73 @@ async fn additional_chunk_runtime_requirements_tree(
 
   // Federation is enabled for runtime chunks or entry chunks
   let is_enabled = has_runtime || has_entry_modules;
+  let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
+  let use_async_startup =
+    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
 
   if is_enabled {
-    // Add STARTUP requirement
+    // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
+    if use_async_startup {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+    } else {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    }
+  }
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EmbedFederationRuntimePlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+  // Skip build time chunks
+  if chunk.name() == Some("build time chunk") {
+    return Ok(());
+  }
+
+  // Check if chunk needs federation runtime support
+  let has_entry_modules = compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0;
+
+  // Only add requirements for entry chunks (non-runtime chunks with entries)
+  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  if has_runtime || !has_entry_modules {
+    return Ok(());
+  }
+
+  // Only process chunks that have federation dependencies
+  let collected_deps = self
+    .collected_dependency_ids
+    .lock()
+    .expect("Failed to lock collected_dependency_ids")
+    .iter()
+    .cloned()
+    .collect::<Vec<DependencyId>>();
+  let has_federation_deps = !collected_deps.is_empty();
+
+  if !has_federation_deps {
+    return Ok(());
+  }
+
+  let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
+  let use_async_startup =
+    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
+
+  if use_async_startup {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+  } else {
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
   }
 
@@ -145,7 +233,7 @@ async fn compilation(
     .await
     .tap(collector);
 
-  // Register render startup hook, patches entrypoints
+  // Register render startup hook to patch entrypoints when needed
   let js_hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   js_hooks
     .write()
@@ -168,6 +256,12 @@ async fn render_startup(
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
+    return Ok(());
+  }
+
+  if compilation.options.experiments.mf_async_startup
+    && Self::is_container_entry_chunk(compilation, chunk_ukey)
+  {
     return Ok(());
   }
 
@@ -227,6 +321,10 @@ impl Plugin for EmbedFederationRuntimePlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements_tree::new(self));
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree

@@ -2124,6 +2124,7 @@ inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
 deferImport: boolean
+mfAsyncStartup: boolean
 }
 
 export interface RawExperimentSnapshotOptions {

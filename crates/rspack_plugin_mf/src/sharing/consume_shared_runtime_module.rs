@@ -138,7 +138,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") };\n";
       }
       return Ok(source);
     }

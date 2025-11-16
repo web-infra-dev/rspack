@@ -2409,6 +2409,7 @@ export type Experiments = {
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
     deferImport?: boolean;
+    mfAsyncStartup?: boolean;
 };
 
 // @public (undocumented)
@@ -2483,6 +2484,8 @@ export interface ExperimentsNormalized {
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
+    // (undocumented)
+    mfAsyncStartup?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)

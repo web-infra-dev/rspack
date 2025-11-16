@@ -1,0 +1,8 @@
+.DS_Store
+node_modules
+public/bundle.*
+public/src_*
+public/remoteEntry*
+public/vendors*
+package-lock.json
+yarn.lock

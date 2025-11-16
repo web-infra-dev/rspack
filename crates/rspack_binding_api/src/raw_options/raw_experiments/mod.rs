@@ -31,6 +31,7 @@ pub struct RawExperiments {
   pub type_reexports_presence: bool,
   pub lazy_barrel: bool,
   pub defer_import: bool,
+  pub mf_async_startup: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -53,6 +54,7 @@ impl From<RawExperiments> for Experiments {
       type_reexports_presence: value.type_reexports_presence,
       lazy_barrel: value.lazy_barrel,
       defer_import: value.defer_import,
+      mf_async_startup: value.mf_async_startup,
     }
   }
 }
