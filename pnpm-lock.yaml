@@ -885,8 +885,8 @@ importers:
         specifier: ^1.13.2
         version: 1.13.2
       markdown-to-jsx:
-        specifier: ^7.7.17
-        version: 7.7.17(react@19.1.1)
+        specifier: ^8.0.0
+        version: 8.0.0(react@19.1.1)
       mermaid:
         specifier: ^11.12.1
         version: 11.12.1
@@ -937,8 +937,8 @@ importers:
         specifier: ^7.7.1
         version: 7.7.1
       case-police:
-        specifier: ~2.0.0
-        version: 2.0.0
+        specifier: ~2.1.0
+        version: 2.1.0
       cspell:
         specifier: ^9.3.0
         version: 9.3.0
@@ -4108,8 +4108,8 @@ packages:
   caniuse-lite@1.0.30001751:
     resolution: {integrity: sha512-A0QJhug0Ly64Ii3eIqHu5X51ebln3k4yTUkY1j8drqpWHVreg/VLijN48cZ1bYPiqOQuqpkIKnzr/Ul8V+p6Cw==}
 
-  case-police@2.0.0:
-    resolution: {integrity: sha512-jPVlo+mrmaLQOc4PH00noGFcJsZBWy+eKnAoiqdDJZAx23l6JqvxzElug0GgvZf8zDOODWs9PmEY9GjZb+oMHg==}
+  case-police@2.1.0:
+    resolution: {integrity: sha512-bJlXGM3TAW3P4CK1kgsVUTnazOa33KJ8MDNBod8wxMKq2qMWpd8MSN4wOTeA85T9SMCtHs5PzNiNqgYXu5HTMg==}
     hasBin: true
 
   ccount@2.0.1:
@@ -6063,8 +6063,8 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  markdown-to-jsx@7.7.17:
-    resolution: {integrity: sha512-7mG/1feQ0TX5I7YyMZVDgCC/y2I3CiEhIRQIhyov9nGBP5eoVrOXXHuL5ZP8GRfxVZKRiXWJgwXkb9It+nQZfQ==}
+  markdown-to-jsx@8.0.0:
+    resolution: {integrity: sha512-hWEaRxeCDjes1CVUQqU+Ov0mCqBqkGhLKjL98KdbwHSgEWZZSJQeGlJQatVfeZ3RaxrfTrZZ3eczl2dhp5c/pA==}
     engines: {node: '>= 10'}
     peerDependencies:
       react: '>= 0.14.0'
@@ -11657,7 +11657,7 @@ snapshots:
 
   caniuse-lite@1.0.30001751: {}
 
-  case-police@2.0.0: {}
+  case-police@2.1.0: {}
 
   ccount@2.0.1: {}
 
@@ -13892,7 +13892,7 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@7.7.17(react@19.1.1):
+  markdown-to-jsx@8.0.0(react@19.1.1):
     optionalDependencies:
       react: 19.1.1
 
