@@ -6,3 +6,5 @@ export * from "./test/context";
 export * from "./test/creator";
 export * from "./test/tester";
 export * from "./type";
+
+require("./helper/disable-iconv-lite-warning").disableIconvLiteWarning();
