@@ -11,7 +11,7 @@ use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
-  compilation::make::ModuleExecutor,
+  compilation::build_module_graph::ModuleExecutor,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
 };
@@ -83,14 +83,14 @@ impl Compiler {
         .mutations_readable(IncrementalPasses::MAKE)
       {
         // copy field from old compilation
-        // make stage used
+        // build_module_graph stage used
         self
           .compilation
-          .swap_make_artifact_with_compilation(&mut new_compilation);
+          .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
 
         // seal stage used
-        new_compilation.code_splitting_cache =
-          std::mem::take(&mut self.compilation.code_splitting_cache);
+        new_compilation.build_chunk_graph_artifact =
+          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);

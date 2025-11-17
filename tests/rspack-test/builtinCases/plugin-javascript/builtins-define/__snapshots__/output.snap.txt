@@ -3,7 +3,7 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
+/* import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 // import assert from "assert";
 // import { equal } from "assert";
 
@@ -202,7 +202,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (401); // DO_NOT_CONVERTED8
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (401); // DO_NOT_CONVERTED8
 
 
 

@@ -15,7 +15,7 @@ use crate::{
   DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
   cache::persistent::cacheable_context::CacheableContext,
-  compilation::make::{LazyDependencies, ModuleToLazyMake},
+  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -43,7 +43,7 @@ pub fn save_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) {
-  let mg = ModuleGraph::new([Some(partial), None], None);
+  let mg = ModuleGraph::new_ref([Some(partial), None]);
   for identifier in removed_modules {
     storage.remove(SCOPE, identifier.as_bytes());
   }
@@ -135,7 +135,7 @@ pub async fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
-  let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
+  let mut mg = ModuleGraph::new_mut([None, None], &mut partial);
   storage
     .load(SCOPE)
     .await?

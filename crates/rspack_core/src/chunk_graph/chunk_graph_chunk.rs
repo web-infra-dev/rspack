@@ -1074,7 +1074,7 @@ impl ChunkGraph {
 
     // Merge id name hints
     for hint in chunk_b.id_name_hints() {
-      chunk_a.add_id_name_hints(hint.to_string());
+      chunk_a.add_id_name_hints(hint.clone());
     }
 
     // Merge runtime

@@ -4,7 +4,7 @@ import "../main.mjs";
 // ./src/demo/index.js
 const demo = () => 'demo'
 ;
-/* ESM default export */ const src_demo = (demo);
+/* export default */ const src_demo = (demo);
 
 export default src_demo;
 

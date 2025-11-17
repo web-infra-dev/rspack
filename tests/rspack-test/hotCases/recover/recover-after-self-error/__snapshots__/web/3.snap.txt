@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1218
+- Update: main.LAST_HASH.hot-update.js, size: 1214
 
 ## Manifest
 
@@ -46,7 +46,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 module.hot.data.store.error = false;
 module.hot.data.store.value = 4;
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => { throw new Error("should not happen") });
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (() => { throw new Error("should not happen") });
 const getError = () => { throw new Error("should not happen") };
 const id = module.id;
 

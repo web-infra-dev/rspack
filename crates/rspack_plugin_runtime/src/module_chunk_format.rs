@@ -61,7 +61,6 @@ async fn additional_chunk_runtime_requirements(
     > 0
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
     runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 

@@ -71,7 +71,7 @@ impl ModernModuleLibraryPlugin {
   // Force trigger concatenation for single modules what bails from `ModuleConcatenationPlugin.is_empty`,
   // to keep all chunks can benefit from runtime optimization.
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let module_graph: rspack_core::ModuleGraph = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()
@@ -141,7 +141,7 @@ impl ModernModuleLibraryPlugin {
 
     // Reexport star from external module.
     // Only preserve star reexports for module graph entry, nested reexports are not supported.
-    for dep_id in &compilation.make_artifact.entry_dependencies {
+    for dep_id in &compilation.build_module_graph_artifact.entry_dependencies {
       let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };

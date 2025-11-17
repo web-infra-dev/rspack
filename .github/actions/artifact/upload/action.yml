@@ -17,17 +17,17 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Upload artifact to github
-      uses: actions/upload-artifact@v4
-      if: ${{ inputs.force-use-github == 'true' || runner.environment == 'github-hosted' }}
+    - name: Upload artifact to local
+      uses: lynx-infra/upload-artifact@332ec52e99f7cbf1fbbdc9bcc09280d49147d092 # https://github.com/lynx-infra/upload-artifact/tree/dev
+      if: ${{ runner.environment == 'self-hosted' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: error
         overwrite: true
-    - name: Upload artifact to local
-      uses: lynx-infra/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 #dev
-      if: ${{ runner.environment == 'self-hosted' }}
+
+    - name: Upload artifact to github
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}

@@ -157,7 +157,7 @@ async function check(
 	const warningStatsOutputPath = path.resolve(
 		context.getSource(options.snapshotWarning)
 	);
-	env.expect(output).toMatchFileSnapshot(errorOutputPath);
-	env.expect(errors).toMatchFileSnapshot(errorStatsOutputPath);
-	env.expect(warnings).toMatchFileSnapshot(warningStatsOutputPath);
+	env.expect(output).toMatchFileSnapshotSync(errorOutputPath);
+	env.expect(errors).toMatchFileSnapshotSync(errorStatsOutputPath);
+	env.expect(warnings).toMatchFileSnapshotSync(warningStatsOutputPath);
 }

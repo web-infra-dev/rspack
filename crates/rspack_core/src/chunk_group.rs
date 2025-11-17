@@ -111,13 +111,7 @@ impl ChunkGroup {
     self
       .chunks
       .iter()
-      .flat_map(|chunk_ukey| {
-        chunk_by_ukey
-          .expect_get(chunk_ukey)
-          .files()
-          .iter()
-          .map(|file| file.to_string())
-      })
+      .flat_map(|chunk_ukey| chunk_by_ukey.expect_get(chunk_ukey).files().iter().cloned())
       .collect()
   }
 

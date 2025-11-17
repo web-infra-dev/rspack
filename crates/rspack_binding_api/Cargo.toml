@@ -22,6 +22,7 @@ color-backtrace = ["dep:color-backtrace"]
 debug_tool = ["rspack_core/debug_tool"]
 plugin = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+tracy-client = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
@@ -48,13 +49,13 @@ rspack_util               = { workspace = true }
 rspack_watcher            = { workspace = true }
 rspack_workspace          = { workspace = true }
 
+async-trait             = { workspace = true }
+cow-utils               = { workspace = true }
 rspack_tracing          = { workspace = true }
 rspack_tracing_perfetto = { workspace = true }
-
-async-trait        = { workspace = true }
-cow-utils          = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing                 = { workspace = true }
+tracing-subscriber      = { workspace = true }
+tracy-client            = { workspace = true, optional = true }
 
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }

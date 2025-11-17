@@ -340,7 +340,6 @@ async fn render_wasm_name(
             .map(|s| PathData::prepare_id(s.as_str()))
             .as_deref(),
         )
-        .filename(normal_module.resource_resolved_data().resource())
         .content_hash(hash)
         .hash(hash),
     )

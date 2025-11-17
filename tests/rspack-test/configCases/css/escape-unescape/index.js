@@ -10,6 +10,6 @@ it(`should work with URLs in CSS`, () => {
 		css.push(getLinkSheet(link));
 	}
 
-	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, `css.${__STATS_I__}.txt`));
-	expect(styles).toMatchFileSnapshot(path.join(__SNAPSHOT__, `styles.${__STATS_I__}.txt`));
+	expect(css).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `css.${__STATS_I__}.txt`));
+	expect(styles).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `styles.${__STATS_I__}.txt`));
 });

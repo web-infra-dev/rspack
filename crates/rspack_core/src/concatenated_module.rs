@@ -870,10 +870,8 @@ impl Module for ConcatenatedModule {
 
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported_atoms) in import_map.iter() {
-                escaped_identifiers.insert(
-                  source.to_string(),
-                  split_readable_identifier(source.as_str()),
-                );
+                escaped_identifiers
+                  .insert(source.clone(), split_readable_identifier(source.as_str()));
                 for atom in imported_atoms {
                   escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
                 }
@@ -1969,7 +1967,7 @@ impl ConcatenatedModule {
     mg_cache: &ModuleGraphCacheArtifact,
   ) -> Vec<ConcatenationEntry> {
     mg_cache.cached_concatenated_module_entries(
-      (self.id, runtime.map(|r| get_runtime_key(r).to_string())),
+      (self.id, runtime.map(|r| get_runtime_key(r).clone())),
       || {
         let root_module = self.root_module_ctxt.id;
         let module_set: IdentifierIndexSet = self.modules.iter().map(|item| item.id).collect();
@@ -3064,7 +3062,7 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Ve
       if name.is_empty() {
         String::new()
       } else if name.starts_with('_') || info_part.ends_with('_') {
-        name.to_string()
+        name.clone()
       } else {
         format!("_{name}")
       }

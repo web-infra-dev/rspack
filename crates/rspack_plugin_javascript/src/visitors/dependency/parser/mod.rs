@@ -443,7 +443,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+      plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,

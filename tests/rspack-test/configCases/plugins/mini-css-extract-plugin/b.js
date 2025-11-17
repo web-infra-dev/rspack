@@ -45,12 +45,12 @@ it("b should load a css chunk", () => {
 			"utf-8"
 		)
 		.trim();
-	expect(css).toMatchFileSnapshot(path.resolve(__SNAPSHOT__, `${__STATS_I__}/b.0.css`));
+	expect(css).toMatchFileSnapshotSync(path.resolve(__SNAPSHOT__, `${__STATS_I__}/b.0.css`));
 
 	return promise;
 });
 
 it("b should generate correct css", () => {
 	const css = fs.readFileSync(path.resolve(__dirname, "b.css"), "utf-8").trim();
-	expect(css).toMatchFileSnapshot(path.resolve(__SNAPSHOT__, `${__STATS_I__}/b.1.css`));
+	expect(css).toMatchFileSnapshotSync(path.resolve(__SNAPSHOT__, `${__STATS_I__}/b.1.css`));
 });

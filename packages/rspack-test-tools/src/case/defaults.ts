@@ -52,8 +52,8 @@ export type TDefaultsCaseConfig = {
 	options?: (context: ITestContext) => RspackOptions;
 	cwd?: string;
 	diff: (
-		diff: jest.JestMatchers<RspackTestDiff>,
-		defaults: jest.JestMatchers<RspackOptions>
+		diff: Assertion<RspackTestDiff>,
+		defaults: Assertion<RspackOptions>
 	) => Promise<void>;
 	description: string;
 };
@@ -88,8 +88,8 @@ async function check(
 	options: {
 		cwd?: string;
 		diff: (
-			diff: jest.JestMatchers<RspackTestDiff>,
-			defaults: jest.JestMatchers<RspackOptions>
+			diff: Assertion<RspackTestDiff>,
+			defaults: Assertion<RspackOptions>
 		) => Promise<void>;
 	}
 ) {
@@ -123,7 +123,7 @@ async function run(name: string, processor: ITestProcessor) {
 		context.emitError(e as Error);
 	} finally {
 		await processor.check?.(
-			{ expect, it, beforeEach, afterEach, jest: global.jest || global.rstest },
+			{ expect, it, beforeEach, afterEach, rstest },
 			context
 		);
 		await processor.after?.(context);

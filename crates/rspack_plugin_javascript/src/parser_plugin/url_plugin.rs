@@ -8,8 +8,8 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::URLDependency, parser_plugin::inner_graph::plugin::InnerGraphPlugin,
-  visitors::JavascriptParser, webpack_comment::try_extract_webpack_magic_comment,
+  dependency::URLDependency, magic_comment::try_extract_magic_comment,
+  parser_plugin::inner_graph::plugin::InnerGraphPlugin, visitors::JavascriptParser,
 };
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
@@ -93,11 +93,8 @@ impl JavascriptParserPlugin for URLPlugin {
 
     let args = expr.args.as_ref()?;
     let arg = args.first()?;
-    let magic_comment_options = try_extract_webpack_magic_comment(parser, expr.span, arg.span());
-    if magic_comment_options
-      .get_webpack_ignore()
-      .unwrap_or_default()
-    {
+    let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
+    if magic_comment_options.get_ignore().unwrap_or_default() {
       if args.len() != 2 {
         return None;
       }

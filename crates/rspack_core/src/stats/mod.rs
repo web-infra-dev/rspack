@@ -17,7 +17,7 @@ use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
   Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
-  compilation::make::ExecutedRuntimeModule,
+  compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
@@ -783,7 +783,7 @@ impl Stats<'_> {
     } else {
       self
         .compilation
-        .make_artifact
+        .build_module_graph_artifact
         .built_modules()
         .contains(&identifier)
     };
@@ -1198,7 +1198,7 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
-      stats.name_for_condition = module.name_for_condition.as_ref().map(|n| n.to_string());
+      stats.name_for_condition = module.name_for_condition.clone();
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);

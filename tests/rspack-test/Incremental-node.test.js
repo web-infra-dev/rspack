@@ -20,8 +20,6 @@ describeByWalk(
 		dist: path.resolve(__dirname, `./js/incremental/hot-node`),
 		exclude: [
 			/^css$/,
-			// FIXME: incremental failed
-			/^rebuild-abnormal-module$/
 		]
 	}
 );

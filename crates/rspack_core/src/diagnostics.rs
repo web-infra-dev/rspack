@@ -48,7 +48,7 @@ impl From<ModuleBuildError> for Error {
     let details = source
       .hide_stack
       .unwrap_or(false)
-      .then_some(source.stack.as_ref().map(|stack| stack.to_string()))
+      .then_some(source.stack.clone())
       .flatten();
     err.details = details;
     err.severity = source.severity;

@@ -14,7 +14,7 @@ var applyHandler = <%- basicFunction("options") %> {
 			}
 			while (newTags.length) {
 				var info = newTags.pop();
-				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[0]);
+				var chunkModuleIds = loadCssChunkData(<%- MODULE_FACTORIES %>, info[0]);
 				chunkModuleIds.forEach(function(id) {
 				    moduleIds.push(id)
 				});
@@ -26,7 +26,7 @@ var applyHandler = <%- basicFunction("options") %> {
 var cssTextKey = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
-__webpack_require__.hmrC.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(<%- basicFunction("chunkId") %> {

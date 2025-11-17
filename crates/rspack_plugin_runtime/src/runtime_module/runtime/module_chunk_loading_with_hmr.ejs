@@ -3,8 +3,8 @@
       // start update chunk loading
       var url = <%- PUBLIC_PATH %> +<%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
       var onResolve = <%- basicFunction("obj") %> {
-        var updatedModules = obj.__webpack_modules__;
-        var updatedRuntime = obj.__webpack_runtime__;
+        var updatedModules = obj.<%- _modules %>;
+        var updatedRuntime = obj.<%- _runtime %>;
         if (updatedRuntime) currentUpdateRuntime.push(updatedRuntime);
         for (var moduleId in updatedModules) {
           if ((<%- HAS_OWN_PROPERTY %>)(updatedModules, moduleId)) {

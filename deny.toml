@@ -232,6 +232,7 @@ skip = [
     { crate = "thiserror-impl", reason = "external dependency"},
     { crate = "unicode-width", reason = "external dependency"},
     { crate = "wasi", reason = "external dependency"},
+    { crate = "windows-core", reason = "external dependency"},
     { crate = "windows-targets", reason = "external dependency"},
     { crate = "windows_aarch64_gnullvm", reason = "external dependency"},
     { crate = "windows_aarch64_msvc", reason = "external dependency"},

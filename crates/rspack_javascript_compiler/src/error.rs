@@ -83,7 +83,7 @@ impl Emitter for RspackErrorEmitter {
           Some(source_file_and_byte_pos.sf.src.clone().into_string()),
           source_file_and_byte_pos.pos.0 as usize,
           source_file_and_byte_pos.pos.0 as usize,
-          self.title.to_string(),
+          self.title.clone(),
           db.message(),
         ))
         .expect("Sender should drop after emit called");
