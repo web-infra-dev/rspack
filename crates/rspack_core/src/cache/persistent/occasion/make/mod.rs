@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet;
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
   FactorizeInfo, ModuleGraph,
-  compilation::make::{MakeArtifact, MakeArtifactState},
+  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   utils::{FileCounter, ResourceId},
 };
 
@@ -27,8 +27,8 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  pub fn save(&self, artifact: &MakeArtifact) {
-    let MakeArtifact {
+  pub fn save(&self, artifact: &BuildModuleGraphArtifact) {
+    let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph_partial,
@@ -51,7 +51,7 @@ impl MakeOccasion {
     need_update_modules.extend(affected_modules.active());
 
     // The updated dependencies should be synced to persistent cache.
-    let mg = ModuleGraph::new([Some(module_graph_partial), None], None);
+    let mg = ModuleGraph::new_ref([Some(module_graph_partial), None]);
     for dep_id in affected_dependencies.updated() {
       if let Some(m) = mg.get_parent_module(dep_id) {
         need_update_modules.insert(*m);
@@ -69,12 +69,12 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<MakeArtifact> {
+  pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
     let (partial, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
 
     // regenerate statistical data
-    let mg = ModuleGraph::new([Some(&partial), None], None);
+    let mg = ModuleGraph::new_ref([Some(&partial), None]);
     // recovery make_failed_module
     let mut make_failed_module = IdentifierSet::default();
     // recovery *_dep
@@ -108,14 +108,14 @@ impl MakeOccasion {
       }
     }
 
-    Ok(MakeArtifact {
+    Ok(BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
 
-      state: MakeArtifactState::Initialized,
+      state: BuildModuleGraphArtifactState::Initialized,
       module_graph_partial: partial,
       module_to_lazy_make,
 

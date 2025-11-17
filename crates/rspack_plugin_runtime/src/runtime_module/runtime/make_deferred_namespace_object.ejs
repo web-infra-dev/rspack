@@ -3,7 +3,7 @@
   // mode: 1 => default-only (esm strict cjs)
   // mode: 2 => default-with-named (esm-cjs compat)
   // mode: 3 => dynamic (if exports has __esModule, then esm, otherwise default-with-named)
-  var cachedModule = __webpack_module_cache__[moduleId];
+  var cachedModule = <%- module_cache %>[moduleId];
   if (cachedModule && cachedModule.error === undefined) {
     var exports = cachedModule.exports;
     <%- cached_get_async_module_export %>
@@ -32,7 +32,7 @@
       ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 6);
     }
   };
-  var ns = __webpack_module_deferred_exports__[moduleId] || (__webpack_module_deferred_exports__[moduleId] = { __proto__: null });
+  var ns = <%- deferred_exports %>[moduleId] || (<%- deferred_exports %>[moduleId] = { __proto__: null });
   var handler = {
     __proto__: null,
     get: <%- basicFunction("_, name") %> {

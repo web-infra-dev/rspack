@@ -1,7 +1,7 @@
 asset entry.js xx KiB [emitted] (name: entry)
-asset 870.js 405 bytes [emitted]
-asset 897.js 405 bytes [emitted]
-asset 985.js 403 bytes [emitted]
+asset 870.js 401 bytes [emitted]
+asset 897.js 401 bytes [emitted]
+asset 985.js 399 bytes [emitted]
 runtime modules xx KiB 11 modules
 cacheable modules 724 bytes
   modules by path ./templates/*.js 114 bytes
@@ -9,5 +9,5 @@ cacheable modules 724 bytes
     ./templates/baz.js 38 bytes [built] [code generated]
     ./templates/foo.js 38 bytes [built] [code generated]
   ./entry.js 450 bytes [built] [code generated]
-  <TEST_ROOT>/statsOutputCases/import-context-filter/templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object 160 bytes [built] [code generated]
+  ./templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object 160 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

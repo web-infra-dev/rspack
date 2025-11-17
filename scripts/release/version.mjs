@@ -42,7 +42,7 @@ export function getNextName(name, scopePostfix = "canary") {
 		return name;
 	}
 	if (name === "create-rspack") {
-		return "create-rspack-canary";
+		return `create-rspack-${scopePostfix}`;
 	}
 	return name.replace(/^@rspack/, `@rspack-${scopePostfix}`);
 }
@@ -156,6 +156,7 @@ export async function version_handler(version, options) {
 	}
 
 	await $`cargo codegen`;
+	await $`pnpm run format:js`;
 
 	console.log("Cargo codegen done");
 }

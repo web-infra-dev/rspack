@@ -44,7 +44,7 @@ export interface IBasicCaseCreatorOptions {
 	[key: string]: unknown;
 }
 
-const DEFAULT_MAX_CONCURRENT = 5;
+const DEFAULT_MAX_CONCURRENT = process.env.WASM ? 1 : 5;
 
 export class BasicCaseCreator {
 	protected currentConcurrent = 0;
@@ -88,7 +88,7 @@ export class BasicCaseCreator {
 			options
 		);
 		const concurrent = process.env.WASM
-			? false
+			? 1
 			: testConfig.concurrent || options.concurrent;
 		if (options.describe) {
 			if (run) {
@@ -334,8 +334,7 @@ export class BasicCaseCreator {
 				expect(typeof fn === "function");
 				afterTasks.push(fn);
 			},
-			jest: global.jest || global.rstest,
-			rstest: global.rstest
+			rstest
 		};
 	}
 
@@ -351,8 +350,7 @@ export class BasicCaseCreator {
 			it,
 			beforeEach,
 			afterEach,
-			jest: global.jest || global.rstest,
-			rstest: global.rstest
+			rstest
 		};
 	}
 

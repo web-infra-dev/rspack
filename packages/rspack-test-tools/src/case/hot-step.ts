@@ -150,8 +150,9 @@ function createHotStepProcessor(
 			}, str);
 		};
 
-		const fileList = stats
-			.assets!.map(i => {
+		const assets = stats.assets!.sort((a, b) => a.name.localeCompare(b.name));
+		const fileList = assets
+			.map(i => {
 				const fileName = i.name;
 				const renderName = replaceFileName(fileName);
 				const content = replaceContent(
@@ -310,7 +311,7 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			})
 			.trim();
 
-		env.expect(content).toMatchFileSnapshot(snapshotPath);
+		env.expect(content).toMatchFileSnapshotSync(snapshotPath);
 	}
 
 	const originRun = processor.run;

@@ -115,9 +115,9 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_CONTEXT {
+    if for_name == expr_name::IMPORT_META_CONTEXT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_CONTEXT.into(),
+        expr_name::IMPORT_META_CONTEXT.into(),
         expr_name::IMPORT_META.into(),
         Some(true),
         start,
@@ -134,10 +134,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != expr_name::IMPORT_META_WEBPACK_CONTEXT
-      || expr.args.is_empty()
-      || expr.args.len() > 2
-    {
+    if for_name != expr_name::IMPORT_META_CONTEXT || expr.args.is_empty() || expr.args.len() > 2 {
       None
     } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
       parser.add_dependency(Box::new(dep));

@@ -186,6 +186,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.is_pure(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn member_chain_of_call_member_chain(
     &self,
     parser: &mut JavascriptParser,
@@ -443,9 +454,10 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
+    for_name: &str,
   ) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.this(parser, expr);
+      let res = plugin.this(parser, expr, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

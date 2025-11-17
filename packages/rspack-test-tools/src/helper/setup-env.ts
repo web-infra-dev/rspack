@@ -20,9 +20,6 @@ if (process.env.RSTEST) {
 	global.__RSPACK_PATH__ ??= process.env.__RSPACK_PATH__;
 	global.__RSPACK_TEST_TOOLS_PATH__ ??= process.env.__RSPACK_TEST_TOOLS_PATH__;
 	global.__DEBUG__ ??= process.env.DEBUG === "test";
-} else {
-	// Compatible with wasm tests (lazyTestEnv)
-	global.rstest = jest;
 }
 
 if (process.env.ALTERNATIVE_SORT) {
@@ -108,10 +105,24 @@ if (process.env.DEBUG_INFO) {
 	it = addDebugInfo(it);
 }
 
+const uncaughtExceptionListenersLength =
+	process.listeners("uncaughtException").length;
+const unhandledRejectionListenersLength =
+	process.listeners("unhandledRejection").length;
+
 // cspell:word wabt
 // Workaround for a memory leak in wabt
 // It leaks an Error object on construction
 // so it leaks the whole stack trace
 require("wast-loader");
-process.removeAllListeners("uncaughtException");
-process.removeAllListeners("unhandledRejection");
+
+// remove the last uncaughtException / unhandledRejection listener added by wast-loader
+const listeners = process.listeners("uncaughtException");
+if (listeners.length > uncaughtExceptionListenersLength) {
+	process.off("uncaughtException", listeners[listeners.length - 1]);
+}
+
+const listeners1 = process.listeners("unhandledRejection");
+if (listeners1.length > unhandledRejectionListenersLength) {
+	process.off("unhandledRejection", listeners1[listeners1.length - 1]);
+}

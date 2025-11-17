@@ -17,9 +17,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 993
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 576
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 731
+- Update: shared.LAST_HASH.hot-update.js, size: 985
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 572
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 727
 
 ## Manifest
 
@@ -94,7 +94,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 
 
 }),
@@ -107,7 +107,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunkS */ "./chunkS.js"));
 
 
@@ -139,7 +139,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 
 
 }),
@@ -177,7 +177,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
 
 

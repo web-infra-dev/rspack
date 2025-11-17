@@ -9,8 +9,8 @@
 - Bundle: chunk_js.CURRENT_HASH.js
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 436
-- Update: main.LAST_HASH.hot-update.js, size: 558
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 432
+- Update: main.LAST_HASH.hot-update.js, size: 554
 
 ## Manifest
 
@@ -45,7 +45,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (20);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (20);
 
 
 }),
@@ -76,7 +76,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
 }),

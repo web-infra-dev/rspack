@@ -40,7 +40,6 @@ export { other_demo as demo };
 ```
 
 ```mjs title=index.mjs
-import "./demo/index.mjs";
 
 // ./src/index.js
 

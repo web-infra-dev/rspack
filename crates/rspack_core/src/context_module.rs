@@ -17,6 +17,7 @@ use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
   fx_hash::FxIndexMap,
+  identifier::make_paths_relative,
   itoa, json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
@@ -35,8 +36,8 @@ use crate::{
   impl_module_meta_info, module_update_hash, returning_function, to_path,
 };
 
-static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
-static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
+static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
+static CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -186,7 +187,7 @@ impl ContextModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      identifier: create_identifier(&options),
+      identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
       build_info: Default::default(),
@@ -230,7 +231,7 @@ impl ContextModule {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
           .map(|id| (id.to_string(), dep))
       })
-      .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
+      .sorted_unstable_by_key(|(module_id, _)| module_id.clone());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
         &compilation.get_module_graph(),
@@ -525,7 +526,7 @@ impl ContextModule {
       true,
       if short_mode { "invalid" } else { "ids[1]" },
     );
-    let webpack_async_context = if has_no_chunk {
+    let async_context = if has_no_chunk {
       formatdoc! {r#"
         function webpackAsyncContext(req) {{
           return Promise.resolve().then(function() {{
@@ -569,7 +570,7 @@ impl ContextModule {
     };
     formatdoc! {r#"
       var map = {map};
-      {webpack_async_context}
+      {async_context}
       webpackAsyncContext.keys = {keys};
       webpackAsyncContext.id = {id};
       module.exports = webpackAsyncContext;
@@ -819,7 +820,7 @@ impl ContextModule {
         source_string,
         format!(
           "webpack://{}",
-          contextify(&compilation.options.context, self.identifier.as_str(),)
+          make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
         ),
       )
       .boxed()
@@ -868,8 +869,11 @@ impl Module for ContextModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &crate::Context) -> std::borrow::Cow<'_, str> {
-    self.identifier.as_str().into()
+  fn readable_identifier(&self, context: &crate::Context) -> std::borrow::Cow<'_, str> {
+    let identifier = contextify(context, self.options.resource.as_str());
+    create_identifier(&self.options, Some(identifier.as_str()))
+      .to_string()
+      .into()
   }
 
   fn size(
@@ -963,17 +967,17 @@ impl Module for ContextModule {
         let name = group_options
           .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
-            let name = if !(name.contains(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER)
-              || name.contains(WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER))
+            let name = if !(name.contains(CHUNK_NAME_INDEX_PLACEHOLDER)
+              || name.contains(CHUNK_NAME_REQUEST_PLACEHOLDER))
             {
-              Cow::Owned(format!("{name}{WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER}"))
+              Cow::Owned(format!("{name}{CHUNK_NAME_INDEX_PLACEHOLDER}"))
             } else {
               Cow::Borrowed(name)
             };
 
-            let name = name.cow_replace(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
+            let name = name.cow_replace(CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
             let name = name.cow_replace(
-              WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER,
+              CHUNK_NAME_REQUEST_PLACEHOLDER,
               &to_path(&context_element_dependency.user_request),
             );
 
@@ -1098,8 +1102,8 @@ impl Identifiable for ContextModule {
   }
 }
 
-fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut id = options.resource.as_str().to_owned();
+fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
+  let mut id = resource.unwrap_or(options.resource.as_str()).to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;

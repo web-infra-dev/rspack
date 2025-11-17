@@ -25,8 +25,8 @@ console.log("exist");
 "./parent-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
 __webpack_require__.e(/* import() */ "shared_js-_38af1").then(__webpack_require__.bind(__webpack_require__, "./shared.js"));
 
@@ -57,8 +57,8 @@ console.log("exist");
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
 
 console.log("shared");
@@ -74,8 +74,8 @@ console.log("shared");
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["shared_js-_38af1"], {
 "./shared.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
-/* ESM import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./exist.js");
+/* import */var _exist__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_exist__WEBPACK_IMPORTED_MODULE_0__);
 
 
 console.log("shared");

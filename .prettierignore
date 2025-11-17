@@ -1,20 +1,25 @@
 # Ignore generated
 dist/
 compiled/
+target/
 
 # Ignore lock files
 pnpm-lock.yaml
 
-# Ignore example fixtures
+# Ignore unknown format
+LICENSE
+gitignore
+.gitignore
+*.svg
 
 # Ignore test related
-
+tests/**/*
 packages/**/etc/**/*
 packages/rspack-test-tools/template/**/*
 packages/rspack-test-tools/src/helper/legacy/**/*
-
-crates/**/*
-target/**/*
-tests/**/*
-
 !tests/**/test.filter.js
+
+# Crates
+crates/**
+!crates/**/
+!crates/**/*.md

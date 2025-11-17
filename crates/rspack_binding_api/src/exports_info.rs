@@ -3,7 +3,8 @@ use std::ptr::NonNull;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec,
+  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraphMut, ModuleGraphRef,
+  PrefetchExportsInfoMode, RuntimeSpec,
 };
 use rspack_util::atom::Atom;
 
@@ -24,13 +25,13 @@ impl JsExportsInfo {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<ModuleGraph<'static>> {
+  fn as_ref(&self) -> napi::Result<ModuleGraphRef<'static>> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
     Ok(module_graph)
   }
 
-  fn as_mut(&mut self) -> napi::Result<ModuleGraph<'static>> {
+  fn as_mut(&mut self) -> napi::Result<ModuleGraphMut<'static>> {
     let compilation = unsafe { self.compilation.as_mut() };
     let module_graph = compilation.get_module_graph_mut();
     Ok(module_graph)

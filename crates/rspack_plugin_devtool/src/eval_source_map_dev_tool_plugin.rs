@@ -7,7 +7,7 @@ use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
   Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
-  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -107,7 +107,9 @@ async fn eval_source_map_devtool_plugin_render_module_content(
   if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
+  } else if let Some(mut map) =
+    origin_source.map(&ObjectPool::default(), &MapOptions::new(self.columns))
+  {
     let source = {
       let source = origin_source.source().into_string_lossy();
 

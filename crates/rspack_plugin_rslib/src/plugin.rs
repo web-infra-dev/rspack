@@ -9,19 +9,20 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_asset::AssetParserAndGenerator;
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_library::{
-  ModernModuleImportDependencyTemplate, replace_import_dependencies_for_external_modules,
-};
 
-use crate::parser_plugin::RslibParserPlugin;
+use crate::{
+  asset::RslibAssetParserAndGenerator, import_dependency::RslibDependencyTemplate,
+  import_external::replace_import_dependencies_for_external_modules,
+  parser_plugin::RslibParserPlugin,
+};
 
 #[derive(Debug)]
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
-  pub compact_external_module_dynamic_import: bool,
   pub force_node_shims: bool,
 }
 
@@ -48,7 +49,7 @@ impl RslibPlugin {
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
@@ -64,6 +65,14 @@ async fn nmf_parser(
         rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin,
       ) as BoxJavascriptParserPlugin);
     }
+  } else if parser.is::<AssetParserAndGenerator>() {
+    // Wrap AssetParserAndGenerator to customize source types
+    *parser = Box::new(RslibAssetParserAndGenerator(
+      parser
+        .downcast_ref::<AssetParserAndGenerator>()
+        .expect("is AssetParser")
+        .clone(),
+    ))
   }
 
   Ok(())
@@ -76,15 +85,15 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_template(
-    ModernModuleImportDependencyTemplate::template_type(),
-    Arc::new(ModernModuleImportDependencyTemplate::default()),
+    RslibDependencyTemplate::template_type(),
+    Arc::new(RslibDependencyTemplate::default()),
   );
   Ok(())
 }
 
 #[plugin_hook(CompilerFinishMake for RslibPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Replace ImportDependency instances with ModernModuleImportDependency for external modules
+  // Replace ImportDependency instances with RslibImportDependency for external modules
   replace_import_dependencies_for_external_modules(compilation)?;
   Ok(())
 }
@@ -101,9 +110,7 @@ impl Plugin for RslibPlugin {
       .parser
       .tap(nmf_parser::new(self));
 
-    if self.options.compact_external_module_dynamic_import {
-      ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
-    }
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     Ok(())
   }

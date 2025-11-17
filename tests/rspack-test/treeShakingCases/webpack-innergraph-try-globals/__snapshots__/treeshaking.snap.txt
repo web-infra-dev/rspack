@@ -3,7 +3,7 @@
 "./import-module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
+/* import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
 
 
 expect(_module__WEBPACK_IMPORTED_MODULE_0__.ok).toBe(true);

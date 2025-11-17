@@ -402,6 +402,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::ThisExpr,
+    _for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
       return None;

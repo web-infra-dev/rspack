@@ -549,14 +549,14 @@ pub fn import_statement(
   if phase.is_defer() && !target_module.build_meta().has_top_level_await {
     let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
     let import_content = format!(
-      "/* deferred ESM import */{opt_declaration}{import_var} = {};\n",
+      "/* deferred import */{opt_declaration}{import_var} = {};\n",
       get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
     );
     return (import_content, String::new());
   }
 
   let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    "/* import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
   if matches!(exports_type, ExportsType::Dynamic) {
@@ -564,7 +564,7 @@ pub fn import_statement(
     return (
       import_content,
       format!(
-        "/* ESM import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );

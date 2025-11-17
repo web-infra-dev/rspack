@@ -1,11 +1,12 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ModuleFederationRuntimePluginOptions,
-  ProvideOptions, ProvideVersion, RemoteOptions,
+  ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption, ManifestSharedOption,
+  ModuleFederationManifestPluginOptions, ModuleFederationRuntimePluginOptions, ProvideOptions,
+  ProvideVersion, RemoteAliasTarget, RemoteOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -221,6 +222,102 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawRemoteAliasTarget {
+  pub name: String,
+  pub entry: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawManifestExposeOption {
+  pub path: String,
+  pub name: String,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawManifestSharedOption {
+  pub name: String,
+  pub version: Option<String>,
+  pub required_version: Option<String>,
+  pub singleton: Option<bool>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawStatsBuildInfo {
+  pub build_version: String,
+  pub build_name: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawModuleFederationManifestPluginOptions {
+  pub name: Option<String>,
+  pub global_name: Option<String>,
+  pub file_name: Option<String>,
+  pub file_path: Option<String>,
+  pub stats_file_name: Option<String>,
+  pub manifest_file_name: Option<String>,
+  pub disable_assets_analyze: Option<bool>,
+  pub remote_alias_map: Option<HashMap<String, RawRemoteAliasTarget>>,
+  pub exposes: Option<Vec<RawManifestExposeOption>>,
+  pub shared: Option<Vec<RawManifestSharedOption>>,
+  pub build_info: Option<RawStatsBuildInfo>,
+}
+
+impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifestPluginOptions {
+  fn from(value: RawModuleFederationManifestPluginOptions) -> Self {
+    ModuleFederationManifestPluginOptions {
+      name: value.name,
+      global_name: value.global_name,
+      stats_file_name: value.stats_file_name.unwrap_or_default(),
+      manifest_file_name: value.manifest_file_name.unwrap_or_default(),
+      disable_assets_analyze: value.disable_assets_analyze.unwrap_or(false),
+      remote_alias_map: value
+        .remote_alias_map
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(k, v)| {
+          (
+            k,
+            RemoteAliasTarget {
+              name: v.name,
+              entry: v.entry,
+            },
+          )
+        })
+        .collect::<HashMap<String, RemoteAliasTarget>>(),
+      exposes: value
+        .exposes
+        .unwrap_or_default()
+        .into_iter()
+        .map(|expose| ManifestExposeOption {
+          path: expose.path,
+          name: expose.name,
+        })
+        .collect(),
+      shared: value
+        .shared
+        .unwrap_or_default()
+        .into_iter()
+        .map(|shared| ManifestSharedOption {
+          name: shared.name,
+          version: shared.version,
+          required_version: shared.required_version,
+          singleton: shared.singleton,
+        })
+        .collect(),
+      build_info: value.build_info.map(|info| StatsBuildInfo {
+        build_version: info.build_version,
+        build_name: info.build_name,
+      }),
     }
   }
 }

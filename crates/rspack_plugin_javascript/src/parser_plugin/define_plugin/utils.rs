@@ -7,11 +7,10 @@ use serde_json::{Value, json};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
-static WEBPACK_REQUIRE_FUNCTION_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("__webpack_require__\\s*(!?\\.)")
-    .expect("should init `WEBPACK_REQUIRE_FUNCTION_REGEXP`")
+static REQUIRE_FUNCTION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
-static WEBPACK_REQUIRE_IDENTIFIER: &str = "__webpack_require__";
+static REQUIRE_IDENTIFIER: &str = "__webpack_require__";
 
 pub fn gen_const_dep(
   parser: &JavascriptParser,
@@ -34,9 +33,9 @@ pub fn gen_const_dep(
     )
   };
 
-  if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {
+  if REQUIRE_FUNCTION_REGEX.is_match(&code) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(WEBPACK_REQUIRE_IDENTIFIER) {
+  } else if code.contains(REQUIRE_IDENTIFIER) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)

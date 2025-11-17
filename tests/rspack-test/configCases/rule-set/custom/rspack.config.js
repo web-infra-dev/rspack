@@ -7,6 +7,8 @@ module.exports = {
 				use: function (data) {
 					return {
 						loader: "./loader",
+						// DIFF: need to use ident to identify the loader options
+						ident: data.resource,
 						options: {
 							resource: data.resource.replace(/^.*[\\/]/g, ""),
 							resourceQuery: data.resourceQuery,

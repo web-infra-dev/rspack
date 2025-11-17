@@ -27,17 +27,13 @@
         "${input:pickPattern}"
       ],
       "cwd": "${workspaceFolder}/packages/rspack-test-tools",
-      "initCommands": [
-        "settings set target.process.follow-fork-mode child"
-      ]
+      "initCommands": ["settings set target.process.follow-fork-mode child"]
     },
     {
       "name": "Attach JavaScript",
       "processId": "${command:PickProcess}",
       "request": "attach",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "type": "node"
     },
     {
@@ -45,21 +41,18 @@
       "request": "attach",
       "name": "Attach Rust",
       "pid": "${command:pickMyProcess}"
-    },
+    }
   ],
   "inputs": [
     {
       "id": "pickTest",
       "type": "command",
-      "command": "extension.pickTest",
+      "command": "extension.pickTest"
     },
     {
       "id": "rspackCommand",
       "type": "pickString",
-      "options": [
-        "build",
-        "dev"
-      ],
+      "options": ["build", "dev"],
       "description": "choose build or dev mode",
       "default": "dev"
     },

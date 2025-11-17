@@ -243,6 +243,11 @@ impl JsPlugin {
     let mut header: Vec<Cow<str>> = Vec::new();
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
+    let supports_arrow_function = compilation
+      .options
+      .output
+      .environment
+      .supports_arrow_function();
 
     if allow_inline_startup && module_factories {
       startup.push("// module factories are used so entry inlining is disabled".into());
@@ -419,9 +424,17 @@ impl JsPlugin {
           }
 
           if !chunk_ids.is_empty() {
+            let on_chunks_loaded_callback = if supports_arrow_function {
+              format!("() => {}({module_id_expr})", RuntimeGlobals::REQUIRE)
+            } else {
+              format!(
+                "function() {{ return {}({module_id_expr}) }}",
+                RuntimeGlobals::REQUIRE
+              )
+            };
             buf2.push(
               format!(
-                "{}{}(undefined, {}, function() {{ return {}({module_id_expr}) }});",
+                "{}{}(undefined, {}, {});",
                 if i + 1 == entries.len() {
                   format!("var {} = ", RuntimeGlobals::EXPORTS)
                 } else {
@@ -429,7 +442,7 @@ impl JsPlugin {
                 },
                 RuntimeGlobals::ON_CHUNKS_LOADED,
                 stringify_array(&chunk_ids),
-                RuntimeGlobals::REQUIRE
+                on_chunks_loaded_callback
               )
               .into(),
             );
@@ -591,9 +604,9 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     if iife {
       sources.add(RawStringSource::from(if supports_arrow_function {
-        "(() => { // webpackBootstrap\n"
+        "(() => {\n"
       } else {
-        "(function() { // webpackBootstrap\n"
+        "(function() {\n"
       }));
     }
     if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
@@ -646,17 +659,11 @@ impl JsPlugin {
       sources.add(RawStringSource::from_static("var __webpack_modules__ = ("));
       sources.add(chunk_modules_source);
       sources.add(RawStringSource::from_static(");\n"));
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
       sources.add(RawStringSource::from(header));
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
 
     if compilation
@@ -664,9 +671,6 @@ impl JsPlugin {
       .has_chunk_runtime_modules(chunk_ukey)
     {
       sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
-      sources.add(RawStringSource::from(
-        "/************************************************************************/\n",
-      ));
     }
     if let Some(inlined_modules) = inlined_modules {
       let last_entry_module = inlined_modules
@@ -733,15 +737,15 @@ impl JsPlugin {
           .map(|r| r.contains(RuntimeGlobals::EXPORTS))
           .unwrap_or_default();
         let exports_argument = m.get_exports_argument();
-        let webpack_exports_argument = matches!(exports_argument, ExportsArgument::WebpackExports);
-        let webpack_exports = exports && webpack_exports_argument;
+        let rspack_exports_argument = matches!(exports_argument, ExportsArgument::RspackExports);
+        let rspack_exports = exports && rspack_exports_argument;
         let iife: Option<Cow<str>> = if inner_strict {
           Some("it needs to be in strict mode.".into())
         } else if inlined_modules.len() > 1 {
           Some("it needs to be isolated against other entry modules.".into())
         } else if has_chunk_modules_result && renamed_inline_modules.is_none() {
           Some("it needs to be isolated against other modules in the chunk.".into())
-        } else if exports && !webpack_exports {
+        } else if exports && !rspack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
           hooks
@@ -773,7 +777,7 @@ impl JsPlugin {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {{}};\n"
             )));
-          } else if !webpack_exports_argument {
+          } else if !rspack_exports_argument {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {};\n",
               RuntimeGlobals::EXPORTS

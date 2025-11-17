@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.6.0",
+  "version": "1.6.3",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -34,7 +34,7 @@
   "devDependencies": {
     "@napi-rs/cli": "3.0.4",
     "@napi-rs/wasm-runtime": "1.0.7",
-    "emnapi": "^1.5.0",
+    "emnapi": "^1.7.1",
     "typescript": "^5.9.3"
   },
   "napi": {

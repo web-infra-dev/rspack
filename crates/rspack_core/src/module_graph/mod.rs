@@ -1,4 +1,7 @@
-use std::collections::hash_map::Entry;
+use std::{
+  collections::hash_map::Entry,
+  ops::{Deref, DerefMut},
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -97,12 +100,48 @@ pub struct ModuleGraph<'a> {
   active: Option<&'a mut ModuleGraphPartial>,
 }
 
+#[derive(Debug)]
+pub struct ModuleGraphRef<'a>(ModuleGraph<'a>);
+
+#[derive(Debug)]
+pub struct ModuleGraphMut<'a>(ModuleGraph<'a>);
+
+impl<'a> Deref for ModuleGraphRef<'a> {
+  type Target = ModuleGraph<'a>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<'a> Deref for ModuleGraphMut<'a> {
+  type Target = ModuleGraph<'a>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<'a> DerefMut for ModuleGraphMut<'a> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
 impl<'a> ModuleGraph<'a> {
-  pub fn new(
+  pub fn new_ref(partials: [Option<&'a ModuleGraphPartial>; 2]) -> ModuleGraphRef<'a> {
+    ModuleGraphRef(Self {
+      partials,
+      active: None,
+    })
+  }
+
+  pub fn new_mut(
     partials: [Option<&'a ModuleGraphPartial>; 2],
-    active: Option<&'a mut ModuleGraphPartial>,
-  ) -> Self {
-    Self { partials, active }
+    active: &'a mut ModuleGraphPartial,
+  ) -> ModuleGraphMut<'a> {
+    ModuleGraphMut(Self {
+      partials,
+      active: Some(active),
+    })
   }
 
   fn loop_partials<T>(&self, f: impl Fn(&ModuleGraphPartial) -> Option<&T>) -> Option<&T> {
@@ -210,14 +249,32 @@ impl<'a> ModuleGraph<'a> {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      match map.entry(*con.module_identifier()) {
-        Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con);
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(vec![con]);
-        }
+      map.entry(*con.module_identifier()).or_default().push(con);
+    }
+    map
+  }
+
+  pub fn get_active_outcoming_connections_by_module(
+    &self,
+    module_id: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+    let connections = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have mgm")
+      .outgoing_connections();
+
+    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    for dep_id in connections {
+      let con = self
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      if !con.is_active(module_graph, runtime, module_graph_cache) {
+        continue;
       }
+      map.entry(*con.module_identifier()).or_default().push(con);
     }
     map
   }

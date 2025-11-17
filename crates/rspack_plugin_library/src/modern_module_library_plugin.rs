@@ -4,9 +4,9 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, ExportsType, LibraryOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  Plugin, PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
+  UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -16,81 +16,17 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
   ModuleConcatenationPlugin, RenderSource,
-  dependency::{
-    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
-  },
+  dependency::{ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency},
 };
 use rustc_hash::FxHashSet as HashSet;
 
 use super::modern_module::ModernModuleReexportStarExternalDependency;
 use crate::{
-  modern_module::{
-    ModernModuleImportDependency, ModernModuleImportDependencyTemplate,
-    ModernModuleReexportStarExternalDependencyTemplate,
-  },
+  modern_module::ModernModuleReexportStarExternalDependencyTemplate,
   utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk},
 };
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
-
-/// Replaces ImportDependency instances with ModernModuleImportDependency for external modules.
-/// This function iterates through all modules and their blocks to find ImportDependencies
-/// that point to external modules, then creates ModernModuleImportDependency replacements.
-pub fn replace_import_dependencies_for_external_modules(
-  compilation: &mut Compilation,
-) -> Result<()> {
-  let mg = compilation.get_module_graph();
-  let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
-
-  for module in mg.modules().values() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
-        continue;
-      };
-      for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
-        if let Some(block_dep) = block_dep
-          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
-        {
-          let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
-          if let Some(import_dep_connection) = import_dep_connection {
-            // Try find the connection with a import dependency pointing to an external module.
-            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
-            let import_module_id = import_dep_connection.module_identifier();
-            let Some(import_module) = mg.module_by_identifier(import_module_id) else {
-              continue;
-            };
-
-            if let Some(external_module) = import_module.as_external_module() {
-              let new_dep = ModernModuleImportDependency::new(
-                *block_dep.id(),
-                import_dependency.request().into(),
-                external_module.request.clone(),
-                external_module.external_type.clone(),
-                import_dependency.range,
-                import_dependency.get_attributes().cloned(),
-                import_dependency.comments.clone(),
-              );
-
-              deps_to_replace.push(Box::new(new_dep));
-            }
-          }
-        }
-      }
-    }
-  }
-
-  let mut mg = compilation.get_module_graph_mut();
-  for dep in deps_to_replace {
-    let dep_id = dep.id();
-    // remove connection
-    mg.revoke_dependency(dep_id, false);
-    // overwrite dependency
-    mg.add_dependency(dep);
-  }
-
-  Ok(())
-}
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -135,7 +71,7 @@ impl ModernModuleLibraryPlugin {
   // Force trigger concatenation for single modules what bails from `ModuleConcatenationPlugin.is_empty`,
   // to keep all chunks can benefit from runtime optimization.
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let module_graph: rspack_core::ModuleGraph = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()
@@ -205,7 +141,7 @@ impl ModernModuleLibraryPlugin {
 
     // Reexport star from external module.
     // Only preserve star reexports for module graph entry, nested reexports are not supported.
-    for dep_id in &compilation.make_artifact.entry_dependencies {
+    for dep_id in &compilation.build_module_graph_artifact.entry_dependencies {
       let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };
@@ -489,8 +425,6 @@ pub fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> St
 
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Replace ImportDependency instances with ModernModuleImportDependency for external modules
-  replace_import_dependencies_for_external_modules(compilation)?;
   self.preserve_reexports_star(compilation)?;
 
   Ok(())
@@ -527,10 +461,6 @@ async fn compilation(
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
 
-  compilation.set_dependency_template(
-    ModernModuleImportDependencyTemplate::template_type(),
-    Arc::new(ModernModuleImportDependencyTemplate::default()),
-  );
   compilation.set_dependency_template(
     ModernModuleReexportStarExternalDependencyTemplate::template_type(),
     Arc::new(ModernModuleReexportStarExternalDependencyTemplate::default()),

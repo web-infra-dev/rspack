@@ -241,7 +241,7 @@ impl ReadableFileSystem for NativeFileSystem {
               let pathbuf = PathBuf::from(path);
               if let Some(file_name) = pathbuf.file_name() {
                 let parent_path = pathbuf.parent().unwrap_or(Path::new("."));
-                if PathBuf::from(&info.zip_path) == parent_path {
+                if Path::new(&info.zip_path) == parent_path {
                   res.push(file_name.to_string_lossy().to_string());
                 }
               }

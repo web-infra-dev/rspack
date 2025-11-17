@@ -1,2 +1,2 @@
 
-module.exports = () => "FIXME: Cannot read properties of undefined(reading 'startsWith')"
+module.exports = () => "TODO: support function array type of module.rules.use"

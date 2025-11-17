@@ -5,8 +5,6 @@ module.exports = {
 	optimization: {
 		sideEffects: true,
 		splitChunks: {
-			chunks: "all",
-			minSize: 0,
 			cacheGroups: {
 				test: {
 					test: /cjs\.js$/,

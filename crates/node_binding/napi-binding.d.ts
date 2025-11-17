@@ -545,6 +545,7 @@ export declare enum BuiltinPluginName {
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
@@ -707,11 +708,11 @@ export interface JsBeforeEmitData {
 }
 
 export interface JsBuildMeta {
-  strictEsmModule: boolean
-  hasTopLevelAwait: boolean
-  esm: boolean
-  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  strictEsmModule?: boolean
+  hasTopLevelAwait?: boolean
+  esm?: boolean
+  exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
 }
@@ -2434,6 +2435,32 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawManifestExposeOption {
+  path: string
+  name: string
+}
+
+export interface RawManifestSharedOption {
+  name: string
+  version?: string
+  requiredVersion?: string
+  singleton?: boolean
+}
+
+export interface RawModuleFederationManifestPluginOptions {
+  name?: string
+  globalName?: string
+  fileName?: string
+  filePath?: string
+  statsFileName?: string
+  manifestFileName?: string
+  disableAssetsAnalyze?: boolean
+  remoteAliasMap?: Record<string, RawRemoteAliasTarget>
+  exposes?: Array<RawManifestExposeOption>
+  shared?: Array<RawManifestSharedOption>
+  buildInfo?: RawStatsBuildInfo
+}
+
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
 }
@@ -2656,6 +2683,11 @@ export interface RawRelated {
   sourceMap?: string
 }
 
+export interface RawRemoteAliasTarget {
+  name: string
+  entry?: string
+}
+
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
@@ -2732,12 +2764,6 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   interceptApiPlugin?: boolean
-  /**
-   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
-   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
-   * @default `false`
-   */
-  compactExternalModuleDynamicImport?: boolean
   /**
    * Add shims for javascript/esm modules
    * @default `false`
@@ -2819,6 +2845,11 @@ export interface RawSplitChunksOptions {
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
+}
+
+export interface RawStatsBuildInfo {
+  buildVersion: string
+  buildName?: string
 }
 
 export interface RawStatsOptions {

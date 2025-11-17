@@ -7,10 +7,39 @@ const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
 ];
 
+const wasmConfig = process.env.WASM && defineConfig({
+	setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+	exclude: [
+		// Skip because they rely on snapshots
+		"Diagnostics.test.js",
+		"Error.test.js",
+		"StatsAPI.test.js",
+		"StatsOutput.test.js",
+		// Skip because the loader can not be loaded in CI
+		"Hot*.test.js",
+
+		// Skip temporarily and should investigate in the future
+		"Cache.test.js",
+		"Compiler.test.js",
+		"MultiCompiler.test.js",
+		"Serial.test.js",
+		"Defaults.test.js",
+		"Example.test.js",
+		"Incremental-*.test.js",
+		"NativeWatcher*.test.js",
+	],
+	maxConcurrency: 1,
+	pool: {
+		maxWorkers: 1,
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
+	}
+});
+
+
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
-	include: process.env.WASM ? [] : [
+	include: [
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
@@ -25,6 +54,7 @@ export default defineConfig({
 	source: {
 		exclude: [root],
 	},
+	disableConsoleIntercept: true,
 	globals: true,
 	output: {
 		externals: [/.*/],
@@ -62,5 +92,6 @@ export default defineConfig({
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
 	hideSkippedTests: true,
+	...(wasmConfig || {}),
 });
 

@@ -10,7 +10,7 @@ it("should compile", () => {
 		css.push(getLinkSheet(link));
 	}
 
-	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, `css.txt`));
+	expect(css).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `css.txt`));
 });
 
 it("should re-export", async () => {

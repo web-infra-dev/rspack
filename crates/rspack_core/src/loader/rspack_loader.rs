@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
@@ -10,7 +10,6 @@ use crate::{RunnerContext, SharedPluginDriver, utils::extract_source_map};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
-  pub current_loader: Mutex<Option<String>>,
   pub extract_source_map: Option<bool>,
 }
 

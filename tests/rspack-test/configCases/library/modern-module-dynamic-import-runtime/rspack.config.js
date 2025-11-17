@@ -1,5 +1,6 @@
-/** @type {import("@rspack/core").Configuration} */
+const rspack = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 const basic = {
 	output: {
 		filename: `[name].js`,
@@ -25,6 +26,9 @@ const basic = {
 	experiments: {
 		outputModule: true
 	},
+	plugins: [
+		new rspack.experiments.RslibPlugin()
+	],
 	optimization: {
 		concatenateModules: true,
 		avoidEntryIife: true,

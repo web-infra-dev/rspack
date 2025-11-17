@@ -40,3 +40,16 @@ type EntryOptions =
 当 `options` 为字符串时，它的值会被作为 `name` 使用。
 
 请参考 [入口描述对象](/config/entry#入口描述对象) 了解所有可用的选项。
+
+## 全局入口
+
+当插件的 `name` 选项为 `undefined` 时，该入口被视为全局入口，它会自动注入到：
+
+1. 所有常规入口 chunk
+2. 所有异步入口（例如通过 `new Worker()` 创建的 worker chunk）
+
+这可以用于注入一段全局代码，例如 dev server 的热更新运行时代码，或是模块联邦的初始化逻辑。
+
+```js
+new rspack.EntryPlugin(context, './global-runtime.js', { name: undefined });
+```

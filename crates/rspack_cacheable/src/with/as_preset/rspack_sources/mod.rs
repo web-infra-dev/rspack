@@ -6,7 +6,8 @@ use rkyv::{
 };
 use rspack_macros::enable_cacheable as cacheable;
 use rspack_sources::{
-  BoxSource, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, ObjectPool, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 
 use super::AsPreset;
@@ -42,7 +43,7 @@ where
     field: &BoxSource,
     serializer: &mut S,
   ) -> Result<Self::Resolver, SerializeError> {
-    let map = match field.map(&Default::default()) {
+    let map = match field.map(&ObjectPool::default(), &Default::default()) {
       Some(map) => Some(
         map
           .to_json()

@@ -90,6 +90,12 @@ impl DerefMut for ArcPath {
   }
 }
 
+impl AsRef<Path> for ArcPath {
+  fn as_ref(&self) -> &Path {
+    &self.path
+  }
+}
+
 impl From<PathBuf> for ArcPath {
   fn from(value: PathBuf) -> Self {
     ArcPath::new(value.into())
