@@ -85,7 +85,7 @@ ropey = { version = "1.6.1", default-features = false }
 rspack_resolver = { features = [
   "package_json_raw_json_api",
   "yarn_pnp",
-], path = "/Users/bytedance/git/rspack-resolver", default-features = false }
+], git = "https://github.com/web-infra-dev/rspack-resolver.git", branch = "fix/rspakc_integration", default-features = false }
 rspack_sources = { version = "=0.4.17", default-features = false }
 rustc-hash = { version = "2.1.0", default-features = false }
 ryu-js = { version = "1.0.2", default-features = false }

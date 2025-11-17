@@ -4994,7 +4994,7 @@ dependencies = [
 [[package]]
 name = "rspack_resolver"
 version = "0.6.4"
-source = "git+https://github.com/web-infra-dev/rspack-resolver.git?branch=fix%2Frspakc_integration#93fef409f5ac43b20ae013654872bac817616992"
+source = "git+https://github.com/web-infra-dev/rspack-resolver.git?branch=fix%2Frspakc_integration#1c59f7c06715509b1865a4f716e19004a33ae1e2"
 dependencies = [
  "async-trait",
  "cfg-if",

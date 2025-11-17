@@ -2910,8 +2910,7 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
-/**
- * this is a process level tracing, which means it would be shared by all compilers in the same process
+/** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
