@@ -1,5 +1,13 @@
 [
+  {
+    "type": "section-header",
+    "label": "Introduction"
+  },
   "index",
+  {
+    "type": "section-header",
+    "label": "Config options"
+  },
   "extends",
   "entry",
   "context",
