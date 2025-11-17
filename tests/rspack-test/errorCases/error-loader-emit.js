@@ -9,21 +9,21 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleBuildError",
-			      "message": "  × Module build failed:  ╰─▶   × Error: this is a thrown error from module level        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
-			      "moduleId": "./module-level-throw-error-loader.js!./no-errors-deprecate.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/module-level-throw-error-loader.js!<TEST_ROOT>/fixtures/errors/no-errors-deprecate.js",
-			      "moduleName": "./module-level-throw-error-loader.js!./no-errors-deprecate.js",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleBuildError",
+				      "message": "  × Module build failed (from ./module-level-throw-error-loader.js):  ╰─▶   × Error: this is a thrown error from module level        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+				      "moduleId": "./module-level-throw-error-loader.js!./no-errors-deprecate.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/module-level-throw-error-loader.js!<TEST_ROOT>/fixtures/errors/no-errors-deprecate.js",
+				      "moduleName": "./module-level-throw-error-loader.js!./no-errors-deprecate.js",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{

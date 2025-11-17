@@ -2,6 +2,7 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
+use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
@@ -223,6 +224,7 @@ pub struct LoaderResult<Context> {
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
+  pub current_loader: Option<Utf8PathBuf>,
 }
 
 impl<Context: Send> LoaderResult<Context> {
@@ -241,6 +243,14 @@ impl<Context: Send> LoaderResult<Context> {
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
       parse_meta: loader_context.parse_meta,
+      current_loader: (loader_context.loader_index >= 0)
+        .then(|| {
+          loader_context
+            .loader_items
+            .get(loader_context.loader_index as usize)
+        })
+        .flatten()
+        .map(|loader| loader.path().to_path_buf()),
     }
   }
 }

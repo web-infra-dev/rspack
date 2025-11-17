@@ -254,7 +254,9 @@ impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
-      if let Some(stack) = &self.stack {
+      if let Some(stack) = &self.stack
+        && !stack.is_empty()
+      {
         if self.hide_stack != Some(true) {
           write!(f, "{stack}")
         } else {
