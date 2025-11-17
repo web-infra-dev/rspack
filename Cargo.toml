@@ -505,3 +505,6 @@ rest_pat_in_fully_bound_structs = "warn"
 verbose_file_reads              = "warn"
 # https://github.com/rustwasm/wasm-bindgen/issues/3944
 #mem_forget                      = "warn"
+
+[patch.crates-io]
+simd-adler32 = { git = "https://github.com/stormslowly/simd-adler32.git", rev = "b279034d9eb554c3e5e0af523db044f08d8297ba" }
