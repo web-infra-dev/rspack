@@ -9,6 +9,7 @@ version.workspace = true
 
 [dependencies]
 indexmap                   = { workspace = true }
+regex                      = { workspace = true }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true }
@@ -19,6 +20,7 @@ rspack_loader_runner       = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_util                = { workspace = true }
 rustc-hash                 = { workspace = true }
+serde_json                 = { workspace = true }
 swc_core                   = { workspace = true }
 tracing                    = { workspace = true }
 ustr                       = { workspace = true }

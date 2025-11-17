@@ -4658,6 +4658,7 @@ name = "rspack_plugin_rsc"
 version = "0.6.1"
 dependencies = [
  "indexmap",
+ "regex",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4668,6 +4669,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash",
+ "serde_json",
  "swc_core",
  "tracing",
  "ustr-fxhash",
