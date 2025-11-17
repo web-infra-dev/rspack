@@ -7,7 +7,7 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
+    "test": "cross-env FORCE_COLOR=1 RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
     "testu": "pnpm run --stream /^test:.*/ -u",
     "test:base": "rstest",
     "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/@rstest/core/bin/rstest --config ./rstest.config.hot.ts --passWithNoTests"

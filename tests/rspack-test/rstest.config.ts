@@ -35,7 +35,6 @@ const wasmConfig = process.env.WASM && defineConfig({
 	}
 });
 
-
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
@@ -92,6 +91,7 @@ export default defineConfig({
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
 	hideSkippedTests: true,
+	reporters: ['default'],
 	...(wasmConfig || {}),
 });
 
