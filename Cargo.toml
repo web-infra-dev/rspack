@@ -97,7 +97,7 @@ sha2 = { version = "0.10.8", default-features = false }
 signal-hook = { version = "0.3.18", default-features = false, features = ["iterator"] }
 simd-json = { version = "0.17.0", default-features = false }
 smol_str = { version = "0.3.0", default-features = false }
-stacker = { version = "0.1.17", default-features = false }
+stacker = { version = "0.1.22", default-features = false }
 sugar_path = { version = "1.2.0", default-features = false, features = ["cached_current_dir"] }
 syn = { version = "2.0.95", default-features = false }
 termcolor = { version = "1.4.1", default-features = false }
@@ -150,7 +150,7 @@ swc_node_comments   = { version = "16.0.0", default-features = false }
 swc_plugin_runner   = { version = "21.0.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
-tracy-client = { version = "=0.18.2", default-features = false, features = [
+tracy-client = { version = "=0.18.3", default-features = false, features = [
   "enable",
   "sampling",
   "demangle",
