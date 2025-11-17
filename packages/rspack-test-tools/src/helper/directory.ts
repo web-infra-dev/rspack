@@ -28,6 +28,9 @@ export function describeByWalk(
 	const testId = testBasename.charAt(0).toLowerCase() + testBasename.slice(1);
 	const sourceBase =
 		options.source || path.join(path.dirname(testFile), `${testId}Cases`);
+
+	const testSourceId = path.basename(sourceBase);
+
 	const distBase =
 		options.dist || path.join(path.dirname(testFile), "js", testId);
 	const level = options.level || 2;
@@ -67,7 +70,7 @@ export function describeByWalk(
 					describeDirectory(caseName, currentLevel - 1);
 				} else {
 					const name = escapeSep(
-						path.join(`${testId}Cases`, caseName).split(".").shift()!
+						path.join(testSourceId, caseName).split(".").shift()!
 					);
 					describeFn(name, () => {
 						const source = path.join(sourceBase, caseName);
