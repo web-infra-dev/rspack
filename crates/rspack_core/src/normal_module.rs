@@ -510,7 +510,17 @@ impl Module for NormalModule {
         .collect();
 
       inner.source = None;
-      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
+
+      let current_loader = loader_result.current_loader.map(|current_loader| {
+        contextify(
+          build_context.compiler_options.context.as_path(),
+          current_loader.as_str(),
+        )
+      });
+      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(
+        err,
+        current_loader,
+      )));
       inner.diagnostics.push(diagnostic);
 
       self.inner_mut().build_info.hash = Some(self.init_build_hash(
