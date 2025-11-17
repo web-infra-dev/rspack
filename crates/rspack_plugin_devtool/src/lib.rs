@@ -25,6 +25,7 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub resource: String,
   pub resource_path: String,
   pub absolute_resource_path: String,
+  pub relative_resource_path: String,
   pub loaders: String,
   pub all_loaders: String,
   pub query: String,

@@ -146,9 +146,9 @@ async fn eval_source_map_devtool_plugin_render_module_content(
 
         let module_filenames = match &self.module_filename_template {
           ModuleFilenameTemplate::String(s) => modules
-            .map(|module_or_source| {
+            .map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_string_template(
-                &module_or_source,
+                &source_reference,
                 compilation,
                 s,
                 output_options,
@@ -158,9 +158,9 @@ async fn eval_source_map_devtool_plugin_render_module_content(
             .collect::<Vec<_>>(),
           ModuleFilenameTemplate::Fn(f) => {
             let modules = modules.collect::<Vec<_>>();
-            let features = modules.iter().map(|module_or_source| {
+            let features = modules.iter().map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_fn_template(
-                module_or_source,
+                source_reference,
                 compilation,
                 f,
                 output_options,

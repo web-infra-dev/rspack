@@ -242,7 +242,7 @@ impl SourceMapDevToolPlugin {
           .collect::<Vec<_>>()
       })
       .map(|(file, source)| {
-        let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
+        let source_reference = if let Some(stripped) = source.strip_prefix("webpack://") {
           let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
           let identifier = ModuleIdentifier::from(source.as_str());
           match compilation
@@ -256,7 +256,7 @@ impl SourceMapDevToolPlugin {
           SourceReference::Source(source.to_string())
         };
 
-        (source.to_string(), (file.to_string(), module_or_source))
+        (source.to_string(), (file.to_string(), source_reference))
       })
       .collect::<HashMap<_, _>>();
 
@@ -264,20 +264,20 @@ impl SourceMapDevToolPlugin {
       ModuleFilenameTemplate::String(template) => {
         let source_names = rspack_futures::scope::<_, Result<_>>(|token| {
           source_map_modules.values()
-            .for_each(|(file, module_or_source)| {
+            .for_each(|(file, source_reference)| {
               let s = unsafe {
                 token.used((
                   self.namespace.as_str(),
                   &compilation,
                   file,
-                  module_or_source,
+                  source_reference,
                   file_to_chunk,
                   template,
                 ))
               };
               s.spawn(
-                |(namespace, compilation, file, module_or_source, file_to_chunk, template)| async move {
-                  if let SourceReference::Source(source) = module_or_source
+                |(namespace, compilation, file, source_reference, file_to_chunk, template)| async move {
+                  if let SourceReference::Source(source) = source_reference
                     && SCHEMA_SOURCE_REGEXP.is_match(source) {
                       return Ok(source.to_string());
                     }
@@ -300,7 +300,7 @@ impl SourceMapDevToolPlugin {
                   let namespace = compilation.get_path(&filename, path_data).await?;
 
                   let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-                    module_or_source,
+                    source_reference,
                     compilation,
                     template,
                     &compilation.options.output,
@@ -318,10 +318,10 @@ impl SourceMapDevToolPlugin {
 
         let mut res = HashMap::default();
 
-        for ((_, module_or_source), source_name) in
+        for ((_, source_reference), source_name) in
           source_map_modules.values().zip(source_names.into_iter())
         {
-          res.insert(module_or_source, source_name?);
+          res.insert(source_reference, source_name?);
         }
 
         res
@@ -330,22 +330,22 @@ impl SourceMapDevToolPlugin {
         // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
         let tasks = source_map_modules
           .values()
-          .map(|(_, module_or_source)| async move {
-            if let SourceReference::Source(source) = module_or_source
+          .map(|(_, source_reference)| async move {
+            if let SourceReference::Source(source) = source_reference
               && SCHEMA_SOURCE_REGEXP.is_match(source)
             {
-              return Ok((module_or_source, source.to_string()));
+              return Ok((source_reference, source.to_string()));
             }
 
             let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-              module_or_source,
+              source_reference,
               compilation,
               f,
               output_options,
               &self.namespace,
             )
             .await?;
-            Ok((module_or_source, source_name))
+            Ok((source_reference, source_name))
           })
           .collect::<Vec<_>>();
         join_all(tasks)
@@ -356,7 +356,7 @@ impl SourceMapDevToolPlugin {
     };
 
     let mut used_names_set = HashSet::<&String>::default();
-    for (module_or_source, source_name) in
+    for (source_reference, source_name) in
       module_to_source_name
         .iter_mut()
         .sorted_by(|(key_a, _), (key_b, _)| {
@@ -381,7 +381,7 @@ impl SourceMapDevToolPlugin {
       let mut new_source_name = match &self.fallback_module_filename_template {
         ModuleFilenameTemplate::String(s) => {
           ModuleFilenameHelpers::create_filename_of_string_template(
-            module_or_source,
+            source_reference,
             compilation,
             s,
             output_options,
@@ -390,7 +390,7 @@ impl SourceMapDevToolPlugin {
         }
         ModuleFilenameTemplate::Fn(f) => {
           ModuleFilenameHelpers::create_filename_of_fn_template(
-            module_or_source,
+            source_reference,
             compilation,
             f,
             output_options,
@@ -425,11 +425,11 @@ impl SourceMapDevToolPlugin {
             .sources()
             .iter()
             .map(|source| {
-              let module_or_source = source_map_modules
+              let source_reference = source_map_modules
                 .get(source)
                 .expect("expected a module or source");
               module_to_source_name
-                .get(&module_or_source.1)
+                .get(&source_reference.1)
                 .expect("expected a filename at the given index but found None")
                 .clone()
             })

@@ -37,7 +37,7 @@ pub struct ModuleFilenameHelpers;
 
 impl ModuleFilenameHelpers {
   fn create_module_filename_template_fn_ctx(
-    module_or_source: &SourceReference,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
@@ -45,7 +45,7 @@ impl ModuleFilenameHelpers {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
 
-    match module_or_source {
+    match source_reference {
       SourceReference::Module(module_identifier) => {
         let module_graph = compilation.get_module_graph();
         let module = module_graph
@@ -86,6 +86,7 @@ impl ModuleFilenameHelpers {
           identifier,
           module_id,
           absolute_resource_path,
+          relative_resource_path: todo!(),
           hash,
           resource,
           loaders,
@@ -119,11 +120,14 @@ impl ModuleFilenameHelpers {
           resource[..resource.len().saturating_sub(q)].to_string()
         };
 
+        let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
+
         ModuleFilenameTemplateFnCtx {
           short_identifier,
           identifier,
           module_id: "".to_string(),
-          absolute_resource_path: source.split('!').next_back().unwrap_or("").to_string(),
+          absolute_resource_path,
+          relative_resource_path: todo!(),
           hash,
           resource,
           loaders,
@@ -137,14 +141,14 @@ impl ModuleFilenameHelpers {
   }
 
   pub async fn create_filename_of_fn_template(
-    module_or_source: &SourceReference,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
-      module_or_source,
+      source_reference,
       compilation,
       output_options,
       namespace,
@@ -154,14 +158,14 @@ impl ModuleFilenameHelpers {
   }
 
   pub fn create_filename_of_string_template(
-    module_or_source: &SourceReference,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
-      module_or_source,
+      source_reference,
       compilation,
       output_options,
       namespace,
