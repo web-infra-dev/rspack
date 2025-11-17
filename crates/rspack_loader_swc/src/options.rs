@@ -187,6 +187,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           schema,
           source_map_ignore_list,
         },
+        swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
