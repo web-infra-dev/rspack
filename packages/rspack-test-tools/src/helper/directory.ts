@@ -70,8 +70,12 @@ export function describeByWalk(
 					describeDirectory(caseName, currentLevel - 1);
 				} else {
 					const name = escapeSep(
-						path.join(testSourceId, caseName).split(".").shift()!
+						path
+							.join(`${testId}Cases-${testSourceId}`, caseName)
+							.split(".")
+							.shift()!
 					);
+
 					describeFn(name, () => {
 						const source = path.join(sourceBase, caseName);
 						let dist = "";
