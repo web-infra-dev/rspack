@@ -81,6 +81,11 @@ urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 
+rspack_experimental_swc_ecma_ast      = { workspace = true }
+rspack_experimental_swc_ecma_parser   = { workspace = true }
+rspack_experimental_swc_ecma_semantic = { workspace = true }
+rspack_experimental_swc_ecma_visit    = { workspace = true }
+
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 
