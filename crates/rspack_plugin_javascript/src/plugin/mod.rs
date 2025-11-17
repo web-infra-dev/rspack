@@ -330,40 +330,8 @@ impl JsPlugin {
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
       if chunk.has_entry_module(&compilation.chunk_graph) {
-        let is_container_entry_chunk = {
-          let entries = compilation
-            .chunk_graph
-            .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-          entries
-            .iter()
-            .next_back()
-            .map(|(module_id, chunk_group_ukey)| {
-              let module_graph = compilation.get_module_graph();
-              if let Some(module) = module_graph.module_by_identifier(module_id) {
-                if module
-                  .source_types(&module_graph)
-                  .contains(&SourceType::Expose)
-                {
-                  true
-                } else {
-                  compilation
-                    .chunk_group_by_ukey
-                    .expect_get(chunk_group_ukey)
-                    .kind
-                    .get_entry_options()
-                    .map(|options| options.library.is_some())
-                    .unwrap_or(false)
-                }
-              } else {
-                false
-              }
-            })
-            .unwrap_or(false)
-        };
-
-        let use_federation_async = compilation.options.experiments.mf_async_startup
-          && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-          && !is_container_entry_chunk;
+        let use_federation_async =
+          runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
 
         if use_federation_async {
           mf_async_startup = true;
@@ -496,7 +464,7 @@ impl JsPlugin {
             let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
             let entry_fn_body = federation_entry_calls.join("; ");
 
-            if compilation.options.experiments.mf_async_startup {
+            if mf_async_startup {
               let is_esm_output = compilation.options.output.module;
               if is_esm_output {
                 // ESM output with top-level await
@@ -822,9 +790,7 @@ impl JsPlugin {
               )
               .into(),
             );
-          } else if compilation.options.experiments.mf_async_startup
-            && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-          {
+          } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
             allow_inline_startup = false;
             header.push(
               format!(
@@ -852,9 +818,7 @@ impl JsPlugin {
             startup.push(buf2.join("\n").into());
           }
         }
-      } else if compilation.options.experiments.mf_async_startup
-        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-      {
+      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
         // Mark that async federation startup is active for this chunk (runtime chunk without entry)
         mf_async_startup = true;
         header.push(
@@ -873,9 +837,7 @@ impl JsPlugin {
           .into(),
         );
       }
-    } else if compilation.options.experiments.mf_async_startup
-      && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-    {
+    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
       startup.push("// run startup".into());
       startup.push(
         format!(
@@ -1165,8 +1127,7 @@ impl JsPlugin {
         runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
       // Only generate fallback wrapper when async startup is requested for this chunk
       // and MF plugin didn't mark it as already handled.
-      let needs_federation = compilation.options.experiments.mf_async_startup
-        && runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
+      let needs_federation = runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
         && !has_async_federation_wrapper;
       let is_esm_output = compilation.options.output.module;
 

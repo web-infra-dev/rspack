@@ -22,6 +22,14 @@ use super::{
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
+  #[serde(default)]
+  pub experiments: ModuleFederationRuntimeExperimentsOptions,
+}
+
+#[derive(Debug, Default, Deserialize, Clone)]
+pub struct ModuleFederationRuntimeExperimentsOptions {
+  #[serde(default)]
+  pub async_startup: bool,
 }
 
 #[plugin]
@@ -87,7 +95,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     // Apply supporting plugins
-    EmbedFederationRuntimePlugin::default().apply(ctx)?;
+    let async_startup = self.options.experiments.async_startup;
+    EmbedFederationRuntimePlugin::new(async_startup).apply(ctx)?;
     HoistContainerReferencesPlugin::default().apply(ctx)?;
 
     Ok(())

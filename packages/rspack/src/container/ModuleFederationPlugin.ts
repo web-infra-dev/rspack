@@ -10,7 +10,10 @@ import {
 	type RemoteAliasMap
 } from "./ModuleFederationManifestPlugin";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
-import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
+import {
+	type ModuleFederationRuntimeExperimentsOptions,
+	ModuleFederationRuntimePlugin
+} from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
 
 declare const MF_RUNTIME_CODE: string;
@@ -26,6 +29,7 @@ export interface ModuleFederationPluginOptions
 				ModuleFederationManifestPluginOptions,
 				"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
 		  >;
+	experiments?: ModuleFederationRuntimeExperimentsOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -46,7 +50,8 @@ export class ModuleFederationPlugin {
 
 		// Pass only the entry runtime to the Rust-side plugin
 		new ModuleFederationRuntimePlugin({
-			entryRuntime
+			entryRuntime,
+			experiments: this._options.experiments
 		}).apply(compiler);
 
 		new webpack.container.ModuleFederationPluginV1({

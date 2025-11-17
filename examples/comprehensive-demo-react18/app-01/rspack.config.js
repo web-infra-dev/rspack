@@ -29,8 +29,7 @@ module.exports = {
 		uniqueName: "app1"
 	},
 	experiments: {
-		css: true,
-		mfAsyncStartup: true
+		css: true
 	},
 
 	module: {
@@ -73,6 +72,10 @@ module.exports = {
 		}
 	},
 	plugins: [
+		new HtmlRspackPlugin({
+			templateContent: () =>
+				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 01</title>\n</head>\n<body>\n  <div id="root"></div>\n</body>\n</html>`
+		}),
 		new ModuleFederationPlugin({
 			name: "app_01",
 			filename: "remoteEntry.js",
@@ -103,10 +106,10 @@ module.exports = {
 					singleton: true,
 					requiredVersion: false
 				}
+			},
+			experiments: {
+				asyncStartup: true
 			}
-		}),
-		new HtmlRspackPlugin({
-			template: "./public/index.html"
 		}),
 		isProd ? new ReactRefreshWebpackPlugin() : undefined
 		// new RsdoctorRspackPlugin()

@@ -21,9 +21,6 @@ const commonMF = {
 module.exports = [
 	{
 		...common,
-		experiments: {
-			mfAsyncStartup: true
-		},
 		output: {
 			filename: "[name].js",
 			uniqueName: "2-async-startup-sync-imports"
@@ -37,15 +34,17 @@ module.exports = [
 					containerA: "../0-container-full/container.js",
 					containerB: "./container.js"
 				},
-				...commonMF
+				...commonMF,
+				experiments: {
+					asyncStartup: true
+				}
 			})
 		]
 	},
 	{
 		...common,
 		experiments: {
-			outputModule: true,
-			mfAsyncStartup: true
+			outputModule: true
 		},
 		output: {
 			filename: "module/[name].mjs",
@@ -60,7 +59,10 @@ module.exports = [
 					containerA: "../../0-container-full/module/container.mjs",
 					containerB: "./container.mjs"
 				},
-				...commonMF
+				...commonMF,
+				experiments: {
+					asyncStartup: true
+				}
 			})
 		],
 		target: "node14"

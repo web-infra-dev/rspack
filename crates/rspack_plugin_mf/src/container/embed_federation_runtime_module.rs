@@ -16,6 +16,7 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
+  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
@@ -102,7 +103,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate wrapper pattern ensuring federation runtime executes before startup or chunk installation runs
     let mut result = String::new();
-    if compilation.options.experiments.mf_async_startup {
+    if self.options.async_startup {
       result.push_str("var prevX = __webpack_require__.x;\n");
       result.push_str("var hasRun = false;\n");
       result.push_str(&run_function);

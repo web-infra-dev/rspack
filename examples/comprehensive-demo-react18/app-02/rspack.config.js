@@ -24,8 +24,7 @@ module.exports = {
 		minimize: false
 	},
 	experiments: {
-		css: true,
-		mfAsyncStartup: true
+		css: true
 	},
 	devServer: {
 		port: 3002,
@@ -69,6 +68,10 @@ module.exports = {
 	},
 
 	plugins: [
+		new HtmlRspackPlugin({
+			templateContent: () =>
+				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 02</title>\n</head>\n<body>\n  <div id="root"></div>\n</body>\n</html>`
+		}),
 		new ModuleFederationPlugin({
 			name: "app_02",
 			filename: "remoteEntry.js",
@@ -97,11 +100,10 @@ module.exports = {
 					singleton: true,
 					requiredVersion: false
 				}
+			},
+			experiments: {
+				asyncStartup: true
 			}
-		}),
-		new HtmlRspackPlugin({
-			template: "./public/index.html",
-			chunks: ["main"]
 		}),
 		new ReactRefreshWebpackPlugin()
 	]

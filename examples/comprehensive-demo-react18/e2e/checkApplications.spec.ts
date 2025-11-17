@@ -17,7 +17,7 @@ apps.forEach(({ port, name, selector, text }) => {
 		test(`build and run ${name}`, async ({ page }) => {
 			await page.goto(`http://localhost:${port}`);
 			const locator = page.locator(selector, { hasText: text });
-			// App 4 has multiple instances due to mfAsyncStartup, use first()
+			// App 4 has multiple instances due to Module Federation async startup, use first()
 			await expect(name === "App 4" ? locator.first() : locator).toBeVisible();
 		});
 	});

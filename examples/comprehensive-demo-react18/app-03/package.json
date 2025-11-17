@@ -9,7 +9,7 @@
     "@module-federation/enhanced": "0.21.3",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "~1.1.4",
+    "@rspack/dev-server": "workspace:~1.1.4",
     "babel-loader": "^10.0.0",
     "html-webpack-plugin": "^5.6.4",
     "react": "^19.1.1",

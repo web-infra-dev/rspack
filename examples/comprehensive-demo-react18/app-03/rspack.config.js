@@ -36,8 +36,7 @@ module.exports = {
 		uniqueName: "app3"
 	},
 	experiments: {
-		css: true,
-		mfAsyncStartup: true
+		css: true
 	},
 
 	module: {
@@ -67,6 +66,10 @@ module.exports = {
 	},
 
 	plugins: [
+		new HtmlRspackPlugin({
+			templateContent: () =>
+				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 03</title>\n</head>\n<body>\n  <div id="root"></div>\n</body>\n</html>`
+		}),
 		new ModuleFederationPlugin({
 			name: "app_03",
 			filename: "remoteEntry.js",
@@ -83,10 +86,10 @@ module.exports = {
 				react: {
 					singleton: true
 				}
+			},
+			experiments: {
+				asyncStartup: true
 			}
-		}),
-		new HtmlRspackPlugin({
-			template: "./public/index.html"
 		})
 	]
 };

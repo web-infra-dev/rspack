@@ -2409,7 +2409,6 @@ export type Experiments = {
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
     deferImport?: boolean;
-    mfAsyncStartup?: boolean;
 };
 
 // @public (undocumented)
@@ -2484,8 +2483,6 @@ export interface ExperimentsNormalized {
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
-    // (undocumented)
-    mfAsyncStartup?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
@@ -4843,6 +4840,8 @@ class ModuleFederationPlugin {
 // @public (undocumented)
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
+    experiments?: ModuleFederationRuntimeExperimentsOptions;
+    // (undocumented)
     implementation?: string;
     // (undocumented)
     manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
@@ -4881,6 +4880,12 @@ export interface ModuleFederationPluginV1Options {
     shared?: Shared;
     // (undocumented)
     shareScope?: string;
+}
+
+// @public (undocumented)
+interface ModuleFederationRuntimeExperimentsOptions {
+    // (undocumented)
+    asyncStartup?: boolean;
 }
 
 declare namespace ModuleFilenameHelpers {

@@ -1,7 +1,7 @@
 const rspack = require("../../../packages/rspack/dist/index.js");
 const {
-	container: { ModuleFederationPlugin },
-	HtmlRspackPlugin
+	HtmlRspackPlugin,
+	container: { ModuleFederationPlugin }
 } = rspack;
 const buildId = Date.now();
 const path = require("path");
@@ -57,9 +57,8 @@ module.exports = {
 
 	plugins: [
 		new HtmlRspackPlugin({
-			template: "./public/index.html",
-			filename: "index.html",
-			chunks: ["bundle"]
+			templateContent: () =>
+				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 04</title>\n</head>\n<body>\n  <div id="app_04"></div>\n</body>\n</html>`
 		}),
 		new ModuleFederationPlugin({
 			name: "app_04",
@@ -68,12 +67,14 @@ module.exports = {
 				"./App": "./src/main.js",
 				"./loadApp": "./src/loadApp.js"
 			},
-			shared: []
+			shared: [],
+			experiments: {
+				asyncStartup: true
+			}
 		})
 	],
 	devtool: prod ? false : "source-map",
 	experiments: {
-		css: true,
-		mfAsyncStartup: true
+		css: true
 	}
 };

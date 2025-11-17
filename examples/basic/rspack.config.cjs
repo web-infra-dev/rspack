@@ -16,7 +16,6 @@ module.exports = {
 		runtimeChunk: "single"
 	},
 	experiments: {
-		mfAsyncStartup: false,
 		outputModule: true
 	},
 	plugins: []

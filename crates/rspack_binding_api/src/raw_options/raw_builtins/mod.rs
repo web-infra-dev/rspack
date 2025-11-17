@@ -275,7 +275,6 @@ impl<'a> BuiltinPlugin<'a> {
     self,
     env: Env,
     compiler_object: &mut Object,
-    mf_async_startup: bool,
     plugins: &mut Vec<BoxPlugin>,
   ) -> napi::Result<()> {
     let name = match self.name {
@@ -391,11 +390,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::EnableChunkLoadingPlugin => {
         let chunk_loading_type = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        enable_chunk_loading_plugin(
-          chunk_loading_type.as_str().into(),
-          mf_async_startup,
-          plugins,
-        );
+        enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
       }
       BuiltinPluginName::EnableLibraryPlugin => {
         let library_type = downcast_into::<String>(self.options)

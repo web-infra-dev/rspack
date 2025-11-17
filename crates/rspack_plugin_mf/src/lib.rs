@@ -9,7 +9,8 @@ pub use container::{
   },
   embed_federation_runtime_module::EmbedFederationRuntimeModule,
   module_federation_runtime_plugin::{
-    ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
+    ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePlugin,
+    ModuleFederationRuntimePluginOptions,
   },
 };
 pub use manifest::{

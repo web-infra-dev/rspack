@@ -46,12 +46,13 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
+  async_startup: bool,
   collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
-  pub fn new() -> Self {
-    Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
+  pub fn new(async_startup: bool) -> Self {
+    Self::new_inner(async_startup, Arc::new(Mutex::new(FxHashSet::default())))
   }
 
   /// Check if the chunk is a container entry chunk (should NOT use async startup)
@@ -101,8 +102,7 @@ async fn additional_chunk_runtime_requirements_tree(
   // Federation is enabled for runtime chunks or entry chunks
   let is_enabled = has_runtime || has_entry_modules;
   let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
-  let use_async_startup =
-    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
+  let use_async_startup = self.async_startup && !is_container_entry_chunk;
 
   if is_enabled {
     // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
@@ -159,8 +159,7 @@ async fn additional_tree_runtime_requirements(
   }
 
   let is_container_entry_chunk = Self::is_container_entry_chunk(compilation, chunk_ukey);
-  let use_async_startup =
-    compilation.options.experiments.mf_async_startup && !is_container_entry_chunk;
+  let use_async_startup = self.async_startup && !is_container_entry_chunk;
 
   if use_async_startup {
     runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
@@ -203,6 +202,7 @@ async fn runtime_requirement_in_tree(
 
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
+      async_startup: self.async_startup,
     };
 
     // Inject EmbedFederationRuntimeModule
@@ -259,9 +259,7 @@ async fn render_startup(
     return Ok(());
   }
 
-  if compilation.options.experiments.mf_async_startup
-    && Self::is_container_entry_chunk(compilation, chunk_ukey)
-  {
+  if self.async_startup && Self::is_container_entry_chunk(compilation, chunk_ukey) {
     return Ok(());
   }
 
@@ -335,6 +333,6 @@ impl Plugin for EmbedFederationRuntimePlugin {
 
 impl Default for EmbedFederationRuntimePlugin {
   fn default() -> Self {
-    Self::new()
+    Self::new(false)
   }
 }

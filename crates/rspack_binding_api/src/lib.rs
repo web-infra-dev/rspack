@@ -219,9 +219,8 @@ impl JsCompiler {
       let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
       plugins.push(js_cleanup_plugin.boxed());
 
-      let mf_async_startup = options.experiments.mf_async_startup;
       for bp in builtin_plugins {
-        bp.append_to(env, &mut this, mf_async_startup, &mut plugins)?;
+        bp.append_to(env, &mut this, &mut plugins)?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
