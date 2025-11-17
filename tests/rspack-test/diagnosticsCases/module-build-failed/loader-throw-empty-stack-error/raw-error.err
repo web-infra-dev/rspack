@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 3:16-23,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-throw-empty-stack-error/index.js,
+    moduleName: ./index.js,
+  },
+]
