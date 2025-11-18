@@ -219,10 +219,9 @@ mod tests {
       swc_options_from_native_lib.env_name
     );
     assert_eq!(swc_options_from_rspack.cwd, swc_options_from_native_lib.cwd);
-    assert_eq!(
-      swc_options_from_rspack.swcrc,
-      swc_options_from_native_lib.swcrc
-    );
+
+    // We dont't want swc-loader in rspack to respect swcrc
+    assert_eq!(swc_options_from_rspack.swcrc, false);
   }
 
   #[test]
