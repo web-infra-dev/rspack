@@ -19,10 +19,6 @@ import WebpackLicense from '@components/WebpackLicense';
 
 你可以通过该选项扩展、覆写或禁用默认规则，从而对构建行为进行更细粒度的控制。
 
-:::tip
-查看 [源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) 了解所有的默认规则。
-:::
-
 例如，扩展默认规则：
 
 ```js title="rspack.config.mjs"
@@ -43,13 +39,17 @@ export default {
 
 如果你希望移除 Rspack 所有的默认规则，你可以省略 `"..."`：
 
-```js
+```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [],
   },
 };
 ```
+
+:::tip
+查看 [源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) 了解所有的默认规则。
+:::
 
 ## module.noParse
 

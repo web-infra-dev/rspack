@@ -39,13 +39,17 @@ export default {
 
 If you want to remove all of Rspack's default rules, simply omit `"..."`:
 
-```js
+```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [],
   },
 };
 ```
+
+:::tip
+See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) for the full list of default rules.
+:::
 
 ## module.noParse
 
