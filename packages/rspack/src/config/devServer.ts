@@ -8,10 +8,10 @@
  * https://github.com/webpack/webpack-dev-server/blob/master/LICENSE
  */
 
-import type http from "http";
-import type net from "net";
-import type stream from "stream";
-import type url from "url";
+import type * as http from "node:http";
+import type * as net from "node:net";
+import type * as stream from "node:stream";
+import type * as url from "node:url";
 import type {
 	Compiler,
 	LiteralUnion,

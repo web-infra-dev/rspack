@@ -35,29 +35,12 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let has_async = get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE);
-    let get_async_module_export_str = if has_async {
-      format!(
-        "if ({es} in ns) ns = ns[{es}];",
-        es = RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL,
-      )
-    } else {
-      String::new()
-    };
-    let cached_get_async_module_export_str = if has_async {
-      format!(
-        "if ({es} in exports) exports = exports[{es}];",
-        es = RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL,
-      )
-    } else {
-      String::new()
-    };
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "module_cache": "__webpack_module_cache__",
-        "deferred_exports": "__webpack_module_deferred_exports__",
-        "get_async_module_export": get_async_module_export_str,
-        "cached_get_async_module_export": cached_get_async_module_export_str,
+        "_module_cache": "__webpack_module_cache__",
+        "_deferred_exports": "__webpack_module_deferred_exports__",
+        "_has_async": has_async,
       })),
     )?;
 
