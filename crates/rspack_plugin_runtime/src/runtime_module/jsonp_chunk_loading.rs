@@ -45,7 +45,9 @@ impl JsonpChunkLoadingRuntimeModule {
     match id {
       TemplateId::Raw => base_id.to_string(),
       TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPrefetchLink => format!("{base_id}_with_prefetch_link"),
       TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithPreloadLink => format!("{base_id}_with_preload_link"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
@@ -58,7 +60,9 @@ impl JsonpChunkLoadingRuntimeModule {
 enum TemplateId {
   Raw,
   WithPrefetch,
+  WithPrefetchLink,
   WithPreload,
+  WithPreloadLink,
   WithHmr,
   WithHmrManifest,
   WithOnChunkLoad,
@@ -82,8 +86,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.ejs").to_string(),
       ),
       (
+        self.template_id(TemplateId::WithPrefetchLink),
+        include_str!("runtime/jsonp_chunk_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
         self.template_id(TemplateId::WithPreload),
         include_str!("runtime/jsonp_chunk_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreloadLink),
+        include_str!("runtime/jsonp_chunk_loading_with_preload_link.ejs").to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
@@ -204,30 +216,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let link_prefetch_code = format!(
-        r#"
-    var link = document.createElement('link');
-    {}
-    {}
-    if (__webpack_require__.nc) {{
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }}
-    link.rel = 'prefetch';
-    link.as = 'script';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
-      "#,
-        if charset {
-          "link.charset = 'utf-8';"
-        } else {
-          ""
-        },
-        match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            format!("link.crossOrigin = '{v}';")
+      let link_prefetch_code = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPrefetchLink),
+        Some(serde_json::json!({
+          "_charset": charset,
+          "_cross_origin": match cross_origin_loading {
+            CrossOriginLoading::Disable => "".to_string(),
+            CrossOriginLoading::Enable(c) => c.to_string(),
           }
-        }
-      );
+        })),
+      )?;
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
@@ -255,56 +253,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let link_preload_code = format!(
-        r#"
-    var link = document.createElement('link');
-    {}
-    {}
-    if (__webpack_require__.nc) {{
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }}
-    {}
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
-    {}
-      "#,
-        if charset {
-          "link.charset = 'utf-8';"
-        } else {
-          ""
-        },
-        if script_type.eq("module") || script_type.eq("false") {
-          "".to_string()
-        } else {
-          format!(
-            "link.type = {}",
-            serde_json::to_string(script_type).expect("invalid json tostring")
-          )
-        },
-        if script_type.eq("module") {
-          "link.rel = 'modulepreload';"
-        } else {
-          r#"
-        link.rel = 'preload';
-        link.as = 'script';
-        "#
-        },
-        match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            if v.eq("use-credentials") {
-              "link.crossOrigin = 'use-credentials';".to_string()
-            } else {
-              format!(
-                r#"
-              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{v}';
-              }}
-              "#
-              )
-            }
+      let link_preload_code = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPreloadLink),
+        Some(serde_json::json!({
+          "_charset": charset,
+          "_script_type": script_type.as_str(),
+          "_cross_origin": match cross_origin_loading {
+            CrossOriginLoading::Disable => "".to_string(),
+            CrossOriginLoading::Enable(c) => c.to_string(),
           }
-        }
-      );
+        })),
+      )?;
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks

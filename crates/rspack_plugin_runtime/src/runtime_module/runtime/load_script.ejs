@@ -12,7 +12,7 @@ var inProgress = {};
 		var scripts = document.getElementsByTagName("script");
 		for (var i = 0; i < scripts.length; i++) {
 			var s = scripts[i];
-			if (<%- _unique_get_attribute %>) {
+			if (<% if (_unique_prefix != "") { %>s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key<% } else { %>s.getAttribute("src") == url<% } %>) {
 				script = s;
 				break;
 			}

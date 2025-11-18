@@ -101,14 +101,10 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     let render_source = compilation.runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
-        "_unique_prefix": unique_prefix,
+        "_unique_prefix": unique_prefix.unwrap_or_default(),
         "_create_script": res.code,
         "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.to_string(),
         "_fetch_priority": if with_fetch_priority { ", fetchPriority" } else { "" },
-        "_unique_get_attribute": match unique_prefix {
-          Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
-          None => r#"s.getAttribute("src") == url"#,
-        },
       })),
     )?;
 

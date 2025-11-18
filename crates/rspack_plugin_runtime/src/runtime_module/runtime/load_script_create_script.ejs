@@ -6,8 +6,8 @@ script.type = '<%- _script_type %>';
 script.charset = 'utf-8';
 <% } %>
 script.timeout = <%- _chunk_load_timeout %>;
-if (__webpack_require__.nc) {
-  script.setAttribute("nonce", __webpack_require__.nc);
+if (<%- SCRIPT_NONCE %>) {
+  script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
 }
 <% if (_unique_prefix) { %>
 script.setAttribute("data-webpack", dataWebpackPrefix + key);
