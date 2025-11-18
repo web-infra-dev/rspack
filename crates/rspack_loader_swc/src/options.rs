@@ -187,6 +187,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           schema,
           source_map_ignore_list,
         },
+        swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
@@ -218,10 +219,9 @@ mod tests {
       swc_options_from_native_lib.env_name
     );
     assert_eq!(swc_options_from_rspack.cwd, swc_options_from_native_lib.cwd);
-    assert_eq!(
-      swc_options_from_rspack.swcrc,
-      swc_options_from_native_lib.swcrc
-    );
+
+    // We dont't want swc-loader in rspack to respect swcrc
+    assert!(!swc_options_from_rspack.swcrc);
   }
 
   #[test]
