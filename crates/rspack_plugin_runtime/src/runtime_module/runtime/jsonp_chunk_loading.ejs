@@ -42,6 +42,6 @@ if (installedChunkData !== 0) {
 				}
 			};
 			<%- LOAD_SCRIPT %>(url, loadingEnded, "chunk-" + chunkId, chunkId<%- _fetch_priority %>);
-		} <%- _match_fallback %>
+		} <% if (_js_matcher != "true") { %>else installedChunks[chunkId] = 0; <% } %>
 	}
 }

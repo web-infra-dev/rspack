@@ -56,6 +56,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             .runtime(chunk.runtime().as_str()),
         )
         .await?;
+
       Ok(format!(
         "{} = function () {{
             return \"{}\";

@@ -62,7 +62,6 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
       compilation.runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
-          "_args": format!("chunkId{}", fetch_priority),
           "_fetch_priority": fetch_priority,
         })),
       )?

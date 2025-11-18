@@ -1,8 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
-  impl_runtime_module,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeModule, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -85,22 +84,14 @@ fn auto_public_path_template(
 ) -> rspack_error::Result<String> {
   let output_path = output.path.as_str().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
-  let assign = if undo_path.is_empty() {
-    format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)
-  } else {
-    format!(
-      "{} = scriptUrl + '{undo_path}'",
-      RuntimeGlobals::PUBLIC_PATH
-    )
-  };
   let import_meta_name = output.import_meta_name.clone();
 
   runtime_template.render(
     id,
     Some(serde_json::json!({
-      "script_type": output.script_type,
-      "import_meta_name": import_meta_name,
-      "assign": assign
+      "_script_type": output.script_type,
+      "_import_meta_name": import_meta_name,
+      "_undo_path": undo_path
     })),
   )
 }

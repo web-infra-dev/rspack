@@ -725,8 +725,7 @@ if (installedChunkData !== 0) {
 				}
 			};
 			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
-		} else installedChunks[chunkId] = 0;
-
+		} else installedChunks[chunkId] = 0; 
 	}
 }
 
