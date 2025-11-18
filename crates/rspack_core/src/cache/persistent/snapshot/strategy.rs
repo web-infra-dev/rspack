@@ -210,9 +210,12 @@ mod tests {
     );
 
     let hash1 = helper.path_hash(&ArcPath::from("/hash.js")).await;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
     let hash2 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     assert_eq!(hash1, hash2);
 
+    std::thread::sleep(std::time::Duration::from_millis(100));
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
     let hash3 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     assert_ne!(hash1, hash3);
