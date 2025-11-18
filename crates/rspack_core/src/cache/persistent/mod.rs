@@ -157,11 +157,13 @@ impl Cache for PersistentCache {
     // TODO add a all_dependencies to collect dependencies
     let (_, file_added, file_removed) = compilation.file_dependencies();
     let (_, context_added, context_removed) = compilation.context_dependencies();
+    let (_, missing_added, missing_removed) = compilation.missing_dependencies();
     let (_, build_added, _) = compilation.build_dependencies();
     let modified_paths: ArcPathSet = compilation
       .modified_files
       .iter()
       .chain(file_added)
+      .chain(missing_added)
       .chain(context_added)
       .cloned()
       .collect();
@@ -170,6 +172,7 @@ impl Cache for PersistentCache {
       .iter()
       .chain(file_removed)
       .chain(context_removed)
+      .chain(missing_removed)
       .cloned()
       .collect();
     self.snapshot.remove(removed_paths.into_iter());

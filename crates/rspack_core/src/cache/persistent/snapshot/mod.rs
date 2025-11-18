@@ -6,7 +6,7 @@ use std::{path::Path, sync::Arc};
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_paths::{ArcPath, ArcPathSet};
 
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
@@ -72,7 +72,7 @@ impl Snapshot {
     if let Some(h) = helper.path_hash(path).await {
       return Some(h);
     }
-    Some(helper.compile_time())
+    Some(Strategy::Missing)
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
@@ -82,16 +82,8 @@ impl Snapshot {
     paths
       .map(|path| {
         let helper = helper.clone();
-        let fs = self.fs.clone();
         let options = self.options.clone();
         async move {
-          let utf8_path = path.assert_utf8();
-          // check path exists
-          let metadata_has_error = fs.metadata(utf8_path).await.is_err();
-          if metadata_has_error {
-            return None;
-          }
-
           let strategy = Self::calc_strategy(&options, &helper, &path).await?;
           Some((
             path.as_os_str().as_encoded_bytes().to_vec(),
