@@ -1,8 +1,8 @@
 var inProgress = {};
 
-$UNIQUE_PREFIX$
+<%- _unique_prefix %>
 // loadScript function to load a script via script tag
-__webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
+<%- LOAD_SCRIPT %> = function (url, done, key, chunkId<%- _fetch_priority %>) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;
@@ -12,7 +12,7 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 		var scripts = document.getElementsByTagName("script");
 		for (var i = 0; i < scripts.length; i++) {
 			var s = scripts[i];
-			if ($UNIQUE_GET_ATTRIBUTE$) {
+			if (<%- _unique_get_attribute %>) {
 				script = s;
 				break;
 			}
@@ -20,7 +20,7 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 	}
 	if (!script) {
 		needAttach = true;
-		$CREATE_SCRIPT$
+		<%- _create_script %>
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {
@@ -40,7 +40,7 @@ __webpack_require__.l = function (url, done, key, chunkId$FETCH_PRIORITY$) {
 			type: 'timeout',
 			target: script
 		}),
-		$CHUNK_LOAD_TIMEOUT$
+		<%- _chunk_load_timeout %>
 	);
 	script.onerror = onScriptComplete.bind(null, script.onerror);
 	script.onload = onScriptComplete.bind(null, script.onload);

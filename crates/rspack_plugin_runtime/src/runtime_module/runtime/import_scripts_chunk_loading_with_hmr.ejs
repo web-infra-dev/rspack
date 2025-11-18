@@ -11,6 +11,10 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
       success = true;
   };
   // start update chunk loading
-  importScripts(<%- _url %>);
+  <% if (_with_create_script_url) { %>
+  importScripts(<%- CREATE_SCRIPT_URL %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId)));
+  <% } else { %>
+  importScripts(<%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+  <% } %>
   if (!success) throw new Error("Loading update chunk failed for unknown reason");
 }

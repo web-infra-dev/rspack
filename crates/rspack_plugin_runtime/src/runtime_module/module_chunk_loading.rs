@@ -386,7 +386,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             "_ids": "__webpack_ids__",
             "_modules": "__webpack_modules__",
             "_runtime": "__webpack_runtime__",
-            "importFunctionName": import_function_name,
+            "_import_function_name": import_function_name,
           })),
         )?
       ))
@@ -398,7 +398,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       source.push_str(&compilation.runtime_template.render(
         &self.template(TemplateId::WithHMRManifest),
         Some(serde_json::json!({
-          "importFunctionName": import_function_name,
+          "_import_function_name": import_function_name,
         })),
       )?)
     } else {
