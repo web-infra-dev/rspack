@@ -44,7 +44,9 @@ export interface IBasicCaseCreatorOptions {
 	[key: string]: unknown;
 }
 
-const DEFAULT_MAX_CONCURRENT = process.env.WASM ? 1 : 5;
+const DEFAULT_MAX_CONCURRENT = process.env.WASM
+	? 1
+	: Number(process.env.DEFAULT_MAX_CONCURRENT) || 5;
 
 export class BasicCaseCreator {
 	protected currentConcurrent = 0;
@@ -170,7 +172,7 @@ export class BasicCaseCreator {
 						throw e;
 					}
 				},
-				options.timeout || 300000
+				options.timeout
 			);
 
 			chain = chain.then(
