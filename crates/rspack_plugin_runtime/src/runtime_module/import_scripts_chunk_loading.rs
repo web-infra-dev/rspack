@@ -1,6 +1,6 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   compile_boolean_matcher, impl_runtime_module,
 };
 
@@ -147,11 +147,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
             "{}[\"{}\"]",
             &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
           ),
-          "_js_matcher": if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-            "".to_string()
-          } else {
-            has_js_matcher.render("chunkId")
-          },
+          "_js_matcher": has_js_matcher.render("chunkId"),
           "_with_create_script_url": self.with_create_script_url,
           "_with_loading": with_loading,
         })),
