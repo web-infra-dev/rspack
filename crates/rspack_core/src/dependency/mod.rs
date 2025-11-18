@@ -217,6 +217,10 @@ impl ImportAttributes {
   pub fn insert(&mut self, k: String, v: String) -> Option<String> {
     self.0.insert(k, v)
   }
+
+  pub fn remove(&mut self, k: &str) -> Option<String> {
+    self.0.remove(k)
+  }
 }
 
 #[rspack_cacheable::cacheable]

@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
+  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
@@ -72,6 +72,7 @@ pub struct ImportDependency {
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
+  layer: Option<ModuleLayer>,
 }
 
 impl ImportDependency {
@@ -79,12 +80,15 @@ impl ImportDependency {
     request: Atom,
     range: DependencyRange,
     referenced_exports: Option<Vec<Vec<Atom>>>,
-    attributes: Option<ImportAttributes>,
+    mut attributes: Option<ImportAttributes>,
     optional: bool,
     comments: Vec<(bool, String)>,
   ) -> Self {
+    let layer: Option<ModuleLayer> = attributes.as_mut().and_then(|attrs| attrs.remove("layer"));
+
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+
     Self {
       request,
       range,
@@ -95,6 +99,7 @@ impl ImportDependency {
       factorize_info: Default::default(),
       optional,
       comments,
+      layer,
     }
   }
 
@@ -145,6 +150,10 @@ impl Dependency for ImportDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 }
 

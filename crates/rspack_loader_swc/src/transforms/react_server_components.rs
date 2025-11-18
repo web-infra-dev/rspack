@@ -196,8 +196,8 @@ impl ReactServerComponents {
       } else {
         Some(ClientEntryType::Auto)
       },
-      action_ids: todo!(),
-      is_client_ref: todo!(),
+      action_ids: None,
+      is_client_ref: true,
     });
   }
 }
@@ -482,7 +482,6 @@ impl ReactServerComponentValidator {
   }
 
   fn assert_server_graph(&self, imports: &[ModuleImports]) {
-    // If the
     if self.is_from_node_modules(&self.filepath) {
       return;
     }
@@ -551,8 +550,8 @@ pub fn server_components(filename: Arc<FileName>, config: Config) -> impl Pass +
       module_type: RSCModuleType::Server,
       client_refs: vec![],
       client_entry_type: None,
-      action_ids: todo!(),
-      is_client_ref: todo!(),
+      action_ids: None,
+      is_client_ref: false,
     }),
     filepath: match &*filename {
       FileName::Custom(path) => format!("<{path}>"),

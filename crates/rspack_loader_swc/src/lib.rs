@@ -10,7 +10,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
+use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -140,15 +140,30 @@ impl SwcLoader {
         ));
       },
       |_| {
-        if self.options_with_additional.rspack_experiments.rsc {
-          transforms::server_components(
-            filename,
-            transforms::Config::WithOptions(transforms::Options {
-              // TODO: 应该当做配置项传入
-              is_react_server_layer: true,
-            }),
-          );
+        if self
+          .options_with_additional
+          .rspack_experiments
+          .react_server_components
+        {
+          // React Server Components (RSC) uses specific layers for different execution contexts:
+          // 1. react-server-components layer: The layer for server-only runtime and picking up `react-server` export conditions
+          // 2. server-side-rendering layer: Server Side Rendering layer for app
+          // 3. action-browser layer: The browser client bundle layer for actions
+          const KNOWN_RSC_LAYERS: [&str; 2] =
+            ["react-server-components", "react-client-components"];
+
+          if let Some(layer) = loader_context.context.module.get_layer()
+            && KNOWN_RSC_LAYERS.contains(&layer.as_str())
+          {
+            transforms::server_components(
+              filename,
+              transforms::Config::WithOptions(transforms::Options {
+                is_react_server_layer: layer == "react-server-components",
+              }),
+            );
+          }
         }
+
         transformer::transform(&self.options_with_additional.rspack_experiments)
       },
     )?;

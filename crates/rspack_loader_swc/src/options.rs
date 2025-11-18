@@ -16,7 +16,7 @@ pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
   pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
   #[serde(default)]
-  pub rsc: bool,
+  pub react_server_components: bool,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -26,11 +26,16 @@ pub struct RawCollectTypeScriptInfoOptions {
   pub exported_enum: Option<String>,
 }
 
+// #[derive(Default, Deserialize, Debug)]
+// pub struct ServerComponentsOptions {
+//   is_react_server_layer: bool,
+// }
+
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
-  pub(crate) rsc: bool,
+  pub(crate) react_server_components: bool,
 }
 
 #[derive(Default, Debug)]
@@ -53,7 +58,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
       collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
-      rsc: value.rsc,
+      react_server_components: value.react_server_components,
     }
   }
 }

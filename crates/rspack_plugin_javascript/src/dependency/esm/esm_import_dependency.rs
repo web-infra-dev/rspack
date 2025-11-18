@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
   SharedSourceMap, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
   filter_runtime, import_statement,
@@ -72,6 +72,7 @@ pub struct ESMImportSideEffectDependency {
   factorize_info: FactorizeInfo,
   lazy_make: bool,
   star_export: bool,
+  layer: Option<ModuleLayer>,
 }
 
 impl ESMImportSideEffectDependency {
@@ -82,13 +83,16 @@ impl ESMImportSideEffectDependency {
     range: DependencyRange,
     dependency_type: DependencyType,
     phase: ImportPhase,
-    attributes: Option<ImportAttributes>,
+    mut attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
     star_export: bool,
   ) -> Self {
+    let layer: Option<ModuleLayer> = attributes.as_mut().and_then(|attrs| attrs.remove("layer"));
+
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     let loc = range.to_loc(source_map.as_ref());
+
     Self {
       id: DependencyId::new(),
       source_order,
@@ -102,6 +106,7 @@ impl ESMImportSideEffectDependency {
       factorize_info: Default::default(),
       lazy_make: false,
       star_export,
+      layer,
     }
   }
 
@@ -609,6 +614,10 @@ impl Dependency for ESMImportSideEffectDependency {
     let changed = self.lazy_make;
     self.lazy_make = false;
     changed
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 }
 

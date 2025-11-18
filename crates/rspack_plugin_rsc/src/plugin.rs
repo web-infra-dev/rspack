@@ -326,15 +326,15 @@ impl ReactServerComponentPlugin {
         },
       ));
 
-      if !action_entry_imports.is_empty() {
-        if !action_maps_per_entry.contains_key(name) {
-          action_maps_per_entry.insert(name.to_string(), FxHashMap::default());
-        }
-        let entry = action_maps_per_entry.get_mut(name).unwrap();
-        for (key, value) in action_entry_imports {
-          entry.insert(key, value);
-        }
-      }
+      // if !action_entry_imports.is_empty() {
+      //   if !action_maps_per_entry.contains_key(name) {
+      //     action_maps_per_entry.insert(name.to_string(), FxHashMap::default());
+      //   }
+      //   let entry = action_maps_per_entry.get_mut(name).unwrap();
+      //   for (key, value) in action_entry_imports {
+      //     entry.insert(key, value);
+      //   }
+      // }
     }
 
     // for (name, action_entry_imports) in action_maps_per_entry {
@@ -369,104 +369,104 @@ impl ReactServerComponentPlugin {
     // in parallel to the server compiler.
 
     // Wait for action entries to be added.
-    let args = add_client_entry_and_ssr_modules_list
-      .into_iter()
-      .flat_map(|add_client_entry_and_ssr_modules| {
-        vec![
-          add_client_entry_and_ssr_modules.add_rsc_entry,
-          add_client_entry_and_ssr_modules.add_ssr_entry,
-        ]
-      })
-      .chain(add_action_entry_list.into_iter())
-      .collect::<Vec<_>>();
-    let included_deps: Vec<_> = args.iter().map(|(dep, _)| *dep.id()).collect();
-    compilation.add_include(args).await?;
-    for dep in included_deps {
-      let mut mg = compilation.get_module_graph_mut();
-      let Some(m) = mg.get_module_by_dependency_id(&dep) else {
-        continue;
-      };
-      let info = mg.get_exports_info(&m.identifier());
-      info.set_used_in_unknown_way(&mut mg, runtime.as_ref());
-    }
+    // let args = add_client_entry_and_ssr_modules_list
+    //   .into_iter()
+    //   .flat_map(|add_client_entry_and_ssr_modules| {
+    //     vec![
+    //       add_client_entry_and_ssr_modules.add_rsc_entry,
+    //       add_client_entry_and_ssr_modules.add_ssr_entry,
+    //     ]
+    //   })
+    //   .chain(add_action_entry_list.into_iter())
+    //   .collect::<Vec<_>>();
+    // let included_deps: Vec<_> = args.iter().map(|(dep, _)| *dep.id()).collect();
+    // compilation.add_include(args).await?;
+    // for dep in included_deps {
+    //   let mut mg = compilation.get_module_graph_mut();
+    //   let Some(m) = mg.get_module_by_dependency_id(&dep) else {
+    //     continue;
+    //   };
+    //   let info = mg.get_exports_info(&m.identifier());
+    //   info.set_used_in_unknown_way(&mut mg, runtime.as_ref());
+    // }
 
-    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
-    let mut action_maps_per_client_entry: FxHashMap<
-      String,
-      FxHashMap<String, Vec<ActionIdNamePair>>,
-    > = Default::default();
+    // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
+    // let mut action_maps_per_client_entry: FxHashMap<
+    //   String,
+    //   FxHashMap<String, Vec<ActionIdNamePair>>,
+    // > = Default::default();
 
-    // We need to create extra action entries that are created from the
-    // client layer.
-    // Start from each entry's created SSR dependency from our previous step.
-    for (name, ssr_entry_dependencies) in created_ssr_dependencies_for_entry {
-      // Collect from all entries, e.g. layout.js, page.js, loading.js, ...
-      // add aggregate them.
-      let action_entry_imports =
-        self.collect_client_actions_from_dependencies(compilation, ssr_entry_dependencies);
+    // // We need to create extra action entries that are created from the
+    // // client layer.
+    // // Start from each entry's created SSR dependency from our previous step.
+    // for (name, ssr_entry_dependencies) in created_ssr_dependencies_for_entry {
+    //   // Collect from all entries, e.g. layout.js, page.js, loading.js, ...
+    //   // add aggregate them.
+    //   let action_entry_imports =
+    //     self.collect_client_actions_from_dependencies(compilation, ssr_entry_dependencies);
 
-      if !action_entry_imports.is_empty() {
-        if !action_maps_per_client_entry.contains_key(&name) {
-          action_maps_per_client_entry.insert(name.clone(), HashMap::default());
-        }
-        let entry = action_maps_per_client_entry.get_mut(&name).unwrap();
-        for (key, value) in action_entry_imports {
-          entry.insert(key.clone(), value);
-        }
-      }
-    }
+    //   if !action_entry_imports.is_empty() {
+    //     if !action_maps_per_client_entry.contains_key(&name) {
+    //       action_maps_per_client_entry.insert(name.clone(), HashMap::default());
+    //     }
+    //     let entry = action_maps_per_client_entry.get_mut(&name).unwrap();
+    //     for (key, value) in action_entry_imports {
+    //       entry.insert(key.clone(), value);
+    //     }
+    //   }
+    // }
 
-    for (entry_name, action_entry_imports) in action_maps_per_client_entry {
-      // If an action method is already created in the server layer, we don't
-      // need to create it again in the action layer.
-      // This is to avoid duplicate action instances and make sure the module
-      // state is shared.
-      let mut remaining_client_imported_actions = false;
-      let mut remaining_action_entry_imports = HashMap::default();
-      for (dep, actions) in action_entry_imports {
-        let mut remaining_action_names = Vec::new();
-        for (id, name) in actions {
-          // `action` is a [id, name] pair.
-          if !created_action_ids.contains(&format!("{}@{}", entry_name, &id)) {
-            remaining_action_names.push((id, name));
-          }
-        }
-        if !remaining_action_names.is_empty() {
-          remaining_action_entry_imports.insert(dep.clone(), remaining_action_names);
-          remaining_client_imported_actions = true;
-        }
-      }
+    // for (entry_name, action_entry_imports) in action_maps_per_client_entry {
+    //   // If an action method is already created in the server layer, we don't
+    //   // need to create it again in the action layer.
+    //   // This is to avoid duplicate action instances and make sure the module
+    //   // state is shared.
+    //   let mut remaining_client_imported_actions = false;
+    //   let mut remaining_action_entry_imports = HashMap::default();
+    //   for (dep, actions) in action_entry_imports {
+    //     let mut remaining_action_names = Vec::new();
+    //     for (id, name) in actions {
+    //       // `action` is a [id, name] pair.
+    //       if !created_action_ids.contains(&format!("{}@{}", entry_name, &id)) {
+    //         remaining_action_names.push((id, name));
+    //       }
+    //     }
+    //     if !remaining_action_names.is_empty() {
+    //       remaining_action_entry_imports.insert(dep.clone(), remaining_action_names);
+    //       remaining_client_imported_actions = true;
+    //     }
+    //   }
 
-      if remaining_client_imported_actions {
-        self
-          .inject_action_entry(
-            compilation,
-            ActionEntry {
-              actions: remaining_action_entry_imports,
-              entry_name: entry_name.clone(),
-              bundle_path: entry_name.clone(),
-              from_client: true,
-              created_action_ids: &mut created_action_ids,
-            },
-          )
-          .map(|injected| added_client_action_entry_list.push(injected));
-      }
-    }
-    let included_deps: Vec<_> = added_client_action_entry_list
-      .iter()
-      .map(|(dep, _)| *dep.id())
-      .collect();
-    compilation
-      .add_include(added_client_action_entry_list)
-      .await?;
-    for dep in included_deps {
-      let mut mg = compilation.get_module_graph_mut();
-      let Some(m) = mg.get_module_by_dependency_id(&dep) else {
-        continue;
-      };
-      let info = mg.get_exports_info(&m.identifier());
-      info.set_used_in_unknown_way(&mut mg, Some(&self.webpack_runtime));
-    }
+    //   if remaining_client_imported_actions {
+    //     self
+    //       .inject_action_entry(
+    //         compilation,
+    //         ActionEntry {
+    //           actions: remaining_action_entry_imports,
+    //           entry_name: entry_name.clone(),
+    //           bundle_path: entry_name.clone(),
+    //           from_client: true,
+    //           created_action_ids: &mut created_action_ids,
+    //         },
+    //       )
+    //       .map(|injected| added_client_action_entry_list.push(injected));
+    //   }
+    // }
+    // let included_deps: Vec<_> = added_client_action_entry_list
+    //   .iter()
+    //   .map(|(dep, _)| *dep.id())
+    //   .collect();
+    // compilation
+    //   .add_include(added_client_action_entry_list)
+    //   .await?;
+    // for dep in included_deps {
+    //   let mut mg = compilation.get_module_graph_mut();
+    //   let Some(m) = mg.get_module_by_dependency_id(&dep) else {
+    //     continue;
+    //   };
+    //   let info = mg.get_exports_info(&m.identifier());
+    //   info.set_used_in_unknown_way(&mut mg, Some(&self.webpack_runtime));
+    // }
 
     Ok(())
   }
@@ -688,19 +688,19 @@ impl ReactServerComponentPlugin {
     //   format!("next-flight-client-entry-loader?{}!", serializer.finish())
     // };
 
-    let client_server_loader = {
-      let mut serializer = form_urlencoded::Serializer::new(String::new());
-      for (request, ids) in &modules {
-        let module_json = serde_json::to_string(&json!({
-            "request": request,
-            "ids": ids
-        }))
-        .unwrap();
-        serializer.append_pair("modules", &module_json);
-      }
-      serializer.append_pair("server", "true");
-      format!("next-flight-client-entry-loader?{}!", serializer.finish())
-    };
+    // let client_server_loader = {
+    //   let mut serializer = form_urlencoded::Serializer::new(String::new());
+    //   for (request, ids) in &modules {
+    //     let module_json = serde_json::to_string(&json!({
+    //         "request": request,
+    //         "ids": ids
+    //     }))
+    //     .unwrap();
+    //     serializer.append_pair("modules", &module_json);
+    //   }
+    //   serializer.append_pair("server", "true");
+    //   format!("next-flight-client-entry-loader?{}!", serializer.finish())
+    // };
 
     // Add for the client compilation
     // Inject the entry to the client compiler.
@@ -720,44 +720,45 @@ impl ReactServerComponentPlugin {
     //     .insert(bundle_path, client_browser_loader.clone());
     // }
 
-    let client_component_ssr_entry_dep =
-      ClientReferenceDependency::new(client_server_loader.to_string());
-    let ssr_dep = *(client_component_ssr_entry_dep.id());
-    let mut client_component_ssr_entry_block = AsyncDependenciesBlock::new(
-      server_entry_module,
-      None,
-      None,
-      vec![Box::new(client_component_ssr_entry_dep)],
-      None,
-    );
+    // let client_component_ssr_entry_dep =
+    //   ClientReferenceDependency::new(client_server_loader.to_string());
+    // let ssr_dep = *(client_component_ssr_entry_dep.id());
+    // let mut client_component_ssr_entry_block = AsyncDependenciesBlock::new(
+    //   server_entry_module,
+    //   None,
+    //   None,
+    //   vec![Box::new(client_component_ssr_entry_dep)],
+    //   None,
+    // );
 
-    let client_component_rsc_entry_dep = ClientReferenceDependency::new(client_server_loader);
-    let mut client_component_rsc_entry_block = AsyncDependenciesBlock::new(
-      server_entry_module,
-      None,
-      None,
-      vec![Box::new(client_component_rsc_entry_dep)],
-      None,
-    );
+    // let client_component_rsc_entry_dep = ClientReferenceDependency::new(client_server_loader);
+    // let mut client_component_rsc_entry_block = AsyncDependenciesBlock::new(
+    //   server_entry_module,
+    //   None,
+    //   None,
+    //   vec![Box::new(client_component_rsc_entry_dep)],
+    //   None,
+    // );
 
-    InjectedClientEntry {
-      add_ssr_entry: (
-        Box::new(client_component_ssr_entry_dep),
-        EntryOptions {
-          name: Some(entry_name.to_string()),
-          layer: Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
-          ..Default::default()
-        },
-      ),
-      add_rsc_entry: (
-        Box::new(client_component_rsc_entry_dep),
-        EntryOptions {
-          name: Some(entry_name.to_string()),
-          layer: Some(WEBPACK_LAYERS.react_server_components.to_string()),
-          ..Default::default()
-        },
-      ),
-      ssr_dep,
-    }
+    // InjectedClientEntry {
+    //   add_ssr_entry: (
+    //     Box::new(client_component_ssr_entry_dep),
+    //     EntryOptions {
+    //       name: Some(entry_name.to_string()),
+    //       layer: Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
+    //       ..Default::default()
+    //     },
+    //   ),
+    //   add_rsc_entry: (
+    //     Box::new(client_component_rsc_entry_dep),
+    //     EntryOptions {
+    //       name: Some(entry_name.to_string()),
+    //       layer: Some(WEBPACK_LAYERS.react_server_components.to_string()),
+    //       ..Default::default()
+    //     },
+    //   ),
+    //   ssr_dep,
+    // }
+    todo!()
   }
 }
