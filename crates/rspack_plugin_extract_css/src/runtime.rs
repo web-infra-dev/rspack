@@ -233,12 +233,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let hmr = compilation.runtime_template.render(
-        &self.template_id(TemplateId::WithHmr),
-        Some(serde_json::json!({
-          "_hmr_download_update_handlers": RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS.to_string(),
-        })),
-      )?;
+      let hmr = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmr), None)?;
       res.push(hmr);
     } else {
       res.push("// no hmr".to_string());
