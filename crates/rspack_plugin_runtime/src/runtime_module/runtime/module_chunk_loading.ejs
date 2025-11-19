@@ -17,6 +17,6 @@ var installChunk = <%- basicFunction("data") %> {
             installedChunks[chunkId][0]();
         }
         installedChunks[<%- _ids %>[i]] = 0;
-    } <% if (_with_on_chunk_load) { %><%- ON_CHUNKS_LOADED %>();<% } %>
-    
+    }
+    <% if (_with_on_chunk_load) { %><%- ON_CHUNKS_LOADED %>();<% } %>
 };
