@@ -60,14 +60,14 @@ export default {
 ## node.\_\_dirname
 
 - **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
-- **默认值：** `'warn-mock'`，当启用 `output.module` 时为 `'node-module'`
+- **默认值：** `'warn-mock'`，当启用 [output.module](/config/output#outputmodule) 时为 `'node-module'`
 
 控制 Rspack 在为非 Node 环境打包时，如何处理 Node.js 的 [`__dirname`](https://nodejs.org/api/modules.html#__dirname) 变量。
 
 可选值有：
 
 - `true`：**输入** 文件的目录名，是相对于 [`context`](/config/context) 选项。
-- `false`：webpack 不会更改 `__dirname` 的代码，这意味着你有常规 Node.js 中的 `__dirname` 的行为。在 Node.js 环境中运行时，**输出** 文件的目录名。
+- `false`：Rspack 不会更改 `__dirname` 的代码，这意味着你有常规 Node.js 中的 `__dirname` 的行为。在 Node.js 环境中运行时，**输出** 文件的目录名。
 - `'mock'`：value 填充为 `'/'`。
 - `'warn-mock'`：使用 `'/'` 但是会显示一个警告。
 - `'node-module'`: 当启用 `output.module` 时，将 CommonJS 模块中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`。
