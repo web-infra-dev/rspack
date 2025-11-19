@@ -5381,8 +5381,7 @@ dependencies = [
 [[package]]
 name = "simd-adler32"
 version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
+source = "git+https://github.com/mcountryman/simd-adler32.git?rev=b279034d9eb554c3e5e0af523db044f08d8297ba#b279034d9eb554c3e5e0af523db044f08d8297ba"
 
 [[package]]
 name = "simd-json"
