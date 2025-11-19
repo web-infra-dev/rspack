@@ -11,11 +11,25 @@ import WebpackLicense from '@components/WebpackLicense';
 - **类型：** `boolean | 'warn'`
 - **默认值：** `'warn'`
 
-选项：
+控制 Rspack 在为非 Node 环境打包时，是否需要为 Node.js 的 `global` 对象提供 polyfill。
 
-- `true`：提供 polyfill.
-- `false`：不提供任何 polyfill。代码可能会出现 `ReferenceError` 的崩溃。
-- `'warn'`：当使用 `global` 时展示一个警告。
+关于该对象的具体行为，请参考 [Node.js 文档](https://nodejs.org/api/globals.html#globals_global)。
+
+可选值：
+
+- `true`：Rspack 会注入 polyfill，使打包产物中能够使用 `global`。适用于依赖 Node.js 全局变量、但运行在非 Node 环境的代码。
+- `false`：不注入 polyfill。对 `global` 的引用将保持原样。如果目标环境不支持 `global`，运行时会抛出 `ReferenceError`。
+- `'warn'`：行为与 `true` 相同，会注入 polyfill，同时在使用 `global` 时额外打印警告。
+
+例如，禁用 `global` polyfill：
+
+```js title="rspack.config.mjs"
+export default {
+  node: {
+    global: false,
+  },
+};
+```
 
 ## node.\_\_filename
 

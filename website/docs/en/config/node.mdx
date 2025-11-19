@@ -8,16 +8,28 @@ The following Node.js options configure whether to polyfill or mock certain [Nod
 
 ## node.global
 
-- **Type:** `boolean` `'warn'`
+- **Type:** `boolean | 'warn'`
 - **Default:** `'warn'`
+
+Controls whether Rspack should provide a polyfill for the Node.js `global` object when bundling for non-Node environments.
 
 See [the Node.js documentation](https://nodejs.org/api/globals.html#globals_global) for the exact behavior of this object.
 
-Options:
+Optional values:
 
-- `true`: Provide a polyfill.
-- `false`: Provide nothing. Code that expects this object may crash with a `ReferenceError`.
-- `'warn'`: Show a warning when using `global`.
+- `true`: Rspack injects a polyfill so that `global` is available in the bundle. This ensures compatibility with code that relies on Node.js globals in non-Node runtimes.
+- `false`: No polyfill is provided. References to `global` remain untouched. If your target environment does not define `global`, accessing it will throw a `ReferenceError` at runtime.
+- `'warn'`: Inject a polyfill like `true`, but also emit a warning when `global` is used.
+
+For example, to disable `global` polyfill:
+
+```js title="rspack.config.mjs"
+export default {
+  node: {
+    global: false,
+  },
+};
+```
 
 ## node.\_\_filename
 
