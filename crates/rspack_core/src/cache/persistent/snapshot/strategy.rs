@@ -2,7 +2,6 @@ use std::{
   hash::{Hash, Hasher},
   path::Path,
   sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
 };
 
 use rspack_cacheable::cacheable;
@@ -20,16 +19,17 @@ pub enum Strategy {
   /// compares the version field.
   PackageVersion(String),
 
-  /// Check by compile time
-  ///
-  /// This strategy will compare the compile time and the file update time.
-  CompileTime(u64),
-
   /// Check by file hash
   ///
-  /// This strategy will first compare the compile time and the file update time,
+  /// This strategy will first compare the modified time,
   /// and then compare the file hash if the file has been updated.
-  PathHash { compile_time: u64, hash: u64 },
+  PathHash { mtime: u64, hash: u64 },
+
+  /// Check missing file
+  ///
+  /// This strategy indicates that the current file is in a missing state,
+  /// and will return ValidateResult::Modified if it exists.
+  Missing,
 }
 
 /// Validate Result
@@ -46,19 +46,13 @@ pub enum ValidateResult {
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
   package_version_cache: ArcPathDashMap<Option<String>>,
-  compile_time: u64,
 }
 
 impl StrategyHelper {
   pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
-    let now = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("get current time failed")
-      .as_millis() as u64;
     Self {
       fs,
       package_version_cache: Default::default(),
-      compile_time: now,
     }
   }
 
@@ -114,10 +108,6 @@ impl StrategyHelper {
     Some(hasher.finish())
   }
 
-  /// get current time as compile time strategy
-  pub fn compile_time(&self) -> Strategy {
-    Strategy::CompileTime(self.compile_time)
-  }
   /// get path file package version strategy
   pub async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
     self
@@ -128,17 +118,12 @@ impl StrategyHelper {
   /// get path file hash strategy
   pub async fn path_hash(&self, path: &Path) -> Option<Strategy> {
     let hash = self.content_hash(path).await?;
-    Some(Strategy::PathHash {
-      compile_time: self.compile_time,
-      hash,
-    })
+    let mtime = self.modified_time(path).await?;
+    Some(Strategy::PathHash { mtime, hash })
   }
 
   /// validate path file by target strategy
   pub async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
-    let Some(modified_time) = self.modified_time(path).await else {
-      return ValidateResult::Deleted;
-    };
     match strategy {
       Strategy::PackageVersion(version) => {
         let Some(ref cur_version) = self.package_version_with_cache(path).await else {
@@ -150,15 +135,11 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::CompileTime(compile_time) => {
-        if &modified_time > compile_time {
-          ValidateResult::Modified
-        } else {
-          ValidateResult::NoChanged
-        }
-      }
-      Strategy::PathHash { compile_time, hash } => {
-        if &modified_time < compile_time {
+      Strategy::PathHash { mtime, hash } => {
+        let Some(modified_time) = self.modified_time(path).await else {
+          return ValidateResult::Deleted;
+        };
+        if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
         let Some(file_hash) = self.content_hash(path).await else {
@@ -168,6 +149,13 @@ impl StrategyHelper {
           ValidateResult::NoChanged
         } else {
           ValidateResult::Modified
+        }
+      }
+      Strategy::Missing => {
+        if self.modified_time(path).await.is_some() {
+          ValidateResult::Modified
+        } else {
+          ValidateResult::NoChanged
         }
       }
     }
@@ -182,16 +170,6 @@ mod tests {
   use rspack_paths::ArcPath;
 
   use super::{Strategy, StrategyHelper, ValidateResult};
-
-  #[tokio::test]
-  async fn compile_time() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    let helper = StrategyHelper::new(fs.clone());
-    let compile_time_1 = helper.compile_time();
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let compile_time_2 = helper.compile_time();
-    assert_eq!(compile_time_1, compile_time_2);
-  }
 
   #[tokio::test]
   async fn package_version() {
@@ -232,54 +210,21 @@ mod tests {
     );
 
     let hash1 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
     let hash2 = helper.path_hash(&ArcPath::from("/hash.js")).await;
     assert_eq!(hash1, hash2);
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
+    let hash3 = helper.path_hash(&ArcPath::from("/hash.js")).await;
+    assert_ne!(hash1, hash3);
 
     fs.write("/hash.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
-    let hash3 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-    assert_ne!(hash1, hash3);
-  }
-
-  #[tokio::test]
-  async fn validate_compile_time() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone());
-    let strategy = helper.compile_time();
-    assert!(matches!(
-      helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.remove_file("/file1.js".into()).await.unwrap();
-    assert!(matches!(
-      helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Deleted
-    ));
+    let hash4 = helper.path_hash(&ArcPath::from("/hash.js")).await;
+    assert_ne!(hash1, hash4);
   }
 
   #[tokio::test]
@@ -378,6 +323,44 @@ mod tests {
         .validate(&ArcPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Deleted
+    ));
+  }
+
+  #[tokio::test]
+  async fn validate_missing() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/".into()).await.unwrap();
+    fs.write("/file1.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let helper = StrategyHelper::new(fs.clone());
+    let strategy = Strategy::Missing;
+    assert!(matches!(
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
+      ValidateResult::Modified
+    ));
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/file1.js".into(), "abcd".as_bytes())
+      .await
+      .unwrap();
+    assert!(matches!(
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
+      ValidateResult::Modified
+    ));
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.remove_file("/file1.js".into()).await.unwrap();
+    assert!(matches!(
+      helper
+        .validate(&ArcPath::from("/file1.js"), &strategy)
+        .await,
+      ValidateResult::NoChanged
     ));
   }
 }
