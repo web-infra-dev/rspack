@@ -82,7 +82,7 @@ regex               = { version = "1.12.2", default-features = false }
 regex-syntax        = { version = "0.8.5", default-features = false, features = ["std"] }
 regress             = { version = "0.10.4", default-features = false, features = ["pattern"] }
 ropey               = { version = "1.6.1", default-features = false }
-rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.4", default-features = false }
+rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.6", default-features = false }
 rspack_sources      = { version = "=0.4.17", default-features = false }
 rustc-hash          = { version = "2.1.0", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
@@ -502,3 +502,6 @@ rest_pat_in_fully_bound_structs = "warn"
 verbose_file_reads              = "warn"
 # https://github.com/rustwasm/wasm-bindgen/issues/3944
 #mem_forget                      = "warn"
+
+[patch.crates-io]
+simd-adler32 = { git = "https://github.com/mcountryman/simd-adler32.git", rev = "b279034d9eb554c3e5e0af523db044f08d8297ba" }
