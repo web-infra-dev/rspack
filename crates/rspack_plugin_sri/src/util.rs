@@ -2,11 +2,13 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use indexmap::IndexSet;
-use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation};
+use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType};
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
 pub const SRI_HASH_VARIABLE_REFERENCE: &str = "__webpack_require__.sriHashes";
+pub const SRI_HASH_CSS_VARIABLE_REFERENCE: &str = "__webpack_require__.sriCssHashes";
+pub const SRI_HASH_EXTRACT_CSS_VARIABLE_REFERENCE: &str = "__webpack_require__.sriExtractCssHashes";
 
 pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
@@ -64,8 +66,12 @@ fn recurse_chunk(
   }
 }
 
-pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
-  let placeholder_source = format!("{PLACEHOLDER_PREFIX}{id}");
+pub fn make_placeholder(
+  asset_type: ManifestAssetType,
+  hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
+  id: &str,
+) -> String {
+  let placeholder_source = format!("{PLACEHOLDER_PREFIX}{asset_type}{id}");
   let filler = compute_integrity(hash_funcs, &placeholder_source);
   format!(
     "{}{}",

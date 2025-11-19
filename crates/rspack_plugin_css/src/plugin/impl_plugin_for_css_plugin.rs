@@ -11,9 +11,10 @@ use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Module, ModuleGraph,
-  ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
+  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
+  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -414,7 +415,7 @@ async fn render_manifest(
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::Css);
   let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &css_modules);
   asset_info.set_css_unused_idents(unused_idents);
   let output_path = compilation
