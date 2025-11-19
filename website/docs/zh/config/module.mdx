@@ -15,19 +15,41 @@ import WebpackLicense from '@components/WebpackLicense';
 
 - **类型：** `(Rule | Falsy)[]`
 
-应用于模块的默认规则。
+`defaultRules` 用于配置 Rspack 在内部默认启用的模块解析与处理规则。这些规则是自动生效的，用于确保常见资源类型（如 JavaScript、JSON、CSS、Wasm 等）能够被正常解析和打包。
 
-详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381)。
+你可以通过该选项扩展、覆写或禁用默认规则，从而对构建行为进行更细粒度的控制。
+
+例如，扩展默认规则：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [
-      '...', // 使用 "..." 来引用 Rspack 默认规则
+      // 你可以使用 "..." 来引用 Rspack 默认的规则
+      '...',
+      // 增加一个自定义规则
+      {
+        test: /\.foo$/,
+        use: ['foo-loader'],
+      },
     ],
   },
 };
 ```
+
+如果你希望移除 Rspack 所有的默认规则，你可以省略 `"..."`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    defaultRules: [],
+  },
+};
+```
+
+:::tip
+查看 [源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) 了解所有的默认规则。
+:::
 
 ## module.noParse
 

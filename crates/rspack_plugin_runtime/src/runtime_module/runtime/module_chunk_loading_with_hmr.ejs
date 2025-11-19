@@ -21,7 +21,7 @@
         reject(error);
       };
       var loadScript = <%- basicFunction("url, onResolve, onReject") %> {
-        return import(/* webpackIgnore: true */ url).then(onResolve).catch(onReject);
+        return <%- _import_function_name %>(/* webpackIgnore: true */ url).then(onResolve).catch(onReject);
       };
       loadScript(url, onResolve, onReject);
     }

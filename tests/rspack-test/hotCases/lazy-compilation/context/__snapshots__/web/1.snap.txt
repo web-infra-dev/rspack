@@ -10,7 +10,7 @@
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 69
 - Update: main.LAST_HASH.hot-update.js, size: 578
-- Update: modules_demo_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1472
+- Update: modules_demo_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1481
 
 ## Manifest
 
@@ -79,7 +79,7 @@ self["webpackHotUpdate"]("modules_demo_js_lazy-compilation-proxy", {
   \*******************************************************************************************************************************/
 (function (module, __unused_webpack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2Flazy-compilation-using-");
-var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases/lazy-compilation/context/modules/demo.js";
+var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/demo.js";
         module.exports = __webpack_require__.e(/*! import() */ "modules_demo_js").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/demo.js */ "./modules/demo.js"));
         if (module.hot) {
           module.hot.accept();

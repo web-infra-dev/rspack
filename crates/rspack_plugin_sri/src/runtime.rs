@@ -18,12 +18,7 @@ use crate::{
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
   format!(
     "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE,
-    match cross_origin_loading {
-      CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{v}'"),
-    }
+    code, SRI_HASH_VARIABLE_REFERENCE, cross_origin_loading
   )
 }
 

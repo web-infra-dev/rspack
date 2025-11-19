@@ -123,7 +123,7 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main 9 KiB = manual/main.js
+  Entrypoint main xx KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js 817 bytes manual/a.js xx KiB
   Entrypoint b xx KiB = manual/vendors.js 817 bytes manual/b.js xx KiB
   Entrypoint c xx KiB = manual/vendors.js 817 bytes manual/c.js xx KiB
@@ -319,7 +319,7 @@ custom-chunks-filter:
   custom-chunks-filter (Rspack x.x.x) compiled successfully
 
 custom-chunks-filter-in-cache-groups:
-  Entrypoint main xx KiB = custom-chunks-filter-in-cache-groups/main.js
+  Entrypoint main 9 KiB = custom-chunks-filter-in-cache-groups/main.js
   Entrypoint a xx KiB = custom-chunks-filter-in-cache-groups/70.js 667 bytes custom-chunks-filter-in-cache-groups/a.js xx KiB
   Entrypoint b xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/b.js xx KiB
   Entrypoint c xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/c.js xx KiB

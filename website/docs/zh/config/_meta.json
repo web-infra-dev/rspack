@@ -1,5 +1,13 @@
 [
+  {
+    "type": "section-header",
+    "label": "介绍"
+  },
   "index",
+  {
+    "type": "section-header",
+    "label": "配置项"
+  },
   "extends",
   "entry",
   "context",

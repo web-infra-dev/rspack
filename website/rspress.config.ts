@@ -101,28 +101,22 @@ export default defineConfig({
           'https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4',
       },
     ],
+    editLink: {
+      docRepoBaseUrl:
+        'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+    },
     locales: [
       {
         lang: 'en',
         title: 'Rspack',
         description: 'The fast Rust-based web bundler',
         label: 'English',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
-          text: '📝 Edit this page on GitHub',
-        },
       },
       {
         lang: 'zh',
         title: 'Rspack',
         description: '基于 Rust 的高性能 web 打包工具',
         label: '简体中文',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
-          text: '📝 在 GitHub 上编辑此页',
-        },
       },
     ],
   },

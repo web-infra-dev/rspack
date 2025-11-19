@@ -1,0 +1,8 @@
+.first-class {
+  color: white;
+}
+
+.second-class {
+  composes: first-class;
+  background: blue;
+}

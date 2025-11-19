@@ -5,10 +5,7 @@ module.exports = {
 	entry: {
 		main: "./example.js"
 	},
-	cache: {
-		type: "filesystem",
-		idleTimeout: 5000
-	},
+	cache: true,
 	lazyCompilation: true,
 	devServer: {
 		hot: true,

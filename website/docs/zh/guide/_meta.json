@@ -1,31 +1,31 @@
 [
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "start",
     "label": "开始"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "features",
     "label": "特性"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "tech",
     "label": "语言和框架"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "optimization",
     "label": "优化"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "migration",
     "label": "迁移"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "compatibility",
     "label": "兼容"
   }
