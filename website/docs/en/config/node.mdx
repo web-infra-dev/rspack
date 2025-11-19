@@ -33,10 +33,12 @@ export default {
 
 ## node.\_\_filename
 
-- **Type:** `boolean` `'mock' | 'warn-mock' | 'eval-only'`
-- **Default:** `'warn-mock'`, `'node-module'` when `output.module` is enabled
+- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **Default:** `'warn-mock'`, `'node-module'` when [output.module](/config/output#outputmodule) is enabled
 
-Options:
+Controls how Rspack handles the Node.js [`__filename`](https://nodejs.org/api/modules.html#__filename) variable when bundling for non-Node environments.
+
+Optional values:
 
 - `true`: The filename of the input file relative to the [`context`](/config/context) option.
 - `false`: Rspack won't touch your `__filename` code, which means you have the regular Node.js `__filename` behavior. The filename of the **output** file when run in a Node.js environment.
@@ -45,12 +47,24 @@ Options:
 - `'node-module'`: Replace `__filename` in CommonJS modules to `fileURLToPath(import.meta.url)` when `output.module` is enabled.
 - `'eval-only'`: Equivalent to `false`.
 
+For example, to leave `__filename` as it is:
+
+```js title="rspack.config.mjs"
+export default {
+  node: {
+    __filename: false,
+  },
+};
+```
+
 ## node.\_\_dirname
 
-- **Type:** `boolean` `'mock' | 'warn-mock' | 'eval-only'`
+- **Type:** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
 - **Default:** `'warn-mock'`, `'node-module'` when `output.module` is enabled
 
-Options:
+Controls how Rspack handles the Node.js [`__dirname`](https://nodejs.org/api/modules.html#__dirname) variable when bundling for non-Node environments.
+
+Optional values:
 
 - `true`: The dirname of the **input** file relative to the [`context`](/config/context) option.
 - `false`: Rspack won't touch your `__dirname` code, which means you have the regular Node.js `__dirname` behavior. The dirname of the **output** file when run in a Node.js environment.
@@ -58,3 +72,13 @@ Options:
 - `'warn-mock'`: Use the fixed value of `'/'` but show a warning.
 - `'node-module'`: Replace `__dirname` in CommonJS modules to `fileURLToPath(import.meta.url + "/..")` when `output.module` is enabled.
 - `'eval-only'`: Equivalent to `false`.
+
+For example, to leave `__dirname` as it is:
+
+```js title="rspack.config.mjs"
+export default {
+  node: {
+    __dirname: false,
+  },
+};
+```
