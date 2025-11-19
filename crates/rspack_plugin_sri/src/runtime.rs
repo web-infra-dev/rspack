@@ -20,10 +20,7 @@ fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoadin
     "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
     code,
     SRI_HASH_VARIABLE_REFERENCE,
-    match cross_origin_loading {
-      CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{v}'"),
-    }
+    cross_origin_loading.to_string()
   )
 }
 

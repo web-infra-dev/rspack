@@ -2,8 +2,8 @@ use std::ptr::NonNull;
 
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::generate_javascript_hmr_runtime;
@@ -220,10 +220,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_charset": charset,
-          "_cross_origin": match cross_origin_loading {
-            CrossOriginLoading::Disable => "".to_string(),
-            CrossOriginLoading::Enable(c) => c.to_string(),
-          }
+          "_cross_origin": cross_origin_loading.to_string(),
         })),
       )?;
 
@@ -258,10 +255,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_charset": charset,
           "_script_type": script_type.as_str(),
-          "_cross_origin": match cross_origin_loading {
-            CrossOriginLoading::Disable => "".to_string(),
-            CrossOriginLoading::Enable(c) => c.to_string(),
-          }
+          "_cross_origin": cross_origin_loading.to_string(),
         })),
       )?;
 

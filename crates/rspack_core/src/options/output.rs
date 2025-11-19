@@ -1,4 +1,11 @@
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
+use std::{
+  borrow::Cow,
+  fmt::{self, Debug},
+  hash::Hash,
+  str::FromStr,
+  string::ParseError,
+  sync::LazyLock,
+};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -198,6 +205,15 @@ impl From<&str> for WasmLoadingType {
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),
+}
+
+impl fmt::Display for CrossOriginLoading {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      CrossOriginLoading::Disable => write!(f, ""),
+      CrossOriginLoading::Enable(value) => write!(f, "{value}"),
+    }
+  }
 }
 
 #[derive(Default, Clone, Copy, Debug)]

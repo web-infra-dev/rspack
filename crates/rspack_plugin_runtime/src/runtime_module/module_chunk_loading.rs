@@ -2,8 +2,8 @@ use std::ptr::NonNull;
 
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -244,10 +244,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
             "_charset": charset,
-            "_cross_origin": match cross_origin_loading {
-              CrossOriginLoading::Disable => "".to_string(),
-              CrossOriginLoading::Enable(v) => v.to_string(),
-            },
+            "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;
 
@@ -280,10 +277,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
             "_charset": charset,
-            "_cross_origin": match cross_origin_loading {
-              CrossOriginLoading::Disable => "".to_string(),
-              CrossOriginLoading::Enable(v) => v.to_string(),
-            },
+            "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;
 
