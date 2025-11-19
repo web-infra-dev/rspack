@@ -42,7 +42,7 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "CHUNK_MAP": &self.chunk_map,
+        "_chunk_map": &self.chunk_map,
       })),
     )?;
 

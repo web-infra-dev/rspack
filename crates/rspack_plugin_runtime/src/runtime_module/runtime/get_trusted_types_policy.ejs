@@ -3,12 +3,24 @@ var policy;
     // Create Trusted Type policy if Trusted Types are available and the policy doesn't exist yet.
     if (policy === undefined) {
         policy = {
-            <%- _policy_content %>
+            <% if (_create_script) { %>
+            createScript: <%- returningFunction("script", "script") %>,
+            <% } %>
+            <% if (_create_script_url) { %>
+            createScriptURL: <%- returningFunction("url", "url") %>,
+            <% } %>
         };
         if (typeof trustedTypes !== "undefined" && trustedTypes.createPolicy) {
-            <%- _wrap_policy_creation_try_catch_start %>
+            <% if (_wrap_try_catch) { %>
+            try {
+            <% } %>
             policy = trustedTypes.createPolicy("<%- _policy_name %>", policy);
-            <%- _warp_policy_creation_try_catch_end %>
+            <% if (_wrap_try_catch) { %>
+            } catch (e) {
+                console.warn('Could not create trusted-types policy "<%- _policy_name %>"');
+            }
+            <% } %>
+
         }
     }
     return policy;

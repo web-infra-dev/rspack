@@ -1,0 +1,3 @@
+ERROR in ./lib.js
+  × Module build failed (from ./my-loader.js):
+  ╰─▶   × Failed to load

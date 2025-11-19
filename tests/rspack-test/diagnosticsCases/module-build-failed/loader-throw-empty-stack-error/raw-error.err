@@ -1,0 +1,7 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-throw-empty-stack-error/my-loader.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/loader-throw-empty-stack-error/lib.js,
+    moduleName: ./lib.js,
+  },
+]

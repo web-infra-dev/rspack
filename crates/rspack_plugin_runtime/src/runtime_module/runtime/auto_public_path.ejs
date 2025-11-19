@@ -1,6 +1,6 @@
 var scriptUrl;
-<% if (script_type == "module") { %>
-if (typeof <%- import_meta_name %>.url === "string") scriptUrl = <%- import_meta_name %>.url
+<% if (_script_type == "module") { %>
+if (typeof <%- _import_meta_name %>.url === "string") scriptUrl = <%- _import_meta_name %>.url
 <% } else { %>
 if (<%- GLOBAL %>.importScripts) scriptUrl = <%- GLOBAL %>.location + "";
 var document = <%- GLOBAL %>.document;
@@ -22,4 +22,8 @@ if (!scriptUrl && document) {
 // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
 if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
 scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-<%- assign %>
+<% if (_undo_path == "") { %>
+<%- PUBLIC_PATH %> = scriptUrl;
+<% } else { %>
+<%- PUBLIC_PATH %> = scriptUrl + '<%- _undo_path %>';
+<% } %>

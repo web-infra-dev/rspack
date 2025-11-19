@@ -40,10 +40,10 @@ module.exports = {
 			builtAt: false,
 			version: false,
 			modulesSpace: 3
-		});
-		expect(string).toContain(`chunk (runtime: main) chunkB.js (chunkB) 94 bytes [rendered]`);
-		expect(string).toContain(`./fixtures/b.js 94 bytes [built] [code generated]`);
-		expect(string).toContain(`chunk (runtime: main) main.js (main) 85 bytes (javascript) 8.53 KiB (runtime) [entry] [rendered]`);
-		expect(string).toContain(`./fixtures/chunk-b.js 85 bytes [built] [code generated]`);
+		}).replace(/[\d.]+ (KiB|bytes)/g, "X.X $1");
+		expect(string).toContain(`chunk (runtime: main) chunkB.js (chunkB) X.X bytes [rendered]`);
+		expect(string).toContain(`./fixtures/b.js X.X bytes [built] [code generated]`);
+		expect(string).toContain(`chunk (runtime: main) main.js (main) X.X bytes (javascript) X.X KiB (runtime) [entry] [rendered]`);
+		expect(string).toContain(`./fixtures/chunk-b.js X.X bytes [built] [code generated]`);
 	}
 };

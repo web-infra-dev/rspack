@@ -1,31 +1,31 @@
 [
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "start",
-    "label": "Getting started"
+    "label": "Start"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "features",
     "label": "Features"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "tech",
     "label": "Languages and Frameworks"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "optimization",
     "label": "Optimization"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "migration",
     "label": "Migration"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "compatibility",
     "label": "Compatibility"
   }

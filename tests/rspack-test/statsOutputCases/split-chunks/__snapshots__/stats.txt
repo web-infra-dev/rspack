@@ -123,7 +123,7 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main 9 KiB = manual/main.js
+  Entrypoint main xx KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js 817 bytes manual/a.js xx KiB
   Entrypoint b xx KiB = manual/vendors.js 817 bytes manual/b.js xx KiB
   Entrypoint c xx KiB = manual/vendors.js 817 bytes manual/c.js xx KiB
