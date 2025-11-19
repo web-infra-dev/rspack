@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function () {
+"./index.js"() {
 
 ;// CONCATENATED MODULE: ./answer.js
 const answer = 103330;
@@ -17,7 +17,7 @@ index_answer();
 function test() {}
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

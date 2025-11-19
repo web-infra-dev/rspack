@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.tsx": (function () {
+"./index.tsx"() {
 class a {
 }
 function A() {
@@ -11,7 +11,7 @@ const b = (/* unused pure expression or super */ null && ({
 }));
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -43,7 +43,7 @@ module.exports = {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 337,
+			      size: 310,
 			      type: asset,
 			    },
 			  ],
@@ -411,10 +411,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 337,
+			          size: 310,
 			        },
 			      ],
-			      assetsSize: 337,
+			      assetsSize: 310,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -750,10 +750,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 337,
+			          size: 310,
 			        },
 			      ],
-			      assetsSize: 337,
+			      assetsSize: 310,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},

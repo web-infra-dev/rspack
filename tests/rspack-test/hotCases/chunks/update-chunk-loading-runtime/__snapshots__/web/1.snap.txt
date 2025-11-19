@@ -10,9 +10,9 @@
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 710
+- Update: main.LAST_HASH.hot-update.js, size: 697
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 19042
-- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 509
+- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 496
 
 ## Manifest
 
@@ -38,11 +38,11 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./index.js": 
+"./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(function (module, __webpack_exports__, __webpack_require__) {
+(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */var vendor__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
 
@@ -54,7 +54,7 @@ module.hot.data.test = () => {
 module.hot.data.hash = __webpack_require__.h();
 
 
-}),
+},
 
 });
 ```
@@ -735,11 +735,11 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.pus
 ```js
 "use strict";
 self["webpackHotUpdate"]("vendors-node_modules_vendor_js", {
-"./node_modules/vendor.js": 
+"./node_modules/vendor.js"
 /*!********************************!*\
   !*** ./node_modules/vendor.js ***!
   \********************************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
@@ -747,7 +747,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
 
 
-}),
+},
 
 });
 ```

@@ -7,7 +7,7 @@
 - Bundle: 0.js
 - Bundle: [runtime of 1].js
 - Manifest: [runtime of 1].LAST_HASH.hot-update.json, size: 29
-- Update: 0.LAST_HASH.hot-update.js, size: 227
+- Update: 0.LAST_HASH.hot-update.js, size: 214
 - Update: 1.LAST_HASH.hot-update.js, size: 179
 
 ## Manifest
@@ -33,15 +33,15 @@
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("0", {
-"./node_modules/vendor.js": 
+"./node_modules/vendor.js"
 /*!********************************!*\
   !*** ./node_modules/vendor.js ***!
   \********************************/
-(function (module) {
+(module) {
 module.exports = "2";
 
 
-}),
+},
 
 });
 ```

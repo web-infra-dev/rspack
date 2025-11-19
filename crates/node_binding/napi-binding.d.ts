@@ -2079,6 +2079,7 @@ export interface RawEntryDynamicResult {
 
 export interface RawEnvironment {
   const?: boolean
+  methodShorthand?: boolean
   arrowFunction?: boolean
   nodePrefixForCoreModules?: boolean
   asyncFunction?: boolean

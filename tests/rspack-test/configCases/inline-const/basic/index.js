@@ -104,7 +104,7 @@ it("should not inline and link to re-export module when have barrel side effects
   if (CONCATENATED) {
     expect(block.includes(`inlined export`)).toBe(true);
   } else {
-    const code = generated.match(/"\.\/re-export\.barrel-side-effects\.js": \(function.*{([\s\S]*?)}\),/)[1];
+    const code = generated.match(/"\.\/re-export\.barrel-side-effects\.js"\(.*{([\s\S]*?)},/)[1];
     expect(code.includes(`__webpack_require__("./constants.js")`)).toBe(false);
     expect(block.includes(`inlined export`)).toBe(false);
   }
@@ -134,7 +134,7 @@ it("should not inline for cjs", () => {
   expect(constantsCjs.REMOVE_CONST).toBe(true);
   const cjsModuleIds = ["./constants.cjs"];
   cjsModuleIds.forEach(m => {
-    expect(generated.includes(`"${m}": (function`)).toBe(true);
+    expect(generated.includes(`"${m}"(`)).toBe(true);
   })
 })
 
@@ -146,7 +146,7 @@ it("should remove the module if all exports is inlined and side effects free", (
     })
   } else {
     inlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(false);
+      expect(generated.includes(`"${m}"(`)).toBe(false);
     })
   }
 })
@@ -159,7 +159,7 @@ it("should keep the module if all exports is inlined but have side effects", () 
     })
   } else {
     inlinedSideEffectsNotFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })
@@ -172,7 +172,7 @@ it("should keep the module if part of the exports is inlined and side effects fr
     })
   } else {
     partialInlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })
