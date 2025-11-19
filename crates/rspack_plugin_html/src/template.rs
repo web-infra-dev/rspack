@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use itertools::Itertools;
-use rspack_core::{Compilation, CrossOriginLoading, Mode};
+use rspack_core::{Compilation, Mode};
 use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
 use rspack_error::{AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, error};
 use rspack_paths::AssertUtf8;
@@ -152,10 +152,7 @@ impl HtmlTemplate {
             },
             "output": {
               "publicPath": config.get_public_path(compilation, filename).await,
-            "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
-                CrossOriginLoading::Disable => "false",
-                CrossOriginLoading::Enable(value) => value,
-            },
+              "crossOriginLoading": compilation.options.output.cross_origin_loading.to_string(),
             }
           },
         }),

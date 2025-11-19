@@ -1,10 +1,9 @@
 use std::ptr::NonNull;
 
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -59,7 +58,9 @@ impl ModuleChunkLoadingRuntimeModule {
       TemplateId::Raw => self.id.to_string(),
       TemplateId::WithLoading => format!("{}_with_loading", self.id),
       TemplateId::WithPrefetch => format!("{}_with_prefetch", self.id),
+      TemplateId::WithPrefetchLink => format!("{}_with_prefetch_link", self.id),
       TemplateId::WithPreload => format!("{}_with_preload", self.id),
+      TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id),
       TemplateId::WithHMR => format!("{}_with_hmr", self.id),
       TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
     }
@@ -70,7 +71,9 @@ enum TemplateId {
   Raw,
   WithLoading,
   WithPrefetch,
+  WithPrefetchLink,
   WithPreload,
+  WithPreloadLink,
   WithHMR,
   WithHMRManifest,
 }
@@ -96,8 +99,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         include_str!("runtime/module_chunk_loading_with_prefetch.ejs").to_string(),
       ),
       (
+        self.template(TemplateId::WithPrefetchLink),
+        include_str!("runtime/module_chunk_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
         self.template(TemplateId::WithPreload),
         include_str!("runtime/module_chunk_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::WithPreloadLink),
+        include_str!("runtime/module_chunk_loading_with_preload_link.ejs").to_string(),
       ),
       (
         self.template(TemplateId::WithHMR),
@@ -184,10 +195,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           "_ids": "__webpack_ids__",
           "_modules": "__webpack_modules__",
           "_runtime": "__webpack_runtime__",
-          "_with_on_chunk_load": match with_on_chunk_load {
-            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
-            false => "".to_string(),
-          },
+          "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
 
@@ -232,33 +240,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let charset = compilation.options.output.charset;
       let cross_origin_loading = &compilation.options.output.cross_origin_loading;
       if with_prefetch {
-        let cross_origin = match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            format!("link.crossOrigin = '{v}'")
-          }
-        };
-        let link_prefetch_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    $CROSS_ORIGIN$
-    if (__webpack_require__.nc) {
-      link.setAttribute('nonce', __webpack_require__.nc);
-    }
-    link.rel = 'prefetch';
-    link.as = 'script';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
-      "#
-        .cow_replace(
-          "$LINK_CHART_CHARSET$",
-          if charset {
-            "link.charset = 'utf-8';"
-          } else {
-            ""
-          },
-        )
-        .cow_replace("$CROSS_ORIGIN$", &cross_origin)
-        .to_string();
+        let link_prefetch_code = compilation.runtime_template.render(
+          &self.template(TemplateId::WithPrefetchLink),
+          Some(serde_json::json!({
+            "_charset": charset,
+            "_cross_origin": cross_origin_loading.to_string(),
+          })),
+        )?;
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
@@ -285,43 +273,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         source.push_str(&raw_source);
       }
       if with_preload {
-        let cross_origin = match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            if v.eq("use-credentials") {
-              "link.crossOrigin = 'use-credentials';".to_string()
-            } else {
-              format!(
-                r#"
-              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{v}';
-              }}
-              "#
-              )
-            }
-          }
-        };
-
-        let link_preload_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    if (__webpack_require__.nc) {
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }
-    link.rel = 'modulepreload';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
-    $CROSS_ORIGIN$
-      "#
-        .cow_replace(
-          "$LINK_CHART_CHARSET$",
-          if charset {
-            "link.charset = 'utf-8';"
-          } else {
-            ""
-          },
-        )
-        .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
-        .to_string();
+        let link_preload_code = compilation.runtime_template.render(
+          &self.template(TemplateId::WithPreloadLink),
+          Some(serde_json::json!({
+            "_charset": charset,
+            "_cross_origin": cross_origin_loading.to_string(),
+          })),
+        )?;
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks

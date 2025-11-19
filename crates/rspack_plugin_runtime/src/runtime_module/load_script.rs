@@ -1,9 +1,7 @@
 use std::ptr::NonNull;
 
 use rspack_collections::Identifier;
-use rspack_core::{
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, impl_runtime_module,
-};
+use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
 
 use crate::{
   CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, get_chunk_runtime_requirements,
@@ -75,10 +73,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         "_unique_prefix": unique_prefix.is_some(),
         "_with_fetch_priority": with_fetch_priority,
         "_with_create_script_url": self.with_create_script_url,
-        "_cross_origin": match &compilation.options.output.cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(cross_origin) => cross_origin.to_string(),
-        },
+        "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
         "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string(),
       })),
     )?;
@@ -101,14 +96,10 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     let render_source = compilation.runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
-        "_unique_prefix": unique_prefix,
+        "_unique_prefix": unique_prefix.unwrap_or_default(),
         "_create_script": res.code,
         "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.to_string(),
         "_fetch_priority": if with_fetch_priority { ", fetchPriority" } else { "" },
-        "_unique_get_attribute": match unique_prefix {
-          Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
-          None => r#"s.getAttribute("src") == url"#,
-        },
       })),
     )?;
 
