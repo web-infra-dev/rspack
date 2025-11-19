@@ -1,10 +1,10 @@
 ```js title=a.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a"], {
-"./a.js": (function () {
+"./a.js"() {
 console.log("你好");
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
@@ -16,11 +16,11 @@ var __webpack_exports__ = (__webpack_exec__("./a.js"));
 
 ```js title=b.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["b"], {
-"./b.js": (function () {
+"./b.js"() {
 console.log("\u4F60\u597D");
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

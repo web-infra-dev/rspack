@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function () {
+"./index.js"() {
 if (true) {
   const hasConsole = typeof console !== 'undefined';
   const warn = (msg) => {
@@ -12,7 +12,7 @@ if (true) {
 }
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

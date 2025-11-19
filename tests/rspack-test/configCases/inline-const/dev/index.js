@@ -12,6 +12,6 @@ it("should have correct exports in development mode", async () => {
 it("should keep the module for dynamic import", () => {
   const noInlinedModuleIds = ["../basic/constants.js"];
   noInlinedModuleIds.forEach(m => {
-    expect(generated.includes(`"${m}":`)).toBe(true);
+    expect(generated.includes(`"${m}"(`)).toBe(true);
   })
 })

@@ -2211,6 +2211,7 @@ interface EnvConfig {
 
 // @public
 export type Environment = {
+    methodShorthand?: boolean;
     arrowFunction?: boolean;
     asyncFunction?: boolean;
     bigIntLiteral?: boolean;

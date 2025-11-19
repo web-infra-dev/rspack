@@ -1,21 +1,21 @@
 ```js title=main.js
 (() => {
 var __webpack_modules__ = ({
-"../../normalModuleFactory​#afterResolve/duplicate/a.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/duplicate/a.js"(module) {
 module.exports = "a";
 
 
-}),
-"../../normalModuleFactory​#afterResolve/duplicate/c.js": (function (module) {
+},
+"../../normalModuleFactory​#afterResolve/duplicate/c.js"(module) {
 module.exports = "c";
 
 
-}),
-"fs": (function (module) {
+},
+"fs"(module) {
 "use strict";
 module.exports = require("fs");
 
-}),
+},
 
 });
 // The module cache

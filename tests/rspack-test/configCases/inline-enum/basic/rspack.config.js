@@ -5,7 +5,8 @@ function config(index, { concatenateModules } = {}) {
 	return {
 		entry: "./index.js",
 		output: {
-			filename: `bundle.${index}.js`
+			filename: `bundle.${index}.js`,
+			pathinfo: false,
 		},
 		resolve: {
 			extensions: [".ts", "..."]

@@ -46,7 +46,7 @@ module.exports = {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 204,
+			      size: 195,
 			      type: asset,
 			    },
 			  ],
@@ -175,10 +175,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 204,
+			          size: 195,
 			        },
 			      ],
-			      assetsSize: 204,
+			      assetsSize: 195,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -275,10 +275,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 204,
+			          size: 195,
 			        },
 			      ],
-			      assetsSize: 204,
+			      assetsSize: 195,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -299,8 +299,8 @@ module.exports = {
 		`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 			PublicPath: auto
-			asset main.js 204 bytes {889} [emitted] (name: main)
-			Entrypoint main 204 bytes = main.js
+			asset main.js 195 bytes {889} [emitted] (name: main)
+			Entrypoint main 195 bytes = main.js
 			chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
 			  > ./fixtures/a main
 			  ./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]

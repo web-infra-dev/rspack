@@ -36,19 +36,8 @@ module.exports = {
 		]
 	},
 	optimization: {
+		chunkIds: 'named',
 		concatenateModules: false,
-		splitChunks: {
-			cacheGroups: {
-				lib: {
-					test: /lib/,
-					name: 'lib',
-					priority: 100,
-					chunks: 'all',
-					enforce: true,
-					minSize: 0,
-				},
-			}
-		}
 	},
 	experiments: {
 		inlineEnum: true
