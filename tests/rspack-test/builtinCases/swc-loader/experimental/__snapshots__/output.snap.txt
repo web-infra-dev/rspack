@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _static_package_json__rspack_import_0 = __webpack_require__("./static-package.json");
@@ -12,11 +12,11 @@ console.log(_static_package_json__rspack_import_0);
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } });
 
-}),
-"./static-package.json": (function (module) {
+},
+"./static-package.json"(module) {
 module.exports = import("./static-package.json", { with: {"type":"json"} }).then(function(module) { return module; });
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

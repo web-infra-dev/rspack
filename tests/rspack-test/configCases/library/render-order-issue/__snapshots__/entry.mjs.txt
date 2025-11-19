@@ -1,11 +1,11 @@
 import * as __rspack_external_externals1 from "externals1";
 import * as __rspack_external_externals0 from "externals0";
 var __webpack_modules__ = ({
-"./bar.js": 
+"./bar.js"
 /*!****************************!*\
   !*** ./bar.js + 1 modules ***!
   \****************************/
-(function () {
+() {
 
 ;// CONCATENATED MODULE: external "externals0"
 
@@ -13,39 +13,39 @@ var __webpack_modules__ = ({
 
 __rspack_external_externals0.v;
 
-}),
-"./entry.js": 
+},
+"./entry.js"
 /*!******************!*\
   !*** ./entry.js ***!
   \******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_webpack_exports, __webpack_require__) {
 module.exports.entry1 = __webpack_require__(/*! ./entry1.js */ "./entry1.js")
 module.exports.entry2 = __webpack_require__(/*! ./entry2.js */ "./entry2.js")
 
-}),
-"./entry1.js": 
+},
+"./entry1.js"
 /*!*******************!*\
   !*** ./entry1.js ***!
   \*******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_webpack_exports, __webpack_require__) {
 module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
 module.exports.name = "entry1"
 
-}),
-"./entry2.js": 
+},
+"./entry2.js"
 /*!*******************!*\
   !*** ./entry2.js ***!
   \*******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_webpack_exports, __webpack_require__) {
 module.exports = __webpack_require__(/*! ./bar */ "./bar.js")
 module.exports.name = "entry2"
 
-}),
-"./foo.js": 
+},
+"./foo.js"
 /*!****************************!*\
   !*** ./foo.js + 1 modules ***!
   \****************************/
-(function () {
+() {
 
 ;// CONCATENATED MODULE: external "externals1"
 
@@ -53,7 +53,7 @@ module.exports.name = "entry2"
 
 __rspack_external_externals1.v;
 
-}),
+},
 
 });
 // The module cache

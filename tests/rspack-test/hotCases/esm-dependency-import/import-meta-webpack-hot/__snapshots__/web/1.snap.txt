@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 555
+- Update: main.LAST_HASH.hot-update.js, size: 542
 
 ## Manifest
 
@@ -32,11 +32,11 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./node_modules/dep1/file.js": 
+"./node_modules/dep1/file.js"
 /*!***********************************!*\
   !*** ./node_modules/dep1/file.js ***!
   \***********************************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -44,7 +44,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 2;
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./import-module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./import-module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
@@ -10,15 +10,15 @@ expect(_module__rspack_import_0.ok).toBe(true);
 expect(_module__rspack_import_0.ok2).toBe(true);
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it("should not threat globals as pure", () => {
 	__webpack_require__("./import-module.js");
 });
 
 
-}),
-"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
   ok: () => (ok),
@@ -46,7 +46,7 @@ try {
 
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

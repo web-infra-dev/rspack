@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./bar.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"./bar.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _result__rspack_import_1 = __webpack_require__("./result.js");
 function b() {}
@@ -10,8 +10,8 @@ function b() {}
 
 
 
-}),
-"./foo.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./foo.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _bar__rspack_import_0 = __webpack_require__("./bar.js");
 /* import */ var _result__rspack_import_1 = __webpack_require__("./result.js");
 const a = 3;
@@ -19,8 +19,8 @@ const a = 3;
 
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _bar__rspack_import_1 = __webpack_require__("./bar.js");
 /* import */ var _result__rspack_import_2 = __webpack_require__("./result.js");
@@ -29,8 +29,8 @@ const a = 3;
 
 
 
-}),
-"./result.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./result.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _bar__rspack_import_1 = __webpack_require__("./bar.js");
 const c = 103330;
@@ -39,7 +39,7 @@ const c = 103330;
 
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

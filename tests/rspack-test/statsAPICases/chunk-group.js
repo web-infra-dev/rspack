@@ -7,6 +7,11 @@ module.exports = {
 			entry: {
 				main: "./fixtures/order/index"
 			},
+			output: {
+				environment: {
+					methodShorthand: false
+				}
+			},
 			optimization: {
 				minimize: false
 			},

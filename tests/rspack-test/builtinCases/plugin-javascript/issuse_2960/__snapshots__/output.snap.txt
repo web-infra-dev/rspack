@@ -1,26 +1,26 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
 
 
-}),
-"./resources/pre_a.js": (function () {
+},
+"./resources/pre_a.js"() {
 console.log("a");
 
 
-}),
-"./resources/pre_b.js": (function () {
+},
+"./resources/pre_b.js"() {
 console.log("a");
 
 
-}),
-"./resources/pre_c.js": (function () {
+},
+"./resources/pre_c.js"() {
 console.log("a");
 
 
-}),
-"./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./resources sync recursive ^\\.\\/pre_.*\\.js$"(module, __unused_webpack_exports, __webpack_require__) {
 var map = {
   "./pre_a.js": "./resources/pre_a.js",
   "./pre_b.js": "./resources/pre_b.js",
@@ -48,7 +48,7 @@ module.exports = webpackContext;
 webpackContext.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

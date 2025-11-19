@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 //#!/usr/bin/env node
@@ -10,8 +10,8 @@ __webpack_require__.r(__webpack_exports__);
 console.log("index", _lib__rspack_import_0.foo);
 
 
-}),
-"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./lib.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   foo: () => (foo)
@@ -22,7 +22,7 @@ const foo = 42;
 console.log("lib", foo);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -1,16 +1,16 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./development.js": (function () {
+"./development.js"() {
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 if (true) {
 	__webpack_require__("./development.js");
 } else {}
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -7,23 +7,24 @@ module.exports = {
 		compiler => {
 			compiler.hooks.compilation.tap("Test", compilation => {
 				expect(compilation.outputOptions.environment).toMatchInlineSnapshot(`
-			Object {
-			  arrowFunction: true,
-			  asyncFunction: true,
-			  bigIntLiteral: true,
-			  const: true,
-			  destructuring: true,
-			  document: false,
-			  dynamicImport: true,
-			  dynamicImportInWorker: false,
-			  forOf: true,
-			  globalThis: true,
-			  module: true,
-			  nodePrefixForCoreModules: true,
-			  optionalChaining: true,
-			  templateLiteral: true,
-			}
-		`);
+					Object {
+					  arrowFunction: true,
+					  asyncFunction: true,
+					  bigIntLiteral: true,
+					  const: true,
+					  destructuring: true,
+					  document: false,
+					  dynamicImport: true,
+					  dynamicImportInWorker: false,
+					  forOf: true,
+					  globalThis: true,
+					  methodShorthand: true,
+					  module: true,
+					  nodePrefixForCoreModules: true,
+					  optionalChaining: true,
+					  templateLiteral: true,
+					}
+				`);
 				expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
 			Object {
 			  electron: false,

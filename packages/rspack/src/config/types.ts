@@ -391,6 +391,9 @@ export type DevtoolFallbackModuleFilenameTemplate =
 
 /** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
 export type Environment = {
+	/** The environment supports { fn() {} } */
+	methodShorthand?: boolean;
+
 	/** The environment supports arrow functions ('() => { ... }'). */
 	arrowFunction?: boolean;
 
