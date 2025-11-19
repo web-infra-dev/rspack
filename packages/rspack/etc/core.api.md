@@ -7246,6 +7246,7 @@ export const RuntimePlugin: typeof RuntimePluginImpl & {
 // @public (undocumented)
 type RuntimePluginHooks = {
     createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    createLink: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 };
