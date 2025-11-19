@@ -1,7 +1,12 @@
+var __webpack_require__startup = <%- STARTUP_ENTRYPOINT %>;
 <%- STARTUP_ENTRYPOINT %> = <%- basicFunction("result, chunkIds, fn") %> {
+  if (!fn && chunkIds === undefined && result === undefined) {
+    return __webpack_require__startup ? __webpack_require__startup() : undefined;
+  }
   // arguments: chunkIds, moduleId are deprecated
   var moduleId = chunkIds;
   if (!fn) chunkIds = result, fn = <%- returningFunction("$$RUNTIME_GLOBAL_REQUIRE$$($$RUNTIME_GLOBAL_ENTRY_MODULE_ID$$ = moduleId)", "") %>
+  chunkIds = chunkIds || [];
   return Promise.all(chunkIds.map(<%- ENSURE_CHUNK %>, <%- REQUIRE %>)).then(<%- basicFunction("") %> {
       var r = fn();
       return r === undefined ? result : r;
