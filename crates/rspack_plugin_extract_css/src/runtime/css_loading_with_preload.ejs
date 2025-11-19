@@ -1,7 +1,6 @@
-<%- PRELOAD_CHUNK_HANDLERS %>.s = <%- basicFunction("chunkId") %> {
+<%- PRELOAD_CHUNK_HANDLERS %>.miniCss = <%- basicFunction("chunkId") %> {
   if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _css_matcher %>) {
-    installedChunks[chunkId] = null;
-    if (typeof document === 'undefined') return;
+    installedCssChunks[chunkId] = null;
 
     <%- _create_preload_link %>
     document.head.appendChild(link);

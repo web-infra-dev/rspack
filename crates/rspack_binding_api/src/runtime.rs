@@ -6,7 +6,7 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
+  CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
 };
 use rustc_hash::FxHashMap;
 
@@ -202,6 +202,22 @@ pub struct JsCreateScriptData {
 
 impl From<CreateScriptData> for JsCreateScriptData {
   fn from(value: CreateScriptData) -> Self {
+    Self {
+      code: value.code,
+      chunk: value.chunk.into(),
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsCreateLinkData {
+  pub code: String,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
+}
+
+impl From<CreateLinkData> for JsCreateLinkData {
+  fn from(value: CreateLinkData) -> Self {
     Self {
       code: value.code,
       chunk: value.chunk.into(),

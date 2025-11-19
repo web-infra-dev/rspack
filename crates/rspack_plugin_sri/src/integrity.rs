@@ -17,7 +17,10 @@ impl From<String> for SubresourceIntegrityHashFunction {
       "sha256" => Self::Sha256,
       "sha384" => Self::Sha384,
       "sha512" => Self::Sha512,
-      _ => panic!("sri hash function only support 'sha256', 'sha384' or 'sha512'"),
+      _ => panic!(
+        "sri hash function only support 'sha256', 'sha384' or 'sha512', but got '{}'.",
+        s
+      ),
     }
   }
 }

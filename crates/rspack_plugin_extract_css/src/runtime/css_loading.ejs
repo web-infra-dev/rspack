@@ -2,13 +2,7 @@ if (typeof document === "undefined") return;
 var createStylesheet = function (
 	chunkId, fullhref, oldTag, resolve, reject
 ) {
-	var linkTag = document.createElement("link");
-	__SET_ATTRIBUTES__
-	linkTag.rel = "stylesheet";
-	__SET_LINKTYPE__
-	if (__webpack_require__.nc) {
-		linkTag.nonce = __webpack_require__.nc;
-	}
+	<%- _create_link %>
 	var onLinkComplete = function (event) {
 		// avoid mem leaks.
 		linkTag.onerror = linkTag.onload = null;
@@ -25,11 +19,8 @@ var createStylesheet = function (
 			reject(err);
 		}
 	}
-
 	linkTag.onerror = linkTag.onload = onLinkComplete;
-	linkTag.href = fullhref;
-	__CROSS_ORIGIN_LOADING__
-	__INSERT__
+	<%- _insert %>
 	return linkTag;
 }
 var findStylesheet = function (href, fullhref) {
@@ -53,12 +44,9 @@ var findStylesheet = function (href, fullhref) {
 
 var loadStylesheet = function (chunkId) {
 	return new Promise(function (resolve, reject) {
-		var href = __webpack_require__.miniCssF(chunkId);
-		var fullhref = __webpack_require__.p + href;
+		var href = <%- REQUIRE %>.miniCssF(chunkId);
+		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (findStylesheet(href, fullhref)) return resolve();
 		createStylesheet(chunkId, fullhref, null, resolve, reject);
 	})
 }
-
-__WITH_LOADING__
-__WITH_HMT__
