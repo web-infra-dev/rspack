@@ -4982,8 +4982,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.4"
-source = "git+https://github.com/web-infra-dev/rspack-resolver.git?branch=fix%2Frspakc_integration#1c59f7c06715509b1865a4f716e19004a33ae1e2"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8608208a0fda740545c1e7a6727fe94fbb407142259b122d328e3165beddc07d"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -5380,7 +5381,8 @@ dependencies = [
 [[package]]
 name = "simd-adler32"
 version = "0.3.7"
-source = "git+https://github.com/stormslowly/simd-adler32.git?rev=b279034d9eb554c3e5e0af523db044f08d8297ba#b279034d9eb554c3e5e0af523db044f08d8297ba"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "simd-json"
@@ -7036,9 +7038,9 @@ dependencies = [
 
 [[package]]
 name = "tracy-client"
-version = "0.18.3"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91d722a05fe49b31fef971c4732a7d4aa6a18283d9ba46abddab35f484872947"
+checksum = "ef54005d3d760186fd662dad4b7bb27ecd5531cdef54d1573ebd3f20a9205ed7"
 dependencies = [
  "loom",
  "once_cell",
