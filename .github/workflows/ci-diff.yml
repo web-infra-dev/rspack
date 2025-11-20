@@ -1,0 +1,84 @@
+name: CI Diff
+
+on:
+  pull_request:
+    types: [opened, synchronize, closed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
+  # Allow commenting on pull requests
+  pull-requests: write
+
+jobs:
+  build:
+    name: Build Bindings
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      test: false
+      bench: false
+      prefer_docker: false
+      ref: ${{ github.event.pull_request.head.sha }}
+
+  demo-test:
+    name: Demo Test
+    needs: build
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Clone rstack-examples
+        run: |
+          cd ..
+          git clone -b chore/add-rsdoctor-demo https://github.com/rspack-contrib/rstack-examples.git
+
+      - name: Link packages and install dependencies
+        working-directory: ../rstack-examples/rsdoctor/rspack
+        run: |
+          npm pkg set "devDependencies.@rspack/binding=link:../../../rspack/crates/node_binding"
+          npm pkg set "devDependencies.@rspack/core=link:../../../rspack/packages/rspack"
+          npm pkg set "devDependencies.@rspack/cli=link:../../../rspack/packages/rspack-cli"
+          # Use --no-frozen-lockfile to allow updating lockfile after modifying package.json
+          pnpm install --no-frozen-lockfile
+
+      - name: Build demo project
+        working-directory: ../rstack-examples/rsdoctor/rspack
+        run: RSDOCTOR=true pnpm run build
+
+      - name: Report Compressed Size
+        uses: web-infra-dev/rsdoctor-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          file_path: "../rstack-examples/rsdoctor/rspack/dist/rsdoctor-data.json"
+          target_branch: "main"
