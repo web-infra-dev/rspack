@@ -5,8 +5,7 @@ use rspack_core::{
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
   ExportSpecExports, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
-  incremental::{self, IncrementalPasses},
+  PrefetchExportsInfoMode, get_target, incremental, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

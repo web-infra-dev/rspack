@@ -14,6 +14,7 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
   Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
   RuntimeSpec, UsedNameItem,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
 };
 mod module;
 pub use module::*;
@@ -444,8 +445,15 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async = ModuleGraph::is_async(compilation, source_module);
-    ModuleGraph::set_async(compilation, *target_module, is_async);
+    let is_async = ModuleGraph::is_async(
+      &compilation.collect_build_module_graph_effects_artifact,
+      source_module,
+    );
+    ModuleGraph::set_async(
+      &mut compilation.collect_build_module_graph_effects_artifact,
+      *target_module,
+      is_async,
+    );
   }
 
   pub fn move_module_connections(
@@ -1009,11 +1017,6 @@ impl<'a> ModuleGraph<'a> {
     }
     has_connections
   }
-
-  pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules_artifact.contains(module_id)
-  }
-
   pub fn is_deferred(
     &self,
     imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
@@ -1027,22 +1030,6 @@ impl<'a> ModuleGraph<'a> {
       .module_by_identifier(module_id)
       .expect("should have module");
     !module.build_meta().has_top_level_await
-  }
-
-  pub fn set_async(
-    compilation: &mut Compilation,
-    module_id: ModuleIdentifier,
-    is_async: bool,
-  ) -> bool {
-    let original = Self::is_async(compilation, &module_id);
-    if original == is_async {
-      return false;
-    }
-    if original {
-      compilation.async_modules_artifact.remove(&module_id)
-    } else {
-      compilation.async_modules_artifact.insert(module_id)
-    }
   }
 
   pub fn get_outgoing_connections(
@@ -1313,5 +1300,30 @@ impl<'a> ModuleGraph<'a> {
         }
       }
     }
+  }
+}
+
+impl<'a> ModuleGraph<'a> {
+  pub fn set_async(
+    artifact: &mut CollectModuleGraphEffectsArtifact,
+    module_id: ModuleIdentifier,
+    is_async: bool,
+  ) -> bool {
+    let original = ModuleGraph::is_async(artifact, &module_id);
+    if original == is_async {
+      return false;
+    }
+    if original {
+      artifact.async_module_info.remove(&module_id)
+    } else {
+      artifact.async_module_info.insert(module_id)
+    }
+  }
+
+  pub fn is_async(
+    artifact: &CollectModuleGraphEffectsArtifact,
+    module_id: &ModuleIdentifier,
+  ) -> bool {
+    artifact.async_module_info.contains(module_id)
   }
 }

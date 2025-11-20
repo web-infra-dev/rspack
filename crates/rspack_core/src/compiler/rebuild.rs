@@ -95,19 +95,16 @@ impl Compiler {
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
-      {
-        new_compilation.async_modules_artifact =
-          std::mem::take(&mut self.compilation.async_modules_artifact);
-      }
+
       if new_compilation
         .incremental
         .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+        || new_compilation
+          .incremental
+          .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
       {
-        new_compilation.dependencies_diagnostics_artifact =
-          std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
+        new_compilation.collect_build_module_graph_effects_artifact =
+          std::mem::take(&mut self.compilation.collect_build_module_graph_effects_artifact);
       }
       if new_compilation
         .incremental
