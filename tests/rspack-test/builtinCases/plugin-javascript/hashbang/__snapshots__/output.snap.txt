@@ -3,11 +3,11 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _lib__rspack_import_0__ = __webpack_require__("./lib.js");
+/* import */var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 //#!/usr/bin/env node
 
 
-console.log("index", _lib__rspack_import_0__.foo);
+console.log("index", _lib__rspack_import_0.foo);
 
 
 }),

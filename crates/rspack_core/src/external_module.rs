@@ -361,7 +361,7 @@ impl ExternalModule {
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n{} __WEBPACK_EXTERNAL_createRequire_require = __WEBPACK_EXTERNAL_createRequire({}.url);\n",
+                "import {{ createRequire as __rspack_external_createRequire }} from \"{}\";\n{} __rspack_external_createRequire_require = __rspack_external_createRequire({}.url);\n",
                 if need_prefix { "node:module" } else { "module" },
                 if compilation.options.output.environment.supports_const() {
                   "const"
@@ -386,7 +386,7 @@ impl ExternalModule {
             ("undefined".to_string(), String::new())
           };
           format!(
-            "{} = __WEBPACK_EXTERNAL_createRequire_require({}){};",
+            "{} = __rspack_external_createRequire_require({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             request,
             specifiers
@@ -403,7 +403,7 @@ impl ExternalModule {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())
           .expect("should have module id");
-        let external_variable = format!("__WEBPACK_EXTERNAL_MODULE_{}__", to_identifier(id));
+        let external_variable = format!("__rspack_external_{}", to_identifier(id));
         let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
@@ -552,7 +552,7 @@ impl ExternalModule {
                 chunk_init_fragments.push(
                   NormalInitFragment::new(
                     format!(
-                      "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                      "import * as __rspack_external_{} from {}{};\n",
                       id.clone(),
                       json_stringify(request.primary()),
                       attributes.unwrap_or_default()
@@ -569,7 +569,7 @@ impl ExternalModule {
                   )
                   .boxed(),
                 );
-                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                let external_module_id = format!("__rspack_external_{id}");
                 let namespace_export_with_name = format!(
                   "{}{}{}",
                   NAMESPACE_OBJECT_EXPORT,
@@ -603,7 +603,7 @@ impl ExternalModule {
                   chunk_init_fragments.push(
                     NormalInitFragment::new(
                       format!(
-                        "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                        "import * as __rspack_external_{} from {}{};\n",
                         id.clone(),
                         json_stringify(request.primary()),
                         attributes.clone().unwrap_or_default()
@@ -620,7 +620,7 @@ impl ExternalModule {
                     )
                     .boxed(),
                   );
-                  let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                  let external_module_id = format!("__rspack_external_{id}");
                   let namespace_export_with_name = format!(
                     "{}{}{}",
                     NAMESPACE_OBJECT_EXPORT,
@@ -651,7 +651,7 @@ impl ExternalModule {
             chunk_init_fragments.push(
               NormalInitFragment::new(
                 format!(
-                  "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                  "import * as __rspack_external_{} from {}{};\n",
                   id.clone(),
                   json_stringify(request.primary()),
                   {
@@ -678,7 +678,7 @@ impl ExternalModule {
             );
             format!(
               r#"
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+{} = __rspack_external_{};
 "#,
               get_namespace_object_export(concatenation_scope, supports_const),
               id.clone()

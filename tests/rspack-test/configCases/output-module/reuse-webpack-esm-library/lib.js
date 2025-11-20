@@ -1,4 +1,4 @@
-import * as __WEBPACK_EXTERNAL_MODULE_react__ from "react";
+import * as __rspack_external_react from "react";
 /******/ var __webpack_modules__ = ({
 
 	/***/ "react":
@@ -9,7 +9,7 @@ import * as __WEBPACK_EXTERNAL_MODULE_react__ from "react";
 
 		var x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
 		var y = x => () => x
-		module.exports = __WEBPACK_EXTERNAL_MODULE_react__;
+		module.exports = __rspack_external_react;
 
 		/***/ })
 

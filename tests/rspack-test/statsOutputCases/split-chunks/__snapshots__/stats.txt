@@ -125,8 +125,8 @@ all-chunks:
 manual:
   Entrypoint main xx KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js 817 bytes manual/a.js xx KiB
-  Entrypoint b 6 KiB = manual/vendors.js 817 bytes manual/b.js xx KiB
-  Entrypoint c 6 KiB = manual/vendors.js 817 bytes manual/c.js xx KiB
+  Entrypoint b xx KiB = manual/vendors.js 817 bytes manual/b.js xx KiB
+  Entrypoint c xx KiB = manual/vendors.js 817 bytes manual/c.js xx KiB
   chunk (runtime: a, main) manual/async-g.js (async-g) 65 bytes <{341}> <{545}> <{724}> [rendered]
     > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
@@ -321,8 +321,8 @@ custom-chunks-filter:
 custom-chunks-filter-in-cache-groups:
   Entrypoint main 9 KiB = custom-chunks-filter-in-cache-groups/main.js
   Entrypoint a xx KiB = custom-chunks-filter-in-cache-groups/70.js 667 bytes custom-chunks-filter-in-cache-groups/a.js xx KiB
-  Entrypoint b 6 KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/b.js xx KiB
-  Entrypoint c 6 KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/c.js xx KiB
+  Entrypoint b xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/b.js xx KiB
+  Entrypoint c xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/c.js xx KiB
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{341}> <{545}> <{70}> <{724}> [rendered]
     > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
