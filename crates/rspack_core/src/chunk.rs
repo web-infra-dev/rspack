@@ -927,8 +927,7 @@ impl Chunk {
       ChunkGroupOrderKey,
       IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
     > = HashMap::default();
-    for (order, chunk_ukey, mut child_chunk_ids) in add_child_ids_results {
-      child_chunk_ids.sort_unstable();
+    for (order, chunk_ukey, child_chunk_ids) in add_child_ids_results {
       result
         .entry(order)
         .or_default()
