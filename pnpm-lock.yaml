@@ -165,8 +165,8 @@ importers:
   packages/create-rspack:
     dependencies:
       create-rstack:
-        specifier: 1.7.7
-        version: 1.7.7
+        specifier: 1.7.8
+        version: 1.7.8
     devDependencies:
       '@rslib/core':
         specifier: 0.17.1
@@ -4467,8 +4467,8 @@ packages:
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
 
-  create-rstack@1.7.7:
-    resolution: {integrity: sha512-mZHKC+56IahOrz9FS21vhRayRjJkrfpN+emXVHczqUN3h8yJyOqu1JJkkYhQBd28rbZR1GjWD+Q0bE8MrcW1GQ==}
+  create-rstack@1.7.8:
+    resolution: {integrity: sha512-B8+cOGs0Gsk2i3ZVJweMsFFU50vXlNYzkWOiVQBoMs02Ui/6hQcqB4d+jmTEgwvdb5gJmX2Rcr9J6l+Ld1yCQQ==}
 
   cross-env@10.1.0:
     resolution: {integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==}
@@ -12156,7 +12156,7 @@ snapshots:
 
   create-require@1.1.1: {}
 
-  create-rstack@1.7.7: {}
+  create-rstack@1.7.8: {}
 
   cross-env@10.1.0:
     dependencies:
