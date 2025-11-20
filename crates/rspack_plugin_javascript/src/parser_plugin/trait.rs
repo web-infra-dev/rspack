@@ -11,8 +11,9 @@ use swc_core::{
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    ExportedVariableInfo, JavascriptParser, Statement, VariableDeclaration,
+    ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
+    Statement, VariableDeclaration,
   },
 };
 
@@ -434,6 +435,20 @@ pub trait JavascriptParserPlugin {
   }
 
   fn is_pure(&self, _parser: &mut JavascriptParser, _expr: &Expr) -> Option<bool> {
+    None
+  }
+
+  /** plugin interop methods */
+
+  /**
+   * This method is used to interop with other plugins.
+   * It will be called in ImportMetaPlugin when processing destructuring of `import.meta`
+   */
+  fn import_meta_property_in_destructuring(
+    &self,
+    _parser: &mut JavascriptParser,
+    _property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
     None
   }
 }
