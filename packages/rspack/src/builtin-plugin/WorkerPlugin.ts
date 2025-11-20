@@ -18,10 +18,8 @@ export class WorkerPlugin extends RspackBuiltinPlugin {
 		private chunkLoading: ChunkLoading,
 		private wasmLoading: WasmLoading,
 		// @ts-expect-error not implemented
-		// biome-ignore lint/correctness/noUnusedPrivateClassMembers: not implemented yet
 		private module: OutputModule,
 		// @ts-expect-error not implemented
-		// biome-ignore lint/correctness/noUnusedPrivateClassMembers: not implemented yet
 		private workerPublicPath: WorkerPublicPath
 	) {
 		super();

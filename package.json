@@ -60,7 +60,7 @@
     "pnpm": "10.20.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.5",
+    "@biomejs/biome": "^2.3.6",
     "@microsoft/api-extractor": "7.54.0",
     "@microsoft/api-extractor-model": "7.31.3",
     "@rslint/core": "0.1.13",
@@ -74,7 +74,7 @@
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "@rstest/core": "^0.6.5",
-    "lint-staged": "^16.2.6",
+    "lint-staged": "^16.2.7",
     "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
