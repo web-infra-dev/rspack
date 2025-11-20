@@ -127,6 +127,13 @@ jobs:
             pnpm run test:ci
           fi
 
+  diff:
+    name: Diff Action
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
       ### x86_64-pc-windows-msvc
       - name: Test x86_64-pc-windows-msvc
         timeout-minutes: 10
