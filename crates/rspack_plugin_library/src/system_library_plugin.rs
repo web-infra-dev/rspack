@@ -157,9 +157,9 @@ async fn render(
   let mut source = ConcatSource::default();
   source.add(RawStringSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
   if !is_has_external_modules {
-    // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
+    // 	var __rspack_external_{} = {};
     source.add(RawStringSource::from(external_var_declarations));
-    // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
+    // Object.defineProperty(__rspack_external_{}, "__esModule", { value: true });
     source.add(RawStringSource::from(external_var_initialization));
   }
   source.add(RawStringSource::from_static("return {\n"));

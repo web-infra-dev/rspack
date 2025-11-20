@@ -198,7 +198,7 @@ impl JavascriptParserPlugin for APIPlugin {
       API_NON_REQUIRE => {
         let content = if self.options.module {
           parser.build_info.need_create_require = true;
-          "__WEBPACK_EXTERNAL_createRequire_require".into()
+          "__rspack_external_createRequire_require".into()
         } else {
           "require".into()
         };

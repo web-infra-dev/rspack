@@ -2,10 +2,10 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _app__rspack_import_0__ = __webpack_require__("./lib.js");
+/* import */var _app__rspack_import_0 = __webpack_require__("./lib.js");
 
 
-(0,_app__rspack_import_0__.something)();
+(0,_app__rspack_import_0.something)();
 // a;
 
 

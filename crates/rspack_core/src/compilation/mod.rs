@@ -637,7 +637,7 @@ impl Compilation {
       hash_map::Entry::Vacant(vac) => {
         let mut b = itoa::Buffer::new();
         let import_var = format!(
-          "{}__rspack_{}import_{}__",
+          "{}__rspack_{}import_{}",
           to_identifier(user_request),
           match phase {
             ImportPhase::Evaluation => "",

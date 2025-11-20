@@ -397,9 +397,9 @@ export default {
 Will generate into something like
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import * as __rspack_external_jquery from 'jquery';
 
-const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
+const jq = __rspack_external_jquery['default'];
 jq('.my-element').animate(/* ... */);
 ```
 
@@ -478,8 +478,8 @@ export default {
 Will generate into something like
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
-const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+import * as __rspack_external_lodash from 'lodash';
+const lodash = __rspack_external_jquery;
 
 var __webpack_modules__ = {
   jquery: module => {
