@@ -27,7 +27,7 @@ use rspack_plugin_runtime::RuntimePlugin;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
-use runtime::{create_script, handle_runtime, link_preload};
+use runtime::{create_link, create_script, handle_runtime, link_preload};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
@@ -130,6 +130,7 @@ async fn handle_compilation(
     runtime_plugin_hooks
       .create_script
       .tap(create_script::new(self));
+    runtime_plugin_hooks.create_link.tap(create_link::new(self));
     runtime_plugin_hooks
       .link_preload
       .tap(link_preload::new(self));

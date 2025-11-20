@@ -65,6 +65,8 @@ pub struct KnownAssetInfo {
   pub css_unused_idents: Option<Vec<String>>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
+  /// the asset type
+  pub asset_type: Option<String>,
 }
 
 /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
@@ -140,6 +142,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       related,
       css_unused_idents,
       is_over_size_limit,
+      asset_type,
     } = known;
 
     let chunk_hash = chunkhash
@@ -178,6 +181,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       version: String::default(),
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().collect()),
       is_over_size_limit,
+      asset_type: asset_type.map(Into::into).unwrap_or_default(),
       extras,
     }
   }
@@ -225,6 +229,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       related,
       css_unused_idents,
       is_over_size_limit,
+      asset_type,
       extras,
       ..
     } = value;
@@ -244,6 +249,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
         javascript_module,
         css_unused_idents: css_unused_idents.map(|i| i.into_iter().collect()),
         is_over_size_limit,
+        asset_type: Some(asset_type.to_string()),
       },
       extras,
     }
