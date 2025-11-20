@@ -26,7 +26,7 @@ fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilati
     .iter()
     .map(|m| {
       format!(
-        "__WEBPACK_EXTERNAL_MODULE_{}__",
+        "__rspack_external_{}",
         to_identifier(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
             .map(|s| s.as_str())

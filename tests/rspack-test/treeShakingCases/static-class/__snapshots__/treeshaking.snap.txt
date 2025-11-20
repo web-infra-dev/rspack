@@ -5,13 +5,13 @@
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
-/* import */var _b_js__rspack_import_0__ = __webpack_require__("./b.js");
+/* import */var _b_js__rspack_import_0 = __webpack_require__("./b.js");
 
 
 class Test {
-	static c = (0,_b_js__rspack_import_0__.bb)();
+	static c = (0,_b_js__rspack_import_0.bb)();
 	static test() {
-		_b_js__rspack_import_0__.bb;
+		_b_js__rspack_import_0.bb;
 	}
 }
 
@@ -35,9 +35,9 @@ const cc = 3;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _a_js__rspack_import_0__ = __webpack_require__("./a.js");
+/* import */var _a_js__rspack_import_0 = __webpack_require__("./a.js");
 
-_a_js__rspack_import_0__.a;
+_a_js__rspack_import_0.a;
 
 
 }),

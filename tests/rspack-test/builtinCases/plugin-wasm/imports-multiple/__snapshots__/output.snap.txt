@@ -28,11 +28,11 @@ __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber),
   result: () => (result)
 });
-/* import */var _wasm_wasm__rspack_import_0__ = __webpack_require__("./wasm.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__rspack_import_0__]);
-_wasm_wasm__rspack_import_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+/* import */var _wasm_wasm__rspack_import_0 = __webpack_require__("./wasm.wasm");
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__rspack_import_0]);
+_wasm_wasm__rspack_import_0 = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
 
-var result = (0,_wasm_wasm__rspack_import_0__.getResult)(1);
+var result = (0,_wasm_wasm__rspack_import_0.getResult)(1);
 
 function getNumber() {
 	return 20;
@@ -48,12 +48,12 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber)
 });
-/* import */var _wasm_wasm__rspack_import_0__ = __webpack_require__("./wasm.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__rspack_import_0__]);
-_wasm_wasm__rspack_import_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+/* import */var _wasm_wasm__rspack_import_0 = __webpack_require__("./wasm.wasm");
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__rspack_import_0]);
+_wasm_wasm__rspack_import_0 = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
 
 function getNumber() {
-	return (0,_wasm_wasm__rspack_import_0__.getNumber)();
+	return (0,_wasm_wasm__rspack_import_0.getNumber)();
 }
 
 __webpack_async_result__();
