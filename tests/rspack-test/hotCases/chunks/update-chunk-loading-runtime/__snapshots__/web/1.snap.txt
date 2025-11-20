@@ -10,7 +10,7 @@
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 710
+- Update: main.LAST_HASH.hot-update.js, size: 690
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 19042
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 509
 
@@ -44,12 +44,12 @@ self["webpackHotUpdate"]("main", {
   \******************/
 (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var vendor__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
+/* import */var vendor__rspack_import_0__ = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
 
 module.hot.data.ok = true;
 module.hot.data.loadChunk = () => __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
 module.hot.data.test = () => {
-	expect(vendor__WEBPACK_IMPORTED_MODULE_0__["default"]).toBe(2);
+	expect(vendor__rspack_import_0__["default"]).toBe(2);
 };
 module.hot.data.hash = __webpack_require__.h();
 

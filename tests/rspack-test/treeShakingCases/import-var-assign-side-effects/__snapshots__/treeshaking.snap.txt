@@ -10,10 +10,10 @@ class Something {}
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./Something.js");
+/* import */var _export__rspack_import_0__ = __webpack_require__("./Something.js");
 
 
-(0,_export__WEBPACK_IMPORTED_MODULE_0__["default"])();
+(0,_export__rspack_import_0__["default"])();
 
 
 }),

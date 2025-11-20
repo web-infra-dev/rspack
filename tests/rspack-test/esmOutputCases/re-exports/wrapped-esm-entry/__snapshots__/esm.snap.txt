@@ -8,15 +8,15 @@ __webpack_require__.add({
   \******************/
 (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  fs: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__["default"]),
-  named: () => (/* reexport safe */ _lib__WEBPACK_IMPORTED_MODULE_1__.K),
-  r: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__.readFile),
-  readFile: () => (/* reexport safe */ fs__WEBPACK_IMPORTED_MODULE_0__.readFile),
-  starExports: () => (/* reexport safe */ _lib2__WEBPACK_IMPORTED_MODULE_2__.i)
+  fs: () => (/* reexport safe */ fs__rspack_import_0__["default"]),
+  named: () => (/* reexport safe */ _lib__rspack_import_1__.K),
+  r: () => (/* reexport safe */ fs__rspack_import_0__.readFile),
+  readFile: () => (/* reexport safe */ fs__rspack_import_0__.readFile),
+  starExports: () => (/* reexport safe */ _lib2__rspack_import_2__.i)
 });
-/* import */var fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! fs */ "fs");
-/* import */var _lib__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./lib */ "./lib.js");
-/* import */var _lib2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+/* import */var fs__rspack_import_0__ = __webpack_require__(/*! fs */ "fs");
+/* import */var _lib__rspack_import_1__ = __webpack_require__(/*! ./lib */ "./lib.js");
+/* import */var _lib2__rspack_import_2__ = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

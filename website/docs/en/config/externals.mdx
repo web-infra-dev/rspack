@@ -560,13 +560,13 @@ var __webpack_modules__ = {
   },
 };
 
-// webpack runtime...
+// Rspack runtime...
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
     __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
-  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+  (0, lodash__rspack_import_0__.attempt)(() =>
     jq('.my-element').animate(/* ... */),
   );
 }
