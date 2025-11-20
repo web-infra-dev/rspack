@@ -213,8 +213,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
   fn import_meta_property_in_destructuring(
     &self,
-    _: &mut JavascriptParser,
-    __: &DestructuringAssignmentProperty,
+    _parser: &mut JavascriptParser,
+    _property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     // TODO: implement import.meta.filename/dirname in destructuring
     None

@@ -438,7 +438,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  /** plugin interop methods */
+  /* plugin interop methods */
 
   /**
    * This method is used to interop with other plugins.
