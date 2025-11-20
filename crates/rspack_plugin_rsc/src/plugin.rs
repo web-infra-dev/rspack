@@ -52,11 +52,19 @@ struct InjectedClientEntry {
 // 该插件只在 server 上执行
 #[plugin]
 #[derive(Debug, Default)]
-pub struct ReactServerComponentPlugin;
+pub struct ReactServerComponentsPlugin {}
 
-#[plugin_hook(CompilerFinishMake for ReactServerComponentPlugin)]
+impl ReactServerComponentsPlugin {
+  pub fn new() -> Self {
+    Self {
+      inner: Default::default(),
+    }
+  }
+}
+
+#[plugin_hook(CompilerFinishMake for ReactServerComponentsPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ReactServerComponentPlugin");
+  let logger = compilation.get_logger("rspack.ReactServerComponentsPlugin");
 
   let start = logger.time("create client entries");
   self.create_client_entries(compilation).await?;
@@ -65,9 +73,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-impl Plugin for ReactServerComponentPlugin {
+impl Plugin for ReactServerComponentsPlugin {
   fn name(&self) -> &'static str {
-    "rspack.ReactServerComponentPlugin"
+    "rspack.ReactServerComponentsPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
@@ -233,7 +241,7 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
 
 type InjectedActionEntry = (BoxDependency, EntryOptions);
 
-impl ReactServerComponentPlugin {
+impl ReactServerComponentsPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
 

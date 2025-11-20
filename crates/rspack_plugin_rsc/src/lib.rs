@@ -3,4 +3,4 @@ mod constants;
 mod plugin;
 mod utils;
 
-pub use plugin::ReactServerComponentPlugin;
+pub use plugin::ReactServerComponentsPlugin;

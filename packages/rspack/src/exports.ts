@@ -339,7 +339,8 @@ export {
 	LightningCssMinimizerRspackPlugin,
 	NormalModuleReplacementPlugin,
 	SourceMapDevToolPlugin,
-	SwcJsMinimizerRspackPlugin
+	SwcJsMinimizerRspackPlugin,
+	ReactServerComponentsPlugin
 } from "./builtin-plugin";
 
 ///// Experiments Stuff /////

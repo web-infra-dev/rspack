@@ -602,7 +602,8 @@ export declare enum BuiltinPluginName {
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpUriPlugin = 'HttpUriPlugin',
-  CssChunkingPlugin = 'CssChunkingPlugin'
+  CssChunkingPlugin = 'CssChunkingPlugin',
+  ReactServerComponentsPlugin = 'ReactServerComponentsPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
