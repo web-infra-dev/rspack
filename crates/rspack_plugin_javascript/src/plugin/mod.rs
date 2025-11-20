@@ -334,6 +334,7 @@ impl JsPlugin {
           runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
 
         if use_federation_async {
+          let startup_fn = RuntimeGlobals::STARTUP_ENTRYPOINT;
           mf_async_startup = true;
           let mut buf2: Vec<Cow<str>> = Vec::new();
 
@@ -349,10 +350,16 @@ impl JsPlugin {
           buf2.push("var promises = [];".into());
           buf2.push("// Call federation runtime initialization".into());
           buf2.push("var runtimeInitialization = undefined;".into());
-          buf2.push("if (typeof __webpack_require__.x === \"function\") {".into());
-          buf2.push("  runtimeInitialization = __webpack_require__.x();".into());
+          buf2.push(format!("if (typeof {} === \"function\") {{", startup_fn).into());
+          buf2.push(format!("  runtimeInitialization = {}();", startup_fn).into());
           buf2.push("} else {".into());
-          buf2.push("  console.warn(\"[Module Federation] __webpack_require__.x is not a function, skipping federation startup\");".into());
+          buf2.push(
+            format!(
+              "  console.warn(\"[Module Federation] {} is not a function, skipping federation startup\");",
+              startup_fn
+            )
+            .into(),
+          );
           buf2.push("}".into());
 
           let entries = compilation
@@ -1129,6 +1136,7 @@ impl JsPlugin {
       // and MF plugin didn't mark it as already handled.
       let needs_federation = runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
         && !has_async_federation_wrapper;
+      let startup_global = RuntimeGlobals::STARTUP_ENTRYPOINT;
       let is_esm_output = compilation.options.output.module;
 
       let startup_str = startup.join("\n");
@@ -1147,12 +1155,14 @@ impl JsPlugin {
           "// Federation async initialization\n",
         ));
         result.add(RawStringSource::from("await (async () => {\n"));
-        result.add(RawStringSource::from(
-          "  if (typeof __webpack_require__.x === 'function') {\n",
-        ));
-        result.add(RawStringSource::from(
-          "    await __webpack_require__.x();\n",
-        ));
+        result.add(RawStringSource::from(format!(
+          "  if (typeof {} === 'function') {{\n",
+          startup_global
+        )));
+        result.add(RawStringSource::from(format!(
+          "    await {}();\n",
+          startup_global
+        )));
         result.add(RawStringSource::from("  }\n"));
         result.add(RawStringSource::from("  const promises = [];\n"));
         result.add(RawStringSource::from("  const handlers = [\n"));
@@ -1187,12 +1197,14 @@ impl JsPlugin {
         result.add(RawStringSource::from(
           "var runtimeInitialization = undefined;\n",
         ));
-        result.add(RawStringSource::from(
-          "if (typeof __webpack_require__.x === 'function') {\n",
-        ));
-        result.add(RawStringSource::from(
-          "  runtimeInitialization = __webpack_require__.x();\n",
-        ));
+        result.add(RawStringSource::from(format!(
+          "if (typeof {} === 'function') {{\n",
+          startup_global
+        )));
+        result.add(RawStringSource::from(format!(
+          "  runtimeInitialization = {}();\n",
+          startup_global
+        )));
         result.add(RawStringSource::from("}\n"));
         result.add(RawStringSource::from("var promises = [];\n"));
         result.add(RawStringSource::from(format!(

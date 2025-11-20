@@ -104,12 +104,14 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     // Generate wrapper pattern ensuring federation runtime executes before startup or chunk installation runs
     let mut result = String::new();
     if self.options.async_startup {
-      result.push_str("var prevX = __webpack_require__.x;\n");
+      let startup = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
+      result.push_str(&format!("var prevStartup = {};\n", startup));
       result.push_str("var hasRun = false;\n");
       result.push_str(&run_function);
-      result.push_str(
-        "__webpack_require__.x = function() {\n\trunFederationRuntime();\n\tif (typeof prevX === 'function') {\n\t\treturn prevX.apply(this, arguments);\n\t}\n};\n",
-      );
+      result.push_str(&format!(
+        "{startup} = function() {{\n\trunFederationRuntime();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
+        startup = startup
+      ));
     } else {
       let startup = RuntimeGlobals::STARTUP.name();
       result.push_str(&format!("var prevStartup = {startup};\n"));
