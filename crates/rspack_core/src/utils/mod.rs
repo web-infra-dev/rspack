@@ -252,8 +252,8 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let modules_a = chunk_graph.get_chunk_modules_identifier(chunk_a_ukey);
-  let modules_b = chunk_graph.get_chunk_modules_identifier(chunk_b_ukey);
+  let modules_a = chunk_graph.get_ordered_chunk_modules_identifier(chunk_a_ukey);
+  let modules_b = chunk_graph.get_ordered_chunk_modules_identifier(chunk_b_ukey);
   if modules_a.len() > modules_b.len() {
     return Ordering::Less;
   }

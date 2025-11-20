@@ -1,5 +1,6 @@
 use std::ptr::NonNull;
 
+use itertools::Itertools;
 use rspack_collections::UkeySet;
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
@@ -222,6 +223,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                     )
                   })
                 })
+                .sorted_unstable()
                 .collect::<String>()
             )
           })),
