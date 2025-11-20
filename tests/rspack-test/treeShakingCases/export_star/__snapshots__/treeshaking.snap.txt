@@ -4,11 +4,11 @@
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   b: () => (b),
-  bar: () => (/* reexport module object */ _foo__WEBPACK_IMPORTED_MODULE_0__),
-  c: () => (/* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_1__.c)
+  bar: () => (/* reexport module object */ _foo__rspack_import_0__),
+  c: () => (/* reexport safe */ _result__rspack_import_1__.c)
 });
-/* import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
-/* import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
+/* import */var _foo__rspack_import_0__ = __webpack_require__("./foo.js");
+/* import */var _result__rspack_import_1__ = __webpack_require__("./result.js");
 function b() {}
 
 
@@ -20,13 +20,13 @@ function b() {}
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a),
-  b: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.b),
-  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
-  c: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.c),
+  b: () => (/* reexport safe */ _bar__rspack_import_0__.b),
+  bar: () => (/* reexport safe */ _bar__rspack_import_0__.bar),
+  c: () => (/* reexport safe */ _bar__rspack_import_0__.c),
   foo: () => (foo)
 });
-/* import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
-/* import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
+/* import */var _bar__rspack_import_0__ = __webpack_require__("./bar.js");
+/* import */var _result__rspack_import_1__ = __webpack_require__("./result.js");
 const a = 3;
 const foo = 3;
 
@@ -35,10 +35,10 @@ const foo = 3;
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
+/* import */var _foo__rspack_import_0__ = __webpack_require__("./foo.js");
 
-_foo__WEBPACK_IMPORTED_MODULE_0__.bar.a;
-(0,_foo__WEBPACK_IMPORTED_MODULE_0__.c)();
+_foo__rspack_import_0__.bar.a;
+(0,_foo__rspack_import_0__.c)();
 
 
 }),
@@ -46,8 +46,8 @@ _foo__WEBPACK_IMPORTED_MODULE_0__.bar.a;
 __webpack_require__.d(__webpack_exports__, {
   c: () => (c)
 });
-/* import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
-/* import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
+/* import */var _foo__rspack_import_0__ = __webpack_require__("./foo.js");
+/* import */var _bar__rspack_import_1__ = __webpack_require__("./bar.js");
 const c = 103330;
 
 

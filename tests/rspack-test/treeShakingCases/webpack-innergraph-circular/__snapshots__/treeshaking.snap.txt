@@ -3,7 +3,7 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["chunk_js"], {
 "./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
+/* import */var _inner__rspack_import_0__ = __webpack_require__("./inner.js");
 
 
 
@@ -16,17 +16,17 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
-/* import */var _module__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./module.js");
+/* import */var _inner__rspack_import_0__ = __webpack_require__("./inner.js");
+/* import */var _module__rspack_import_1__ = __webpack_require__("./module.js");
 
 
 
 it("export should be unused when only unused functions use it", () => {
-	expect((0,_module__WEBPACK_IMPORTED_MODULE_1__.y)("a")).toBe("okBAA");
-	expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportAUsed).toBe(true);
-	expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportBUsed).toBe(true);
+	expect((0,_module__rspack_import_1__.y)("a")).toBe("okBAA");
+	expect(_inner__rspack_import_0__.exportAUsed).toBe(true);
+	expect(_inner__rspack_import_0__.exportBUsed).toBe(true);
 	if (true) {
-		expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
+		expect(_inner__rspack_import_0__.exportCUsed).toBe(false);
 	}
 	return __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 });
@@ -61,7 +61,7 @@ const exportCUsed = false;
 __webpack_require__.d(__webpack_exports__, {
   y: () => (y)
 });
-/* import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
+/* import */var _inner__rspack_import_0__ = __webpack_require__("./inner.js");
 
 
 function x(type) {
@@ -82,13 +82,13 @@ function y(v) {
 function withA(v) {
 	const value = x(v);
 
-	return (0,_inner__WEBPACK_IMPORTED_MODULE_0__.A)(value);
+	return (0,_inner__rspack_import_0__.A)(value);
 }
 
 function withB(v) {
 	const value = x(v);
 
-	return (0,_inner__WEBPACK_IMPORTED_MODULE_0__.B)(value);
+	return (0,_inner__rspack_import_0__.B)(value);
 }
 
 function withC(v) {

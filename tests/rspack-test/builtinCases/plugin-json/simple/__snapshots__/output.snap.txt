@@ -3,11 +3,11 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _json_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./json.json");
-/* import */var _string_json__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./string.json");
+/* import */var _json_json__rspack_import_0__ = __webpack_require__("./json.json");
+/* import */var _string_json__rspack_import_1__ = __webpack_require__("./string.json");
 
 
-console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__,_string_json__WEBPACK_IMPORTED_MODULE_1__)
+console.log(_json_json__rspack_import_0__,_string_json__rspack_import_1__)
 
 
 }),

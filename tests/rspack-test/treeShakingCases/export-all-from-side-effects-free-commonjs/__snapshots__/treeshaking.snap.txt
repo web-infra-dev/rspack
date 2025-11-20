@@ -2,10 +2,10 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-var _lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache;
-/* import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
+var _lib__rspack_import_0___namespace_cache;
+/* import */var _lib__rspack_import_0__ = __webpack_require__("./lib.js");
 
-/*#__PURE__*/ (_lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache || (_lib__WEBPACK_IMPORTED_MODULE_0___namespace_cache = __webpack_require__.t(_lib__WEBPACK_IMPORTED_MODULE_0__, 2)));
+/*#__PURE__*/ (_lib__rspack_import_0___namespace_cache || (_lib__rspack_import_0___namespace_cache = __webpack_require__.t(_lib__rspack_import_0__, 2)));
 
 
 }),

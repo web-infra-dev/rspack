@@ -80,10 +80,10 @@ var __webpack_exports__ = {};
 		/* ESM export */   useCall: () => (/* binding */ useCall),
 		/* ESM export */   withCallManager: () => (/* binding */ withCallManager)
 		/* ESM export */ });
-	/* ESM import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+	/* ESM import */ var react__rspack_import_0__ = __webpack_require__(/*! react */ "react");
 
 	function withCallManager() {
-		return react__WEBPACK_IMPORTED_MODULE_0__.createElement(1);
+		return react__rspack_import_0__.createElement(1);
 	}
 	function useCall() {
 		return withCallManager();

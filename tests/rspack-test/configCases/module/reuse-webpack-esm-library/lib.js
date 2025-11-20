@@ -80,10 +80,10 @@ var __webpack_exports__ = {};
 		/* harmony export */   useCall: () => (/* binding */ useCall),
 		/* harmony export */   withCallManager: () => (/* binding */ withCallManager)
 		/* harmony export */ });
-	/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+	/* harmony import */ var react__rspack_import_0__ = __webpack_require__(/*! react */ "react");
 
 	function withCallManager() {
-		return react__WEBPACK_IMPORTED_MODULE_0__.createElement(1);
+		return react__rspack_import_0__.createElement(1);
 	}
 	function useCall() {
 		return withCallManager();
