@@ -4,9 +4,9 @@ use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
-  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
+  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
+  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
@@ -518,7 +518,7 @@ async fn render_manifest(
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
   let output_path = compilation
     .get_path_with_info(
