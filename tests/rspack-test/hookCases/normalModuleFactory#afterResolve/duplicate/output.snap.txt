@@ -70,26 +70,26 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
 (() => {
 "use strict";
-/* import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/a.js");
-/* import */var _a__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_a__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/c.js");
-/* import */var _b__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_1__);
-/* import */var fs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("fs");
-/* import */var fs__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_2__);
+/* import */var _a__rspack_import_0 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/a.js");
+/* import */var _a__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_a__rspack_import_0);
+/* import */var _b__rspack_import_1 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/c.js");
+/* import */var _b__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_1);
+/* import */var fs__rspack_import_2 = __webpack_require__("fs");
+/* import */var fs__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(fs__rspack_import_2);
 
  // b.js will be transform to c.js
 
 
 
 it("should remove duplicate request modules generate by after resolve hook", () => {
-	expect((_a__WEBPACK_IMPORTED_MODULE_0___default())).toBe("a");
-	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
-	expect((_b__WEBPACK_IMPORTED_MODULE_1___default())).toBe("c");
+	expect((_a__rspack_import_0_default())).toBe("a");
+	expect((_b__rspack_import_1_default())).toBe("c");
+	expect((_b__rspack_import_1_default())).toBe("c");
 	const ext = ".js";
-	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).not.toContain("duplicate/b" + ext);
-	expect(fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8")).toContain("duplicate/c" + ext);
+	expect(fs__rspack_import_2_default().readFileSync(__filename, "utf-8")).not.toContain("duplicate/b" + ext);
+	expect(fs__rspack_import_2_default().readFileSync(__filename, "utf-8")).toContain("duplicate/c" + ext);
 	expect(
-		fs__WEBPACK_IMPORTED_MODULE_2___default().readFileSync(__filename, "utf-8").split("duplicate/c" + ext).length - 1
+		fs__rspack_import_2_default().readFileSync(__filename, "utf-8").split("duplicate/c" + ext).length - 1
 	).toBe(2);
 });
 

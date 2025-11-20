@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42548
+- Update: main.LAST_HASH.hot-update.js, size: 42500
 
 ## Manifest
 
@@ -44,11 +44,11 @@ self["webpackHotUpdate"]("main", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* reexport default from dynamic */ common__WEBPACK_IMPORTED_MODULE_0___default.a),
+  "default": () => (/* reexport default from dynamic */ common__rspack_import_0_default.a),
   getValue: () => (getValue)
 });
-/* import */var common__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! common */ "webpack/sharing/consume/default/common/./common?1");
-/* import */var common__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(common__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var common__rspack_import_0 = __webpack_require__(/*! common */ "webpack/sharing/consume/default/common/./common?1");
+/* import */var common__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(common__rspack_import_0);
 
 
 const getValue = () => __webpack_require__.e(/*! import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.t.bind(__webpack_require__, /*! common2 */ "webpack/sharing/consume/default/common2/./common?2", 23));

@@ -15,11 +15,11 @@ var applyHandler = function (options) {
 		}
 	}
 }
-__HMR_DOWNLOAD__.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(function (chunkId) {
-		var href = __webpack_require__.miniCssF(chunkId);
-		var fullhref = __webpack_require__.p + href;
+		var href = <%- REQUIRE %>.miniCssF(chunkId);
+		var fullhref = <%- PUBLIC_PATH %> + href;
 		var oldTag = findStylesheet(href, fullhref);
 		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {

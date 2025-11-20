@@ -3,9 +3,9 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _images_file_png__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./images/file.png");
-/* import */var _images_file_jpg__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./images/file.jpg");
-/* import */var _images_file_svg__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./images/file.svg");
+/* import */var _images_file_png__rspack_import_0 = __webpack_require__("./images/file.png");
+/* import */var _images_file_jpg__rspack_import_1 = __webpack_require__("./images/file.jpg");
+/* import */var _images_file_svg__rspack_import_2 = __webpack_require__("./images/file.svg");
 
 
 
@@ -33,7 +33,7 @@ function createImageElement(title, src) {
 	container.appendChild(div);
 }
 
-[_images_file_png__WEBPACK_IMPORTED_MODULE_0__, _images_file_jpg__WEBPACK_IMPORTED_MODULE_1__, _images_file_svg__WEBPACK_IMPORTED_MODULE_2__].forEach(src => {
+[_images_file_png__rspack_import_0, _images_file_jpg__rspack_import_1, _images_file_svg__rspack_import_2].forEach(src => {
 	createImageElement(src.split(".").pop(), src);
 });
 

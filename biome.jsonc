@@ -33,6 +33,7 @@
 			"correctness": {
 				"noConstructorReturn": "off",
 				"noVoidTypeReturn": "off",
+				"noUnusedPrivateClassMembers": "off",
 				"noUnusedFunctionParameters": "off"
 			},
 			"style": {

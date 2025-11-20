@@ -1,0 +1,25 @@
+link = document.createElement("link");
+<% if (_charset) { %>
+link.charset = 'utf-8';
+<% } %>
+if (<%- SCRIPT_NONCE %>) {
+  link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+}
+<% if (_unique_name != "") { %>
+link.setAttribute("data-webpack", uniqueName + ":" + key);
+<% } %>
+<% if (_with_fetch_priority) { %>
+if (fetchPriority) {
+  link.setAttribute("fetchpriority", fetchPriority);
+}
+<% } %>
+link.setAttribute(loadingAttribute, 1);
+link.rel = "stylesheet";
+link.href = url;
+<% if (_cross_origin == "use-credentials") { %>
+link.crossOrigin = "use-credentials";
+<% } else if (_cross_origin != "") { %>
+if (link.href.indexOf(window.location.origin + '/') !== 0) {
+  link.crossOrigin = '<%- _cross_origin %>';
+}
+<% } %>

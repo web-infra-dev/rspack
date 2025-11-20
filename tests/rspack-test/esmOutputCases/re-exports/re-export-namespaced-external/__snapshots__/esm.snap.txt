@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
+import * as __rspack_external_fs from "fs";
 // fs
 
 // ./lib.js
@@ -29,7 +29,7 @@ const starExports = 42
 
 it('should compile and import success', async () => {
 	// make sure fs usedName is Namespace
-	expect(__WEBPACK_EXTERNAL_MODULE_fs__).toBeDefined()
+	expect(__rspack_external_fs).toBeDefined()
 	const {
 		fs,
 		/* star re-exported */ readFileSync,

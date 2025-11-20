@@ -2,9 +2,9 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _package1_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package1/script.js");
-/* import */var _package1_script2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./package1/script2.js");
-/* import */var _package2_script__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./package2/script.js");
+/* import */var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
+/* import */var _package1_script2__rspack_import_1 = __webpack_require__("./package1/script2.js");
+/* import */var _package2_script__rspack_import_2 = __webpack_require__("./package2/script.js");
 
 
 
@@ -15,13 +15,13 @@ it("should load module correctly", () => {
 
 // if (process.env.NODE_ENV === "production") {
 it("default export should be unused", () => {
-	expect(_package1_script__WEBPACK_IMPORTED_MODULE_0__.exportDefaultUsed).toBe(false);
-	expect(_package1_script2__WEBPACK_IMPORTED_MODULE_1__.exportDefaultUsed).toBe(false);
+	expect(_package1_script__rspack_import_0.exportDefaultUsed).toBe(false);
+	expect(_package1_script2__rspack_import_1.exportDefaultUsed).toBe(false);
 });
 // }
 
 it("default export should be used", () => {
-	expect(_package2_script__WEBPACK_IMPORTED_MODULE_2__.exportDefaultUsed).toBe(true);
+	expect(_package2_script__rspack_import_2.exportDefaultUsed).toBe(true);
 });
 
 
@@ -31,12 +31,12 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   mod: () => (mod)
 });
-/* import */var _package1_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package1/script.js");
-/* import */var _package2_script__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./package2/script.js");
+/* import */var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
+/* import */var _package2_script__rspack_import_1 = __webpack_require__("./package2/script.js");
 
 
 
-const mod = _package2_script__WEBPACK_IMPORTED_MODULE_1__["default"];
+const mod = _package2_script__rspack_import_1["default"];
 
 
 }),
@@ -44,7 +44,7 @@ const mod = _package2_script__WEBPACK_IMPORTED_MODULE_1__["default"];
 __webpack_require__.d(__webpack_exports__, {
   exportDefaultUsed: () => (exportDefaultUsed)
 });
-/* import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package1/script1.js");
+/* import */var _script1__rspack_import_0 = __webpack_require__("./package1/script1.js");
 
 /* unused export default */ var __WEBPACK_DEFAULT_EXPORT__ = ((/* unused pure expression or super */ null && (mod)));
 
@@ -54,7 +54,7 @@ const exportDefaultUsed = false;
 
 }),
 "./package1/script1.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _script2__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package1/script2.js");
+/* import */var _script2__rspack_import_0 = __webpack_require__("./package1/script2.js");
 
 /* unused export default */ var __WEBPACK_DEFAULT_EXPORT__ = (1);
 
@@ -79,9 +79,9 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
   exportDefaultUsed: () => (exportDefaultUsed)
 });
-/* import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package2/script1.js");
+/* import */var _script1__rspack_import_0 = __webpack_require__("./package2/script1.js");
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_script1__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_script1__rspack_import_0["default"]);
 
 
 const exportDefaultUsed = true;

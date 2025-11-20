@@ -53,61 +53,61 @@ it("should use/preserve accessor form for import object and namespaces", functio
 	// should be preserved as either quotes or dot notation, depending on the original source.
 
 	// DIFF:
-	// expectSourceToContain(source, 'const x1 = _module1__WEBPACK_IMPORTED_MODULE_0__;');
-	// expectSourceToContain(source, 'const x2 = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1;');
+	// expectSourceToContain(source, 'const x1 = _module1__rspack_import_0;');
+	// expectSourceToContain(source, 'const x2 = _module1__rspack_import_0.obj1;');
 
-	// expectSourceToContain(source, 'const z1 = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1["plants"];');
-	// expectSourceToContain(source, 'const z2 = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1["funcs"]();');
-	// expectSourceToContain(source, 'const z3 = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1["pots"];');
-	// expectSourceToContain(source, 'const z4 = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1["subs"]();');
+	// expectSourceToContain(source, 'const z1 = _module1__rspack_import_0.obj1["plants"];');
+	// expectSourceToContain(source, 'const z2 = _module1__rspack_import_0.obj1["funcs"]();');
+	// expectSourceToContain(source, 'const z3 = _module1__rspack_import_0.obj1["pots"];');
+	// expectSourceToContain(source, 'const z4 = _module1__rspack_import_0.obj1["subs"]();');
 
-	// expectSourceToContain(source, 'const a = _module2__WEBPACK_IMPORTED_MODULE_1__.m_1.obj1["flip"].flap;');
-	// expectSourceToContain(source, 'const b = _module2__WEBPACK_IMPORTED_MODULE_1__.m_1.obj1.zip["zap"];');
-	// expectSourceToContain(source, 'const c = _module2__WEBPACK_IMPORTED_MODULE_1__.m_1.obj1["ding"].dong();');
-	// expectSourceToContain(source, 'const d = _module2__WEBPACK_IMPORTED_MODULE_1__.m_1.obj1.sing["song"]();');
+	// expectSourceToContain(source, 'const a = _module2__rspack_import_1.m_1.obj1["flip"].flap;');
+	// expectSourceToContain(source, 'const b = _module2__rspack_import_1.m_1.obj1.zip["zap"];');
+	// expectSourceToContain(source, 'const c = _module2__rspack_import_1.m_1.obj1["ding"].dong();');
+	// expectSourceToContain(source, 'const d = _module2__rspack_import_1.m_1.obj1.sing["song"]();');
 
-	// expectSourceToContain(source, 'const aa = _module3__WEBPACK_IMPORTED_MODULE_2__.m_2.m_1.obj1["zoom"];');
+	// expectSourceToContain(source, 'const aa = _module3__rspack_import_2.m_2.m_1.obj1["zoom"];');
 
-	// expectSourceToContain(source, 'const bb = _module1__WEBPACK_IMPORTED_MODULE_0__.obj1.up.down?.left.right;');
+	// expectSourceToContain(source, 'const bb = _module1__rspack_import_0.obj1.up.down?.left.right;');
 
 	// expectSourceToContain(source, 'const ww = (__webpack_require__(/*! ./module1 */ 602).obj1)["bing"]?.bang;');
 	// expectSourceToContain(source, 'const xx = (__webpack_require__(/*! ./module1 */ 602).obj1)["pip"].pop();');
 	// expectSourceToContain(source, 'const yy = (__webpack_require__(/*! ./module3 */ 144).m_2.m_1.obj1)["tip"].top();');
 
-	// expectSourceToContain(source, '_data__WEBPACK_IMPORTED_MODULE_3__.nested.object3["unknownProperty"].depth = "deep";');
+	// expectSourceToContain(source, '_data__rspack_import_3__.nested.object3["unknownProperty"].depth = "deep";');
 
-	// expectSourceToContain(source, '(_module1__WEBPACK_IMPORTED_MODULE_0__.obj1)["aaa"].bbb;');
-	// expectSourceToContain(source, '(_module1__WEBPACK_IMPORTED_MODULE_0__.obj1)["ccc"].ddd;');
-	// expectSourceToContain(source, '(_module1__WEBPACK_IMPORTED_MODULE_0__.obj1["eee"]).fff;');
-	// expectSourceToContain(source, '(_module1__WEBPACK_IMPORTED_MODULE_0__.obj1["ggg"]).hhh;');
-	// expectSourceToContain(source, '((_module1__WEBPACK_IMPORTED_MODULE_0__.obj1)["iii"]).jjj;');
+	// expectSourceToContain(source, '(_module1__rspack_import_0.obj1)["aaa"].bbb;');
+	// expectSourceToContain(source, '(_module1__rspack_import_0.obj1)["ccc"].ddd;');
+	// expectSourceToContain(source, '(_module1__rspack_import_0.obj1["eee"]).fff;');
+	// expectSourceToContain(source, '(_module1__rspack_import_0.obj1["ggg"]).hhh;');
+	// expectSourceToContain(source, '((_module1__rspack_import_0.obj1)["iii"]).jjj;');
 
-	expectSourceToContain(source, 'const x1 = _module1__WEBPACK_IMPORTED_MODULE_1__;');
-	expectSourceToContain(source, 'const x2 = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1;');
+	expectSourceToContain(source, 'const x1 = _module1__rspack_import_1;');
+	expectSourceToContain(source, 'const x2 = _module1__rspack_import_1.obj1;');
 
-	expectSourceToContain(source, 'const z1 = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.plants;');
-	expectSourceToContain(source, 'const z2 = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.funcs();');
-	expectSourceToContain(source, 'const z3 = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.pots;');
-	expectSourceToContain(source, 'const z4 = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.subs();');
+	expectSourceToContain(source, 'const z1 = _module1__rspack_import_1.obj1.plants;');
+	expectSourceToContain(source, 'const z2 = _module1__rspack_import_1.obj1.funcs();');
+	expectSourceToContain(source, 'const z3 = _module1__rspack_import_1.obj1.pots;');
+	expectSourceToContain(source, 'const z4 = _module1__rspack_import_1.obj1.subs();');
 
-	expectSourceToContain(source, 'const a = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.flip.flap');
-	expectSourceToContain(source, 'const b = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.zip.zap;');
-	expectSourceToContain(source, 'const c = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.ding.dong();');
-	expectSourceToContain(source, 'const d = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.sing.song();');
+	expectSourceToContain(source, 'const a = _module1__rspack_import_1.obj1.flip.flap');
+	expectSourceToContain(source, 'const b = _module1__rspack_import_1.obj1.zip.zap;');
+	expectSourceToContain(source, 'const c = _module1__rspack_import_1.obj1.ding.dong();');
+	expectSourceToContain(source, 'const d = _module1__rspack_import_1.obj1.sing.song();');
 
-	expectSourceToContain(source, 'const aa = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.zoom;');
+	expectSourceToContain(source, 'const aa = _module1__rspack_import_1.obj1.zoom;');
 
-	expectSourceToContain(source, 'const bb = _module1__WEBPACK_IMPORTED_MODULE_1__.obj1.up.down?.left.right;');
+	expectSourceToContain(source, 'const bb = _module1__rspack_import_1.obj1.up.down?.left.right;');
 
 	expectSourceToContain(source, 'const ww = (__webpack_require__(602)/* .obj1.bing.bang */.obj1.bing.bang);');
 	expectSourceToContain(source, 'const xx = (__webpack_require__(602)/* .obj1.pip.pop */.obj1.pip.pop)();');
 	expectSourceToContain(source, 'const yy = (__webpack_require__(144)/* .m_2.m_1.obj1.tip.top */.m_2.m_1.obj1.tip.top)();');
 
-	expectSourceToContain(source, '_data__WEBPACK_IMPORTED_MODULE_0__.nested.object3.unknownProperty.depth = "deep";');
+	expectSourceToContain(source, '_data__rspack_import_0.nested.object3.unknownProperty.depth = "deep";');
 
-	expectSourceToContain(source, '_module1__WEBPACK_IMPORTED_MODULE_1__.obj1.aaa.bbb;');
-	expectSourceToContain(source, '_module1__WEBPACK_IMPORTED_MODULE_1__.obj1.ccc.ddd;');
-	expectSourceToContain(source, '_module1__WEBPACK_IMPORTED_MODULE_1__.obj1.eee.fff;');
-	expectSourceToContain(source, '_module1__WEBPACK_IMPORTED_MODULE_1__.obj1.ggg.hhh;');
-	expectSourceToContain(source, '_module1__WEBPACK_IMPORTED_MODULE_1__.obj1.iii.jjj;');
+	expectSourceToContain(source, '_module1__rspack_import_1.obj1.aaa.bbb;');
+	expectSourceToContain(source, '_module1__rspack_import_1.obj1.ccc.ddd;');
+	expectSourceToContain(source, '_module1__rspack_import_1.obj1.eee.fff;');
+	expectSourceToContain(source, '_module1__rspack_import_1.obj1.ggg.hhh;');
+	expectSourceToContain(source, '_module1__rspack_import_1.obj1.iii.jjj;');
 });

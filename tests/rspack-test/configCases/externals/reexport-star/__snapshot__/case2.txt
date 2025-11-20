@@ -1,5 +1,5 @@
 export * from "external1-alias";
-import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
+import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
 
 ;// CONCATENATED MODULE: external "external1-alias"
 
@@ -10,6 +10,6 @@ import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1
 
 
 
-var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.a;
-var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.b;
-export { __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
+var __webpack_exports__a = __rspack_external_external1_alias_bc4b12e4.a;
+var __webpack_exports__b = __rspack_external_external1_alias_bc4b12e4.b;
+export { __rspack_external_external1_alias_bc4b12e4 as n1, __webpack_exports__a as a, __webpack_exports__b as b };

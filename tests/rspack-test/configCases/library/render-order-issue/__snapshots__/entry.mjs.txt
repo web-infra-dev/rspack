@@ -1,5 +1,5 @@
-import * as __WEBPACK_EXTERNAL_MODULE_externals1__ from "externals1";
-import * as __WEBPACK_EXTERNAL_MODULE_externals0__ from "externals0";
+import * as __rspack_external_externals1 from "externals1";
+import * as __rspack_external_externals0 from "externals0";
 var __webpack_modules__ = ({
 "./bar.js": 
 /*!****************************!*\
@@ -11,7 +11,7 @@ var __webpack_modules__ = ({
 
 ;// CONCATENATED MODULE: ./bar.js
 
-__WEBPACK_EXTERNAL_MODULE_externals0__.v;
+__rspack_external_externals0.v;
 
 }),
 "./entry.js": 
@@ -51,7 +51,7 @@ module.exports.name = "entry2"
 
 ;// CONCATENATED MODULE: ./foo.js
 
-__WEBPACK_EXTERNAL_MODULE_externals1__.v;
+__rspack_external_externals1.v;
 
 }),
 

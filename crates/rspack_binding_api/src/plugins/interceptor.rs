@@ -64,9 +64,10 @@ use rspack_plugin_rsdoctor::{
   RsdoctorPluginModuleSources, RsdoctorPluginModuleSourcesHook,
 };
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
-  RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
-  RuntimePluginLinkPreload, RuntimePluginLinkPreloadHook,
+  CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateLink,
+  RuntimePluginCreateLinkHook, RuntimePluginCreateScript, RuntimePluginCreateScriptHook,
+  RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
+  RuntimePluginLinkPreloadHook,
 };
 
 use crate::{
@@ -92,7 +93,7 @@ use crate::{
   },
   runtime::{
     JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsCreateLinkData, JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
     JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
   },
   source::JsSourceToJs,
@@ -365,6 +366,7 @@ pub enum RegisterJsTapKind {
   HtmlPluginBeforeEmit,
   HtmlPluginAfterEmit,
   RuntimePluginCreateScript,
+  RuntimePluginCreateLink,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
   RsdoctorPluginModuleGraph,
@@ -584,6 +586,10 @@ pub struct RegisterJsTaps {
     RegisterFunction<JsCreateScriptData, Option<String>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_create_link_taps: RegisterFunction<JsCreateLinkData, Option<String>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>"
   )]
   pub register_runtime_plugin_link_preload_taps:
     RegisterFunction<JsLinkPreloadData, Option<String>>,
@@ -928,6 +934,13 @@ define_register!(
   tap = RuntimePluginCreateScriptTap<JsCreateScriptData, Option<String>> @ RuntimePluginCreateScriptHook,
   cache = true,
   kind = RegisterJsTapKind::RuntimePluginCreateScript,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginCreateLinkTaps,
+  tap = RuntimePluginCreateLinkTap<JsCreateLinkData, Option<String>> @ RuntimePluginCreateLinkHook,
+  cache = true,
+  kind = RegisterJsTapKind::RuntimePluginCreateLink,
   skip = true,
 );
 define_register!(
@@ -1762,6 +1775,24 @@ impl RuntimePluginCreateScript for RuntimePluginCreateScriptTap {
     if let Some(code) = self
       .function
       .call_with_sync(JsCreateScriptData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginCreateLink for RuntimePluginCreateLinkTap {
+  async fn run(&self, mut data: CreateLinkData) -> rspack_error::Result<CreateLinkData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsCreateLinkData::from(data.clone()))
       .await?
     {
       data.code = code;

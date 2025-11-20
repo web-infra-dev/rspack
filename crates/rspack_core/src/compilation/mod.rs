@@ -2,7 +2,7 @@ pub mod build_chunk_graph;
 pub mod build_module_graph;
 use std::{
   collections::{VecDeque, hash_map},
-  fmt::Debug,
+  fmt::{self, Debug},
   hash::{BuildHasherDefault, Hash},
   sync::{
     Arc,
@@ -37,6 +37,7 @@ use rspack_util::allocative;
 use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
+use ustr::Ustr;
 
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
@@ -630,7 +631,7 @@ impl Compilation {
       hash_map::Entry::Vacant(vac) => {
         let mut b = itoa::Buffer::new();
         let import_var = format!(
-          "{}__WEBPACK_{}IMPORTED_MODULE_{}__",
+          "{}__rspack_{}import_{}",
           to_identifier(user_request),
           match phase {
             ImportPhase::Evaluation => "",
@@ -2955,6 +2956,8 @@ pub struct AssetInfo {
   pub css_unused_idents: Option<HashSet<String>>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
+  /// the plugin that created the asset
+  pub asset_type: ManifestAssetType,
 
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// This is a hack to store the additional fields in the rust struct.
@@ -2991,6 +2994,11 @@ impl AssetInfo {
 
   pub fn with_version(mut self, v: String) -> Self {
     self.version = v;
+    self
+  }
+
+  pub fn with_asset_type(mut self, v: ManifestAssetType) -> Self {
+    self.asset_type = v;
     self
   }
 
@@ -3153,4 +3161,42 @@ pub struct RenderManifestEntry {
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ManifestAssetType {
+  #[default]
+  Unknown,
+  Asset,
+  Css,
+  JavaScript,
+  Wasm,
+  Custom(#[cacheable(with=AsPreset)] Ustr),
+}
+
+impl fmt::Display for ManifestAssetType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      ManifestAssetType::Unknown => write!(f, "unknown"),
+      ManifestAssetType::Asset => write!(f, "asset"),
+      ManifestAssetType::Css => write!(f, "css"),
+      ManifestAssetType::JavaScript => write!(f, "javascript"),
+      ManifestAssetType::Wasm => write!(f, "wasm"),
+      ManifestAssetType::Custom(custom) => write!(f, "{custom}"),
+    }
+  }
+}
+
+impl From<String> for ManifestAssetType {
+  fn from(value: String) -> Self {
+    match value.as_str() {
+      "unknown" => ManifestAssetType::Unknown,
+      "asset" => ManifestAssetType::Asset,
+      "css" => ManifestAssetType::Css,
+      "javascript" => ManifestAssetType::JavaScript,
+      "wasm" => ManifestAssetType::Wasm,
+      _ => ManifestAssetType::Custom(value.into()),
+    }
+  }
 }

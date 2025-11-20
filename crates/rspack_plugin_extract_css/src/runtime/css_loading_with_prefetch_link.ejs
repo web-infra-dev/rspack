@@ -1,0 +1,10 @@
+var link = document.createElement('link');
+<% if (_cross_origin != "") { %>
+link.crossOrigin = '<%- _cross_origin %>';
+<% } %>
+if (<%- SCRIPT_NONCE %>) {
+  link.setAttribute('nonce', <%- SCRIPT_NONCE %>);
+}
+link.rel = "prefetch";
+link.as = "style";
+link.href = <%- PUBLIC_PATH %> + <%- REQUIRE %>.miniCssF(chunkId);

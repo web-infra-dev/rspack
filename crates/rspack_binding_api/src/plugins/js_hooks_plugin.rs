@@ -65,6 +65,7 @@ pub struct JsHooksAdapterPlugin {
   register_html_plugin_before_emit_taps: RegisterHtmlPluginBeforeEmitTaps,
   register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps,
   register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps,
+  register_runtime_plugin_create_link_taps: RegisterRuntimePluginCreateLinkTaps,
   register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps,
   register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps,
   register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps,
@@ -428,6 +429,9 @@ async fn runtime_hooks_adapter_compilation(
     .create_script
     .intercept(self.register_runtime_plugin_create_script_taps.clone());
   hooks
+    .create_link
+    .intercept(self.register_runtime_plugin_create_link_taps.clone());
+  hooks
     .link_preload
     .intercept(self.register_runtime_plugin_link_preload_taps.clone());
   hooks
@@ -649,6 +653,10 @@ impl JsHooksAdapterPlugin {
         ),
         register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps::new(
           register_js_taps.register_runtime_plugin_create_script_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_runtime_plugin_create_link_taps: RegisterRuntimePluginCreateLinkTaps::new(
+          register_js_taps.register_runtime_plugin_create_link_taps,
           non_skippable_registers.clone(),
         ),
         register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps::new(

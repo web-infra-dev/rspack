@@ -5,9 +5,9 @@
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
+/* import */var _containers__rspack_import_0 = __webpack_require__("./src/containers/containers.js");
 
-const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
+const { PlatformProvider } = _containers__rspack_import_0;
 
 const Index = () => {
 	console.log("PlatformProvider", PlatformProvider);
@@ -20,9 +20,9 @@ const Index = () => {
 }),
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider)
+  PlatformProvider: () => (/* reexport safe */ _platform_container__rspack_import_0.PlatformProvider)
 });
-/* import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/platform-container/index.js");
+/* import */var _platform_container__rspack_import_0 = __webpack_require__("./src/containers/platform-container/index.js");
 
 
 
@@ -39,10 +39,10 @@ const PlatformProvider = 1000;
 
 }),
 "./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/App.js");
+/* import */var _App__rspack_import_0 = __webpack_require__("./src/App.js");
 
 
-(0,_App__WEBPACK_IMPORTED_MODULE_0__["default"])();
+(0,_App__rspack_import_0["default"])();
 
 
 }),

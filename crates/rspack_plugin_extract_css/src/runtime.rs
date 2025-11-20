@@ -1,18 +1,19 @@
-use cow_utils::CowUtils;
+use std::ptr::NonNull;
+
+use itertools::Itertools;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_error::Result;
-use rspack_plugin_runtime::get_chunk_runtime_requirements;
+use rspack_plugin_runtime::{
+  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
+  get_chunk_runtime_requirements,
+};
 use rustc_hash::FxHashMap;
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
-
-static RUNTIME_CODE: &str = include_str!("./runtime/css_load.js");
-static WITH_LOADING: &str = include_str!("./runtime/with_loading.js");
-static WITH_HMR: &str = include_str!("./runtime/with_hmr.js");
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -53,6 +54,17 @@ impl CssLoadingRuntimeModule {
   }
 }
 
+enum TemplateId {
+  Raw,
+  CreateLink,
+  WithLoading,
+  WithHmr,
+  WithPrefetch,
+  WithPreload,
+  WithPrefetchLink,
+  WithPreloadLink,
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn name(&self) -> rspack_collections::Identifier {
@@ -63,8 +75,45 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::Raw),
+        include_str!("./runtime/css_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::CreateLink),
+        include_str!("./runtime/css_loading_create_link.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithLoading),
+        include_str!("./runtime/css_loading_with_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmr),
+        include_str!("./runtime/css_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPrefetch),
+        include_str!("./runtime/css_loading_with_prefetch.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPrefetchLink),
+        include_str!("./runtime/css_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreload),
+        include_str!("./runtime/css_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreloadLink),
+        include_str!("./runtime/css_loading_with_preload_link.ejs").to_string(),
+      ),
+    ]
+  }
+
   async fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
-    let runtime = RUNTIME_CODE;
+    let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk);
 
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
@@ -88,6 +137,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       return Ok("".to_string());
     }
 
+    let condition_map =
+      compilation
+        .chunk_graph
+        .get_chunk_condition_map(&self.chunk, compilation, chunk_has_css);
+    let has_css_matcher = compile_boolean_matcher(&condition_map);
+
+    let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
+    let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+
     let mut attr = String::default();
     let mut attributes: Vec<(&String, &String)> = self.attributes.iter().collect::<Vec<_>>();
     attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
@@ -95,103 +153,189 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     for (attr_key, attr_value) in attributes {
       attr += &format!("linkTag.setAttribute({attr_key}, {attr_value});\n");
     }
-    let runtime = runtime.cow_replace("__SET_ATTRIBUTES__", &attr);
+    let mut res = vec![];
 
-    let runtime = if let Some(link_type) = &self.link_type {
-      runtime.cow_replace("__SET_LINKTYPE__", &format!("linkTag.type={link_type};"))
-    } else {
-      runtime.cow_replace("__SET_LINKTYPE__", "")
-    };
+    let create_link_raw = compilation.runtime_template.render(
+      &self.template_id(TemplateId::CreateLink),
+      Some(serde_json::json!({
+        "_set_attributes": &attr,
+        "_set_linktype": self.link_type.clone().unwrap_or_default(),
+        "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+      })),
+    )?;
 
-    let runtime = if let CrossOriginLoading::Enable(cross_origin_loading) =
-      &compilation.options.output.cross_origin_loading
-    {
-      runtime.cow_replace(
-        "__CROSS_ORIGIN_LOADING__",
-        &format!(
-          "if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {{
-  linkTag.crossOrigin = \"{cross_origin_loading}\";
-}}"
-        ),
-      )
-    } else {
-      runtime.cow_replace("__CROSS_ORIGIN_LOADING__", "")
-    };
+    let create_link = runtime_hooks
+      .borrow()
+      .create_link
+      .call(CreateLinkData {
+        code: create_link_raw,
+        chunk: RuntimeModuleChunkWrapper {
+          chunk_ukey: self.chunk,
+          compilation_id: compilation.id(),
+          compilation: NonNull::from(compilation),
+        },
+      })
+      .await?;
 
-    let runtime = match &self.insert {
-      InsertType::Fn(f) => runtime.cow_replace("__INSERT__", &format!("({f})(linkTag);")),
-      InsertType::Selector(sel) => runtime.cow_replace(
-        "__INSERT__",
-        &format!("var target = document.querySelector({sel});\ntarget.parentNode.insertBefore(linkTag, target.nextSibling);"),
-      ),
-      InsertType::Default => runtime.cow_replace(
-        "__INSERT__",
-        "if (oldTag) {
-  oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
-} else {
-  document.head.appendChild(linkTag);
-}",
-      ),
-    };
+    let raw = compilation.runtime_template.render(
+      &self.template_id(TemplateId::Raw),
+      Some(serde_json::json!({
+        "_create_link": &create_link.code,
+        "_insert": match &self.insert {
+          InsertType::Fn(f) => format!("({f})(linkTag);"),
+          InsertType::Selector(sel) => format!("var target = document.querySelector({sel});\ntarget.parentNode.insertBefore(linkTag, target.nextSibling);"),
+          InsertType::Default => "if (oldTag) {
+            oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
+          } else {
+            document.head.appendChild(linkTag);
+          }".to_string(),
+        }
+      })),
+    )?;
 
-    let runtime = if with_loading {
+    res.push(raw);
+
+    if with_loading {
       let chunks = self.get_css_chunks(compilation);
       if chunks.is_empty() {
-        runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
+        res.push("// no chunk loading".to_string());
       } else {
         let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
-        let with_loading = WITH_LOADING.cow_replace(
-          "__INSTALLED_CHUNKS__",
-          &format!(
-            "{}: 0,\n",
-            serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
-              .expect("json stringify failed")
-          ),
-        );
+        let loading = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithLoading),
+          Some(serde_json::json!({
+            "_installed_chunks": format!(
+              "{}: 0,\n",
+              serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
+                .expect("json stringify failed")
+            ),
+            "_css_chunks": format!(
+              "{{\n{}\n}}",
+              chunks
+                .iter()
+                .filter_map(|id| {
+                  let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-        let with_loading = with_loading.cow_replace(
-          "__ENSURE_CHUNK_HANDLERS__",
-          &RuntimeGlobals::ENSURE_CHUNK_HANDLERS.to_string(),
-        );
-
-        let with_loading = with_loading.cow_replace(
-          "__CSS_CHUNKS__",
-          &format!(
-            "{{\n{}\n}}",
-            chunks
-              .iter()
-              .filter_map(|id| {
-                let chunk = compilation.chunk_by_ukey.expect_get(id);
-
-                chunk.id(&compilation.chunk_ids_artifact).map(|id| {
-                  format!(
-                    "{}: 1,\n",
-                    serde_json::to_string(id).expect("json stringify failed")
-                  )
+                  chunk.id(&compilation.chunk_ids_artifact).map(|id| {
+                    format!(
+                      "{}: 1,\n",
+                      serde_json::to_string(id).expect("json stringify failed")
+                    )
+                  })
                 })
-              })
-              .collect::<String>()
-          ),
-        );
-
-        runtime.cow_replace("__WITH_LOADING__", &with_loading)
+                .sorted_unstable()
+                .collect::<String>()
+            )
+          })),
+        )?;
+        res.push(loading);
       }
     } else {
-      runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
-    };
+      res.push("// no chunk loading".to_string());
+    }
 
-    let runtime = if with_hmr {
-      runtime.cow_replace(
-        "__WITH_HMT__",
-        &WITH_HMR.cow_replace(
-          "__HMR_DOWNLOAD__",
-          &RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS.to_string(),
-        ),
-      )
+    if with_hmr {
+      let hmr = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmr), None)?;
+      res.push(hmr);
     } else {
-      runtime.cow_replace("__WITH_HMT__", "// no hmr")
-    };
+      res.push("// no hmr".to_string());
+    }
 
-    Ok(runtime.into_owned())
+    if with_prefetch && with_loading && !matches!(has_css_matcher, BooleanMatcher::Condition(false))
+    {
+      let link_prefetch_raw = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPrefetchLink),
+        Some(serde_json::json!({
+          "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+        })),
+      )?;
+
+      let link_prefetch = runtime_hooks
+        .borrow()
+        .link_prefetch
+        .call(LinkPrefetchData {
+          code: link_prefetch_raw,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey: self.chunk,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
+
+      let prefetch = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPrefetch),
+        Some(serde_json::json!({
+          "_create_prefetch_link": &link_prefetch.code,
+          "_css_matcher": has_css_matcher.render("chunkId"),
+        })),
+      )?;
+      res.push(prefetch);
+    } else {
+      res.push("// no prefetch".to_string());
+    }
+
+    if with_preload && with_loading && !matches!(has_css_matcher, BooleanMatcher::Condition(false))
+    {
+      let link_preload_raw = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPreloadLink),
+        Some(serde_json::json!({
+          "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+        })),
+      )?;
+
+      let link_preload = runtime_hooks
+        .borrow()
+        .link_preload
+        .call(LinkPreloadData {
+          code: link_preload_raw,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey: self.chunk,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
+
+      let preload = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPreload),
+        Some(serde_json::json!({
+          "_create_preload_link": &link_preload.code,
+          "_css_matcher": has_css_matcher.render("chunkId"),
+        })),
+      )?;
+      res.push(preload);
+    } else {
+      res.push("// no preload".to_string());
+    }
+
+    Ok(res.join("\n"))
   }
+}
+
+impl CssLoadingRuntimeModule {
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.name().to_string();
+
+    match id {
+      TemplateId::Raw => base_id,
+      TemplateId::CreateLink => format!("{base_id}_create_link"),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPrefetchLink => format!("{base_id}_with_prefetch_link"),
+      TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithPreloadLink => format!("{base_id}_with_preload_link"),
+    }
+  }
+}
+
+fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
+  compilation.chunk_graph.has_chunk_module_by_source_type(
+    chunk,
+    SOURCE_TYPE[0],
+    &compilation.get_module_graph(),
+  )
 }

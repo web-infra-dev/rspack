@@ -17,10 +17,10 @@ exports.bar = 2
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
   foo: () => (foo)
 });
-/* import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */ "./bar.js");
+/* import */var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 

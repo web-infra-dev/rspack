@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1235
+- Update: main.LAST_HASH.hot-update.js, size: 1211
 
 ## Manifest
 
@@ -42,11 +42,11 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* import */var _index_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./index.module.css */ "./index.module.css");
+/* import */var _index_module_css__rspack_import_0 = __webpack_require__(/*! ./index.module.css */ "./index.module.css");
 
 module.hot.accept();
 // modify
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_index_module_css__WEBPACK_IMPORTED_MODULE_0__["default"]);
+/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_index_module_css__rspack_import_0["default"]);
 
 
 }),

@@ -11,18 +11,18 @@ function test() {}
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  Select: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__["default"])
+  Select: () => (/* reexport safe */ _bar__rspack_import_0["default"])
 });
-/* import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
+/* import */var _bar__rspack_import_0 = __webpack_require__("./bar.js");
 
 
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
+/* import */var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 
 
-(0,_foo__WEBPACK_IMPORTED_MODULE_0__.Select)();
+(0,_foo__rspack_import_0.Select)();
 
 
 }),

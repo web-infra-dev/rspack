@@ -7254,6 +7254,7 @@ export const RuntimePlugin: typeof RuntimePluginImpl & {
 // @public (undocumented)
 type RuntimePluginHooks = {
     createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    createLink: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 };
@@ -9382,7 +9383,7 @@ class Watchpack extends EventEmitter {
     // (undocumented)
     aggregatedRemovals: Set<string>;
     // (undocumented)
-    aggregateTimeout: NodeJS.Timer;
+    aggregateTimeout: number;
     close(): void;
     collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
     // (undocumented)

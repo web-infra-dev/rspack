@@ -5,7 +5,7 @@
 Install the dependencies:
 
 ```bash
-npm install
+{{ packageManager }} install
 ```
 
 ## Get started
@@ -13,19 +13,19 @@ npm install
 Start the dev server, and the app will be available at <http://localhost:8080>.
 
 ```bash
-npm run dev
+{{ packageManager }} run dev
 ```
 
 Build the app for production:
 
 ```bash
-npm run build
+{{ packageManager }} run build
 ```
 
 Preview the production build locally:
 
 ```bash
-npm run preview
+{{ packageManager }} run preview
 ```
 
 ## Learn more

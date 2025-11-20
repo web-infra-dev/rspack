@@ -3,8 +3,8 @@
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* import */var _b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./b.js");
-/* import */var _b__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _b__rspack_import_0 = __webpack_require__("./b.js");
+/* import */var _b__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_0);
 
 console.log("a");
 
@@ -18,7 +18,7 @@ console.log("b");
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
+/* import */var _a__rspack_import_0 = __webpack_require__("./a.js");
 
 console.log("hello, world");
 

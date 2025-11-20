@@ -692,6 +692,16 @@ impl Module for ConcatenatedModule {
       .iter()
       .map(|item| Some(&item.id))
       .collect::<HashSet<_>>();
+
+    let root_module = module_graph
+      .module_by_identifier(&self.root_module_ctxt.id)
+      .expect("should have root module");
+
+    // populate root collected_typescript_info
+    if let Some(collected_typescript_info) = &root_module.build_info().collected_typescript_info {
+      self.build_info.collected_typescript_info = Some(collected_typescript_info.clone());
+    }
+
     for m in self.modules.iter() {
       let module = module_graph
         .module_by_identifier(&m.id)

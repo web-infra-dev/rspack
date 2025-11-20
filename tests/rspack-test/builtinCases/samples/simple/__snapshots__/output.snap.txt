@@ -3,8 +3,8 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 console.log("a");
 
@@ -18,8 +18,8 @@ console.log("a");
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
+/* import */var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
