@@ -29,6 +29,10 @@ struct CollectShareEntryRecord {
   requests: FxHashSet<CollectedShareRequest>,
 }
 
+fn normalize_request_path(path: &str) -> String {
+  path.replace('\\', "/")
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct CollectedShareRequest {
   request: String,
@@ -261,18 +265,22 @@ impl CollectShareEntryPlugin {
         let record = entry.get_mut();
         record.share_scope = share_scope;
         record.requests.insert(CollectedShareRequest {
-          request: import_resolved
-            .clone()
-            .unwrap_or_else(|| request.to_string()),
+          request: normalize_request_path(
+            &import_resolved
+              .clone()
+              .unwrap_or_else(|| request.to_string()),
+          ),
           version: version.to_string(),
         });
       }
       Entry::Vacant(entry) => {
         let mut requests = FxHashSet::default();
         requests.insert(CollectedShareRequest {
-          request: import_resolved
-            .clone()
-            .unwrap_or_else(|| request.to_string()),
+          request: normalize_request_path(
+            &import_resolved
+              .clone()
+              .unwrap_or_else(|| request.to_string()),
+          ),
           version: version.to_string(),
         });
         entry.insert(CollectShareEntryRecord {
@@ -346,9 +354,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut requests = FxHashSet::default();
     requests.insert(CollectedShareRequest {
-      request: import_resolved
-        .clone()
-        .unwrap_or_else(|| request.to_string()),
+      request: normalize_request_path(
+        &import_resolved
+          .clone()
+          .unwrap_or_else(|| request.to_string()),
+      ),
       version: version.to_string(),
     });
     new_records.push((
