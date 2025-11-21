@@ -141,27 +141,3 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
         run: pnpm run test:ci
-
-  diff:
-    name: Rsdoctor Diff
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Clone rspack-diff-minimal
-        run: git clone git@github.com:yifancong/rspack-diff-minimal.git
-
-      - name: Install dependencies
-        working-directory: rspack-diff-minimal
-        run: pnpm install
-
-      - name: Build project
-        working-directory: rspack-diff-minimal
-        run: pnpm run build
-
-      - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@main
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          file_path: "rspack-diff-minimal/dist/rsdoctor-data.json"
-          target_branch: "chore/diff-v2"
