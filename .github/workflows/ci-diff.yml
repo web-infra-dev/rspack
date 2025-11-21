@@ -59,13 +59,21 @@ jobs:
         run: pnpm run build:js
 
       - name: Clone rspack-diff-minimal
-        run: git clone https://github.com/yifancong/rspack-diff-minimal.git
+        run: |
+          cd ..
+          git clone https://github.com/yifancong/rspack-diff-minimal.git
 
       - name: Link packages and install dependencies
-        working-directory: rspack-diff-minimal
+        working-directory: ../rspack-diff-minimal
         run: |
-          pnpm install
+          # Update package.json to link local packages
+          # From rspack-diff-minimal, rspack root is at ../rspack
+          npm pkg set "devDependencies.@rspack/binding=link:../rspack/crates/node_binding"
+          npm pkg set "devDependencies.@rspack/core=link:../rspack/packages/rspack"
+          npm pkg set "devDependencies.@rspack/cli=link:../rspack/packages/rspack-cli"
+          # Use --ignore-workspace to install as standalone project
+          pnpm install --ignore-workspace
 
       - name: Build demo project
-        working-directory: rspack-diff-minimal
+        working-directory: ../rspack-diff-minimal
         run: pnpm run build
