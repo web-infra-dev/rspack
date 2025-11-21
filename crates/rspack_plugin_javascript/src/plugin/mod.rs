@@ -352,6 +352,7 @@ impl JsPlugin {
           buf2.push("var promises = [];".into());
           buf2.push("// Call federation runtime initialization".into());
           buf2.push("var runtimeInitialization = undefined;".into());
+          buf2.push("var initializeSharing = undefined;".into());
           buf2.push(format!("if (typeof {} === \"function\") {{", startup_fn).into());
           buf2.push(format!("  runtimeInitialization = {}();", startup_fn).into());
           buf2.push("} else {".into());
@@ -363,6 +364,11 @@ impl JsPlugin {
             .into(),
           );
           buf2.push("}".into());
+          if runtime_requirements.contains(RuntimeGlobals::INITIALIZE_SHARING) {
+            buf2.push("if (typeof __webpack_require__.I === \"function\") {".into());
+            buf2.push("  initializeSharing = __webpack_require__.I(\"default\");".into());
+            buf2.push("}".into());
+          }
 
           let entries = compilation
             .chunk_graph
@@ -488,7 +494,7 @@ impl JsPlugin {
                 // ESM output with top-level await
                 buf2.push(
                   format!(
-                    "const {}Promise = Promise.resolve(runtimeInitialization).then(async () => {{",
+                    "const {}Promise = Promise.all([runtimeInitialization, initializeSharing]).then(async () => {{",
                     RuntimeGlobals::EXPORTS
                   )
                   .into(),
@@ -537,7 +543,7 @@ impl JsPlugin {
                 buf2.push("// Wrap startup in Promise.all with federation handlers".into());
                 buf2.push(
                   format!(
-                    "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
+                    "var {} = Promise.all([runtimeInitialization, initializeSharing]).then(function() {{",
                     RuntimeGlobals::EXPORTS
                   )
                   .into(),
