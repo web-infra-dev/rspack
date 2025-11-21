@@ -335,6 +335,7 @@ impl JsPlugin {
 
         if use_federation_async {
           let startup_fn = RuntimeGlobals::STARTUP_ENTRYPOINT;
+          let needs_on_chunks_loaded = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
           mf_async_startup = true;
           let mut buf2: Vec<Cow<str>> = Vec::new();
 
@@ -507,8 +508,20 @@ impl JsPlugin {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
                 buf2.push("});".into());
-                buf2
-                  .push(format!("export default await {}Promise;", RuntimeGlobals::EXPORTS).into());
+                if needs_on_chunks_loaded {
+                  buf2.push(
+                    format!(
+                      "export default await {}Promise.then(res => {}(res));",
+                      RuntimeGlobals::EXPORTS,
+                      RuntimeGlobals::ON_CHUNKS_LOADED
+                    )
+                    .into(),
+                  );
+                } else {
+                  buf2.push(
+                    format!("export default await {}Promise;", RuntimeGlobals::EXPORTS).into(),
+                  );
+                }
               } else {
                 // CJS output with Promise chain
                 buf2.push("// Wrap startup in Promise.all with federation handlers".into());
@@ -548,7 +561,17 @@ impl JsPlugin {
                 } else {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
-                buf2.push("});".into());
+                if needs_on_chunks_loaded {
+                  buf2.push(
+                    format!(
+                      "}}).then(function(res) {{ return {}(res); }});",
+                      RuntimeGlobals::ON_CHUNKS_LOADED
+                    )
+                    .into(),
+                  );
+                } else {
+                  buf2.push("});".into());
+                }
               }
             } else {
               buf2.push("// Wrap startup in Promise.all with federation handlers".into());
