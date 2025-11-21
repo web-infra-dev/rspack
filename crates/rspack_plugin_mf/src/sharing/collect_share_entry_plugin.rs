@@ -317,19 +317,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
+      let resolve_context = context.clone();
       let import_resolved = match &config.import {
         None => None,
         Some(import) => resolver
-          .resolve(
-            if direct_fallback {
-              context.clone()
-            } else {
-              context.clone()
-            }
-            .as_ref(),
-            import,
-          )
+          .resolve(resolve_context.as_ref(), import)
           .await
           .ok(),
       }
