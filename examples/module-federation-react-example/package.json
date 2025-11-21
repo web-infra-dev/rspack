@@ -4,10 +4,7 @@
   "description": "Module Federation React example with shared UI components and libraries",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "host",
-    "remote"
-  ],
+  "workspaces": ["host", "remote"],
   "scripts": {
     "dev": "bash -c \"pnpm -C host dev & pnpm -C remote dev & wait\"",
     "dev-server": "node scripts/dev-server.js",
