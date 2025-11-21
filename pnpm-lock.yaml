@@ -189,7 +189,7 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.5)(webpack@5.102.1)
       html-webpack-plugin:
-        specifier: ^5.6.4
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1)
       markdown-to-jsx:
         specifier: ^8.0.0
@@ -226,7 +226,7 @@ importers:
         specifier: 0.5.15
         version: 0.5.15(@types/webpack@5.28.0(webpack-cli@5.1.4))(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.2
+        specifier: ^1.5.3
         version: 1.5.3(react-refresh@0.18.0)
       raw-loader:
         specifier: ^4.0.2
@@ -268,7 +268,7 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.5)(webpack@5.102.1)
       html-webpack-plugin:
-        specifier: ^5.6.4
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1)
       react:
         specifier: ^19.1.1
@@ -293,7 +293,7 @@ importers:
         specifier: 0.5.15
         version: 0.5.15(@types/webpack@5.28.0(webpack-cli@5.1.4))(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.2)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.2
+        specifier: ^1.5.3
         version: 1.5.3(react-refresh@0.18.0)
       react-refresh:
         specifier: ^0.18.0
@@ -323,7 +323,7 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.28.5)(webpack@5.102.1)
       html-webpack-plugin:
-        specifier: ^5.6.4
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1)
       react:
         specifier: ^19.1.1
@@ -375,7 +375,7 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.102.1)
       html-webpack-plugin:
-        specifier: ^5.6.4
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1)
       mini-css-extract-plugin:
         specifier: 2.9.2

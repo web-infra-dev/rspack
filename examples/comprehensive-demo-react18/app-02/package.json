@@ -14,7 +14,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",
     "babel-loader": "^10.0.0",
-    "html-webpack-plugin": "^5.6.4",
+    "html-webpack-plugin": "^5.6.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^5.1.2",
@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
-    "@rspack/plugin-react-refresh": "^1.5.2",
+    "@rspack/plugin-react-refresh": "^1.5.3",
     "react-refresh": "^0.18.0"
   },
   "scripts": {

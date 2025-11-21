@@ -13,7 +13,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",
     "babel-loader": "^10.0.0",
-    "html-webpack-plugin": "^5.6.4",
+    "html-webpack-plugin": "^5.6.5",
     "markdown-to-jsx": "^8.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -37,7 +37,7 @@
     "@module-federation/runtime": "0.21.3",
     "@module-federation/sdk": "0.21.3",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
-    "@rspack/plugin-react-refresh": "^1.5.2",
+    "@rspack/plugin-react-refresh": "^1.5.3",
     "raw-loader": "^4.0.2",
     "react-refresh": "^0.18.0"
   }
