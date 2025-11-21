@@ -77,3 +77,10 @@ jobs:
       - name: Build demo project
         working-directory: ../rspack-diff-minimal
         run: pnpm run build
+
+      - name: Report Compressed Size
+        uses: web-infra-dev/rsdoctor-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          file_path: "../rspack-diff-minimal/dist/rsdoctor-data.json"
+          target_branch: "main"
