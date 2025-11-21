@@ -12,7 +12,8 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_util::{MergeFrom, atom::Atom, ext::CowExt};
+use rspack_paths::Utf8PathBuf;
+use rspack_util::{MergeFrom, atom::Atom, base64, ext::CowExt};
 
 use crate::{AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData, parse_resource};
 
@@ -96,6 +97,11 @@ impl MergeFrom for Filename {
 impl From<String> for Filename {
   fn from(value: String) -> Self {
     Self(FilenameKind::Template(Atom::from(value)))
+  }
+}
+impl From<&Utf8PathBuf> for Filename {
+  fn from(value: &Utf8PathBuf) -> Self {
+    Self(FilenameKind::Template(Atom::from(value.as_str())))
   }
 }
 impl From<&str> for Filename {
@@ -264,7 +270,7 @@ fn render_template(
       t = t.map(|t| {
         t.replace_all_with_len(key, |len, need_base64| {
           let content: Cow<str> = if need_base64 {
-            rspack_base64::encode_to_string(hash).into()
+            base64::encode_to_string(hash).into()
           } else {
             hash.into()
           };
@@ -294,7 +300,7 @@ fn render_template(
     t = t.map(|t| {
       t.replace_all_with_len(CONTENT_HASH_PLACEHOLDER, |len, need_base64| {
         let content: Cow<str> = if need_base64 {
-          rspack_base64::encode_to_string(content_hash).into()
+          base64::encode_to_string(content_hash).into()
         } else {
           content_hash.into()
         };
@@ -317,7 +323,7 @@ fn render_template(
     t = t.map(|t| {
       t.replace_all_with_len(CHUNK_HASH_PLACEHOLDER, |len, need_base64| {
         let content: Cow<str> = if need_base64 {
-          rspack_base64::encode_to_string(hash).into()
+          base64::encode_to_string(hash).into()
         } else {
           hash.into()
         };

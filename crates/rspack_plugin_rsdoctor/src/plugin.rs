@@ -16,6 +16,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -47,11 +49,15 @@ pub type SendModuleSources =
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RsdoctorPlugin::get_compilation_hooks_mut]
 type ArcRsdoctorPluginHooks = Arc<AtomicRefCell<RsdoctorPluginHooks>>;
 
+#[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPluginHooks>> =
   LazyLock::new(Default::default);
 
+#[cfg_attr(allocative, allocative::root)]
 static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, ModuleUkey>>> =
   LazyLock::new(FxDashMap::default);
+
+#[cfg_attr(allocative, allocative::root)]
 static ENTRYPOINT_UKEY_MAP: LazyLock<
   FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
@@ -326,10 +332,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 5. Rsdoctor module add issuer_path
-  for module in module_graph.modules() {
+  for (module_id, _) in modules.iter() {
     let mut issuer_path = Vec::new();
-    let (module_id, _) = module;
-    let mut current_issuer = module_graph.get_issuer(&module_id);
+    let mut current_issuer = module_graph.get_issuer(module_id);
 
     while let Some(i) = current_issuer {
       if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
@@ -343,10 +348,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       current_issuer = module_graph.get_issuer(&i.identifier());
     }
 
-    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+    if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
-      let (_, module) = module;
-      let bailout_reason = module_graph.get_optimization_bailout(&module.identifier());
+      let bailout_reason = module_graph.get_optimization_bailout(module_id);
       rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
     }
   }

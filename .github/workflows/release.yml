@@ -3,11 +3,22 @@ name: Release Full
 on:
   workflow_dispatch:
     inputs:
-      tag:
+      # NPM-specific inputs
+      npm_tag:
         type: choice
         description: "Release Npm Tag"
         required: true
-        default: "latest"
+        options:
+          - canary
+          - nightly
+          - latest
+          - beta
+          - alpha
+          - rc
+      npm_tag_confirm:
+        type: choice
+        description: "Release Npm Tag Double Check"
+        required: true
         options:
           - canary
           - nightly
@@ -17,9 +28,11 @@ on:
           - rc
       test:
         type: boolean
-        description: "Run tests before release"
+        description: "Run JS tests before release"
         required: true
         default: true
+
+      # Common inputs
       dry_run:
         type: boolean
         description: "DryRun release"
@@ -27,109 +40,63 @@ on:
         default: false
       push_tags:
         type: boolean
-        description: "push tags to github"
+        description: "Push tags to repository"
         required: true
+        default: true
+
+      # Control which releases to run
+      release_npm:
+        type: boolean
+        description: "Release NPM packages"
+        required: false
+        default: true
+      release_crates:
+        type: boolean
+        description: "Release Rust crates"
+        required: false
         default: true
 
 permissions:
   # To publish packages with provenance
   id-token: write
-  # Allow commenting on issues for `reusable-build.yml`
+  # Allow commenting on issues
   issues: write
+  # Allow writing contents for tags
+  contents: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    uses: ./.github/workflows/get-runner-labels.yml
-    with:
-      force-use-github-runner: true
-
-  build:
-    needs: [get-runner-labels]
-    strategy:
-      fail-fast: true # for better utilize ci runners
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-          - target: aarch64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-          - target: x86_64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-          - target: aarch64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-          - target: i686-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: x86_64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: aarch64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-          - target: x86_64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-          - target: aarch64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
-          - target: wasm32-wasip1-threads
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ matrix.array.runner }}
-      test: ${{ inputs.test }}
-      profile: "release"
-
-  release:
-    name: Release
-    environment: npm
-    permissions:
-      contents: write
-      # To publish packages with provenance
-      id-token: write
+  validate_inputs:
+    name: Validate Inputs
     runs-on: ubuntu-latest
-    needs: build
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ inputs.release_npm }}
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4.1.7
-        with:
-          path: artifacts
-
-      - name: Clean artifacts
-        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
-
-      - name: Build node packages
-        run: pnpm run build:js
-
-      - name: Move artifacts
-        run: node scripts/build-npm.cjs
-
-      - name: Show binding packages
-        run: ls -R npm
-
-      - name: Link optional dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      # Update npm to the latest version to enable OIDC
-      - name: Update npm
+      - name: Validate npm tag confirmation
         run: |
-          npm install -g npm@latest
-          npm --version
+          if [ "${{ inputs.npm_tag }}" != "${{ inputs.npm_tag_confirm }}" ]; then
+            echo "Error: npm_tag and npm_tag_confirm must match"
+            echo "npm_tag: ${{ inputs.npm_tag }}"
+            echo "npm_tag_confirm: ${{ inputs.npm_tag_confirm }}"
+            exit 1
+          fi
+          echo "npm_tag validation passed: ${{ inputs.npm_tag }}"
 
-      - name: Release Full
-        run: |
-          ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
-        env:
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          ONLY_RELEASE_TAG: true
+  release_npm:
+    name: Release NPM Packages
+    if: ${{ inputs.release_npm }}
+    needs: [validate_inputs]
+    uses: ./.github/workflows/reusable-release-npm.yml
+    with:
+      tag: ${{ inputs.npm_tag }}
+      tag_confirm: ${{ inputs.npm_tag_confirm }}
+      test: ${{ inputs.test }}
+      dry_run: ${{ inputs.dry_run }}
+      push_tags: ${{ inputs.push_tags }}
+
+  release_crates:
+    name: Release Rust Crates
+    if: ${{ inputs.release_crates }}
+    uses: ./.github/workflows/reusable-release-crates.yml
+    with:
+      dry_run: ${{ inputs.dry_run }}
+      push_tags: ${{ inputs.push_tags }}
+    secrets: inherit

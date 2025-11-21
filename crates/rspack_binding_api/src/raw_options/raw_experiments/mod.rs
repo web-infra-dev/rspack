@@ -14,7 +14,6 @@ use super::WithFalse;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
-  pub layers: bool,
   pub top_level_await: bool,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
@@ -26,10 +25,12 @@ pub struct RawExperiments {
   pub cache: RawExperimentCacheOptions,
   #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
+  pub css: Option<bool>,
   pub inline_const: bool,
   pub inline_enum: bool,
   pub type_reexports_presence: bool,
   pub lazy_barrel: bool,
+  pub defer_import: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -43,14 +44,15 @@ impl From<RawExperiments> for Experiments {
         None => IncrementalOptions::empty_passes(),
       },
       parallel_code_splitting: value.parallel_code_splitting,
-      layers: value.layers,
       top_level_await: value.top_level_await,
       rspack_future: value.rspack_future.unwrap_or_default().into(),
       cache: normalize_raw_experiment_cache_options(value.cache),
+      css: value.css.unwrap_or(false),
       inline_const: value.inline_const,
       inline_enum: value.inline_enum,
       type_reexports_presence: value.type_reexports_presence,
       lazy_barrel: value.lazy_barrel,
+      defer_import: value.defer_import,
     }
   }
 }

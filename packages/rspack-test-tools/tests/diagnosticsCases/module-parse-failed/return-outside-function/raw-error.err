@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleParseError,
-    moduleIdentifier: javascript/esm|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/return-outside-function/b.js,
-    moduleName: ./b.js,
-  },
-]

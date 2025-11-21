@@ -46,8 +46,8 @@ impl Dependency for AMDRequireDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.outer_range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.outer_range)
   }
 
   fn category(&self) -> &DependencyCategory {

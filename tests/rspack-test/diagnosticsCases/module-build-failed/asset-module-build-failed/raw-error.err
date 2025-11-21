@@ -1,0 +1,7 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: asset|<TEST_ROOT>/diagnosticsCases/module-build-failed/asset-module-build-failed/my-loader.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/asset-module-build-failed/logo.svg,
+    moduleName: ./logo.svg,
+  },
+]

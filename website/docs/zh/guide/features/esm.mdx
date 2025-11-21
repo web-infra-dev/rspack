@@ -1,0 +1,97 @@
+import { Stability } from '@components/ApiMeta';
+
+# ESM 格式产物
+
+Rspack 支持使用 ESM 格式输出进行打包。构建应用时，Rspack 默认会生成基于 IIFE 格式代码的打包输出，而不是标准的 CommonJS 或 ESM 格式，你可以通过配置 [output.module](/config/output#outputmodule) 来生成 ESM 格式的产物。下面的章节介绍了如何 [构建应用的 ESM 格式产物](#构建应用的-esm-格式产物) 及 [构建库的 ESM 格式产物](#构建库的-esm-格式产物) 并在最后列出了与 ESM 产物相关的 [配置清单](#配置清单)。
+
+## 构建应用的 ESM 格式产物
+
+在构建应用时，Rspack 默认依赖 Rspack runtime 的。如果你需要生成 ESM 格式的产物，可以在 `rspack.config.mjs` 中进行如下配置：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  output: {
+    module: true,
+    chunkFormat: 'module',
+    chunkLoading: 'import',
+    workerChunkLoading: 'import',
+  },
+  experiments: {
+    outputModule: true,
+  },
+};
+```
+
+你可以在 rspack-examples 中查看 [React 应用构建到 ESM 产物](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-refresh-esm) 及 [React ESM SSR](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-ssr-esm) 的示例。
+
+## 构建库的 ESM 格式产物
+
+推荐使用 [Rslib](https://rslib.rs) 来构建库产物，Rslib 底层基于 Rspack 实现，能够构建 ES Module、CommonJS 和 UMD 等多种格式的产物。Rslib 提供了更高层次的 API，简化了库的构建过程。相比直接使用 Rspack，使用 Rslib 进行库的构建会更加方便和高效。
+
+如果你需要直接使用 Rspack 构建库（npm library）的 ESM 格式产物，需要同时进行以下配置：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  output: {
+    module: true,
+    chunkFormat: 'module',
+    library: {
+      type: 'modern-module',
+    },
+    chunkLoading: 'import',
+    workerChunkLoading: 'import',
+  },
+  externalsType: 'module-import',
+  optimization: {
+    concatenateModules: true,
+    avoidEntryIife: true,
+    minimize: false,
+  },
+  experiments: {
+    outputModule: true,
+  },
+};
+```
+
+你可以查看 [rspack-examples](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/library-esm) 中这个使用 ESM 库的例子。
+
+进行 ESM 产物的打包还需要处理各种细节问题，这里不逐一列举。你可以参考 [Rslib 中对 ESM 格式的相关配置](https://github.com/web-infra-dev/rslib/blob/f727b18805767b99fb85ae67ebff959aa644536e/packages/core/src/config.ts)，或者直接使用 Rslib 开箱即用地进行库的构建。
+
+## ESM 产物未来规划
+
+当前 Rspack 的 ESM 支持仍有待完善，在某些使用场景中，你可能会遇到 ESM 与其他功能的集成问题。主要限制包括：
+
+1. 缺少对静态分析友好的代码分割支持
+2. ESM 格式下的自定义 chunk splitting 支持有限
+3. 缺少模块级别的副作用信息保留，影响 tree-shaking 的精确性
+4. 外部模块的重新导出（`export * from '...'`）在 ESM 格式下无法正确保留
+
+我们正在持续改进 Rspack 的 ESM 支持，致力于提供完善的 ESM 方案，解决现有问题，使 ESM 的使用和配置更加简单直观，更好地拥抱现代 JavaScript 模块系统。
+
+## 配置清单
+
+下面列出了与 ESM 相关的主要配置选项及其说明，这些配置在构建应用和库时都会用到。
+
+1. [output.module](/config/output#outputmodule): 设置为 `true`，表示生成 ESM 格式的产物。开启此选项后，会对以下配置产生影响：
+   1. 影响 [externalsType](/config/externals#externalstype) 默认值：当 `output.module` 为 `true` 时，`externalsType` 默认为 `'module-import'`
+   2. 影响 [output.filename](/config/output#outputfilename) 默认值：当 `output.module` 为 `true` 时，默认文件名为 `'[name].mjs'` 而不是 `'[name].js'`
+   3. 影响 [output.chunkFilename](/config/output#outputchunkfilename) 默认值：当 `output.module` 为 `true` 时，chunk 文件名默认为 `'[id].mjs'` 而不是 `'[id].js'`
+   4. 影响 [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) 默认值：当 `output.module` 为 `true` 时，默认为 `'[id].[fullhash].hot-update.mjs'`
+   5. 影响 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 默认值：当 `output.module` 为 `true` 时，默认为 `'[runtime].[fullhash].hot-update.json.mjs'`
+   6. 影响 [output.iife](/config/output#outputiife) 默认值：当 `output.module` 为 `true` 时，`output.iife` 默认为 `false`
+   7. 影响 [output.library.type](/config/output#outputlibrarytype) 默认值：当 `output.module` 为 `true` 时，默认为 `'module'` 而不是 `'var'`
+   8. 影响 [output.scriptType](/config/output#outputscripttype) 默认值：当 `output.module` 为 `true` 时，默认为 `'module'`
+   9. 影响 [output.environment.dynamicImport](/config/output#outputenvironmentdynamicimport) 默认值：当 `output.module` 为 `true` 时会被启用
+   10. 影响 [output.environment.dynamicImportInWorker](/config/output#outputenvironmentdynamicimportinworker) 默认值：当 `output.module` 为 `true` 时会被启用
+   11. 影响 [output.environment.module](/config/output#outputenvironmentmodule) 默认值：当 `output.module` 为 `true` 时会被启用
+   12. 影响 Node.js 相关配置的默认值：在 Node.js 环境下，当 `output.module` 为 `true` 时，`__filename` 和 `__dirname` 默认为 `'node-module'`
+2. [output.chunkFormat](/config/output#outputchunkformat): 设置为 `'module'`，表示使用 ESM 格式。
+3. [output.library.type](/config/output#outputlibrarytype): 设置为 `'modern-module'`，表示对库的 ESM 产物格式进行额外的优化。
+4. [output.chunkLoading](/config/output#outputchunkloading): 设置为 `'import'`，表示使用 ESM 的 `import` 来加载 chunk。
+5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): 设置为 `'import'`，表示使用 ESM 的 `import` 来加载 worker
+6. [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules): modern-module 依赖此选项的开启来保证输出的产物支持良好的 tree-shaking 和库的正确导出
+7. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
+8. [experiments.outputModule](/config/experiments#experimentsoutputmodule): 开启 output.module 所需的前置实验特性
+9. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。

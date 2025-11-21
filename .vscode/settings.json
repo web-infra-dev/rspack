@@ -16,11 +16,19 @@
   "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
+  "json.schemas": [
+    {
+      "fileMatch": ["**/_meta.json"],
+      "url": "./website/node_modules/@rspress/core/meta-json-schema.json"
+    },
+    {
+      "fileMatch": ["**/_nav.json"],
+      "url": "./website/node_modules/@rspress/core/nav-json-schema.json"
+    }
+  ],
   "rust-analyzer.procMacro.enable": true,
   "rust-analyzer.procMacro.attributes.enable": true,
-  "rust-analyzer.linkedProjects": [
-    "Cargo.toml"
-  ],
+  "rust-analyzer.linkedProjects": ["Cargo.toml"],
   "rust-analyzer.cargo.targetDir": true, // Don't let RA blocking cargo build
   "rust-analyzer.check.features": "all",
   "files.associations": {

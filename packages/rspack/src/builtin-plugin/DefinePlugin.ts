@@ -69,5 +69,5 @@ type NormalizedCodeValue = RecursiveArrayOrRecord<NormalizedCodeValuePrimitive>;
 
 type RecursiveArrayOrRecord<T> =
 	| { [index: string]: RecursiveArrayOrRecord<T> }
-	| Array<RecursiveArrayOrRecord<T>>
+	| RecursiveArrayOrRecord<T>[]
 	| T;

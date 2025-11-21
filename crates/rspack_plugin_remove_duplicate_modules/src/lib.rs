@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
   incremental::Mutation,
@@ -53,6 +54,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
     compilation.chunk_graph.add_chunk(new_chunk_ukey);
 
+    let mut entry_modules = IdentifierSet::default();
+
     for chunk_ukey in &chunks {
       let [Some(new_chunk), Some(origin)] = compilation
         .chunk_by_ukey
@@ -60,6 +63,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       else {
         panic!("should have both chunks")
       };
+      entry_modules.extend(compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey));
       origin.split(new_chunk, &mut compilation.chunk_group_by_ukey);
       if let Some(mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
@@ -70,15 +74,35 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
 
     for m in modules {
+      let is_entry = entry_modules.contains(&m);
       for chunk_ukey in &chunks {
         compilation
           .chunk_graph
           .disconnect_chunk_and_module(chunk_ukey, m);
+
+        if is_entry {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_entry_module(chunk_ukey, m);
+        }
       }
 
       compilation
         .chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, m);
+
+      if is_entry {
+        let chunk = compilation.chunk_by_ukey.expect_get(&new_chunk_ukey);
+        for group in chunk.groups().iter().filter(|group| {
+          let group = compilation.chunk_group_by_ukey.expect_get(group);
+
+          group.is_initial() && group.kind.is_entrypoint()
+        }) {
+          compilation
+            .chunk_graph
+            .connect_chunk_and_entry_module(new_chunk_ukey, m, *group);
+        }
+      }
     }
   }
 
@@ -86,7 +110,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 impl Plugin for RemoveDuplicateModulesPlugin {
-  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> rspack_error::Result<()> {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
       .compilation_hooks
       .optimize_chunks

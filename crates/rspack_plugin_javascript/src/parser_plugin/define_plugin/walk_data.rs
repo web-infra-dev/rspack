@@ -5,8 +5,8 @@ use std::{
 
 use itertools::Itertools as _;
 use regex::Regex;
-use rspack_error::{Diagnostic, DiagnosticExt};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rspack_error::Diagnostic;
+use rustc_hash::FxHashMap;
 use serde_json::{Map, Value, json};
 use swc_core::common::Span;
 
@@ -63,8 +63,27 @@ pub struct DefineRecord {
 
 impl std::fmt::Debug for DefineRecord {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    macro_rules! debug_fn_field {
+      ($field:expr) => {{
+        if $field.is_some() {
+          &"Some(..)"
+        } else {
+          &"None"
+        }
+      }};
+    }
     f.debug_struct("DefineRecord")
       .field("code", &self.code)
+      .field(
+        "on_evaluate_identifier",
+        debug_fn_field!(self.on_evaluate_identifier),
+      )
+      .field(
+        "on_evaluate_typeof",
+        debug_fn_field!(self.on_evaluate_typeof),
+      )
+      .field("on_expression", debug_fn_field!(self.on_expression))
+      .field("on_typeof", debug_fn_field!(self.on_typeof))
       .finish_non_exhaustive()
   }
 }
@@ -168,8 +187,9 @@ impl ObjectDefineRecord {
 pub struct WalkData {
   pub tiling_definitions: FxHashMap<String, String>,
   pub diagnostics: Vec<Diagnostic>,
-  pub can_rename: FxHashSet<Arc<str>>,
+  pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
+  pub typeof_define_record: FxHashMap<Arc<str>, DefineRecord>,
   pub object_define_record: FxHashMap<Arc<str>, ObjectDefineRecord>,
 }
 
@@ -194,8 +214,7 @@ impl WalkData {
       {
         self.diagnostics.push(
           ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .boxed()
-            .into(),
+            .into_diagnostic(),
         );
       } else {
         self.tiling_definitions.insert(name, value_str);
@@ -220,11 +239,9 @@ impl WalkData {
       let splitted: Vec<&str> = key.split('.').collect();
       if !splitted.is_empty() {
         let iter = (0..splitted.len() - 1).map(|i| {
-          Arc::from(
-            core::iter::once(&&*prefix)
-              .chain(&splitted[0..i + 1])
-              .join("."),
-          )
+          let full_key = Arc::<str>::from(format!("{prefix}{}", splitted[0..i + 1].join(".")));
+          let first_key = Some(Arc::<str>::from(splitted[0]));
+          (full_key, first_key)
         });
         walk_data.can_rename.extend(iter)
       }
@@ -241,7 +258,7 @@ impl WalkData {
       let key = Arc::<str>::from(key);
       let mut define_record = DefineRecord::from_code(code.clone());
       if !is_typeof {
-        walk_data.can_rename.insert(key.clone());
+        walk_data.can_rename.insert(key.clone(), None);
         define_record = define_record
           .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
             parser
@@ -257,9 +274,9 @@ impl WalkData {
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
               let code = code_to_string(&record.code, Some(!parser.is_asi_position(span.lo)), None);
-              parser
-                .presentational_dependencies
-                .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+              parser.add_presentational_dependency(Box::new(gen_const_dep(
+                parser, code, for_name, start, end,
+              )));
               Some(true)
             },
           ));
@@ -294,20 +311,22 @@ impl WalkData {
                 return None;
               }
               debug_assert!(!parser.in_short_hand);
-              parser
-                .presentational_dependencies
-                .push(Box::new(gen_const_dep(
-                  parser,
-                  Cow::Owned(format!("{}", json!(evaluated.string()))),
-                  "",
-                  start,
-                  end,
-                )));
+              parser.add_presentational_dependency(Box::new(gen_const_dep(
+                parser,
+                Cow::Owned(format!("{}", json!(evaluated.string()))),
+                "",
+                start,
+                end,
+              )));
               Some(true)
             })
         }));
 
-      walk_data.define_record.insert(key, define_record);
+      if is_typeof {
+        walk_data.typeof_define_record.insert(key, define_record);
+      } else {
+        walk_data.define_record.insert(key, define_record);
+      }
     }
 
     fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
@@ -320,7 +339,7 @@ impl WalkData {
 
     fn apply_array_define(key: Cow<str>, obj: &[Value], walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
-      walk_data.can_rename.insert(key.clone());
+      walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Array(obj.to_owned()))
         .with_on_evaluate_identifier(Box::new(move |_, _, _, start, end| {
           Some(object_evaluate_identifier(start, end))
@@ -328,9 +347,9 @@ impl WalkData {
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
             let code = code_to_string(&record.object, Some(!parser.is_asi_position(span.lo)), None);
-            parser
-              .presentational_dependencies
-              .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+            parser.add_presentational_dependency(Box::new(gen_const_dep(
+              parser, code, for_name, start, end,
+            )));
             Some(true)
           },
         ));
@@ -339,7 +358,7 @@ impl WalkData {
 
     fn apply_object_define(key: Cow<str>, obj: &Map<String, Value>, walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
-      walk_data.can_rename.insert(key.clone());
+      walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Object(obj.clone()))
         .with_on_evaluate_identifier(Box::new(move |_, _, _, start, end| {
           Some(object_evaluate_identifier(start, end))
@@ -349,11 +368,11 @@ impl WalkData {
             let code = code_to_string(
               &record.object,
               Some(!parser.is_asi_position(span.lo)),
-              parser.destructuring_assignment_properties_for(&span),
+              parser.destructuring_assignment_properties.get(&span),
             );
-            parser
-              .presentational_dependencies
-              .push(Box::new(gen_const_dep(parser, code, for_name, start, end)));
+            parser.add_presentational_dependency(Box::new(gen_const_dep(
+              parser, code, for_name, start, end,
+            )));
             Some(true)
           },
         ));

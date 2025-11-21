@@ -1,0 +1,15 @@
+# Case accept-conditional: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: dep1_js-dep2_js-worker_js.chunk.CURRENT_HASH.js
+- Bundle: dep1_js-module_js.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

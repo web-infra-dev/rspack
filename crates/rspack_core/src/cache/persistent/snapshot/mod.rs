@@ -6,8 +6,7 @@ use std::{path::Path, sync::Arc};
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::{ArcPath, ArcPathSet};
 
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
@@ -73,7 +72,7 @@ impl Snapshot {
     if let Some(h) = helper.path_hash(path).await {
       return Some(h);
     }
-    Some(helper.compile_time())
+    Some(Strategy::Missing)
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
@@ -83,16 +82,8 @@ impl Snapshot {
     paths
       .map(|path| {
         let helper = helper.clone();
-        let fs = self.fs.clone();
         let options = self.options.clone();
         async move {
-          let utf8_path = path.assert_utf8();
-          // check path exists
-          let metadata_has_error = fs.metadata(utf8_path).await.is_err();
-          if metadata_has_error {
-            return None;
-          }
-
           let strategy = Self::calc_strategy(&options, &helper, &path).await?;
           Some((
             path.as_os_str().as_encoded_bytes().to_vec(),
@@ -118,12 +109,10 @@ impl Snapshot {
 
   #[allow(clippy::type_complexity)]
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
-  pub async fn calc_modified_paths(
-    &self,
-  ) -> Result<(bool, HashSet<ArcPath>, HashSet<ArcPath>, HashSet<ArcPath>)> {
-    let mut modified_path = HashSet::default();
-    let mut deleted_path = HashSet::default();
-    let mut no_change_path = HashSet::default();
+  pub async fn calc_modified_paths(&self) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
+    let mut modified_path = ArcPathSet::default();
+    let mut deleted_path = ArcPathSet::default();
+    let mut no_change_path = ArcPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
 
     let data = self.storage.load(self.scope).await?;

@@ -1,9 +1,7 @@
-mod compilation;
 mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
-use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -14,12 +12,13 @@ use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-pub use self::{compilation::*, rebuild::CompilationRecords};
+pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, CompilerOptions, ContextModuleFactory, KeepPattern, Logger,
-  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
+  Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
   cache::{Cache, new_cache},
-  compilation::make::ModuleExecutor,
+  compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   old_cache::Cache as OldCache,
@@ -55,7 +54,6 @@ pub struct CompilerHooks {
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilerId(u32);
 
@@ -249,11 +247,13 @@ impl Compiler {
     self.old_cache.begin_idle();
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
+
+    #[cfg(allocative)]
+    crate::utils::snapshot_allocative("build");
+
     Ok(())
   }
-
-  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn compile(&mut self) -> Result<()> {
+  async fn build_module_graph(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
     // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
@@ -278,7 +278,7 @@ impl Compiler {
     let make_hook_start = logger.time("make hook");
     self
       .cache
-      .before_make(&mut self.compilation.make_artifact)
+      .before_build_module_graph(&mut self.compilation.build_module_graph_artifact)
       .await;
 
     self
@@ -288,7 +288,7 @@ impl Compiler {
       .call(&mut self.compilation)
       .await?;
     logger.time_end(make_hook_start);
-    self.compilation.make().await?;
+    self.compilation.build_module_graph().await?;
     logger.time_end(make_start);
 
     let start = logger.time("finish make hook");
@@ -301,16 +301,29 @@ impl Compiler {
     logger.time_end(start);
 
     let start = logger.time("finish compilation");
-    self.compilation.finish(self.plugin_driver.clone()).await?;
-    self.cache.after_make(&self.compilation.make_artifact).await;
+    self.compilation.finish_build_module_graph().await?;
+    self
+      .cache
+      .after_build_module_graph(&self.compilation.build_module_graph_artifact)
+      .await;
+
     logger.time_end(start);
+    Ok(())
+  }
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
+  async fn compile(&mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.Compiler");
     let start = logger.time("seal compilation");
     #[cfg(feature = "debug_tool")]
     {
       use rspack_util::debug_tool::wait_for_signal;
       wait_for_signal("seal compilation");
     }
-
+    self.build_module_graph().await?;
+    self
+      .compilation
+      .collect_build_module_graph_effects()
+      .await?;
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 
@@ -348,7 +361,15 @@ impl Compiler {
 
   #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    self.run_clean_options().await?;
+    let output_path_str = self
+      .compilation
+      .get_path(
+        &Filename::from(&self.options.output.path),
+        Default::default(),
+      )
+      .await?;
+    let output_path = Utf8Path::new(&output_path_str);
+    self.run_clean_options(output_path).await?;
 
     self
       .plugin_driver
@@ -371,7 +392,7 @@ impl Compiler {
             .incremental
             .passes_enabled(IncrementalPasses::EMIT_ASSETS)
           {
-            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+            new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
           if let Some(old_version) = self.emitted_asset_versions.get(filename)
@@ -382,10 +403,10 @@ impl Compiler {
           }
 
           // SAFETY: await immediately and trust caller to poll future entirely
-          let s = unsafe { token.used((&self, filename, asset)) };
+          let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
-          s.spawn(|(this, filename, asset)| {
-            this.emit_asset(&this.options.output.path, filename, asset)
+          s.spawn(|(this, filename, asset, output_path)| {
+            this.emit_asset(output_path, filename, asset)
           });
         })
     })
@@ -479,7 +500,7 @@ impl Compiler {
     Ok(())
   }
 
-  async fn run_clean_options(&mut self) -> Result<()> {
+  async fn run_clean_options(&mut self, output_path: &Utf8Path) -> Result<()> {
     let clean_options = &self.options.output.clean;
 
     // keep all
@@ -490,37 +511,24 @@ impl Compiler {
     if self.emitted_asset_versions.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
-          self
-            .output_filesystem
-            .remove_dir_all(&self.options.output.path)
-            .await?;
+          self.output_filesystem.remove_dir_all(output_path).await?;
         }
         CleanOptions::KeepPath(p) => {
-          let path = self.options.output.path.join(p);
+          let path = output_path.join(p);
           trim_dir(
             &*self.output_filesystem,
-            &self.options.output.path,
+            output_path,
             KeepPattern::Path(&path),
           )
           .await?;
         }
         CleanOptions::KeepRegex(r) => {
           let keep_pattern = KeepPattern::Regex(r);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
+          trim_dir(&*self.output_filesystem, output_path, keep_pattern).await?;
         }
         CleanOptions::KeepFunc(f) => {
           let keep_pattern = KeepPattern::Func(f);
-          trim_dir(
-            &*self.output_filesystem,
-            &self.options.output.path,
-            keep_pattern,
-          )
-          .await?;
+          trim_dir(&*self.output_filesystem, output_path, keep_pattern).await?;
         }
         _ => {}
       }
@@ -538,7 +546,7 @@ impl Compiler {
             let filename = filename.to_owned();
             Some(async {
               if !clean_options.keep(&filename).await {
-                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let filename = output_path.join(filename);
                 let _ = self.output_filesystem.remove_file(&filename).await;
               }
             })

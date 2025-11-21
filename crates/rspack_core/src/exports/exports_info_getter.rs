@@ -2,14 +2,15 @@ use std::sync::Arc;
 
 use either::Either;
 use itertools::Itertools;
+use rspack_collections::UkeyMap;
 use rspack_util::{atom::Atom, ext::DynHash};
-use rustc_hash::FxHashMap as HashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
 use crate::{
-  ExportsInfoData, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec, UsageKey, UsedExports,
+  ExportsInfoData, InlinedUsedName, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec,
+  UsageKey, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -30,7 +31,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<HashMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -405,7 +406,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       export_info.get_used(runtime).dyn_hash(hasher);
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
-      export_info.inlinable().dyn_hash(hasher);
     }
 
     let mut exports = self.exports.values().collect_vec();
@@ -568,7 +568,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       mg: &'a ModuleGraph,
-      res: &mut HashMap<ExportsInfo, &'a ExportsInfoData>,
+      res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -580,15 +580,12 @@ impl ExportsInfoGetter {
       match mode {
         PrefetchExportsInfoMode::Default => {}
         PrefetchExportsInfoMode::Nested(names) => {
-          for (key, export_info) in exports_info.exports().iter() {
-            if names.first().is_some_and(|name| name == key)
-              && let Some(nested_exports_info) = export_info.exports_info()
-            {
-              nested_exports.push((
-                nested_exports_info,
-                PrefetchExportsInfoMode::Nested(&names[1..]),
-              ));
-            }
+          if let Some(nested) = names
+            .first()
+            .and_then(|name| exports_info.exports().get(name))
+            .and_then(|export_info| export_info.exports_info())
+          {
+            nested_exports.push((nested, PrefetchExportsInfoMode::Nested(&names[1..])));
           }
         }
         PrefetchExportsInfoMode::Full => {
@@ -619,7 +616,7 @@ impl ExportsInfoGetter {
       }
     }
 
-    let mut res = HashMap::default();
+    let mut res = UkeyMap::default();
     prefetch_exports(id, mg, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
@@ -707,23 +704,14 @@ impl ExportsInfoGetter {
           }
           return Some(UsedName::Normal(vec![]));
         }
-        if names.len() == 1 {
-          let name = &names[0];
-          let info = info.get_read_only_export_info(name);
-          let used_name = info.get_used_name(Some(name), runtime);
-          return used_name.map(|name| match name {
-            UsedNameItem::Str(name) => UsedName::Normal(vec![name]),
-            UsedNameItem::Inlined(inlined) => UsedName::Inlined(inlined),
-          });
-        }
         let export_info = info.get_read_only_export_info(&names[0]);
         let first = export_info.get_used_name(Some(&names[0]), runtime)?;
         let mut arr = match first {
-          UsedNameItem::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
-          UsedNameItem::Str(first) => vec![first],
+          UsedNameItem::Str(first) => UsedName::Normal(vec![first]),
+          UsedNameItem::Inlined(inlined) => UsedName::Inlined(InlinedUsedName::new(inlined)),
         };
         if names.len() == 1 {
-          return Some(UsedName::Normal(arr));
+          return Some(arr);
         }
         if let Some(exports_info) = &export_info.exports_info()
           && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
@@ -736,14 +724,14 @@ impl ExportsInfoGetter {
             &names[1..],
           )?;
           let nested = match nested {
-            UsedName::Inlined(inlined) => return Some(UsedName::Inlined(inlined)),
+            UsedName::Inlined(_) => return Some(nested),
             UsedName::Normal(names) => names,
           };
-          arr.extend(nested);
-          return Some(UsedName::Normal(arr));
+          arr.append(nested);
+          return Some(arr);
         }
-        arr.extend(names.iter().skip(1).cloned());
-        Some(UsedName::Normal(arr))
+        arr.append(names.iter().skip(1).cloned());
+        Some(arr)
       }
     }
   }
@@ -756,7 +744,7 @@ impl ExportsInfoGetter {
     let exports = exports
       .into_iter()
       .map(|e| (e, mg.get_exports_info_by_id(&e)))
-      .collect::<HashMap<_, _>>();
+      .collect::<UkeyMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),

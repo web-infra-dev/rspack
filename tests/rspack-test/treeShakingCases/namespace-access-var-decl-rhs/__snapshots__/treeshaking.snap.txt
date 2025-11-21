@@ -1,0 +1,65 @@
+```js title=main.js
+"use strict";
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
+const a = {
+	a: ""
+};
+
+
+}),
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+const b = {
+	b: ""
+};
+
+
+}),
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+/* import */var _lib__rspack_import_0 = __webpack_require__("./lib.js");
+
+
+console.log(_lib__rspack_import_0.getDocPermissionTextSendMe);
+
+
+}),
+"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  getDocPermissionTextSendMe: () => (getDocPermissionTextSendMe)
+});
+/* import */var _enum_js__rspack_import_0 = __webpack_require__("./a.js");
+/* import */var _enum_js__rspack_import_1 = __webpack_require__("./b.js");
+
+
+function Record() {}
+
+const code2CreateChatDocPermission = {
+	1: _enum_js__rspack_import_0.a.a
+};
+
+function getDocPermissionTextSendMe() {}
+
+class Doc extends Record({}) {
+	isSheet() {
+		return this.type === _enum_js__rspack_import_1.b.b;
+	}
+}
+
+Doc.fromJS = data => new Doc(data);
+
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

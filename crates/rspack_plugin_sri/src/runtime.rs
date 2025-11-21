@@ -1,30 +1,34 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, chunk_graph_chunk::ChunkId, impl_runtime_module,
+  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
+  chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
-use rspack_plugin_mf::{ConsumeSharedModule, ProvideSharedModule};
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPreloadData, RuntimePluginCreateScript, RuntimePluginLinkPreload,
+  CreateLinkData, CreateScriptData, LinkPreloadData, RuntimePluginCreateLink,
+  RuntimePluginCreateScript, RuntimePluginLinkPreload,
 };
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
-  util::{SRI_HASH_VARIABLE_REFERENCE, find_chunks, make_placeholder},
+  util::{
+    SRI_HASH_CSS_VARIABLE_REFERENCE, SRI_HASH_EXTRACT_CSS_VARIABLE_REFERENCE,
+    SRI_HASH_VARIABLE_REFERENCE, find_chunks, make_placeholder,
+  },
 };
 
-fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
+fn add_attribute(
+  tag: &str,
+  variable_ref: &str,
+  code: &str,
+  cross_origin_loading: &CrossOriginLoading,
+) -> String {
   format!(
-    "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE,
-    match cross_origin_loading {
-      CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{v}'"),
-    }
+    "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = '{}';",
+    code, variable_ref, cross_origin_loading
   )
 }
 
@@ -74,39 +78,74 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .collect::<HashMap<_, _>>();
 
     let module_graph = compilation.get_module_graph();
+
+    let source_types = vec![
+      (SourceType::JavaScript, SRI_HASH_VARIABLE_REFERENCE),
+      (SourceType::Css, SRI_HASH_CSS_VARIABLE_REFERENCE),
+      (
+        SourceType::Custom("css/mini-extract".into()),
+        SRI_HASH_EXTRACT_CSS_VARIABLE_REFERENCE,
+      ),
+    ];
+
     let all_chunks = find_chunks(&self.chunk, compilation)
       .into_iter()
-      .filter_map(|c| {
-        let chunk = compilation.chunk_by_ukey.get(&c)?;
-        let id = chunk.id(&compilation.chunk_ids_artifact)?;
-        let has_modules = compilation
+      .filter(|c| {
+        compilation
           .chunk_graph
-          .get_chunk_modules(&c, &module_graph)
+          .get_chunk_modules(c, &module_graph)
           .iter()
-          .any(|m| {
-            m.downcast_ref::<ConsumeSharedModule>().is_none()
-              && m.downcast_ref::<ProvideSharedModule>().is_none()
-          });
-
-        if has_modules && include_chunks.contains_key(id) {
-          Some(id)
-        } else {
-          None
-        }
+          .any(|m| m.source().is_some())
       })
       .collect::<Vec<_>>();
 
-    Ok(format!(
-      r#"
-        {} = {};
-        "#,
-      SRI_HASH_VARIABLE_REFERENCE,
-      generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
-    ))
+    let mut code = vec![];
+
+    for (source_type, variable_ref) in source_types {
+      let chunk_with_source_type = all_chunks
+        .iter()
+        .filter(|c| {
+          compilation
+            .chunk_graph
+            .has_chunk_module_by_source_type(c, source_type, &module_graph)
+        })
+        .map(|c| {
+          compilation
+            .chunk_ids_artifact
+            .get(c)
+            .expect("should have chunk id in code generation")
+        })
+        .filter(|c| include_chunks.contains_key(c))
+        .collect::<Vec<_>>();
+
+      if !chunk_with_source_type.is_empty() {
+        code.push(format!(
+          r#"
+          {} = {};
+          "#,
+          variable_ref,
+          generate_sri_hash_placeholders(
+            match source_type {
+              SourceType::JavaScript => ManifestAssetType::JavaScript,
+              SourceType::Css => ManifestAssetType::Css,
+              SourceType::Custom(name) if name == "css/mini-extract" =>
+                ManifestAssetType::Custom("extract-css".into()),
+              _ => ManifestAssetType::Unknown,
+            },
+            chunk_with_source_type,
+            &self.hash_funcs,
+            compilation
+          ),
+        ));
+      }
+    }
+
+    Ok(code.join("\n"))
   }
 }
 
 fn generate_sri_hash_placeholders(
+  asset_type: ManifestAssetType,
   chunks: Vec<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   _compilation: &Compilation,
@@ -117,7 +156,8 @@ fn generate_sri_hash_placeholders(
       .into_iter()
       .filter_map(|c| {
         let chunk_id = serde_json::to_string(c.as_str()).ok()?;
-        let placeholder = serde_json::to_string(&make_placeholder(hash_funcs, c.as_str())).ok()?;
+        let placeholder =
+          serde_json::to_string(&make_placeholder(asset_type, hash_funcs, c.as_str())).ok()?;
         Some(format!("{chunk_id}: {placeholder}"))
       })
       .collect::<Vec<_>>()
@@ -128,14 +168,60 @@ fn generate_sri_hash_placeholders(
 #[plugin_hook(RuntimePluginCreateScript for SubresourceIntegrityPlugin)]
 pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateScriptData> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
-  data.code = add_attribute("script", &data.code, &ctx.cross_origin_loading);
+  data.code = add_attribute(
+    "script",
+    SRI_HASH_VARIABLE_REFERENCE,
+    &data.code,
+    &ctx.cross_origin_loading,
+  );
+  Ok(data)
+}
+
+#[plugin_hook(RuntimePluginCreateLink for SubresourceIntegrityPlugin)]
+pub async fn create_link(&self, mut data: CreateLinkData) -> Result<CreateLinkData> {
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+  if data.code.contains("loadingAttribute") {
+    data.code = add_attribute(
+      "link",
+      SRI_HASH_CSS_VARIABLE_REFERENCE,
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  } else {
+    data.code = add_attribute(
+      "linkTag",
+      SRI_HASH_EXTRACT_CSS_VARIABLE_REFERENCE,
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  }
+
   Ok(data)
 }
 
 #[plugin_hook(RuntimePluginLinkPreload for SubresourceIntegrityPlugin)]
 pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloadData> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
-  data.code = add_attribute("link", &data.code, &ctx.cross_origin_loading);
+  if data.code.contains(".as = \"style\"") {
+    data.code = add_attribute(
+      "link",
+      if data.code.contains(".miniCssF") {
+        SRI_HASH_EXTRACT_CSS_VARIABLE_REFERENCE
+      } else {
+        SRI_HASH_CSS_VARIABLE_REFERENCE
+      },
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  } else {
+    data.code = add_attribute(
+      "link",
+      SRI_HASH_VARIABLE_REFERENCE,
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  }
+
   Ok(data)
 }
 

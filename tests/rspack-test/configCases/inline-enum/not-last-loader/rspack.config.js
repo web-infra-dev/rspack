@@ -1,0 +1,39 @@
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+	resolve: {
+		extensions: [".ts", "..."]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.ts$/,
+				use: [
+					"./loader.js",
+					{
+						loader: "builtin:swc-loader",
+						options: {
+							jsc: {
+								parser: {
+									syntax: "typescript"
+								},
+								target: "esnext"
+							},
+							rspackExperiments: {
+								collectTypeScriptInfo: {
+									exportedEnum: true
+								}
+							}
+						}
+					}
+				]
+			}
+		]
+	},
+	optimization: {
+		moduleIds: "named",
+		concatenateModules: false
+	},
+	experiments: {
+		inlineEnum: true
+	}
+};

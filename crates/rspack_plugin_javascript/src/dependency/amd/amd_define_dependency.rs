@@ -181,7 +181,6 @@ impl AMDDefineDependency {
     function_range: Option<DependencyRange>,
     object_range: Option<DependencyRange>,
     named_module: Option<Atom>,
-    local_module: Option<LocalModule>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -190,12 +189,12 @@ impl AMDDefineDependency {
       function_range,
       object_range,
       named_module,
-      local_module,
+      local_module: None,
     }
   }
 
-  pub fn get_local_module_mut(&mut self) -> Option<&mut LocalModule> {
-    self.local_module.as_mut()
+  pub fn set_local_module(&mut self, local_module: LocalModule) {
+    self.local_module = Some(local_module);
   }
 }
 
@@ -205,8 +204,8 @@ impl Dependency for AMDDefineDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn category(&self) -> &DependencyCategory {

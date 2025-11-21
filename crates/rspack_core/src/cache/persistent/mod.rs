@@ -11,9 +11,8 @@ use std::{
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
-use rustc_hash::FxHashSet as HashSet;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
@@ -24,7 +23,7 @@ use self::{
 use super::Cache;
 use crate::{
   Compilation, CompilerOptions, Logger,
-  compilation::make::{MakeArtifact, MakeArtifactState},
+  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -78,6 +77,7 @@ impl PersistentCache {
       initialized: false,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
+        &option.snapshot,
         input_filesystem.clone(),
         storage.clone(),
       ),
@@ -157,19 +157,22 @@ impl Cache for PersistentCache {
     // TODO add a all_dependencies to collect dependencies
     let (_, file_added, file_removed) = compilation.file_dependencies();
     let (_, context_added, context_removed) = compilation.context_dependencies();
+    let (_, missing_added, missing_removed) = compilation.missing_dependencies();
     let (_, build_added, _) = compilation.build_dependencies();
-    let modified_paths: HashSet<ArcPath> = compilation
+    let modified_paths: ArcPathSet = compilation
       .modified_files
       .iter()
       .chain(file_added)
+      .chain(missing_added)
       .chain(context_added)
       .cloned()
       .collect();
-    let removed_paths: HashSet<ArcPath> = compilation
+    let removed_paths: ArcPathSet = compilation
       .removed_files
       .iter()
       .chain(file_removed)
       .chain(context_removed)
+      .chain(missing_removed)
       .cloned()
       .collect();
     self.snapshot.remove(removed_paths.into_iter());
@@ -186,9 +189,12 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn before_make(&mut self, make_artifact: &mut MakeArtifact) {
+  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
+    if matches!(
+      make_artifact.state,
+      BuildModuleGraphArtifactState::Uninitialized
+    ) {
       match self.make_occasion.recovery().await {
         Ok(artifact) => *make_artifact = artifact,
         Err(err) => self.warnings.push(err.to_string()),
@@ -196,7 +202,7 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn after_make(&mut self, make_artifact: &MakeArtifact) {
+  async fn after_build_module_graph(&mut self, make_artifact: &BuildModuleGraphArtifact) {
     self.make_occasion.save(make_artifact);
   }
 }

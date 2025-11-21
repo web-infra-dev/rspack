@@ -9,6 +9,19 @@ if (process.env.RSPACK_BINDING_BUILDER_TESTING) {
 	);
 }
 
+if (process.env.RSTEST) {
+	global.printLogger ??= process.env.printLogger === "true";
+	global.__TEST_FIXTURES_PATH__ ??= process.env.__TEST_FIXTURES_PATH__;
+	global.updateSnapshot ??= process.env.updateSnapshot === "true";
+	global.testFilter ??= process.env.testFilter;
+	global.__TEST_PATH__ ??= process.env.__TEST_PATH__;
+	global.__TEST_DIST_PATH__ ??= process.env.__TEST_DIST_PATH__;
+	global.__ROOT_PATH__ ??= process.env.__ROOT_PATH__;
+	global.__RSPACK_PATH__ ??= process.env.__RSPACK_PATH__;
+	global.__RSPACK_TEST_TOOLS_PATH__ ??= process.env.__RSPACK_TEST_TOOLS_PATH__;
+	global.__DEBUG__ ??= process.env.DEBUG === "test";
+}
+
 if (process.env.ALTERNATIVE_SORT) {
 	const oldSort = Array.prototype.sort;
 
@@ -70,17 +83,19 @@ if (process.env.DEBUG_INFO) {
 			} else {
 				it(
 					name,
-					done => {
-						process.stdout.write(`START2 ${name}\n`);
-						return fn(err => {
-							if (err) {
-								process.stdout.write(`DONE FAIL ${name}\n`);
-							} else {
-								process.stdout.write(`DONE OK ${name}\n`);
-							}
-							return done(err);
-						});
-					},
+					() =>
+						new Promise((resolve, reject) => {
+							const done = err => (err ? reject(err) : resolve());
+							process.stdout.write(`START2 ${name}\n`);
+							return fn(err => {
+								if (err) {
+									process.stdout.write(`DONE FAIL ${name}\n`);
+								} else {
+									process.stdout.write(`DONE OK ${name}\n`);
+								}
+								return done(err);
+							});
+						}),
 					timeout
 				);
 			}
@@ -90,10 +105,24 @@ if (process.env.DEBUG_INFO) {
 	it = addDebugInfo(it);
 }
 
+const uncaughtExceptionListenersLength =
+	process.listeners("uncaughtException").length;
+const unhandledRejectionListenersLength =
+	process.listeners("unhandledRejection").length;
+
 // cspell:word wabt
 // Workaround for a memory leak in wabt
 // It leaks an Error object on construction
 // so it leaks the whole stack trace
 require("wast-loader");
-process.removeAllListeners("uncaughtException");
-process.removeAllListeners("unhandledRejection");
+
+// remove the last uncaughtException / unhandledRejection listener added by wast-loader
+const listeners = process.listeners("uncaughtException");
+if (listeners.length > uncaughtExceptionListenersLength) {
+	process.off("uncaughtException", listeners[listeners.length - 1]);
+}
+
+const listeners1 = process.listeners("unhandledRejection");
+if (listeners1.length > unhandledRejectionListenersLength) {
+	process.off("unhandledRejection", listeners1[listeners1.length - 1]);
+}

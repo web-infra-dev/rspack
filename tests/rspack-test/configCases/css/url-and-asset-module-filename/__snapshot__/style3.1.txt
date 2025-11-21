@@ -1,0 +1,6 @@
+Object {
+  getPropertyValue: [Function],
+  outer-dir: url(https://test.cases/path/bundle1/assets/img2.png),
+  outer-outer-dir: url(https://test.cases/path/bundle1/assets/img1.png),
+  same-dir: url(https://test.cases/path/bundle1/assets/img3.png),
+}

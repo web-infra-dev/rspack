@@ -1,9 +1,9 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as core from "@actions/core";
-import { getOtp } from "@continuous-auth/client";
+import { parse } from "semver";
 
-import { getLastVersion } from "./version.mjs";
+import { getLastVersion, getPkgName } from "./version.mjs";
 
 const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
@@ -12,6 +12,20 @@ export async function publish_handler(mode, options) {
 	console.log("options:", options);
 	const npmrcPath = `${process.env.HOME}/.npmrc`;
 	const root = process.cwd();
+	const version = await getLastVersion(root);
+	const name = await getPkgName(root);
+
+	const npmTag = options.tag;
+	const parsedVersion = parse(version);
+
+	if (
+		npmTag === "latest" &&
+		parsedVersion.prerelease.length > 0 &&
+		name.startsWith("@rspack/")
+	) {
+		throw Error("Latest tag cannot be prerelease version");
+	}
+
 	if (fs.existsSync(npmrcPath)) {
 		console.info("Found existing .npmrc file");
 	} else {
@@ -23,13 +37,8 @@ export async function publish_handler(mode, options) {
 		);
 	}
 
-	if (options.otp) {
-		await otpPublish(options);
-	} else {
-		await normalPublish(options);
-	}
+	await publish(options);
 
-	const version = await getLastVersion(root);
 	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);
 	// write version to workspace directory
@@ -49,28 +58,8 @@ export async function publish_handler(mode, options) {
 	}
 }
 
-async function normalPublish(options) {
+async function publish(options) {
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
 		options.tag
 	} --no-git-checks --provenance`;
-}
-
-async function otpPublish(options) {
-	let tries = 4;
-
-	while (tries > 0) {
-		try {
-			const otp = await getOtp();
-			console.log("opt:", `${otp.slice(0, 2)}****`);
-			await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
-				options.tag
-			} --no-git-checks --provenance --otp ${otp}`;
-			return;
-		} catch (e) {
-			console.error(e);
-			tries--;
-		}
-	}
-
-	throw new Error("Failed to publish with OTP");
 }

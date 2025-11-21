@@ -74,7 +74,7 @@ module.exports = function loader(source) {
 
 告诉 Rspack 这个 loader 将会异步被调用。返回值为 [this.callback](#thiscallback)。
 
-> 查看 [异步 loader](/api/loader-api/types#异步-loader) 了解如何使用。
+> 查看 [异步 loader](/api/loader-api/writing-loaders#异步-loader) 了解如何使用。
 
 ## this.cacheable()
 
@@ -101,7 +101,7 @@ module.exports = function loader(source) {
 function callback(
   err: Error | null,
   content: string | Buffer,
-  sourceMap?: SourceMap,
+  sourceMap?: Rspack.RawSourceMap,
   meta?: any,
 ): void;
 ```
@@ -110,7 +110,7 @@ function callback(
 
 第一个参数必须是 `Error` 或者 `null`，会标记当前模块为编译失败，第二个参数是一个 `string` 或者 `Buffer`，表示模块被该 Loader 处理后的文件内容，第三个参数是一个可以该 Loader 处理后的 source map，第四个参数会被 Rspack 忽略，可以是任何东西（例如一些元数据）。
 
-> 查看 [同步 loader](/api/loader-api/types#同步-loader) 了解如何使用。
+> 查看 [同步 loader](/api/loader-api/writing-loaders#同步-loader) 了解如何使用。
 
 :::warning
 当这个函数被调用时，你应该返回 `undefined` 以避免 loader 结果的歧义。
@@ -211,11 +211,14 @@ interface Diagnostic {
   help?: string;
   sourceCode?: string;
   /**
-   * Location to the source code.
-   *
-   * If `sourceCode` is not provided, location will be omitted.
+   * 源代码的位置信息
+   * 如果未提供 `sourceCode`，则位置信息将被省略
    */
   location?: DiagnosticLocation;
+  /**
+   * 可选展示的文件名
+   * 如果设置，它将成为 stats 中的 `StatsError.file` 值
+   */
   file?: string;
   severity: 'error' | 'warning';
 }
@@ -674,6 +677,8 @@ module.exports = function loader(source) {
 是否应该生成 source map。
 
 由于生成 source map 通常是一项耗费资源的任务，你应该检查是否需要 source map。
+
+详见 [处理 Source Map](/api/loader-api/writing-loaders#处理-source-map)。
 
 ## this.getLogger()
 

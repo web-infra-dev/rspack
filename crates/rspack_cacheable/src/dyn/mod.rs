@@ -148,33 +148,45 @@ impl<T: ?Sized> ArchivedDynMetadata<T> {
 
   /// Returns the pointer metadata for the trait object this metadata refers to.
   pub fn lookup_metadata(&self) -> DynMetadata<T> {
-    unsafe {
-      DYN_REGISTRY
-        .get(&self.dyn_id.to_native())
-        .expect("attempted to get vtable for an unregistered impl")
-        .cast()
-    }
+    let dyn_id = self.dyn_id.to_native();
+    let (vtable, debug_name) = DYN_REGISTRY
+      .get(&dyn_id)
+      .unwrap_or_else(|| {
+        panic!(
+          "attempted to get vtable for an unregistered impl (dyn_id={} / 0x{:x})",
+          dyn_id, dyn_id
+        )
+      })
+      .clone();
+    let meta = unsafe { vtable.cast() };
+    let _ = debug_name;
+    meta
   }
 }
 
 pub struct DynEntry {
   dyn_id: u64,
   vtable: VTablePtr,
+  debug_name: &'static str,
 }
 
 impl DynEntry {
-  pub const fn new(dyn_id: u64, vtable: VTablePtr) -> Self {
-    Self { dyn_id, vtable }
+  pub const fn new(dyn_id: u64, vtable: VTablePtr, debug_name: &'static str) -> Self {
+    Self {
+      dyn_id,
+      vtable,
+      debug_name,
+    }
   }
 }
 
 inventory::collect!(DynEntry);
 
-static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, VTablePtr>> =
+static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, (VTablePtr, &'static str)>> =
   std::sync::LazyLock::new(|| {
     let mut result = HashMap::default();
     for entry in inventory::iter::<DynEntry> {
-      let old_value = result.insert(entry.dyn_id, entry.vtable);
+      let old_value = result.insert(entry.dyn_id, (entry.vtable, entry.debug_name));
       if old_value.is_some() {
         panic!("cacheable_dyn init global REGISTRY error, duplicate implementation.")
       }

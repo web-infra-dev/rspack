@@ -1,0 +1,1 @@
+module.exports = () => "TODO: generate empty css asset when loader throws error"

@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support webpackComments of new URL in new Worker";

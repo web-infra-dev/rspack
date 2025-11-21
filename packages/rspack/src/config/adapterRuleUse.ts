@@ -34,14 +34,45 @@ export interface ComposeJsUseOptions {
 	compiler: Compiler;
 }
 
-export interface SourceMap {
+export interface RawSourceMap {
+	/**
+	 * The version of the source map format, always 3
+	 */
 	version: number;
+	/**
+	 * A list of original sources used by the mappings field
+	 */
 	sources: string[];
+	/**
+	 * A string with the encoded mapping data
+	 */
 	mappings: string;
-	file?: string;
+	/**
+	 * The filename of the generated code that this source map is associated with
+	 */
+	file: string;
+	/**
+	 * An optional source root string, used for relocating source files on a server
+	 * or removing repeated values in the sources entry.
+	 */
 	sourceRoot?: string;
+	/**
+	 * An array containing the actual content of the original source files
+	 */
 	sourcesContent?: string[];
-	names?: string[];
+	/**
+	 * A list of symbol names which may be used by the mappings field.
+	 */
+	names: string[];
+	/**
+	 * A unique identifier for debugging purposes
+	 */
+	debugId?: string;
+	/**
+	 * An array of indices into the sources array, indicating which sources
+	 * should be ignored by debuggers
+	 */
+	ignoreList?: number[];
 }
 
 export interface AdditionalData {
@@ -51,7 +82,7 @@ export interface AdditionalData {
 export type LoaderContextCallback = (
 	err?: Error | null,
 	content?: string | Buffer,
-	sourceMap?: string | SourceMap,
+	sourceMap?: string | RawSourceMap,
 	additionalData?: AdditionalData
 ) => void;
 
@@ -81,10 +112,13 @@ export interface Diagnostic {
 	sourceCode?: string;
 	/**
 	 * Location to the source code.
-	 *
 	 * If `sourceCode` is not provided, location will be omitted.
 	 */
 	location?: DiagnosticLocation;
+	/**
+	 * Optional filename to show.
+	 * If provided, it becomes the `StatsError.file` value in stats.
+	 */
 	file?: string;
 	severity: "error" | "warning";
 }
@@ -392,9 +426,9 @@ export type LoaderDefinitionFunction<
 > = (
 	this: LoaderContext<OptionsType> & ContextAdditions,
 	content: string,
-	sourceMap?: string | SourceMap,
+	sourceMap?: string | RawSourceMap,
 	additionalData?: AdditionalData
-) => string | void | Buffer | Promise<string | Buffer>;
+) => string | void | Buffer | Promise<string | Buffer | void>;
 
 export type PitchLoaderDefinitionFunction<
 	OptionsType = {},
@@ -404,8 +438,32 @@ export type PitchLoaderDefinitionFunction<
 	remainingRequest: string,
 	previousRequest: string,
 	data: object
-) => string | void | Buffer | Promise<string | Buffer>;
+) => string | void | Buffer | Promise<string | Buffer | void>;
 
+/**
+ * Defines a loader for Rspack.
+ * A loader is a transformer that converts various types of modules into Rspack
+ * supported types. By using different kinds of loaders, you can extend Rspack to
+ * process additional module types, including JSX, Markdown, Sass, Less, and more.
+ *
+ * @template OptionsType - The type of options that the loader accepts
+ * @template ContextAdditions - Additional properties to add to the loader context
+ *
+ * @example
+ * ```ts
+ * import type { LoaderDefinition } from '@rspack/core';
+ *
+ * type MyLoaderOptions = {
+ *   foo: string;
+ * };
+ *
+ * const myLoader: LoaderDefinition<MyLoaderOptions> = function(source) {
+ *   return someOperation(source);
+ * };
+ *
+ * export default myLoader;
+ * ```
+ */
 export type LoaderDefinition<
 	OptionsType = {},
 	ContextAdditions = {}

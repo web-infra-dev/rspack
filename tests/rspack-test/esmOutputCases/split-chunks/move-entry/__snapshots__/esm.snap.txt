@@ -1,0 +1,22 @@
+```mjs title=lib.mjs
+import "./lib_js.mjs";
+
+
+```
+
+```mjs title=lib_js.mjs
+// ./lib.js
+// side effect
+console.log.bind(console)
+
+
+```
+
+```mjs title=main.mjs
+import "./lib_js.mjs";
+
+// ./index.js
+
+
+
+```

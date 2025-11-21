@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-win32-x64-msvc",
-  "version": "1.4.11",
+  "version": "1.6.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.win32-x64-msvc.node",
@@ -8,19 +8,13 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/web-infra-dev/rspack"
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "os": ["win32"],
+    "cpu": ["x64"]
   },
-  "files": [
-    "rspack.win32-x64-msvc.node"
-  ],
-  "os": [
-    "win32"
-  ],
-  "cpu": [
-    "x64"
-  ]
+  "files": ["rspack.win32-x64-msvc.node"]
 }

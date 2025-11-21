@@ -11,12 +11,14 @@ version.workspace = true
 crate-type = ["cdylib"]
 
 [features]
+allocative      = ["rspack_binding_api/allocative"]
 browser         = ["rspack_binding_api/browser"]
 color-backtrace = ["rspack_binding_api/color-backtrace"]
 debug_tool      = ["rspack_binding_api/debug_tool"]
 info-level      = ["tracing/release_max_level_info"]
 plugin          = ["rspack_binding_api/plugin"]
 sftrace-setup   = ["rspack_binding_api/sftrace-setup"]
+tracy-client    = ["rspack_binding_api/tracy-client"]
 
 [package.metadata.cargo-shear]
 # Adding napi-derive as a dependency to workaround an issue where `dts` will no longer work without it.

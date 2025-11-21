@@ -1,13 +1,9 @@
-var webpackQueues =
-	typeof Symbol === "function"
-		? Symbol("webpack queues")
-		: "__webpack_queues__";
-var webpackExports =
-	typeof Symbol === "function"
-		? Symbol("webpack exports")
-		: "<%- EXPORTS %>";
-var webpackError =
-	typeof Symbol === "function" ? Symbol("webpack error") : "__webpack_error__";
+var hasSymbol = typeof Symbol === "function";
+var webpackQueues = hasSymbol ? Symbol("webpack queues") : "<%- _queues %>";
+var webpackExports = <%- ASYNC_MODULE_EXPORT_SYMBOL %> = hasSymbol ? Symbol("webpack exports") : "<%- EXPORTS %>";
+var webpackError = hasSymbol ? Symbol("webpack error") : "<%- _error %>";
+var webpackDone = hasSymbol ? Symbol("webpack done") : "<%- _done %>";
+var webpackDefer = <%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %> = hasSymbol ? Symbol("webpack defer") : "<%- _defer %>";
 var resolveQueue = <%- basicFunction("queue") %> {
   if (queue && queue.d < 1) {
     queue.d = 1;
@@ -18,6 +14,21 @@ var resolveQueue = <%- basicFunction("queue") %> {
 var wrapDeps = <%- basicFunction("deps") %> {
 	return deps.map(<%- basicFunction("dep") %> {
 		if (dep !== null && typeof dep === "object") {
+			if(!dep[webpackQueues] && dep[webpackDefer]) {
+				var asyncDeps = dep[webpackDefer];
+				var hasUnresolvedAsyncSubgraph = asyncDeps.some(<%- basicFunction("id") %> {
+					var cache = <%- _module_cache %>[id];
+					return !cache || cache[webpackDone] === false;
+				});
+				if (hasUnresolvedAsyncSubgraph) {
+					var d = dep;
+					dep = {
+						then(callback) {
+							Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(<%- returningFunction("callback(d)", "") %>)
+						}
+					};
+				} else return dep;
+			}
 			if (dep[webpackQueues]) return dep;
 			if (dep.then) {
 				var queue = [];
@@ -30,6 +41,7 @@ var wrapDeps = <%- basicFunction("deps") %> {
 					resolveQueue(queue);
 				});
 				var obj = {};
+				obj[webpackDefer] = false;
 				obj[webpackQueues] = <%- expressionFunction("fn(queue)", "fn") %>;
 				return obj;
 			}
@@ -55,11 +67,12 @@ var wrapDeps = <%- basicFunction("deps") %> {
 	promise[webpackExports] = exports;
 	promise[webpackQueues] = <%- basicFunction("fn") %> { queue && fn(queue), depQueues.forEach(fn), promise["catch"](<%- emptyFunction() %>); };
 	module.exports = promise;
-	body(<%- basicFunction("deps") %> {
+	var handle = <%- basicFunction("deps") %> {
 		currentDeps = wrapDeps(deps);
 		var fn;
 		var getResult = <%- basicFunction("") %> {
 			return currentDeps.map(<%- basicFunction("d") %> {
+				if(d[webpackDefer]) return d;
 				if (d[webpackError]) throw d[webpackError];
 				return d[webpackExports];
 			});
@@ -68,9 +81,11 @@ var wrapDeps = <%- basicFunction("deps") %> {
 			fn = <%- expressionFunction("resolve(getResult)", "") %>;
 			fn.r = 0;
 			var fnQueue = <%- expressionFunction("q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
-			currentDeps.map(<%- expressionFunction("dep[webpackQueues](fnQueue)", "dep") %>);
+			currentDeps.map(<%- expressionFunction("dep[webpackDefer] || dep[webpackQueues](fnQueue)", "dep") %>);
 		});
 		return fn.r ? promise : getResult();
-	}, <%- expressionFunction("(err ? reject(promise[webpackError] = err) : outerResolve(exports)), resolveQueue(queue)", "err") %>);
+	};
+	var done = <%- expressionFunction("(err ? reject(promise[webpackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[webpackDone] = true", "err") %>;
+	body(handle, done);
 	queue && queue.d < 0 && (queue.d = 0);
 };

@@ -12,15 +12,16 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::{ArcPath, Utf8PathBuf};
+use rspack_paths::{ArcPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
   fx_hash::FxIndexMap,
+  identifier::make_paths_relative,
   itoa, json_stringify,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::{
@@ -35,8 +36,8 @@ use crate::{
   impl_module_meta_info, module_update_hash, returning_function, to_path,
 };
 
-static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
-static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
+static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
+static CHUNK_NAME_REQUEST_PLACEHOLDER: &str = "[request]";
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -134,8 +135,8 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub attributes: Option<ImportAttributes>,
 }
 
@@ -186,7 +187,7 @@ impl ContextModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      identifier: create_identifier(&options),
+      identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
       build_info: Default::default(),
@@ -230,7 +231,7 @@ impl ContextModule {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
           .map(|id| (id.to_string(), dep))
       })
-      .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
+      .sorted_unstable_by_key(|(module_id, _)| module_id.clone());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
         &compilation.get_module_graph(),
@@ -525,7 +526,7 @@ impl ContextModule {
       true,
       if short_mode { "invalid" } else { "ids[1]" },
     );
-    let webpack_async_context = if has_no_chunk {
+    let async_context = if has_no_chunk {
       formatdoc! {r#"
         function webpackAsyncContext(req) {{
           return Promise.resolve().then(function() {{
@@ -569,7 +570,7 @@ impl ContextModule {
     };
     formatdoc! {r#"
       var map = {map};
-      {webpack_async_context}
+      {async_context}
       webpackAsyncContext.keys = {keys};
       webpackAsyncContext.id = {id};
       module.exports = webpackAsyncContext;
@@ -819,7 +820,7 @@ impl ContextModule {
         source_string,
         format!(
           "webpack://{}",
-          contextify(&compilation.options.context, self.identifier.as_str(),)
+          make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
         ),
       )
       .boxed()
@@ -868,8 +869,11 @@ impl Module for ContextModule {
     None
   }
 
-  fn readable_identifier(&self, _context: &crate::Context) -> std::borrow::Cow<'_, str> {
-    self.identifier.as_str().into()
+  fn readable_identifier(&self, context: &crate::Context) -> std::borrow::Cow<'_, str> {
+    let identifier = contextify(context, self.options.resource.as_str());
+    create_identifier(&self.options, Some(identifier.as_str()))
+      .to_string()
+      .into()
   }
 
   fn size(
@@ -888,14 +892,30 @@ impl Module for ContextModule {
       id += ")/";
     }
     id += &contextify(options.context, self.options.resource.as_str());
-    id.push(' ');
-    id.push_str(self.options.context_options.mode.as_str());
+    id += " ";
+    id += self.options.context_options.mode.as_str();
     if self.options.context_options.recursive {
-      id.push_str(" recursive");
+      id += " recursive";
+    }
+    if !self.options.addon.is_empty() {
+      id += " ";
+      id += &self.options.addon;
     }
     if let Some(regexp) = &self.options.context_options.reg_exp {
-      id.push(' ');
-      id.push_str(&regexp.to_pretty_string(true));
+      id += " ";
+      id += &regexp.to_pretty_string(true);
+    }
+    if let Some(include) = &self.options.context_options.include {
+      id += " include: ";
+      id += &include.to_pretty_string(true);
+    }
+    if let Some(exclude) = &self.options.context_options.exclude {
+      id += " exclude: ";
+      id += &exclude.to_pretty_string(true);
+    }
+    if let Some(exports) = &self.options.context_options.referenced_exports {
+      id += " referencedExports: ";
+      id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
     }
     Some(Cow::Owned(id))
   }
@@ -947,17 +967,17 @@ impl Module for ContextModule {
         let name = group_options
           .and_then(|group_options| group_options.name.as_ref())
           .map(|name| {
-            let name = if !(name.contains(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER)
-              || name.contains(WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER))
+            let name = if !(name.contains(CHUNK_NAME_INDEX_PLACEHOLDER)
+              || name.contains(CHUNK_NAME_REQUEST_PLACEHOLDER))
             {
-              Cow::Owned(format!("{name}[index]"))
+              Cow::Owned(format!("{name}{CHUNK_NAME_INDEX_PLACEHOLDER}"))
             } else {
               Cow::Borrowed(name)
             };
 
-            let name = name.cow_replace(WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
+            let name = name.cow_replace(CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
             let name = name.cow_replace(
-              WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER,
+              CHUNK_NAME_REQUEST_PLACEHOLDER,
               &to_path(&context_element_dependency.user_request),
             );
 
@@ -989,7 +1009,7 @@ impl Module for ContextModule {
         .collect();
     }
 
-    let mut context_dependencies: HashSet<ArcPath> = Default::default();
+    let mut context_dependencies: ArcPathSet = Default::default();
     context_dependencies.insert(self.options.resource.as_std_path().into());
 
     self.build_info.context_dependencies = context_dependencies;
@@ -1082,8 +1102,8 @@ impl Identifiable for ContextModule {
   }
 }
 
-fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut id = options.resource.as_str().to_owned();
+fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
+  let mut id = resource.unwrap_or(options.resource.as_str()).to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;
@@ -1115,10 +1135,7 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   }
   if let Some(exports) = &options.context_options.referenced_exports {
     id += "|referencedExports: ";
-    id += &format!(
-      "[{}]",
-      exports.iter().map(|x| format!(r#""{x}""#)).join(",")
-    );
+    id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {

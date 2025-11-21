@@ -6,8 +6,9 @@ use std::{
 
 use cow_utils::CowUtils;
 use itertools::Itertools;
+use regex::{Captures, Regex};
 use rspack_dojang::{Context, Dojang, Operand};
-use rspack_error::{Result, ToStringResultToRspackResultExt, error, miette};
+use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value};
 
 use crate::{Environment, RuntimeGlobals};
@@ -23,6 +24,24 @@ static RUNTIME_GLOBALS_VALUE: LazyLock<Map<String, Value>> = LazyLock::new(|| {
     .map(|(name, value)| (name.to_string(), Value::String(value.to_string())))
     .collect::<Map<String, Value>>()
 });
+
+static RUNTIME_GLOBALS_PATTERN: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\$\$RUNTIME_GLOBAL_(.*?)\$\$").expect("failed to create regex"));
+
+fn replace_runtime_globals(template: String) -> String {
+  RUNTIME_GLOBALS_PATTERN
+    .replace_all(&template, |caps: &Captures| {
+      let name = caps.get(1).expect("name should be a string").as_str();
+      RUNTIME_GLOBALS_VALUE
+        .get(name)
+        .map(|value| match value {
+          Value::String(value) => value.clone(),
+          _ => unreachable!(),
+        })
+        .expect("value should be a string")
+    })
+    .to_string()
+}
 
 impl Debug for RuntimeTemplate {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -90,11 +109,7 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn render(
-    &self,
-    key: &str,
-    params: Option<serde_json::Value>,
-  ) -> Result<String, miette::Error> {
+  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
     let mut render_params = Value::Object(RUNTIME_GLOBALS_VALUE.clone());
 
     if let Some(params) = params {
@@ -148,17 +163,17 @@ impl RuntimeTemplate {
 }
 
 fn to_string(val: &Operand) -> String {
-  match val {
+  replace_runtime_globals(match val {
     Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
     _ => String::default(),
-  }
+  })
 }
 
 fn join_to_string(val: &Operand, sep: &str) -> String {
-  match val {
+  replace_runtime_globals(match val {
     Operand::Array(items) => items.iter().map(to_string).join(sep),
     _ => to_string(val),
-  }
+  })
 }
 
 fn basic_function_arrow(args: Operand) -> Operand {

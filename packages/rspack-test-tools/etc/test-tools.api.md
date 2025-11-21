@@ -4,56 +4,45 @@
 
 ```ts
 
+import type { Compilation } from '@rspack/core';
 import { Compiler } from '@rspack/core';
-import type { Compiler as Compiler_2 } from 'webpack';
-import type { Configuration } from 'webpack';
 import type EventEmitter from 'node:events';
-import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
-import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
-import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
 import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
-import type { MultiStats as MultiStats_2 } from 'webpack';
-import type { RspackOptions } from '@rspack/core';
-import type { RspackOptionsNormalized } from '@rspack/core';
-import type { RspackPluginInstance } from '@rspack/core';
+import { RspackOptions } from '@rspack/core';
 import type { Stats } from '@rspack/core';
-import type { Stats as Stats_2 } from 'webpack';
 import type { StatsCompilation } from '@rspack/core';
-import type { StatsCompilation as StatsCompilation_2 } from 'webpack';
 import type { StatsError } from '@rspack/core';
-import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
-import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
-export class BasicCaseCreator<T extends ECompilerType> {
-    constructor(_options: IBasicCaseCreatorOptions<T>);
+export class BasicCaseCreator {
+    constructor(_options: IBasicCaseCreatorOptions);
     // (undocumented)
-    protected checkSkipped(src: string, testConfig: TTestConfig<T>): boolean | string;
+    protected checkSkipped(src: string, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): boolean | string;
     // (undocumented)
     protected clean(folders: string[]): void;
     // (undocumented)
-    create(name: string, src: string, dist: string, temp?: string): ITester | undefined;
+    create(name: string, src: string, dist: string, temp?: string, caseOptions?: Partial<IBasicCaseCreatorOptions>): ITester | undefined;
     // (undocumented)
     protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv;
     // (undocumented)
-    protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
+    protected createEnv(testConfig: TTestConfig, options: IBasicCaseCreatorOptions): ITestEnv;
     // (undocumented)
-    protected createTester(name: string, src: string, dist: string, temp: string | void, testConfig: TTestConfig<T>): ITester;
+    protected createTester(name: string, src: string, dist: string, temp: string | undefined, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): ITester;
     // (undocumented)
     protected currentConcurrent: number;
     // (undocumented)
-    protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    protected describe(name: string, tester: ITester, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): void;
     // (undocumented)
-    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig, options: IBasicCaseCreatorOptions): void;
     // (undocumented)
-    protected getMaxConcurrent(): number;
+    protected getMaxConcurrent(concurrent?: number): number;
     // (undocumented)
-    protected _options: IBasicCaseCreatorOptions<T>;
+    protected _options: IBasicCaseCreatorOptions;
     // (undocumented)
-    protected readTestConfig(src: string): TTestConfig<T>;
+    protected readTestConfig(src: string): TTestConfig;
     // (undocumented)
-    protected registerConcurrentTask(name: string, starter: () => void): () => void;
+    protected registerConcurrentTask(name: string, starter: () => void, concurrent?: number): () => void;
     // (undocumented)
     protected shouldRun(name: string): boolean;
     // (undocumented)
@@ -61,173 +50,17 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     protected tasks: [string, () => void][];
     // (undocumented)
-    protected tryRunTask(): void;
-}
-
-// @public (undocumented)
-export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
-    constructor(_options: IBasicProcessorOptions<T>);
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
-    beforeAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    config(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
-    // (undocumented)
-    protected _options: IBasicProcessorOptions<T>;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
-export abstract class BasicRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
-    constructor(_options: IBasicRunnerOptions<T>);
-    // (undocumented)
-    protected baseModuleScope: IBasicModuleScope | null;
-    // (undocumented)
-    protected abstract createBaseModuleScope(): IBasicModuleScope;
-    // (undocumented)
-    protected abstract createGlobalContext(): IBasicGlobalContext;
-    // (undocumented)
-    protected abstract createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TBasicRunnerFile): IBasicModuleScope;
-    // (undocumented)
-    protected createRunner(): void;
-    // (undocumented)
-    protected getFile(modulePath: string[] | string, currentDirectory: string): TBasicRunnerFile | null;
-    // (undocumented)
-    getGlobal(name: string): unknown;
-    // (undocumented)
-    getRequire(): TRunnerRequirer;
-    // (undocumented)
-    protected globalContext: IBasicGlobalContext | null;
-    // (undocumented)
-    protected _options: IBasicRunnerOptions<T>;
-    // (undocumented)
-    protected postExecute(m: Object, file: TBasicRunnerFile): void;
-    // (undocumented)
-    protected preExecute(code: string, file: TBasicRunnerFile): void;
-    // (undocumented)
-    protected requirers: Map<string, TRunnerRequirer>;
-    // (undocumented)
-    run(file: string): Promise<unknown>;
-}
-
-// @public (undocumented)
-export class BasicRunnerFactory<T extends ECompilerType> implements TRunnerFactory<T> {
-    constructor(name: string, context: ITestContext);
-    // (undocumented)
-    protected context: ITestContext;
-    // (undocumented)
-    create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
-    // (undocumented)
-    protected getRunnerKey(file: string): string;
-    // (undocumented)
-    protected name: string;
-}
-
-// @public (undocumented)
-export class BuiltinProcessor<T extends ECompilerType> extends SnapshotProcessor<T> {
-    constructor(_builtinOptions: IBuiltinProcessorOptions<T>);
-    // (undocumented)
-    protected _builtinOptions: IBuiltinProcessorOptions<T>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: BuiltinProcessor<T>, context: ITestContext): TCompilerOptions<T>;
-}
-
-// @public (undocumented)
-export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-    constructor(_cacheOptions: ICacheProcessorOptions<T>);
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _cacheOptions: ICacheProcessorOptions<T>;
-    // (undocumented)
-    config(context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    static findBundle<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): string[];
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext, options: TCompilerOptions<T>): void;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected runner: ITestRunner | null;
-    // (undocumented)
-    protected updatePlugin: HotUpdatePlugin;
-}
-
-// @public (undocumented)
-export class CacheRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected tryRunTask(concurrent?: number): void;
 }
 
 // @public (undocumented)
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
-export function checkChunkRuntime(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
-
-// @public (undocumented)
-export class CommonJsRunner<T extends ECompilerType = ECompilerType.Rspack> extends BasicRunner<T> {
-    // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope;
-    // (undocumented)
-    protected createCjsRequirer(): TRunnerRequirer;
-    // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext;
-    // (undocumented)
-    protected createMissRequirer(): TRunnerRequirer;
-    // (undocumented)
-    protected createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TBasicRunnerFile): IBasicModuleScope;
-    // (undocumented)
-    protected createRunner(): void;
-}
-
-// @public (undocumented)
-export function compareContent(sourceContent: string | false, distContent: string | false, compareOptions: ICompareOptions): TCompareResult;
-
-// @public (undocumented)
-export function compareFile(sourceFile: string, distFile: string, compareOptions: ICompareOptions): TFileCompareResult;
-
-// @public (undocumented)
-export function compareModules(modules: string[], sourceModules: Record<string, string>, distModules: Record<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
-
-// @public (undocumented)
-export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
-    constructor(_configOptions: IConfigProcessorOptions<T>);
-    // (undocumented)
-    protected _configOptions: IConfigProcessorOptions<T>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(index: number, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], temp: string): void;
+export function createCacheCase(name: string, src: string, dist: string, target: RspackOptions["target"], temp: string): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -239,13 +72,19 @@ export function createConfigCase(name: string, src: string, dist: string): void;
 export function createDefaultsCase(name: string, src: string): void;
 
 // @public (undocumented)
+export function createDevNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createDiffCase(name: string, src: string, dist: string): void;
+export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
-export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
+export function createEsmOutputCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createExampleCase(name: string, src: string): void;
 
 // @public (undocumented)
 export function createHashCase(name: string, src: string, dist: string): void;
@@ -254,19 +93,31 @@ export function createHashCase(name: string, src: string, dist: string): void;
 export function createHookCase(name: string, src: string, dist: string, source: string): void;
 
 // @public (undocumented)
-export function createHotCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
 
 // @public (undocumented)
-export function createHotIncrementalCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"], webpackCases: boolean): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"], webpackCases: boolean): void;
 
 // @public (undocumented)
-export function createHotStepCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
+export function createHotNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
+
+// @public (undocumented)
+export const createLocatedError: (collectedErrors: Error[], offset: number) => (e: Error, file: TRunnerFile) => Error;
+
+// @public (undocumented)
+export function createMultiCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createNativeWatcher(name: string, src: string, dist: string, temp: string): void;
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createProdNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createSerialCase(name: string, src: string, dist: string): void;
@@ -287,103 +138,15 @@ export function createWatchCase(name: string, src: string, dist: string, temp: s
 export function createWatchIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchIncrementalOptions): void;
 
 // @public (undocumented)
-export class DefaultsConfigProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
-    constructor(_defaultsConfigOptions: IDefaultsConfigProcessorOptions<T>);
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
-    beforeAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _defaultsConfigOptions: IDefaultsConfigProcessorOptions<T>;
-    // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
-    // (undocumented)
-    static getDefaultConfig(cwd: string, config: TCompilerOptions<ECompilerType>): TCompilerOptions<ECompilerType>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
 export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
     type?: "file" | "directory";
     level?: number;
     source?: string;
     dist?: string;
     absoluteDist?: boolean;
-    describe?: jest.Describe;
+    describe?: Describe;
     exclude?: RegExp[];
 }): void;
-
-// @public (undocumented)
-export class DiagnosticProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-    constructor(_diagnosticOptions: IDiagnosticProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    protected _diagnosticOptions: IDiagnosticProcessorOptions<T>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
-export class DiffComparator {
-    constructor(options: IDiffComparatorOptions);
-    // (undocumented)
-    compare(): Promise<void>;
-}
-
-// @public (undocumented)
-export class DiffHtmlReporter implements ITestReporter<TModuleCompareResult[]> {
-    constructor(options: IDiffHtmlReporterOptions);
-    // (undocumented)
-    failure(id: string): Promise<void>;
-    // (undocumented)
-    increment(id: string, data: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    init(data?: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    output(): Promise<void>;
-}
-
-// @public (undocumented)
-export class DiffProcessor implements ITestProcessor {
-    constructor(options: IDiffProcessorOptions);
-    // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    config(context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
-export class DiffStatsReporter implements ITestReporter<TModuleCompareResult[]> {
-    constructor(options: IDiffStatsReporterOptions);
-    // (undocumented)
-    failure(id: string): Promise<void>;
-    // (undocumented)
-    increment(id: string, data: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    init(data?: TModuleCompareResult[]): Promise<void>;
-    // (undocumented)
-    output(): Promise<void>;
-}
 
 // @public (undocumented)
 export enum ECompareResultType {
@@ -400,22 +163,6 @@ export enum ECompareResultType {
 }
 
 // @public (undocumented)
-export enum ECompilerType {
-    // (undocumented)
-    Rspack = "rspack",
-    // (undocumented)
-    Webpack = "webpack"
-}
-
-// @public (undocumented)
-export enum EDocumentType {
-    // (undocumented)
-    Fake = "fake",
-    // (undocumented)
-    JSDOM = "jsdom"
-}
-
-// @public (undocumented)
 export enum EEsmMode {
     // (undocumented)
     Evaluated = 1,
@@ -426,191 +173,13 @@ export enum EEsmMode {
 }
 
 // @public (undocumented)
-export class ErrorProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
-    constructor(_errorOptions: IErrorProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _errorOptions: IErrorProcessorOptions<T>;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
 export function escapeSep(str: string): string;
 
 // @public (undocumented)
-export class EsmRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
-    // (undocumented)
-    protected createEsmRequirer(): TRunnerRequirer;
-    // (undocumented)
-    protected createRunner(): void;
-}
+export function getRspackDefaultConfig(cwd: string, config: RspackOptions): RspackOptions;
 
 // @public (undocumented)
-export class FakeDocumentWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
-    constructor(_webOptions: IBasicRunnerOptions<T>);
-    // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope_2;
-    // (undocumented)
-    protected createGlobalContext(): IBasicGlobalContext_2;
-    // (undocumented)
-    protected createJsonRequirer(): TRunnerRequirer;
-    // (undocumented)
-    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope_2;
-    // (undocumented)
-    protected createRunner(): void;
-    // (undocumented)
-    protected postExecute(_: Object, file: TBasicRunnerFile): void;
-    // (undocumented)
-    protected preExecute(_: string, file: TBasicRunnerFile): void;
-    // (undocumented)
-    run(file: string): Promise<unknown>;
-    // (undocumented)
-    protected _webOptions: IBasicRunnerOptions<T>;
-}
-
-// @public (undocumented)
-export function formatCode(name: string, raw: string, options: IFormatCodeOptions): string;
-
-// @public (undocumented)
-export function getSimpleProcessorRunner(src: string, dist: string, options?: {
-    env?: () => ITestEnv;
-    context?: (src: string, dist: string) => ITestContext;
-}): (name: string, processor: ITestProcessor) => Promise<void>;
-
-// @public (undocumented)
-export class HashProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
-    constructor(_hashOptions: IHashProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(index: number, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
-export class HookCasesContext extends TestContext {
-    constructor(src: string, testName: string, options: TTestContextOptions);
-    // @internal (undocumented)
-    _addSnapshot(content: unknown, name: string, group: string | number): void;
-    // @internal (undocumented)
-    collectSnapshots(env: ITestEnv, options?: {
-        diff: {};
-    }): Promise<void>;
-    // (undocumented)
-    protected count: number;
-    // (undocumented)
-    protected options: TTestContextOptions;
-    // (undocumented)
-    protected promises: Promise<void>[];
-    snapped(cb: (...args: unknown[]) => Promise<unknown>, prefix?: string): (this: any, ...args: unknown[]) => Promise<unknown>;
-    // (undocumented)
-    protected snapshots: Record<string | number, Array<[string | Buffer, string]>>;
-    // (undocumented)
-    protected snapshotsList: Array<string | number>;
-    // (undocumented)
-    protected src: string;
-    // (undocumented)
-    protected testName: string;
-}
-
-// @public (undocumented)
-export class HookTaskProcessor<T extends ECompilerType> extends SnapshotProcessor<T> {
-    constructor(_hookOptions: IHookProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: HookCasesContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    config(context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    protected _hookOptions: IHookProcessorOptions<T>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
-export class HotIncrementalProcessor<T extends ECompilerType> extends HotProcessor<T> {
-    constructor(_hotOptions: IHotIncrementalProcessorOptions<T>);
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: HotIncrementalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    protected _hotOptions: IHotIncrementalProcessorOptions<T>;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
-export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-    constructor(_hotOptions: IHotProcessorOptions<T>);
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    static findBundle<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext): string[];
-    // (undocumented)
-    protected _hotOptions: IHotProcessorOptions<T>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(this: HotProcessor<T>, context: ITestContext, options: TCompilerOptions<T>): void;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected runner: ITestRunner | null;
-    // (undocumented)
-    protected updateOptions: TUpdateOptions;
-}
-
-// @public (undocumented)
-export class HotRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-}
-
-// @public (undocumented)
-export class HotSnapshotProcessor<T extends ECompilerType> extends HotProcessor<T> {
-    constructor(_hotOptions: IHotSnapshotProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _hotOptions: IHotSnapshotProcessorOptions<T>;
-    // (undocumented)
-    protected matchStepSnapshot(env: ITestEnv, context: ITestContext, step: number, stats: TCompilerStatsCompilation<T>, runtime?: THotStepRuntimeData): void;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
-export class HotStepRunnerFactory<T extends ECompilerType> extends HotRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-}
-
-// @public (undocumented)
-class HotUpdatePlugin {
-    constructor(projectDir: string, tempDir: string);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    getTotalUpdates(): number;
-    // (undocumented)
-    getUpdateIndex(): number;
-    // (undocumented)
-    goNext(): Promise<void>;
-    // (undocumented)
-    initialize(): Promise<void>;
-}
-
-// @public (undocumented)
-export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
+export interface IBasicCaseCreatorOptions {
     // (undocumented)
     [key: string]: unknown;
     // (undocumented)
@@ -620,116 +189,24 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     contextValue?: Record<string, unknown>;
     // (undocumented)
+    createContext?: (config: ITesterConfig) => ITestContext;
+    // (undocumented)
     describe?: boolean;
     // (undocumented)
     description?: (name: string, step: number) => string;
     // (undocumented)
-    runner?: new (name: string, context: ITestContext) => TRunnerFactory<ECompilerType>;
+    runner?: TTestRunnerCreator;
     // (undocumented)
-    steps: (creatorConfig: IBasicCaseCreatorOptions<T> & {
+    steps: (creatorConfig: IBasicCaseCreatorOptions & {
         name: string;
         src: string;
         dist: string;
         temp: string | void;
     }) => ITestProcessor[];
     // (undocumented)
-    testConfig?: (testConfig: TTestConfig<T>) => void;
+    testConfig?: (testConfig: TTestConfig) => void;
     // (undocumented)
     timeout?: number;
-}
-
-// @public (undocumented)
-export interface IBasicGlobalContext {
-    // (undocumented)
-    [key: string]: any;
-    // (undocumented)
-    clearTimeout: typeof clearTimeout;
-    // (undocumented)
-    console: Record<string, (...args: any[]) => void>;
-    // (undocumented)
-    setTimeout: typeof setTimeout;
-}
-
-// @public (undocumented)
-export interface IBasicModuleScope extends ITestEnv {
-    // (undocumented)
-    [key: string]: any;
-    // (undocumented)
-    console: Record<string, (...args: any[]) => void>;
-    // (undocumented)
-    expect: jest.Expect;
-}
-
-// @public (undocumented)
-export interface IBasicProcessorOptions<T extends ECompilerType> {
-    // (undocumented)
-    compilerType: T;
-    // (undocumented)
-    configFiles?: string[];
-    // (undocumented)
-    defaultOptions?: (context: ITestContext) => TCompilerOptions<T>;
-    // (undocumented)
-    findBundle?: (context: ITestContext, options: TCompilerOptions<T>) => string[] | string | void;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    overrideOptions?: (context: ITestContext, options: TCompilerOptions<T>) => void;
-    // (undocumented)
-    runable: boolean;
-}
-
-// @public (undocumented)
-export interface IBasicRunnerOptions<T extends ECompilerType> {
-    // (undocumented)
-    cachable?: boolean;
-    // (undocumented)
-    compilerOptions: TCompilerOptions<T>;
-    // (undocumented)
-    dist: string;
-    // (undocumented)
-    env: ITestEnv;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    runInNewContext?: boolean;
-    // (undocumented)
-    source: string;
-    // (undocumented)
-    stats?: () => TCompilerStatsCompilation<T>;
-    // (undocumented)
-    testConfig: TTestConfig<T>;
-}
-
-// @public (undocumented)
-export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "runable"> {
-}
-
-// @public (undocumented)
-export interface ICacheProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    sourceDir: string;
-    // (undocumented)
-    target: TCompilerOptions<T>["target"];
-    // (undocumented)
-    tempDir: string;
-}
-
-// @public (undocumented)
-export interface ICompareOptions {
-    // (undocumented)
-    bootstrap?: boolean;
-    // (undocumented)
-    detail?: boolean;
-    // (undocumented)
-    format: IFormatCodeOptions;
-    // (undocumented)
-    modules?: TCompareModules;
-    // (undocumented)
-    renameModule?: (name: string) => string;
-    // (undocumented)
-    runtimeModules?: TCompareModules;
-    // (undocumented)
-    snapshot?: string;
 }
 
 // @public (undocumented)
@@ -741,211 +218,51 @@ interface IConcurrentTestEnv {
 }
 
 // @public (undocumented)
-export interface IConfigProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
+export interface IGlobalContext {
+    // (undocumented)
+    [key: string]: any;
+    // (undocumented)
+    clearTimeout: typeof clearTimeout;
+    // (undocumented)
+    console: Record<string, (...args: any[]) => void>;
+    // (undocumented)
+    setTimeout: typeof setTimeout;
 }
 
 // @public (undocumented)
-export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
+export interface IModuleScope extends ITestEnv {
     // (undocumented)
-    compilerType: T;
+    [key: string]: any;
     // (undocumented)
-    cwd?: string;
+    console: Record<string, (...args: any[]) => void>;
     // (undocumented)
-    diff: (diff: jest.JestMatchers<RspackTestDiff>, defaults: jest.JestMatchers<TCompilerOptions<T>>) => Promise<void>;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    options?: (context: ITestContext) => TCompilerOptions<T>;
+    expect: Expect;
 }
 
 // @public (undocumented)
-export interface IDiagnosticProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+export interface INodeRunnerOptions {
     // (undocumented)
-    format?: (output: string) => string;
+    cachable?: boolean;
     // (undocumented)
-    snapshot: string;
-    // (undocumented)
-    snapshotErrors: string;
-    // (undocumented)
-    snapshotWarning: string;
-}
-
-// @public (undocumented)
-export interface IDiffComparatorOptions {
-    // (undocumented)
-    bootstrap?: boolean;
-    // (undocumented)
-    files: string[];
-    // (undocumented)
-    formatOptions?: IFormatCodeOptions;
-    // (undocumented)
-    modules?: TCompareModules;
-    // (undocumented)
-    reporters: ITestReporter<unknown>[];
-    // (undocumented)
-    rspackDist: string;
-    // (undocumented)
-    runtimeModules?: TCompareModules;
-    // (undocumented)
-    webpackDist: string;
-}
-
-// @public (undocumented)
-export interface IDiffHtmlReporterOptions {
+    compilerOptions: RspackOptions;
     // (undocumented)
     dist: string;
     // (undocumented)
-    ignore?: RegExp;
-}
-
-// @public (undocumented)
-export interface IDiffProcessorOptions extends IFormatCodeOptions {
+    env: ITestEnv;
     // (undocumented)
-    bootstrap?: boolean;
+    errors?: Error[];
     // (undocumented)
-    detail?: boolean;
-    // (undocumented)
-    errors?: boolean;
-    // (undocumented)
-    files?: string[];
-    // (undocumented)
-    modules?: TCompareModules;
-    // (undocumented)
-    onCompareFile?: (file: string, result: TFileCompareResult) => void;
-    // (undocumented)
-    onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
-    // (undocumented)
-    onCompareRuntimeModules?: (file: string, results: TModuleCompareResult[]) => void;
-    // (undocumented)
-    renameModule?: (file: string) => string;
-    // (undocumented)
-    replacements?: IFormatCodeReplacement[];
-    // (undocumented)
-    rspackPath: string;
-    // (undocumented)
-    runtimeModules?: TCompareModules;
-    // (undocumented)
-    webpackPath: string;
-}
-
-// @public (undocumented)
-export interface IDiffStatsReporterOptions {
-    // (undocumented)
-    file: string;
-    // (undocumented)
-    footer?: string[];
-    // (undocumented)
-    header?: string[];
-    // (undocumented)
-    report?: boolean;
-}
-
-// @public (undocumented)
-export interface IErrorProcessorOptions<T extends ECompilerType> {
-    // (undocumented)
-    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    check?: (stats: RspackStatsDiagnostics) => Promise<void>;
-    // (undocumented)
-    compilerType: T;
+    logs?: string[];
     // (undocumented)
     name: string;
     // (undocumented)
-    options?: (options: TCompilerOptions<T>, context: ITestContext) => TCompilerOptions<T>;
-}
-
-// @public (undocumented)
-export interface IFormatCodeOptions {
+    runInNewContext?: boolean;
     // (undocumented)
-    ignoreBlockOnlyStatement: boolean;
+    source: string;
     // (undocumented)
-    ignoreCssFilePath: boolean;
+    stats?: () => StatsCompilation;
     // (undocumented)
-    ignoreIfCertainCondition: boolean;
-    // (undocumented)
-    ignoreModuleArguments: boolean;
-    // (undocumented)
-    ignoreModuleId: boolean;
-    // (undocumented)
-    ignoreObjectPropertySequence: boolean;
-    // (undocumented)
-    ignorePropertyQuotationMark: boolean;
-    // (undocumented)
-    ignoreSwcHelpersPath: boolean;
-    // (undocumented)
-    replacements?: IFormatCodeReplacement[];
-}
-
-// @public (undocumented)
-export interface IFormatCodeReplacement {
-    // (undocumented)
-    from: string | RegExp;
-    // (undocumented)
-    to: string;
-}
-
-// @public (undocumented)
-export interface IHashProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
-}
-
-// @public (undocumented)
-export interface IHookProcessorOptions<T extends ECompilerType> extends ISnapshotProcessorOptions<T> {
-    // (undocumented)
-    check?: (context: ITestContext) => Promise<void>;
-    // (undocumented)
-    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    options?: (context: ITestContext) => TCompilerOptions<T>;
-}
-
-// @public (undocumented)
-export interface IHotIncrementalProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    target: TCompilerOptions<T>["target"];
-    // (undocumented)
-    webpackCases: boolean;
-}
-
-// @public (undocumented)
-export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    checkSteps?: boolean;
-    // (undocumented)
-    target: TCompilerOptions<T>["target"];
-}
-
-// @public (undocumented)
-export interface IHotSnapshotProcessorOptions<T extends ECompilerType> extends IHotProcessorOptions<T> {
-    // (undocumented)
-    getModuleHandler?: TModuleGetHandler;
-    // (undocumented)
-    snapshot?: string;
-}
-
-// @public (undocumented)
-export interface IMultiTaskProcessorOptions<T extends ECompilerType> {
-    // (undocumented)
-    compilerType: T;
-    // (undocumented)
-    configFiles?: string[];
-    // (undocumented)
-    defaultOptions?: (index: number, context: ITestContext) => TCompilerOptions<T>;
-    // (undocumented)
-    findBundle?: (index: number, context: ITestContext, options: TCompilerOptions<T>) => string[] | string | void;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    overrideOptions?: (index: number, context: ITestContext, options: TCompilerOptions<T>) => void;
-    // (undocumented)
-    runable: boolean;
-}
-
-// @public (undocumented)
-export interface INormalProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
-    // (undocumented)
-    compilerOptions?: TCompilerOptions<T>;
-    // (undocumented)
-    root: string;
+    testConfig: TTestConfig;
 }
 
 // @public (undocumented)
@@ -958,57 +275,7 @@ export const isDirectory: (p: string) => boolean;
 export const isFile: (p: string) => boolean;
 
 // @public (undocumented)
-export interface ISimpleProcessorOptions<T extends ECompilerType> {
-    // (undocumented)
-    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    check?: (context: ITestContext, compiler: TCompiler<T>, stats: TCompilerStats<T>) => Promise<void>;
-    // (undocumented)
-    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    compilerType: T;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    options?: (context: ITestContext) => TCompilerOptions<T>;
-}
-
-// @public (undocumented)
 export function isJavaScript(filePath: string): boolean;
-
-// @public (undocumented)
-export interface ISnapshotProcessorOptions<T extends ECompilerType> extends IBasicProcessorOptions<T> {
-    // (undocumented)
-    snapshot: string;
-    // (undocumented)
-    snapshotFileFilter?: (file: string) => boolean;
-}
-
-// @public (undocumented)
-export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
-    // (undocumented)
-    build?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    check?: (stats: TCompilerStats<T>, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    compiler?: (context: ITestContext, compiler: TCompiler<T>) => Promise<void>;
-    // (undocumented)
-    compilerType: T;
-    // (undocumented)
-    name: string;
-    // (undocumented)
-    options?: (context: ITestContext) => TCompilerOptions<T>;
-    // (undocumented)
-    snapshotName?: string;
-}
-
-// @public (undocumented)
-export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
-    // (undocumented)
-    snapshotName?: string;
-    // (undocumented)
-    writeStatsOuptut?: boolean;
-}
 
 // @public (undocumented)
 export function isUpdateSnapshot(): boolean;
@@ -1017,25 +284,27 @@ export function isUpdateSnapshot(): boolean;
 export const isValidCaseDirectory: (name: string) => boolean;
 
 // @public (undocumented)
-export interface ITestCompilerManager<T extends ECompilerType> {
+export interface ITestCompilerManager {
     // (undocumented)
-    build(): Promise<TCompilerStats<T>>;
+    build(): Promise<Stats>;
     // (undocumented)
     close(): Promise<void>;
     // (undocumented)
-    createCompiler(): TCompiler<T>;
+    createCompiler(): Compiler;
     // (undocumented)
-    getCompiler(): TCompiler<T> | null;
+    createCompilerWithCallback(callback: (error: Error | null, stats: Stats | null) => void): Compiler;
+    // (undocumented)
+    getCompiler(): Compiler | null;
     // (undocumented)
     getEmitter(): EventEmitter;
     // (undocumented)
-    getOptions(): TCompilerOptions<T>;
+    getOptions(): RspackOptions;
     // (undocumented)
-    getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
+    getStats(): Stats | MultiStats | null;
     // (undocumented)
-    mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+    mergeOptions(newOptions: RspackOptions): RspackOptions;
     // (undocumented)
-    setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
+    setOptions(newOptions: RspackOptions): RspackOptions;
     // (undocumented)
     watch(timeout?: number): void;
 }
@@ -1043,35 +312,31 @@ export interface ITestCompilerManager<T extends ECompilerType> {
 // @public (undocumented)
 export interface ITestContext {
     // (undocumented)
-    clearError(name?: string): void;
+    clearError(): void;
     // (undocumented)
-    emitError(name: string, err: Error | string): void;
+    closeCompiler(): Promise<void>;
     // (undocumented)
-    getCompiler<T extends ECompilerType>(name: string, type: T | void): ITestCompilerManager<T>;
+    emitError(err: Error | string): void;
+    // (undocumented)
+    getCompiler(): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
-    getError(name?: string): Error[];
+    getError(): Error[];
     // (undocumented)
-    getNames(): string[];
-    // (undocumented)
-    getRunner(key: string): ITestRunner | null;
-    // (undocumented)
-    getRunnerFactory<T extends ECompilerType>(name: string): TRunnerFactory<T> | null;
+    getRunner(file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
     getTemp(sub?: string): string | null;
     // (undocumented)
-    getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+    getTestConfig(): TTestConfig;
     // (undocumented)
-    getValue<T>(name: string, key: string): T | void;
+    getValue<T>(key: string): T | void;
     // (undocumented)
-    hasError(name?: string): boolean;
+    hasError(): boolean;
     // (undocumented)
-    setRunner(key: string, runner: ITestRunner): void;
-    // (undocumented)
-    setValue<T>(name: string, key: string, value: T): void;
+    setValue<T>(key: string, value: T): void;
 }
 
 // @public (undocumented)
@@ -1083,13 +348,15 @@ export interface ITestEnv {
     // (undocumented)
     beforeEach: (...args: any[]) => void;
     // (undocumented)
-    expect: jest.Expect;
+    expect: Expect;
     // (undocumented)
     it: (...args: any[]) => void;
 }
 
 // @public (undocumented)
 export interface ITester {
+    // (undocumented)
+    after(): Promise<void>;
     // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
@@ -1111,15 +378,15 @@ export interface ITester {
 // @public (undocumented)
 export interface ITesterConfig {
     // (undocumented)
-    compilerFactories?: TCompilerFactories;
-    // (undocumented)
     contextValue?: Record<string, unknown>;
+    // (undocumented)
+    createContext?: (config: ITesterConfig) => ITestContext;
     // (undocumented)
     dist: string;
     // (undocumented)
     name: string;
     // (undocumented)
-    runnerFactory?: new (name: string, context: ITestContext) => TRunnerFactory<ECompilerType>;
+    runnerCreator?: TTestRunnerCreator;
     // (undocumented)
     src: string;
     // (undocumented)
@@ -1127,7 +394,7 @@ export interface ITesterConfig {
     // (undocumented)
     temp?: string;
     // (undocumented)
-    testConfig?: TTestConfig<ECompilerType>;
+    testConfig?: TTestConfig;
 }
 
 // @public (undocumented)
@@ -1147,25 +414,25 @@ export interface ITestProcessor {
     // (undocumented)
     beforeAll?(context: ITestContext): Promise<void>;
     // (undocumented)
-    build?(context: ITestContext): Promise<void>;
+    build(context: ITestContext): Promise<void>;
     // (undocumented)
-    check?(env: ITestEnv, context: ITestContext): Promise<unknown>;
+    check(env: ITestEnv, context: ITestContext): Promise<unknown>;
     // (undocumented)
-    compiler?(context: ITestContext): Promise<void>;
+    compiler(context: ITestContext): Promise<void>;
     // (undocumented)
-    config?(context: ITestContext): Promise<void>;
+    config(context: ITestContext): Promise<void>;
     // (undocumented)
-    run?(env: ITestEnv, context: ITestContext): Promise<void>;
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
 }
 
 // @public (undocumented)
-export interface ITestReporter<T> {
+export interface ITestReporter {
     // (undocumented)
     failure(id: string): Promise<void>;
     // (undocumented)
-    increment(id: string, data: T): Promise<void>;
+    increment<T>(id: string, data: T): Promise<void>;
     // (undocumented)
-    init(data?: T): Promise<void>;
+    init<T>(data?: T): Promise<void>;
     // (undocumented)
     output(): Promise<void>;
 }
@@ -1181,63 +448,9 @@ export interface ITestRunner {
 }
 
 // @public (undocumented)
-export interface IWatchProcessorOptions<T extends ECompilerType> extends IMultiTaskProcessorOptions<T> {
+export interface IWebRunnerOptions extends INodeRunnerOptions {
     // (undocumented)
-    nativeWatcher?: boolean;
-    // (undocumented)
-    stepName: string;
-    // (undocumented)
-    tempDir: string;
-}
-
-// @public (undocumented)
-interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
-    // (undocumented)
-    isWeb: boolean;
-    // (undocumented)
-    state: Record<string, any>;
-    // (undocumented)
-    stepName: string;
-}
-
-// @public (undocumented)
-export interface IWatchStepProcessorOptions<T extends ECompilerType> extends Omit<IWatchProcessorOptions<T>, "experiments" | "optimization"> {
-}
-
-// @public (undocumented)
-export interface IWebRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> extends IBasicRunnerOptions<T> {
-    // (undocumented)
-    dom: EDocumentType;
-}
-
-// @public (undocumented)
-export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> extends CommonJsRunner<T> {
-    constructor(_webOptions: IBasicRunnerOptions<T>);
-    // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope_2;
-    // (undocumented)
-    protected createJSDOMRequirer(): TRunnerRequirer;
-    // (undocumented)
-    protected createResourceLoader(): {
-        fetch(url: string, _: {
-            element: HTMLScriptElement;
-        }): any;
-    };
-    // (undocumented)
-    protected createRunner(): void;
-    // (undocumented)
-    getGlobal(name: string): unknown;
-    // (undocumented)
-    protected getModuleContent(file: TBasicRunnerFile): [
-        {
-        exports: Record<string, unknown>;
-    },
-    string
-    ];
-    // (undocumented)
-    run(file: string): Promise<unknown>;
-    // (undocumented)
-    protected _webOptions: IBasicRunnerOptions<T>;
+    location: string;
 }
 
 // @public (undocumented)
@@ -1247,56 +460,48 @@ export class LazyCompilationTestPlugin {
 }
 
 // @public (undocumented)
-export class MultipleRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
+export class NodeRunner implements ITestRunner {
+    constructor(_options: INodeRunnerOptions);
     // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected baseModuleScope: IModuleScope | null;
     // (undocumented)
-    protected getFileIndexHandler(file: string): {
-        getIndex: () => number[];
-        flagIndex: () => Set<string>;
-    };
+    protected createBaseModuleScope(): IModuleScope;
     // (undocumented)
-    protected getRunnerKey(file: string): string;
+    protected createCjsRequirer(): TRunnerRequirer;
     // (undocumented)
-    protected runned: Set<string>;
-}
-
-// @public (undocumented)
-export class MultiTaskProcessor<T extends ECompilerType> extends BasicProcessor<T> implements ITestProcessor {
-    constructor(_multiOptions: IMultiTaskProcessorOptions<T>);
+    protected createEsmRequirer(): TRunnerRequirer;
     // (undocumented)
-    config(context: ITestContext): Promise<void>;
+    protected createGlobalContext(): IGlobalContext;
     // (undocumented)
-    protected multiCompilerOptions: TCompilerOptions<T>[];
+    protected createJsonRequirer(): TRunnerRequirer;
     // (undocumented)
-    protected _multiOptions: IMultiTaskProcessorOptions<T>;
-}
-
-// @public (undocumented)
-export class NormalProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-    constructor(_normalOptions: INormalProcessorOptions<T>);
+    protected createMissRequirer(): TRunnerRequirer;
     // (undocumented)
-    static defaultOptions<T extends ECompilerType>(this: NormalProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    protected createModuleScope(requireFn: TRunnerRequirer, m: TModuleObject, file: TRunnerFile): IModuleScope;
     // (undocumented)
-    protected _normalOptions: INormalProcessorOptions<T>;
+    protected createRunner(): void;
     // (undocumented)
-    static overrideOptions<T extends ECompilerType>(options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
-export class NormalRunner<T extends ECompilerType = ECompilerType.Rspack> extends EsmRunner<T> {
+    protected getFile(modulePath: string[] | string, currentDirectory: string): TRunnerFile | null;
     // (undocumented)
-    protected createBaseModuleScope(): IBasicModuleScope;
+    getGlobal(name: string): unknown;
     // (undocumented)
-    protected createModuleScope(requireFn: TRunnerRequirer, m: {
-        exports: unknown;
-    }, file: TBasicRunnerFile): IBasicModuleScope;
-}
-
-// @public (undocumented)
-export class NormalRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
+    getRequire(): TRunnerRequirer;
     // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected globalContext: IGlobalContext | null;
+    // (undocumented)
+    protected log(message: string): void;
+    // (undocumented)
+    protected _options: INodeRunnerOptions;
+    // (undocumented)
+    protected postExecute(m: Object, file: TRunnerFile): void;
+    // (undocumented)
+    protected preExecute(code: string, file: TRunnerFile): void;
+    // (undocumented)
+    protected requireCache: any;
+    // (undocumented)
+    protected requirers: Map<string, TRunnerRequirer>;
+    // (undocumented)
+    run(file: string): Promise<unknown>;
 }
 
 // @public (undocumented)
@@ -1309,22 +514,7 @@ export function parseModules(content: string, options?: {
 };
 
 // @public (undocumented)
-export function readConfigFile<T extends ECompilerType>(files: string[], functionApply?: (config: (TCompilerOptions<T> | ((...args: unknown[]) => TCompilerOptions<T>))[]) => TCompilerOptions<T>[]): TCompilerOptions<T>[];
-
-// @public (undocumented)
-export function replaceModuleArgument(raw: string): string;
-
-// @public (undocumented)
-export function replaceRuntimeModuleName(content: string): string;
-
-// @public (undocumented)
-export class RspackDiffConfigPlugin implements RspackPluginInstance {
-    constructor(modifier?: ((options: RspackOptionsNormalized) => RspackOptionsNormalized) | undefined);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    name: string;
-}
+export function readConfigFile(files: string[], context: ITestContext, prevOption?: RspackOptions, functionApply?: (config: (RspackOptions | ((...args: unknown[]) => RspackOptions))[]) => RspackOptions[]): RspackOptions[];
 
 // @public (undocumented)
 class RspackStatsDiagnostics {
@@ -1343,90 +533,6 @@ class RspackTestDiff {
 }
 
 // @public (undocumented)
-export class SimpleTaskProcessor<T extends ECompilerType> implements ITestProcessor {
-    constructor(_options: ISimpleProcessorOptions<T>);
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    afterAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
-    beforeAll(context: ITestContext): Promise<void>;
-    // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    config(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected getCompiler(context: ITestContext): ITestCompilerManager_2<T>;
-    // (undocumented)
-    protected _options: ISimpleProcessorOptions<T>;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-}
-
-// @public (undocumented)
-export class SnapshotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
-    constructor(_snapshotOptions: ISnapshotProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    serializeEachFile(content: string): string;
-    // (undocumented)
-    protected _snapshotOptions: ISnapshotProcessorOptions<T>;
-}
-
-// @public (undocumented)
-export class StatsAPIProcessor<T extends ECompilerType> extends SimpleTaskProcessor<T> {
-    constructor(_statsAPIOptions: IStatsAPIProcessorOptions<T>);
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _statsAPIOptions: IStatsAPIProcessorOptions<T>;
-}
-
-// @public (undocumented)
-export class StatsProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
-    constructor(_statsOptions: IStatsProcessorOptions<T>);
-    // (undocumented)
-    after(context: ITestContext): Promise<void>;
-    // (undocumented)
-    before(context: ITestContext): Promise<void>;
-    // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    static defaultOptions<T extends ECompilerType>(index: number, context: ITestContext): TCompilerOptions<T>;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): void;
-}
-
-// @public (undocumented)
-export function supportsImportFn(): boolean;
-
-// @public (undocumented)
-export type TBasicRunnerFile = {
-    path: string;
-    content: string;
-    subPath: string;
-};
-
-// @public (undocumented)
-export type TCaseSummary = Record<TCaseSummaryId, number>;
-
-// @public (undocumented)
-export type TCaseSummaryId = `${TCompilerTypeId}|${TModuleTypeId}|${TDimenTypeId}`;
-
-// @public (undocumented)
 export type TCompareModules = string[] | true;
 
 // @public (undocumented)
@@ -1443,49 +549,49 @@ export type TCompareResult = {
 };
 
 // @public (undocumented)
-export type TCompiler<T> = T extends ECompilerType.Rspack ? Compiler : Compiler_2;
+export type TCompilerCaseConfig = {
+    description: string;
+    error?: boolean;
+    skip?: boolean;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: ({ context, stats, files, compiler, compilation }: {
+        context: ITestContext;
+        stats?: StatsCompilation;
+        files?: Record<string, string>;
+        compiler: Compiler;
+        compilation?: Compilation;
+    }) => Promise<void>;
+    compilerCallback?: (error: Error | null, stats: Stats | null) => void;
+};
 
 // @public (undocumented)
-export type TCompilerCaseConfig = Omit<ISimpleProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+export type TCompilerFactory = (options: RspackOptions | RspackOptions[], callback?: (error: Error | null, stats: Stats | null) => void) => Compiler;
+
+// @public (undocumented)
+export type TConfigCaseConfig = Omit<TTestConfig, "validate">;
+
+// @public (undocumented)
+export type TDefaultsCaseConfig = {
+    options?: (context: ITestContext) => RspackOptions;
+    cwd?: string;
+    diff: (diff: Assertion<RspackTestDiff>, defaults: Assertion<RspackOptions>) => Promise<void>;
     description: string;
 };
 
 // @public (undocumented)
-export type TCompilerFactories = Record<ECompilerType, TCompilerFactory<ECompilerType>>;
-
-// @public (undocumented)
-export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
-
-// @public (undocumented)
-export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack ? MultiStats : MultiStats_2;
-
-// @public (undocumented)
-export type TCompilerOptions<T> = T extends ECompilerType.Rspack ? RspackOptions : Configuration;
-
-// @public (undocumented)
-export type TCompilerStats<T> = T extends ECompilerType.Rspack ? Stats : Stats_2;
-
-// @public (undocumented)
-export type TCompilerStatsCompilation<T> = T extends ECompilerType.Rspack ? StatsCompilation : StatsCompilation_2;
-
-// @public (undocumented)
-export type TCompilerTypeId = ECompilerType.Rspack | ECompilerType.Webpack | "common";
-
-// @public (undocumented)
-export type TConfigCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
-
-// @public (undocumented)
-export type TDefaultsCaseConfig = Omit<IDefaultsConfigProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
-    description: string;
+export type TDiagnosticOptions = {
+    snapshot: string;
+    snapshotErrors: string;
+    snapshotWarning: string;
+    format?: (output: string) => string;
 };
-
-// @public (undocumented)
-export type TDiffCaseConfig = IDiffProcessorOptions;
 
 // @public (undocumented)
 export type TDiffStats = {
     root: string;
-    data: Array<TDiffStatsItem>;
+    data: TDiffStatsItem[];
 };
 
 // @public (undocumented)
@@ -1497,61 +603,59 @@ export type TDiffStatsItem = {
 };
 
 // @public (undocumented)
-export type TDimenTypeId = "modules" | "lines" | "lines-in-common";
-
-// @public (undocumented)
-export type TErrorCaseConfig = Omit<IErrorProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+export type TErrorCaseConfig = {
     description: string;
+    skip?: boolean;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: (stats: RspackStatsDiagnostics) => Promise<void>;
 };
 
 // @public (undocumented)
 export class TestContext implements ITestContext {
     constructor(config: TTestContextOptions);
     // (undocumented)
-    clearError(name?: string): void;
+    clearError(): void;
     // (undocumented)
-    protected compilers: Map<string, ITestCompilerManager<ECompilerType>>;
+    closeCompiler(): Promise<void>;
     // (undocumented)
-    emitError(name: string, err: Error | string): void;
+    protected compiler: ITestCompilerManager | null;
     // (undocumented)
-    protected errors: Map<string, Error[]>;
+    emitError(err: Error | string): void;
     // (undocumented)
-    getCompiler<T extends ECompilerType>(name: string, type: T | void): ITestCompilerManager<T>;
+    protected errors: Error[];
+    // (undocumented)
+    getCompiler(): ITestCompilerManager;
     // (undocumented)
     getDist(sub?: string): string;
     // (undocumented)
-    getError(name?: string): Error[];
+    getError(): Error[];
     // (undocumented)
-    getNames(): string[];
-    // (undocumented)
-    getRunner(key: string): ITestRunner | null;
-    // (undocumented)
-    getRunnerFactory<T extends ECompilerType>(name: string): TRunnerFactory<T> | null;
+    getRunner(file: string, env: ITestEnv): ITestRunner;
     // (undocumented)
     getSource(sub?: string): string;
     // (undocumented)
     getTemp(sub?: string): string | null;
     // (undocumented)
-    getTestConfig<T extends ECompilerType>(): TTestConfig<T>;
+    getTestConfig(): TTestConfig;
     // (undocumented)
-    getValue<T>(name: string, key: string): T | void;
+    getValue<T>(key: string): T | void;
     // (undocumented)
-    hasError(name?: string): boolean;
-    // (undocumented)
-    protected runnerFactory: TRunnerFactory<ECompilerType> | null;
+    hasError(): boolean;
     // (undocumented)
     protected runners: Map<string, ITestRunner>;
     // (undocumented)
-    setRunner(key: string, runner: ITestRunner): void;
+    setValue<T>(key: string, value: T): void;
     // (undocumented)
-    setValue<T>(name: string, key: string, value: T): void;
-    // (undocumented)
-    protected store: Map<string, Record<string, unknown>>;
+    protected store: Map<string, unknown>;
 }
 
 // @public (undocumented)
 export class Tester implements ITester {
     constructor(config: ITesterConfig);
+    // (undocumented)
+    after(): Promise<void>;
     // (undocumented)
     check(env: ITestEnv): Promise<void>;
     // (undocumented)
@@ -1580,28 +684,22 @@ export type TFileCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
-export type THashCaseConfig = Pick<TTestConfig<ECompilerType.Rspack>, "validate">;
+export type THashCaseConfig = Pick<TTestConfig, "validate">;
 
 // @public (undocumented)
-export type THookCaseConfig = Omit<IHookProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType" | "runable"> & {
+export type THookCaseConfig = {
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: (context: ITestContext) => Promise<void>;
+    snapshotFileFilter?: (file: string) => boolean;
     description: string;
 };
 
 // @public (undocumented)
-export type THotStepRuntimeData = {
-    javascript: THotStepRuntimeLangData;
-    css: THotStepRuntimeLangData;
-    statusPath: string[];
-};
-
-// @public (undocumented)
-export type THotStepRuntimeLangData = {
-    outdatedModules: string[];
-    outdatedDependencies: Record<string, string[]>;
-    updatedModules: string[];
-    updatedRuntime: string[];
-    acceptedModules: string[];
-    disposedModules: string[];
+export type THotUpdateContext = {
+    updateIndex: number;
+    totalUpdates: number;
+    changedFiles: string[];
 };
 
 // @public (undocumented)
@@ -1610,48 +708,69 @@ export type TModuleCompareResult = TCompareResult & {
 };
 
 // @public (undocumented)
-type TModuleGetHandler = (file: string, options: TCompilerOptions<ECompilerType>) => string[];
-
-// @public (undocumented)
 export type TModuleObject = {
     exports: unknown;
 };
 
 // @public (undocumented)
-export type TModuleTypeId = "normal" | "runtime";
+export type TMultiCompilerCaseConfig = {
+    description: string;
+    error?: boolean;
+    skip?: boolean;
+    options?: (context: ITestContext) => RspackOptions;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: ({ context, stats, files, compiler, compilation }: {
+        context: ITestContext;
+        stats?: StatsCompilation;
+        files?: Record<string, string>;
+        compiler: Compiler;
+        compilation?: Compilation;
+    }) => Promise<void>;
+    compilerCallback?: (error: Error | null, stats: Stats | null) => void;
+};
 
 // @public (undocumented)
-export interface TRunnerFactory<T extends ECompilerType> {
+export interface TRunnerFactory {
     // (undocumented)
-    create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    create(file: string, compilerOptions: RspackOptions, env: ITestEnv): ITestRunner;
 }
 
 // @public (undocumented)
+export type TRunnerFile = {
+    path: string;
+    content: string;
+    subPath: string;
+};
+
+// @public (undocumented)
 export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | string, context?: {
-    file?: TBasicRunnerFile;
+    file?: TRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
 
 // @public (undocumented)
-export type TSerialCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
-
-// @public (undocumented)
-export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
+export type TStatsAPICaseConfig = {
     description: string;
+    options?: (context: ITestContext) => RspackOptions;
+    snapshotName?: string;
+    compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
+    check?: (stats: Stats, compiler: Compiler) => Promise<void>;
 };
 
 // @public (undocumented)
-export type TTestConfig<T extends ECompilerType> = {
-    documentType?: EDocumentType;
-    validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
-    noTest?: boolean;
+export type TTestConfig = {
+    location?: string;
+    validate?: (stats: Stats | MultiStats, stderr?: string) => void;
+    noTests?: boolean;
     writeStatsOuptut?: boolean;
     writeStatsJson?: boolean;
-    beforeExecute?: () => void;
-    afterExecute?: () => void;
-    moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
-    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T> | undefined, stringStats: String) => boolean;
-    findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
+    beforeExecute?: (options: RspackOptions) => void;
+    afterExecute?: (options: RspackOptions) => void;
+    moduleScope?: (ms: IModuleScope, stats?: StatsCompilation, options?: RspackOptions) => IModuleScope;
+    checkStats?: (stepName: string, jsonStats: StatsCompilation | undefined, stringStats: String) => boolean;
+    findBundle?: (index: number, options: RspackOptions, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
     modules?: Record<string, Object>;
@@ -1659,118 +778,64 @@ export type TTestConfig<T extends ECompilerType> = {
     concurrent?: boolean;
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
+    ignoreNotFriendlyForIncrementalWarnings?: boolean;
+    esmLibPluginOptions?: {
+        preserveModules?: string;
+    };
+    resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 
 // @public (undocumented)
-export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
+export type TTestContextOptions = Omit<ITesterConfig, "steps">;
 
 // @public (undocumented)
-export type TTestFilter<T extends ECompilerType> = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig<T>) => boolean | string;
+export type TTestFilter = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig) => boolean | string;
+
+// @public (undocumented)
+export type TTestRunnerCreator = {
+    key: (context: ITestContext, name: string, file: string) => string;
+    runner: (context: ITestContext, name: string, file: string, env: ITestEnv) => ITestRunner;
+};
 
 // @public (undocumented)
 export type TTestRunResult = Record<string, any>;
 
 // @public (undocumented)
-export type TUpdateOptions = {
-    updateIndex: number;
-    totalUpdates: number;
-    changedFiles: string[];
-};
-
-// @public (undocumented)
-export type WatchIncrementalOptions = {
+type WatchIncrementalOptions = {
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
 };
 
 // @public (undocumented)
-export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
-    constructor(_watchOptions: IWatchProcessorOptions<T>, _watchState: Record<string, any>);
+export class WebRunner extends NodeRunner {
+    constructor(_webOptions: IWebRunnerOptions);
     // (undocumented)
-    build(context: ITestContext): Promise<void>;
+    protected createBaseModuleScope(): IModuleScope;
     // (undocumented)
-    check(env: ITestEnv, context: ITestContext): Promise<void>;
+    protected createJSDOMRequirer(): TRunnerRequirer;
     // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
+    protected createResourceLoader(): {
+        fetch(url: string, options: {
+            element: HTMLScriptElement;
+        }): any;
+    };
     // (undocumented)
-    config(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected currentTriggerFilename: string | null;
-    // (undocumented)
-    static findBundle<T extends ECompilerType>(this: IWatchProcessorOptions<T>, index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
-    // (undocumented)
-    protected lastHash: string | null;
-    // (undocumented)
-    static overrideOptions<T extends ECompilerType>({ tempDir, nativeWatcher }: IWatchProcessorOptions<T>): (index: number, context: ITestContext, options: TCompilerOptions<ECompilerType>) => void;
-    // (undocumented)
-    run(env: ITestEnv, context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _watchOptions: IWatchProcessorOptions<T>;
-    // (undocumented)
-    protected _watchState: Record<string, any>;
-}
-
-// @public (undocumented)
-export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends FakeDocumentWebRunner<T> {
-    constructor(_watchOptions: IWatchRunnerOptions<T>);
-    // (undocumented)
-    protected createModuleScope(requireFn: TRunnerRequirer, m: any, file: TBasicRunnerFile): IBasicModuleScope;
-    // (undocumented)
-    run(file: string): Promise<unknown>;
-    // (undocumented)
-    protected _watchOptions: IWatchRunnerOptions<T>;
-}
-
-// @public (undocumented)
-export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
-    // (undocumented)
-    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
-    // (undocumented)
-    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
-    // (undocumented)
-    protected getRunnerKey(file: string): string;
-}
-
-// @public (undocumented)
-export class WatchStepProcessor<T extends ECompilerType> extends WatchProcessor<T> {
-    constructor(_watchOptions: IWatchStepProcessorOptions<T>, _watchState: Record<string, any>);
-    // (undocumented)
-    build(context: ITestContext): Promise<void>;
-    // (undocumented)
-    compiler(context: ITestContext): Promise<void>;
-    // (undocumented)
-    protected _watchOptions: IWatchStepProcessorOptions<T>;
-    // (undocumented)
-    protected _watchState: Record<string, any>;
-}
-
-// @public (undocumented)
-export class WebpackDiffConfigPlugin {
-    constructor(modifier?: ((options: WebpackOptionsNormalized) => WebpackOptionsNormalized) | undefined);
-    // (undocumented)
-    apply(compiler: Compiler_2): void;
-    // (undocumented)
-    name: string;
-}
-
-// @public (undocumented)
-export class WebpackModulePlaceholderPlugin {
-    // (undocumented)
-    apply(compiler: any): void;
-}
-
-// @public (undocumented)
-export class WebRunner<T extends ECompilerType = ECompilerType.Rspack> implements ITestRunner {
-    constructor(_webOptions: IWebRunnerOptions<T>);
+    protected createRunner(): void;
     // (undocumented)
     getGlobal(name: string): unknown;
     // (undocumented)
-    getRequire(): TRunnerRequirer_2;
+    protected getModuleContent(file: TRunnerFile): [
+        {
+        exports: Record<string, unknown>;
+    },
+    string,
+    number
+    ];
     // (undocumented)
-    protected originMethods: Partial<CommonJsRunner>;
+    protected log(message: string): void;
     // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)
-    protected _webOptions: IWebRunnerOptions<T>;
+    protected _webOptions: IWebRunnerOptions;
 }
 
 // (No @packageDocumentation comment for this package)

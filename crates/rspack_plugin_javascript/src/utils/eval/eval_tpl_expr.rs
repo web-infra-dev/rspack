@@ -1,4 +1,4 @@
-use rspack_core::SpanExt;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{TaggedTpl, Tpl},
@@ -31,6 +31,7 @@ fn get_simplified_template_result<'a>(
       TemplateStringKind::Cooked => quasi_expr
         .cooked
         .as_ref()
+        .and_then(|q| q.as_atom())
         .expect("quasic should be not empty"),
       TemplateStringKind::Raw => &quasi_expr.raw,
     };
@@ -43,14 +44,14 @@ fn get_simplified_template_result<'a>(
         // We can merge quasi + expr + quasi when expr
         // is a const string
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
-        prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
+        prev_expr.set_range(prev_expr.range().0, quasi_expr.span().real_hi());
         // We unset the expression as it doesn't match to a single expression
         prev_expr.set_expression(None);
 
         // also merge for quasis
         let prev_expr = quasis.last_mut().expect("should not empty");
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
-        prev_expr.set_range(prev_expr.range().0, quasi_expr.span_hi().0);
+        prev_expr.set_range(prev_expr.range().0, quasi_expr.span().real_hi());
         prev_expr.set_expression(None);
         continue;
       }
@@ -60,7 +61,7 @@ fn get_simplified_template_result<'a>(
     let part = || {
       let mut part = BasicEvaluatedExpression::new();
       part.set_string(quasi.to_string());
-      part.set_range(quasi_expr.span().real_lo(), quasi_expr.span_hi().0);
+      part.set_range(quasi_expr.span().real_lo(), quasi_expr.span().real_hi());
       part
     };
     // part.set_expression(Some(quasi_expr));
@@ -80,10 +81,10 @@ pub fn eval_tpl_expression<'a>(
   let (quasis, mut parts) = get_simplified_template_result(scanner, kind, tpl);
   if parts.len() == 1 {
     let mut part = parts.remove(0);
-    part.set_range(tpl.span().real_lo(), tpl.span().hi().0);
+    part.set_range(tpl.span().real_lo(), tpl.span().real_hi());
     Some(part)
   } else {
-    let mut res = BasicEvaluatedExpression::with_range(tpl.span().real_lo(), tpl.span().hi().0);
+    let mut res = BasicEvaluatedExpression::with_range(tpl.span().real_lo(), tpl.span().real_hi());
     res.set_template_string(quasis, parts, kind);
     Some(res)
   }
@@ -102,7 +103,7 @@ pub fn eval_tagged_tpl_expression<'a>(
   let tpl = &tagged_tpl.tpl;
   let (quasis, parts) = get_simplified_template_result(scanner, kind, tpl);
   let mut res =
-    BasicEvaluatedExpression::with_range(tagged_tpl.span().real_lo(), tagged_tpl.span().hi().0);
+    BasicEvaluatedExpression::with_range(tagged_tpl.span().real_lo(), tagged_tpl.span().real_hi());
   res.set_template_string(quasis, parts, kind);
   Some(res)
 }

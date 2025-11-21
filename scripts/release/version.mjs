@@ -7,26 +7,34 @@ async function getCommitId() {
 	return result.stdout.replace("\n", "");
 }
 
-export async function getLastVersion(root) {
-	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
-
+function importPkgJson(pkgPath) {
 	try {
 		// Node >= 20
-		const result = await import(pkgPath, {
+		return import(pkgPath, {
 			with: {
 				type: "json"
 			}
 		});
-		return result.default.version;
-	} catch (_e) {
+	} catch (_) {
 		// Node < 20
-		const result = await import(pkgPath, {
+		return import(pkgPath, {
 			assert: {
 				type: "json"
 			}
 		});
-		return result.default.version;
 	}
+}
+
+export async function getPkgName(root) {
+	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
+	const result = await importPkgJson(pkgPath);
+	return result.default.name;
+}
+
+export async function getLastVersion(root) {
+	const pkgPath = path.resolve(root, "./packages/rspack/package.json");
+	const result = await importPkgJson(pkgPath);
+	return result.default.version;
 }
 
 export function getNextName(name, scopePostfix = "canary") {
@@ -34,7 +42,7 @@ export function getNextName(name, scopePostfix = "canary") {
 		return name;
 	}
 	if (name === "create-rspack") {
-		return "create-rspack-canary";
+		return `create-rspack-${scopePostfix}`;
 	}
 	return name.replace(/^@rspack/, `@rspack-${scopePostfix}`);
 }
@@ -148,6 +156,7 @@ export async function version_handler(version, options) {
 	}
 
 	await $`cargo codegen`;
+	await $`pnpm run format:js`;
 
 	console.log("Cargo codegen done");
 }

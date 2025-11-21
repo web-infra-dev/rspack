@@ -128,7 +128,7 @@ impl ProvideSharedPlugin {
           required_version,
         },
       );
-    } else if let Some(description) = &resource_data.resource_description {
+    } else if let Some(description) = resource_data.description() {
       if let Some(description) = description.json().as_object()
         && let Some(version) = description.get("version")
         && let Some(version) = version.as_str()
@@ -232,7 +232,7 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let resource = &create_data.resource_resolve_data.resource;
+  let resource = create_data.resource_resolve_data.resource();
   let resource_data = &create_data.resource_resolve_data;
   if self
     .resolved_provide_map

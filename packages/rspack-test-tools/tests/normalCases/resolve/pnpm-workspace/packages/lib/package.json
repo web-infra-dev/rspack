@@ -1,9 +1,0 @@
-{
-  "name": "@monorepo/lib",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "react": "^19.1.0"
-  }
-}

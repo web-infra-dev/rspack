@@ -1,0 +1,2 @@
+asset a58127a21451ebc1.js xx KiB [emitted] [immutable] (name: main)
+asset 92c4383731fffcb4.js 243 bytes [emitted] [immutable]

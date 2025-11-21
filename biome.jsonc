@@ -9,7 +9,13 @@
 			"allowTrailingCommas": true
 		}
 	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
@@ -27,6 +33,7 @@
 			"correctness": {
 				"noConstructorReturn": "off",
 				"noVoidTypeReturn": "off",
+				"noUnusedPrivateClassMembers": "off",
 				"noUnusedFunctionParameters": "off"
 			},
 			"style": {
@@ -37,12 +44,15 @@
 				"noDynamicNamespaceImportAccess": "off"
 			},
 			"suspicious": {
-				"noFallthroughSwitchClause": "off",
 				"noConfusingVoidType": "off",
 				"noPrototypeBuiltins": "off",
 				"noAssignInExpressions": "off",
 				"noControlCharactersInRegex": "off",
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noImplicitAnyLet": "off",
+				"noUnknownAtRules": "off",
+				"useIterableCallbackReturn": "off",
+				"noTsIgnore": "off"
 			}
 		}
 	},

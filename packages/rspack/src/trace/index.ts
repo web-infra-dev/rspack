@@ -28,16 +28,15 @@ export class JavaScriptTracer {
 	// inspector session for CPU Profiler
 	static session: import("node:inspector").Session;
 	// plugin counter for different channel in trace viewer, choose 100 to avoid conflict with known tracks
-	// biome-ignore lint/correctness/noUnusedPrivateClassMembers: this is a bug of biome which can't analyze cross module usage
 	private static counter = 10000;
+
 	/**
 	 * only first call take effects, subsequent calls will be ignored
 	 * @param layer tracing layer
 	 * @param output tracing output file path
 	 */
 	static async initJavaScriptTrace(layer: string, output: string) {
-		//FIXME:  workaround for Node.js 16 crash bug, remove it when drop support for Node.js 16
-		const { Session } = require("node:inspector");
+		const { Session } = await import("node:inspector");
 		this.session = new Session();
 		this.layer = layer;
 		this.output = output;
@@ -45,6 +44,7 @@ export class JavaScriptTracer {
 		this.state = "on";
 		this.startTime = process.hrtime.bigint(); // use microseconds
 	}
+
 	static uuid() {
 		return this.counter++;
 	}
@@ -145,13 +145,12 @@ export class JavaScriptTracer {
 		};
 	}
 	static pushEvent(event: ChromeEvent) {
-		const stringifiedArgs = Object.keys(event.args || {}).reduce(
-			(acc, key) => {
-				acc[key as string] = JSON.stringify(event.args![key]);
-				return acc;
-			},
-			{} as Record<string, any>
-		);
+		const stringifiedArgs = Object.keys(event.args || {}).reduce<
+			Record<string, string>
+		>((acc, key) => {
+			acc[key] = JSON.stringify(event.args![key]);
+			return acc;
+		}, {});
 		this.events.push({
 			...event,
 			args: stringifiedArgs

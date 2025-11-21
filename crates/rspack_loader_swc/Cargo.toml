@@ -35,12 +35,16 @@ rspack_workspace               = { workspace = true }
 rustc-hash                     = { workspace = true }
 serde                          = { workspace = true, features = ["derive"] }
 serde_json                     = { workspace = true }
+sugar_path                     = { workspace = true }
 swc                            = { workspace = true, features = ["manual-tokio-runtime"] }
 swc_config                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
 
-
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)']
+level     = "warn"

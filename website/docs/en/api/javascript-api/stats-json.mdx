@@ -141,7 +141,7 @@ type StatsChunk = {
   // Sibling chunk IDs
   siblings?: Array<string>;
 
-  // Chunk create reason when splitting hunks (need to enable `optimization.splitChunks`).
+  // Chunk create reason when splitting chunks (need to enable `optimization.splitChunks`).
   reason?: string;
   // List of idHints of the cache groups hit when splitting chunks (need to enable `optimization.splitChunks`).
   idHints: Array<string>;
@@ -258,7 +258,7 @@ type StatsModule = {
 
 ## Entry/ChunkGroup Object
 
-Each entrypoint or chunk group object represents an group of chunks and assets, and its structure is as follows:
+Each entrypoint or chunk group object represents a group of chunks and assets, and its structure is as follows:
 
 ```ts
 type StatsEntrypoints = Record<string, StatsChunkGroup>;
@@ -309,22 +309,33 @@ type StatsChunkGroup = {
 
 ## Error/Warning Object
 
-Each error or warning object represents an error/warning threw during the build process, and its structure is as follows:
+Each error or warning object represents an error/warning thrown during the build process, and its structure is as follows:
 
 ```ts
 type StatsError = {
   // Visual message of the error/warning
   message: string;
-  // Related source file
+  // A custom filename associated with this error/warning.
   file?: string;
   // Detail info of the error/warning
   details?: string;
   // Stack info of the error/warning
   stack?: string;
-
-  // Unique identifier of the module where the error/warning occurs
+  /**
+   * The identifier of the module related to this error/warning.
+   * Usually an absolute path, may include inline loader requests.
+   * @example
+   * - `/path/to/project/src/index.js`
+   * - `!builtin:react-refresh-loader!/path/to/project/src/index.css`
+   */
   moduleIdentifier?: string;
-  // Relative path of the module where the error/warning occurs
+  /**
+   * The readable name of the module related to this error/warning.
+   * Usually a relative path, no inline loader requests.
+   * @example
+   * - `"./src/index.js"`
+   * - `"./src/index.css"`
+   */
   moduleName?: string;
   // ID of the module where the error/warning occurs
   moduleId?: string;

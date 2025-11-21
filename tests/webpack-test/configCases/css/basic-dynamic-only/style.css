@@ -1,5 +1,0 @@
-@import url(https://test.cases/path/../../../../configCases/css/import/external.css);
-@import "style-imported.css";
-body {
-	background: red;
-}

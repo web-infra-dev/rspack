@@ -81,7 +81,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       .await?;
 
     if manifests.contains_key(&target_path) {
-      return Err(Error::msg("each chunk must have a unique path"));
+      return Err(Error::error("each chunk must have a unique path".into()));
     }
 
     let name = if let Some(name) = self.options.name.as_ref() {

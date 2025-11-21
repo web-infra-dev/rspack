@@ -55,19 +55,19 @@ Rspack CLI 是对标 webpack CLI 的工具，提供基础的 `serve` 和 `build`
 
 然后按照提示操作。
 
-### 快速创建
+### 非交互模式
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 提供了一些 CLI 选项。通过设置这些 CLI 选项，你可以跳过交互式的选择步骤，一键创建项目。
+[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 支持通过命令行选项进入非交互模式。使用该模式可以跳过所有提示，直接创建项目，适合脚本、CI 以及 coding agents 等自动化场景。
 
-比如，一键创建 React 项目到 `my-project` 目录：
+例如，以下命令将在 `my-app` 目录中创建一个 React 应用：
 
 ```bash
 # Rspack CLI
-npx create-rspack --dir my-project --template react
+npx -y create-rspack --dir my-app --template react
 # Rsbuild
-npx create-rsbuild --dir my-project --template react
+npx -y create-rsbuild --dir my-app --template react
 # 使用缩写
-npx create-rsbuild -d my-project -t react
+npx -y create-rsbuild -d my-app -t react
 ```
 
 ## 在线示例
@@ -100,7 +100,8 @@ npm init -y
 {
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build"
+    "build": "rspack build",
+    "preview": "rspack preview"
   }
 }
 ```
@@ -118,32 +119,6 @@ npm init -y
 - [从 Vite 迁移到 Rsbuild](https://rsbuild.rs/zh/guide/migration/vite)
 - [从 Tsup 迁移到 Rslib](https://rslib.rs/zh/guide/migration/tsup)
 - [从 Storybook 迁移](/guide/migration/storybook)
-
-## 使用 StackBlitz 在线预览
-
-Rspack >= 1.4 实现了 Wasm 版本，支持直接在 [StackBlitz](https://stackblitz.com/) (WebContainers) 中使用。在当前版本下，如果你想在 StackBlitz 上预览你的 Rspack 项目，需要在安装依赖的时候指定 CPU 架构。不同包管理器指定 CPU 架构的方式有所不同。
-
-对于 npm，可以通过 `--cpu` 指定可选依赖需要满足的条件：
-
-```bash
-npm install --cpu=wasm32
-```
-
-对于 pnpm，需要在项目的 `package.json` 中指定 [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures)：
-
-```json title="package.json"
-{
-  "pnpm": {
-    "supportedArchitectures": {
-      "cpu": ["wasm32"]
-    }
-  }
-}
-```
-
-其余包管理器可自行查阅相应的文档。
-
-未来我们会持续优化使用流程，使用户可以无缝地预览 Rspack 项目。此外，我们也计划提供 `@rspack/browser` 包，允许你在浏览器上直接使用 Rspack。
 
 ## 安装 canary 版本
 

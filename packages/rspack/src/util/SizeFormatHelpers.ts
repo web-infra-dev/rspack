@@ -9,7 +9,7 @@
  */
 
 export const formatSize = (size: unknown) => {
-	if (typeof size !== "number" || Number.isNaN(size) === true) {
+	if (typeof size !== "number" || Number.isNaN(size)) {
 		return "unknown size";
 	}
 

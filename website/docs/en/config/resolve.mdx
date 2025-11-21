@@ -28,6 +28,18 @@ At this point:
 - `require("abc")` will attempt to resolve `<root>/src/abc`.
 - `require("abc/file.js")` will not match, and it will attempt to resolve `node_modules/abc/file.js`.
 
+### Impact on package resolution
+
+When you use `resolve.alias` to redirect a package import (for example, `import 'lib'`) to a specific directory inside a monorepo or within `node_modules`, the module resolution behavior changes:
+
+- **Default behavior**: If the import is a package name, Rspack performs the full package resolution process: it reads the package's `package.json` and determines the entry file and subpath mappings according to the [`exports`](https://nodejs.org/api/packages.html#exports) field.
+- **When aliased**: When an alias resolves to a file system path — for example, `./node_modules/lib` — Rspack no longer treats it as a package name and resolves it as a regular path. This bypasses the standard package resolution logic, causing fields such as `exports` in `package.json` to no longer take effect. This is the intended and standard behavior of Node.js.
+
+### Monorepo usage
+
+If you want packages within a monorepo to retain the same resolution behavior as regular npm packages, avoid using `alias` to point a package name directly to its source directory.
+The recommended approach is to use your package manager's workspace feature to symlink sub-packages into `node_modules`, so they can be resolved just like normal dependencies.
+
 ## resolve.aliasFields
 
 - **Type:** `string[]`
@@ -196,7 +208,49 @@ When this configuration is `["testExports", "exports"]`, the result of `import v
 - **Type:** `string[]`
 - **Default:** `[".js", ".json", ".wasm"]`
 
-Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index.js'`, `'. /index.json'`...
+Automatically resolve file extensions when importing modules. This means you can import files without explicitly writing their extensions.
+
+For example, if importing `./index`, Rspack will try to resolve using the following order:
+
+- `./index.js`
+- `./index.json`
+- `./index.wasm`
+
+### Example
+
+Here's how to configure custom extensions including TypeScript and JSX files:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+  },
+};
+```
+
+When multiple files with the same name but different extensions exist, Rspack will resolve the file with the extension that appears first in the array.
+
+For example, if both `index.js` and `index.ts` exist in the same directory, and your configuration is `['.ts', '.js']`, then `import './index'` will resolve to `index.ts`.
+
+### Extend default value
+
+Note that configuring `resolve.extensions` will completely override the default array, which means Rspack will no longer attempt to resolve modules using the default extensions.
+
+To include the default extensions alongside your custom ones, you can use the spread syntax `'...'`:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    // equivalent to ['.ts', '.js', '.json', '.wasm']
+    extensions: ['.ts', '...'],
+  },
+};
+```
+
+### Performance considerations
+
+- Avoid adding too many extensions as each one adds overhead to the resolution process. Keep the `extensions` array as short as possible to improve resolution performance.
+- Place the most commonly used extensions first in the array.
 
 ## resolve.extensionAlias
 
@@ -323,7 +377,7 @@ When this configuration is ["testImports", "imports"], the result of `import val
 - **Type:** `string[]`
 - **Default:** Based on the [target](/config/target) option
 
-When importing from an npm package, for example `import React from 'react'`, `resolve.mainFields` is used to determine which fields in `package.json` are resolved.
+Controls the priority of fields in a package.json used to locate a package's entry file. It is the ordered list of package.json fields Rspack will try when resolving an npm package's entry point.
 
 If `target` is `'web'`, `'webworker'`, or not specified, the default value is `["browser", "module", "main"]`.
 
@@ -356,6 +410,20 @@ For example, consider an arbitrary library called `foo` with a `package.json` th
 ```
 
 When `import foo from 'foo'`, Rspack resolves to the module in the `browser` field, because the `browser` field has the highest priority in `mainFields` array.
+
+Note that the [`exports` field](https://nodejs.org/api/packages.html#packages_exports) takes precedence over `mainFields`. If an entry is resolved via `exports`, Rspack ignores the `browser`, `module`, and `main` fields.
+
+For example, with the following package.json, `lib` is resolved via the `exports` field to `./dist/index.mjs`, and the `main` field is ignored.
+
+```json title="package.json"
+{
+  "name": "lib",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": "./dist/index.mjs"
+  }
+}
+```
 
 ## resolve.mainFiles
 

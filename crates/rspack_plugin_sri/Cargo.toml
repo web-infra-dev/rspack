@@ -16,7 +16,6 @@ indexmap                        = { workspace = true }
 pathdiff                        = { workspace = true }
 rayon                           = { workspace = true }
 regex                           = { workspace = true }
-rspack_base64                   = { workspace = true }
 rspack_cacheable                = { workspace = true }
 rspack_collections              = { workspace = true }
 rspack_core                     = { workspace = true }
@@ -26,7 +25,6 @@ rspack_hash                     = { workspace = true }
 rspack_hook                     = { workspace = true }
 rspack_paths                    = { workspace = true }
 rspack_plugin_html              = { workspace = true }
-rspack_plugin_mf                = { workspace = true }
 rspack_plugin_real_content_hash = { workspace = true }
 rspack_plugin_runtime           = { workspace = true }
 rspack_util                     = { workspace = true }
@@ -39,3 +37,7 @@ urlencoding                     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "async-trait", "rspack_hash", "tokio"]
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)']
+level     = "warn"

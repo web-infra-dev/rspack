@@ -1,0 +1,21 @@
+ERROR in main.js
+  × Chunk minification failed:
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
+         ╭─[1:6]
+       1 │ const a {}
+         ·       ─
+       2 │ (() => {
+       3 │ console.log(0);
+         ╰────
+
+ERROR in main.js
+  × Chunk minification failed:
+  ╰─▶   × JavaScript parse error: Expected a semicolon
+         ╭─[1:8]
+       1 │ const a {}
+         ·         ─
+       2 │ (() => {
+       3 │ console.log(0);
+         ╰────
+
+Rspack compiled with 2 errors

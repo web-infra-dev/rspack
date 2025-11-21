@@ -1,19 +1,14 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import {
 	BuiltinPluginName,
 	type RawIntegrityData,
-	type RawSubresourceIntegrityPluginOptions,
-	type RspackError
+	type RawSubresourceIntegrityPluginOptions
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { CrossOriginLoading } from "../config/types";
-import { getSRIPluginOptionsSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
-import { nonWebpackRequire } from "../util/require";
 import { create } from "./base";
 
 const PLUGIN_NAME = "SubresourceIntegrityPlugin";
@@ -35,8 +30,8 @@ type HtmlTagObject = {
 type BeforeAssetTagGenerationData = {
 	assets: {
 		publicPath: string;
-		js: Array<string>;
-		css: Array<string>;
+		js: string[];
+		css: string[];
 		favicon?: string;
 		manifest?: string;
 		[extraAssetType: string]: unknown;
@@ -103,29 +98,17 @@ const NativeSubresourceIntegrityPlugin = create(
 export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
 	private integrities: Map<string, string> = new Map();
 	private options: SubresourceIntegrityPluginOptions;
-	private validateError: Error | null = null;
+
 	constructor(options: SubresourceIntegrityPluginOptions = {}) {
-		let validateError: Error | null = null;
 		if (typeof options !== "object") {
 			throw new Error("SubResourceIntegrity: argument must be an object");
 		}
-		try {
-			validateSubresourceIntegrityPluginOptions(options);
-		} catch (e) {
-			validateError = e as Error;
-		}
 
-		const finalOptions = validateError
-			? {
-					hashFuncNames: ["sha384"],
-					htmlPlugin: NATIVE_HTML_PLUGIN,
-					enabled: false
-				}
-			: {
-					hashFuncNames: options.hashFuncNames ?? ["sha384"],
-					htmlPlugin: options.htmlPlugin ?? NATIVE_HTML_PLUGIN,
-					enabled: options.enabled ?? "auto"
-				};
+		const finalOptions = {
+			hashFuncNames: options.hashFuncNames ?? ["sha384"],
+			htmlPlugin: options.htmlPlugin ?? NATIVE_HTML_PLUGIN,
+			enabled: options.enabled ?? "auto"
+		};
 		super({
 			...finalOptions,
 			integrityCallback: (data: RawIntegrityData) => {
@@ -134,7 +117,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 				);
 			}
 		});
-		this.validateError = validateError;
+
 		this.options = finalOptions as SubresourceIntegrityPluginOptions;
 	}
 
@@ -219,11 +202,6 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 
 	apply(compiler: Compiler): void {
 		if (!this.isEnabled(compiler)) {
-			if (this.validateError) {
-				compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-					compilation.errors.push(this.validateError as unknown as RspackError);
-				});
-			}
 			return;
 		}
 
@@ -270,7 +248,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 						) {
 							return;
 						}
-						const hwpHooks = getHooks!(compilation);
+						const hwpHooks = getHooks(compilation);
 						hwpHooks.beforeAssetTagGeneration.tapPromise(
 							PLUGIN_NAME,
 							async data => {
@@ -297,37 +275,21 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 				}
 			}
 
-			if (IS_BROWSER) {
-				nonWebpackRequire()(this.options.htmlPlugin)
-					.then(bindingHtmlHooks)
-					.catch(e => {
-						if (
-							!isErrorWithCode(e as Error) ||
-							(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
-						) {
-							throw e;
-						}
-					});
-			} else {
-				try {
-					bindingHtmlHooks(require(this.options.htmlPlugin));
-				} catch (e) {
-					if (
-						!isErrorWithCode(e as Error) ||
-						(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
-					) {
-						throw e;
-					}
+			try {
+				const htmlPlugin = IS_BROWSER
+					? compiler.__internal_browser_require(this.options.htmlPlugin)
+					: require(this.options.htmlPlugin);
+				bindingHtmlHooks(htmlPlugin);
+			} catch (e) {
+				if (
+					!isErrorWithCode(e as Error) ||
+					(e as Error & { code: string }).code !== "MODULE_NOT_FOUND"
+				) {
+					throw e;
 				}
 			}
 		}
 	}
-}
-
-function validateSubresourceIntegrityPluginOptions(
-	options: SubresourceIntegrityPluginOptions
-) {
-	validate(options, getSRIPluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {
@@ -376,6 +338,7 @@ function computeIntegrity(
 	hashFuncNames: SubresourceIntegrityHashFunction[],
 	source: string | Buffer
 ): string {
+	const { createHash } = require("node:crypto");
 	const result = hashFuncNames
 		.map(
 			hashFuncName =>

@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 1:0-21,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/config/builtin-lightningcss-loader/index.js,
+    moduleName: ./index.js,
+  },
+]

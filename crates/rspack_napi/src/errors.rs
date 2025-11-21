@@ -1,23 +1,20 @@
 use std::{ffi::CString, ptr};
 
 use napi::{Env, Error, bindgen_prelude::*, sys::napi_value};
-use rspack_error::NodeError;
+use rspack_error::Error as RspackError;
 
 pub trait NapiErrorToRspackErrorExt {
-  fn to_rspack_error(self, env: &Env) -> rspack_error::Error;
+  fn to_rspack_error(self, env: &Env) -> RspackError;
 }
 
 impl NapiErrorToRspackErrorExt for Error {
-  fn to_rspack_error(self, env: &Env) -> rspack_error::Error {
+  fn to_rspack_error(self, env: &Env) -> RspackError {
     let (reason, stack, backtrace, hide_stack) =
       extract_stack_or_message_from_napi_error(env, self);
-    (NodeError {
-      reason,
-      stack,
-      backtrace: backtrace.unwrap_or_default(),
-      hide_stack,
-    })
-    .into()
+    let mut err = RspackError::error(format!("{reason}\n{}", backtrace.unwrap_or_default()));
+    err.stack = stack;
+    err.hide_stack = hide_stack;
+    err
   }
 }
 

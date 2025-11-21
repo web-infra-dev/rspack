@@ -1,17 +1,9 @@
 <%- PRELOAD_CHUNK_HANDLERS %>.s = <%- basicFunction("chunkId") %> {
-  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- __CSS_MATCHER__ %>) {
+  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _css_matcher %>) {
     installedChunks[chunkId] = null;
     if (typeof document === 'undefined') return;
 
-    var link = document.createElement('link');
-    <%- __CHARSET_PLACEHOLDER__ %> 
-    if (<%- SCRIPT_NONCE %>) {
-      link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
-    }
-    link.rel = "preload";
-    link.as = "style";
-    link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
-    <%- __CROSS_ORIGIN_PLACEHOLDER__ %> 
+    <%- _create_preload_link %>
     document.head.appendChild(link);
   }
 };

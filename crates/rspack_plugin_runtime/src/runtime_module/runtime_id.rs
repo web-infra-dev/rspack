@@ -40,8 +40,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
           .iter()
           .collect_vec()
           .first()
-          .expect("At least one runtime")
-          .to_string(),
+          .expect("At least one runtime"),
       );
 
       Ok(format!(

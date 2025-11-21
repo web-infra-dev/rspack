@@ -9,6 +9,7 @@ version.workspace = true
 anymap      = { workspace = true }
 async-trait = { workspace = true }
 derive_more = { workspace = true, features = ["debug"] }
+memchr      = { workspace = true }
 rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["test-util"] }
 

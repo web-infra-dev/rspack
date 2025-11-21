@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-wasm32-wasi",
-  "version": "1.4.11",
+  "version": "1.6.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.wasi.cjs",
@@ -13,11 +13,9 @@
   },
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": true,
+    "cpu": ["wasm32"]
   },
-  "cpu": [
-    "wasm32"
-  ],
   "files": [
     "rspack.wasm32-wasi.wasm",
     "rspack.wasi.cjs",
@@ -26,6 +24,6 @@
     "wasi-worker-browser.mjs"
   ],
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^1.0.1"
+    "@napi-rs/wasm-runtime": "1.0.7"
   }
 }

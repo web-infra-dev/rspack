@@ -40,7 +40,7 @@ pub struct ResolvedExportInfoTarget {
 #[derive(Clone, Debug)]
 pub enum FindTargetResult {
   NoTarget,
-  NoValidTarget,
+  InvalidTarget(FindTargetResultItem),
   ValidTarget(FindTargetResultItem),
 }
 
@@ -48,6 +48,7 @@ pub enum FindTargetResult {
 pub struct FindTargetResultItem {
   pub module: ModuleIdentifier,
   pub export: Option<Vec<Atom>>,
+  pub defer: bool,
 }
 
 pub fn get_terminal_binding(
@@ -67,7 +68,7 @@ pub fn get_terminal_binding(
     .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
-pub(crate) fn find_target_from_export_info(
+pub fn find_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
@@ -88,6 +89,12 @@ pub(crate) fn find_target_from_export_info(
       .expect("should have connection")
       .module_identifier(),
     export: raw_target.export.clone(),
+    defer: raw_target
+      .dependency
+      .as_ref()
+      .and_then(|dep| mg.dependency_by_id(dep))
+      .map(|dep| dep.get_phase().is_defer())
+      .unwrap_or_default(),
   };
   loop {
     if valid_target_module_filter(&target.module) {
@@ -109,8 +116,8 @@ pub(crate) fn find_target_from_export_info(
       visited,
     );
     let new_target = match new_target {
-      FindTargetResult::NoTarget => return FindTargetResult::NoValidTarget,
-      FindTargetResult::NoValidTarget => return FindTargetResult::NoValidTarget,
+      FindTargetResult::NoTarget => return FindTargetResult::InvalidTarget(target),
+      FindTargetResult::InvalidTarget(module) => return FindTargetResult::InvalidTarget(module),
       FindTargetResult::ValidTarget(target) => target,
     };
     if target.export.as_ref().map(|item| item.len()) == Some(1) {
@@ -135,6 +142,7 @@ pub(crate) fn find_target_from_export_info(
             .export
             .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
         },
+        defer: new_target.defer,
       }
     }
   }
@@ -159,7 +167,7 @@ pub(crate) fn get_target_with_filter(
   }
 }
 
-pub(crate) fn get_target_from_export_info(
+fn get_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,

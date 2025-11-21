@@ -3,7 +3,6 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
@@ -12,7 +11,7 @@ use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
   ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, RuntimeSpec,
+  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, ResourceIdentifier, RuntimeSpec,
   create_exports_object_referenced,
 };
 
@@ -27,9 +26,9 @@ pub struct ContextElementDependency {
   pub category: DependencyCategory,
   pub context: Context,
   pub layer: Option<ModuleLayer>,
-  pub resource_identifier: String,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
+  pub resource_identifier: ResourceIdentifier,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
   pub factorize_info: FactorizeInfo,
@@ -38,14 +37,14 @@ pub struct ContextElementDependency {
 impl ContextElementDependency {
   pub fn create_resource_identifier(
     resource: &str,
-    path: &Utf8Path,
+    path: &str,
     attributes: Option<&ImportAttributes>,
-  ) -> String {
+  ) -> ResourceIdentifier {
     let mut ident = format!("context{resource}|{path}");
     if let Some(attributes) = attributes {
       ident += &json_stringify(&attributes);
     }
-    ident
+    ident.into()
   }
 }
 
@@ -86,48 +85,46 @@ impl Dependency for ContextElementDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
-      if matches!(
-        self.dependency_type,
-        DependencyType::ContextElement(ContextTypePrefix::Import)
-      ) && referenced_exports
-        .first()
-        .is_some_and(|export| export == "default")
-      {
-        let is_strict = module_graph
-          .get_parent_module(&self.id)
-          .and_then(|id| module_graph.module_by_identifier(id))
-          .and_then(|m| m.as_context_module())
-          .map(|m| {
-            matches!(
-              m.get_context_options().namespace_object,
-              ContextNameSpaceObject::Strict
-            )
+      for referenced_export in referenced_exports {
+        if matches!(
+          self.dependency_type,
+          DependencyType::ContextElement(ContextTypePrefix::Import)
+        ) && referenced_export
+          .first()
+          .is_some_and(|export| export == "default")
+        {
+          let is_strict = module_graph
+            .get_parent_module(&self.id)
+            .and_then(|id| module_graph.module_by_identifier(id))
+            .and_then(|m| m.as_context_module())
+            .map(|m| {
+              matches!(
+                m.get_context_options().namespace_object,
+                ContextNameSpaceObject::Strict
+              )
+            });
+
+          let exports_type = is_strict.and_then(|is_strict| {
+            module_graph
+              .get_module_by_dependency_id(&self.id)
+              .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
           });
 
-        let exports_type = is_strict.and_then(|is_strict| {
-          module_graph
-            .get_module_by_dependency_id(&self.id)
-            .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
-        });
-
-        if let Some(exports_type) = exports_type
-          && matches!(
-            exports_type,
-            ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-          )
-        {
-          return create_exports_object_referenced();
+          if let Some(exports_type) = exports_type
+            && matches!(
+              exports_type,
+              ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+            )
+          {
+            return create_exports_object_referenced();
+          }
         }
       }
 
       referenced_exports
         .iter()
         .map(|export| {
-          ExtendedReferencedExport::Export(ReferencedExport::new(
-            vec![export.clone()],
-            false,
-            false,
-          ))
+          ExtendedReferencedExport::Export(ReferencedExport::new(export.clone(), false, false))
         })
         .collect_vec()
     } else {

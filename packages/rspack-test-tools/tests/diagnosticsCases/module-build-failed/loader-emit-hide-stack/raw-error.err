@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js!<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/lib.js,
-    moduleName: ./lib.js,
-  },
-]

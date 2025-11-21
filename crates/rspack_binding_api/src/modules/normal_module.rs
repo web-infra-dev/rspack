@@ -29,7 +29,7 @@ impl NormalModule {
     let (_, module) = self.as_ref()?;
 
     let resource_resolved_data = module.resource_resolved_data();
-    let resource = env.create_string(&resource_resolved_data.resource)?;
+    let resource = env.create_string(resource_resolved_data.resource())?;
     let request = env.create_string(module.request())?;
     let user_request = env.create_string(module.user_request())?;
     let raw_request = env.create_string(module.raw_request())?;
@@ -51,14 +51,14 @@ impl NormalModule {
     });
 
     #[js_function]
-    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
+    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&str, ()>> {
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
 
       let (_, module) = wrapped_value.as_ref()?;
       Ok(match module.match_resource() {
-        Some(match_resource) => Either::A(&match_resource.resource),
+        Some(match_resource) => Either::A(match_resource.resource()),
         None => Either::B(()),
       })
     }
@@ -78,12 +78,8 @@ impl NormalModule {
             query,
             fragment,
           } = parse_resource(&val).expect("Should parse resource");
-          *module.match_resource_mut() = Some(
-            ResourceData::new(val)
-              .path(path)
-              .query_optional(query)
-              .fragment_optional(fragment),
-          );
+          *module.match_resource_mut() =
+            Some(ResourceData::new_with_path(val, path, query, fragment));
         }
         Either::B(_) => {}
       }

@@ -1,0 +1,21 @@
+{
+  "name": "@rspack/binding-linux-arm64-gnu",
+  "version": "1.6.4",
+  "license": "MIT",
+  "description": "Node binding for rspack",
+  "main": "rspack.linux-arm64-gnu.node",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
+  "publishConfig": {
+    "access": "public",
+    "os": ["linux"],
+    "cpu": ["arm64"],
+    "libc": ["glibc"]
+  },
+  "files": ["rspack.linux-arm64-gnu.node"]
+}

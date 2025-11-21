@@ -4,7 +4,7 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
@@ -19,6 +19,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
+use swc_core::atoms::Atom;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -393,7 +394,7 @@ async fn embed_in_runtime_bailout(
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(&base.as_str().into())
+      && top_level_decls.contains(&Atom::new(base.as_str()))
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."
@@ -475,6 +476,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       let info = export_info.as_data_mut(&mut module_graph);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
+      info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));

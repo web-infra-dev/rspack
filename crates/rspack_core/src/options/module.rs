@@ -1,11 +1,12 @@
 use std::{
-  fmt::{self, Debug},
+  fmt,
   ops::{Deref, DerefMut},
   sync::Arc,
 };
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
@@ -146,6 +147,7 @@ impl fmt::Display for DynamicImportFetchPriority {
 pub enum JavascriptParserUrl {
   Enable,
   Disable,
+  NewUrlRelative,
   Relative,
 }
 
@@ -154,6 +156,7 @@ impl From<&str> for JavascriptParserUrl {
     match value {
       "false" => Self::Disable,
       "relative" => Self::Relative,
+      "new-url-relative" => Self::NewUrlRelative,
       _ => Self::Enable,
     }
   }
@@ -189,6 +192,26 @@ impl From<&str> for JavascriptParserOrder {
       }
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq)]
+pub enum JavascriptParserCommonjsExportsOption {
+  Enable,
+  Disable,
+  SkipInEsm,
+}
+
+impl From<bool> for JavascriptParserCommonjsExportsOption {
+  fn from(value: bool) -> Self {
+    if value { Self::Enable } else { Self::Disable }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JavascriptParserCommonjsOptions {
+  pub exports: JavascriptParserCommonjsExportsOption,
 }
 
 #[cacheable]
@@ -281,8 +304,12 @@ pub struct JavascriptParserOptions {
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,
   pub require_resolve: Option<bool>,
+  pub commonjs: Option<JavascriptParserCommonjsOptions>,
   pub import_dynamic: Option<bool>,
+  pub commonjs_magic_comments: Option<bool>,
   pub inline_const: Option<bool>,
+  pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[cacheable]
@@ -351,7 +378,7 @@ pub enum ParseOption {
   None,
 }
 
-impl Debug for ParseOption {
+impl fmt::Debug for ParseOption {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Func(_) => write!(f, "ParseOption::Func(...)"),
@@ -992,6 +1019,7 @@ pub struct ModuleRule {
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,
   pub effect: ModuleRuleEffect,
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -1005,6 +1033,7 @@ pub struct ModuleRuleEffect {
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
+  pub extract_source_map: Option<bool>,
 }
 
 pub enum ModuleRuleUse {
@@ -1018,7 +1047,7 @@ impl Default for ModuleRuleUse {
   }
 }
 
-impl Debug for ModuleRuleUse {
+impl fmt::Debug for ModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
     match self {
       ModuleRuleUse::Array(array_use) => write!(
@@ -1044,7 +1073,7 @@ pub enum ModuleNoParseRule {
   TestFn(ModuleNoParseTestFn),
 }
 
-impl Debug for ModuleNoParseRule {
+impl fmt::Debug for ModuleNoParseRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::TestFn(_) => "Fn(...)".fmt(f),
@@ -1087,6 +1116,9 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
+pub type UnsafeCachePredicate =
+  Box<dyn Fn(&dyn Module) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
@@ -1096,4 +1128,6 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  pub unsafe_cache: Option<UnsafeCachePredicate>,
 }

@@ -51,7 +51,7 @@ export default function Mermaid({
   return (
     <>
       {renderError || !svg ? null : (
-        <div style={style} className="rspack-mermaid">
+        <div style={style} className="rspack-mermaid rp-not-doc">
           <h3>{title}</h3>
           {/* biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
           <div dangerouslySetInnerHTML={{ __html: svg }} />

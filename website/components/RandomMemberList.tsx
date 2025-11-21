@@ -72,11 +72,6 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team, webpack contributor',
   },
   {
-    id: 'bvanjoi',
-    avatar: 'https://avatars.githubusercontent.com/u/30187863?s=120&v=4',
-    desc: 'Rspack core team, Rust language contributor',
-  },
-  {
     id: 'h-a-n-a',
     name: 'Hana',
     avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
@@ -108,12 +103,6 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team',
   },
   {
-    id: 'sanyuan0704',
-    avatar: 'https://avatars.githubusercontent.com/u/39261479?s=120&v=4',
-    x: 'https://x.com/sanyuan0704',
-    desc: 'Rspack core team',
-  },
-  {
     id: 'zackarychapple',
     avatar: 'https://avatars.githubusercontent.com/u/2133184?v=4',
     desc: 'Rspack core team, CEO at ZephyrCloudIO',
@@ -134,7 +123,7 @@ const coreTeam: Member[] = [
   {
     id: 'ScriptedAlchemy',
     avatar: 'https://avatars.githubusercontent.com/u/25274700?v=4',
-    desc: 'Inventor of Module Federation, Rspack / webpack core team',
+    desc: 'Inventor of Module Federation, Rspack & webpack core team',
     bluesky: 'https://bsky.app/profile/scriptedalchemy.bsky.social',
     x: 'https://x.com/ScriptedAlchemy',
   },
@@ -175,16 +164,10 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team',
   },
   {
-    id: 'shulaoda',
-    avatar: 'https://avatars.githubusercontent.com/u/165626830?v=4',
-    x: 'https://x.com/dalaoshv',
-    desc: 'Rspack core team',
-  },
-  {
     id: 'inottn',
     avatar: 'https://avatars.githubusercontent.com/u/18509404?v=4',
     x: 'https://x.com/inorr_r',
-    desc: 'Rspack / Vant core team',
+    desc: 'Rspack & Vant core team',
   },
   {
     id: 'GiveMe-A-Name',
@@ -206,7 +189,7 @@ const coreTeam: Member[] = [
     id: 'CPunisher',
     avatar: 'https://avatars.githubusercontent.com/u/8509934?v=4',
     x: 'https://x.com/c_punisher',
-    desc: 'Rspack core team, SWC core team',
+    desc: 'Rspack & SWC core team',
   },
   {
     id: 'quininer',
@@ -220,7 +203,7 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
   const randomList = list.sort(() => Math.random() - 0.5);
   return (
     <NoSSR>
-      <div className={style.wrapper}>
+      <div className={`${style.wrapper} rp-not-doc`}>
         {randomList.map(item => (
           <div className={style.card} key={item.id}>
             <img className={style.avatar} src={item.avatar} alt="avatar" />
@@ -269,29 +252,46 @@ export const RandomContributorsList = () => {
       id: 'hyf0',
       avatar: 'https://avatars.githubusercontent.com/u/49502170?s=120&v=4',
       x: 'https://x.com/_hyf0',
-      desc: 'Rspack / Rolldown contributor',
+      desc: 'Rspack & Rolldown core team',
     },
     {
       id: 'underfin',
       avatar: 'https://avatars.githubusercontent.com/u/14008915?s=120&v=4',
-      desc: 'Rspack / Rolldown / Vite contributor',
+      desc: 'Rspack & Rolldown core team, Vite contributor',
     },
     {
       id: 'Boshen',
       avatar: 'https://avatars.githubusercontent.com/u/1430279?s=120&v=4',
       x: 'https://x.com/boshen_c',
-      desc: 'Rspack core team / Creator of Oxc',
+      desc: 'Rspack & Rolldown core team, creator of Oxc',
     },
     {
       id: 'IWANABETHATGUY',
       avatar: 'https://avatars.githubusercontent.com/u/17974631?s=120&v=4',
-      desc: 'Rspack / Rolldown contributor',
+      desc: 'Rspack & Rolldown core team',
     },
     {
       id: 'suxin2017',
       avatar: 'https://avatars.githubusercontent.com/u/28481035?v=4',
       x: 'https://x.com/suxin2017',
-      desc: 'Rspack / Biome contributor',
+      desc: 'Rspack core team, Biome contributor',
+    },
+    {
+      id: 'sanyuan0704',
+      avatar: 'https://avatars.githubusercontent.com/u/39261479?s=120&v=4',
+      x: 'https://x.com/sanyuan0704',
+      desc: 'Rspack core team, creator of Rspress',
+    },
+    {
+      id: 'shulaoda',
+      avatar: 'https://avatars.githubusercontent.com/u/165626830?v=4',
+      x: 'https://x.com/dalaoshv',
+      desc: 'Rspack & Rolldown core team',
+    },
+    {
+      id: 'bvanjoi',
+      avatar: 'https://avatars.githubusercontent.com/u/30187863?s=120&v=4',
+      desc: 'Rspack & SWC core team, Rust language contributor',
     },
   ];
 

@@ -4,9 +4,9 @@ use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
+  RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -91,7 +91,7 @@ async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
@@ -140,7 +140,7 @@ async fn eval_devtool_plugin_render_module_content(
     }
   };
   let source = {
-    let source = &origin_source.source();
+    let source = &origin_source.source().into_string_lossy();
     let footer = format!(
       "\n{}",
       &self.source_url_comment.cow_replace(

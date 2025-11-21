@@ -3,12 +3,11 @@ use std::collections::{VecDeque, hash_map::Entry};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoData, ExtendedReferencedExport, GroupOptions, Inlinable, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
-  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced,
+  ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, get_entry_runtime,
+  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -48,6 +47,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
   fn apply(&mut self) {
     let mut module_graph = self.compilation.get_module_graph_mut();
+    module_graph.active_all_exports_info();
+    module_graph.reset_all_exports_info_used();
+
     for mgm in module_graph.module_graph_modules().values() {
       self
         .exports_info_module_map
@@ -55,9 +57,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = Queue::new();
     let mg = &mut module_graph;
-    for exports_info in self.exports_info_module_map.keys() {
-      exports_info.set_has_use_info(mg);
-    }
 
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
@@ -400,9 +399,16 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !can_mangle {
               export_info.set_can_mangle_use(Some(false));
             }
-            if !can_inline {
-              export_info.set_inlinable(Inlinable::NoByUse);
+            if export_info.can_inline_use() == Some(CanInlineUse::HasInfo) {
+              export_info.set_can_inline_use(Some(if can_inline {
+                CanInlineUse::Yes
+              } else {
+                CanInlineUse::No
+              }));
+            } else if !can_inline {
+              export_info.set_can_inline_use(Some(CanInlineUse::No));
             }
+
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
               let changed_flag = export_info.set_used_conditionally(
@@ -531,7 +537,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !can_inline {
               export_info
                 .as_data_mut(&mut module_graph)
-                .set_inlinable(rspack_core::Inlinable::NoByUse);
+                .set_can_inline_use(Some(CanInlineUse::No));
             }
 
             let last_one = i == len - 1;
@@ -845,8 +851,14 @@ fn process_referenced_module_without_nested(
         if !can_mangle {
           export_info.set_can_mangle_use(Some(false));
         }
-        if !can_inline {
-          export_info.set_inlinable(Inlinable::NoByUse);
+        if export_info.can_inline_use() == Some(CanInlineUse::HasInfo) {
+          export_info.set_can_inline_use(Some(if can_inline {
+            CanInlineUse::Yes
+          } else {
+            CanInlineUse::No
+          }));
+        } else if !can_inline {
+          export_info.set_can_inline_use(Some(CanInlineUse::No));
         }
 
         let changed_flag = export_info.set_used_conditionally(

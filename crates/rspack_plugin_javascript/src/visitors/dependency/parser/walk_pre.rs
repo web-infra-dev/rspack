@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
-use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::ast::{
-    AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, ForStmt,
-    IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, SwitchCase,
-    SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
+    ArrayPat, AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
+    ForStmt, IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Pat, Stmt,
+    SwitchCase, SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -17,7 +16,7 @@ use super::{
 use crate::{
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
+  visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
 };
 
 impl JavascriptParser<'_> {
@@ -137,7 +136,7 @@ impl JavascriptParser<'_> {
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.to_string());
+      self.define_variable(ident.sym.clone());
     }
   }
 
@@ -161,7 +160,7 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    if stmt.is_await && matches!(self.top_level_scope, super::TopLevelScope::Top) {
+    if stmt.is_await && self.is_top_level_scope() {
       self
         .plugin_drive
         .clone()
@@ -200,17 +199,36 @@ impl JavascriptParser<'_> {
         .unwrap_or_default()
       {
         self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
-          this.define_variable(ident.sym.to_string());
+          this.define_variable(ident.sym.clone());
         });
       }
     }
   }
 
-  fn _pre_walk_object_pattern(
+  pub(crate) fn collect_destructuring_assignment_properties(
+    &mut self,
+    pattern: &Pat,
+  ) -> Option<DestructuringAssignmentProperties> {
+    if let Some(obj_pat) = pattern.as_object()
+      && let Some(properties) =
+        self.collect_destructuring_assignment_properties_from_object_pattern(obj_pat)
+    {
+      return Some(properties);
+    }
+    if let Some(arr_pat) = pattern.as_array()
+      && let Some(properties) =
+        self.collect_destructuring_assignment_properties_from_array_pattern(arr_pat)
+    {
+      return Some(properties);
+    }
+    None
+  }
+
+  pub(crate) fn collect_destructuring_assignment_properties_from_object_pattern(
     &mut self,
     obj_pat: &ObjectPat,
-  ) -> Option<FxHashSet<DestructuringAssignmentProperty>> {
-    let mut keys = FxHashSet::default();
+  ) -> Option<DestructuringAssignmentProperties> {
+    let mut keys = DestructuringAssignmentProperties::default();
     for prop in &obj_pat.props {
       match prop {
         ObjectPatProp::KeyValue(prop) => {
@@ -218,14 +236,16 @@ impl JavascriptParser<'_> {
             keys.insert(DestructuringAssignmentProperty {
               id: ident_key.sym.clone(),
               range: prop.key.span().into(),
+              pattern: self.collect_destructuring_assignment_properties(&prop.value),
               shorthand: false,
             });
           } else {
-            let name = eval::eval_prop_name(&prop.key);
-            if let Some(id) = name.and_then(|id| id.as_string()) {
+            let name = eval::eval_prop_name(self, &prop.key);
+            if let Some(id) = name.as_string() {
               keys.insert(DestructuringAssignmentProperty {
                 id: id.into(),
                 range: prop.key.span().into(),
+                pattern: self.collect_destructuring_assignment_properties(&prop.value),
                 shorthand: false,
               });
             } else {
@@ -237,6 +257,7 @@ impl JavascriptParser<'_> {
           keys.insert(DestructuringAssignmentProperty {
             id: prop.key.sym.clone(),
             range: prop.key.span().into(),
+            pattern: None,
             shorthand: true,
           });
         }
@@ -246,69 +267,45 @@ impl JavascriptParser<'_> {
     Some(keys)
   }
 
-  fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
+  pub(crate) fn collect_destructuring_assignment_properties_from_array_pattern(
+    &mut self,
+    arr_pat: &ArrayPat,
+  ) -> Option<DestructuringAssignmentProperties> {
+    let mut keys = DestructuringAssignmentProperties::default();
+    for (i, ele) in arr_pat.elems.iter().enumerate() {
+      let Some(ele) = ele else {
+        continue;
+      };
+      if ele.is_rest() {
+        return None;
+      }
+      let mut buf = rspack_util::itoa::Buffer::new();
+      let i = buf.format(i);
+      keys.insert(DestructuringAssignmentProperty {
+        id: i.into(),
+        range: ele.span().into(),
+        pattern: self.collect_destructuring_assignment_properties(ele),
+        shorthand: false,
+      });
     }
+    Some(keys)
+  }
 
+  fn pre_walk_variable_declarator(&mut self, declarator: &VarDeclarator) {
     let Some(init) = declarator.init.as_ref() else {
       return;
     };
     let Some(obj_pat) = declarator.name.as_object() else {
       return;
     };
-    let Some(keys) = self._pre_walk_object_pattern(obj_pat) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(await_expr) = declarator
-      .init
-      .as_ref()
-      .and_then(|decl| decl.as_await_expr())
-    {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(declarator.init.span(), keys);
-    }
-
-    if let Some(assign) = init.as_assign() {
-      self.pre_walk_assignment_expression(assign);
-    }
+    self.enter_destructuring_assignment(obj_pat, init);
   }
 
-  pub(super) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
-    if self.destructuring_assignment_properties.is_none() {
-      return;
-    }
-    let Some(left) = assign.left.as_pat().and_then(|pat| pat.as_object()) else {
-      return;
-    };
-    let Some(mut keys) = self._pre_walk_object_pattern(left) else {
-      return;
-    };
-
-    let destructuring_assignment_properties = self
-      .destructuring_assignment_properties
-      .as_mut()
-      .unwrap_or_else(|| unreachable!());
-
-    if let Some(set) = destructuring_assignment_properties.remove(&assign.span()) {
-      keys.extend(set);
-    }
-
-    if let Some(await_expr) = assign.right.as_await_expr() {
-      destructuring_assignment_properties.insert(await_expr.arg.span(), keys);
-    } else {
-      destructuring_assignment_properties.insert(assign.right.span(), keys);
-    }
-
-    if let Some(right) = assign.right.as_assign() {
-      self.pre_walk_assignment_expression(right)
+  pub(crate) fn pre_walk_assignment_expression(&mut self, assign: &AssignExpr) {
+    if let Some(pat) = assign.left.as_pat()
+      && let Some(obj_pat) = pat.as_object()
+    {
+      self.enter_destructuring_assignment(obj_pat, &assign.right);
     }
   }
 }

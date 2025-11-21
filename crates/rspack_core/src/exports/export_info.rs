@@ -4,12 +4,13 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{
-  ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, ResolvedExportInfoTarget,
+  ExportInfoTargetValue, ExportProvided, ExportsInfo, ResolvedExportInfoTarget,
   ResolvedExportInfoTargetWithCircular, UsageState,
 };
 use crate::{
-  DependencyId, FindTargetResult, ModuleGraph, ModuleIdentifier, ResolveFilterFnTy,
-  find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
+  CanInlineUse, DependencyId, EvaluatedInlinableValue, FindTargetResult, ModuleGraph,
+  ModuleIdentifier, ResolveFilterFnTy, UsedNameItem, find_target_from_export_info,
+  get_target_from_maybe_export_info, get_target_with_filter,
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -57,15 +58,15 @@ pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
-  used_name: Option<Atom>,
+  used_name: Option<UsedNameItem>,
   target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   provided: Option<ExportProvided>,
   can_mangle_provide: Option<bool>,
   can_mangle_use: Option<bool>,
-  // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
-  inlinable: Inlinable,
+  can_inline_provide: Option<EvaluatedInlinableValue>,
+  can_inline_use: Option<CanInlineUse>,
   terminal_binding: bool,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
@@ -138,7 +139,10 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
-      inlinable: Inlinable::NoByProvide,
+      // only specific export info can be inlined, so other_export_info.can_inline_provide is always None
+      can_inline_provide: None,
+      // only specific export info can be inlined, so other_export_info.can_inline_use is always None
+      can_inline_use: None,
     }
   }
 
@@ -146,7 +150,7 @@ impl ExportInfoData {
     self.name.as_ref()
   }
 
-  pub fn used_name(&self) -> Option<&Atom> {
+  pub fn used_name(&self) -> Option<&UsedNameItem> {
     self.used_name.as_ref()
   }
 
@@ -174,8 +178,12 @@ impl ExportInfoData {
     self.can_mangle_use
   }
 
-  pub fn inlinable(&self) -> &Inlinable {
-    &self.inlinable
+  pub fn can_inline_provide(&self) -> Option<&EvaluatedInlinableValue> {
+    self.can_inline_provide.as_ref()
+  }
+
+  pub fn can_inline_use(&self) -> Option<CanInlineUse> {
+    self.can_inline_use
   }
 
   pub fn terminal_binding(&self) -> bool {
@@ -233,6 +241,14 @@ impl ExportInfoData {
     self.can_mangle_use = value;
   }
 
+  pub fn set_can_inline_provide(&mut self, value: Option<EvaluatedInlinableValue>) {
+    self.can_inline_provide = value;
+  }
+
+  pub fn set_can_inline_use(&mut self, value: Option<CanInlineUse>) {
+    self.can_inline_use = value;
+  }
+
   pub fn set_terminal_binding(&mut self, value: bool) {
     self.terminal_binding = value;
   }
@@ -245,11 +261,7 @@ impl ExportInfoData {
     self.exports_info_owned = value;
   }
 
-  pub fn set_inlinable(&mut self, inlinable: Inlinable) {
-    self.inlinable = inlinable;
-  }
-
-  pub fn set_used_name(&mut self, name: Atom) {
+  pub fn set_used_name(&mut self, name: UsedNameItem) {
     self.used_name = Some(name);
   }
 

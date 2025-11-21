@@ -31,7 +31,7 @@ test("asset emitted hook should only emit modified assets", async ({
 	// check dist dir
 	// the outputFileSystem can contain only one main hot-update.js
 	const files = rspack.compiler.outputFileSystem.readdirSync(
-		"dist",
+		rspack.outDir,
 		{}
 	) as string[];
 	expect(
@@ -57,7 +57,7 @@ test("asset emitted should not emit removed assets", async ({
 
 	// check dist dir
 	const files = rspack.compiler.outputFileSystem.readdirSync(
-		"dist",
+		rspack.outDir,
 		{}
 	) as string[];
 	expect(files.every(item => item !== "src_foo_js.js")).toBeTruthy();

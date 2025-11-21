@@ -21,14 +21,14 @@ pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
 };
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions, TemplateContext,
-  TemplateReplaceSource, module_raw,
+  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, module_raw,
 };
 
 fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
-) -> String {
+) -> ResourceIdentifier {
   let context = context.unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
@@ -51,7 +51,7 @@ fn create_resource_identifier_for_context_dependency(
   let referenced_exports = options
     .referenced_exports
     .as_ref()
-    .map(|x| x.iter().map(|x| format!(r#""{x}""#)).join(","))
+    .map(|ids| ids.iter().map(|ids| ids.iter().join(".")).join(", "))
     .unwrap_or_default();
   let mut group_options = String::new();
 
@@ -75,7 +75,7 @@ fn create_resource_identifier_for_context_dependency(
   let id = format!(
     "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
   );
-  id
+  id.into()
 }
 
 fn context_dependency_template_as_require_call(

@@ -1,0 +1,16 @@
+ERROR in ./b.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
+         ╭─[6:7]
+       4 │ includes
+       5 │ a
+       6 │ parser )
+         ·        ─
+       7 │ error
+       8 │ in
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack compiled with 1 error

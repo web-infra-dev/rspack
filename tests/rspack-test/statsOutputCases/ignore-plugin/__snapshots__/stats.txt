@@ -1,0 +1,4 @@
+runtime modules 88 bytes 1 module
+./index.js 103 bytes [built] [code generated]
+./locals|sync|/^\.\/.*$/ 160 bytes [built] [code generated]
+./locals/en.js 30 bytes [built] [code generated]

@@ -1,0 +1,7 @@
+Array [
+  Object {
+    code: ModuleBuildError,
+    moduleIdentifier: builtin:swc-loader!<TEST_ROOT>/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx,
+    moduleName: ./index.tsx,
+  },
+]

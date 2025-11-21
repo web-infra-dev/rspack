@@ -4,17 +4,20 @@ use rspack_collections::Identifier;
 use rspack_util::comparators::{compare_ids, compare_numbers};
 
 use crate::{
-  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
+  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
+  ConcatenatedModule, ModuleGraph, ModuleIdentifier,
 };
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
+mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
+pub mod incremental_info;
 pub use fs_trim::*;
 mod hash;
 mod identifier;
@@ -37,9 +40,10 @@ pub use memory_gc::MemoryGCStorage;
 
 pub use self::{
   comment::*,
+  extract_source_map::*,
   extract_url_and_global::*,
   fast_actions::*,
-  file_counter::FileCounter,
+  file_counter::{FileCounter, ResourceId},
   find_graph_roots::*,
   hash::*,
   identifier::*,
@@ -142,6 +146,65 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
   compare_ids(&a.identifier(), &b.identifier())
 }
 
+/// # Returns
+/// - `Some(String)` if a hashbang is found in the module's build_info extras
+/// - `None` if no hashbang is present or the module doesn't exist
+pub fn get_module_hashbang(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<String> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("hashbang")
+    .and_then(|v| v.as_str())
+    .map(|s| s.to_string())
+}
+
+/// # Returns
+/// - `Some(Vec<String>)` if directives are found in the module's build_info extras
+/// - `None` if no directives are present or the module doesn't exist
+pub fn get_module_directives(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<Vec<String>> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("react_directives")
+    .and_then(|v| v.as_array())
+    .map(|arr| {
+      arr
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect()
+    })
+}
+
 pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
   let mut a_iter = modules_a.iter();
   let mut b_iter = modules_b.iter();
@@ -189,8 +252,8 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let modules_a = chunk_graph.get_chunk_modules_identifier(chunk_a_ukey);
-  let modules_b = chunk_graph.get_chunk_modules_identifier(chunk_b_ukey);
+  let modules_a = chunk_graph.get_ordered_chunk_modules_identifier(chunk_a_ukey);
+  let modules_b = chunk_graph.get_ordered_chunk_modules_identifier(chunk_b_ukey);
   if modules_a.len() > modules_b.len() {
     return Ordering::Less;
   }
@@ -207,4 +270,36 @@ pub fn compare_chunks_with_graph(
     .filter_map(|module_id| module_graph.module_by_identifier(module_id))
     .collect();
   compare_module_iterables(&modules_a, &modules_b)
+}
+
+#[cfg(allocative)]
+pub fn snapshot_allocative(name: &str) {
+  use std::{
+    path::PathBuf,
+    sync::{
+      LazyLock,
+      atomic::{self, AtomicUsize},
+    },
+  };
+
+  use rspack_util::allocative;
+
+  static ENABLE: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
+    std::env::var_os("RSPACK_ALLOCATIVE_DIR")
+      .map(|dir| {
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+      })
+      .map(Into::into)
+  });
+  static COUNT: AtomicUsize = AtomicUsize::new(0);
+
+  if let Some(dir) = ENABLE.as_deref() {
+    let mut builder = allocative::FlameGraphBuilder::default();
+    builder.visit_global_roots();
+    let buf = builder.finish_and_write_flame_graph();
+    let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
+    let path = dir.join(format!("{}-{}.allocative", count, name));
+    std::fs::write(path, buf).expect("allocative write failed");
+  }
 }

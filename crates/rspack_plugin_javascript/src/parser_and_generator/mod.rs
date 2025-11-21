@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
@@ -11,20 +10,21 @@ use rspack_core::{
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, miette::Diagnostic};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, SyntaxContext, comments::Comments, input::SourceFileInput},
+  common::{FileName, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
+    transforms::base::fixer::paren_remover,
   },
 };
 use swc_node_comments::SwcComments;
 
 use crate::{
-  BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+  BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
@@ -119,7 +119,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
-    resource = parse_context.resource_data.resource.as_str()
+    resource = parse_context.resource_data.resource()
   ))]
   async fn parse<'a>(
     &mut self,
@@ -140,7 +140,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut parse_meta,
       ..
     } = parse_context;
-    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
+    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) =
@@ -149,40 +149,45 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 
-    let default_with_diagnostics =
-      |source: Arc<dyn Source>, diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
-        Ok(
-          ParseResult {
-            source,
-            dependencies: vec![],
-            blocks: vec![],
-            presentational_dependencies: vec![],
-            code_generation_dependencies: vec![],
-            side_effects_bailout: None,
-          }
-          .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-            diagnostics,
-            loaders,
-          )),
-        )
-      };
+    let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
+      Ok(
+        ParseResult {
+          source,
+          dependencies: vec![],
+          blocks: vec![],
+          presentational_dependencies: vec![],
+          code_generation_dependencies: vec![],
+          side_effects_bailout: None,
+        }
+        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+          diagnostics,
+          loaders,
+        )),
+      )
+    };
 
     let source = remove_bom(source);
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       Arc::new(FileName::Custom(
         resource_data
-          .resource_path
-          .as_ref()
+          .path()
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
-      source.source().to_string(),
+      source.source().into_string_lossy().into_owned(),
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
+
+    let jsx = module_parser_options
+      .and_then(|options| options.get_javascript())
+      .and_then(|options| options.jsx)
+      .unwrap_or(false);
+
     let parser_lexer = Lexer::new(
       Syntax::Es(EsSyntax {
+        jsx,
         allow_return_outside_function: matches!(
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
@@ -196,27 +201,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let lexer = swc_core::ecma::parser::Lexer::new(
-      Syntax::Es(EsSyntax {
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        import_attributes: true,
-        ..Default::default()
-      }),
-      target,
-      SourceFileInput::from(&*fm),
-      Some(&comments),
-    );
-
     let javascript_compiler = JavaScriptCompiler::new();
 
-    let mut ast = match javascript_compiler.parse_with_lexer(
+    let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
       &fm,
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
+      true,
     ) {
       Ok(ast) => ast,
       Err(e) => {
@@ -227,6 +219,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let mut semicolons = Default::default();
     ast.transform(|program, context| {
+      program.visit_mut_with(&mut paren_remover(Some(&comments)));
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
@@ -234,7 +227,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
       program.visit_with(&mut semicolon::InsertedSemicolons {
         semicolons: &mut semicolons,
-        tokens: &lexer.collect_vec(),
+        // safety: it's safe to assert tokens is some since we pass with_tokens = true
+        tokens: &tokens.expect("should get tokens from parser"),
       });
     });
 
@@ -245,6 +239,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       blocks,
       presentational_dependencies,
       mut warning_diagnostics,
+      mut side_effects_item,
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
@@ -276,25 +271,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
-      ast.transform(|program, context| {
-        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-        let mut visitor = SideEffectsFlagPluginVisitor::new(
-          SyntaxContextInfo::new(unresolved_ctxt),
-          program.comments.as_ref().map(|c| c as &dyn Comments),
-        );
-        program.visit_with(&mut visitor);
-        build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
-        // Take the item from visitor is safe, because the field is only used in this place
-        side_effects_bailout = visitor
-          .side_effects_item
-          .take()
-          .and_then(|item| -> Option<_> {
-            let source = source.source();
-            let msg = Into::<DependencyRange>::into(item.span)
-              .to_loc(Some(source.as_ref()))?
-              .to_string();
-            Some(SideEffectsBailoutItem { msg, ty: item.ty })
-          })
+      build_meta.side_effect_free = Some(side_effects_item.is_none());
+      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
+        let source = source.source().into_string_lossy();
+        let msg = Into::<DependencyRange>::into(item.span)
+          .to_loc(Some(source.as_ref()))?
+          .to_string();
+        Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
 

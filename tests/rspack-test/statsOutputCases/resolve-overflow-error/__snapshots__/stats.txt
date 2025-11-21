@@ -1,0 +1,13 @@
+assets by status 328 bytes [cached] 1 asset
+./index.js 51 bytes [built] [code generated] [1 error]
+
+ERROR in ./index.js 1:0-34
+  × Module not found: Can't resolve 'cycle-alias/a' in '<TEST_ROOT>/statsOutputCases/resolve-overflow-error'
+   ╭─[1:0]
+ 1 │ import { a } from "cycle-alias/a";
+   · ──────────────────────────────────
+ 2 │ console.log(a);
+   ╰────
+  help: maybe it had cyclic aliases
+
+Rspack x.x.x compiled with 1 error in X s

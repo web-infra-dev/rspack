@@ -90,6 +90,11 @@ export interface RspackError extends Error {
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
+
+export interface JsSource {
+	source: string | Buffer
+	map?: string
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -180,24 +185,24 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsCompatSource | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsCompatSource | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
@@ -254,20 +259,20 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsCompatSource | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
+  updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
-  getAssetSource(name: string): JsCompatSource | null
+  getAssetSource(name: string): JsSource | null
   get modules(): Array<Module>
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -276,11 +281,11 @@ export declare class JsCompilation {
   getNamedChunk(name: string): Chunk
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): ChunkGroup
-  setAssetSource(name: string, source: JsCompatSource): void
+  setAssetSource(name: string, source: JsSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]
@@ -321,7 +326,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -425,13 +430,13 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsCompatSource | undefined
+  _originalSource(): JsSource
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ModuleGraphConnection {
@@ -443,7 +448,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
@@ -486,7 +491,7 @@ export declare class ResolverFactory {
 }
 
 export declare class Sources {
-  _get(sourceType: string): JsCompatSourceOwned | null
+  _get(sourceType: string): JsSource | null
 }
 
 export declare class VirtualFileStore {
@@ -494,6 +499,10 @@ export declare class VirtualFileStore {
   batchWriteVirtualFilesSync(files: Array<JsVirtualFile>): void
 }
 export type JsVirtualFileStore = VirtualFileStore
+
+export interface AssetInfoRelated {
+  sourceMap?: string | null
+}
 
 export declare function async(path: string, request: string): Promise<ResolveResult>
 
@@ -522,6 +531,7 @@ export declare enum BuiltinPluginName {
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  EsmLibraryPlugin = 'EsmLibraryPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WorkerPlugin = 'WorkerPlugin',
@@ -535,6 +545,7 @@ export declare enum BuiltinPluginName {
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
@@ -560,6 +571,7 @@ export declare enum BuiltinPluginName {
   SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
   FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
   FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  InlineExportsPlugin = 'InlineExportsPlugin',
   MangleExportsPlugin = 'MangleExportsPlugin',
   ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
   CssModulesPlugin = 'CssModulesPlugin',
@@ -585,6 +597,7 @@ export declare enum BuiltinPluginName {
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
+  URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
@@ -674,10 +687,6 @@ export interface JsAssetEmittedArgs {
   targetPath: string
 }
 
-export interface JsAssetInfoRelated {
-  sourceMap?: string
-}
-
 export interface JsBannerContentFnCtx {
   hash: string
   chunk: Chunk
@@ -699,11 +708,11 @@ export interface JsBeforeEmitData {
 }
 
 export interface JsBuildMeta {
-  strictEsmModule: boolean
-  hasTopLevelAwait: boolean
-  esm: boolean
-  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  strictEsmModule?: boolean
+  hasTopLevelAwait?: boolean
+  esm?: boolean
+  exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
 }
@@ -757,27 +766,15 @@ export interface JsCodegenerationResults {
   map: Record<string, Record<string, JsCodegenerationResult>>
 }
 
-/**
- * Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
- *
- * It can only be used in non-async context and the lifetime is bound to the fn closure.
- *
- * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsCompatSourceOwned` instead.
- */
-export interface JsCompatSource {
-  source: string | Buffer
-  map?: string
-}
-
-export interface JsCompatSourceOwned {
-  source: string | Buffer
-  map?: string
-}
-
 export interface JsCreateData {
   request: string
   userRequest: string
   resource: string
+}
+
+export interface JsCreateLinkData {
+  code: string
+  chunk: Chunk
 }
 
 export interface JsCreateScriptData {
@@ -1203,7 +1200,7 @@ export interface JsRuntimeGlobals {
 }
 
 export interface JsRuntimeModule {
-  source?: JsCompatSourceOwned
+  source?: JsSource
   moduleIdentifier: string
   constructorName: string
   name: string
@@ -1222,6 +1219,23 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
+}
+
+/**
+ * Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
+ *
+ * It can only be used in non-async context and the lifetime is bound to the fn closure.
+ *
+ * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
+ */
+export interface JsSourceFromJs {
+  source: string | Buffer
+  map?: string
+}
+
+export interface JsSourceToJs {
+  source: string | Buffer
+  map?: string
 }
 
 export interface JsStatsAsset {
@@ -1353,11 +1367,6 @@ export interface JsStatsLogging {
   trace?: Array<string>
 }
 
-export interface JsStatsMillisecond {
-  secs: number
-  subsecMillis: number
-}
-
 export interface JsStatsModule {
   commonAttributes: JsStatsModuleCommonAttributes
   dependent?: boolean
@@ -1402,8 +1411,8 @@ export interface JsStatsModuleIssuer {
 }
 
 export interface JsStatsModuleProfile {
-  factory: JsStatsMillisecond
-  building: JsStatsMillisecond
+  factory: number
+  building: number
 }
 
 export interface JsStatsModuleReason {
@@ -1503,11 +1512,13 @@ export interface KnownAssetInfo {
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related?: JsAssetInfoRelated
+  related?: AssetInfoRelated
   /** unused css local ident for the css chunk */
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
+  /** the asset type */
+  assetType?: string
 }
 
 export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
@@ -1538,7 +1549,7 @@ export interface NapiResolveOptions {
    * Create aliases to import or require certain modules more easily.
    * A trailing $ can also be added to the given object's keys to signify an exact match.
    */
-  alias?: Record<string, Array<string | undefined | null>>
+  alias?: Record<string, string | false | string[]>
   /**
    * A list of alias fields in description files.
    * Specify a field, such as `browser`, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
@@ -2090,6 +2101,10 @@ export interface RawEnvironment {
   dynamicImportInWorker?: boolean
 }
 
+export interface RawEsmLibraryPlugin {
+  preserveModules?: string
+}
+
 export interface RawEvalDevToolModulePluginOptions {
   namespace?: string
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
@@ -2104,17 +2119,18 @@ export interface RawExperimentCacheOptionsPersistent {
 }
 
 export interface RawExperiments {
-  layers: boolean
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
+css?: boolean
 inlineConst: boolean
 inlineEnum: boolean
 typeReexportsPresence: boolean
 lazyBarrel: boolean
+deferImport: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2144,6 +2160,7 @@ export interface RawExternalItemFnResult {
 export interface RawExternalsPluginOptions {
   type: string
   externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
+  placeInInitial: boolean
 }
 
 export interface RawExternalsPresets {
@@ -2288,6 +2305,14 @@ export interface RawIntegrityItem {
   integrity: string
 }
 
+export declare enum RawJavascriptParserCommonjsExports {
+  SkipInEsm = 'skipInEsm'
+}
+
+export interface RawJavascriptParserCommonjsOptions {
+  exports?: boolean | 'skipInEsm'
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2320,21 +2345,29 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   requireResolve?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  inlineConst?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  typeReexportsPresence?: string
+commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importDynamic?: boolean
+commonjsMagicComments?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+inlineConst?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+typeReexportsPresence?: string
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+jsx?: boolean
+deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2347,11 +2380,11 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  currentActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
-  cacheable: boolean
+  client: string
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2409,9 +2442,30 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
-export interface RawModuleArg {
-  module: string
+export interface RawManifestExposeOption {
   path: string
+  name: string
+}
+
+export interface RawManifestSharedOption {
+  name: string
+  version?: string
+  requiredVersion?: string
+  singleton?: boolean
+}
+
+export interface RawModuleFederationManifestPluginOptions {
+  name?: string
+  globalName?: string
+  fileName?: string
+  filePath?: string
+  statsFileName?: string
+  manifestFileName?: string
+  disableAssetsAnalyze?: boolean
+  remoteAliasMap?: Record<string, RawRemoteAliasTarget>
+  exposes?: Array<RawManifestExposeOption>
+  shared?: Array<RawManifestSharedOption>
+  buildInfo?: RawStatsBuildInfo
 }
 
 export interface RawModuleFederationRuntimePluginOptions {
@@ -2443,6 +2497,7 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+  unsafeCache?: boolean | RegExp
 }
 
 export interface RawModuleRule {
@@ -2480,6 +2535,8 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
+  /** Whether to extract source maps from the module. */
+  extractSourceMap?: boolean
 }
 
 /**
@@ -2633,6 +2690,11 @@ export interface RawRelated {
   sourceMap?: string
 }
 
+export interface RawRemoteAliasTarget {
+  name: string
+  entry?: string
+}
+
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
@@ -2710,11 +2772,10 @@ export interface RawRslibPluginOptions {
    */
   interceptApiPlugin?: boolean
   /**
-   * Use the compact runtime for dynamic import from `modern-module`, commonly used in CommonJS output.
-   * This field should not be set to `true` when using `modern-module` with ESM output, as it is already in use.
+   * Add shims for javascript/esm modules
    * @default `false`
    */
-  compactExternalModuleDynamicImport?: boolean
+  forceNodeShims?: boolean
 }
 
 export interface RawRspackFuture {
@@ -2791,6 +2852,11 @@ export interface RawSplitChunksOptions {
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
+}
+
+export interface RawStatsBuildInfo {
+  buildVersion: string
+  buildName?: string
 }
 
 export interface RawStatsOptions {
@@ -2905,13 +2971,14 @@ export declare enum RegisterJsTapKind {
   HtmlPluginBeforeEmit = 39,
   HtmlPluginAfterEmit = 40,
   RuntimePluginCreateScript = 41,
-  RuntimePluginLinkPreload = 42,
-  RuntimePluginLinkPrefetch = 43,
-  RsdoctorPluginModuleGraph = 44,
-  RsdoctorPluginChunkGraph = 45,
-  RsdoctorPluginModuleIds = 46,
-  RsdoctorPluginModuleSources = 47,
-  RsdoctorPluginAssets = 48
+  RuntimePluginCreateLink = 42,
+  RuntimePluginLinkPreload = 43,
+  RuntimePluginLinkPrefetch = 44,
+  RsdoctorPluginModuleGraph = 45,
+  RsdoctorPluginChunkGraph = 46,
+  RsdoctorPluginModuleIds = 47,
+  RsdoctorPluginModuleSources = 48,
+  RsdoctorPluginAssets = 49
 }
 
 export interface RegisterJsTaps {
@@ -2957,7 +3024,8 @@ export interface RegisterJsTaps {
   registerHtmlPluginBeforeEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>
   registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
   registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>
-  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
+  registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
+  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
@@ -2988,6 +3056,7 @@ export interface SourceMapDevToolPluginOptions {
   fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   fileContext?: string
   filename?: (false | null) | string
+  ignoreList?: string | RegExp | (string | RegExp)[]
   module?: boolean
   moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
   namespace?: string

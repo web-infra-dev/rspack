@@ -1,3 +1,0 @@
-WARNING in ./lib.js
-  ⚠ Module Warning (from <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-warning/my-loader.js):
-  │ Failed to load

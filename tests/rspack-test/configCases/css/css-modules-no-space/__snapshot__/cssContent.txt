@@ -1,0 +1,28 @@
+/*!**************************!*\
+  !*** ./style.module.css ***!
+  \**************************/
+._style_module_css-no-space {
+	.class {
+		color: red;
+	}
+
+	.class {
+		color: red;
+	}
+
+	._style_module_css-class {
+		color: red;
+	}
+
+	._style_module_css-class {
+		color: red;
+	}
+
+	#_style_module_css-hash {
+		color: red;
+	}
+
+	{
+		color: red;
+	}
+}

@@ -1,89 +1,30 @@
-use std::sync::Arc;
-
 use rspack_core::{
-  ConnectionState, DependencyCondition, DependencyConditionFn, DependencyId, ExportsInfo,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, UsageState,
+  ModuleGraph, ModuleGraphConnection, PrefetchExportsInfoMode, RuntimeSpec, UsageState,
   UsedByExports,
 };
-use rspack_util::atom::Atom;
-use rustc_hash::FxHashSet;
 
 pub mod plugin;
 pub mod state;
 
-#[derive(Clone)]
-struct UsedByExportsDependencyCondition {
-  dependency_id: DependencyId,
-  used_by_exports: FxHashSet<Atom>,
-}
-
-impl DependencyConditionFn for UsedByExportsDependencyCondition {
-  fn get_connection_state(
-    &self,
-    _conn: &ModuleGraphConnection,
-    runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> ConnectionState {
-    let module_identifier = mg
-      .get_parent_module(&self.dependency_id)
-      .expect("should have parent module");
-    ConnectionState::Active(is_connection_active(
-      mg.get_exports_info(module_identifier),
-      &self.used_by_exports,
-      mg,
-      runtime,
-    ))
-  }
-}
-
-fn is_connection_active(
-  exports_info: ExportsInfo,
-  used_by_exports: &FxHashSet<Atom>,
-  mg: &ModuleGraph,
+pub fn connection_active_used_by_exports(
+  connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+  used_by_exports: Option<&UsedByExports>,
 ) -> bool {
-  fn is_export_active(
-    name: &Atom,
-    exports_info: &ExportsInfo,
-    mg: &ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
-  ) -> bool {
-    let exports_info = exports_info.as_data(mg);
-    if let Some(export_info) = exports_info.named_exports(name) {
-      return export_info.get_used(runtime) != UsageState::Unused;
-    }
-    if let Some(redirect_to) = exports_info.redirect_to() {
-      is_export_active(name, &redirect_to, mg, runtime)
-    } else {
-      exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
-    }
-  }
-
+  let Some(used_by_exports) = used_by_exports.as_ref() else {
+    return true;
+  };
+  let used_by_exports = match used_by_exports {
+    UsedByExports::Set(used_by_exports) => used_by_exports,
+    UsedByExports::Bool(used) => return *used,
+  };
+  let module_identifier = mg
+    .get_parent_module(&connection.dependency_id)
+    .expect("should have parent module");
+  let exports_info =
+    mg.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
   used_by_exports
     .iter()
-    .any(|name| is_export_active(name, &exports_info, mg, runtime))
-}
-
-// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
-pub fn get_dependency_used_by_exports_condition(
-  dependency_id: DependencyId,
-  used_by_exports: Option<&UsedByExports>,
-) -> Option<DependencyCondition> {
-  match used_by_exports {
-    Some(UsedByExports::Set(used_by_exports)) => Some(DependencyCondition::Fn(Arc::new(
-      UsedByExportsDependencyCondition {
-        dependency_id,
-        used_by_exports: used_by_exports.clone(),
-      },
-    ))),
-    Some(UsedByExports::Bool(bool)) => {
-      if *bool {
-        None
-      } else {
-        Some(DependencyCondition::False)
-      }
-    }
-    None => None,
-  }
+    .any(|name| exports_info.get_used(std::slice::from_ref(name), runtime) != UsageState::Unused)
 }

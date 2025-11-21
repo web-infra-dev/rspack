@@ -11,41 +11,51 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-browser         = ["dep:rspack_browser", "rspack_napi/browser"]
+allocative = [
+  "rspack_util/allocative",
+  "rspack_collections/allocative",
+  "rspack_cacheable/allocative",
+  "rspack_tracing_perfetto/allocative",
+]
+browser = ["dep:rspack_browser", "rspack_napi/browser"]
 color-backtrace = ["dep:color-backtrace"]
-debug_tool      = ["rspack_core/debug_tool"]
-plugin          = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
-sftrace-setup   = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+debug_tool = ["rspack_core/debug_tool"]
+plugin = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
+sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
+tracy-client = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
-anyhow                   = { workspace = true }
-ropey                    = { workspace = true }
-rspack_allocator         = { workspace = true }
-rspack_browserslist      = { workspace = true }
-rspack_collections       = { workspace = true }
-rspack_core              = { workspace = true, features = ["napi"] }
-rspack_error             = { workspace = true }
-rspack_fs                = { workspace = true }
-rspack_hash              = { workspace = true }
-rspack_hook              = { workspace = true }
-rspack_napi              = { workspace = true }
-rspack_paths             = { workspace = true }
-rspack_plugin_html       = { workspace = true }
-rspack_plugin_javascript = { workspace = true }
-rspack_plugin_rsdoctor   = { workspace = true }
-rspack_plugin_rslib      = { workspace = true }
-rspack_plugin_rstest     = { workspace = true }
-rspack_plugin_runtime    = { workspace = true }
-rspack_tasks             = { workspace = true }
-rspack_util              = { workspace = true }
-rspack_workspace         = { workspace = true }
+anyhow                    = { workspace = true }
+ropey                     = { workspace = true }
+rspack_allocator          = { workspace = true }
+rspack_browserslist       = { workspace = true }
+rspack_collections        = { workspace = true }
+rspack_core               = { workspace = true, features = ["napi"] }
+rspack_error              = { workspace = true }
+rspack_fs                 = { workspace = true }
+rspack_hash               = { workspace = true }
+rspack_hook               = { workspace = true }
+rspack_napi               = { workspace = true }
+rspack_paths              = { workspace = true }
+rspack_plugin_esm_library = { workspace = true }
+rspack_plugin_html        = { workspace = true }
+rspack_plugin_javascript  = { workspace = true }
+rspack_plugin_rsdoctor    = { workspace = true }
+rspack_plugin_rslib       = { workspace = true }
+rspack_plugin_rstest      = { workspace = true }
+rspack_plugin_runtime     = { workspace = true }
+rspack_tasks              = { workspace = true }
+rspack_util               = { workspace = true }
+rspack_watcher            = { workspace = true }
+rspack_workspace          = { workspace = true }
 
-rspack_tracing = { workspace = true }
-
-async-trait        = { workspace = true }
-cow-utils          = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true }
+async-trait             = { workspace = true }
+cow-utils               = { workspace = true }
+rspack_tracing          = { workspace = true }
+rspack_tracing_perfetto = { workspace = true }
+tracing                 = { workspace = true }
+tracing-subscriber      = { workspace = true }
+tracy-client            = { workspace = true, optional = true }
 
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
@@ -119,7 +129,7 @@ tokio                                  = { workspace = true, features = ["rt", "
 ustr                                   = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["parking_lot"]
+ignored = ["parking_lot", "rspack_tracing_perfetto"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 # Pin parking_lot version to the same version within the workspace

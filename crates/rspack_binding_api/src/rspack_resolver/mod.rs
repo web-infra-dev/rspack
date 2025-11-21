@@ -1,6 +1,7 @@
 //! Port rspack_resolver napi
 //!
 //! This module is generally copied from https://github.com/web-infra-dev/rspack-resolver/blob/main/napi/src/lib.rs
+mod options;
 
 use std::{
   path::{Path, PathBuf},
@@ -11,9 +12,7 @@ use napi::tokio::runtime;
 use napi_derive::napi;
 use rspack_resolver::{ResolveOptions, Resolver};
 
-mod options;
-
-use self::options::{NapiResolveOptions, StrOrStrList};
+use self::options::{AliasRawValue, NapiResolveOptions, StrOrStrList};
 
 #[napi(object)]
 pub struct ResolveResult {
@@ -31,7 +30,6 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
       module_type: resolution
         .package_json()
         .and_then(|p| p.r#type.as_ref())
-        .and_then(|t| t.as_str())
         .map(|t| t.to_string()),
     },
     Err(err) => ResolveResult {
@@ -129,17 +127,8 @@ impl ResolverFactory {
         .map(|alias| {
           alias
             .into_iter()
-            .map(|(k, v)| {
-              let v = v
-                .into_iter()
-                .map(|item| match item {
-                  Some(path) => rspack_resolver::AliasValue::from(path),
-                  None => rspack_resolver::AliasValue::Ignore,
-                })
-                .collect();
-              (k, v)
-            })
-            .collect::<Vec<_>>()
+            .map(|(k, v)| (k, AliasRawValue(v).into()))
+            .collect()
         })
         .unwrap_or(default.alias),
       alias_fields: op

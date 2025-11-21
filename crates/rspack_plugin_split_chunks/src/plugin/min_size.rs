@@ -42,7 +42,7 @@ impl SplitChunksPlugin {
   ) -> bool {
     // Find out what `SourceType`'s size is not fit the min_size
     let violating_source_types: Box<[SourceType]> = module_group
-    .sizes
+    .get_sizes(module_sizes)
     .iter()
     .filter_map(|(module_group_ty, module_group_ty_size)| {
       let cache_group_ty_min_size = cache_group
@@ -79,7 +79,7 @@ impl SplitChunksPlugin {
     // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
     violating_modules
       .into_iter()
-      .for_each(|violating_module| module_group.remove_module(violating_module, module_sizes));
+      .for_each(|violating_module| module_group.remove_module(violating_module));
 
     module_group.modules.is_empty()
   }
@@ -97,6 +97,7 @@ impl SplitChunksPlugin {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
         if cache_group.min_size.is_empty() {
+          let _ = module_group.get_sizes(module_sizes);
           tracing::debug!(
             "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",
             module_group_key,
@@ -111,7 +112,7 @@ impl SplitChunksPlugin {
           cache_group,
           module_sizes,
         ) || !Self::check_min_size_reduction(
-          &module_group.sizes,
+          &module_group.get_sizes(module_sizes),
           &cache_group.min_size_reduction,
           module_group.chunks.len(),
         ) {

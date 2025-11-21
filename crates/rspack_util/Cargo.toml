@@ -9,13 +9,15 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+allocative       = { workspace = true, optional = true }
+base64-simd      = { workspace = true }
 bitflags         = { workspace = true }
 concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
-regex            = { workspace = true }
+regex            = { workspace = true, features = ["pattern"] }
 ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
@@ -42,3 +44,7 @@ signal-hook  = { workspace = true, optional = true }
 [features]
 debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)']
+level     = "warn"

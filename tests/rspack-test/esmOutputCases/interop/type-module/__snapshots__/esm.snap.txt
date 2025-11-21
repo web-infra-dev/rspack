@@ -1,0 +1,108 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+__webpack_require__.add({
+"./cjs-unknown.cjs": 
+/*!*************************!*\
+  !*** ./cjs-unknown.cjs ***!
+  \*************************/
+(function (__unused_webpack_module, exports) {
+const exportSymbol = () => 'bar'
+
+exports[exportSymbol()] = () => 'bar'
+
+}),
+"./cjs.cjs": 
+/*!*****************!*\
+  !*** ./cjs.cjs ***!
+  \*****************/
+(function (__unused_webpack_module, exports) {
+exports.foo = () => 'foo'
+
+
+}),
+});
+// ./index.js
+
+
+
+
+it('should have correct re-export', async () => {
+	const { foo, bar, default: defaultV } = await import(/*webpackIgnore: true*/ './main.mjs')
+	expect(foo()).toBe('foo')
+	expect(bar()).toBe('bar')
+	expect(defaultV.bar()).toBe('bar')
+})
+
+const cjs = __webpack_require__("./cjs.cjs");
+var foo_1 = cjs.foo;
+
+const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
+var cjs_unknown_default = /*#__PURE__*/__webpack_require__.n(cjs_unknown);
+var cjs_unknown_default_0 = cjs_unknown_default();
+var bar_1 = cjs_unknown.bar;
+
+export { bar_1 as bar, foo_1 as foo };
+export default cjs_unknown_default_0;
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// esm library register module runtime
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```

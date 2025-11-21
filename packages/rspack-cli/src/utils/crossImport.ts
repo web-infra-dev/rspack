@@ -1,12 +1,8 @@
 import { pathToFileURL } from "node:url";
+import { isEsmFile } from "./isEsmFile";
 
-import isEsmFile from "./isEsmFile";
-
-export const crossImport = async <T = any>(
-	path: string,
-	cwd = process.cwd()
-): Promise<T> => {
-	if (isEsmFile(path, cwd)) {
+export const crossImport = async <T = any>(path: string): Promise<T> => {
+	if (isEsmFile(path)) {
 		const url = pathToFileURL(path).href;
 		const { default: config } = await import(url);
 		return config;

@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 1:8-13,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-broken-json/index.js,
+    moduleName: ./index.js,
+  },
+]

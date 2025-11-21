@@ -350,7 +350,7 @@ import Btn from 'foo/es/MyButton';
 
 Template `customName: 'foo/es/{{ member }}'` is the same as ``customName: (member) => `foo/es/${member}` ``, but template string has no performance overhead of Node-API.
 
-The template used here is [handlebars](https://handlebarsjs.com). There are some useful builtin helpers, Take the above import statement as an example:
+There are some useful builtin helpers available in template string, take the above import statement as an example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -461,8 +461,6 @@ Collects information from TypeScript's AST for consumption by subsequent Rspack 
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
-
 #### rspackExperiments.collectTypeScriptInfo.typeExports
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
@@ -472,6 +470,8 @@ Please refer to [collect typescript info example](https://github.com/rspack-cont
 
 Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
+Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+
 #### rspackExperiments.collectTypeScriptInfo.exportedEnum
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
@@ -479,13 +479,15 @@ Whether to collect type exports information for [`typeReexportsPresence`](/confi
 - **Type:** `boolean | 'const-only'`
 - **Default:** `false`
 
-Whether to collect information about exported `enum`s.
+Whether to collect information about exported `enum`s, so Rspack can perform cross-module inline optimization for enums.
 
 - `true` will collect all `enum` information, including `const enum`s and regular `enum`s.
 - `false` will not collect any `enum` information.
-- `'const-only'` will gather only `const enum`s, enabling Rspack to perform cross-module inlining optimizations for them.
+- `'const-only'` will gather only `const enum`s, then only perform cross-module inline optimization for `const enum`.
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
@@ -505,7 +507,7 @@ export default {
               },
               rspackExperiments: {
                 collectTypeScriptInfo: {
-                  exportedEnum: true,
+                  exportedEnum: isProduction,
                 },
               },
             },
@@ -516,3 +518,11 @@ export default {
   },
 };
 ```
+
+Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
+
+Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
+
+:::info
+By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+:::

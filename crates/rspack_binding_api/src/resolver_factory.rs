@@ -42,11 +42,11 @@ impl JsResolverFactory {
 
     let resolve_options: Resolve = js_resolve_options
       .try_into()
-      .map_err(|e: rspack_error::miette::Error| napi::Error::from_reason(e.to_string()))?;
+      .map_err(|e: rspack_error::Error| napi::Error::from_reason(e.to_string()))?;
 
     let loader_resolve_options: Resolve = js_loader_resolve_options
       .try_into()
-      .map_err(|e: rspack_error::miette::Error| napi::Error::from_reason(e.to_string()))?;
+      .map_err(|e: rspack_error::Error| napi::Error::from_reason(e.to_string()))?;
 
     Ok(Self {
       resolve_options,

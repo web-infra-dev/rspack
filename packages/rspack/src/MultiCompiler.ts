@@ -9,7 +9,13 @@
  */
 
 import * as liteTapable from "@rspack/lite-tapable";
-import type { CompilationParams, Compiler, RspackOptions, Stats } from ".";
+import type {
+	CompilationParams,
+	Compiler,
+	CompilerHooks,
+	RspackOptions,
+	Stats
+} from ".";
 import type { WatchOptions } from "./config";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import MultiStats from "./MultiStats";
@@ -45,7 +51,7 @@ export interface MultiCompilerOptions {
 	parallelism?: number;
 }
 
-export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
+export type MultiRspackOptions = readonly RspackOptions[] &
 	MultiCompilerOptions;
 
 export class MultiCompiler {
@@ -63,8 +69,11 @@ export class MultiCompiler {
 		run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
 		watchClose: liteTapable.SyncHook<[]>;
 		watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
+		/**
+		 * @see {@link CompilerHooks['infrastructureLog']}
+		 */
 		infrastructureLog: liteTapable.MultiHook<
-			liteTapable.SyncBailHook<[string, string, any[]], true>
+			CompilerHooks["infrastructureLog"]
 		>;
 	};
 	_options: MultiCompilerOptions;
@@ -138,7 +147,11 @@ export class MultiCompiler {
 			});
 		}
 	}
-
+	set unsafeFastDrop(value: boolean) {
+		for (const compiler of this.compilers) {
+			compiler.unsafeFastDrop = value;
+		}
+	}
 	get options() {
 		return Object.assign(
 			this.compilers.map(c => c.options),

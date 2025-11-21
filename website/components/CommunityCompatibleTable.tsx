@@ -100,12 +100,12 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     },
     {
       name: 'compression-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
+      url: 'https://github.com/webpack/compression-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'css-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/css-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
       description: i18n[lang]['css-minimizer-webpack-plugin-desc'],
     },
@@ -140,17 +140,17 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     },
     {
       name: 'html-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/html-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/html-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'json-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/json-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/json-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'stylelint-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/stylelint-webpack-plugin',
+      url: 'https://github.com/webpack/stylelint-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {

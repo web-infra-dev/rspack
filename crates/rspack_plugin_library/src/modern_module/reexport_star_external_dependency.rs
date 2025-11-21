@@ -3,7 +3,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExternalRequest, ExternalType,
   FactorizeInfo, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  NormalInitFragment, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
@@ -16,7 +16,7 @@ pub struct ModernModuleReexportStarExternalDependency {
   request: Atom,
   target_request: ExternalRequest,
   external_type: ExternalType,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 

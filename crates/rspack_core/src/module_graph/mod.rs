@@ -1,4 +1,7 @@
-use std::collections::hash_map::Entry;
+use std::{
+  collections::hash_map::Entry,
+  ops::{Deref, DerefMut},
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -9,13 +12,14 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ExportProvided, ExportsInfoGetter, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
+  Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
+  RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
 mod connection;
 pub use connection::*;
+mod exports_info;
 
 use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
@@ -23,8 +27,7 @@ use crate::{
 };
 
 // TODO Here request can be used Atom
-pub type ImportVarMap =
-  HashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
 
 pub type BuildDependency = (
   DependencyId,
@@ -97,12 +100,48 @@ pub struct ModuleGraph<'a> {
   active: Option<&'a mut ModuleGraphPartial>,
 }
 
+#[derive(Debug)]
+pub struct ModuleGraphRef<'a>(ModuleGraph<'a>);
+
+#[derive(Debug)]
+pub struct ModuleGraphMut<'a>(ModuleGraph<'a>);
+
+impl<'a> Deref for ModuleGraphRef<'a> {
+  type Target = ModuleGraph<'a>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<'a> Deref for ModuleGraphMut<'a> {
+  type Target = ModuleGraph<'a>;
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<'a> DerefMut for ModuleGraphMut<'a> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
 impl<'a> ModuleGraph<'a> {
-  pub fn new(
+  pub fn new_ref(partials: [Option<&'a ModuleGraphPartial>; 2]) -> ModuleGraphRef<'a> {
+    ModuleGraphRef(Self {
+      partials,
+      active: None,
+    })
+  }
+
+  pub fn new_mut(
     partials: [Option<&'a ModuleGraphPartial>; 2],
-    active: Option<&'a mut ModuleGraphPartial>,
-  ) -> Self {
-    Self { partials, active }
+    active: &'a mut ModuleGraphPartial,
+  ) -> ModuleGraphMut<'a> {
+    ModuleGraphMut(Self {
+      partials,
+      active: Some(active),
+    })
   }
 
   fn loop_partials<T>(&self, f: impl Fn(&ModuleGraphPartial) -> Option<&T>) -> Option<&T> {
@@ -196,26 +235,72 @@ impl<'a> ModuleGraph<'a> {
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
+  pub fn get_outcoming_connections_by_module(
+    &self,
+    module_id: &ModuleIdentifier,
+  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+    let connections = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have mgm")
+      .outgoing_connections();
+
+    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    for dep_id in connections {
+      let con = self
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      map.entry(*con.module_identifier()).or_default().push(con);
+    }
+    map
+  }
+
+  pub fn get_active_outcoming_connections_by_module(
+    &self,
+    module_id: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+    let connections = self
+      .module_graph_module_by_identifier(module_id)
+      .expect("should have mgm")
+      .outgoing_connections();
+
+    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    for dep_id in connections {
+      let con = self
+        .connection_by_dependency_id(dep_id)
+        .expect("should have connection");
+      if !con.is_active(module_graph, runtime, module_graph_cache) {
+        continue;
+      }
+      map.entry(*con.module_identifier()).or_default().push(con);
+    }
+    map
+  }
+
+  // #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
+      HashMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
       match map.entry(con.original_module_identifier) {
         Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con.clone());
+          occ.get_mut().push(con);
         }
         Entry::Vacant(vac) => {
-          vac.insert(vec![con.clone()]);
+          vac.insert(vec![con]);
         }
       }
     }
@@ -424,9 +509,7 @@ impl<'a> ModuleGraph<'a> {
       let dependency = self
         .dependency_by_id(&dep_id)
         .expect("should have dependency");
-      // the inactive connection should not be updated
-      if filter_connection(connection, dependency) && (connection.conditional || connection.active)
-      {
+      if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -747,9 +830,10 @@ impl<'a> ModuleGraph<'a> {
     }
 
     // set to origin module outgoing connection
-    if let Some(identifier) = origin_module_id
-      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
-    {
+    if let Some(identifier) = origin_module_id {
+      let original_mgm = self
+        .module_graph_module_by_identifier_mut(&identifier)
+        .expect("should mgm exist");
       original_mgm.add_outgoing_connection(dependency_id);
     };
   }
@@ -773,13 +857,11 @@ impl<'a> ModuleGraph<'a> {
       return Ok(());
     }
 
-    let active = !matches!(condition, Some(DependencyCondition::False));
     let conditional = condition.is_some();
     let new_connection = ModuleGraphConnection::new(
       dependency_id,
       original_module_identifier,
       module_identifier,
-      active,
       conditional,
     );
     self.add_connection(new_connection, condition);
@@ -932,6 +1014,21 @@ impl<'a> ModuleGraph<'a> {
     compilation.async_modules_artifact.contains(module_id)
   }
 
+  pub fn is_deferred(
+    &self,
+    imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
+    module_id: &ModuleIdentifier,
+  ) -> bool {
+    let imported_by_defer = imported_by_defer_modules_artifact.contains(module_id);
+    if !imported_by_defer {
+      return false;
+    }
+    let module = self
+      .module_by_identifier(module_id)
+      .expect("should have module");
+    !module.build_meta().has_top_level_await
+  }
+
   pub fn set_async(
     compilation: &mut Compilation,
     module_id: ModuleIdentifier,
@@ -1026,62 +1123,6 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.add_incoming_connection(*dep_id);
   }
 
-  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .expect("should have mgm")
-      .exports
-  }
-
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
-      .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
-  }
-
-  pub fn get_prefetched_exports_info<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'b> {
-    let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
-  }
-
-  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
-    self
-      .try_get_exports_info_by_id(id)
-      .expect("should have exports info")
-  }
-
-  pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.loop_partials(|p| p.exports_info_map.get(id))
-  }
-
-  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
-    self
-      .loop_partials_mut(
-        |p| p.exports_info_map.contains_key(id),
-        |p, search_result| {
-          p.exports_info_map.insert(*id, search_result);
-        },
-        |p| p.exports_info_map.get(id).cloned(),
-        |p| p.exports_info_map.get_mut(id),
-      )
-      .expect("should have exports info")
-  }
-
-  pub fn set_exports_info(&mut self, id: ExportsInfo, info: ExportsInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.exports_info_map.insert(id, info);
-  }
-
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
     let mgm = self
       .module_graph_module_by_identifier_mut(id)
@@ -1106,22 +1147,6 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
       .expect("should have condition");
     condition.get_connection_state(connection, runtime, self, module_graph_cache)
-  }
-
-  // returns: Option<bool>
-  //   - None: it's unknown
-  //   - Some(true): provided
-  //   - Some(false): not provided
-  pub fn is_export_provided(
-    &self,
-    id: &ModuleIdentifier,
-    names: &[Atom],
-  ) -> Option<ExportProvided> {
-    self.module_graph_module_by_identifier(id).and_then(|mgm| {
-      let exports_info =
-        ExportsInfoGetter::prefetch(&mgm.exports, self, PrefetchExportsInfoMode::Nested(names));
-      exports_info.is_export_provided(names)
-    })
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
@@ -1257,7 +1282,7 @@ impl<'a> ModuleGraph<'a> {
     }
   }
 
-  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, Atom)>) {
+  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, UsedNameItem)>) {
     if self.active.is_none() {
       panic!("should have active partial");
     }

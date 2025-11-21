@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::{Dependency, SpanExt, UsedByExports};
+use rspack_core::UsedByExports;
+use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
@@ -14,10 +15,12 @@ use super::state::UsageCallback;
 use crate::{
   ClassExt,
   dependency::PureExpressionDependency,
-  is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
+  side_effects_parser_plugin::{
+    is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
+  },
   visitors::{
-    JavascriptParser, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
+    ExportedVariableInfo, JavascriptParser, Statement, TagInfoData, VariableDeclaration,
     scope_info::VariableInfoFlags,
   },
 };
@@ -142,7 +145,7 @@ impl InnerGraphPlugin {
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
-              parser.dependencies.push(Box::new(dep));
+              parser.add_dependency(Box::new(dep));
             }
           }),
         );
@@ -310,7 +313,7 @@ impl InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {
-    parser.define_variable(name.to_string());
+    parser.define_variable(name.clone());
 
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
@@ -324,7 +327,7 @@ impl InnerGraphPlugin {
 
     let symbol = TopLevelSymbol::new(name.clone());
     parser.tag_variable_with_flags(
-      name.to_string(),
+      name.clone(),
       TOP_LEVEL_SYMBOL,
       Some(symbol.clone()),
       VariableInfoFlags::NORMAL,
@@ -363,7 +366,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       return None;
     }
 
-    if matches!(parser.top_level_scope, TopLevelScope::Top)
+    if parser.is_top_level_scope()
       && let Some(fn_decl) = stmt.as_function_decl()
     {
       let name = &fn_decl
@@ -388,12 +391,17 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     stmt: Statement,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
     if let Some(class_decl) = stmt.as_class_decl()
-      && is_pure_class(class_decl.class(), self.unresolved_context, parser.comments)
+      && is_pure_class(
+        parser,
+        class_decl.class(),
+        self.unresolved_context,
+        parser.comments,
+      )
     {
       let name = &class_decl
         .ident()
@@ -415,7 +423,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     export_decl: &ModuleDecl,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
@@ -423,7 +431,12 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       let decl = &export_default_decl.decl;
 
       if let DefaultDecl::Class(class_expr) = decl
-        && is_pure_class(&class_expr.class, self.unresolved_context, parser.comments)
+        && is_pure_class(
+          parser,
+          &class_expr.class,
+          self.unresolved_context,
+          parser.comments,
+        )
       {
         let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
         parser
@@ -431,7 +444,12 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
           .class_with_top_level_symbol
           .insert(decl.span(), variable);
       } else if let DefaultDecl::Fn(fn_expr) = decl
-        && is_pure_function(&fn_expr.function, self.unresolved_context, parser.comments)
+        && is_pure_function(
+          parser,
+          &fn_expr.function,
+          self.unresolved_context,
+          parser.comments,
+        )
       {
         let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
         parser
@@ -445,9 +463,9 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     // https://github.com/estree/estree/blob/master/es2015.md#exportdefaultdeclaration
     // but SWC using ExportDefaultExpr to represent `export default 1`
     if let ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { expr, .. }) = export_decl
-      && is_pure_expression(expr, self.unresolved_context, parser.comments)
+      && is_pure_expression(parser, expr, self.unresolved_context, parser.comments)
     {
-      let export_part = expr.unwrap_parens();
+      let export_part = &**expr;
       let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
       let export_span = export_decl.span();
       parser
@@ -472,7 +490,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     decl: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
@@ -481,10 +499,10 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     {
       let name = &ident.id.sym;
 
-      let unwrapped_init = init.unwrap_parens();
-      if unwrapped_init.is_class()
+      if init.is_class()
         && is_pure_class(
-          &unwrapped_init.as_class().expect("should be class").class,
+          parser,
+          &init.as_class().expect("should be class").class,
           self.unresolved_context,
           parser.comments,
         )
@@ -495,14 +513,14 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
           .inner_graph
           .class_with_top_level_symbol
           .insert(init.span(), v);
-      } else if is_pure_expression(init, self.unresolved_context, parser.comments) {
+      } else if is_pure_expression(parser, init, self.unresolved_context, parser.comments) {
         let v = Self::tag_top_level_symbol(parser, name);
         parser
           .inner_graph
           .decl_with_top_level_symbol
           .insert(decl.span(), v);
 
-        if !unwrapped_init.is_fn_expr() && !unwrapped_init.is_arrow() && !unwrapped_init.is_lit() {
+        if !init.is_fn_expr() && !init.is_arrow() && !init.is_lit() {
           parser.inner_graph.pure_declarators.insert(decl.span());
         }
       }
@@ -516,7 +534,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     stmt: Statement,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
@@ -528,7 +546,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
   }
 
   fn module_declaration(&self, parser: &mut JavascriptParser, stmt: &ModuleDecl) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
@@ -554,7 +572,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 *parser.module_identifier,
               );
               dep.set_used_by_exports(used_by_exports);
-              parser.dependencies.push(Box::new(dep));
+              parser.add_dependency(Box::new(dep));
             }
           }),
         );
@@ -582,15 +600,22 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     super_class: &Expr,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
+
+    let is_pure_super_class = is_pure_expression(
+      parser,
+      super_class,
+      self.unresolved_context,
+      parser.comments,
+    );
 
     if let Some(v) = parser
       .inner_graph
       .class_with_top_level_symbol
       .get(&class_decl_or_expr.span())
-      && is_pure_expression(super_class, self.unresolved_context, parser.comments)
+      && is_pure_super_class
     {
       parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
@@ -603,7 +628,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
             let mut dep =
               PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
             dep.set_used_by_exports(used_by_exports);
-            parser.dependencies.push(Box::new(dep));
+            parser.add_dependency(Box::new(dep));
           }
         }),
       );
@@ -615,19 +640,42 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
   fn class_body_element(
     &self,
     parser: &mut JavascriptParser,
-    _element: &swc_core::ecma::ast::ClassMember,
+    element: &ClassMember,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
-
-    if parser
+    if let Some(top_level_symbol) = parser
       .inner_graph
       .class_with_top_level_symbol
-      .contains_key(&class_decl_or_expr.span())
+      .get(&class_decl_or_expr.span())
     {
+      let top_level_symbol_variable_name = top_level_symbol.name.clone();
       parser.inner_graph.set_top_level_symbol(None);
+      /*
+       * ```js
+       * var A = class B {
+       *   static {
+       *     this;
+       *     B;
+       *   }
+       * }
+       * ```
+       * Alias `this` and `B` (class ident) to top level symbol `A` here, so `A` is used if `this` or `B`
+       * is used in static block (`add_usage` in identifier hook and this hook), even `A` is not used in
+       * any other place.
+       */
+      if let ClassMember::StaticBlock(_) = element {
+        let class_var = parser
+          .get_variable_info(&top_level_symbol_variable_name)
+          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
+        if let Some(class_ident) = class_decl_or_expr.ident() {
+          parser.set_variable(class_ident.sym.clone(), class_var.clone());
+        }
+        parser.set_variable("this".into(), class_var);
+      }
     }
 
     None
@@ -640,17 +688,17 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     expr_span: Span,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() || !matches!(parser.top_level_scope, TopLevelScope::Top) {
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
+    let pure_member =
+      is_pure_class_member(parser, element, self.unresolved_context, parser.comments);
     if let Some(v) = parser
       .inner_graph
       .class_with_top_level_symbol
       .get(&class_decl_or_expr.span())
     {
-      if !element.is_static()
-        || is_pure_class_member(element, self.unresolved_context, parser.comments)
-      {
+      if !element.is_static() || pure_member {
         parser.inner_graph.set_top_level_symbol(Some(v.clone()));
         if !matches!(element, ClassMember::Method(_)) && element.is_static() {
           Self::on_usage(
@@ -660,7 +708,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );
@@ -705,7 +753,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(super_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );
@@ -720,7 +768,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
                 let mut dep =
                   PureExpressionDependency::new(init_span.into(), *parser.module_identifier);
                 dep.set_used_by_exports(used_by_exports);
-                parser.dependencies.push(Box::new(dep));
+                parser.add_dependency(Box::new(dep));
               }
             }),
           );
@@ -760,9 +808,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::AssignExpr,
-    for_name: Option<&str>,
+    for_name: &str,
   ) -> Option<bool> {
-    let for_name = for_name?;
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
       return None;
     }
@@ -776,6 +823,16 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     &self,
     parser: &mut JavascriptParser,
     _ident: &swc_core::ecma::ast::Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    Self::for_each_expression(parser, for_name);
+    None
+  }
+
+  fn this(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::ThisExpr,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);

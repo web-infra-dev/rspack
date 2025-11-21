@@ -42,7 +42,7 @@ const concatComparatorsCache: TwoKeyWeakMap<
 	Comparator
 > = new TwoKeyWeakMap();
 
-export const concatComparators = (...comps: Array<Comparator>): Comparator => {
+export const concatComparators = (...comps: Comparator[]): Comparator => {
 	const [c1, c2, ...cRest] = comps;
 
 	if (c2 === undefined) {

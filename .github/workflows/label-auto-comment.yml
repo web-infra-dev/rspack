@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: 🤔 Need Reproduce
         if: github.event.label.name == 'need reproduction'
-        uses: actions-cool/issues-helper@50068f49b7b2b3857270ead65e2d02e4459b022c # v3.6.2
+        uses: actions-cool/issues-helper@45d75b6cf72bf4f254be6230cb887ad002702491 # v3.6.3
         with:
           actions: "create-comment"
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +28,7 @@ jobs:
             Hello @${{ github.event.issue.user.login }}, sorry we can't investigate the problem further without reproduction demo, please provide a repro demo by forking [rspack-repro](https://github.com/web-infra-dev/rspack-repro), or provide a minimal GitHub repository by yourself. Issues labeled by `need reproduction` will be closed if no activities in 14 days.
       - name: invalid
         if: github.event.label.name == 'invalid'
-        uses: actions-cool/issues-helper@50068f49b7b2b3857270ead65e2d02e4459b022c # v3.6.2
+        uses: actions-cool/issues-helper@45d75b6cf72bf4f254be6230cb887ad002702491 # v3.6.3
         with:
           actions: "create-comment,close-issue"
           token: ${{ secrets.GITHUB_TOKEN }}

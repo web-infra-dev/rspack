@@ -1,0 +1,9 @@
+ERROR in × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expression expected
+         ╭────
+       1 │ console.log(
+         ·             ▲
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

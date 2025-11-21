@@ -157,8 +157,8 @@ async fn render_chunk(
           source: start_up_source,
         };
         hooks
-          .read()
-          .await
+          .try_read()
+          .expect("should have js plugin drive")
           .render_startup
           .call(
             compilation,

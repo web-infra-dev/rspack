@@ -15,7 +15,16 @@ impl Default for AsyncRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    compilation.runtime_template.render(&self.id, None)
+    compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "_queues": "__webpack_queues__",
+        "_error": "__webpack_error__",
+        "_done": "__webpack_done__",
+        "_defer": "__webpack_defer__",
+        "_module_cache": "__webpack_module_cache__",
+      })),
+    )
   }
 
   fn name(&self) -> Identifier {

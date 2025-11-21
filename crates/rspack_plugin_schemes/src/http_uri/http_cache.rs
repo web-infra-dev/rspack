@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  fmt::Debug,
   path::PathBuf,
   sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
@@ -8,10 +9,10 @@ use std::{
 use anyhow::Result;
 use async_trait::async_trait;
 use cow_utils::CowUtils;
-use rspack_base64::encode_to_string;
+use napi::bindgen_prelude::Buffer;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::{base64, fx_hash::FxHashMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
@@ -19,10 +20,25 @@ use url::Url;
 use super::lockfile::{LockfileCache, LockfileEntry};
 use crate::http_uri::HttpUriPluginOptions;
 
+/// This enum is used for avoiding [Buffer::to_vec] overhead
+pub enum BufferOrBytes {
+  Buffer(Buffer),
+  Bytes(Vec<u8>),
+}
+
+impl Clone for BufferOrBytes {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Buffer(buffer) => Self::Bytes(buffer.to_vec()),
+      Self::Bytes(bytes) => Self::Bytes(bytes.clone()),
+    }
+  }
+}
+
 pub struct HttpResponse {
   pub status: u16,
   pub headers: FxHashMap<String, String>,
-  pub body: Vec<u8>,
+  pub body: Buffer,
 }
 
 #[async_trait]
@@ -39,16 +55,20 @@ pub struct FetchResultMeta {
   fresh: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub struct ContentFetchResult {
   pub(crate) entry: LockfileEntry,
-  content: Vec<u8>,
+  content: BufferOrBytes,
   meta: FetchResultMeta,
 }
 
 impl ContentFetchResult {
+  #[inline(always)]
   pub fn content(&self) -> &[u8] {
-    &self.content
+    match &self.content {
+      BufferOrBytes::Buffer(buffer) => buffer.as_ref(),
+      BufferOrBytes::Bytes(items) => items.as_ref(),
+    }
   }
 }
 
@@ -58,7 +78,6 @@ pub struct RedirectFetchResult {
   meta: FetchResultMeta,
 }
 
-#[derive(Debug)]
 pub enum FetchResultType {
   Content(ContentFetchResult),
   #[allow(dead_code)]
@@ -172,23 +191,23 @@ impl HttpCache {
       };
 
       // If we had a cached redirect that's unchanged, use the cached meta
-      if let Some(cached) = &cached_result
-        && let FetchResultType::Redirect(cached_redirect) =
-          fetch_cache_result_to_fetch_result_type(cached)
-        && cached_redirect.location == absolute_location
-        && cached_redirect.meta.valid_until >= valid_until
-        && cached_redirect.meta.store_lock == store_lock
-        && cached_redirect.meta.store_cache == store_cache
-        && cached_redirect.meta.etag == etag
-      {
-        return Ok(FetchResultType::Redirect(RedirectFetchResult {
-          meta: FetchResultMeta {
-            fresh: true,
-            ..cached_redirect.meta
-          },
-          ..cached_redirect
-        }));
-      }
+      // if let Some(cached) = &cached_result
+      //   && let FetchResultType::Redirect(cached_redirect) =
+      //     fetch_cache_result_to_fetch_result_type(cached)
+      //   && cached_redirect.location == absolute_location
+      //   && cached_redirect.meta.valid_until >= valid_until
+      //   && cached_redirect.meta.store_lock == store_lock
+      //   && cached_redirect.meta.store_cache == store_cache
+      //   && cached_redirect.meta.etag == etag
+      // {
+      //   return Ok(FetchResultType::Redirect(RedirectFetchResult {
+      //     meta: FetchResultMeta {
+      //       fresh: true,
+      //       ..cached_redirect.meta
+      //     },
+      //     ..cached_redirect
+      //   }));
+      // }
 
       return Ok(FetchResultType::Redirect(RedirectFetchResult {
         location: absolute_location,
@@ -227,7 +246,7 @@ impl HttpCache {
 
     let result = ContentFetchResult {
       entry: entry.clone(),
-      content: content.to_vec(),
+      content: BufferOrBytes::Buffer(content),
       meta: FetchResultMeta {
         fresh: true,
         store_lock,
@@ -248,7 +267,7 @@ impl HttpCache {
 
       if should_update {
         if store_cache {
-          self.write_to_cache(url, &result.content).await?;
+          self.write_to_cache(url, result.content()).await?;
         }
 
         let lockfile = self.lockfile_cache.get_lockfile().await?;
@@ -285,7 +304,7 @@ impl HttpCache {
 
           let result = ContentFetchResult {
             entry: entry.clone(),
-            content,
+            content: BufferOrBytes::Bytes(content),
             meta,
           };
 
@@ -466,10 +485,5 @@ fn compute_integrity(content: &[u8]) -> String {
   hasher.update(content);
   let digest = hasher.finalize();
   // Use base64 for integrity as that's the standard format
-  format!("sha512-{}", encode_to_string(digest))
-}
-
-// Helper function to convert ContentFetchResult to FetchResultType
-fn fetch_cache_result_to_fetch_result_type(result: &ContentFetchResult) -> FetchResultType {
-  FetchResultType::Content(result.clone())
+  format!("sha512-{}", base64::encode_to_string(digest))
 }

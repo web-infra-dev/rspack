@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support custom info";

@@ -87,6 +87,12 @@ const HASH: char = '#';
 const QUERY: char = '?';
 
 pub fn get_scheme(specifier: &str) -> Scheme {
+  // Fast path: most modules don't have a scheme
+  let bytes = specifier.as_bytes();
+  if memchr::memchr(b':', bytes).is_none() {
+    return Scheme::None;
+  }
+
   let mut chars = specifier.chars().enumerate().peekable();
 
   // First char maybe only a letter

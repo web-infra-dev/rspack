@@ -5,7 +5,7 @@ import type { CreatePartialRegisters } from "./types";
 
 export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 	`JavascriptModules`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerJavascriptModulesChunkHashTaps: createTap(
 			binding.RegisterJsTapKind.JavascriptModulesChunkHash,

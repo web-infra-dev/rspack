@@ -4,11 +4,11 @@ use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, ExportProvided,
-  ExportsInfoGetter, ExtendedReferencedExport, LibIdentOptions, Logger, Module, ModuleExt,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, Plugin, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition,
-  RuntimeSpec, SourceType,
+  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, DependencyType,
+  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, ImportedByDeferModulesArtifact,
+  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -190,6 +190,10 @@ impl ModuleConcatenationPlugin {
 
     let mut set = IdentifierIndexSet::default();
     for (con, (has_imported_names, cached_active)) in &cached.connections {
+      if set.contains(con.module_identifier()) {
+        continue;
+      }
+
       let is_target_active = if let Some(runtime) = runtime {
         if cached.runtime == *runtime {
           // runtime is same, use cached value
@@ -374,20 +378,25 @@ impl ModuleConcatenationPlugin {
       let mut incoming_connections_from_modules = HashMap::default();
       for (origin_module, connections) in incomings.iter() {
         if let Some(origin_module) = origin_module {
-          if chunk_graph.get_number_of_module_chunks(*origin_module) == 0 {
+          let number_of_chunks = module_cache
+            .get(origin_module)
+            .map(|m| m.number_of_chunks)
+            .unwrap_or_else(|| chunk_graph.get_number_of_module_chunks(*origin_module));
+
+          if number_of_chunks == 0 {
             // Ignore connection from orphan modules
             continue;
           }
 
           let is_intersect = if let Some(runtime) = runtime {
             if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
-              runtime.intersection(origin_runtime).count() > 0
+              !runtime.is_disjoint(origin_runtime)
             } else {
               let mut origin_runtime = RuntimeSpec::default();
               for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
                 origin_runtime.extend(r);
               }
-              runtime.intersection(&origin_runtime).count() > 0
+              !runtime.is_disjoint(&origin_runtime)
             }
           } else {
             false
@@ -652,7 +661,11 @@ impl ModuleConcatenationPlugin {
       .module_by_identifier(&root_module_id)
       .expect("should have module");
     let root_module_source_types = box_module.source_types(&module_graph);
+
     let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
+    if is_root_module_asset_module && !root_module_source_types.contains(&SourceType::JavaScript) {
+      return Ok(());
+    }
 
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
@@ -819,6 +832,24 @@ impl ModuleConcatenationPlugin {
 
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
+
+    if compilation.options.experiments.defer_import {
+      let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
+      let module_graph = compilation.get_module_graph();
+      for dep in module_graph.dependencies().values() {
+        if dep.get_phase().is_defer()
+          && matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          )
+          && let Some(module) = module_graph.module_identifier_by_dependency_id(dep.id())
+        {
+          imported_by_defer_modules_artifact.insert(*module);
+        }
+      }
+      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact;
+    }
+
     let mut relevant_modules = vec![];
     let mut possible_inners = IdentifierSet::default();
     let start = logger.time("select relevant modules");
@@ -841,24 +872,23 @@ impl ModuleConcatenationPlugin {
           .get_number_of_module_chunks(module_id);
         let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
         let module_graph = compilation.get_module_graph();
-        let m = module_graph.module_by_identifier(&module_id);
+        let m = module_graph
+          .module_by_identifier(&module_id)
+          .expect("should have module");
 
-        if let Some(reason) = m
-          .expect("should have module")
-          .get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+        if let Some(reason) =
+          m.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
         {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
         }
-
-        let m = module_graph.module_by_identifier(&module_id);
 
         if ModuleGraph::is_async(compilation, &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m.expect("should have module").build_info().strict {
+        if !m.build_info().strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -944,6 +974,12 @@ impl ModuleConcatenationPlugin {
           can_be_inner = false;
           bailout_reason.push("Module is an entry point".into());
         }
+
+        if module_graph.is_deferred(&compilation.imported_by_defer_modules_artifact, &module_id) {
+          bailout_reason.push("Module is deferred".into());
+          can_be_inner = false;
+        }
+
         (can_be_root, can_be_inner, module_id, bailout_reason)
         // if can_be_root {
         //   relevant_modules.push(module_id);
@@ -1001,12 +1037,15 @@ impl ModuleConcatenationPlugin {
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache_artifact = &compilation.module_static_cache_artifact;
     let compilation_context = &compilation.options.context;
-    let modules_without_runtime_cache = relevant_modules
+    let cache_modules = relevant_modules
       .iter()
       .chain(possible_inners.iter())
-      .par_bridge()
+      .copied()
+      .collect::<IdentifierSet>();
+    let modules_without_runtime_cache = cache_modules
+      .into_par_iter()
       .map(|module_id| {
-        let exports_info = module_graph.get_exports_info(module_id);
+        let exports_info = module_graph.get_exports_info(&module_id);
         let exports_info_data = ExportsInfoGetter::prefetch(
           &exports_info,
           &module_graph,
@@ -1017,18 +1056,18 @@ impl ModuleConcatenationPlugin {
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
-          .module_by_identifier(module_id)
+          .module_by_identifier(&module_id)
           .expect("should have module");
         let mut runtime = RuntimeSpec::default();
         for r in compilation
           .chunk_graph
-          .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+          .get_module_runtimes_iter(module_id, &compilation.chunk_by_ukey)
         {
           runtime.extend(r);
         }
 
         let _ = get_cached_readable_identifier(
-          module_id,
+          &module_id,
           &module_graph,
           module_static_cache_artifact,
           compilation_context,
@@ -1060,7 +1099,11 @@ impl ModuleConcatenationPlugin {
           })
           .collect::<Vec<_>>();
 
-        let incomings = module_graph.get_incoming_connections_by_origin_module(module_id);
+        let incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = module_graph
+          .get_incoming_connections_by_origin_module(&module_id)
+          .into_iter()
+          .map(|(k, v)| (k, v.into_iter().cloned().collect()))
+          .collect();
         let mut active_incomings = HashMap::default();
         for connection in incomings.values().flatten() {
           active_incomings.insert(
@@ -1068,14 +1111,18 @@ impl ModuleConcatenationPlugin {
             connection.is_active(&module_graph, Some(&runtime), module_graph_cache),
           );
         }
+        let number_of_chunks = compilation
+          .chunk_graph
+          .get_number_of_module_chunks(module_id);
         (
-          *module_id,
+          module_id,
           NoRuntimeModuleCache {
             runtime,
             provided_names,
             connections,
             incomings,
             active_incomings,
+            number_of_chunks,
           },
         )
       })
@@ -1181,6 +1228,9 @@ impl ModuleConcatenationPlugin {
     }
 
     logger.time_end(start);
+
+    rayon::spawn(move || drop(modules_without_runtime_cache));
+
     if !concat_configurations.is_empty() {
       let mut concat_len_buffer = itoa::Buffer::new();
       let concat_len_str = concat_len_buffer.format(concat_configurations.len());
@@ -1360,6 +1410,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   self.optimize_chunk_modules_impl(compilation).await?;
+
   Ok(None)
 }
 
@@ -1396,6 +1447,7 @@ pub struct NoRuntimeModuleCache {
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>>,
   active_incomings: HashMap<DependencyId, bool>,
+  number_of_chunks: usize,
 }
 
 async fn create_concatenated_module(
@@ -1562,10 +1614,7 @@ where
       .connection_by_dependency_id(dep_id)
       .expect("should have connection");
     let dependency = mg.dependency_by_id(dep_id).expect("should have dependency");
-    // the inactive connection should not be updated
-    if filter_connection(root_module_id, connection, dependency)
-      && (connection.conditional || connection.active)
-    {
+    if filter_connection(root_module_id, connection, dependency) {
       incomings.push(*dep_id);
     }
   }

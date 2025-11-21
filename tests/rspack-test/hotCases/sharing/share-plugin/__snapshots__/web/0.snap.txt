@@ -1,0 +1,13 @@
+# Case share-plugin: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: common_js_2.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

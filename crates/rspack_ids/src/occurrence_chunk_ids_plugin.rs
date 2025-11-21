@@ -39,7 +39,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
   }
 
   let chunk_graph = &compilation.chunk_graph;
-  let module_graph = &compilation.get_module_graph();
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
   let mut occurs_in_initial_chunks_map = HashMap::new();
 
@@ -81,7 +80,6 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
 
       compare_chunks_natural(
         chunk_graph,
-        module_graph,
         &compilation.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,

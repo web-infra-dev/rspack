@@ -113,6 +113,6 @@ var hasRun = false;
   }
 
   fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::from(11) // Run after RemoteRuntimeModule (stage 10)
+    RuntimeModuleStage::Trigger // Run after RemoteRuntimeModule and StartupChunkDependenciesRuntimeModule
   }
 }

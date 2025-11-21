@@ -1,0 +1,113 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+__webpack_require__.add({
+"./bar.js": 
+/*!****************!*\
+  !*** ./bar.js ***!
+  \****************/
+(function (__unused_webpack_module, exports) {
+exports.bar = 2
+
+
+}),
+"./foo.js": 
+/*!****************!*\
+  !*** ./foo.js ***!
+  \****************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
+  foo: () => (foo)
+});
+/* import */var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
+const foo = 1
+
+
+
+}),
+"./index.js": 
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
+
+it('should have correct output for entry re-exports', async () => {
+	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');
+
+	expect(foo).toBe(1);
+	expect(bar).toBe(2);
+})
+
+
+
+}),
+});
+const index = __webpack_require__("./index.js");
+var __esModule = index.__esModule;
+var bar = index.bar;
+var foo = index.foo;
+
+export { __esModule, bar, foo };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// esm library register module runtime
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

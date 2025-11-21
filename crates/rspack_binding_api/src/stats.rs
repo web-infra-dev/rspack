@@ -9,9 +9,9 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
-  rspack_sources::{RawBufferSource, RawSource, Source},
+  rspack_sources::{RawBufferSource, Source, SourceValue},
 };
-use rspack_error::RspackSeverity;
+use rspack_error::Severity;
 use rspack_napi::napi::{
   Either,
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
@@ -569,16 +569,9 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
   type Error = napi::Error;
 
   fn try_from(stats: StatsModule<'a>) -> std::result::Result<Self, Self::Error> {
-    let source = stats.source.map(|source| {
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>()
-        && raw_source.is_buffer()
-      {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      JsStatsModuleSource::A(CowStrWrapper::new(source.source()))
+    let source = stats.source.map(|source| match source.source() {
+      SourceValue::String(string) => JsStatsModuleSource::A(CowStrWrapper::new(string)),
+      SourceValue::Buffer(bytes) => JsStatsModuleSource::B(Buffer::from(bytes.to_vec())),
     });
 
     let mut sizes = stats
@@ -680,30 +673,17 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsModuleProfile {
-  pub factory: JsStatsMillisecond,
-  pub building: JsStatsMillisecond,
+  // use f64 to make js side as a number type
+  pub factory: f64,
+  pub building: f64,
 }
 
 impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
   fn from(value: rspack_core::StatsModuleProfile) -> Self {
     Self {
-      factory: value.factory.into(),
-      building: value.building.into(),
-    }
-  }
-}
-
-#[napi(object, object_from_js = false)]
-pub struct JsStatsMillisecond {
-  pub secs: u32,
-  pub subsec_millis: u32,
-}
-
-impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
-  fn from(value: rspack_core::StatsMillisecond) -> Self {
-    Self {
-      secs: value.secs as u32,
-      subsec_millis: value.subsec_millis,
+      // The time is short and no data will be lost when converting from u64 to f64
+      factory: value.factory as f64,
+      building: value.building as f64,
     }
   }
 }
@@ -1262,7 +1242,7 @@ pub fn create_stats_warnings<'a>(
 
   let mut diagnostics = warnings
     .into_iter()
-    .map(|warning| warning.into_diagnostic(RspackSeverity::Warn))
+    .map(|warning| warning.into_diagnostic(Severity::Warning))
     .collect::<Vec<_>>();
 
   let stats_warnings = rspack_core::create_stats_errors(

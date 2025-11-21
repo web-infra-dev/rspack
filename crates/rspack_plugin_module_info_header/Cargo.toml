@@ -10,7 +10,6 @@ version.workspace = true
 [dependencies]
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
-rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hash              = { workspace = true }

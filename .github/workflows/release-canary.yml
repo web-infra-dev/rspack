@@ -1,6 +1,9 @@
 name: Release Canary
 
 on:
+  schedule:
+    - cron: "0 17 * * *"
+
   workflow_dispatch:
     inputs:
       commit:
@@ -44,13 +47,13 @@ jobs:
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: aarch64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: x86_64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: aarch64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
@@ -62,14 +65,14 @@ jobs:
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: ${{inputs.commit}}
+      ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: ${{inputs.profile}}
-      test: ${{inputs.test}}
+      profile: ${{inputs.profile || 'release'}}
+      test: ${{inputs.test || false}}
 
   release:
     name: Release Canary
@@ -78,7 +81,7 @@ jobs:
     environment: npm-canary
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 1
           ref: ${{inputs.commit}}
@@ -102,9 +105,6 @@ jobs:
 
       - name: Show binding packages
         run: ls -R npm
-
-      - name: Resolve dependencies for bindings
-        run: pnpm install --no-frozen-lockfile
 
       # Update npm to the latest version to enable OIDC
       - name: Update npm

@@ -1,0 +1,20 @@
+asset common.js xx KiB [emitted] (name: common) (id hint: vendors)
+asset pages/home.js xx KiB [emitted] (name: pages/home)
+asset runtime.js xx KiB [emitted] (name: runtime)
+asset main.js xx KiB [emitted] (name: main)
+Entrypoint main 1.01 MiB = runtime.js xx KiB common.js xx KiB main.js xx KiB
+runtime modules xx KiB 14 modules
+cacheable modules 1 MiB
+  modules by path ../../../../node_modules/.pnpm/ xx KiB
+    modules by path ../../../../node_modules/<PNPM_INNER>/react/ xx KiB 4 modules
+    modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/ xx KiB
+      modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/*.js xx KiB 2 modules
+      modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/cjs/*.js xx KiB 2 modules
+    modules by path ../../../../node_modules/<PNPM_INNER>/scheduler/ xx KiB
+      ../../../../node_modules/<PNPM_INNER>/scheduler/index.js 194 bytes [built] [code generated]
+      ../../../../node_modules/<PNPM_INNER>/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
+  modules by path ./src/ xx KiB
+    ./src/index.js 753 bytes [built] [code generated]
+    ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object 160 bytes [built] [code generated]
+    ./src/pages/home.js xx KiB [built] [code generated]
+Rspack x.x.x compiled successfully in X s

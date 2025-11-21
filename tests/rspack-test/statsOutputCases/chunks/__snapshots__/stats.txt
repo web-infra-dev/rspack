@@ -1,0 +1,35 @@
+PublicPath: auto
+asset bundle.js xx KiB [emitted] (name: main)
+chunk (runtime: main) bundle.js (main) 233 bytes (javascript) 88 bytes (runtime) [entry] [rendered]
+  > ./index main
+  ./.|sync 160 bytes [dependent] [built] [code generated]
+    commonjs require context . ./index.js 2:0-16
+    commonjs require context . ./index.js 3:0-16
+    xx ms (resolving: xx ms, building: xx ms)
+  ./a.js 22 bytes [dependent] [built] [code generated]
+    cjs self exports reference self ./a.js
+    cjs require ./a ./index.js 1:8-13
+    xx ms (resolving: xx ms, building: xx ms)
+  ./index.js 51 bytes [built] [code generated] [2 warnings]
+    entry ./index
+    xx ms (resolving: xx ms, building: xx ms)
+
+WARNING in ./index.js 2:0-16
+  ⚠ Critical dependency: the request of a dependency is an expression
+   ╭─[2:8]
+ 1 │ require("./a");
+ 2 │ require(["./b"]);
+   ·         ───────
+ 3 │ require(["./c"]);
+   ╰────
+
+WARNING in ./index.js 3:0-16
+  ⚠ Critical dependency: the request of a dependency is an expression
+   ╭─[3:8]
+ 1 │ require("./a");
+ 2 │ require(["./b"]);
+ 3 │ require(["./c"]);
+   ·         ───────
+   ╰────
+
+Rspack x.x.x compiled with 2 warnings in X s

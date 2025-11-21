@@ -37,8 +37,7 @@ impl ReadonlyResourceData {
   pub fn description_file_data(&self, env: &Env) -> napi::Result<Option<napi_value>> {
     self.with_ref(|resource_data| {
       resource_data
-        .resource_description
-        .as_ref()
+        .description()
         .map(|desc| unsafe { ToNapiValue::to_napi_value(env.raw(), desc.json()) })
         .transpose()
     })
@@ -48,8 +47,7 @@ impl ReadonlyResourceData {
   pub fn description_file_path(&self, env: &Env) -> napi::Result<Option<napi_value>> {
     self.with_ref(|resource_data| {
       resource_data
-        .resource_description
-        .as_ref()
+        .description()
         .map(|data| unsafe {
           ToNapiValue::to_napi_value(env.raw(), data.path().to_string_lossy().as_ref())
         })
@@ -86,23 +84,23 @@ impl ToNapiValue for ReadonlyResourceDataWrapper {
       properties.push(
         Property::new()
           .with_utf8_name("resource")?
-          .with_value(&env_wrapper.create_string(&resource_data.resource)?),
+          .with_value(&env_wrapper.create_string(resource_data.resource())?),
       );
-      if let Some(path) = &resource_data.resource_path {
+      if let Some(path) = resource_data.path() {
         properties.push(
           Property::new()
             .with_utf8_name("path")?
             .with_value(&env_wrapper.create_string(path.as_str())?),
         );
       }
-      if let Some(query) = &resource_data.resource_query {
+      if let Some(query) = resource_data.query() {
         properties.push(
           Property::new()
             .with_utf8_name("query")?
             .with_value(&env_wrapper.create_string(query)?),
         );
       }
-      if let Some(fragment) = &resource_data.resource_fragment {
+      if let Some(fragment) = resource_data.fragment() {
         properties.push(
           Property::new()
             .with_utf8_name("fragment")?
@@ -136,37 +134,16 @@ pub struct JsResourceData {
   pub description_file_path: Option<String>,
 }
 
-impl From<rspack_core::ResourceData> for JsResourceData {
-  fn from(value: rspack_core::ResourceData) -> Self {
-    let (description_file_path, description_file_data) = value
-      .resource_description
-      .map(|data| data.into_parts())
-      .unzip();
-    Self {
-      resource: value.resource,
-      path: value.resource_path.map(|p| p.as_str().to_string()),
-      query: value.resource_query,
-      fragment: value.resource_fragment,
-      description_file_data: description_file_data.map(std::sync::Arc::unwrap_or_clone),
-      description_file_path: description_file_path.map(|path| path.to_string_lossy().into_owned()),
-    }
-  }
-}
-
 impl From<&rspack_core::ResourceData> for JsResourceData {
   fn from(value: &rspack_core::ResourceData) -> Self {
     Self {
-      resource: value.resource.to_owned(),
-      path: value.resource_path.as_ref().map(|p| p.as_str().to_string()),
-      fragment: value.resource_fragment.as_ref().map(|r| r.to_owned()),
-      query: value.resource_query.as_ref().map(|r| r.to_owned()),
-      description_file_data: value
-        .resource_description
-        .as_ref()
-        .map(|data| data.json().to_owned()),
+      resource: value.resource().to_owned(),
+      path: value.path().map(|p| p.as_str().to_string()),
+      fragment: value.fragment().map(|r| r.to_owned()),
+      query: value.query().map(|r| r.to_owned()),
+      description_file_data: value.description().map(|data| data.json().to_owned()),
       description_file_path: value
-        .resource_description
-        .as_ref()
+        .description()
         .map(|data| data.path().to_string_lossy().into_owned()),
     }
   }

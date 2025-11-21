@@ -114,35 +114,25 @@ fn dirname(path: &str) -> &str {
   if path == "/" {
     return path;
   }
-  let i = path.rfind('/');
-  let j = path.rfind("\\\\");
-  let i2 = path.find('/');
-  let j2 = path.find("\\\\");
-  let (idx, is_i) = match (i, j) {
-    (None, None) => return path,
-    (None, Some(j)) => (j, false),
-    (Some(i), None) => (i, true),
-    (Some(i), Some(j)) => {
-      if i > j {
-        (i, true)
-      } else {
-        (j, false)
-      }
-    }
+  let Some(i) = path.rfind(['/', '\\']) else {
+    return path;
   };
-  let idx2 = (if is_i { i2 } else { j2 }).expect("should have value");
-  if idx == idx2 {
-    return &path[..idx + 1];
+  let c = match path.as_bytes().get(i) {
+    Some(b'/') => '/',
+    Some(b'\\') => '\\',
+    _ => unreachable!("path delimiter should be slash or backslash"),
+  };
+  let i2 = path.find(c).expect("should exist");
+  if i == i2 {
+    return &path[..i + 1];
   }
-  &path[..idx]
+  &path[..i]
 }
 
 pub fn get_context(resource_data: &ResourceData) -> Context {
-  if let Some(resource_path) = &resource_data.resource_path
-    && let Some(dirname) = resource_path.parent()
-  {
-    dirname.into()
-  } else if let Some(parsed) = parse_resource(&resource_data.resource) {
+  if let Some(resource_path) = resource_data.path() {
+    dirname(resource_path.as_str()).into()
+  } else if let Some(parsed) = parse_resource(resource_data.resource()) {
     dirname(parsed.path.as_str()).into()
   } else {
     Context::from("")
@@ -153,4 +143,10 @@ pub fn get_context(resource_data: &ResourceData) -> Context {
 fn dirname_data_uri() {
   let d = dirname("data:text/javascript,import \"a\"");
   assert_eq!(d, "data:text/");
+}
+
+#[test]
+fn dirname_non_ascii_path() {
+  let d = dirname("C:/非常长的中文来测试宽字符溢出问题/src/index.js");
+  assert_eq!(d, "C:/非常长的中文来测试宽字符溢出问题/src");
 }

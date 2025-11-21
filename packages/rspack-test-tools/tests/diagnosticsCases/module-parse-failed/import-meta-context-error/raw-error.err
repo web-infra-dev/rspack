@@ -1,6 +1,0 @@
-Array [
-  Object {
-    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/import-meta-context-error/index.js,
-    moduleName: ./index.js,
-  },
-]

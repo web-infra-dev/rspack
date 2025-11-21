@@ -58,8 +58,8 @@
         "activeMatch": "/contribute"
       },
       {
-        "text": "Playground ↗",
-        "link": "https://repl.rspack.rs/"
+        "text": "Playground",
+        "link": "https://playground.rspack.rs"
       }
     ]
   },

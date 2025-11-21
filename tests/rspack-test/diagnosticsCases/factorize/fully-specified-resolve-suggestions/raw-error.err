@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 1:0-14,
+    moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions/index.js,
+    moduleName: ./index.js,
+  },
+]

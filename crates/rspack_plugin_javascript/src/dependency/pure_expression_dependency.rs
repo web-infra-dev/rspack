@@ -55,6 +55,10 @@ impl PureExpressionDependency {
       }
     }
   }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
 }
 
 #[cacheable_dyn]
@@ -63,12 +67,8 @@ impl Dependency for PureExpressionDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
-  }
-
-  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
-    self.used_by_exports = used_by_exports;
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_module_evaluation_side_effects_state(

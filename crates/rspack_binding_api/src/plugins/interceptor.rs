@@ -64,9 +64,10 @@ use rspack_plugin_rsdoctor::{
   RsdoctorPluginModuleSources, RsdoctorPluginModuleSourcesHook,
 };
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
-  RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
-  RuntimePluginLinkPreload, RuntimePluginLinkPreloadHook,
+  CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateLink,
+  RuntimePluginCreateLinkHook, RuntimePluginCreateScript, RuntimePluginCreateScriptHook,
+  RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
+  RuntimePluginLinkPreloadHook,
 };
 
 use crate::{
@@ -92,10 +93,10 @@ use crate::{
   },
   runtime::{
     JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsCreateLinkData, JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
     JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
   },
-  source::ToJsCompatSourceOwned,
+  source::JsSourceToJs,
 };
 
 #[napi(object)]
@@ -365,6 +366,7 @@ pub enum RegisterJsTapKind {
   HtmlPluginBeforeEmit,
   HtmlPluginAfterEmit,
   RuntimePluginCreateScript,
+  RuntimePluginCreateLink,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
   RsdoctorPluginModuleGraph,
@@ -584,6 +586,10 @@ pub struct RegisterJsTaps {
     RegisterFunction<JsCreateScriptData, Option<String>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_create_link_taps: RegisterFunction<JsCreateLinkData, Option<String>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>"
   )]
   pub register_runtime_plugin_link_preload_taps:
     RegisterFunction<JsLinkPreloadData, Option<String>>,
@@ -928,6 +934,13 @@ define_register!(
   tap = RuntimePluginCreateScriptTap<JsCreateScriptData, Option<String>> @ RuntimePluginCreateScriptHook,
   cache = true,
   kind = RegisterJsTapKind::RuntimePluginCreateScript,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginCreateLinkTaps,
+  tap = RuntimePluginCreateLinkTap<JsCreateLinkData, Option<String>> @ RuntimePluginCreateLinkHook,
+  cache = true,
+  kind = RegisterJsTapKind::RuntimePluginCreateLink,
   skip = true,
 );
 define_register!(
@@ -1320,14 +1333,10 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_str = module.generate(compilation).await?;
+    let source_string = module.generate(compilation).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
-        source: Some(
-          RawStringSource::from(source_str)
-            .to_js_compat_source_owned()
-            .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-        ),
+        source: Some(JsSourceToJs::from(source_string)),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
         name: module
@@ -1531,7 +1540,7 @@ impl NormalModuleFactoryResolveForScheme for NormalModuleFactoryResolveForScheme
     let (bail, new_resource_data) = self
       .function
       .call_with_promise(JsResolveForSchemeArgs {
-        resource_data: resource_data.clone().into(),
+        resource_data: (&*resource_data).into(),
         scheme: scheme.to_string(),
       })
       .await?;
@@ -1584,7 +1593,7 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
         dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
-        resource_resolve_data: create_data.resource_resolve_data.clone().into(),
+        resource_resolve_data: (&create_data.resource_resolve_data).into(),
         context: data.context.to_string(),
         match_resource: create_data.match_resource.clone(),
       })
@@ -1766,6 +1775,24 @@ impl RuntimePluginCreateScript for RuntimePluginCreateScriptTap {
     if let Some(code) = self
       .function
       .call_with_sync(JsCreateScriptData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginCreateLink for RuntimePluginCreateLinkTap {
+  async fn run(&self, mut data: CreateLinkData) -> rspack_error::Result<CreateLinkData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsCreateLinkData::from(data.clone()))
       .await?
     {
       data.code = code;

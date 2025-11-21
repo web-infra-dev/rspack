@@ -13,10 +13,10 @@ import type {
 	ChunkGroup,
 	Dependency,
 	ExternalObject,
-	JsCompatSourceOwned,
 	JsCompilation,
 	JsPathData,
-	JsRuntimeModule
+	JsRuntimeModule,
+	JsSource
 } from "@rspack/binding";
 import binding from "@rspack/binding";
 
@@ -60,7 +60,7 @@ import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
-import { JsSource } from "./util/source";
+import { SourceAdapter } from "./util/source";
 // patch Chunk
 import "./Chunk";
 // patch Chunks
@@ -218,7 +218,7 @@ export class Compilation {
 		log: liteTapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: liteTapable.SyncBailHook<Iterable<Module>, void>;
-		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>, void>;
+		afterOptimizeModules: liteTapable.SyncHook<Iterable<Module>>;
 		optimizeTree: liteTapable.AsyncSeriesHook<
 			[Iterable<Chunk>, Iterable<Module>]
 		>;
@@ -227,38 +227,33 @@ export class Compilation {
 			void
 		>;
 		finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-		chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
-		chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
+		chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
+		chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
 		processWarnings: liteTapable.SyncWaterfallHook<[WebpackError[]]>;
-		succeedModule: liteTapable.SyncHook<[Module], void>;
-		stillValidModule: liteTapable.SyncHook<[Module], void>;
+		succeedModule: liteTapable.SyncHook<[Module]>;
+		stillValidModule: liteTapable.SyncHook<[Module]>;
 
 		statsPreset: liteTapable.HookMap<
-			liteTapable.SyncHook<
-				[Partial<StatsOptions>, CreateStatsOptionsContext],
-				void
-			>
+			liteTapable.SyncHook<[Partial<StatsOptions>, CreateStatsOptionsContext]>
 		>;
 		statsNormalize: liteTapable.SyncHook<
-			[Partial<StatsOptions>, CreateStatsOptionsContext],
-			void
+			[Partial<StatsOptions>, CreateStatsOptionsContext]
 		>;
-		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions], void>;
-		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions], void>;
+		statsFactory: liteTapable.SyncHook<[StatsFactory, StatsOptions]>;
+		statsPrinter: liteTapable.SyncHook<[StatsPrinter, StatsOptions]>;
 
 		buildModule: liteTapable.SyncHook<[Module]>;
 		executeModule: liteTapable.SyncHook<
 			[ExecuteModuleArgument, ExecuteModuleContext]
 		>;
 		additionalTreeRuntimeRequirements: liteTapable.SyncHook<
-			[Chunk, Set<string>],
-			void
+			[Chunk, Set<string>]
 		>;
 		runtimeRequirementInTree: liteTapable.HookMap<
 			liteTapable.SyncBailHook<[Chunk, Set<string>], void>
 		>;
-		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
-		seal: liteTapable.SyncHook<[], void>;
+		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+		seal: liteTapable.SyncHook<[]>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
 		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
 	}>;
@@ -302,8 +297,7 @@ export class Compilation {
 		const createProcessAssetsHook = <T>(
 			name: string,
 			stage: number,
-			getArgs: () => liteTapable.AsArray<T>,
-			code?: string
+			getArgs: () => liteTapable.AsArray<T>
 		) => {
 			const errorMessage = (
 				reason: string
@@ -442,7 +436,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	get chunkGroups(): ReadonlyArray<ChunkGroup> {
+	get chunkGroups(): readonly ChunkGroup[] {
 		return this.#inner.chunkGroups;
 	}
 
@@ -571,8 +565,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			// properties in the prototype chain
 			const options: Partial<NormalizedStatsOptions> = {};
 			for (const key in optionsOrPreset) {
-				options[key as keyof NormalizedStatsOptions] =
-					optionsOrPreset[key as keyof StatsValue];
+				options[key] = optionsOrPreset[key as keyof StatsValue];
 			}
 			if (options.preset !== undefined) {
 				this.hooks.statsPreset.for(options.preset).call(options, context);
@@ -607,20 +600,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			| AssetInfo
 			| ((assetInfo: AssetInfo) => AssetInfo | undefined)
 	) {
-		let compatNewSourceOrFunction:
-			| JsCompatSourceOwned
-			| ((source: JsCompatSourceOwned) => JsCompatSourceOwned);
+		let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
 
 		if (typeof newSourceOrFunction === "function") {
-			compatNewSourceOrFunction = function newSourceFunction(
-				source: JsCompatSourceOwned
-			) {
-				return JsSource.__to_binding(
-					newSourceOrFunction(JsSource.__from_binding(source))
+			compatNewSourceOrFunction = function newSourceFunction(source: JsSource) {
+				return SourceAdapter.toBinding(
+					newSourceOrFunction(SourceAdapter.fromBinding(source))
 				);
 			};
 		} else {
-			compatNewSourceOrFunction = JsSource.__to_binding(newSourceOrFunction);
+			compatNewSourceOrFunction = SourceAdapter.toBinding(newSourceOrFunction);
 		}
 
 		this.#inner.updateAsset(
@@ -638,7 +627,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @param assetInfo - extra asset information
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		this.#inner.emitAsset(filename, JsSource.__to_binding(source), assetInfo);
+		this.#inner.emitAsset(filename, SourceAdapter.toBinding(source), assetInfo);
 	}
 
 	deleteAsset(filename: string) {
@@ -652,7 +641,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	/**
 	 * Get an array of Asset
 	 */
-	getAssets(): ReadonlyArray<Asset> {
+	getAssets(): readonly Asset[] {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
@@ -977,7 +966,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
 			chunk,
-			RuntimeModule.__to_binding(this, runtimeModule)
+			RuntimeModule.__to_binding(runtimeModule)
 		);
 	}
 
@@ -1023,7 +1012,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		if (!rawSource) {
 			return;
 		}
-		return JsSource.__from_binding(rawSource);
+		return SourceAdapter.fromBinding(rawSource);
 	}
 
 	/**
@@ -1034,7 +1023,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * @internal
 	 */
 	__internal__setAssetSource(filename: string, source: Source) {
-		this.#inner.setAssetSource(filename, JsSource.__to_binding(source));
+		this.#inner.setAssetSource(filename, SourceAdapter.toBinding(source));
 	}
 
 	/**
@@ -1239,9 +1228,7 @@ export class Entries implements Map<string, EntryData> {
 		return this.entries();
 	}
 
-	get [Symbol.toStringTag](): string {
-		return "Map";
-	}
+	readonly [Symbol.toStringTag] = "Map";
 
 	has(key: string): boolean {
 		return this.#data.has(key);

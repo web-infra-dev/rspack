@@ -3,8 +3,9 @@ use std::borrow::Cow;
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
-  GroupOptions, SharedSourceMap, SpanExt,
+  GroupOptions, SharedSourceMap,
 };
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, UnaryExpr},
@@ -14,7 +15,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{RequireEnsureDependency, RequireEnsureItemDependency},
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, Statement, expr_matcher::is_require_ensure},
+  visitors::{JavascriptParser, Statement},
 };
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
@@ -42,23 +43,17 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     (for_name == "require.ensure").then(|| {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          expr.span().into(),
-          "'function'".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        expr.span().into(),
+        "'function'".into(),
+        None,
+      )));
       true
     })
   }
 
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, _for_name: &str) -> Option<bool> {
-    if expr
-      .callee
-      .as_expr()
-      .is_none_or(|expr| !is_require_ensure(&**expr))
-    {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+    if for_name != "require.ensure" {
       return None;
     }
 
@@ -80,16 +75,12 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let chunk_name = match expr
       .args
       .get(3)
-      .or(error_expr.as_ref().and(None)) // !errorExpression
-      .or(expr.args.get(2))
+      .or_else(|| if error_expr.is_some() { None } else { expr.args.get(2) }) // !errorExpression
     {
-      Some(arg) => {
-        let chunk_name_expr = parser.evaluate_expression(&arg.expr);
-        match chunk_name_expr.as_string() {
-          Some(chunk_name_expr) => Some(chunk_name_expr),
-          None => return None,
-        }
-      }
+      Some(arg) => match parser.evaluate_expression(&arg.expr).as_string() {
+        Some(chunk_name) => Some(chunk_name),
+        None => return None,
+      },
       None => None,
     };
 
@@ -128,22 +119,21 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     if failed {
       return None;
     }
-    let old_deps = std::mem::take(&mut parser.dependencies);
-
-    if let Some(success_expr) = &success_expr {
-      match success_expr.func {
-        Either::Left(func) => {
-          if let Some(body) = &func.function.body {
-            parser.walk_statement(Statement::Block(body));
+    deps.extend(parser.collect_dependencies_for_block(|parser| {
+      if let Some(success_expr) = &success_expr {
+        match success_expr.func {
+          Either::Left(func) => {
+            if let Some(body) = &func.function.body {
+              parser.walk_statement(Statement::Block(body));
+            }
           }
+          Either::Right(arrow) => match &*arrow.body {
+            BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
+            BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+          },
         }
-        Either::Right(arrow) => match &*arrow.body {
-          BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
-          BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
-        },
       }
-    }
-    deps.extend(std::mem::replace(&mut parser.dependencies, old_deps));
+    }));
 
     let source_map: SharedSourceMap = parser.source_map.clone();
     let mut block = AsyncDependenciesBlock::new(
@@ -156,7 +146,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));
-    parser.blocks.push(Box::new(block));
+    parser.add_block(Box::new(block));
 
     if success_expr.is_none() {
       parser.walk_expression(success_arg);
@@ -191,12 +181,11 @@ pub(crate) struct FunctionExpression<'a> {
 
 pub(crate) trait GetFunctionExpression {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>>;
-  fn inner_paren(&self) -> &Self;
 }
 
 impl GetFunctionExpression for Expr {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>> {
-    match self.inner_paren() {
+    match self {
       Expr::Fn(fn_expr) => Some(FunctionExpression {
         func: Either::Left(fn_expr),
         expressions: None,
@@ -211,10 +200,8 @@ impl GetFunctionExpression for Expr {
         let first_arg = &call_expr.args.first().expect("should exist").expr;
         let callee = &call_expr.callee;
 
-        if let Some(callee_member_expr) = callee
-          .as_expr()
-          .and_then(|expr| expr.inner_paren().as_member())
-          && let Some(fn_expr) = callee_member_expr.obj.inner_paren().as_fn_expr()
+        if let Some(callee_member_expr) = callee.as_expr().and_then(|expr| expr.as_member())
+          && let Some(fn_expr) = callee_member_expr.obj.as_fn_expr()
           && let Some(ident) = &callee_member_expr.prop.as_ident()
           && ident.sym == "bind"
         {
@@ -225,17 +212,12 @@ impl GetFunctionExpression for Expr {
           });
         }
 
-        if let Some(callee_fn_expr) = callee
-          .as_expr()
-          .and_then(|expr| expr.inner_paren().as_fn_expr())
+        if let Some(callee_fn_expr) = callee.as_expr().and_then(|expr| expr.as_fn_expr())
           && let Some(body_block_stmt) = &callee_fn_expr.function.body
-          && first_arg.inner_paren().is_this()
+          && first_arg.is_this()
           && body_block_stmt.stmts.len() == 1
           && let Some(return_stmt) = &body_block_stmt.stmts[0].as_return_stmt()
-          && let Some(fn_expr) = return_stmt
-            .arg
-            .as_ref()
-            .and_then(|expr| expr.inner_paren().as_fn_expr())
+          && let Some(fn_expr) = return_stmt.arg.as_ref().and_then(|expr| expr.as_fn_expr())
         {
           return Some(FunctionExpression {
             func: Either::Left(fn_expr),
@@ -248,13 +230,5 @@ impl GetFunctionExpression for Expr {
       }
       _ => None,
     }
-  }
-
-  fn inner_paren(&self) -> &Self {
-    let mut cur = self;
-    while let Some(inner) = cur.as_paren() {
-      cur = &inner.expr;
-    }
-    cur
   }
 }

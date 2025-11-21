@@ -5,6 +5,7 @@ mod eval_cond_expr;
 mod eval_lit_expr;
 mod eval_member_expr;
 mod eval_new_expr;
+mod eval_prop_name;
 mod eval_source;
 mod eval_tpl_expr;
 mod eval_unary_expr;
@@ -19,9 +20,10 @@ pub use self::{
   eval_binary_expr::eval_binary_expression,
   eval_call_expr::eval_call_expression,
   eval_cond_expr::eval_cond_expression,
-  eval_lit_expr::{eval_lit_expr, eval_prop_name},
+  eval_lit_expr::{eval_bigint, eval_bool, eval_lit_expr, eval_number, eval_str},
   eval_member_expr::eval_member_expression,
   eval_new_expr::eval_new_expression,
+  eval_prop_name::eval_prop_name,
   eval_source::eval_source,
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
@@ -73,7 +75,7 @@ pub struct BasicEvaluatedExpression<'a> {
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
   array: Option<Vec<String>>,
-  identifier: Option<String>,
+  identifier: Option<Atom>,
   root_info: Option<ExportedVariableInfo>,
   members: Option<Vec<Atom>>,
   members_optionals: Option<Vec<bool>>,
@@ -434,7 +436,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn set_identifier(
     &mut self,
-    name: String,
+    name: Atom,
     root_info: ExportedVariableInfo,
     members: Option<Vec<Atom>>,
     members_optionals: Option<Vec<bool>>,
@@ -501,7 +503,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.string.as_ref().expect("make sure string exist")
   }
 
-  pub fn identifier(&self) -> &str {
+  pub fn identifier(&self) -> &Atom {
     assert!(self.is_identifier());
     self
       .identifier
@@ -538,7 +540,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn range(&self) -> (u32, u32) {
-    let range = self.range.clone().expect("range should not empty");
+    let range = self.range.expect("range should not empty");
     (range.start, range.end)
   }
 
@@ -663,8 +665,8 @@ pub fn evaluate_to_undefined<'a>(start: u32, end: u32) -> BasicEvaluatedExpressi
 }
 
 pub fn evaluate_to_identifier<'a>(
-  identifier: String,
-  root_info: String,
+  identifier: Atom,
+  root_info: Atom,
   truthy: Option<bool>,
   start: u32,
   end: u32,

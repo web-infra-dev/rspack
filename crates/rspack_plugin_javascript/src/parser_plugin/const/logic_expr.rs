@@ -1,4 +1,5 @@
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -24,46 +25,38 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       expr.op == BinaryOp::LogicalOr
     };
     if !param.could_have_side_effects() && (keep_right || param.is_bool()) {
-      scanner
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (param.range().0, param.range().1 - 1).into(),
-          format!(" {boolean}").into(),
-          None,
-        )));
+      scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+        param.range().into(),
+        format!(" {boolean}").into(),
+        None,
+      )));
     } else {
       scanner.walk_expression(&expr.left);
     }
 
     if !keep_right {
-      scanner
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (expr.right.span().real_lo(), expr.right.span().hi().0 - 1).into(),
-          "0".into(),
-          None,
-        )));
+      scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+        (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
+        "0".into(),
+        None,
+      )));
     }
     Some(keep_right)
   } else if expr.op == BinaryOp::NullishCoalescing {
     let param = scanner.evaluate_expression(&expr.left);
     if let Some(keep_right) = param.as_nullish() {
       if !param.could_have_side_effects() && keep_right {
-        scanner
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            (param.range().0, param.range().1 - 1).into(),
-            " null".into(),
-            None,
-          )));
+        scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+          param.range().into(),
+          " null".into(),
+          None,
+        )));
       } else {
-        scanner
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            (expr.right.span().real_lo(), expr.right.span().hi().0 - 1).into(),
-            "0".into(),
-            None,
-          )));
+        scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+          (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
+          "0".into(),
+          None,
+        )));
         scanner.walk_expression(&expr.left);
       }
       Some(keep_right)

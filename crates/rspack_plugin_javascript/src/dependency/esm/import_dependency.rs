@@ -6,8 +6,8 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, module_namespace_promise,
+  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -15,14 +15,16 @@ use super::create_resource_identifier_for_esm_dependency;
 
 pub fn create_import_dependency_referenced_exports(
   dependency_id: &DependencyId,
-  referenced_exports: &Option<Vec<Atom>>,
+  referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
 ) -> Vec<ExtendedReferencedExport> {
   if let Some(referenced_exports) = referenced_exports {
     let mut refs = vec![];
     for referenced_export in referenced_exports {
-      if referenced_export == "default" {
+      if let Some(first) = referenced_export.first()
+        && first == "default"
+      {
         let Some(strict) = mg
           .get_parent_module(dependency_id)
           .and_then(|id| mg.module_by_identifier(id))
@@ -45,7 +47,7 @@ pub fn create_import_dependency_referenced_exports(
         }
       }
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-        vec![referenced_export.clone()],
+        referenced_export.clone(),
         false,
         false,
       )));
@@ -59,24 +61,24 @@ pub fn create_import_dependency_referenced_exports(
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
-  id: DependencyId,
+  pub id: DependencyId,
   #[cacheable(with=AsPreset)]
-  pub request: Atom,
+  request: Atom,
   pub range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub referenced_exports: Option<Vec<Atom>>,
-  pub attributes: Option<ImportAttributes>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  referenced_exports: Option<Vec<Vec<Atom>>>,
+  attributes: Option<ImportAttributes>,
   pub comments: Vec<(bool, String)>,
-  pub resource_identifier: String,
-  pub factorize_info: FactorizeInfo,
-  pub optional: bool,
+  resource_identifier: ResourceIdentifier,
+  factorize_info: FactorizeInfo,
+  optional: bool,
 }
 
 impl ImportDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Atom>>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
     optional: bool,
     comments: Vec<(bool, String)>,
@@ -94,6 +96,10 @@ impl ImportDependency {
       optional,
       comments,
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
   }
 }
 
@@ -119,8 +125,8 @@ impl Dependency for ImportDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(

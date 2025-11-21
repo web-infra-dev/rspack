@@ -61,14 +61,16 @@ build/Release
 # Dependency directories
 node_modules/
 !scripts/node_modules/
-!tests/webpack-examples/*/node_modules
-!tests/webpack-test/*/**/node_modules
+!tests/rspack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
-!packages/rspack-test-tools/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
+
+# Temp files
+.cache
+.temp
 
 # TypeScript cache
 *.tsbuildinfo
@@ -78,15 +80,6 @@ web_modules/
 
 # Optional eslint cache
 .eslintcache
-
-# Optional stylelint cache
-.stylelintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
 
 # Optional REPL history
 .node_repl_history
@@ -104,49 +97,13 @@ web_modules/
 .env.production.local
 .env.local
 
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-out
-
-# Nuxt.js build / generate output
-.nuxt
-
 # Dist files
 dist
 compiled
 webpack-dist
 
-# Gatsby files
-.cache/
-# Comment in the public line in if your project uses Gatsby and not Next.js
-# https://nextjs.org/blog/next-9-1#public-directory-support
-# public
-
-# vuepress build output
-.vuepress/dist
-
-# vuepress v2.x temp and cache directory
-.temp
-.cache
-
-# Docusaurus cache and generated files
-.docusaurus
-
 # Serverless directories
 .serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
@@ -165,16 +122,15 @@ webpack-dist
 # os
 .DS_Store
 
-
 # Do not ignore this for binding test
 # crates/node_binding/binding.d.ts
 
 .pnpm-store/
 
-!packages/rspack-test-tools/tests/configCases/target
+!tests/rspack-test/configCases/target
 tests/e2e/temp
 packages/*/tests/js
-
+tests/rspack-test/js
 
 # Benchmark
 /github/
@@ -182,15 +138,8 @@ packages/*/tests/js
 # profile
 profile.json
 
-# esbuild trace
-esbuild.trace
-
-# esbuild cpuprofile
-esbuild.cpuprofile
-
-
 # this node_modules is used for tree-shaking snapshot
-!packages/rspack-test-tools/tests/treeShakingCases/node_modules
+!tests/rspack-test/treeShakingCases/node_modules
 
 # Binding artifacts
 /artifacts/
@@ -202,27 +151,14 @@ npm/**/*.node
 /npm/*
 !npm/darwin-arm64/
 !npm/darwin-x64/
+!npm/linux-arm64-gnu
+!npm/linux-arm64-musl
 !npm/linux-x64-gnu/
+!npm/linux-x64-musl
 !npm/wasm32-wasi
+!npm/win32-arm64-msvc
+!npm/win32-ia32-msvc
 !npm/win32-x64-msvc/
-
-# Precompiled config schema
-packages/rspack/src/config/schema.check.js
-
-## Angular Incremental Build Cache
-**/.angular/
-# align to webpack
-tests/webpack-test/js
-tests/webpack-test/browsertest/js
-tests/webpack-test/fixtures/temp-*
-tests/webpack-test/temp
-tests/webpack-test/ChangesAndRemovals
-tests/webpack-test/__snapshots__/*.snap.*
-tests/webpack-test/**/dev-defaults.webpack.lock
-!tests/webpack-test/**/target
-!tests/webpack-test/cases/**/node_modules
-
-/webpack-examples/**/dist
 
 smoke-example
 diff_output
@@ -243,5 +179,8 @@ diff_output
 trace.json
 *.pftrace
 
-# Rsapck bench
+# Rspack bench
 .bench
+
+# Claude
+CLAUDE.local.md

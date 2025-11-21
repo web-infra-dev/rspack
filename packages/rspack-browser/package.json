@@ -1,6 +1,6 @@
 {
   "name": "@rspack/browser",
-  "version": "1.4.11",
+  "version": "1.6.4",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
@@ -16,10 +16,11 @@
       "types": "./dist/browser/index.d.ts",
       "default": "./dist/index.mjs"
     },
+    "./wasi-worker-browser.mjs": "./wasi-worker-browser.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "pnpm run --fail-if-no-match --filter @rspack/core build:browser || pnpm --filter @rspack-canary/core build:browser"
+    "build": "pnpm run --fail-if-no-match --filter @rspack/core build:browser || pnpm --fail-if-no-match --filter @rspack-canary/core build:browser"
   },
   "files": ["dist"],
   "homepage": "https://rspack.rs",
@@ -30,11 +31,11 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@napi-rs/wasm-runtime": "^1.0.1",
-    "@rspack/lite-tapable": "1.0.1",
-    "@swc/types": "0.1.23",
-    "@types/watchpack": "^2.4.4",
-    "memfs": "4.36.0",
+    "@napi-rs/wasm-runtime": "1.0.7",
+    "@rspack/lite-tapable": "1.1.0",
+    "@swc/types": "0.1.25",
+    "@types/watchpack": "^2.4.5",
+    "memfs": "4.48.1",
     "webpack-sources": "3.3.3"
   },
   "peerDependencies": {

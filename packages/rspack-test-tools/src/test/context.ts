@@ -2,24 +2,22 @@ import path from "node:path";
 
 import { TestCompilerManager } from "../compiler";
 import type {
-	ECompilerType,
 	ITestCompilerManager,
 	ITestContext,
+	ITestEnv,
 	ITesterConfig,
 	ITestRunner,
-	TRunnerFactory,
 	TTestConfig
 } from "../type";
+import { DEBUG_SCOPES } from "./debug";
 
-export type TTestContextOptions = Omit<ITesterConfig, "name" | "steps">;
+export type TTestContextOptions = Omit<ITesterConfig, "steps">;
 
 export class TestContext implements ITestContext {
-	protected errors: Map<string, Error[]> = new Map();
-	protected compilers: Map<string, ITestCompilerManager<ECompilerType>> =
-		new Map();
-	protected store: Map<string, Record<string, unknown>> = new Map();
+	protected errors: Error[] = [];
+	protected compiler: ITestCompilerManager | null = null;
+	protected store: Map<string, unknown> = new Map();
 	protected runners: Map<string, ITestRunner> = new Map();
-	protected runnerFactory: TRunnerFactory<ECompilerType> | null = null;
 
 	constructor(private config: TTestContextOptions) {}
 
@@ -45,89 +43,88 @@ export class TestContext implements ITestContext {
 		return this.config.temp;
 	}
 
-	getCompiler<T extends ECompilerType>(
-		name: string,
-		type: T | void
-	): ITestCompilerManager<T> {
-		let compiler = this.compilers.get(name);
-		if (!compiler) {
-			if (!type) {
-				throw new Error("Compiler does not exists");
+	getCompiler(): ITestCompilerManager {
+		if (!this.compiler) {
+			this.compiler = new TestCompilerManager(this);
+		}
+		return this.compiler;
+	}
+
+	getRunner(file: string, env: ITestEnv): ITestRunner {
+		if (!this.config.runnerCreator) {
+			throw new Error("TestContext: Runner creator not found");
+		}
+
+		const runnerKey = this.config.runnerCreator.key(
+			this,
+			this.config.name,
+			file
+		);
+		let runner = this.runners.get(runnerKey);
+		if (runner) {
+			if (__DEBUG__) {
+				const getRunnerInfo: Record<
+					string,
+					{ runnerKey: string; reused: boolean; runnerType?: string }
+				> = this.getValue(DEBUG_SCOPES.RunGetRunner) || {};
+				getRunnerInfo[file] = {
+					runnerKey,
+					reused: true,
+					runnerType: runner.constructor.name
+				};
+				this.setValue(DEBUG_SCOPES.RunGetRunner, getRunnerInfo);
 			}
-			compiler = new TestCompilerManager(type, this.config.compilerFactories);
-			this.compilers.set(name, compiler);
+			return runner;
 		}
-		return compiler;
-	}
-
-	getRunnerFactory<T extends ECompilerType>(
-		name: string
-	): TRunnerFactory<T> | null {
-		if (
-			!this.runnerFactory &&
-			typeof this.config.runnerFactory === "function"
-		) {
-			this.runnerFactory = new this.config.runnerFactory(name, this);
+		runner = this.config.runnerCreator.runner(
+			this,
+			this.config.name,
+			file,
+			env
+		);
+		(runner as any).__key__ = runnerKey;
+		if (__DEBUG__) {
+			const getRunnerInfo: Record<
+				string,
+				{ runnerKey: string; reused: boolean; runnerType?: string }
+			> = this.getValue(DEBUG_SCOPES.RunGetRunner) || {};
+			getRunnerInfo[file] = {
+				runnerKey,
+				reused: false,
+				runnerType: runner.constructor.name
+			};
+			this.setValue(DEBUG_SCOPES.RunGetRunner, getRunnerInfo);
 		}
-		return this.runnerFactory;
+		this.runners.set(runnerKey, runner!);
+		return runner;
 	}
 
-	getRunner(key: string): ITestRunner | null {
-		return this.runners.get(key) || null;
-	}
-
-	setRunner(key: string, runner: ITestRunner) {
-		this.runners.set(key, runner);
-	}
-
-	getTestConfig<T extends ECompilerType>(): TTestConfig<T> {
+	getTestConfig(): TTestConfig {
 		return this.config.testConfig || {};
 	}
 
-	setValue<T>(name: string, key: string, value: T) {
-		if (!this.store.has(name)) {
-			this.store.set(name, {});
-		}
-		const scope = this.store.get(name)!;
-		scope[key] = value;
+	setValue<T>(key: string, value: T) {
+		this.store.set(key, value);
 	}
 
-	getValue<T>(name: string, key: string): T | void {
-		if (!this.store.has(name)) {
-			this.store.set(name, {});
-		}
-		const scope = this.store.get(name)!;
-		return scope[key] as T | void;
+	getValue<T>(key: string): T | void {
+		return this.store.get(key) as T | void;
 	}
-
-	hasError(name?: string): boolean {
-		if (name) {
-			return this.getError(name).length > 0;
-		}
-		return !!Array.from(this.errors.values()).reduce(
-			(res, arr) => res + arr.length,
-			0
-		);
+	hasError(): boolean {
+		return this.errors.length > 0;
 	}
-	emitError(name: string, err: Error | string): void {
-		const errors = this.errors.get(name) || [];
-		errors.push(typeof err === "string" ? new Error(err) : err);
-		this.errors.set(name, errors);
+	emitError(err: Error | string): void {
+		this.errors.push(typeof err === "string" ? new Error(err) : err);
 	}
-	getNames() {
-		return Array.from(this.compilers.keys());
+	getError(): Error[] {
+		return this.errors;
 	}
-	getError(name?: string): Error[] {
-		if (name) {
-			return this.errors.get(name) || [];
-		}
-		return Array.prototype.concat(...this.errors.values());
+	clearError() {
+		this.errors.length = 0;
 	}
-	clearError(name?: string) {
-		if (name) {
-			this.errors.delete(name);
-		} else {
-			this.errors.clear();
+	async closeCompiler() {
+		if (this.compiler) {
+			await this.compiler.close();
 		}
 	}
 }

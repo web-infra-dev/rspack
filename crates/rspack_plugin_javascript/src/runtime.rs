@@ -1,39 +1,48 @@
 use rayon::prelude::*;
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace,
-  Compilation, RuntimeGlobals, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
+  Module, RuntimeGlobals, SourceType,
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
-  to_normal_comment,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::diff_mode::is_diff_mode;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{JsPlugin, RenderSource};
+use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  ordered_modules: &Vec<&BoxModule>,
+  ordered_modules: &Vec<&dyn Module>,
   all_strict: bool,
   output_path: &str,
+  hooks: &JavascriptModulesPluginHooks,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let module_sources = rspack_futures::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
-      let s = unsafe { token.used((compilation, chunk_ukey, module, all_strict, output_path)) };
+      let s = unsafe {
+        token.used((
+          compilation,
+          chunk_ukey,
+          module,
+          all_strict,
+          output_path,
+          hooks,
+        ))
+      };
       s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path)| async move {
+        |(compilation, chunk_ukey, module, all_strict, output_path, hooks)| async move {
           render_module(
             compilation,
             chunk_ukey,
-            module,
+            *module,
             all_strict,
             true,
             output_path,
+            hooks,
           )
           .await
           .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
@@ -91,10 +100,11 @@ pub async fn render_chunk_modules(
 pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   all_strict: bool,
   factory: bool,
   output_path: &str,
+  hooks: &JavascriptModulesPluginHooks,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
@@ -104,7 +114,6 @@ pub async fn render_module(
     return Ok(None);
   };
 
-  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
     Some(fragments) => fragments.clone(),
     None => ChunkInitFragments::default(),
@@ -115,7 +124,7 @@ pub async fn render_module(
     .get::<CodeGenerationPublicPathAutoReplace>()
     .is_some()
   {
-    let content = origin_source.source();
+    let content = origin_source.source().into_string_lossy();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
     let auto_public_path_matches: Vec<_> = content
       .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
@@ -146,8 +155,6 @@ pub async fn render_module(
   };
 
   hooks
-    .read()
-    .await
     .render_module_content
     .call(
       compilation,
@@ -167,13 +174,6 @@ pub async fn render_module(
       serde_json::to_string(&module_id).to_rspack_result()?,
     ));
     sources.add(RawStringSource::from_static(": "));
-
-    if is_diff_mode() {
-      sources.add(RawStringSource::from(format!(
-        "\n{}\n",
-        to_normal_comment(&format!("start::{}", module.identifier()))
-      )));
-    }
 
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
@@ -212,14 +212,6 @@ pub async fn render_module(
 
       let mut container_sources = ConcatSource::default();
 
-      // TODO: put this in a plugin via render_module_{container,package} hook
-      if is_diff_mode() {
-        container_sources.add(RawStringSource::from(format!(
-          "\n{}\n",
-          to_normal_comment(&format!("start::{}", module.identifier()))
-        )));
-      }
-
       container_sources.add(RawStringSource::from(format!(
         "(function ({}) {{\n",
         args.join(", ")
@@ -229,13 +221,6 @@ pub async fn render_module(
       }
       container_sources.add(render_source.source);
       container_sources.add(RawStringSource::from_static("\n\n})"));
-
-      if is_diff_mode() {
-        container_sources.add(RawStringSource::from(format!(
-          "\n{}\n",
-          to_normal_comment(&format!("end::{}", module.identifier()))
-        )));
-      }
       container_sources.add(RawStringSource::from_static(",\n"));
 
       RenderSource {
@@ -244,8 +229,6 @@ pub async fn render_module(
     };
 
     hooks
-      .read()
-      .await
       .render_module_container
       .call(
         compilation,
@@ -259,8 +242,6 @@ pub async fn render_module(
     let mut post_module_package = post_module_container;
 
     hooks
-      .read()
-      .await
       .render_module_package
       .call(
         compilation,
@@ -275,8 +256,6 @@ pub async fn render_module(
     sources.boxed()
   } else {
     hooks
-      .read()
-      .await
       .render_module_package
       .call(
         compilation,
@@ -341,17 +320,10 @@ pub async fn render_runtime_modules(
           if source.size() == 0 {
             return Ok(sources);
           }
-          if is_diff_mode() {
-            sources.add(RawStringSource::from(format!(
-              "/* start::{} */\n",
-              module.identifier()
-            )));
-          } else {
-            sources.add(RawStringSource::from(format!(
-              "// {}\n",
-              module.identifier()
-            )));
-          }
+          sources.add(RawStringSource::from(format!(
+            "// {}\n",
+            module.identifier()
+          )));
           let supports_arrow_function = compilation
             .options
             .output
@@ -378,12 +350,6 @@ pub async fn render_runtime_modules(
             } else {
               "\n}();\n"
             }));
-          }
-          if is_diff_mode() {
-            sources.add(RawStringSource::from(format!(
-              "/* end::{} */\n",
-              module.identifier()
-            )));
           }
           Ok(sources)
         });

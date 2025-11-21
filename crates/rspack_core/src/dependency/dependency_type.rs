@@ -13,11 +13,10 @@ pub enum DependencyType {
   Unknown,
   ExportInfoApi,
   Entry,
-  // ESM import
+  // ESM
   EsmImport,
   EsmImportSpecifier,
-  // ESM export
-  EsmExport,
+  EsmExportImport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   EsmExportExpression,
@@ -111,8 +110,8 @@ pub enum DependencyType {
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
-  /// Webpack is included
-  WebpackIsIncluded,
+  /// is included
+  IsIncluded,
   LoaderImport,
   LazyImport,
   ModuleDecorator,
@@ -130,7 +129,7 @@ impl DependencyType {
       DependencyType::Unknown => "unknown",
       DependencyType::Entry => "entry",
       DependencyType::EsmImport => "esm import",
-      DependencyType::EsmExport => "esm export",
+      DependencyType::EsmExportImport => "esm export import",
       DependencyType::EsmExportSpecifier => "esm export specifier",
       DependencyType::EsmExportImportedSpecifier => "esm export import specifier",
       DependencyType::EsmImportSpecifier => "esm import specifier",
@@ -191,7 +190,7 @@ impl DependencyType {
       DependencyType::ProvideSharedModule => "provide shared module",
       DependencyType::ProvideModuleForShared => "provide module for shared",
       DependencyType::ConsumeSharedFallback => "consume shared fallback",
-      DependencyType::WebpackIsIncluded => "__webpack_is_included__",
+      DependencyType::IsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",
       DependencyType::DelegatedSource => "delegated source",

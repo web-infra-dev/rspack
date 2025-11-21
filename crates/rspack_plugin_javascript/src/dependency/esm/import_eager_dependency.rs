@@ -5,8 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, TemplateContext,
-  TemplateReplaceSource, module_namespace_promise,
+  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -22,10 +22,10 @@ pub struct ImportEagerDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
@@ -33,7 +33,7 @@ impl ImportEagerDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Atom>>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
   ) -> Self {
     let resource_identifier =
@@ -47,6 +47,10 @@ impl ImportEagerDependency {
       resource_identifier,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
   }
 }
 
@@ -72,8 +76,8 @@ impl Dependency for ImportEagerDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(

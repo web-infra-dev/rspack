@@ -5,13 +5,12 @@ use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, AssertUtf8};
-use rspack_regex::RspackRegex;
+use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{helper::Helper, utils::is_node_package_path};
 use super::{
-  snapshot::{PathMatcher, Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions},
   storage::Storage,
 };
 
@@ -25,11 +24,11 @@ pub struct BuildDeps {
   /// The build dependencies has been added to snapshot.
   ///
   /// This field is used to avoid adding duplicate build dependencies to the snapshot.
-  added: HashSet<ArcPath>,
+  added: ArcPathSet,
   /// The pending dependencies.
   ///
   /// The next time the add method is called, this path will be additionally added.
-  pending: HashSet<ArcPath>,
+  pending: ArcPathSet,
   /// The snapshot which is used to save build dependencies.
   snapshot: Snapshot,
   storage: Arc<dyn Storage>,
@@ -39,6 +38,7 @@ pub struct BuildDeps {
 impl BuildDeps {
   pub fn new(
     options: &BuildDepsOptions,
+    snapshot_options: &SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
     storage: Arc<dyn Storage>,
   ) -> Self {
@@ -47,13 +47,7 @@ impl BuildDeps {
       pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
       snapshot: Snapshot::new_with_scope(
         SCOPE,
-        SnapshotOptions::new(
-          Default::default(),
-          Default::default(),
-          vec![PathMatcher::Regexp(
-            RspackRegex::new("[/\\\\]node_modules[/\\\\]").expect("should generate regex"),
-          )],
-        ),
+        snapshot_options.clone(),
         fs.clone(),
         storage.clone(),
       ),
@@ -119,7 +113,7 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_storage::Storage;
 
-  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE};
+  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE, SnapshotOptions};
   #[tokio::test]
   async fn build_dependencies_test() {
     let fs = Arc::new(MemoryFileSystem::default());
@@ -156,14 +150,15 @@ mod test {
       .unwrap();
 
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
+    let snapshot_options = SnapshotOptions::default();
     let storage = Arc::new(MemoryStorage::default());
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(SCOPE).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();

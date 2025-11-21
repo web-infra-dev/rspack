@@ -8,7 +8,7 @@ use rspack_cacheable::{
 use rspack_util::{atom::Atom, json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::DependencyId;
+use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -83,8 +83,8 @@ impl EvaluatedInlinableValue {
     Self::String(v)
   }
 
-  pub fn render(&self) -> Cow<'_, str> {
-    match self {
+  pub fn render(&self) -> String {
+    let s: Cow<str> = match self {
       Self::Null => "null".into(),
       Self::Undefined => "undefined".into(),
       Self::Boolean(v) => if *v { "true" } else { "false" }.into(),
@@ -93,45 +93,72 @@ impl EvaluatedInlinableValue {
         buf.format(*v).to_string().into()
       }
       Self::String(v) => json_stringify(v.as_str()).into(),
-    }
+    };
+    format!("({s})")
   }
 }
 
-#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CanInlineUse {
+  // Must have this initial state to get the correct dependency condition of inline value
+  // at flag_dependency_usage_plugin. If it's just bool and the initial state is true like
+  // mangleExports, then the dependency condition of inline value will be false and the
+  // flag_dependency_usage_plugin will not collect the usage of these dependency.
+  HasInfo,
+  Yes,
+  No,
+}
+
 #[derive(Debug, Clone, Hash)]
-pub enum Inlinable {
-  NoByProvide,
-  NoByUse,
-  Inlined(EvaluatedInlinableValue),
-}
-
-impl Inlinable {
-  pub fn can_inline(&self) -> bool {
-    matches!(self, Inlinable::Inlined(_))
-  }
-}
-
-#[derive(Debug, Clone)]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),
 }
 
 #[derive(Debug, Clone)]
+pub struct InlinedUsedName {
+  value: EvaluatedInlinableValue,
+  suffix: Vec<Atom>,
+}
+
+impl InlinedUsedName {
+  pub fn new(value: EvaluatedInlinableValue) -> Self {
+    Self {
+      value,
+      suffix: Vec::new(),
+    }
+  }
+
+  pub fn render(&self) -> String {
+    let mut inlined = self.value.render();
+    inlined.push_str(&property_access(&self.suffix, 0));
+    inlined
+  }
+
+  pub fn inlined_value(&self) -> &EvaluatedInlinableValue {
+    &self.value
+  }
+
+  pub fn suffix_ids(&self) -> &[Atom] {
+    &self.suffix
+  }
+}
+
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Normal(Vec<Atom>),
-  Inlined(EvaluatedInlinableValue),
+  Inlined(InlinedUsedName),
 }
 
 impl UsedName {
   pub fn is_inlined(&self) -> bool {
-    matches!(self, UsedName::Inlined(_))
+    matches!(self, UsedName::Inlined { .. })
   }
 
-  pub fn inlined(&self) -> Option<&EvaluatedInlinableValue> {
+  pub fn append(&mut self, item: impl IntoIterator<Item = Atom>) {
     match self {
-      UsedName::Inlined(inlined) => Some(inlined),
-      _ => None,
+      UsedName::Normal(vec) => vec.extend(item),
+      UsedName::Inlined(inlined) => inlined.suffix.extend(item),
     }
   }
 }
@@ -146,7 +173,7 @@ pub enum ExportProvided {
   Unknown,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Default)]
+#[derive(Debug, Hash, PartialEq, Eq, Default, Clone)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
 impl UsageKey {

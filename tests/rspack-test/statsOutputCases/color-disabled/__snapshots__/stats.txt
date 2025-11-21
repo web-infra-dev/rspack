@@ -1,0 +1,3 @@
+asset main.js 16 bytes [emitted] (name: main)
+./index.js 1 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

@@ -14,11 +14,11 @@ use rspack_core::{
   CompilerCompilation, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
-use rspack_error::{Diagnostic, DiagnosticExt, Result, miette::IntoDiagnostic};
+use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -33,6 +33,7 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
+use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -172,6 +173,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
     });
   let enter_span = tracing::Span::current();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -189,8 +192,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().to_string();
-        let input_source_map = original_source.map(&MapOptions::default());
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)
@@ -303,9 +307,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             Ok(r) => r,
             Err(e) => {
               let errors = e.into_inner().into_iter().map(|err| {
-                Diagnostic::from(MinifyError(err).boxed()).with_file(Some(filename.into()))
+                let mut d = Diagnostic::from(MinifyError(err));
+                d.file = Some(filename.into());
+                d
               }).collect::<Vec<_>>();
-              tx.send(errors).into_diagnostic()?;
+              tx.send(errors)?;
               return Ok(())
             },
         };
@@ -368,10 +374,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
   } else if !JAVASCRIPT_ASSET_REGEXP.is_match(str) {
     return false;
   }

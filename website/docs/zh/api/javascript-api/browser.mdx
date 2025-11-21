@@ -1,0 +1,314 @@
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+# Browser API
+
+`@rspack/browser` 是专为浏览器环境打造的 Rspack 版本，无需依赖 WebContainers 或特定平台。其 API 与 `@rspack/core` 的 [JavaScript API](/api/javascript-api/) 保持一致，并在此基础上，额外提供了适配浏览器环境的特性和接口。
+
+欢迎前往 [Rspack Playground](https://playground.rspack.rs/) 体验在浏览器中运行 Rspack 的效果。
+
+:::warning
+目前 `@rspack/browser` 仍处于实验阶段，我们将持续完善在线打包能力，后续可能会引入不兼容变更。
+:::
+
+## 基本示例
+
+以下示例展示了 `@rspack/browser` 的基本用法。除了需要使用额外的 API 读写项目文件和产物外，其他 API 与 `@rspack/core` 的 [JavaScript API](/api/javascript-api/) 保持一致。
+
+```ts
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+## 响应头设置
+
+`@rspack/browser` 内部使用了 [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) 来实现多线程的共享内存，因此你需要为开发服务器或线上部署环境设置响应头。
+
+如果你正在使用 Rspack 作为项目的打包器，可以通过 [devServer.headers](/config/dev-server#devserverheaders) 设置：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  devServer: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+如果你正在使用 Rsbuild 作为项目的打包器，可以通过 [server.headers](https://rsbuild.rs/config/server/headers#serverheaders) 设置：
+
+```ts title="rsbuild.config.ts"
+export default {
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+对于线上环境，请参考你的项目部署平台的相关文档。
+
+## 内存文件系统
+
+由于浏览器无法直接访问本地文件系统，`@rspack/browser` 提供了基于 [memfs](https://www.npmjs.com/package/memfs) 的内存文件系统对象 `builtinMemFs`，用于在浏览器环境下读写文件。Node.js 和 Rust 层对文件系统的读写均会重定向到该内存文件系统，包括项目配置、源代码、`node_modules` 依赖及产物。
+
+以下是基本用法示例，完整 API 可参考 [memfs 文档](https://github.com/streamich/memfs)：
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Read files from memfs
+const files = builtinMemFs.volume.toJSON();
+```
+
+`builtinMemFs` 是一个全局单例实例。在存在并发构建多个项目的场景下，建议启用 [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) 以避免冲突。  
+需要注意的是，目前在 `@rspack/browser` 环境中，`experiments.useInputFileSystem` 仅能拦截最终将被打包的项目文件，无法拦截诸如 Loader 等构建过程中依赖的文件（见下文 [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules)）。
+
+```js title="rspack.config.mjs"
+import { builtinMemFs } from '@rspack/browser';
+
+const projectFs = builtinMemFs.memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs.fs;
+          compiler.outputFileSystem = projectFs.fs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
+## 浏览器专用插件
+
+为更好地满足浏览器环境下的打包需求，`@rspack/browser` 提供了若干专用插件。
+
+### BrowserHttpImportEsmPlugin
+
+在本地开发环境中，开发者通常通过包管理器将项目依赖下载并存储在根目录的 `node_modules` 目录中。在使用 `@rspack/browser` 时，你可以将依赖项预先写入内存文件系统的 `node_modules` 目录。然而，当项目依赖的模块存在不确定性时（例如允许用户自由选择第三方依赖），预先写入所有依赖就变得不切实际。
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+builtinMemFs.volume.fromJSON({
+  '/node_modules/react/index.js': '...',
+});
+```
+
+`@rspack/browser` 提供了 `BrowserHttpImportEsmPlugin` 插件。该插件在解析模块时，会将第三方依赖的模块名重写为 ESM CDN 的 URL。例如，`import React from "react"` 会被重写为 `import React from "https://esm.sh/react"`。结合 Rspack 的 [buildHttp](/config/experiments#experimentsbuildhttp) 功能，即可在打包时通过 HTTP 动态加载依赖。
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  plugins: [new BrowserHttpImportEsmPlugin({ domain: 'https://esm.sh' })],
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+    },
+  },
+};
+```
+
+如下所示，`BrowserHttpImportEsmPlugin` 支持通过选项指定 ESM CDN 的域名，或者指定某些依赖的特定版本或 URL。
+
+```ts
+interface BrowserHttpImportPluginOptions {
+  /**
+   * ESM CDN 域名
+   */
+  domain: string | ((resolvedRequest: ResolvedRequest) => string);
+  /**
+   * 为特定的依赖指定 URL
+   */
+  dependencyUrl?:
+    | Record<string, string | undefined>
+    | ((resolvedRequest: ResolvedRequest) => string | undefined);
+  /**
+   * 为依赖指定版本。
+   * 如果未指定，默认为 "latest"。
+   */
+  dependencyVersions?: Record<string, string | undefined>;
+  /**
+   * 你可以在此函数中对生成的 URL 进行额外处理。
+   * 例如，你可以为 esm.sh 下的外部依赖指定 `external` 参数：
+   * `request.url.searchParams.set("external", "react,react-dom")`
+   */
+  postprocess?: (request: ProcessedRequest) => void;
+}
+```
+
+#### `resolve.alias` 兼容性说明
+
+在使用 `BrowserHttpImportEsmPlugin` 时，依赖标识符的重写操作会**先于** [resolve.alias](/config/resolve#resolvealias) 的别名替换执行，导致两者之间可能发生冲突。为避免此类问题，可以通过配置插件的 `dependencyUrl` 规则，提前识别并跳过那些应由 `resolve.alias` 处理的路径：
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // 例如：@/util.js 会被替换为 /src/util.js
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // 遇到以 "@/” 开头的请求时，直接返回原请求，跳过插件的重写逻辑
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
+### BrowserRequirePlugin
+
+在 Rspack 中，某些场景需要动态加载和执行 JavaScript 代码，如 [Loader](/guide/features/loader) 或 [HtmlRspackPlugin 的模板函数](/plugins/rspack/html-rspack-plugin#use-template-function)。由于这些代码可能来自不可信的第三方用户，直接在浏览器环境中执行会带来潜在的安全风险。为了保障安全性，`@rspack/browser` 在遇到此类场景时会默认抛出错误，阻止不安全代码的执行。
+
+`BrowserRequirePlugin` 插件提供了两种方式解决这个需求。`BrowserRequirePlugin` 的选项如下：
+
+```ts
+/**
+ * 加载 CommonJS 模块的运行时上下文
+ */
+interface CommonJsRuntime {
+  module: any;
+  exports: any;
+  require: BrowserRequire;
+}
+
+interface BrowserRequirePluginOptions {
+  /**
+   * 执行动态代码的函数
+   */
+  execute?: (code: string, runtime: CommonJsRuntime) => void;
+  /**
+   * 这个选项提供了直接从 id 到模块内容的映射，类似于 virtual module 机制。
+   * 如果没有提供该选项或映射的结果为 undefined，那么会 fallback 到从 memfs 中解析，并执行 `execute`。
+   */
+  modules?: Record<string, any> | ((id: string) => any);
+}
+```
+
+#### `modules`
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+该选项能够直接将模块请求 id 映射到项目内的任意 JavaScript 对象，注意，这里需要在 memfs 中对应地写入一个空的文件：
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
+import CustomLoader from './custom-loader';
+
+builtinMemFs.volume.fromJSON({
+  '/LOADER/custom-loader.js': '',
+});
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /a\.js$/,
+        loader: '/LOADER/custom-loader.js',
+      },
+    ],
+  },
+  plugins: [
+    new BrowserRequirePlugin({
+      modules: {
+        '/LOADER/custom-loader.js': CustomLoader,
+      },
+    }),
+  ],
+};
+```
+
+#### `execute`
+
+该选项用于模拟 Node.js 中的 Require 过程：基于 memfs 解析模块、读取文件内容并执行。当未提供 `modules`，或在 `modules` 中未找到对应结果时，将尝试使用此路径。
+
+:::warning
+Rspack 在打包过程中不会执行项目的用户代码。为了安全起见，建议在 iframe 中运行最终的打包产物。
+:::
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin } from '@rspack/browser';
+
+export default {
+  plugins: [
+    new BrowserRequirePlugin({ execute: BrowserRequirePlugin.unsafeExecute }),
+  ],
+};
+```
+
+你需要提供一个 `execute` 函数，用于动态执行和加载 CommonJS 模块，并修改 `runtime.module.exports` 来设置该模块导出的内容。`@rspack/browser` 提供了一个不安全的实现 `BrowserRequirePlugin.unsafeExecute`，其内部直接使用 `new Function` 执行代码。你也可以根据实际需求，基于该 API 封装更安全的实现，例如：
+
+```ts
+function safeExecute(code: string, runtime: CommonJsRuntime) {
+  const safeCode = sanitizeCode(code);
+  BrowserRequirePlugin.unsafeExecute(safeCode, runtime);
+}
+
+function uselessExecute(_code: string, runtime: CommonJsRuntime) {
+  runtime.module.exports.hello = 'rspack';
+}
+```
+
+## 使用模块联邦
+
+`@rspack/browser` 支持 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 插件。你可以通过这个功能，将一些复杂的依赖模块提前打包为生产者项目部署到 CDN 上，然后在浏览器中在线打包的消费者项目中使用。
+
+在浏览器中使用 ModuleFederationPlugin 时，有以下注意事项：
+
+1. 你需要启用 [BrowserHttpImportEsmPlugin](/api/javascript-api/browser#browserhttpimportesmplugin) 插件，因为模块联邦需要加载固有的运行时依赖。其中 CDN 需要提供开发版的 `@module-federation/webpack-bundler-runtime`（不能移除产物中的 Magic Comments）。
+2. ModuleFederationPlugin 中设置的共享依赖，还需要在 BrowserHttpImportEsmPlugin 相应地配置 `external` 和指定版本号。如果你使用的是 `esm.sh` 作为 CDN，可以参考以下代码：
+
+```js title="rspack.config.mjs"
+new rspack.BrowserHttpImportEsmPlugin({
+  domain: "https://esm.sh",
+  dependencyVersions: {
+    "react": "19.1.1"
+  },
+  postprocess: (request) => {
+    // 这里也设置 `react-dom` 的 `dev` 参数，因为你需要确保模块联邦的生产者项目和消费者项目使用相同模式的 `react` 和 `react-dom`。
+    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
+      request.url.searchParams.set("dev", "");
+    }
+    request.url.searchParams.set("external", "react");
+  }
+}),
+```
+
+3. 所有 [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) 配置必须设置 `import: false`，即在线打包的消费者项目不能打包共享模块，共享模块必须由预先打包好的生产者项目提供。
+4. 不支持设置 [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) 选项。

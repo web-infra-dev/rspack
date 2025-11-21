@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{ExportInfo, ExportInfoData, ExportProvided, NEXT_EXPORTS_INFO_UKEY, UsageState};
-use crate::{DependencyId, ModuleGraph, Nullable, RuntimeSpec};
+use crate::{CanInlineUse, DependencyId, ModuleGraph, Nullable, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -163,30 +163,6 @@ impl ExportsInfo {
     new_info_id
   }
 
-  pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {
-    let mut nested_exports_info = vec![];
-    let exports_info = self.as_data_mut(mg);
-    for export_info in exports_info.exports_mut().values_mut() {
-      export_info.set_has_use_info(&mut nested_exports_info);
-    }
-    exports_info
-      .side_effects_only_info_mut()
-      .set_has_use_info(&mut nested_exports_info);
-    if let Some(redirect) = exports_info.redirect_to() {
-      redirect.set_has_use_info(mg);
-    } else {
-      let other_exports_info = exports_info.other_exports_info_mut();
-      other_exports_info.set_has_use_info(&mut nested_exports_info);
-      if other_exports_info.can_mangle_use().is_none() {
-        other_exports_info.set_can_mangle_use(Some(true));
-      }
-    }
-
-    for nested_exports_info in nested_exports_info {
-      nested_exports_info.set_has_use_info(mg);
-    }
-  }
-
   pub fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
     let exports_info = self.as_data_mut(mg);
@@ -203,6 +179,10 @@ impl ExportsInfo {
       changed |= flag;
       if other_exports_info.can_mangle_use() != Some(false) {
         other_exports_info.set_can_mangle_use(Some(false));
+        changed = true;
+      }
+      if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+        other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
         changed = true;
       }
     }
@@ -236,6 +216,10 @@ impl ExportsInfo {
       }
       if other_exports_info.can_mangle_use() != Some(false) {
         other_exports_info.set_can_mangle_use(Some(false));
+        changed = true;
+      }
+      if other_exports_info.can_inline_use() != Some(CanInlineUse::No) {
+        other_exports_info.set_can_inline_use(Some(CanInlineUse::No));
         changed = true;
       }
     }

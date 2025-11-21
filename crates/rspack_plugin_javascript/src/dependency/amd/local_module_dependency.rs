@@ -37,8 +37,8 @@ impl Dependency for LocalModuleDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {

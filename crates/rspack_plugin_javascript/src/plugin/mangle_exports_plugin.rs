@@ -6,7 +6,7 @@ use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
   ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, incremental::IncrementalPasses,
+  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem, incremental::IncrementalPasses,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -71,8 +71,6 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     compilation.cgm_hash_artifact.clear();
   }
 
-  // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
-  // We don't do that cause we don't have this option
   let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
 
@@ -232,7 +230,7 @@ fn mangle_exports_info(
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
-) -> (Vec<(ExportInfo, Atom)>, Vec<ExportsInfo>) {
+) -> (Vec<(ExportInfo, UsedNameItem)>, Vec<ExportsInfo>) {
   let mut changes = vec![];
   let mut nested_exports = vec![];
   let mut used_names = FxHashSet::default();
@@ -246,7 +244,7 @@ fn mangle_exports_info(
   for export_info in export_list {
     match &export_info.can_mangle {
       Manglable::CanNotMangle(name) => {
-        changes.push((export_info.id.clone(), name.clone()));
+        changes.push((export_info.id.clone(), UsedNameItem::Str(name.clone())));
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
@@ -298,7 +296,7 @@ fn mangle_exports_info(
       0,
     );
     for (export_info, name) in export_info_used_name {
-      changes.push((export_info, name.into()));
+      changes.push((export_info, UsedNameItem::Str(name.into())));
     }
   } else {
     let mut used_exports = Vec::new();
@@ -332,12 +330,12 @@ fn mangle_exports_info(
         let mut name;
         loop {
           name = number_to_identifier(i);
+          i += 1;
           if !used_names.contains(&name) {
             break;
           }
-          i += 1;
         }
-        changes.push((export_info, name.into()));
+        changes.push((export_info, UsedNameItem::Str(name.into())));
       }
     }
   }

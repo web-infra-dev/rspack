@@ -23,7 +23,9 @@ var webpackJsonpCallback = <%- basicFunction("parentChunkLoadingFunction, data")
 		}
 		installedChunks[chunkId] = 0;
 	}
-	<%- _with_on_chunk_load %>
+	<% if (_with_on_chunk_load) { %>
+	return <%- ON_CHUNKS_LOADED %>(result);
+	<% } %>
 };
 
 var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];

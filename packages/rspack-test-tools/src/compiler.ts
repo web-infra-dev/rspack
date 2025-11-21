@@ -1,15 +1,8 @@
 import EventEmitter from "node:events";
+import { Compiler, type RspackOptions, type Stats } from "@rspack/core";
 import merge from "webpack-merge";
-
-import {
-	ECompilerType,
-	type ITestCompilerManager,
-	type TCompiler,
-	type TCompilerFactories,
-	type TCompilerFactory,
-	type TCompilerOptions,
-	type TCompilerStats
-} from "./type";
+import { DEBUG_SCOPES } from "./test/debug";
+import type { ITestCompilerManager, ITestContext } from "./type";
 
 export enum ECompilerEvent {
 	Build = "build",
@@ -18,64 +11,163 @@ export enum ECompilerEvent {
 	Close = "close"
 }
 
-export const COMPILER_FACTORIES: TCompilerFactories = {
-	[ECompilerType.Rspack]: ((options: TCompilerOptions<ECompilerType.Rspack>) =>
-		require("@rspack/core")(options)) as TCompilerFactory<ECompilerType>,
-	[ECompilerType.Webpack]: ((
-		options: TCompilerOptions<ECompilerType.Webpack>
-	) => require("webpack")(options)) as TCompilerFactory<ECompilerType>
-};
-export class TestCompilerManager<T extends ECompilerType>
-	implements ITestCompilerManager<T>
-{
-	protected compilerOptions: TCompilerOptions<T> = {} as TCompilerOptions<T>;
-	protected compilerInstance: TCompiler<T> | null = null;
-	protected compilerStats: TCompilerStats<T> | null = null;
+export class TestCompilerManager implements ITestCompilerManager {
+	protected compilerOptions: RspackOptions = {} as RspackOptions;
+	protected compilerInstance: Compiler | null = null;
+	protected compilerStats: Stats | null = null;
 	protected emitter: EventEmitter = new EventEmitter();
 
-	constructor(
-		protected type: T,
-		protected factories: TCompilerFactories = COMPILER_FACTORIES
-	) {}
+	constructor(protected context: ITestContext) {}
 
-	getOptions(): TCompilerOptions<T> {
+	getOptions(): RspackOptions {
 		return this.compilerOptions;
 	}
 
-	setOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+	setOptions(newOptions: RspackOptions): RspackOptions {
 		this.compilerOptions = newOptions;
 		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
 		return this.compilerOptions;
 	}
 
-	mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T> {
+	mergeOptions(newOptions: RspackOptions): RspackOptions {
 		this.compilerOptions = merge(this.compilerOptions, newOptions);
 		this.emitter.emit(ECompilerEvent.Option, this.compilerOptions);
 		return this.compilerOptions;
 	}
 
-	getCompiler(): TCompiler<T> | null {
+	getCompiler(): Compiler | null {
 		return this.compilerInstance;
 	}
 
-	createCompiler(): TCompiler<T> {
-		this.compilerInstance = this.factories[this.type](
+	createCompiler(): Compiler {
+		this.compilerInstance = require("@rspack/core")(
 			this.compilerOptions
-		) as TCompiler<T>;
+		) as Compiler;
+		if (__DEBUG__) {
+			const context = this.context;
+			this.compilerInstance = new Proxy(this.compilerInstance, {
+				get(target, p, receiver) {
+					const value = Reflect.get(target, p, receiver);
+					if (
+						typeof value === "function" &&
+						Compiler.prototype.hasOwnProperty(p)
+					) {
+						return value.bind(target);
+					}
+					return value;
+				},
+				set(target, p, value, receiver) {
+					const debugSetProperties =
+						(context.getValue(
+							DEBUG_SCOPES.CreateCompilerSetProperties
+						) as string[]) || [];
+					debugSetProperties.push(
+						`${p as string} ${new Error().stack?.split("\n")[2]?.trim()}`
+					);
+					context.setValue(
+						DEBUG_SCOPES.CreateCompilerSetProperties,
+						debugSetProperties
+					);
+					return Reflect.set(target, p, value, receiver);
+				}
+			});
+			this.context.setValue(DEBUG_SCOPES.CreateCompilerInstance, {
+				path: require.resolve("@rspack/core"),
+				mode: "no-callback"
+			});
+		}
 		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
 		return this.compilerInstance;
 	}
 
-	build(): Promise<TCompilerStats<T>> {
+	createCompilerWithCallback(
+		callback: (error: Error | null, stats: Stats | null) => void
+	): Compiler {
+		this.compilerInstance = require("@rspack/core")(
+			this.compilerOptions,
+			callback
+		) as Compiler;
+		if (__DEBUG__) {
+			const context = this.context;
+			this.compilerInstance = new Proxy(this.compilerInstance, {
+				get(target, p, receiver) {
+					const value = Reflect.get(target, p, receiver);
+					if (
+						typeof value === "function" &&
+						Compiler.prototype.hasOwnProperty(p)
+					) {
+						return value.bind(target);
+					}
+					return value;
+				},
+				set(target, p, value, receiver) {
+					const debugSetProperties =
+						(context.getValue(
+							DEBUG_SCOPES.CreateCompilerSetProperties
+						) as string[]) || [];
+					debugSetProperties.push(
+						`${p as string} ${new Error().stack?.split("\n")[2]?.trim()}`
+					);
+					context.setValue(
+						DEBUG_SCOPES.CreateCompilerSetProperties,
+						debugSetProperties
+					);
+					return Reflect.set(target, p, value, receiver);
+				}
+			});
+			this.context.setValue(DEBUG_SCOPES.CreateCompilerInstance, {
+				path: require.resolve("@rspack/core"),
+				mode: "callback"
+			});
+		}
+		this.emitter.emit(ECompilerEvent.Create, this.compilerInstance);
+		return this.compilerInstance;
+	}
+
+	build(): Promise<Stats> {
 		if (!this.compilerInstance)
 			throw new Error("Compiler should be created before build");
-		return new Promise<TCompilerStats<T>>((resolve, reject) => {
+		return new Promise<Stats>((resolve, reject) => {
 			try {
+				const context = this.context;
+				if (__DEBUG__) {
+					context.setValue(DEBUG_SCOPES.BuildMethod, {
+						method: "run"
+					});
+				}
 				this.compilerInstance!.run((error, newStats) => {
 					this.emitter.emit(ECompilerEvent.Build, error, newStats);
-					if (error) return reject(error);
-					this.compilerStats = newStats as TCompilerStats<T>;
-					resolve(newStats as TCompilerStats<T>);
+					if (error) {
+						if (__DEBUG__) {
+							context.setValue(DEBUG_SCOPES.BuildError, {
+								type: "fatal",
+								errors: [error]
+							});
+						}
+						return reject(error);
+					}
+					this.compilerStats = newStats as Stats;
+					if (__DEBUG__) {
+						if (newStats?.hasErrors()) {
+							context.setValue(DEBUG_SCOPES.BuildError, {
+								type: "stats",
+								errors:
+									newStats.toJson({
+										errors: true
+									}).errors || []
+							});
+						}
+						if (newStats?.hasWarnings()) {
+							context.setValue(
+								DEBUG_SCOPES.BuildWarning,
+								newStats.toJson({
+									warnings: true
+								}).warnings || []
+							);
+						}
+					}
+
+					resolve(newStats as Stats);
 				});
 			} catch (e) {
 				reject(e);
@@ -86,26 +178,60 @@ export class TestCompilerManager<T extends ECompilerType>
 	watch(timeout = 1000) {
 		if (!this.compilerInstance)
 			throw new Error("Compiler should be created before watch");
-		this.compilerInstance!.watch(
-			{
-				// IMPORTANT:
-				// This is a workaround for the issue that watchpack cannot detect the file change in time
-				// so we set the poll to 300ms to make it more sensitive to the file change
-				poll: 300,
-				// Rspack ignored node_modules and .git by default for better performance, but for tests we
-				// want to watch all files, which aligns with webpack's default behavior
-				ignored: [],
-				aggregateTimeout: timeout
-			},
-			(error, newStats) => {
-				this.emitter.emit(ECompilerEvent.Build, error, newStats);
-				if (error) return error;
-				if (newStats) {
-					this.compilerStats = newStats as TCompilerStats<T>;
+		const context = this.context;
+		const watchOptions = {
+			// IMPORTANT:
+			// This is a workaround for the issue that watchpack cannot detect the file change in time
+			// so we set the poll to 300ms to make it more sensitive to the file change
+			poll: 300,
+			// Rspack ignored node_modules and .git by default for better performance, but for tests we
+			// want to watch all files, which aligns with webpack's default behavior
+			ignored: [],
+			aggregateTimeout: timeout
+		};
+		if (__DEBUG__) {
+			context.setValue(DEBUG_SCOPES.BuildMethod, {
+				method: "watch",
+				options: watchOptions
+			});
+		}
+		this.compilerInstance!.watch(watchOptions, (error, newStats) => {
+			this.emitter.emit(ECompilerEvent.Build, error, newStats);
+			if (__DEBUG__) {
+				if (error) {
+					context.setValue(DEBUG_SCOPES.BuildError, {
+						type: "fatal",
+						errors: [error]
+					});
+					return error;
 				}
-				return newStats;
 			}
-		);
+
+			if (newStats) {
+				if (__DEBUG__) {
+					if (newStats.hasErrors()) {
+						context.setValue(DEBUG_SCOPES.BuildError, {
+							type: "stats",
+							errors:
+								newStats.toJson({
+									errors: true
+								}).errors || []
+						});
+					}
+					if (newStats.hasWarnings()) {
+						context.setValue(
+							DEBUG_SCOPES.BuildWarning,
+							newStats.toJson({
+								warnings: true
+							}).warnings || []
+						);
+					}
+				}
+
+				this.compilerStats = newStats as Stats;
+			}
+			return newStats;
+		});
 	}
 
 	getStats() {

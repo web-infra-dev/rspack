@@ -1,16 +1,13 @@
 use swc_core::{
   common::Spanned,
-  ecma::ast::{
-    DefaultDecl, ExportSpecifier, ExprStmt, ImportDecl, ImportSpecifier, ModuleDecl,
-    ModuleExportName, ModuleItem, Stmt,
-  },
+  ecma::ast::{DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Stmt},
 };
 
 use super::{
   JavascriptParser,
   estree::{
-    ExportAllDeclaration, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport,
-    ExportLocal, ExportNamedDeclaration, MaybeNamedClassDecl, Statement,
+    ExportDefaultDeclaration, ExportDefaultExpression, ExportLocal, ExportNamedDeclaration,
+    MaybeNamedClassDecl, Statement,
   },
 };
 use crate::{
@@ -46,16 +43,12 @@ impl JavascriptParser<'_> {
           },
           |parser, _| {
             match decl {
-              ModuleDecl::Import(decl) => parser.block_pre_walk_import_declaration(decl),
-              ModuleDecl::ExportAll(decl) => {
-                parser.block_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
-              }
+              ModuleDecl::Import(_) => {}
+              ModuleDecl::ExportAll(_) => {}
               ModuleDecl::ExportNamed(decl) => {
-                if decl.specifiers.len() == 1
-                  && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)))
-                {
-                  parser.block_pre_walk_export_all_declaration(ExportAllDeclaration::NamedAll(decl))
-                } else {
+                let is_named_namespace_export = decl.specifiers.len() == 1
+                  && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)));
+                if !is_named_namespace_export {
                   parser.block_pre_walk_export_named_declaration(
                     ExportNamedDeclaration::Specifiers(decl),
                   )
@@ -102,11 +95,6 @@ impl JavascriptParser<'_> {
     if let Some(assign) = stmt.expr.as_assign() {
       self.pre_walk_assignment_expression(assign)
     }
-    if let Some(paren) = stmt.expr.as_paren()
-      && let Some(assign) = paren.expr.as_assign()
-    {
-      self.pre_walk_assignment_expression(assign)
-    }
   }
 
   pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
@@ -117,22 +105,18 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.to_string())
+      self.define_variable(ident.sym.clone())
     }
   }
 
   fn block_pre_walk_export_named_declaration(&mut self, export: ExportNamedDeclaration) {
-    if let Some(source) = export.source() {
-      self
-        .plugin_drive
-        .clone()
-        .export_import(self, ExportImport::Named(export), source);
-    } else {
-      self
-        .plugin_drive
-        .clone()
-        .export(self, ExportLocal::Named(export));
+    if export.source().is_some() {
+      return;
     }
+    self
+      .plugin_drive
+      .clone()
+      .export(self, ExportLocal::Named(export));
     match export {
       ExportNamedDeclaration::Decl(decl) => {
         let prev = self.prev_statement;
@@ -153,16 +137,7 @@ impl JavascriptParser<'_> {
         for (local_id, exported_name, exported_name_span) in
           ExportNamedDeclaration::named_export_specifiers(named)
         {
-          if let Some(src) = &named.src {
-            self.plugin_drive.clone().export_import_specifier(
-              self,
-              ExportImport::Named(export),
-              &src.value,
-              Some(&local_id),
-              Some(&exported_name),
-              Some(exported_name_span),
-            );
-          } else {
+          if named.src.is_none() {
             self.plugin_drive.clone().export_specifier(
               self,
               ExportLocal::Named(export),
@@ -239,71 +214,6 @@ impl JavascriptParser<'_> {
           export,
           ExportDefaultExpression::Expr(&expr.expr),
         );
-      }
-    }
-  }
-
-  fn block_pre_walk_export_all_declaration(&mut self, decl: ExportAllDeclaration) {
-    let exported_name = decl.exported_name();
-    let exported_name_span = decl.exported_name_span();
-    let statement = ExportImport::All(decl);
-    let source = statement.source();
-    self
-      .plugin_drive
-      .clone()
-      .export_import(self, statement, source);
-    self.plugin_drive.clone().export_import_specifier(
-      self,
-      statement,
-      source,
-      None,
-      exported_name,
-      exported_name_span,
-    );
-  }
-
-  fn block_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {
-    let drive = self.plugin_drive.clone();
-    let source = &decl.src.value;
-    drive.import(self, decl, source.as_str());
-
-    for specifier in &decl.specifiers {
-      match specifier {
-        ImportSpecifier::Named(named) => {
-          let identifier_name = &named.local.sym;
-          let export_name = named
-            .imported
-            .as_ref()
-            .map(|imported| match imported {
-              ModuleExportName::Ident(ident) => &ident.sym,
-              ModuleExportName::Str(s) => &s.value,
-            })
-            .unwrap_or_else(|| &named.local.sym);
-          if drive
-            .import_specifier(self, decl, source, Some(export_name), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.to_string())
-          }
-        }
-        ImportSpecifier::Default(default) => {
-          let identifier_name = &default.local.sym;
-          if drive
-            .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.to_string())
-          }
-        }
-        ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = &namespace.local.sym;
-          if drive
-            .import_specifier(self, decl, source, None, identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.to_string())
-          }
-        }
       }
     }
   }

@@ -60,7 +60,6 @@ import {
 	iterateConfig,
 	mergeToObject,
 	moduleGroup,
-	resolveStatsMillisecond,
 	sortByField,
 	spaceLimited
 } from "./statsFactoryUtils";
@@ -69,15 +68,13 @@ const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
 const GROUP_PATH_REGEXP = /(.+)[/\\][^/\\]+?(?:\?|(?: \+ \d+ modules?)?$)/;
 
-const ITEM_NAMES: Record<string, string> = {
+export const SHARED_ITEM_NAMES = {
 	"compilation.children[]": "compilation",
 	"compilation.modules[]": "module",
 	"compilation.entrypoints[]": "chunkGroup",
 	"compilation.namedChunkGroups[]": "chunkGroup",
 	"compilation.errors[]": "error",
-	"compilation.warnings[]": "warning",
 	"chunk.modules[]": "module",
-	"chunk.rootModules[]": "module",
 	"chunk.origins[]": "chunkOrigin",
 	"compilation.chunks[]": "chunk",
 	"compilation.assets[]": "asset",
@@ -85,9 +82,14 @@ const ITEM_NAMES: Record<string, string> = {
 	"module.issuerPath[]": "moduleIssuer",
 	"module.reasons[]": "moduleReason",
 	"module.modules[]": "module",
-	"module.children[]": "module",
+	"module.children[]": "module"
+};
+
+const ITEM_NAMES: Record<string, string> = {
+	...SHARED_ITEM_NAMES,
+	"compilation.warnings[]": "warning",
+	"chunk.rootModules[]": "module",
 	"moduleTrace[]": "moduleTraceItem"
-	// "moduleTraceItem.dependencies[]": "moduleTraceDependency"
 };
 
 const MERGER: Record<
@@ -727,6 +729,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						LogType.warn,
 						LogType.info,
 						LogType.log,
+						LogType.debug,
 						LogType.group,
 						LogType.groupEnd,
 						LogType.groupCollapsed,
@@ -813,10 +816,9 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
 							continue;
 						}
-						const message =
-							entry.args && entry.args.length > 0
-								? util.format(entry.args[0], ...entry.args.slice(1))
-								: "";
+						const message = entry.args?.length
+							? util.format(entry.args[0], ...entry.args.slice(1))
+							: "";
 						const newEntry: KnownStatsLoggingEntry = {
 							type,
 							message,
@@ -889,7 +891,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const compilationAssets = statsCompilation.assets!;
 			const assetsByChunkName = statsCompilation.assetsByChunkName!;
 
-			const assetMap: Map<String, PreprocessedAsset> = new Map();
+			const assetMap: Map<string, PreprocessedAsset> = new Map();
 			const assets: Set<PreprocessedAsset> = new Set();
 
 			for (const asset of compilationAssets) {
@@ -920,22 +922,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				}
 			}
 
-			object.assetsByChunkName = assetsByChunkName.reduce<
-				Record<string, string[]>
-			>((acc, cur) => {
-				acc[cur.name] = cur.files;
-				return acc;
-			}, {});
-
-			const groupedAssets = factory.create(
-				`${type}.assets`,
-				Array.from(assets),
-				{
-					...context
-					// compilationFileToChunks
-					// compilationAuxiliaryFileToChunks
-				}
+			object.assetsByChunkName = Object.fromEntries(
+				assetsByChunkName.map(({ name, files }) => [name, files])
 			);
+
+			const groupedAssets = factory.create(`${type}.assets`, [...assets], {
+				...context
+			});
 			const limited = spaceLimited(
 				groupedAssets,
 				options.assetsSpace ?? Number.POSITIVE_INFINITY
@@ -970,7 +963,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const statsCompilation = getStatsCompilation(compilation);
 			const array = statsCompilation.modules;
 			const groupedModules = factory.create(`${type}.modules`, array, context);
-			const limited = spaceLimited(groupedModules, options.modulesSpace!);
+			const limited = spaceLimited(groupedModules, options.modulesSpace);
 			object.modules = limited.children;
 			object.filteredModules = limited.filteredChildren;
 		},
@@ -1001,7 +994,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					!chunkGroupChildren &&
 					array.every(({ chunkGroup }) => {
 						if (chunkGroup.chunks.length !== 1) return false;
-						const chunk = chunks[chunkGroup.chunks[0]!];
+						const chunk = chunks[chunkGroup.chunks[0]];
 						return (
 							chunk &&
 							chunk.files.size === 1 &&
@@ -1023,7 +1016,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			{ chunkGroupAuxiliary, chunkGroupChildren },
+			_,
 			factory
 		) => {
 			const { type, getStatsCompilation } = context;
@@ -1303,26 +1296,23 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			const { commonAttributes } = module;
 			object.source = commonAttributes.source;
 		},
-		usedExports: (object, module) => {
-			if (typeof module.usedExports === "string") {
-				if (module.usedExports === "null") {
+		usedExports: (object, { usedExports }) => {
+			if (typeof usedExports === "string") {
+				if (usedExports === "null") {
 					object.usedExports = null;
 				} else {
-					object.usedExports = module.usedExports === "true";
+					object.usedExports = usedExports === "true";
 				}
-			} else if (Array.isArray(module.usedExports)) {
-				object.usedExports = module.usedExports;
+			} else if (Array.isArray(usedExports)) {
+				object.usedExports = usedExports;
 			} else {
 				object.usedExports = null;
 			}
 		},
-		providedExports: (object, module) => {
-			const { commonAttributes } = module;
-			if (Array.isArray(commonAttributes.providedExports)) {
-				object.providedExports = commonAttributes.providedExports;
-			} else {
-				object.providedExports = null;
-			}
+		providedExports: (object, { commonAttributes }) => {
+			object.providedExports = Array.isArray(commonAttributes.providedExports)
+				? commonAttributes.providedExports
+				: null;
 		},
 		optimizationBailout: (object, module) => {
 			object.optimizationBailout =
@@ -1352,8 +1342,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	},
 	profile: {
 		_: (object, profile) => {
-			const factory = resolveStatsMillisecond(profile.factory);
-			const building = resolveStatsMillisecond(profile.building);
+			const factory = profile.factory;
+			const building = profile.building;
 			const statsProfile: StatsProfile = {
 				total: factory + building,
 				resolving: factory,
@@ -1466,13 +1456,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	error: EXTRACT_ERROR,
 	warning: EXTRACT_ERROR,
 	moduleTraceItem: {
-		_: (
-			object,
-			{ origin, module, dependencies },
-			context,
-			{ requestShortener },
-			factory
-		) => {
+		_: (object, { origin, module, dependencies }, context, _, factory) => {
 			const { type } = context;
 			if (origin.moduleDescriptor) {
 				object.originIdentifier = origin.moduleDescriptor.identifier;
@@ -1520,21 +1504,6 @@ const FILTER: Record<
 	}
 };
 
-const FILTER_RESULTS: Record<
-	string,
-	Record<
-		string,
-		(
-			thing: Object,
-			context: StatsFactoryContext,
-			options: NormalizedStatsOptions
-		) => boolean | undefined
-	>
-> = {
-	// Deprecated: "compilation.warnings": {}
-	// Keep this object to retain this phase.
-};
-
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {
@@ -1550,13 +1519,6 @@ export class DefaultStatsFactoryPlugin {
 					});
 					iterateConfig(FILTER, options, (hookFor, fn) => {
 						stats.hooks.filter
-							.for(hookFor)
-							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
-								fn(item, ctx, options, idx, i)
-							);
-					});
-					iterateConfig(FILTER_RESULTS, options, (hookFor, fn) => {
-						stats.hooks.filterResults
 							.for(hookFor)
 							.tap("DefaultStatsFactoryPlugin", (item, ctx, idx, i) =>
 								fn(item, ctx, options, idx, i)

@@ -5,11 +5,12 @@ use std::{
 
 use rspack_cacheable::cacheable;
 use rspack_location::{DependencyLocation, RealDependencyLocation, SourcePosition};
+use rspack_util::SpanExt;
 
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct DependencyRange {
   pub end: u32,
   pub start: u32,
@@ -27,8 +28,8 @@ impl From<(u32, u32)> for DependencyRange {
 impl From<swc_core::common::Span> for DependencyRange {
   fn from(span: swc_core::common::Span) -> Self {
     Self {
-      start: span.lo.0.saturating_sub(1),
-      end: span.hi.0.saturating_sub(1),
+      start: span.real_lo(),
+      end: span.real_hi(),
     }
   }
 }

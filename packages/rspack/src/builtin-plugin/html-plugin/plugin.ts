@@ -8,7 +8,6 @@ import {
 
 import type { Compilation } from "../../Compilation";
 import type { Compiler } from "../../Compiler";
-import { nonWebpackRequire } from "../../util/require";
 import { create } from "../base";
 import {
 	cleanPluginHooks,
@@ -18,8 +17,7 @@ import {
 import {
 	cleanPluginOptions,
 	type HtmlRspackPluginOptions,
-	setPluginOptions,
-	validateHtmlPluginOptions
+	setPluginOptions
 } from "./options";
 
 type HtmlPluginTag = {
@@ -38,7 +36,6 @@ const HtmlRspackPluginImpl = create(
 		this: Compiler,
 		c: HtmlRspackPluginOptions = {}
 	): RawHtmlRspackPluginOptions {
-		validateHtmlPluginOptions(c);
 		const uid = HTML_PLUGIN_UID++;
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
@@ -137,9 +134,11 @@ const HtmlRspackPluginImpl = create(
 						);
 					}
 					try {
-						const renderer = (await nonWebpackRequire()(templateFilePath)) as (
-							data: Record<string, unknown>
-						) => Promise<string> | string;
+						const renderer = (
+							IS_BROWSER
+								? this.__internal_browser_require(templateFilePath)
+								: require(templateFilePath)
+						) as (data: Record<string, unknown>) => Promise<string> | string;
 						if (c.templateParameters === false) {
 							return await renderer({});
 						}
@@ -253,7 +252,7 @@ const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
 	createHtmlTagObject: (
 		tagName: string,
 		attributes?: Record<string, string | boolean>,
-		innerHTML?: string | undefined
+		innerHTML?: string
 	) => JsHtmlPluginTag;
 	version: number;
 };
@@ -279,7 +278,7 @@ const voidTags = [
 HtmlRspackPlugin.createHtmlTagObject = (
 	tagName: string,
 	attributes?: Record<string, string | boolean>,
-	innerHTML?: string | undefined
+	innerHTML?: string
 ): JsHtmlPluginTag => {
 	return {
 		tagName,

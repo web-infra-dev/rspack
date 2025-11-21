@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support function type of newContentResource in ContextReplacementPlugin"

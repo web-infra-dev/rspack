@@ -101,6 +101,7 @@ mod virtual_modules;
 
 use std::{
   cell::RefCell,
+  mem::ManuallyDrop,
   sync::{Arc, RwLock},
 };
 
@@ -113,16 +114,8 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
-use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
-use rspack_util::tracing_preset::{
-  TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
-};
 use rustc_hash::FxHashMap;
 use swc_core::common::util::take::Take;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::{
-  EnvFilter, Layer, Registry, layer::SubscriberExt, reload, util::SubscriberInitExt,
-};
 
 use crate::{
   async_dependency_block::AsyncDependenciesBlockWrapper,
@@ -167,8 +160,11 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 
 #[napi(custom_finalize)]
 struct JsCompiler {
+  // whether to skip drop compiler in finalize
+  unsafe_fast_drop: bool,
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Compiler,
+  // call drop manually to avoid unnecessary drop overhead in cli build
+  compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
@@ -191,6 +187,7 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
+    unsafe_fast_drop: bool,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
@@ -317,17 +314,17 @@ impl JsCompiler {
       );
 
       Ok(Self {
-        compiler: Compiler::from(rspack),
+        compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
         include_dependencies_map: Default::default(),
         entry_dependencies_map: Default::default(),
         compiler_context,
         virtual_file_store,
+        unsafe_fast_drop,
       })
     })
   }
-
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
@@ -468,7 +465,7 @@ impl JsCompiler {
 }
 
 impl ObjectFinalize for JsCompiler {
-  fn finalize(self, _env: Env) -> Result<()> {
+  fn finalize(mut self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
 
     COMPILER_REFERENCES.with(|ref_cell| {
@@ -477,6 +474,11 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
+    if (!self.unsafe_fast_drop) {
+      unsafe {
+        ManuallyDrop::drop(&mut self.compiler);
+      }
+    }
     Ok(())
   }
 }
@@ -488,34 +490,6 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
   )
 }
 
-#[derive(Default)]
-enum TraceState {
-  Uninitialized,                                            // uninitialized
-  On(Box<dyn Tracer>, reload::Handle<EnvFilter, Registry>), // initialized and turned on
-  #[default]
-  Off,                                          // initialized but turned off
-}
-
-#[cfg(target_family = "wasm")]
-const _: () = {
-  #[used]
-  #[unsafe(link_section = ".init_array")]
-  static __CTOR: unsafe extern "C" fn() = init;
-
-  unsafe extern "C" fn init() {
-    #[cfg(feature = "browser")]
-    rspack_browser::panic::install_panic_handler();
-    #[cfg(not(feature = "browser"))]
-    panic::install_panic_handler();
-    let rt = tokio::runtime::Builder::new_multi_thread()
-      .max_blocking_threads(1)
-      .enable_all()
-      .build()
-      .expect("Create tokio runtime failed");
-    create_custom_tokio_runtime(rt);
-  }
-};
-
 #[cfg(not(target_family = "wasm"))]
 #[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
@@ -524,6 +498,12 @@ fn init() {
     thread,
   };
 
+  #[cfg(feature = "tracy-client")]
+  {
+    use tracy_client::register_demangler;
+    tracy_client::Client::start();
+    register_demangler!();
+  }
   #[cfg(feature = "sftrace-setup")]
   if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
     unsafe {
@@ -536,11 +516,7 @@ fn init() {
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
   // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
   // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-  let default_blocking_threads = if std::env::consts::OS == "macos" {
-    8
-  } else {
-    512
-  };
+  let default_blocking_threads = 4;
   let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
     .ok()
     .and_then(|v| v.parse::<usize>().ok())
@@ -564,9 +540,6 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
     .expect("should print diagnostics")
 }
 
-thread_local! {
-  static GLOBAL_TRACE_STATE: RefCell<TraceState> = const { RefCell::new(TraceState::Uninitialized) };
-}
 /**
  * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
@@ -582,91 +555,23 @@ fn register_global_trace(
   #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
-  let filter = match filter.as_str() {
-    "OVERVIEW" => TRACING_OVERVIEW_PRESET,
-    "ALL" => TRACING_ALL_PRESET,
-    "BENCH" => TRACING_BENCH_TARGET,
-    _ => filter.as_str(),
-  };
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    if let TraceState::Uninitialized = *state {
-      let mut tracer: Box<dyn Tracer> = match layer.as_str() {
-        "logger" => Box::new(StdoutTracer),
-        "perfetto"=> Box::new(PerfettoTracer::default()),
-        _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
-          layer
-        ),
-      };
-      if let Some(layer) = tracer.setup(&output) {
-        // SAFETY: we know that trace_var is `Ok(String)` now,
-        // for the second unwrap, if we can't parse the directive, then the tracing result would be
-        // unexpected, then panic is reasonable
-        let (filter,reload_handle) = reload::Layer::new(EnvFilter::builder()
-          .with_default_directive(LevelFilter::INFO.into())
-          .with_regex(true)
-          .parse(filter)
-          .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives")
-      );
-        tracing_subscriber::registry()
-          .with(<_ as Layer<Registry>>::with_filter(layer, filter))
-          .init();
-        let new_state = TraceState::On(tracer, reload_handle);
-        *state = new_state;
-      };
-    }
-    Ok(())
-  })
+  #[cfg(not(feature = "browser"))]
+  trace_event::register_global_trace(filter, layer, output)?;
+  Ok(())
 }
 
 #[napi]
 // only the first call would take effect, the following calls would be ignored
 pub fn cleanup_global_trace() {
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    match *state {
-      TraceState::Uninitialized => {
-        panic!("Global trace is not initialized, please call register_global_trace first");
-      }
-      TraceState::Off => {
-        // do nothing, already cleaned up
-      }
-      TraceState::On(ref mut tracer, ref mut reload_handle) => {
-        tracer.teardown();
-        // turn off the tracing event
-        let _ = reload_handle.modify(|filter| *filter = EnvFilter::new("off"));
-        *state = TraceState::Off;
-      }
-    }
-  });
+  #[cfg(not(feature = "browser"))]
+  trace_event::cleanup_global_trace();
 }
+
 // sync Node.js event to Rust side
 #[napi]
 fn sync_trace_event(events: Vec<RawTraceEvent>) {
-  use std::borrow::BorrowMut;
-  GLOBAL_TRACE_STATE.with(|state| {
-    let mut state = state.borrow_mut();
-    if let TraceState::On(tracer, _) = &mut **state.borrow_mut() {
-      tracer.sync_trace(
-        events
-          .into_iter()
-          .map(|event| TraceEvent {
-            name: event.name,
-            track_name: event.track_name,
-            process_name: event.process_name,
-            args: event
-              .args
-              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
-            uuid: event.uuid,
-            ts: event.ts.get_u64().1,
-            ph: event.ph,
-            categories: event.categories,
-          })
-          .collect(),
-      );
-    }
-  });
+  #[cfg(not(feature = "browser"))]
+  trace_event::sync_trace_event(events);
 }
 
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
@@ -676,6 +581,20 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  #[cfg(target_family = "wasm")]
+  {
+    #[cfg(feature = "browser")]
+    rspack_browser::panic::install_panic_handler();
+    #[cfg(not(feature = "browser"))]
+    panic::install_panic_handler();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;

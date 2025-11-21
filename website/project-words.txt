@@ -10,6 +10,7 @@ antd
 antfu
 arad
 arewerspackyet
+auvred
 ɑrespæk
 bazel
 behaviour
@@ -74,6 +75,7 @@ jantimon
 JavaScript
 jerrykingxyz
 jkzing
+jridgewell
 jscexperimentalplugins
 jserfeng
 kaffi
@@ -90,6 +92,7 @@ Llms
 magic-akari
 memfs
 mimalloc
+minifiers
 miro
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
@@ -188,6 +191,9 @@ Terser
 tiktok
 tokio
 Towhk
+Trae
+tsgo
+tsgolint
 tuchg
 typeofs
 TypeScript

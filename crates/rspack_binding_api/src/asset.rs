@@ -1,7 +1,7 @@
 use napi::{
   Env, JsValue,
   bindgen_prelude::{
-    Array, Either, FromNapiValue, JsObjectValue, Object, ToNapiValue, TypeName, Unknown,
+    Array, Either, FromNapiValue, JsObjectValue, Null, Object, ToNapiValue, TypeName, Unknown,
     ValidateNapiValue,
   },
   sys,
@@ -12,15 +12,22 @@ use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
 
+#[derive(Clone)]
 #[napi(object)]
-pub struct JsAssetInfoRelated {
-  pub source_map: Option<String>,
+pub struct AssetInfoRelated {
+  pub source_map: Option<Either<String, Null>>,
 }
 
-impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
-  fn from(i: JsAssetInfoRelated) -> Self {
+impl From<AssetInfoRelated> for rspack_core::AssetInfoRelated {
+  fn from(i: AssetInfoRelated) -> Self {
     Self {
-      source_map: i.source_map,
+      source_map: match i.source_map {
+        Some(either) => match either {
+          Either::A(string) => Some(string),
+          Either::B(_) => None,
+        },
+        None => None,
+      },
     }
   }
 }
@@ -53,11 +60,13 @@ pub struct KnownAssetInfo {
   /// when asset is javascript and an ESM
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
-  pub related: Option<JsAssetInfoRelated>,
+  pub related: Option<AssetInfoRelated>,
   /// unused css local ident for the css chunk
   pub css_unused_idents: Option<Vec<String>>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
+  /// the asset type
+  pub asset_type: Option<String>,
 }
 
 /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
@@ -133,6 +142,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       related,
       css_unused_idents,
       is_over_size_limit,
+      asset_type,
     } = known;
 
     let chunk_hash = chunkhash
@@ -171,6 +181,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       version: String::default(),
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().collect()),
       is_over_size_limit,
+      asset_type: asset_type.map(Into::into).unwrap_or_default(),
       extras,
     }
   }
@@ -181,6 +192,10 @@ impl AssetInfo {
     // Safety: The Env and Object should be valid NAPI value
     unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw()) }
   }
+
+  pub fn get_related(&self) -> Option<AssetInfoRelated> {
+    self.known.related.clone()
+  }
 }
 
 #[napi(object, object_from_js = false)]
@@ -190,10 +205,10 @@ pub struct JsAsset {
   pub info: Reflector,
 }
 
-impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
+impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
   fn from(related: rspack_core::AssetInfoRelated) -> Self {
     Self {
-      source_map: related.source_map,
+      source_map: related.source_map.map(Either::A),
     }
   }
 }
@@ -214,6 +229,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       related,
       css_unused_idents,
       is_over_size_limit,
+      asset_type,
       extras,
       ..
     } = value;
@@ -233,6 +249,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
         javascript_module,
         css_unused_idents: css_unused_idents.map(|i| i.into_iter().collect()),
         is_over_size_limit,
+        asset_type: Some(asset_type.to_string()),
       },
       extras,
     }

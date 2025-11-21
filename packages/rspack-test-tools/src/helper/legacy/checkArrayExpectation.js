@@ -1,6 +1,6 @@
 // @ts-nocheck
 "use strict";
-const fs = require("graceful-fs");
+const fs = require("fs-extra");
 const path = require("node:path");
 
 const check = (expected, actual) => {
@@ -69,19 +69,16 @@ module.exports = async function checkArrayExpectation(
 	kind,
 	filename,
 	upperCaseKind,
-	done
+	options,
+	done,
 ) {
-	const usePromise = typeof done === "function";
 	done = typeof done === "function" ? done : error => {
 		throw error
 	};
 	let array = object[`${kind}s`];
-	if (Array.isArray(array)) {
-		if (kind === "warning") {
-			array = array.filter(item => !/from Terser/.test(item));
-		}
+	if (Array.isArray(array) && kind === "warning") {
+		array = array.filter(item => !/from Terser/.test(item));
 	}
-
 	if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
 		// CHANGE: added file for sorting messages in multi-thread environment
 		if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
@@ -89,7 +86,10 @@ module.exports = async function checkArrayExpectation(
 			array = sorter(array);
 		}
 		const expectedFilename = path.join(testDirectory, `${filename}.js`);
-		const expected = require(expectedFilename);
+		let expected = require(expectedFilename);
+		if (typeof expected === "function") {
+			expected = expected(options);
+		}
 		const diff = diffItems(array, expected, kind);
 
 		if (expected.length < array.length) {

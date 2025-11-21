@@ -8,17 +8,16 @@
     "preview": "rspack preview"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "^1.4.3",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "react-refresh": "^0.17.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "@rspack/plugin-react-refresh": "^1.5.3",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "react-refresh": "^0.18.0",
+    "typescript": "^5.9.3"
   }
 }

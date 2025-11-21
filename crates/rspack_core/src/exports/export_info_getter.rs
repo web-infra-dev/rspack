@@ -4,10 +4,8 @@ use itertools::Itertools;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{
-  ExportInfoData, ExportInfoTargetValue, ExportProvided, Inlinable, UsageState, UsedNameItem,
-};
-use crate::{DependencyId, RuntimeSpec};
+use super::{ExportInfoData, ExportInfoTargetValue, ExportProvided, UsageState, UsedNameItem};
+use crate::{CanInlineUse, DependencyId, RuntimeSpec};
 
 impl ExportInfoData {
   pub fn get_used_name(
@@ -15,9 +13,6 @@ impl ExportInfoData {
     fallback_name: Option<&Atom>,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<UsedNameItem> {
-    if let Inlinable::Inlined(inlined) = &self.inlinable() {
-      return Some(UsedNameItem::Inlined(inlined.clone()));
-    }
     if self.has_use_in_runtime_info() {
       if let Some(usage) = self.global_used() {
         if matches!(usage, UsageState::Unused) {
@@ -36,7 +31,7 @@ impl ExportInfoData {
       }
     }
     if let Some(used_name) = self.used_name() {
-      return Some(UsedNameItem::Str(used_name.clone()));
+      return Some(used_name.clone());
     }
     if let Some(name) = self.name() {
       Some(UsedNameItem::Str(name.clone()))
@@ -93,8 +88,13 @@ impl ExportInfoData {
 
   pub fn get_rename_info(&self) -> Cow<'_, str> {
     match (self.used_name(), self.name()) {
-      (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
-      (Some(used), None) => return format!("renamed to {used}").into(),
+      (Some(UsedNameItem::Inlined(inlined)), _) => {
+        return format!("inlined to {}", inlined.render()).into();
+      }
+      (Some(UsedNameItem::Str(used)), Some(name)) if used != name => {
+        return format!("renamed to {used}").into();
+      }
+      (Some(UsedNameItem::Str(used)), None) => return format!("renamed to {used}").into(),
       _ => {}
     }
 
@@ -184,6 +184,15 @@ impl ExportInfoData {
           None
         }
       }
+    }
+  }
+
+  pub fn can_inline(&self) -> Option<bool> {
+    match self.can_inline_provide() {
+      Some(_) => self
+        .can_inline_use()
+        .map(|v| matches!(v, CanInlineUse::Yes)),
+      None => None,
     }
   }
 

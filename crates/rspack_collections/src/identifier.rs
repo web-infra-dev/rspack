@@ -36,6 +36,7 @@ pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<Iden
 
 #[cacheable(hashable)]
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct Identifier(#[cacheable(with=AsPreset)] Ustr);
 
 impl Deref for Identifier {
@@ -82,6 +83,10 @@ impl Identifier {
   #[allow(clippy::inherent_to_string_shadow_display)]
   pub fn to_string(&self) -> String {
     self.0.to_owned()
+  }
+
+  pub fn precomputed_hash(&self) -> u64 {
+    self.0.precomputed_hash()
   }
 }
 

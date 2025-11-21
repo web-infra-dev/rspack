@@ -79,6 +79,50 @@ export interface AssetEmittedInfo {
 
 const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
 
+export type CompilerHooks = {
+	done: liteTapable.AsyncSeriesHook<Stats>;
+	afterDone: liteTapable.SyncHook<Stats>;
+	thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
+	compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
+	invalid: liteTapable.SyncHook<[string | null, number]>;
+	compile: liteTapable.SyncHook<[CompilationParams]>;
+	normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
+	contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
+	initialize: liteTapable.SyncHook<[]>;
+	shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
+	/**
+	 * Called when infrastructure logging is triggered, allowing plugins to intercept, modify, or handle log messages.
+	 * If the hook returns `true`, the default infrastructure logging will be prevented.
+	 * If it returns `undefined`, the default logging will proceed.
+	 * @param name - The name of the logger
+	 * @param type - The log type (e.g., 'log', 'warn', 'error', ...)
+	 * @param args - An array of arguments passed to the logging method
+	 */
+	infrastructureLog: liteTapable.SyncBailHook<
+		[string, string, any[]],
+		true | void
+	>;
+	beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+	run: liteTapable.AsyncSeriesHook<[Compiler]>;
+	emit: liteTapable.AsyncSeriesHook<[Compilation]>;
+	assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
+	afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
+	failed: liteTapable.SyncHook<[Error]>;
+	shutdown: liteTapable.AsyncSeriesHook<[]>;
+	watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
+	watchClose: liteTapable.SyncHook<[]>;
+	environment: liteTapable.SyncHook<[]>;
+	afterEnvironment: liteTapable.SyncHook<[]>;
+	afterPlugins: liteTapable.SyncHook<[Compiler]>;
+	afterResolvers: liteTapable.SyncHook<[Compiler]>;
+	make: liteTapable.AsyncParallelHook<[Compilation]>;
+	beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
+	afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
+	finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
+	entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
+	additionalPass: liteTapable.AsyncSeriesHook<[]>;
+};
+
 class Compiler {
 	#instance?: binding.JsCompiler;
 	#initial: boolean;
@@ -95,38 +139,7 @@ class Compiler {
 
 	#ruleSet: RuleSetCompiler;
 
-	hooks: {
-		done: liteTapable.AsyncSeriesHook<Stats>;
-		afterDone: liteTapable.SyncHook<Stats>;
-		thisCompilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		compilation: liteTapable.SyncHook<[Compilation, CompilationParams]>;
-		invalid: liteTapable.SyncHook<[string | null, number]>;
-		compile: liteTapable.SyncHook<[CompilationParams]>;
-		normalModuleFactory: liteTapable.SyncHook<NormalModuleFactory>;
-		contextModuleFactory: liteTapable.SyncHook<ContextModuleFactory>;
-		initialize: liteTapable.SyncHook<[]>;
-		shouldEmit: liteTapable.SyncBailHook<[Compilation], boolean>;
-		infrastructureLog: liteTapable.SyncBailHook<[string, string, any[]], true>;
-		beforeRun: liteTapable.AsyncSeriesHook<[Compiler]>;
-		run: liteTapable.AsyncSeriesHook<[Compiler]>;
-		emit: liteTapable.AsyncSeriesHook<[Compilation]>;
-		assetEmitted: liteTapable.AsyncSeriesHook<[string, AssetEmittedInfo]>;
-		afterEmit: liteTapable.AsyncSeriesHook<[Compilation]>;
-		failed: liteTapable.SyncHook<[Error]>;
-		shutdown: liteTapable.AsyncSeriesHook<[]>;
-		watchRun: liteTapable.AsyncSeriesHook<[Compiler]>;
-		watchClose: liteTapable.SyncHook<[]>;
-		environment: liteTapable.SyncHook<[]>;
-		afterEnvironment: liteTapable.SyncHook<[]>;
-		afterPlugins: liteTapable.SyncHook<[Compiler]>;
-		afterResolvers: liteTapable.SyncHook<[Compiler]>;
-		make: liteTapable.AsyncParallelHook<[Compilation]>;
-		beforeCompile: liteTapable.AsyncSeriesHook<[CompilationParams]>;
-		afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
-		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
-		entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
-		additionalPass: liteTapable.AsyncSeriesHook<[]>;
-	};
+	hooks: CompilerHooks;
 
 	webpack: typeof rspack;
 	rspack: typeof rspack;
@@ -161,6 +174,20 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	options: RspackOptionsNormalized;
+	/**
+	 * Whether to skip dropping Rust compiler instance to improve performance.
+	 * This is an internal option api and could be removed or changed at any time.
+	 * @internal
+	 * true: Skip dropping Rust compiler instance.
+	 * false: Drop Rust compiler instance when Compiler is garbage collected.
+	 */
+	unsafeFastDrop: boolean = false;
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal_browser_require: (id: string) => unknown;
 
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.#initial = true;
@@ -241,6 +268,12 @@ class Compiler {
 		this.idle = false;
 
 		this.watchMode = false;
+
+		this.__internal_browser_require = () => {
+			throw new Error(
+				"Cannot execute user defined code in browser without `BrowserRequirePlugin`"
+			);
+		};
 		// this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
 		// we need to call pnp defaultValue early here
 		this.resolverFactory = new ResolverFactory(
@@ -250,7 +283,9 @@ class Compiler {
 		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
-		new TraceHookPlugin().apply(this);
+		if (!IS_BROWSER) {
+			new TraceHookPlugin().apply(this);
+		}
 
 		// this.hooks.shutdown.tap("rspack:cleanup", () => {
 		// 	// Delayed rspack cleanup to the next tick.
@@ -538,8 +573,6 @@ class Compiler {
 				const err = new Error(`compiler.runAsChild callback error: ${e}`);
 				// err.details = e.stack;
 				this.parentCompilation!.errors.push(err);
-				// TODO: remove once this works
-				console.log(e);
 			}
 		};
 
@@ -704,16 +737,12 @@ class Compiler {
 			});
 			return;
 		}
+
 		this.hooks.shutdown.callAsync(err => {
 			if (err) return callback(err);
 			this.cache.shutdown(() => {
-				this.#getInstance((error, instance) => {
-					if (error) {
-						return callback(error);
-					}
-					instance!.close();
-					callback();
-				});
+				this.#instance?.close();
+				callback();
 			});
 		});
 	}
@@ -824,11 +853,12 @@ class Compiler {
 			return callback(null, this.#instance);
 		}
 
-		const options = this.options;
+		const { options } = this;
 		const rawOptions = getRawOptions(options, this);
 		rawOptions.__references = Object.fromEntries(
 			this.#ruleSet.builtinReferences.entries()
 		);
+
 		rawOptions.__virtual_files =
 			VirtualModulesPlugin.__internal__take_virtual_files(this);
 
@@ -842,20 +872,36 @@ class Compiler {
 				? ThreadsafeInputNodeFS.__to_binding(this.inputFileSystem)
 				: undefined;
 
-		this.#instance = new instanceBinding.JsCompiler(
-			this.compilerPath,
-			rawOptions,
-			this.#builtinPlugins,
-			this.#registers,
-			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-			this.intermediateFileSystem
-				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
-				: undefined,
-			inputFileSystem,
-			ResolverFactory.__to_binding(this.resolverFactory)
-		);
+		try {
+			this.#instance = new instanceBinding.JsCompiler(
+				this.compilerPath,
+				rawOptions,
+				this.#builtinPlugins,
+				this.#registers,
+				ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
+				this.intermediateFileSystem
+					? ThreadsafeIntermediateNodeFS.__to_binding(
+							this.intermediateFileSystem
+						)
+					: undefined,
+				inputFileSystem,
+				ResolverFactory.__to_binding(this.resolverFactory),
+				this.unsafeFastDrop
+			);
 
-		callback(null, this.#instance);
+			callback(null, this.#instance);
+		} catch (err) {
+			if (err instanceof Error) {
+				// hide unnecessary stack trace
+				delete err.stack;
+			}
+			callback(
+				new Error(
+					"Failed to create Rspack compiler instance, check the Rspack configuration.",
+					{ cause: err }
+				)
+			);
+		}
 	}
 
 	#createHooksRegisters(): binding.RegisterJsTaps {

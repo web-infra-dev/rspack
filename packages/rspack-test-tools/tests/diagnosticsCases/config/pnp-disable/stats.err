@@ -1,8 +1,0 @@
-ERROR in ./index.js 1:0-32
-  × Module not found: Can't resolve 'the-answer' in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/config/pnp-disable'
-   ╭─[1:19]
- 1 │ import answer from 'the-answer';
-   ·                    ────────────
- 2 │ it('load_dep_from_pnp', () => {
- 3 │     expect(answer).toBe(42);
-   ╰────

@@ -1,0 +1,100 @@
+WARNING in (./basic.js!)
+  ⚠ ModuleWarning: `React` is not defined
+
+WARNING in ./lib.js (./basic.js!./lib.js)
+  ⚠ ModuleWarning: `React` is not defined
+
+ERROR in (./basic.js!)
+  × ModuleError: `React` is not defined
+
+ERROR in ./lib.js (./basic.js!./lib.js)
+  × ModuleError: `React` is not defined
+
+ERROR in ./some-file.js
+ (./with-file.js!) 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+
+ERROR in ./some-file.js
+./lib.js (./with-file.js!./lib.js) 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+
+ERROR in (./with-help.js!) 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+  help: try to import `React`
+
+ERROR in (./with-location.js!) 1:1-4
+  × ModuleError: `React` is not defined
+   ╭────
+ 1 │ <div></div>
+   ·  ───
+   ╰────
+
+ERROR in (./with-multi-byte-char.js!) 1:0-13
+  × ModuleError: Multi-byte character error
+   ╭────
+ 1 │ 👯‍♀️👯‍♀️👯‍♀️👯‍♀️
+   · ───
+   ╰────
+
+ERROR in (./with-multi-byte-char.js!)
+  × Module build failed (from ./with-multi-byte-char.js):
+  ╰─▶   × Error: Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+
+ERROR in (./with-multiple-line.js!) 1:0-2:4
+  × ModuleError: Multiple line error
+   ╭─[1:0]
+ 1 │ ╭─▶ ~~~~~
+ 2 │ ╰─▶ ~~~~~
+   ╰────
+
+ERROR in (./with-multiple-line.js!) 1:0-2:4
+  × ModuleError: Multiple line error
+   ╭─[1:0]
+ 1 │ ╭─▶ ~~~~~
+ 2 │ ├─▶ ~~~~~
+   · ╰──── unexpected '~'
+   ╰────
+
+ERROR in (./with-multiple-line.js!)
+  × Module build failed (from ./with-multiple-line.js):
+  ╰─▶   × Error: Format diagnostic failed: Invalid `length` in location.
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+        │     at xxx
+
+ERROR in (./with-multiple-line.js!) 3:4
+  × ModuleError: Multiple line snippet
+   ╭─[3:4]
+ 1 │ ~~~~~
+ 2 │ ~~~~~
+ 3 │ ~~~~~
+   ·     ▲
+   ·     ╰── unexpected '~'
+ 4 │ ~~~~~
+ 5 │ ~~~~~
+   ╰────

@@ -10,7 +10,7 @@
 		if (installedChunkData) {
 			promises.push(installedChunkData[2]);
 		} else {
-			if (<%- __CSS_MATCHER__ %>) {
+			if (<%- _css_matcher %>) {
 				// setup Promise in chunk cache
 				var promise = new Promise(function (resolve, reject) {
 					installedChunkData = installedChunks[chunkId] = [resolve, reject];
@@ -42,13 +42,15 @@
 								error.request = realSrc;
 								installedChunkData[1](error);
 							} else {
-								loadCssChunkData(__webpack_require__.m, chunkId);
+								loadCssChunkData(<%- MODULE_FACTORIES %>, chunkId);
 								installedChunkData[0]();
 							}
 						}
 					}
 				};
-				var link = loadStylesheet(chunkId, url, loadingEnded, undefined, fetchPriority);
+				if (typeof document !== 'undefined') {
+					loadStylesheet(chunkId, url, loadingEnded, undefined, fetchPriority);
+				} else { loadingEnded({ type: 'load' }); }
 			} else installedChunks[chunkId] = 0;
 		}
 	}

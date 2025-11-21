@@ -1,16 +1,17 @@
-use rspack_util::json_stringify;
+use itertools::Itertools;
+use rspack_util::{fx_hash::FxIndexSet, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 use serde_json::json;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GetUsedNameParam, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment,
-  PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
-  to_comment, to_normal_comment,
+  DependencyId, DependencyType, Environment, ExportsArgument, ExportsInfoGetter, ExportsType,
+  FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
+  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify,
+  property_access, to_comment, to_normal_comment,
 };
 
 /// Check if a module is part of a shared bundle using BuildMeta only
@@ -47,7 +48,7 @@ pub fn runtime_condition_expression(
     Some(runtime_condition),
     |runtime| {
       if let Some(runtime_id) =
-        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
       {
         positive_runtime_ids.insert(runtime_id);
       }
@@ -60,7 +61,7 @@ pub fn runtime_condition_expression(
     subtract_runtime(runtime, Some(runtime_condition)).as_ref(),
     |runtime| {
       if let Some(runtime_id) =
-        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.clone()))
+        runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
       {
         negative_runtime_ids.insert(runtime_id);
       }
@@ -88,20 +89,18 @@ fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<
 
 pub fn for_each_runtime<F>(runtime: Option<&RuntimeSpec>, mut f: F, deterministic_order: bool)
 where
-  F: FnMut(Option<&String>),
+  F: FnMut(Option<&ustr::Ustr>),
 {
   match runtime {
     None => f(None),
     Some(runtime) => {
       if deterministic_order {
-        let mut runtimes = runtime.iter().collect::<Vec<_>>();
-        runtimes.sort();
-        for r in runtimes {
-          f(Some(&r.to_string()));
+        for r in runtime.iter().sorted() {
+          f(Some(r));
         }
       } else {
         for r in runtime.iter() {
-          f(Some(&r.to_string()));
+          f(Some(r));
         }
       }
     }
@@ -119,6 +118,7 @@ pub fn export_from_import(
   is_call: bool,
   call_context: bool,
   asi_safe: Option<bool>,
+  phase: ImportPhase,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -128,20 +128,21 @@ pub fn export_from_import(
     runtime,
     ..
   } = code_generatable_context;
-  let Some(module_identifier) = compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(id)
-    .copied()
-  else {
+  let mg = compilation.get_module_graph();
+  let Some(target_module) = mg.get_module_by_dependency_id(id) else {
     return missing_module(request);
   };
 
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    &mg,
     &compilation.module_graph_cache_artifact,
     id,
     &module.identifier(),
   );
+
+  let target_module_identifier = target_module.identifier();
+
+  let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await;
 
   let mut exclude_default_export_name = None;
   if default_interop {
@@ -149,6 +150,37 @@ pub fn export_from_import(
       && let Some(first_export_name) = export_name.first()
       && first_export_name == "default"
     {
+      if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
+        let name = &export_name[1..];
+        let Some(used) = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+            &target_module_identifier,
+            PrefetchExportsInfoMode::Nested(name),
+          )),
+          *runtime,
+          name,
+        ) else {
+          return to_normal_comment(&format!(
+            "unused export {}",
+            property_access(export_name, 0)
+          )) + "undefined";
+        };
+        let UsedName::Normal(used) = used else {
+          unreachable!("can't inline the exports of defer imported module")
+        };
+        let access = format!("{import_var}.a{}", property_access(used, 0));
+        if is_call {
+          return access;
+        }
+        let Some(asi_safe) = asi_safe else {
+          return access;
+        };
+        return if asi_safe {
+          format!("({access})")
+        } else {
+          format!(";({access})")
+        };
+      }
       match exports_type {
         ExportsType::Dynamic => {
           if is_call {
@@ -187,6 +219,9 @@ pub fn export_from_import(
       {
         return "/* __esModule */true".to_string();
       }
+    } else if is_deferred {
+      // now exportName.length is 0
+      // fall through to the end of this function, create the namespace there.
     } else if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
@@ -229,8 +264,8 @@ pub fn export_from_import(
     .unwrap_or(export_name);
   if !export_name.is_empty() {
     let used_name = match ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&compilation.get_module_graph().get_prefetched_exports_info(
-        &module_identifier,
+      GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+        &target_module_identifier,
         PrefetchExportsInfoMode::Nested(export_name),
       )),
       *runtime,
@@ -238,6 +273,10 @@ pub fn export_from_import(
     ) {
       Some(UsedName::Normal(used_name)) => used_name,
       Some(UsedName::Inlined(inlined)) => {
+        assert!(
+          !is_deferred,
+          "can't inline the exports of defer imported module"
+        );
         return format!(
           "{} {}",
           to_normal_comment(&format!(
@@ -263,7 +302,10 @@ pub fn export_from_import(
       String::new()
     };
     let property = property_access(used_name, 0);
-    let access = format!("{import_var}{comment}{property}");
+    let access = format!(
+      "{import_var}{}{comment}{property}",
+      if is_deferred { ".a" } else { "" }
+    );
     if is_call && !call_context {
       if let Some(asi_safe) = asi_safe {
         match asi_safe {
@@ -274,10 +316,46 @@ pub fn export_from_import(
         format!("Object({access})")
       }
     } else {
-      format!("{import_var}{comment}{property}")
+      access
     }
+  } else if is_deferred {
+    let cache_var = format!("var {import_var}_deferred_namespace_cache;\n");
+    init_fragments.push(
+      NormalInitFragment::new(
+        cache_var.clone(),
+        InitFragmentStage::StageConstants,
+        -1,
+        InitFragmentKey::ESMDeferImportNamespaceObjectFragment(cache_var),
+        None,
+      )
+      .boxed(),
+    );
+    runtime_requirements.insert(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    let module_id =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module_identifier);
+    let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+    format!(
+      "/*#__PURE__*/ {}({import_var}_deferred_namespace_cache || ({import_var}_deferred_namespace_cache = {}({}, {})))",
+      match asi_safe {
+        Some(true) => "",
+        Some(false) => ";",
+        None => "Object",
+      },
+      RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+      json_stringify(&module_id),
+      mode,
+    )
   } else {
     import_var.to_string()
+  }
+}
+
+pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: ExportsType) -> String {
+  match exports_type {
+    ExportsType::Namespace => "0".to_string(),
+    ExportsType::DefaultOnly => "1".to_string(),
+    ExportsType::DefaultWithNamed => "2".to_string(),
+    ExportsType::Dynamic => "3".to_string(),
   }
 }
 
@@ -390,19 +468,82 @@ pub fn module_id(
   }
 }
 
+fn get_outgoing_async_modules(
+  compilation: &Compilation,
+  module: &dyn Module,
+) -> FxIndexSet<ModuleId> {
+  fn helper(
+    compilation: &Compilation,
+    mg: &ModuleGraph,
+    module: &dyn Module,
+    set: &mut FxIndexSet<ModuleId>,
+    visited: &mut HashSet<ModuleIdentifier>,
+  ) {
+    let module_identifier = module.identifier();
+    if !ModuleGraph::is_async(compilation, &module_identifier) {
+      return;
+    }
+    if !visited.insert(module_identifier) {
+      return;
+    }
+    if module.build_meta().has_top_level_await {
+      set.insert(
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+          .expect("should have module_id")
+          .clone(),
+      );
+    } else {
+      for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
+        let is_esm = connections.iter().any(|connection| {
+          mg.dependency_by_id(&connection.dependency_id)
+            .map(|dep| {
+              matches!(
+                dep.dependency_type(),
+                DependencyType::EsmImport | DependencyType::EsmExportImport
+              )
+            })
+            .unwrap_or_default()
+        });
+        if is_esm {
+          helper(
+            compilation,
+            mg,
+            mg.module_by_identifier(&module)
+              .expect("should have module")
+              .as_ref(),
+            set,
+            visited,
+          );
+        }
+      }
+    }
+  }
+
+  let mut set = FxIndexSet::default();
+  let mut visited = HashSet::default();
+  helper(
+    compilation,
+    &compilation.get_module_graph(),
+    module,
+    &mut set,
+    &mut visited,
+  );
+  set
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn import_statement(
   module: &dyn Module,
   compilation: &Compilation,
   runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
+  import_var: &str,
   request: &str,
+  phase: ImportPhase,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  if compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(id)
-    .is_none()
-  {
+  let mg = compilation.get_module_graph();
+  let Some(target_module) = mg.get_module_by_dependency_id(id) else {
     return (missing_module_statement(request), String::new());
   };
 
@@ -410,40 +551,43 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation.get_import_var(id);
-
   let opt_declaration = if update { "" } else { "var " };
 
   // Apply PURE annotations only to descendants of ConsumeShared or ProvideShared modules
   // This ensures the SWC macro transformer can remove unused __webpack_require__ calls in shared chunks
-  let is_pure = if let Some(module_identifier) = compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(id)
-  {
-    is_consume_shared_descendant(&compilation.get_module_graph(), module_identifier)
+  let is_pure = if let Some(module_identifier) = mg.module_identifier_by_dependency_id(id) {
+    is_consume_shared_descendant(&mg, module_identifier)
   } else {
     false
   };
-
   let pure_annotation = if is_pure { "/* #__PURE__ */ " } else { "" };
 
-  let import_content = format!(
-    "/* ESM import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
-    RuntimeGlobals::REQUIRE
-  );
-
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    &mg,
     &compilation.module_graph_cache_artifact,
     id,
     &module.identifier(),
+  );
+
+  if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+    let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
+    let import_content = format!(
+      "/* deferred import */{opt_declaration}{import_var} = {};\n",
+      get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
+    );
+    return (import_content, String::new());
+  }
+
+  let import_content = format!(
+    "/* import */{opt_declaration}{import_var} = {pure_annotation}{}({module_id_expr});\n",
+    RuntimeGlobals::REQUIRE
   );
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
       import_content,
       format!(
-        "/* ESM import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );
@@ -830,6 +974,50 @@ pub fn define_es_module_flag_statement(
     exports_argument
   )
 }
+
+pub fn get_property_accessed_deferred_module(
+  exports_type: ExportsType,
+  module_id_expr: &str,
+  async_deps: FxIndexSet<ModuleId>,
+) -> String {
+  let is_async = !async_deps.is_empty();
+  let mut content = "{\nget a() {\n  ".to_string();
+  let namespace_or_dynamic = matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
+  if namespace_or_dynamic {
+    content += "var exports = ";
+  } else {
+    content += "return ";
+  }
+  content += RuntimeGlobals::REQUIRE.name();
+  content += "(";
+  content += module_id_expr;
+  content += ")";
+  if is_async {
+    content += "[";
+    content += RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL.name();
+    content += "]";
+  }
+  content += ";\n";
+  if namespace_or_dynamic {
+    content += "  ";
+    if matches!(exports_type, ExportsType::Dynamic) {
+      content += "if (exports.__esModule) ";
+    }
+    content += "Object.defineProperty(this, \"a\", { value: exports });\n  ";
+    content += "return exports;\n";
+  }
+  content += "},\n";
+  if is_async {
+    content += "[";
+    content += RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL.name();
+    content += "]: ";
+    content += &json_stringify(&async_deps);
+    content += ",\n";
+  }
+  content += "}";
+  content
+}
+
 #[allow(unused_imports)]
 mod test_items_to_regexp {
   use crate::items_to_regexp;

@@ -1,16 +1,19 @@
 use std::borrow::Cow;
 
 use swc_core::{
+  atoms::Atom,
   common::Spanned,
   ecma::ast::{
     ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
     BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassExpr,
     ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr, ExprOrSpread,
-    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident, IfStmt,
-    KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl, ModuleItem,
-    NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop,
-    PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt,
-    SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
+    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident,
+    IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild,
+    JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr, JSXNamespacedName,
+    JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl,
+    ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat,
+    Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget,
+    Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
     UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
   },
 };
@@ -62,11 +65,11 @@ impl JavascriptParser<'_> {
     self.definitions = self.definitions_db.create_child(old_definitions);
 
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(&"this".into());
     }
 
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(ident.sym.clone());
     });
 
     f(self);
@@ -89,10 +92,10 @@ impl JavascriptParser<'_> {
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
     if has_this {
-      self.undefined_variable("this".to_string());
+      self.undefined_variable(&"this".into());
     }
     self.enter_patterns(params, |this, ident| {
-      this.define_variable(ident.sym.to_string());
+      this.define_variable(ident.sym.clone());
     });
     f(self);
 
@@ -223,7 +226,7 @@ impl JavascriptParser<'_> {
     self.in_block_scope(|this| {
       if let Some(param) = &catch_clause.param {
         this.enter_pattern(Cow::Borrowed(param), |this, ident| {
-          this.define_variable(ident.sym.to_string());
+          this.define_variable(ident.sym.clone());
         });
         this.walk_pattern(param)
       }
@@ -380,8 +383,8 @@ impl JavascriptParser<'_> {
             .unwrap_or_default()
           {
             self.set_variable(
-              ident.sym.to_string(),
-              ExportedVariableInfo::Name(renamed_identifier),
+              ident.sym.clone(),
+              ExportedVariableInfo::Name(renamed_identifier.clone()),
             );
           }
           continue;
@@ -429,13 +432,19 @@ impl JavascriptParser<'_> {
       Expr::Unary(expr) => self.walk_unary_expression(expr),
       Expr::Update(expr) => self.walk_update_expression(expr),
       Expr::Yield(expr) => self.walk_yield_expression(expr),
-      Expr::Paren(expr) => self.walk_expression(&expr.expr),
       Expr::SuperProp(_) | Expr::Lit(_) | Expr::PrivateName(_) | Expr::Invalid(_) => (),
-      Expr::JSXMember(_)
-      | Expr::JSXNamespacedName(_)
-      | Expr::JSXEmpty(_)
-      | Expr::JSXElement(_)
-      | Expr::JSXFragment(_)
+      Expr::JSXMember(_) | Expr::JSXNamespacedName(_) | Expr::JSXEmpty(_) => {
+        self.ensure_jsx_enabled();
+      }
+      Expr::JSXElement(element) => {
+        self.ensure_jsx_enabled();
+        self.walk_jsx_element(element);
+      }
+      Expr::JSXFragment(fragment) => {
+        self.ensure_jsx_enabled();
+        self.walk_jsx_fragment(fragment);
+      }
+      Expr::Paren(_)
       | Expr::TsTypeAssertion(_)
       | Expr::TsConstAssertion(_)
       | Expr::TsNonNull(_)
@@ -479,8 +488,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_this_expression(&mut self, expr: &ThisExpr) {
-    // TODO: `this.hooks.call_hooks_for_names`
-    self.plugin_drive.clone().this(self, expr);
+    "this".call_hooks_name(self, |this, for_name| {
+      this.plugin_drive.clone().this(this, expr, for_name)
+    });
   }
 
   pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
@@ -513,6 +523,114 @@ impl JavascriptParser<'_> {
     } else {
       self.walk_expressions(exprs);
     }
+  }
+
+  fn ensure_jsx_enabled(&self) {
+    if !self.javascript_options.jsx.unwrap_or_default() {
+      unreachable!();
+    }
+  }
+
+  fn walk_jsx_element(&mut self, element: &JSXElement) {
+    self.walk_jsx_element_name(&element.opening.name);
+    if element.opening.type_args.is_some() {
+      // JSX type arguments only exist in TSX; this walker assumes pure JSX input.
+      unreachable!();
+    }
+    for attr in &element.opening.attrs {
+      self.walk_jsx_attr_or_spread(attr);
+    }
+    for child in &element.children {
+      self.walk_jsx_child(child);
+    }
+    if let Some(closing) = &element.closing {
+      self.walk_jsx_element_name(&closing.name);
+    }
+  }
+
+  fn walk_jsx_fragment(&mut self, fragment: &JSXFragment) {
+    for child in &fragment.children {
+      self.walk_jsx_child(child);
+    }
+  }
+
+  fn walk_jsx_child(&mut self, child: &JSXElementChild) {
+    match child {
+      JSXElementChild::JSXElement(element) => self.walk_jsx_element(element),
+      JSXElementChild::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),
+      JSXElementChild::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
+      JSXElementChild::JSXSpreadChild(spread) => self.walk_expression(&spread.expr),
+      JSXElementChild::JSXText(_) => (),
+    }
+  }
+
+  fn walk_jsx_expr_container(&mut self, container: &JSXExprContainer) {
+    match &container.expr {
+      JSXExpr::Expr(expr) => self.walk_expression(expr),
+      JSXExpr::JSXEmptyExpr(_) => (),
+    }
+  }
+
+  fn walk_jsx_attr_or_spread(&mut self, attr: &JSXAttrOrSpread) {
+    match attr {
+      JSXAttrOrSpread::JSXAttr(attr) => self.walk_jsx_attr(attr),
+      JSXAttrOrSpread::SpreadElement(spread) => self.walk_expression(&spread.expr),
+    }
+  }
+
+  fn walk_jsx_attr(&mut self, attr: &JSXAttr) {
+    if let Some(value) = &attr.value {
+      self.walk_jsx_attr_value(value);
+    }
+  }
+
+  fn walk_jsx_attr_value(&mut self, value: &JSXAttrValue) {
+    match value {
+      JSXAttrValue::Str(_) => (),
+      JSXAttrValue::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
+      JSXAttrValue::JSXElement(element) => self.walk_jsx_element(element),
+      JSXAttrValue::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),
+    }
+  }
+
+  fn walk_jsx_element_name(&mut self, name: &JSXElementName) {
+    match name {
+      JSXElementName::Ident(ident) => self.walk_identifier(ident),
+      JSXElementName::JSXMemberExpr(member) => self.walk_jsx_member_expr(member),
+      JSXElementName::JSXNamespacedName(namespaced) => self.walk_jsx_namespaced_name(namespaced),
+    }
+  }
+
+  fn walk_jsx_member_expr(&mut self, member: &JSXMemberExpr) {
+    let member_expr = Self::jsx_member_expr_to_member_expr(member);
+    self.walk_member_expression(&member_expr);
+  }
+
+  fn jsx_member_expr_to_member_expr(member: &JSXMemberExpr) -> MemberExpr {
+    MemberExpr {
+      span: member.span,
+      obj: Box::new(Self::jsx_object_to_expr(&member.obj)),
+      prop: MemberProp::Ident(member.prop.clone()),
+    }
+  }
+
+  fn jsx_object_to_expr(obj: &JSXObject) -> Expr {
+    match obj {
+      JSXObject::Ident(ident) => Expr::Ident(ident.clone()),
+      JSXObject::JSXMemberExpr(member) => {
+        Expr::Member(Self::jsx_member_expr_to_member_expr(member))
+      }
+    }
+  }
+
+  fn walk_jsx_namespaced_name(&mut self, name: &JSXNamespacedName) {
+    self.walk_ident_name(&name.ns);
+    self.walk_ident_name(&name.name);
+  }
+
+  fn walk_ident_name(&mut self, name: &IdentName) {
+    let ident: Ident = name.clone().into();
+    self.walk_identifier(&ident);
   }
 
   fn walk_object_expression(&mut self, expr: &ObjectLit) {
@@ -724,10 +842,15 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this
-                .plugin_drive
-                .clone()
-                .member_chain_of_call_member_chain(this, expr, for_name)
+              this.plugin_drive.clone().member_chain_of_call_member_chain(
+                this,
+                expr,
+                &expr_info.callee_members,
+                &expr_info.call,
+                &expr_info.members,
+                &expr_info.member_ranges,
+                for_name,
+              )
             })
             .unwrap_or_default()
           {
@@ -875,13 +998,13 @@ impl JavascriptParser<'_> {
       if let Some(this) = rename_this
         && !expr.is_arrow()
       {
-        parser.set_variable("this".to_string(), this)
+        parser.set_variable("this".into(), this)
       }
       for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
         if let Some(var_info) = var_info
           && let Some(param) = params.get(i)
         {
-          parser.set_variable(param.sym.to_string(), var_info);
+          parser.set_variable(param.sym.clone(), var_info);
         }
       }
 
@@ -918,8 +1041,7 @@ impl JavascriptParser<'_> {
     match &expr.callee {
       Callee::Expr(callee) => {
         if let Expr::Member(member_expr) = &**callee
-          && let Expr::Paren(paren_expr) = &*member_expr.obj
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+          && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
           && (ident.sym == "call" || ident.sym == "bind")
           && !expr.args.is_empty()
@@ -928,7 +1050,7 @@ impl JavascriptParser<'_> {
           // (function(…) { }).call(…)
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
-          self._walk_iife(&paren_expr.expr, params, this)
+          self._walk_iife(&member_expr.obj, params, this)
         } else if let Expr::Member(member_expr) = &**callee
           && let Expr::Fn(fn_expr) = &*member_expr.obj
           && let MemberProp::Ident(ident) = &member_expr.prop
@@ -940,36 +1062,55 @@ impl JavascriptParser<'_> {
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
           self._walk_iife(&member_expr.obj, params, this)
-        } else if let Expr::Paren(paren_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &*paren_expr.expr
+        } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { })(…)
-          self._walk_iife(
-            &paren_expr.expr,
-            expr.args.iter().map(|arg| &*arg.expr),
-            None,
-          )
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
-          if let Expr::Member(member) = &**callee
-            && let Some(MemberExpressionInfo::Call(expr_info)) =
+          if let Expr::Member(member) = &**callee {
+            if let Some(MemberExpressionInfo::Call(expr_info)) =
               self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-            && expr_info
-              .root_info
-              .call_hooks_name(self, |this, for_name| {
-                this
-                  .plugin_drive
-                  .clone()
-                  .call_member_chain_of_call_member_chain(this, expr, for_name)
-              })
-              .unwrap_or_default()
-          {
-            return;
+              && expr_info
+                .root_info
+                .call_hooks_name(self, |this, for_name| {
+                  this
+                    .plugin_drive
+                    .clone()
+                    .call_member_chain_of_call_member_chain(
+                      this,
+                      expr,
+                      &expr_info.callee_members,
+                      &expr_info.call,
+                      &expr_info.members,
+                      &expr_info.member_ranges,
+                      for_name,
+                    )
+                })
+                .unwrap_or_default()
+            {
+              return;
+            }
+            if let Some(call) = member.obj.as_call()
+              && call.callee.is_import()
+              && let Some(prop) = member.prop.as_ident()
+              && prop.sym == "then"
+            {
+              // import(…).then(…)
+              if self
+                .plugin_drive
+                .clone()
+                .import_call(self, call, Some(expr))
+                .unwrap_or_default()
+              {
+                return;
+              }
+            }
           }
           let evaluated_callee = self.evaluate_expression(callee);
           if evaluated_callee.is_identifier() {
@@ -1033,7 +1174,7 @@ impl JavascriptParser<'_> {
         if self
           .plugin_drive
           .clone()
-          .import_call(self, expr)
+          .import_call(self, expr, None)
           .unwrap_or_default()
         {
           return;
@@ -1048,7 +1189,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub fn walk_expr_or_spread(&mut self, args: &Vec<ExprOrSpread>) {
+  pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {
     for arg in args {
       self.walk_expression(&arg.expr)
     }
@@ -1083,7 +1224,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_await_expression(&mut self, expr: &AwaitExpr) {
-    if matches!(self.top_level_scope, TopLevelScope::Top) {
+    if self.is_top_level_scope() {
       self.plugin_drive.clone().top_level_await_expr(self, expr);
     }
     self.walk_expression(&expr.arg);
@@ -1098,11 +1239,9 @@ impl JavascriptParser<'_> {
     });
   }
 
-  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
+  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<Atom> {
     let result = self.evaluate_expression(expr);
-    result
-      .is_identifier()
-      .then(|| result.identifier().to_string())
+    result.is_identifier().then(|| result.identifier().clone())
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
@@ -1123,7 +1262,7 @@ impl JavascriptParser<'_> {
             .get_variable_info(&rename_identifier)
             .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-          self.set_variable(ident.sym.to_string(), variable);
+          self.set_variable(ident.sym.clone(), variable);
         }
         return;
       }
@@ -1134,7 +1273,7 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
@@ -1151,23 +1290,28 @@ impl JavascriptParser<'_> {
           if !ident
             .sym
             .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, Some(for_name))
+              this.plugin_drive.clone().assign(this, expr, for_name)
             })
             .unwrap_or_default()
           {
-            this.define_variable(ident.sym.to_string());
+            this.define_variable(ident.sym.clone());
           }
         },
       );
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
-      let expr_name = self.get_member_expression_info(member, AllowedMemberTypes::Expression);
-      if expr_name.is_some()
-        && self
-          .plugin_drive
-          .clone()
-          // TODO: assign_member_chain
-          .assign(self, expr, None)
+      if let Some(MemberExpressionInfo::Expression(expr_name)) =
+        self.get_member_expression_info(member, AllowedMemberTypes::Expression)
+        && expr_name
+          .root_info
+          .call_hooks_name(self, |parser, for_name| {
+            parser.plugin_drive.clone().assign_member_chain(
+              parser,
+              expr,
+              &expr_name.members,
+              for_name,
+            )
+          })
           .unwrap_or_default()
       {
         return;
@@ -1302,7 +1446,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = was_top_level;
   }
 
-  fn walk_pattern(&mut self, pat: &Pat) {
+  pub fn walk_pattern(&mut self, pat: &Pat) {
     match pat {
       Pat::Array(array) => self.walk_array_pattern(array),
       Pat::Assign(assign) => self.walk_assignment_pattern(assign),
@@ -1318,15 +1462,15 @@ impl JavascriptParser<'_> {
     match target {
       SimpleAssignTarget::Ident(ident) => self.walk_identifier(ident),
       SimpleAssignTarget::Member(member) => self.walk_member_expression(member),
-      SimpleAssignTarget::Paren(expr) => self.walk_expression(&expr.expr),
       SimpleAssignTarget::OptChain(expr) => self.walk_chain_expression(expr),
       SimpleAssignTarget::SuperProp(_) => (),
-      SimpleAssignTarget::TsAs(_)
+      SimpleAssignTarget::Paren(_)
+      | SimpleAssignTarget::TsAs(_)
       | SimpleAssignTarget::TsSatisfies(_)
       | SimpleAssignTarget::TsNonNull(_)
       | SimpleAssignTarget::TsTypeAssertion(_)
-      | SimpleAssignTarget::TsInstantiation(_) => (),
-      SimpleAssignTarget::Invalid(_) => (),
+      | SimpleAssignTarget::TsInstantiation(_)
+      | SimpleAssignTarget::Invalid(_) => unreachable!(),
     }
   }
 
@@ -1390,9 +1534,12 @@ impl JavascriptParser<'_> {
       self.walk_expression(super_class);
     }
 
-    let scope_params = if let Some(pat) = class_decl_or_expr
-      .ident()
-      .map(|ident| warp_ident_to_pat(ident.clone()))
+    // TODO: define variable for class expression in block pre walk
+    let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
+      && let Some(pat) = class_expr
+        .ident
+        .as_ref()
+        .map(|ident| warp_ident_to_pat(ident.clone()))
     {
       vec![Cow::Owned(pat)]
     } else {

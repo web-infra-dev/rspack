@@ -1,18 +1,29 @@
 import fs from "node:fs";
 import path from "node:path";
-
-import { HotIncrementalProcessor } from "../processor/hot-incremental";
-import { WatchProcessor, WatchStepProcessor } from "../processor/watch";
-import { HotRunnerFactory, WatchRunnerFactory } from "../runner";
+import type { RspackOptions } from "@rspack/core";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, type TCompilerOptions } from "../type";
+import type { ITestContext } from "../type";
+import { createHotProcessor, createHotRunner } from "./hot";
+import {
+	createWatchInitialProcessor,
+	createWatchRunner,
+	createWatchStepProcessor,
+	getWatchRunnerKey
+} from "./watch";
 
-type TTarget = TCompilerOptions<ECompilerType.Rspack>["target"];
+type TTarget = RspackOptions["target"];
 
-const hotCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const hotCreators: Map<string, BasicCaseCreator> = new Map();
+
+function createHotIncrementalProcessor(
+	name: string,
+	src: string,
+	temp: string,
+	target: TTarget,
+	webpackCases: boolean
+) {
+	return createHotProcessor(name, src, temp, target, true);
+}
 
 function getHotCreator(target: TTarget, webpackCases: boolean) {
 	const key = JSON.stringify({ target, webpackCases });
@@ -23,16 +34,19 @@ function getHotCreator(target: TTarget, webpackCases: boolean) {
 				clean: true,
 				describe: true,
 				target,
-				steps: ({ name, target }) => [
-					new HotIncrementalProcessor({
+				steps: ({ name, target, src, temp, dist }) => [
+					createHotIncrementalProcessor(
 						name,
-						target: target as TTarget,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"],
+						src,
+						temp || path.resolve(dist, "temp"),
+						target as TTarget,
 						webpackCases
-					})
+					)
 				],
-				runner: HotRunnerFactory,
+				runner: {
+					key: (context: ITestContext, name: string, file: string) => name,
+					runner: createHotRunner
+				},
 				concurrent: true
 			})
 		);
@@ -44,17 +58,15 @@ export function createHotIncrementalCase(
 	name: string,
 	src: string,
 	dist: string,
-	target: TCompilerOptions<ECompilerType.Rspack>["target"],
+	temp: string,
+	target: RspackOptions["target"],
 	webpackCases: boolean
 ) {
 	const creator = getHotCreator(target, webpackCases);
-	creator.create(name, src, dist);
+	creator.create(name, src, dist, temp);
 }
 
-const watchCreators: Map<
-	string,
-	BasicCaseCreator<ECompilerType.Rspack>
-> = new Map();
+const watchCreators: Map<string, BasicCaseCreator> = new Map();
 
 export type WatchIncrementalOptions = {
 	ignoreNotFriendlyForIncrementalWarnings?: boolean;
@@ -67,7 +79,10 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 			key,
 			new BasicCaseCreator({
 				clean: true,
-				runner: WatchRunnerFactory,
+				runner: {
+					key: getWatchRunnerKey,
+					runner: createWatchRunner
+				},
 				description: (name, index) => {
 					return index === 0
 						? `${name} should compile`
@@ -79,46 +94,17 @@ function getWatchCreator(options: WatchIncrementalOptions) {
 					const runs = fs
 						.readdirSync(src)
 						.sort()
-						.filter(name => {
-							return fs.statSync(path.join(src, name)).isDirectory();
-						})
+						.filter(name => fs.statSync(path.join(src, name)).isDirectory())
 						.map(name => ({ name }));
 
 					return runs.map((run, index) =>
 						index === 0
-							? new WatchProcessor(
-									{
-										name,
-										stepName: run.name,
-										tempDir: temp!,
-										runable: true,
-										compilerType: ECompilerType.Rspack,
-										configFiles: ["rspack.config.js", "webpack.config.js"],
-										defaultOptions(index, context) {
-											return {
-												experiments: {
-													incremental: "advance"
-												},
-												ignoreWarnings:
-													options.ignoreNotFriendlyForIncrementalWarnings
-														? [/is not friendly for incremental/]
-														: undefined
-											};
-										}
-									},
-									watchState
-								)
-							: new WatchStepProcessor(
-									{
-										name,
-										stepName: run.name,
-										tempDir: temp!,
-										runable: true,
-										compilerType: ECompilerType.Rspack,
-										configFiles: ["rspack.config.js", "webpack.config.js"]
-									},
-									watchState
-								)
+							? createWatchInitialProcessor(name, temp!, run.name, watchState, {
+									incremental: true
+								})
+							: createWatchStepProcessor(name, temp!, run.name, watchState, {
+									incremental: true
+								})
 					);
 				},
 				concurrent: true

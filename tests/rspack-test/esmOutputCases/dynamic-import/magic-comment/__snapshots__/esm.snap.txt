@@ -1,0 +1,105 @@
+```mjs title=main.mjs
+import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
+import {dirname as __webpack_dirname__} from "node:path";
+import { createRequire as __rspack_external_createRequire } from "node:module";
+const __rspack_external_createRequire_require = __rspack_external_createRequire(import.meta.url);
+import { __webpack_require__ } from "./runtime.mjs";
+// node:fs
+const external_node_fs_namespaceObject = __rspack_external_createRequire_require("node:fs");
+
+var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
+const external_node_path_namespaceObject = __rspack_external_createRequire_require("node:path");
+
+var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
+var index_dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+
+
+
+it('should support dynamic import', async () => {
+	const shared = external_node_path_default().resolve(index_dirname, 'shared.mjs')
+	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
+
+	expect(content).toContain('// ./m1.js')
+	expect(content).toContain('// ./m2.js')
+
+	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1,value: mod.value }))
+	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2,value: mod.m2_value }))
+
+	expect(value).toHaveProperty('default', 42)
+	expect(value).toHaveProperty('value', 1)
+	expect(value2).toHaveProperty('default', 42)
+	expect(value2).toHaveProperty('value', 2)
+})
+
+
+```
+
+```mjs title=runtime.mjs
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+
+// esm library register module runtime
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared.mjs
+// ./m1.js
+/* export default */ const m1 = (42);
+const value = 1
+
+// ./m2.js
+/* export default */ const m2 = (42);
+const m2_value = 2
+
+export { m1, m2, m2_value, value };
+
+```

@@ -32,6 +32,7 @@ macro_rules! expect {
 use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
+use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
@@ -42,20 +43,17 @@ use rspack_core::{
   CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
   DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl,
-  JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
-  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
+  TrustedTypes, UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
-use rspack_error::{
-  Result,
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -65,13 +63,20 @@ use serde_json::json;
 use target::{TargetProperties, get_targets_properties};
 
 /// Error type for builder
-#[derive(Debug, Clone, Error, Diagnostic)]
-#[diagnostic()]
-#[non_exhaustive]
+#[derive(Debug, Clone)]
 pub enum BuilderError {
   /// Invalid option
-  #[error("Invalid option '{0}': {1}")]
   Option(/* Accessor */ String, /* Error message */ String),
+}
+
+impl From<BuilderError> for Error {
+  fn from(value: BuilderError) -> Error {
+    match value {
+      BuilderError::Option(accessor, msg) => {
+        Error::error(format!("Invalid option '{accessor}': {msg}"))
+      }
+    }
+  }
 }
 
 /// Builder trait
@@ -1013,6 +1018,7 @@ impl CompilerOptionsBuilder {
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
+        ignore_list: None,
         file_context: None,
         public_path: None,
         source_root: None,
@@ -1084,6 +1090,7 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::ExternalsPlugin((
           expect!(self.externals_type.clone()),
           externals,
+          false,
         )));
     }
 
@@ -1135,6 +1142,7 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::ExternalsPlugin((
           "node-commonjs".to_string(),
           vec!["nw.gui".to_string().into()],
+          false,
         )));
     }
 
@@ -1602,6 +1610,8 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1611,6 +1621,7 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
+      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1622,6 +1633,7 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
+      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1708,8 +1720,13 @@ impl ModuleOptionsBuilder {
           require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),
+          commonjs: Some(JavascriptParserCommonjsOptions {
+            exports: JavascriptParserCommonjsExportsOption::Enable,
+          }),
           import_dynamic: Some(true),
+          commonjs_magic_comments: Some(false),
           inline_const: Some(false),
+          jsx: Some(false),
           ..Default::default()
         }),
       );
@@ -1807,6 +1824,7 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
+      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }
@@ -3614,13 +3632,10 @@ impl OptimizationOptionsBuilder {
     if let Some(node_env) = node_env {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::DefinePlugin(
-          [(
-            "process.env.NODE_ENV".to_string(),
-            format!("{}", json!(node_env)).into(),
-          )]
-          .into(),
-        ));
+        .push(BuiltinPluginOptions::DefinePlugin(HashMap::from_iter([(
+          "process.env.NODE_ENV".to_string(),
+          format!("{}", json!(node_env)).into(),
+        )])));
     }
 
     Ok(Optimization {
@@ -3642,8 +3657,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable module layers feature.  
-  layers: Option<bool>,
   /// Incremental passes.
   incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
@@ -3668,7 +3681,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      layers: Some(value.layers),
       incremental: Some(value.incremental),
       top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
@@ -3676,7 +3688,7 @@ impl From<Experiments> for ExperimentsBuilder {
       parallel_code_splitting: Some(value.parallel_code_splitting),
       output_module: None,
       future_defaults: None,
-      css: None,
+      css: Some(value.css),
       async_web_assembly: None,
     }
   }
@@ -3685,7 +3697,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      layers: value.layers.take(),
       incremental: value.incremental.take(),
       top_level_await: value.top_level_await.take(),
       rspack_future: value.rspack_future.take(),
@@ -3700,12 +3711,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
 }
 
 impl ExperimentsBuilder {
-  /// Set whether to enable layers.
-  pub fn layers(&mut self, layers: bool) -> &mut Self {
-    self.layers = Some(layers);
-    self
-  }
-
   /// Set the incremental passes.
   pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
@@ -3757,7 +3762,6 @@ impl ExperimentsBuilder {
     development: bool,
     production: bool,
   ) -> Result<Experiments> {
-    let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
       let passes = if !production {
         IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
@@ -3788,16 +3792,17 @@ impl ExperimentsBuilder {
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
 
     Ok(Experiments {
-      layers,
       incremental,
       top_level_await,
       rspack_future,
       parallel_code_splitting,
       cache,
+      css: d!(self.css, false),
       inline_const: false,
       inline_enum: false,
       type_reexports_presence: false,
       lazy_barrel: false,
+      defer_import: false,
     })
   }
 }

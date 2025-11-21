@@ -73,16 +73,39 @@ impl runtime::Runtime for WasmtimeRuntime {
   }
 
   unsafe fn load_cache(&self, path: &Path) -> Option<runtime::ModuleCache> {
+    let module = std::fs::read(path).ok()?;
     let engine = ENGINE.get_or_try_init(init_engine).ok()?;
-    let cache = unsafe { wasmtime::Module::deserialize_file(engine, path).ok()? };
+    let cache = unsafe { wasmtime::Module::deserialize(engine, module).ok()? };
     let cache = WasmtimeCache(cache);
     Some(runtime::ModuleCache(Box::new(cache)))
   }
 
   fn store_cache(&self, path: &Path, cache: &runtime::ModuleCache) -> anyhow::Result<()> {
+    use std::io::{ErrorKind, Write};
+
     let WasmtimeCache(module) = cache.0.downcast_ref().unwrap();
     let data = module.serialize()?;
-    std::fs::write(path, &data)?;
+
+    // atomic write
+    //
+    // TODO use `with_added_extension`
+    let tmppath = {
+      let mut ext = path.extension().unwrap_or_default().to_owned();
+      ext.push(".tmp");
+      path.with_extension(ext)
+    };
+    let mut fd = match std::fs::OpenOptions::new()
+      .create_new(true)
+      .write(true)
+      .open(&tmppath)
+    {
+      Ok(fd) => fd,
+      Err(ref err) if err.kind() == ErrorKind::AlreadyExists => return Ok(()),
+      Err(err) => return Err(err.into()),
+    };
+    fd.write_all(&data)?;
+    drop(fd);
+    std::fs::rename(&tmppath, path)?;
     Ok(())
   }
 

@@ -11,7 +11,7 @@ const { values, positionals } = require("util").parseArgs({
 	allowPositionals: true
 });
 
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 
 const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
@@ -41,8 +41,13 @@ async function build() {
 			"--pipe",
 			`"node ${path.resolve(__dirname, "dts-header.js")}"`
 		];
+		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
+		const use_build_std = values.profile === "release"
+				|| values.profile === "release-debug"
+				|| values.profile === "release-wasi"
+				|| values.profile === "profiling";
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -60,40 +65,47 @@ async function build() {
 			args.push("--no-default-features");
 			features.push("plugin");
 		}
-		if (process.env.BROWSER) {
+		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
+			// Strip debug format to reduce wasm size of @rspack/browser
+			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
 		if (!values.profile || values.profile === "dev") {
 			features.push("color-backtrace");
 		}
-		if (values.profile === "release-debug" &&
-			(!process.env.RUST_TARGET || process.env.RUST_TARGET.includes("linux") || process.env.RUST_TARGET.includes("darwin"))
-		) {
+		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
-			envs.RUSTFLAGS = "-Zinstrument-xray=always -Csymbol-mangling-version=v0";
+			rustflags.push("-Zinstrument-xray=always");
+		}
+		if (process.env.ALLOCATIVE) {
+			features.push("allocative");
+			rustflags.push("--cfg=allocative");
+		}
+		if (process.env.TRACY) {
+			features.push("tracy-client");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
+			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
+				rustflags.push("-Cforce-unwind-tables=no");
+			}
 		}
 		if (features.length) {
 			args.push("--features " + features.join(","));
 		}
 
-		if (positionals.length > 0
-			|| values.profile === "release"
-			|| values.profile === "release-debug"
-			|| values.profile === "release-wasi"
-			|| values.profile === "profiling"
-		) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
 
-			if (values.profile === "release"
-				|| values.profile === "release-debug"
-				|| values.profile === "release-wasi"
-				|| values.profile === "profiling"
-			) {
+			if (rustflags.length > 0) {
+				const flag = rustflags.map(f => `\\"${f}\\"`).join(",");
+				args.push("--config");
+				args.push(`"target.'cfg(all())'.rustflags = [${flag}]"`)
+			}
+
+			if (use_build_std) {
 				// allows to optimize std with current compile arguments
 				// and avoids std code generate unwind table to save size.
 				args.push("-Zbuild-std=panic_abort,std");
@@ -128,9 +140,19 @@ async function build() {
 				);
 
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
-				if (process.env.BROWSER) {
+				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
+				}
+
+				if(process.env.TRACY){
+					// split debug symbols for tracy
+				  spawnSync('dsymutil', [
+						path.resolve(__dirname, "..", "rspack.darwin-arm64.node")
+					], {
+						stdio: "inherit",
+						shell: true,
+					})
 				}
 			}
 			resolve(code);

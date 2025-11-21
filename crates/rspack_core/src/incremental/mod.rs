@@ -4,7 +4,7 @@ use std::fmt;
 
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
-use rspack_error::{Diagnostic, DiagnosticExt, miette, thiserror};
+use rspack_error::{Diagnostic, Error};
 
 pub const TRACING_TARGET: &str = "rspack_incremental";
 
@@ -142,12 +142,11 @@ impl Incremental {
         return Some(None);
       }
       return Some(Some(
-        NotFriendlyForIncremental {
+        Error::from(NotFriendlyForIncremental {
           thing,
           reason,
           passes,
-        }
-        .boxed()
+        })
         .into(),
       ));
     }
@@ -191,14 +190,20 @@ impl Incremental {
   }
 }
 
-#[derive(Debug, thiserror::Error, miette::Diagnostic)]
-#[diagnostic(code(NotFriendlyForIncremental))]
-#[diagnostic(severity(Warning))]
-#[error(
-  r#"{thing} is not friendly for incremental, {reason}. For this rebuild {passes} are fallback to non-incremental."#
-)]
+#[derive(Debug)]
 pub struct NotFriendlyForIncremental {
   pub thing: &'static str,
   pub reason: &'static str,
   pub passes: IncrementalPasses,
+}
+
+impl From<NotFriendlyForIncremental> for rspack_error::Error {
+  fn from(value: NotFriendlyForIncremental) -> rspack_error::Error {
+    let mut error = rspack_error::Error::warning(format!(
+      "{} is not friendly for incremental, {}. For this rebuild {} are fallback to non-incremental.",
+      value.thing, value.reason, value.passes
+    ));
+    error.code = Some("NotFriendlyForIncremental".into());
+    error
+  }
 }

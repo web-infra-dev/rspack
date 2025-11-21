@@ -39,4 +39,17 @@ type EntryOptions =
 
 If `options` is a string, its value will be used as `name`.
 
-Please refer to [Entry Description Object](/config/entry#entry-description-object) for all available options.
+Refer to [Entry description object](/config/entry#entry-description-object) for all available options.
+
+## Global entry
+
+When the plugin's `name` option is set to `undefined`, the entry is treated as a global entry. It's automatically injected into:
+
+1. All regular entry chunks
+2. All asynchronous entries (for example, worker chunks created with `new Worker()`)
+
+This allows you to inject global runtime code, such as the dev server's HMR runtime or the initialization logic for module federation.
+
+```js
+new rspack.EntryPlugin(context, './global-runtime.js', { name: undefined });
+```

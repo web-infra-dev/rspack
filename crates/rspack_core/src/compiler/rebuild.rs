@@ -3,7 +3,7 @@ use std::path::Path;
 use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPath;
+use rspack_paths::ArcPathSet;
 use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -11,7 +11,7 @@ use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
-  compilation::make::ModuleExecutor,
+  compilation::build_module_graph::ModuleExecutor,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
 };
@@ -42,9 +42,9 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files: FxHashSet<ArcPath> = FxHashSet::default();
+      let mut modified_files: ArcPathSet = ArcPathSet::default();
       modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
-      let mut removed_files: FxHashSet<ArcPath> = FxHashSet::default();
+      let mut removed_files: ArcPathSet = ArcPathSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
@@ -83,14 +83,14 @@ impl Compiler {
         .mutations_readable(IncrementalPasses::MAKE)
       {
         // copy field from old compilation
-        // make stage used
+        // build_module_graph stage used
         self
           .compilation
-          .swap_make_artifact_with_compilation(&mut new_compilation);
+          .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
 
         // seal stage used
-        new_compilation.code_splitting_cache =
-          std::mem::take(&mut self.compilation.code_splitting_cache);
+        new_compilation.build_chunk_graph_artifact =
+          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
@@ -189,6 +189,9 @@ impl Compiler {
 
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
+
+    #[cfg(allocative)]
+    crate::utils::snapshot_allocative("rebuild");
 
     Ok(())
   }

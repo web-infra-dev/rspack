@@ -70,15 +70,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
+        .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
-      for module in modules {
-        add_module(module.identifier(), chunk, &mut ids);
+      for mid in modules {
+        add_module(mid, chunk, &mut ids);
       }
       if ids.is_empty() {
         continue;
@@ -94,31 +94,45 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
+        .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           &module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-      for module in modules {
-        add_module(module.identifier(), chunk, &mut initial_consumes);
+      for mid in modules {
+        add_module(mid, chunk, &mut initial_consumes);
       }
     }
-    if module_id_to_consume_data_mapping.is_empty() {
-      return Ok("".to_string());
-    }
-    let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
-      .into_iter()
-      .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
-      .collect::<Vec<_>>()
-      .join(", ");
+    let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
+      "{}".to_string()
+    } else {
+      format!(
+        "{{{}}}",
+        module_id_to_consume_data_mapping
+          .into_iter()
+          .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
+          .collect::<Vec<_>>()
+          .join(", ")
+      )
+    };
+    let chunk_mapping = if chunk_to_module_mapping.is_empty() {
+      "{}".to_string()
+    } else {
+      json_stringify(&chunk_to_module_mapping)
+    };
+    let initial_consumes_json = if initial_consumes.is_empty() {
+      "[]".to_string()
+    } else {
+      json_stringify(&initial_consumes)
+    };
     let mut source = format!(
       r#"
-__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumes: {initial_consumes} }};
+__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
 "#,
-      chunk_mapping = json_stringify(&chunk_to_module_mapping),
+      chunk_mapping = chunk_mapping,
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
-      initial_consumes = json_stringify(&initial_consumes),
+      initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)

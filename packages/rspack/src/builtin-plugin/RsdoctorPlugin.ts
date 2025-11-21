@@ -27,8 +27,6 @@ import {
 import * as liteTapable from "@rspack/lite-tapable";
 import { type Compilation, checkCompilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { getRsdoctorPluginSchema } from "../schema/plugins";
-import { validate } from "../schema/validate";
 import type { CreatePartialRegisters } from "../taps/types";
 import { create } from "./base";
 
@@ -60,8 +58,8 @@ export declare namespace RsdoctorPluginData {
 }
 
 export type RsdoctorPluginOptions = {
-	moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
-	chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+	moduleGraphFeatures?: boolean | ("graph" | "ids" | "sources")[];
+	chunkGraphFeatures?: boolean | ("graph" | "assets")[];
 	sourceMapFeatures?: {
 		module?: boolean;
 		cheap?: boolean;
@@ -77,7 +75,6 @@ const RsdoctorPluginImpl = create(
 			chunkGraphFeatures: true
 		}
 	): RawRsdoctorPluginOptions {
-		validate(c, getRsdoctorPluginSchema);
 		return {
 			moduleGraphFeatures: c.moduleGraphFeatures ?? true,
 			chunkGraphFeatures: c.chunkGraphFeatures ?? true,
@@ -153,7 +150,7 @@ RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
 
 export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 	`RsdoctorPlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerRsdoctorPluginModuleGraphTaps: createTap(
 			RegisterJsTapKind.RsdoctorPluginModuleGraph,

@@ -11,10 +11,12 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
+allocative          = { workspace = true, optional = true }
 bytes               = { workspace = true }
 micromegas-perfetto = { workspace = true }
 prost               = { workspace = true }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }
+
 [lints]
 workspace = true

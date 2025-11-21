@@ -10,7 +10,7 @@ mod import_dependency;
 mod import_eager_dependency;
 mod provide_dependency;
 
-use rspack_core::{DependencyCategory, ImportAttributes};
+use rspack_core::{DependencyCategory, ImportAttributes, ResourceIdentifier};
 use rspack_util::json_stringify;
 
 pub use self::{
@@ -42,10 +42,10 @@ pub use self::{
 pub fn create_resource_identifier_for_esm_dependency(
   request: &str,
   attributes: Option<&ImportAttributes>,
-) -> String {
+) -> ResourceIdentifier {
   let mut ident = format!("{}|{}", DependencyCategory::Esm, &request);
   if let Some(attributes) = attributes {
     ident += &json_stringify(&attributes);
   }
-  ident
+  ident.into()
 }

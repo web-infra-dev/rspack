@@ -6,7 +6,7 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
+  CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
 };
 use rustc_hash::FxHashMap;
 
@@ -64,6 +64,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(BASE_URI);
   declare_runtime_global!(MODULE_LOADED);
   declare_runtime_global!(STARTUP_ENTRYPOINT);
+  declare_runtime_global!(STARTUP_CHUNK_DEPENDENCIES);
   declare_runtime_global!(CREATE_SCRIPT_URL);
   declare_runtime_global!(CREATE_SCRIPT);
   declare_runtime_global!(GET_TRUSTED_TYPES_POLICY);
@@ -98,6 +99,9 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   declare_runtime_global!(HAS_FETCH_PRIORITY);
   declare_runtime_global!(AMD_DEFINE);
   declare_runtime_global!(AMD_OPTIONS);
+  declare_runtime_global!(ASYNC_MODULE_EXPORT_SYMBOL);
+  declare_runtime_global!(MAKE_DEFERRED_NAMESPACE_OBJECT);
+  declare_runtime_global!(MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL);
 
   to_js_map.shrink_to_fit();
   from_js_map.shrink_to_fit();
@@ -198,6 +202,22 @@ pub struct JsCreateScriptData {
 
 impl From<CreateScriptData> for JsCreateScriptData {
   fn from(value: CreateScriptData) -> Self {
+    Self {
+      code: value.code,
+      chunk: value.chunk.into(),
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsCreateLinkData {
+  pub code: String,
+  #[napi(ts_type = "Chunk")]
+  pub chunk: ChunkWrapper,
+}
+
+impl From<CreateLinkData> for JsCreateLinkData {
+  fn from(value: CreateLinkData) -> Self {
     Self {
       code: value.code,
       chunk: value.chunk.into(),

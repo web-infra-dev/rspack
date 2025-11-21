@@ -182,12 +182,9 @@ impl Ast {
     F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, BatchErrors>,
   {
     self.transform(|program, context| {
-      with_rspack_error_handler(
-        "Ast Transform Error".to_string(),
-        rspack_error::DiagnosticKind::JavaScript,
-        cm,
-        |handler| f(handler, program, context),
-      )
+      with_rspack_error_handler("Ast Transform Error".to_string(), cm, |handler| {
+        f(handler, program, context)
+      })
     })
   }
 

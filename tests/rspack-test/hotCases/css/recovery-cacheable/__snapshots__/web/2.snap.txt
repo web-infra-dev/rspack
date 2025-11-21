@@ -1,0 +1,75 @@
+# Case recovery-cacheable: Step 2
+
+## Changed Files
+- change.css
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.hot-update.js, size: 1154
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.hot-update.js
+
+#### Changed Modules
+- ./change.css
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("main", {
+"./change.css": 
+/*!********************!*\
+  !*** ./change.css ***!
+  \********************/
+(function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
+
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__(/*! ../../../../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

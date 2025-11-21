@@ -1,12 +1,12 @@
 use std::fmt;
 
-use itertools::{Either, Itertools};
+use either::Either;
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierSet, UkeySet};
 
 use crate::{
-  AffectType, ChunkUkey, Compilation, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  AffectType, BoxDependency, ChunkUkey, Compilation, DependencyId, ModuleGraph, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -14,6 +14,7 @@ pub struct Mutations {
   inner: Vec<Mutation>,
 
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
+  affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
   affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
@@ -32,6 +33,7 @@ pub enum Mutation {
   ModuleAdd { module: ModuleIdentifier },
   ModuleUpdate { module: ModuleIdentifier },
   ModuleRemove { module: ModuleIdentifier },
+  DependencyUpdate { dependency: DependencyId },
   ModuleSetAsync { module: ModuleIdentifier },
   ModuleSetId { module: ModuleIdentifier },
   ModuleSetHashes { module: ModuleIdentifier },
@@ -49,6 +51,9 @@ impl fmt::Display for Mutation {
       Mutation::ModuleAdd { module } => write!(f, "add module {module}"),
       Mutation::ModuleUpdate { module } => write!(f, "update module {module}"),
       Mutation::ModuleRemove { module } => write!(f, "remove module {module}"),
+      Mutation::DependencyUpdate { dependency } => {
+        write!(f, "update dependency {}", dependency.as_u32())
+      }
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {module}"),
       Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
       Mutation::ModuleSetHashes { module } => write!(f, "set hashes module {module}"),
@@ -121,17 +126,75 @@ impl Mutations {
     self
       .affected_modules_with_module_graph
       .get_or_init(|| {
-        compute_affected_modules_with_module_graph(
-          module_graph,
-          self
-            .iter()
-            .filter_map(|mutation| match mutation {
-              Mutation::ModuleAdd { module } => Some(*module),
-              Mutation::ModuleUpdate { module } => Some(*module),
-              _ => None,
-            })
-            .collect(),
-        )
+        let mut built_modules = IdentifierSet::default();
+        let mut built_dependencies = UkeySet::default();
+        for mutation in self.iter() {
+          match mutation {
+            Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
+              built_modules.insert(*module);
+            }
+            // TODO: For now we only consider updated dependencies, do we need to consider added dependencies?
+            // normally added dependencies' parent module should already in the built modules set (added modules
+            // or updated modules), we can also add added dependencies here if there is issue or specific case
+            // about that.
+            Mutation::DependencyUpdate { dependency } => {
+              built_dependencies.insert(*dependency);
+            }
+            _ => {}
+          }
+        }
+        compute_affected_modules_with_module_graph(module_graph, built_modules, built_dependencies)
+      })
+      .clone()
+  }
+
+  pub fn get_affected_modules_with_chunk_graph(&self, compilation: &Compilation) -> IdentifierSet {
+    self
+      .affected_modules_with_chunk_graph
+      .get_or_init(|| {
+        let mg = compilation.get_module_graph();
+        let mut modules = self.get_affected_modules_with_module_graph(&mg);
+        let mut chunks = UkeySet::default();
+        for mutation in self.iter() {
+          match mutation {
+            Mutation::ModuleSetAsync { module } => {
+              modules.insert(*module);
+            }
+            Mutation::ModuleSetId { module } => {
+              modules.insert(*module);
+              modules.extend(
+                mg.get_incoming_connections(module)
+                  .filter_map(|c| c.original_module_identifier),
+              );
+            }
+            Mutation::ChunkAdd { chunk } => {
+              chunks.insert(chunk);
+            }
+            Mutation::ChunkRemove { chunk } => {
+              chunks.remove(chunk);
+            }
+            Mutation::ChunkSetId { chunk } => {
+              let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+              modules.extend(
+                chunk
+                  .groups()
+                  .iter()
+                  .flat_map(|group| {
+                    let group = compilation.chunk_group_by_ukey.expect_get(group);
+                    group.origins()
+                  })
+                  .filter_map(|origin| origin.module),
+              );
+            }
+            _ => {}
+          }
+        }
+        modules.extend(
+          chunks
+            .into_iter()
+            .flat_map(|chunk| compilation.chunk_graph.get_chunk_modules_identifier(chunk)),
+        );
+        modules
       })
       .clone()
   }
@@ -177,16 +240,11 @@ impl Mutations {
 fn compute_affected_modules_with_module_graph(
   module_graph: &ModuleGraph,
   built_modules: IdentifierSet,
+  built_dependencies: UkeySet<DependencyId>,
 ) -> IdentifierSet {
-  fn reduce_affect_type(
-    module_graph: &ModuleGraph,
-    connections: &[ModuleGraphConnection],
-  ) -> AffectType {
+  fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a BoxDependency>) -> AffectType {
     let mut affected = AffectType::False;
-    for connection in connections {
-      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
-        continue;
-      };
+    for dependency in dependencies {
       match dependency.could_affect_referencing_module() {
         AffectType::True => affected = AffectType::True,
         AffectType::False => {}
@@ -196,66 +254,94 @@ fn compute_affected_modules_with_module_graph(
     affected
   }
 
+  fn get_direct_and_transitive_affected_modules(
+    modules: &IdentifierSet,
+    all_affected_modules: &IdentifierSet,
+    module_graph: &ModuleGraph<'_>,
+  ) -> (IdentifierSet, IdentifierSet) {
+    modules
+      .par_iter()
+      .flat_map(|module_identifier| {
+        module_graph
+          .get_incoming_connections_by_origin_module(module_identifier)
+          .into_iter()
+          .filter_map(|(referencing_module, connections)| {
+            let referencing_module = referencing_module?;
+            if all_affected_modules.contains(&referencing_module) {
+              return None;
+            }
+            match reduce_affect_type(
+              connections
+                .iter()
+                .filter_map(|c| module_graph.dependency_by_id(&c.dependency_id)),
+            ) {
+              AffectType::False => None,
+              AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
+              AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
+            }
+          })
+          .collect::<Vec<_>>()
+      })
+      .partition_map(|kind| match kind {
+        AffectedModuleKind::Direct(module) => Either::Left(module),
+        AffectedModuleKind::Transitive(module) => Either::Right(module),
+      })
+  }
+
   enum AffectedModuleKind {
     Direct(ModuleIdentifier),
     Transitive(ModuleIdentifier),
   }
 
   let mut all_affected_modules: IdentifierSet = built_modules.clone();
-  let (mut direct_affected_modules, mut transitive_affected_modules): (
-    IdentifierSet,
-    IdentifierSet,
-  ) = built_modules
-    .par_iter()
-    .flat_map(|module_identifier| {
-      module_graph
-        .get_incoming_connections_by_origin_module(module_identifier)
-        .into_iter()
-        .filter_map(|(referencing_module, connections)| {
-          let referencing_module = referencing_module?;
-          if all_affected_modules.contains(&referencing_module) {
-            return None;
-          }
-          match reduce_affect_type(module_graph, &connections) {
-            AffectType::False => None,
-            AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
-            AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
-          }
-        })
-        .collect::<Vec<_>>()
-    })
-    .collect::<Vec<_>>()
-    .iter()
-    .partition_map(|reduce_type| match reduce_type {
-      AffectedModuleKind::Direct(m) => Either::Left(*m),
-      AffectedModuleKind::Transitive(m) => Either::Right(*m),
-    });
+  let mut transitive_affected_modules: IdentifierSet = {
+    let (direct_affected_modules, transitive_affected_modules) =
+      get_direct_and_transitive_affected_modules(
+        &built_modules,
+        &all_affected_modules,
+        module_graph,
+      );
+    all_affected_modules.extend(direct_affected_modules);
+    transitive_affected_modules
+  };
+
+  // It's possible that a module is deleted and the incoming dependencies is revoked, and added to
+  // process_dependencies tasks queue to update the incoming dependencies, but the incoming dependencies'
+  // parent module is not added to build_module tasks queue so the parent module is not marked as updated
+  // and the incremental won't know that, so here we need to reduce the updated dependencies and collect
+  // their parent module into affected modules (The module is affected if there dependencies is updated).
+  for dep_id in built_dependencies {
+    let Some(dep) = module_graph.dependency_by_id(&dep_id) else {
+      continue;
+    };
+    match dep.could_affect_referencing_module() {
+      AffectType::False => {}
+      AffectType::True => {
+        let Some(module) = module_graph.get_parent_module(&dep_id) else {
+          continue;
+        };
+        all_affected_modules.insert(*module);
+      }
+      AffectType::Transitive => {
+        let Some(module) = module_graph.get_parent_module(&dep_id) else {
+          continue;
+        };
+        transitive_affected_modules.insert(*module);
+      }
+    };
+  }
 
   while !transitive_affected_modules.is_empty() {
     let transitive_affected_modules_current = std::mem::take(&mut transitive_affected_modules);
     all_affected_modules.extend(transitive_affected_modules_current.iter().copied());
-    for &module_identifier in transitive_affected_modules_current.iter() {
-      for (referencing_module, connections) in
-        module_graph.get_incoming_connections_by_origin_module(&module_identifier)
-      {
-        let Some(referencing_module) = referencing_module else {
-          continue;
-        };
-        if all_affected_modules.contains(&referencing_module) {
-          continue;
-        }
-        match reduce_affect_type(module_graph, &connections) {
-          AffectType::False => {}
-          AffectType::True => {
-            direct_affected_modules.insert(referencing_module);
-          }
-          AffectType::Transitive => {
-            transitive_affected_modules.insert(referencing_module);
-          }
-        };
-      }
-    }
+    let (direct_affected_modules, new_transitive_affected_modules) =
+      get_direct_and_transitive_affected_modules(
+        &transitive_affected_modules_current,
+        &all_affected_modules,
+        module_graph,
+      );
+    all_affected_modules.extend(direct_affected_modules);
+    transitive_affected_modules.extend(new_transitive_affected_modules);
   }
-  all_affected_modules.extend(direct_affected_modules);
   all_affected_modules
 }

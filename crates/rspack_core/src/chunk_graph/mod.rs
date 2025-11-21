@@ -1,10 +1,10 @@
 use core::fmt;
-use std::{borrow::Cow, collections::HashSet};
+use std::borrow::Cow;
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_util::env::has_query;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
@@ -39,7 +39,8 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> =
+      HashSet::default();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info
@@ -100,7 +101,7 @@ impl ChunkGraph {
         .map(|chunk_name| format!("    <tr><td>{chunk_name}</td></tr>"))
         .join("\n");
 
-      let table_body = requests.to_string();
+      let table_body = requests.clone();
 
       format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
     };

@@ -5,7 +5,7 @@ use rspack_core::{
   LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, UsedNameItem,
   property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
-  to_identifier,
+  to_identifier, to_module_export_name,
 };
 use rspack_error::{Result, error_bail};
 use rspack_hash::RspackHash;
@@ -14,7 +14,12 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
 
-use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
+use crate::{
+  modern_module_library_plugin::{
+    render_as_default_only_export, render_as_default_with_named_exports, render_as_named_exports,
+  },
+  utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk},
+};
 
 const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
@@ -70,7 +75,8 @@ async fn render_startup(
   let is_async = ModuleGraph::is_async(compilation, module);
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
-  let mut exports = vec![];
+  // export { local as exported }
+  let mut exports: Vec<(String, Option<String>)> = vec![];
   if is_async {
     source.add(RawStringSource::from(
       "__webpack_exports__ = await __webpack_exports__;\n",
@@ -113,17 +119,22 @@ async fn render_startup(
         match used_name {
           UsedNameItem::Str(used_name) =>
             format!("__webpack_exports__{}", property_access(vec![used_name], 0)),
-          UsedNameItem::Inlined(inlined) => inlined.render().into_owned(),
+          UsedNameItem::Inlined(inlined) => inlined.render(),
         }
       )));
     }
-    exports.push(format!("{var_name} as {info_name}"));
+
+    exports.push((var_name, Some(to_module_export_name(info_name))))
   }
   if !exports.is_empty() {
-    source.add(RawStringSource::from(format!(
-      "export {{ {} }};\n",
-      exports.join(", ")
-    )));
+    let exports_string = match exports_type {
+      ExportsType::DefaultOnly => render_as_default_only_export(&exports),
+      ExportsType::DefaultWithNamed | ExportsType::Dynamic => {
+        render_as_default_with_named_exports(&exports)
+      }
+      ExportsType::Namespace => render_as_named_exports(&exports),
+    };
+    source.add(RawStringSource::from(exports_string));
   }
   render_source.source = source.boxed();
   Ok(())

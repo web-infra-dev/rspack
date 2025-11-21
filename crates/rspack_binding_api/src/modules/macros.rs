@@ -150,7 +150,7 @@ macro_rules! impl_module_methods {
           let mut reference: napi::bindgen_prelude::Reference<Module> =
             unsafe { napi::bindgen_prelude::Reference::from_napi_value(raw_env, this.raw())? };
           let new_build_info = $crate::build_info::BuildInfo::new(reference.downgrade());
-          let mut new_instrance = new_build_info.get_jsobject(env)?;
+          let mut new_instance = new_build_info.get_jsobject(env)?;
 
           let names = input_object.get_all_property_names(
             napi::KeyCollectionMode::OwnOnly,
@@ -168,7 +168,7 @@ macro_rules! impl_module_methods {
                 continue;
               } else {
                 let value = input_object.get_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name)?;
-                new_instrance.set_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name, value)?;
+                new_instance.set_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name, value)?;
               }
             }
           }
@@ -179,9 +179,9 @@ macro_rules! impl_module_methods {
               let napi_val = napi::bindgen_prelude::ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
               napi::JsSymbol::from_napi_value(env.raw(), napi_val)
             };
-            this.set_property(sym, &new_instrance)
+            this.set_property(sym, &new_instance)
           })?;
-          reference.build_info_ref = Some(rspack_napi::WeakRef::new(raw_env, &mut new_instrance)?);
+          reference.build_info_ref = Some(rspack_napi::WeakRef::new(raw_env, &mut new_instance)?);
           Ok(())
         }
 
@@ -251,11 +251,11 @@ macro_rules! impl_module_methods {
         self.module.readable_identifier()
       }
 
-      #[napi(js_name = "_originalSource", enumerable = false)]
+      #[napi(js_name = "_originalSource", ts_return_type = "JsSource", enumerable = false)]
       pub fn original_source(
         &mut self,
         env: &napi::Env,
-      ) -> napi::Result<napi::Either<$crate::source::JsCompatSource<'_>, ()>> {
+      ) -> napi::Result<napi::Either<$crate::source::JsSourceToJs, ()>> {
         self.module.original_source(env)
       }
 
@@ -295,13 +295,13 @@ macro_rules! impl_module_methods {
       #[napi(
         js_name = "_emitFile",
         enumerable = false,
-        ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+        ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
       )]
       pub fn emit_file(
         &mut self,
         env: &napi::Env,
         filename: String,
-        source: $crate::source::JsCompatSource,
+        source: $crate::source::JsSourceFromJs,
         asset_info: Option<napi::bindgen_prelude::Object>,
       ) -> napi::Result<()> {
         self

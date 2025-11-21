@@ -1,0 +1,31 @@
+```js title=main.js
+"use strict";
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+/* import */var _index_module_css__rspack_import_0 = __webpack_require__("./index.module.css");
+
+
+_index_module_css__rspack_import_0.foo;
+_index_module_css__rspack_import_0.compose;
+
+
+}),
+"./index.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
+var exports = {
+  "foo": "__rspack_test__-_6ec1c834ac8cc99e-foo",
+  "bar": "__rspack_test__-_6ec1c834ac8cc99e-bar",
+  "compose": "__rspack_test__-_6ec1c834ac8cc99e-compose" + " " + "__rspack_test__-_6ec1c834ac8cc99e-bar",
+};
+
+module.exports = exports;
+
+
+}),
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

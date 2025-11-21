@@ -46,9 +46,9 @@ export default {
 
 ### Using CssExtractRspackPlugin
 
-Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) to generate standalone CSS files.
+Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) to generate standalone CSS files.
 
-If you are migrating a webpack project that uses [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin), it is recommended to replace it with CssExtractRspackPlugin. Their functionality and options are basically the same.
+If you are migrating a webpack project that uses [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), it is recommended to replace it with CssExtractRspackPlugin. Their functionality and options are basically the same.
 
 - Install css-loader:
 
@@ -81,7 +81,7 @@ CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or
 
 ### Using style-loader
 
-Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader) and [style-loader](https://github.com/webpack-contrib/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
+Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [style-loader](https://github.com/webpack/style-loader) to inject CSS via `<style>` tags. This method does not generate standalone CSS files but inline the CSS content into JS files.
 
 - Install css-loader and style-loader:
 
@@ -160,14 +160,14 @@ document.getElementById('element').className = styles.red;
 
 Rspack provides options to customize the parsing and generation of CSS Modules:
 
-- [module.parser.css](/config/module#moduleparsercss)：Configure the parsing of CSS Modules.
-- [module.generator.css](/config/module#modulegeneratorcss)：Configure the generation of CSS Modules.
+- [module.parser.css](/config/module#moduleparsercss): Configure the parsing of CSS Modules.
+- [module.generator.css](/config/module#modulegeneratorcss): Configure the generation of CSS Modules.
 
 :::
 
 ### Using css-loader
 
-If you do not enable Rspack's built-in CSS support, you can use [css-loader](https://github.com/webpack-contrib/css-loader) to provide CSS Modules support.
+If you do not enable Rspack's built-in CSS support, you can use [css-loader](https://github.com/webpack/css-loader) to provide CSS Modules support.
 
 Enable the `modules` option of `css-loader`:
 
@@ -188,11 +188,11 @@ export default {
 };
 ```
 
-For more usage, please refer to [css-loader - modules](https://github.com/webpack-contrib/css-loader#modules).
+For more usage, please refer to [css-loader - modules](https://github.com/webpack/css-loader#modules).
 
 ## PostCSS
 
-Rspack supports [postcss-loader](https://github.com/webpack-contrib/postcss-loader), which you can configure like this:
+Rspack supports [postcss-loader](https://github.com/webpack/postcss-loader), which you can configure like this:
 
 <PackageManagerTabs command="add postcss postcss-loader -D" />
 
@@ -220,11 +220,11 @@ export default {
 };
 ```
 
-The above configuration will have all `*.css` files processed by [postcss-loader](https://github.com/webpack-contrib/postcss-loader). The output will be passed to Rspack for CSS post-processing.
+The above configuration will have all `*.css` files processed by [postcss-loader](https://github.com/webpack/postcss-loader). The output will be passed to Rspack for CSS post-processing.
 
 ## Sass
 
-Rspack supports [sass-loader](https://github.com/webpack-contrib/sass-loader), which you can configure like this:
+Rspack supports [sass-loader](https://github.com/webpack/sass-loader), which you can configure like this:
 
 <PackageManagerTabs command="add sass-embedded sass-loader -D" />
 
@@ -253,11 +253,11 @@ export default {
 };
 ```
 
-The above configuration runs all `*.sass` and `*.scss` files through the [sass-loader](https://github.com/webpack-contrib/sass-loader) and passes the resulting results to Rspack for CSS post-processing.
+The above configuration runs all `*.sass` and `*.scss` files through the [sass-loader](https://github.com/webpack/sass-loader) and passes the resulting results to Rspack for CSS post-processing.
 
 ## Less
 
-Rspack supports [less-loader](https://github.com/webpack-contrib/less-loader), which you can configure like this:
+Rspack supports [less-loader](https://github.com/webpack/less-loader), which you can configure like this:
 
 <PackageManagerTabs command="add less less-loader -D" />
 
@@ -283,7 +283,7 @@ export default {
 };
 ```
 
-The above configuration runs all `*.less` files through the [less-loader](https://github.com/webpack-contrib/less-loader) and passes the generated results to Rspack for CSS post-processing.
+The above configuration runs all `*.less` files through the [less-loader](https://github.com/webpack/less-loader) and passes the generated results to Rspack for CSS post-processing.
 
 ## Tailwind CSS
 

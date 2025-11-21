@@ -3,14 +3,13 @@ use std::fmt::Debug;
 use rayon::prelude::*;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  DependencyType, ModuleType, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  DependencyType, ManifestAssetType, ModuleType, ParserAndGenerator, Plugin, RenderManifestEntry,
+  SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
-
-pub struct EnableWasmLoadingPlugin;
+use crate::{ModuleIdToFileName, parser_and_generator::AsyncWasmParserAndGenerator};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -65,6 +64,7 @@ async fn render_manifest(
           .map(|s| s.clone())
           .expect("should have wasm_filename");
 
+        let asset_info = asset_info.with_asset_type(ManifestAssetType::Wasm);
         RenderManifestEntry {
           source: source.clone(),
           filename: output_path,

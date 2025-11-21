@@ -31,7 +31,7 @@ Read [Introduction](https://rspack.rs/guide/start/introduction) for details.
 
 ## 🦀 Rstack
 
-Rstack is a unified JavaScript toolchain built around Rspack, with high performance and consistent architecture.
+Rstack is a unified JavaScript toolchain centered on Rspack, with high performance and consistent architecture.
 
 | Name                                                  | Description              | Version                                                                                                                                                                          |
 | ----------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,8 +105,8 @@ Thanks to:
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
 - The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement [react refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-react-refresh).
 - The [prefresh](https://github.com/preactjs/prefresh) created by [@Jovi De Croock](https://github.com/JoviDeCroock), which inspires implement [preact refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-preact-refresh).
-- The [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
-- The [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
+- The [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
+- The [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
 - The [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) project created by [@jscheid](https://github.com/jscheid), which inspires implement subresource integrity rspack plugin.
 - The [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) project created by [@aackerman](https://github.com/aackerman), which inspres implement circular dependency rspack plugin.
 - The [tracing-chrome](https://github.com/thoren-d/tracing-chrome) project created by [thoren-d](https://github.com/thoren-d), which inspires the implementation of Rspack tracing.

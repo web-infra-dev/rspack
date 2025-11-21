@@ -1,0 +1,12 @@
+Array [
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/factorize/css-module-request-prefix/index.css,
+    moduleName: ./index.css,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/factorize/css-module-request-prefix/index.css,
+    moduleName: ./index.css,
+  },
+]

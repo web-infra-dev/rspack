@@ -1,6 +1,6 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   compile_boolean_matcher, impl_runtime_module,
 };
 
@@ -140,47 +140,15 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading || with_callback {
-      let chunk_loading_global_expr = format!(
-        "{}[\"{}\"]",
-        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
-      );
-
-      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "installedChunks[chunkId] = 1;".to_string()
-      } else {
-        let url = if self.with_create_script_url {
-          format!(
-            "{}({} + {}(chunkId))",
-            RuntimeGlobals::CREATE_SCRIPT_URL,
-            RuntimeGlobals::PUBLIC_PATH,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-          )
-        } else {
-          format!(
-            "{} + {}(chunkId)",
-            RuntimeGlobals::PUBLIC_PATH,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-          )
-        };
-        format!(
-          r#"
-          // "1" is the signal for "already loaded
-          if (!installedChunks[chunkId]) {{
-            if ({}) {{
-              importScripts({});
-            }}
-          }}
-          "#,
-          &has_js_matcher.render("chunkId"),
-          url
-        )
-      };
-
       let render_source = compilation.runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
-          "_body": body,
-          "_chunk_loading_global_expr": chunk_loading_global_expr,
+          "_chunk_loading_global_expr": format!(
+            "{}[\"{}\"]",
+            &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
+          ),
+          "_js_matcher": has_js_matcher.render("chunkId"),
+          "_with_create_script_url": self.with_create_script_url,
           "_with_loading": with_loading,
         })),
       )?;
@@ -190,23 +158,8 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let url = if self.with_create_script_url {
-        format!(
-          "{}({} + {}(chunkId))",
-          RuntimeGlobals::CREATE_SCRIPT_URL,
-          RuntimeGlobals::PUBLIC_PATH,
-          RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
-        )
-      } else {
-        format!(
-          "{} + {}(chunkId)",
-          RuntimeGlobals::PUBLIC_PATH,
-          RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
-        )
-      };
-
       let source_with_hmr = compilation.runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
-        "_url": &url,
+        "_with_create_script_url": self.with_create_script_url,
         "_global_object": &compilation.options.output.global_object.as_str(),
         "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
       })))?;

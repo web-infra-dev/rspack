@@ -1,9 +1,9 @@
 use napi::Either;
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
-  NormalModuleLoaderStartYielding, RunnerContext, diagnostics::CapturedLoaderError,
+  NormalModuleLoaderStartYielding, RunnerContext,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, miette::IntoDiagnostic};
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -59,14 +59,14 @@ pub(crate) async fn loader_yield(
       self.runner_getter.call(compiler_id).await
     })
     .await
-    .into_diagnostic()?;
+    .to_rspack_result()?;
 
   let new_cx = runner
     .call_async(loader_context.try_into()?)
     .await
-    .into_diagnostic()?
+    .to_rspack_result()?
     .await
-    .into_diagnostic()?;
+    .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);
@@ -84,29 +84,6 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
-  if let Some(error) = from.error {
-    let details = if let Some(stack) = &error.stack
-      && error.hide_stack.unwrap_or(false)
-    {
-      Some(stack.to_string())
-    } else {
-      None
-    };
-
-    return Err(
-      CapturedLoaderError::new(
-        Box::new(error.with_parent_error_name("ModuleBuildError")),
-        details,
-        from.file_dependencies,
-        from.context_dependencies,
-        from.missing_dependencies,
-        from.build_dependencies,
-        from.cacheable,
-      )
-      .into(),
-    );
-  }
-
   to.cacheable = from.cacheable;
   to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from
@@ -124,6 +101,10 @@ pub(crate) fn merge_loader_context(
     .into_iter()
     .map(Into::into)
     .collect();
+
+  if let Some(error) = from.error {
+    return Err(error.with_parent_error_name("ModuleBuildError").into());
+  }
 
   let content = match from.content {
     Either::A(_) => None,

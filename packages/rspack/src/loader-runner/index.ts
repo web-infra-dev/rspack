@@ -7,9 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
-const LOADER_PROCESS_NAME = "Loader Analysis";
-
-import assert from "node:assert";
 import querystring from "node:querystring";
 import {
 	formatDiagnostic,
@@ -36,6 +33,7 @@ import {
 	type LoaderContext
 } from "../config/adapterRuleUse";
 import { NormalModule } from "../NormalModule";
+import type { ResolveContext } from "../Resolver";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import { JavaScriptTracer } from "../trace";
 import {
@@ -53,8 +51,7 @@ import {
 	parseResourceWithoutFragment
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import ModuleError from "./ModuleError";
-import ModuleWarning from "./ModuleWarning";
+import { ModuleError, ModuleWarning } from "./ModuleError";
 import * as pool from "./service";
 import { type HandleIncomingRequest, RequestType } from "./service";
 import {
@@ -63,6 +60,8 @@ import {
 	loadLoader,
 	runSyncOrAsync
 } from "./utils";
+
+const LOADER_PROCESS_NAME = "Loader Analysis";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -186,7 +185,10 @@ export class LoaderObject {
 	}
 
 	set pitchExecuted(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("pitchExecuted should be true");
+		}
+
 		this.loaderItem.pitchExecuted = true;
 	}
 
@@ -195,12 +197,17 @@ export class LoaderObject {
 	}
 
 	set normalExecuted(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("normalExecuted should be true");
+		}
+
 		this.loaderItem.normalExecuted = true;
 	}
 
 	set noPitch(value: boolean) {
-		assert(value);
+		if (!value) {
+			throw new Error("noPitch should be true");
+		}
 		this.loaderItem.noPitch = true;
 	}
 
@@ -512,24 +519,21 @@ export async function runLoaders(
 	const getResolveContext = () => {
 		return {
 			fileDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addDependency(d);
 				}
 			},
 			contextDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addContextDependency(d);
 				}
 			},
 			missingDependencies: {
-				// @ts-expect-error: Mocking insert-only `Set<T>`
 				add: d => {
 					loaderContext.addMissingDependency(d);
 				}
 			}
-		};
+		} as ResolveContext;
 	};
 
 	const getResolver = memoize(() => {
@@ -629,7 +633,7 @@ export async function runLoaders(
 		} else {
 			source = new RawSource(content);
 		}
-		loaderContext._module.emitFile(name, source!, assetInfo!);
+		loaderContext._module.emitFile(name, source!, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 	loaderContext.experiments = {
@@ -727,7 +731,7 @@ export async function runLoaders(
 	});
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
-		get: () => (cacheable: boolean) => {
+		get: () => (cacheable?: boolean) => {
 			if (cacheable === false) {
 				context.cacheable = cacheable;
 			}
@@ -877,6 +881,7 @@ export async function runLoaders(
 					case RequestType.GetLogger: {
 						const [type, name, arg] = args;
 						(loaderContext.getLogger(name) as any)[type](...arg);
+						break;
 					}
 					case RequestType.EmitError: {
 						const workerError = args[0];

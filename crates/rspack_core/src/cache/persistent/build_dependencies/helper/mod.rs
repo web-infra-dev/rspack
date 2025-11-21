@@ -33,7 +33,7 @@ impl Helper {
       resolver: Resolver::new(
         ResolveOption {
           condition_names: Some(vec!["import".into(), "require".into(), "node".into()]),
-          exports_fields: Some(vec![vec!["export".into()]]),
+          exports_fields: Some(vec![vec!["exports".into()]]),
           builtin_modules: true,
           ..Default::default()
         },

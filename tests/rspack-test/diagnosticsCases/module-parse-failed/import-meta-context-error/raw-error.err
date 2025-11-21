@@ -1,0 +1,6 @@
+Array [
+  Object {
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/import-meta-context-error/index.js,
+    moduleName: ./index.js,
+  },
+]

@@ -3,16 +3,14 @@ use std::{borrow::Cow, sync::LazyLock};
 use itertools::Itertools as _;
 use regex::Regex;
 use rspack_core::{ConstDependency, RuntimeGlobals};
-use rustc_hash::FxHashSet;
 use serde_json::{Value, json};
 
-use crate::visitors::{DestructuringAssignmentProperty, JavascriptParser};
+use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
-static WEBPACK_REQUIRE_FUNCTION_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("__webpack_require__\\s*(!?\\.)")
-    .expect("should init `WEBPACK_REQUIRE_FUNCTION_REGEXP`")
+static REQUIRE_FUNCTION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
-static WEBPACK_REQUIRE_IDENTIFIER: &str = "__webpack_require__";
+static REQUIRE_IDENTIFIER: &str = "__webpack_require__";
 
 pub fn gen_const_dep(
   parser: &JavascriptParser,
@@ -35,20 +33,20 @@ pub fn gen_const_dep(
     )
   };
 
-  if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {
+  if REQUIRE_FUNCTION_REGEX.is_match(&code) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(WEBPACK_REQUIRE_IDENTIFIER) {
+  } else if code.contains(REQUIRE_IDENTIFIER) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)
   }
 }
 
-pub fn code_to_string(
-  code: &Value,
+pub fn code_to_string<'a>(
+  code: &'a Value,
   asi_safe: Option<bool>,
-  obj_keys: Option<FxHashSet<DestructuringAssignmentProperty>>,
-) -> Cow<'_, str> {
+  obj_keys: Option<&DestructuringAssignmentProperties>,
+) -> Cow<'a, str> {
   fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
     match asi_safe {
       Some(true) if is_arr => code,
@@ -75,10 +73,7 @@ pub fn code_to_string(
       let elements = obj
         .iter()
         .filter_map(|(key, value)| {
-          if obj_keys
-            .as_ref()
-            .is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key))
-          {
+          if obj_keys.is_none_or(|keys| keys.iter().any(|prop| prop.id.as_str() == key)) {
             Some(format!(
               "{}:{}",
               json!(key),

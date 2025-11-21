@@ -9,25 +9,25 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow        = { workspace = true }
-async-trait   = { workspace = true }
-cow-utils     = { workspace = true }
-once_cell     = { workspace = true }
-regex         = { workspace = true }
-rspack_base64 = { workspace = true }
-rspack_core   = { workspace = true }
-rspack_error  = { workspace = true }
-rspack_fs     = { workspace = true }
-rspack_hook   = { workspace = true }
-rspack_paths  = { workspace = true }
-rspack_util   = { workspace = true }
-serde         = { workspace = true }
-serde_json    = { workspace = true }
-sha2          = { workspace = true }
-tokio         = { workspace = true }
-tracing       = { workspace = true }
-url           = { workspace = true }
-urlencoding   = { workspace = true }
+anyhow       = { workspace = true }
+async-trait  = { workspace = true }
+cow-utils    = { workspace = true }
+napi         = { workspace = true }
+once_cell    = { workspace = true }
+regex        = { workspace = true }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_fs    = { workspace = true }
+rspack_hook  = { workspace = true }
+rspack_paths = { workspace = true }
+rspack_util  = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+sha2         = { workspace = true }
+tokio        = { workspace = true }
+tracing      = { workspace = true }
+url          = { workspace = true }
+urlencoding  = { workspace = true }
 
 
 [package.metadata.cargo-shear]

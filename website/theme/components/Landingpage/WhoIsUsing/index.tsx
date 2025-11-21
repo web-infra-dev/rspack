@@ -11,6 +11,7 @@ import alibabaLogo from './assets/alibaba.svg';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
+import cloudflareLogo from './assets/cloudflare.svg';
 import deepseekLogo from './assets/deepseek.svg';
 import discordLogo from './assets/discord.svg';
 import getaroundLogo from './assets/getaround.svg';
@@ -22,9 +23,11 @@ import microsoftLogo from './assets/microsoft.svg';
 import miroLogo from './assets/miro.svg';
 import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
+import snapLogo from './assets/snap.svg';
 import tiktokLogo from './assets/tiktok.svg';
 import trellisLogo from './assets/trellis.svg';
 import verkadaLogo from './assets/verkada.png';
+import youmindLogo from './assets/youmind.svg';
 
 type Company = {
   name: string;
@@ -149,6 +152,24 @@ const companyList: Company[] = [
     logo: miroLogo,
     url: 'https://miro.com',
     width: 120,
+  },
+  {
+    name: 'Snap',
+    logo: snapLogo,
+    url: 'https://www.snap.com/',
+    width: 120,
+  },
+  {
+    name: 'Cloudflare',
+    logo: cloudflareLogo,
+    url: 'https://cloudflare.com',
+    width: 180,
+  },
+  {
+    name: 'YouMind',
+    logo: youmindLogo,
+    url: 'https://youmind.com',
+    width: 160,
   },
 ];
 

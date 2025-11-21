@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 4:16-34,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/missing-module/index.js,
+    moduleName: ./index.js,
+  },
+]

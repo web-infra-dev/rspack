@@ -1,0 +1,10 @@
+WARNING in ./index.js
+  ⚠ Module parse warning:
+  ╰─▶   ⚠ Useless magic comments: You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.
+         ╭─[2:25]
+       1 │ (async function () {
+       2 │   const { a, b } = await import(/* webpackExports: ["a", "b", "c"] */ './lib');
+         ·                          ─────────────────────────────────────────────────────
+       3 │   (a, b)
+       4 │ })();
+         ╰────

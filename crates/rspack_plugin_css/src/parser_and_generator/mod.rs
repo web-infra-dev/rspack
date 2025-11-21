@@ -21,9 +21,7 @@ use rspack_core::{
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{
-  IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray, miette::Diagnostic,
-};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -119,6 +117,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_info,
       build_meta,
       loaders,
+      module_match_resource,
       ..
     } = parse_context;
 
@@ -135,8 +134,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_code = source.source();
-    let resource_path = &resource_data.resource_path;
+    let source_code = source.source().into_string_lossy();
+    let resource_data = module_match_resource.unwrap_or(resource_data);
+    let resource_path = resource_data.path();
     let cached_source_code = OnceCell::new();
     let get_source_code = || {
       let s = cached_source_code.get_or_init(|| Arc::new(source_code.to_string()));
@@ -159,7 +159,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       _ => css_module_lexer::Mode::Css,
     };
 
-    let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync + 'static>> = vec![];
+    let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
     let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
     let mut code_generation_dependencies: Vec<BoxModuleDependency> = vec![];
@@ -391,28 +391,40 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )));
           }
 
+          let convention = self
+            .convention
+            .as_ref()
+            .expect("should have local_ident_name for module_type css/auto or css/module");
           let exports = self.exports.get_or_insert_default();
           for name in names {
             for local_class in local_classes.iter() {
-              if let Some(existing) = exports.get(name.as_str())
-                && from.is_none()
+              let convention_names = export_locals_convention(&name, convention);
+              let convention_local_class = export_locals_convention(local_class, convention);
+
+              for (name, local_class) in convention_names
+                .into_iter()
+                .zip(convention_local_class.into_iter())
               {
-                let existing = existing.clone();
-                exports
-                  .get_mut(local_class.as_str())
-                  .expect("composes local class must already added to exports")
-                  .extend(existing);
-              } else {
-                exports
-                  .get_mut(local_class.as_str())
-                  .expect("composes local class must already added to exports")
-                  .insert(CssExport {
-                    ident: name.to_string(),
-                    from: from
-                      .filter(|f| *f != "global")
-                      .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
-                    id: dep_id,
-                  });
+                if let Some(existing) = exports.get(name.as_str())
+                  && from.is_none()
+                {
+                  let existing = existing.clone();
+                  exports
+                    .get_mut(local_class.as_str())
+                    .expect("composes local class must already added to exports")
+                    .extend(existing);
+                } else {
+                  exports
+                    .get_mut(local_class.as_str())
+                    .expect("composes local class must already added to exports")
+                    .insert(CssExport {
+                      ident: name.to_string(),
+                      from: from
+                        .filter(|f| *f != "global")
+                        .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
+                      id: dep_id,
+                    });
+                }
               }
             }
           }
@@ -452,12 +464,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
           warning.kind(),
           css_module_lexer::WarningKind::NotPrecededAtImport
         ) {
-          RspackSeverity::Error
+          Severity::Error
         } else {
-          RspackSeverity::Warn
+          Severity::Warning
         },
       );
-      diagnostics.push(Box::new(error));
+      diagnostics.push(error.into());
     }
 
     Ok(

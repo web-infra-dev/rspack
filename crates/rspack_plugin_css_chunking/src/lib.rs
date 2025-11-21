@@ -325,11 +325,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         // Global CSS must not leak into unrelated chunks
         #[allow(clippy::unwrap_used)]
         let is_global = is_global_css(&module_infos.get(&next_module_identifier).unwrap().1);
-        if is_global && global_css_mode && all_chunk_states.len() != chunk_states.len() {
+        if is_global && global_css_mode && all_chunk_states.len() != next_chunk_states.len() {
+          // Fast check: chunk groups need to be identical
           continue;
         }
         if global_css_mode
-          && chunk_states
+          && next_chunk_states
             .keys()
             .any(|cs| !all_chunk_states.contains_key(cs))
         {
@@ -338,7 +339,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         if is_global
           && all_chunk_states
             .keys()
-            .any(|cs| !chunk_states.contains_key(cs))
+            .any(|cs| !next_chunk_states.contains_key(cs))
         {
           continue;
         }

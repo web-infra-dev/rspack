@@ -106,7 +106,6 @@ HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
 HookNeedAdditionalPass --> |是| HookAdditionalDone(hooks.done)
 HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
 HookAdditionPass --> Compile
-HookNeedAdditionalPass --> |否| HookEmitRecords(hooks.emitRecords)
 HookEmitRecords --> HookDone
 HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
 HookFailed --> Callback("callback(err, stats)")
@@ -622,3 +621,37 @@ compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
 当前 Compiler 关闭时调用。
 
 - **Type:** `AsyncSeriesHook<[]>`
+
+## infrastructureLog
+
+当基础设施日志被触发时调用，允许插件拦截、修改或处理日志消息。
+
+此钩子提供了一种自定义 Rspack 基础设施日志的方法 - 你可以过滤特定的日志类型、添加自定义格式，或完全覆盖默认的日志行为。
+
+如果钩子返回 `true`，将阻止默认的基础设施日志记录。如果返回 `undefined`，将继续执行默认的日志输出。
+
+- **类型：** `SyncBailHook<[string, string, any[]], true | void>`
+- **参数：**
+  - `name`：logger 的名称
+  - `type`：log 类型（例如 'log'、'warn'、'error' 等）
+  - `args`：传递给 logger 方法的参数数组
+- **示例：**
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.infrastructureLog.tap('MyPlugin', (name, type, args) => {
+      // 自定义日志逻辑
+      if (type === 'error') {
+        console.error(`[${name}] ERROR:`, ...args);
+        return true; // 阻止默认日志输出
+      }
+
+      // 让其他日志类型使用默认行为
+      return undefined;
+    });
+  }
+}
+```
+
+> 查看 [infrastructureLogging](/config/infrastructure-logging) 了解更多关于基础设施日志的信息。

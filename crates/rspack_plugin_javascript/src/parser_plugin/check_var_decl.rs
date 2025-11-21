@@ -39,19 +39,25 @@ impl CheckVarDeclaratorIdent {
   fn check_ident(&self, parser: &mut JavascriptParser, ident: &Ident) {
     if is_reserved_word_in_strict(ident.sym.as_str()) {
       if parser.is_strict() {
-        parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("The keyword '{}' is reserved in strict mode", ident.sym),
-          parser.source_file,
-          ident.span().into(),
-        )));
+        parser.add_error(
+          create_traceable_error(
+            "JavaScript parse error".into(),
+            format!("The keyword '{}' is reserved in strict mode", ident.sym),
+            parser.source_file,
+            ident.span().into(),
+          )
+          .into(),
+        );
       } else {
-        parser.errors.push(Box::new(create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("{} is disallowed as a lexically bound name", ident.sym),
-          parser.source_file,
-          ident.span().into(),
-        )));
+        parser.add_error(
+          create_traceable_error(
+            "JavaScript parse error".into(),
+            format!("{} is disallowed as a lexically bound name", ident.sym),
+            parser.source_file,
+            ident.span().into(),
+          )
+          .into(),
+        );
       }
     }
   }

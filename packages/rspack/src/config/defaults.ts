@@ -7,8 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
-import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -60,7 +58,10 @@ export const applyRspackOptionsDefaults = (
 	});
 
 	const { mode, target } = options;
-	assert(!isNil(target));
+
+	if (isNil(target)) {
+		throw new Error("target should not be nil after defaults");
+	}
 
 	const targetProperties =
 		target === false
@@ -90,24 +91,32 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, {
-		production,
-		development
-	});
-
 	if (options.cache === false) {
 		options.experiments.cache = false;
 	}
 
+	applyExperimentsDefaults(options.experiments, {
+		development
+	});
+
+	applyOptimizationDefaults(options.optimization, {
+		production,
+		development,
+		css: options.experiments.css!
+	});
+
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
+		cache: !!options.cache,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
 		css: options.experiments.css,
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
-		inlineConst: options.experiments.inlineConst
+		usedExports: !!options.optimization.usedExports,
+		inlineConst: options.experiments.inlineConst,
+		deferImport: options.experiments.deferImport
 	});
 
 	applyOutputDefaults(options.output, {
@@ -164,12 +173,6 @@ export const applyRspackOptionsDefaults = (
 		production
 	});
 
-	applyOptimizationDefaults(options.optimization, {
-		production,
-		development,
-		css: options.experiments.css!
-	});
-
 	options.resolve = cleverMerge(
 		getResolveDefaults({
 			context: options.context!,
@@ -207,7 +210,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ production, development }: { production: boolean; development: boolean }
+	{ development }: { development: boolean }
 ) => {
 	// IGNORE(experiments.cache): In webpack, cache is undefined by default
 	F(experiments, "cache", () => development);
@@ -218,14 +221,8 @@ const applyExperimentsDefaults = (
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
-	D(experiments, "layers", false);
-
-	if (experiments.topLevelAwait === false) {
-		console.warn(
-			"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
-		);
-	}
 	D(experiments, "topLevelAwait", true);
+	D(experiments, "deferImport", false);
 
 	D(experiments, "buildHttp", undefined);
 	if (experiments.buildHttp && typeof experiments.buildHttp === "object") {
@@ -242,7 +239,7 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "providedExports", true);
 		D(experiments.incremental, "dependenciesDiagnostics", true);
 		D(experiments.incremental, "sideEffects", true);
-		D(experiments.incremental, "buildChunkGraph", true);
+		D(experiments.incremental, "buildChunkGraph", false);
 		D(experiments.incremental, "moduleIds", true);
 		D(experiments.incremental, "chunkIds", true);
 		D(experiments.incremental, "modulesHashes", true);
@@ -277,7 +274,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "typeReexportsPresence", false);
 
 	// IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
-	D(experiments, "lazyBarrel", false);
+	D(experiments, "lazyBarrel", true);
 };
 
 const applybundlerInfoDefaults = (
@@ -302,7 +299,11 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	{ inlineConst }: { inlineConst?: boolean }
+	{
+		usedExports,
+		inlineConst,
+		deferImport
+	}: { usedExports: boolean; inlineConst?: boolean; deferImport?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -316,11 +317,14 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "requireAsExpression", true);
 	D(parserOptions, "requireDynamic", true);
 	D(parserOptions, "requireResolve", true);
+	D(parserOptions, "commonjs", true);
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", inlineConst);
+	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
+	D(parserOptions, "jsx", false);
+	D(parserOptions, "deferImport", deferImport);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -332,23 +336,36 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
+		cache,
 		asyncWebAssembly,
 		css,
 		targetProperties,
 		mode,
 		uniqueName,
-		inlineConst
+		usedExports,
+		inlineConst,
+		deferImport
 	}: {
+		cache: boolean;
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
+		usedExports: boolean;
 		inlineConst?: boolean;
+		deferImport?: boolean;
 	}
 ) => {
 	assertNotNill(module.parser);
 	assertNotNill(module.generator);
+
+	// IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
+	if (cache) {
+		D(module, "unsafeCache", /[\\/]node_modules[\\/]/);
+	} else {
+		D(module, "unsafeCache", false);
+	}
 
 	// IGNORE(module.parser): already check to align in 2024.6.27
 	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
@@ -361,7 +378,9 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
-		inlineConst
+		usedExports,
+		inlineConst,
+		deferImport
 	});
 
 	F(module.parser, JSON_MODULE_TYPE, () => ({}));
@@ -826,7 +845,8 @@ const applyOutputDefaults = (
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
-	D(output, "charset", !futureDefaults);
+	// IGNORE(output.charset): `output.charset` has already been deprecated for a long time
+	D(output, "charset", false);
 	D(output, "chunkLoadTimeout", 120000);
 
 	const { trustedTypes } = output;
@@ -1201,7 +1221,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					obj[prop] = newArray as any;
+					obj[prop] = newArray;
 				}
 				const items = factory();
 				if (items !== undefined) {

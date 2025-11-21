@@ -1,0 +1,53 @@
+# Case css: Step 1
+
+## Changed Files
+- colors.js
+- stylesheet.css.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 436
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./stylesheet.css.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("main", {
+"./stylesheet.css.js": 
+/*!***************************!*\
+  !*** ./stylesheet.css.js ***!
+  \***************************/
+(function (module) {
+module.exports = "body { background: url(\"https://test.cases/path/assets/file.png\"); color: #0f0; }";
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

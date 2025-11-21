@@ -1,0 +1,19 @@
+WARNING in ⚠ Circular dependency detected:
+  │  ./require-circular/d.js -> ./require-circular/e.js -> ./require-circular/f.js -> ./require-circular/a.js -> ./require-circular/b.js -> ./require-circular/c.js -> ./require-circular/d.js
+
+WARNING in ⚠ Circular dependency detected:
+  │  ./import-circular/a.js -> ./import-circular/b.js -> ./import-circular/a.js
+
+WARNING in ⚠ Circular dependency detected:
+  │  ./multiple-circular/a.js -> ./multiple-circular/b.js -> ./multiple-circular/c.js -> ./multiple-circular/d.js -> ./multiple-circular/a.js
+
+WARNING in ⚠ Circular dependency detected:
+  │  ./multiple-circular/a.js -> ./multiple-circular/b.js -> ./multiple-circular/c.js -> ./multiple-circular/e.js -> ./multiple-circular/a.js
+
+WARNING in ⚠ Circular dependency detected:
+  │  ./multiple-circular/a.js -> ./multiple-circular/b.js -> ./multiple-circular/c.js -> ./multiple-circular/d.js -> ./multiple-circular/a.js
+
+WARNING in ⚠ Circular dependency detected:
+  │  ./multiple-circular/a.js -> ./multiple-circular/b.js -> ./multiple-circular/c.js -> ./multiple-circular/e.js -> ./multiple-circular/a.js
+
+ERROR in × Module not found: Can't resolve './' in '<TEST_ROOT>/diagnosticsCases/plugins/circular-dependency-plugin'

@@ -1,0 +1,309 @@
+import { ApiMeta } from '../../../../components/ApiMeta';
+
+# Browser API
+
+`@rspack/browser` is a version of Rspack specifically designed for browser environments, without relying on WebContainers or any particular platform. Its API is consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`, while additionally providing features and interfaces tailored for the browser environment.
+
+Welcome to try running Rspack in the browser at the [Rspack Playground](https://playground.rspack.rs/).
+
+:::warning
+`@rspack/browser` is currently experimental. We will continue to improve its online bundling capabilities, and future releases may introduce breaking changes.
+:::
+
+## Basic example
+
+The following example demonstrates the basic usage of `@rspack/browser`. Except for the additional APIs used to read and write project files and outputs, other APIs are consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`.
+
+```ts
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+rspack({}, (err, stats) => {
+  if (err || stats.hasErrors()) {
+    // ...
+  }
+  // Get output from memfs after bundling
+  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+## Response header settings
+
+Note that `@rspack/browser` internally uses [SharedArrayBuffer](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) to implement shared memory across multiple threads. Therefore, you need to set response headers for both your development server and production deployment environment.
+
+If you are using Rspack as your project's bundler, you can set it through [devServer.headers](/config/dev-server#devserverheaders):
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+If you are using Rsbuild as your project's bundler, you can set it through [server.headers](https://rsbuild.rs/config/server/headers#serverheaders):
+
+```ts title="rsbuild.config.ts"
+export default {
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+};
+```
+
+For production environments, please refer to the documentation of your project's deployment platform.
+
+## In-Memory File system
+
+Since browsers cannot directly access the local file system, `@rspack/browser` provides an in-memory file system object `builtinMemFs` based on [memfs](https://www.npmjs.com/package/memfs) for reading and writing files in the browser environment. All file system reads and writes in both the Node.js and Rust sides are redirected to this in-memory file system, including reading project configuration, source code, `node_modules` dependencies, and writing output files.
+
+Here is a basic usage example. For the full API, please refer to the [memfs documentation](https://github.com/streamich/memfs):
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+// Write files to memfs
+builtinMemFs.volume.fromJSON({
+  // ...project files
+});
+
+// Read files from memfs
+const files = builtinMemFs.volume.toJSON();
+```
+
+`builtinMemFs` is a global singleton instance. In scenarios involving concurrent builds of multiple projects, it is recommended to enable [experiments.useInputFileSystem](/config/experiments#experimentsuseinputfilesystem) to avoid conflicts.  
+Please note that, currently in the `@rspack/browser`, `experiments.useInputFileSystem` can only intercept project files that will be ultimately bundled, and cannot intercept files relied upon during the build process, such as those used by Loaders (see also [BrowserRequirePlugin#modules](/api/javascript-api/browser#modules) below).
+
+```js title="rspack.config.mjs"
+import { builtinMemFs } from '@rspack/browser';
+
+const projectFs = builtinMemFs.memfs(filteredFiles);
+export default {
+  plugins: [
+    {
+      apply: compiler => {
+        compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
+          compiler.inputFileSystem = projectFs.fs;
+          compiler.outputFileSystem = projectFs.fs;
+        });
+      },
+    },
+  ],
+  experiments: {
+    useInputFileSystem: [/.*/],
+  },
+};
+```
+
+## Browser-Specific Plugins
+
+To better meet the bundling needs in browser environments, `@rspack/browser` offers several dedicated plugins.
+
+### BrowserHttpImportEsmPlugin
+
+In local development, developers usually download project dependencies via package managers and store them in the `node_modules` directory at the root of the project. When using `@rspack/browser`, you can pre-write dependencies into the `node_modules` directory within the in-memory file system. However, when the modules your project depends on are uncertain (e.g., allowing users to freely choose third-party dependencies), pre-writing all dependencies becomes impractical.
+
+```ts
+import { builtinMemFs } from '@rspack/browser';
+
+builtinMemFs.volume.fromJSON({
+  '/node_modules/react/index.js': '...',
+});
+```
+
+`@rspack/browser` provides the `BrowserHttpImportEsmPlugin` plugin. This plugin rewrites third-party dependency module specifiers to URLs of ESM CDNs during module resolution. For example, `import React from "react"` will be rewritten as `import React from "https://esm.sh/react"`. Together with Rspack's [buildHttp](/config/experiments#experimentsbuildhttp) feature, dependencies can be dynamically loaded over HTTP during bundling.
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  plugins: [new BrowserHttpImportEsmPlugin({ domain: 'https://esm.sh' })],
+  experiments: {
+    buildHttp: {
+      allowedUris: ['https://'],
+    },
+  },
+};
+```
+
+As shown below, `BrowserHttpImportEsmPlugin` supports options to specify the ESM CDN domain or to specify particular versions or URLs for certain dependencies.
+
+```ts
+interface BrowserHttpImportPluginOptions {
+  /**
+   * ESM CDN domain
+   */
+  domain: string | ((resolvedRequest: ResolvedRequest) => string);
+  /**
+   * Specify ESM CDN URL for dependencies.
+   * If a record is provided, it will be used to map package names to their CDN URLs.
+   *
+   * Once this function resolves a dependency, other options are ignored.
+   */
+  dependencyUrl?:
+    | Record<string, string | undefined>
+    | ((resolvedRequest: ResolvedRequest) => string | undefined);
+  /**
+   * Specify versions for dependencies.
+   * Default to "latest" if not specified.
+   */
+  dependencyVersions?: Record<string, string | undefined>;
+  /**
+   * You can attach additional queries supported by the CDN to the `request.url`.
+   * For example, to specify the external dependencies under esm.sh, you can do:
+   * `request.url.searchParams.set("external", "react,react-dom")`
+   */
+  postprocess?: (request: ProcessedRequest) => void;
+}
+```
+
+#### Compatibility with `resolve.alias`
+
+When using `BrowserHttpImportEsmPlugin`, the rewriting of dependency identifiers occurs **before** the alias replacements defined in [resolve.alias](/config/resolve#resolvealias). This ordering can lead to conflicts between the plugin’s rewriting logic and alias resolution.
+
+To resolve this issue, you can configure the plugin’s `dependencyUrl` option to preemptively skip requests that should be handled by `resolve.alias`:
+
+```js title="rspack.config.mjs"
+import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
+
+export default {
+  resolve: {
+    alias: {
+      '@': '/src', // e.g., "@/util.js" will be resolved to "/src/util.js"
+    },
+  },
+  plugins: [
+    new BrowserHttpImportEsmPlugin({
+      domain: 'https://esm.sh',
+      dependencyUrl(resolvedRequest) {
+        // Skip rewriting for requests starting with "@/” to allow alias resolution
+        if (resolvedRequest.request.startsWith('@/')) {
+          return resolvedRequest.request;
+        }
+      },
+    }),
+  ],
+};
+```
+
+### BrowserRequirePlugin
+
+In Rspack, certain scenarios require dynamically loading and executing JavaScript code, such as [Loaders](/guide/features/loader) or the template functions of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin#use-template-function). Since this code may come from untrusted users, executing it directly in the browser environment poses potential security risks. To ensure safety, `@rspack/browser` throws errors by default in such cases to prevent unsafe code execution.
+
+The `BrowserRequirePlugin` plugin provides two ways to address this requirement. Options for `BrowserRequirePlugin` are as follows:
+
+```ts
+interface BrowserRequirePluginOptions {
+  /**
+   * This function defines how to execute CommonJS code.
+   */
+  execute?: (code: string, runtime: CommonJsRuntime) => void;
+  /**
+   * This option provides a direct mapping from the module specifier to the module content, similar to the mechanism of a virtual module.
+   * If this option is not provided or the mapping result is undefined, it will fallback to resolving from memfs and run `execute`.
+   */
+  modules?: Record<string, any> | ((id: string) => any);
+}
+```
+
+#### `modules`
+
+<ApiMeta addedVersion="1.6.0-beta.0" />
+
+This option allows you to directly map a module request id to any JavaScript object within the project. Note that you need to create a corresponding empty file in `memfs`:
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin, builtinMemfs } from '@rspack/browser';
+import CustomLoader from './custom-loader';
+
+builtinMemFs.volume.fromJSON({
+  '/LOADER/custom-loader.js': '',
+});
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /a\.js$/,
+        loader: '/LOADER/custom-loader.js',
+      },
+    ],
+  },
+  plugins: [
+    new BrowserRequirePlugin({
+      modules: {
+        '/LOADER/custom-loader.js': CustomLoader,
+      },
+    }),
+  ],
+};
+```
+
+#### `execute`
+
+This option is used to simulate the `require` process in Node.js: it resolves modules based on memfs, reads file contents, and executes them. When modules is not provided, or the corresponding result is not found in modules, this path will be attempted.
+
+:::warning
+Rspack does not execute user code during bundling. For security, it is recommended to run the final bundled output inside an iframe.
+:::
+
+```js title="rspack.config.mjs"
+import { BrowserRequirePlugin } from '@rspack/browser';
+
+export default {
+  plugins: [
+    new BrowserRequirePlugin({ execute: BrowserRequirePlugin.unsafeExecute }),
+  ],
+};
+```
+
+You need to provide an `execute` function to dynamically run and load CommonJS modules and modify `runtime.module.exports` to set the module's exports. `@rspack/browser` provides an unsafe implementation `BrowserRequirePlugin.unsafeExecute` that internally uses `new Function` to execute code. You can also implement a safer version based on this API according to your needs, for example:
+
+```ts
+function safeExecute(code: string, runtime: CommonJsRuntime) {
+  const safeCode = sanitizeCode(code);
+  BrowserRequirePlugin.unsafeExecute(safeCode, runtime);
+}
+
+function uselessExecute(_code: string, runtime: CommonJsRuntime) {
+  runtime.module.exports.hello = 'rspack';
+}
+```
+
+## Using Module Federation
+
+`@rspack/browser` supports Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin). With this feature, you can pre-bundle complex dependency modules as provider projects deployed to CDN, and then use them in consumer projects that are bundled online in the browser.
+
+When using ModuleFederationPlugin in the browser, please note the following:
+
+1. You need to enable the [BrowserHttpImportEsmPlugin](/api/javascript-api/browser#browserhttpimportesmplugin) plugin, as module federation needs to load its runtime dependencies. The CDN needs to provide the development version of `@module-federation/webpack-bundler-runtime` (Magic Comments in the output shouldn't be removed).
+2. Shared modules set in ModuleFederationPlugin also need to be configured with `external` and specified versions in BrowserHttpImportEsmPlugin. If you're using `esm.sh` as CDN, you can refer to the following code:
+
+```js title="rspack.config.mjs"
+new rspack.BrowserHttpImportEsmPlugin({
+  domain: "https://esm.sh",
+  dependencyVersions: {
+    "react": "19.1.1"
+  },
+  postprocess: (request) => {
+    // Set the `dev` parameter for `react-dom` here as well, as you need to ensure that the provider and consumer projects use the same mode of `react` and `react-dom`.
+    if (request.packageName === "@module-federation/webpack-bundler-runtime" || request.packageName === "react-dom") {
+      request.url.searchParams.set("dev", "");
+    }
+    request.url.searchParams.set("external", "react");
+  }
+}),
+```
+
+3. All [ModuleFederationPlugin.shared](/plugins/webpack/module-federation-plugin#shared) configurations must set `import: false`, meaning that consumer projects bundled online cannot bundle shared modules themselves; shared modules must be provided by pre-bundled provider projects.
+4. [ModuleFederationPlugin.implementation](/plugins/webpack/module-federation-plugin#implementation) option is not supported.

@@ -71,7 +71,7 @@ impl RstestPlugin {
         pos.content_with_flag_start,
         pos.content_with_flag_end,
       ) {
-        let content = old.source()[content_start..content_end].to_string();
+        let content = &old.source().into_string_lossy()[content_start..content_end];
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
@@ -95,7 +95,7 @@ impl RstestPlugin {
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
@@ -170,14 +170,19 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       files.push(file.clone());
     }
   }
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK)_(.*?):(.*?) \*\/")
+  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE)_(.*?):(.*?) \*\/")
     .expect("should initialize `Regex`");
 
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
-      let content = old.source().to_string();
+      // Only handles JavaScript.
+      if info.javascript_module.is_none() {
+        return Ok((old, info));
+      }
+
+      let content = old.source().into_string_lossy();
       let captures: Vec<_> = regex.captures_iter(&content).collect();
 
       for c in captures {

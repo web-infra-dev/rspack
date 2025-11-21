@@ -1,64 +1,178 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
-use miette::{Diagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan};
-use swc_core::common::SourceFile;
-use thiserror::Error;
+use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
+use rspack_cacheable::cacheable;
 
-use crate::RspackSeverity;
+/// Error severity. Defaults to [`Severity::Error`].
+#[cacheable]
+#[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
+pub enum Severity {
+  #[default]
+  Error,
+  Warning,
+}
 
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct InternalError(#[from] Box<dyn Diagnostic + Send + Sync + 'static>);
+/// Label for source code.
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct Label {
+  /// Label name.
+  pub name: Option<String>,
+  /// Source code offset.
+  pub offset: usize,
+  /// Length of impact.
+  pub len: usize,
+}
 
-impl InternalError {
-  pub fn new(message: String, severity: RspackSeverity) -> Self {
-    Self(Box::new(
-      MietteDiagnostic::new(message).with_severity(severity.into()),
-    ))
+/// Core error type.
+///
+/// See the test case for specific usage.
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ErrorData {
+  /// Error severity.
+  pub severity: Severity,
+  /// Message.
+  pub message: String,
+  /// Source code.
+  pub src: Option<String>,
+  /// Labels displayed in source code.
+  ///
+  /// The source code block will be displayed only if both source code and labels exist.
+  pub labels: Option<Vec<Label>>,
+  /// Help text.
+  pub help: Option<String>,
+  /// Source error.
+  #[cacheable(omit_bounds)]
+  pub source_error: Option<Box<Error>>,
+  /// Error Code.
+  ///
+  /// This field is used to distinguish error types and will not be used for error display.
+  pub code: Option<String>,
+  /// Detail info.
+  ///
+  /// This field is used to save extra info when hide stack and will not be used for error display.
+  /// TODO: remove this field and hide stack, just use stack field.
+  pub details: Option<String>,
+  /// Error stack.
+  pub stack: Option<String>,
+  /// Whether to hide the stack.
+  ///
+  /// TODO: replace Option<bool> to bool.
+  pub hide_stack: Option<bool>,
+}
+
+/// ErrorData wrapper type.
+///
+/// Wrap ErrorData to avoid result_large_err.
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct Error(Box<ErrorData>);
+
+impl std::ops::Deref for Error {
+  type Target = ErrorData;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
-/// Convenience [`Diagnostic`] that can be used as an "anonymous" wrapper for
-/// Errors. This is intended to be paired with [`IntoDiagnostic`].
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct DiagnosticError(Box<dyn std::error::Error + Send + Sync + 'static>);
-impl Diagnostic for DiagnosticError {}
-
-impl From<Box<dyn std::error::Error + Send + Sync + 'static>> for DiagnosticError {
-  fn from(value: Box<dyn std::error::Error + Send + Sync + 'static>) -> Self {
-    Self(value)
+impl std::ops::DerefMut for Error {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
   }
 }
 
-/// Handle [anyhow::Error]
-/// Please try NOT to use this as much as possible.
-#[derive(Debug, Error, Diagnostic)]
-#[error(transparent)]
-pub struct AnyhowError(#[from] anyhow::Error);
+impl Error {
+  #[allow(clippy::self_named_constructors)]
+  pub fn error(message: String) -> Self {
+    Self(Box::new(ErrorData {
+      message,
+      ..Default::default()
+    }))
+  }
+  pub fn warning(message: String) -> Self {
+    Self(Box::new(ErrorData {
+      severity: Severity::Warning,
+      message,
+      ..Default::default()
+    }))
+  }
 
-/// ## Warning
-/// For a [TraceableError], the path is required.
-/// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
-/// when convert it into [crate::Diagnostic], but the reverse will not working.
-#[derive(Debug, Clone, Error)]
-#[error("{title}: {message}")]
-pub struct TraceableError {
-  title: String,
-  kind: DiagnosticKind,
-  message: String,
-  severity: Severity,
-  #[allow(clippy::rc_buffer)]
-  src: Option<Arc<String>>,
-  label: SourceSpan,
-  help: Option<String>,
-  url: Option<String>,
-  hide_stack: Option<bool>,
+  pub fn from_string(
+    src: Option<String>,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    let mut error = Error::error(format!("{title}: {message}"));
+    error.src = src;
+    error.labels = Some(vec![Label {
+      name: None,
+      offset: start,
+      len: end.saturating_sub(start),
+    }]);
+    error
+  }
+
+  pub fn from_error<T>(value: T) -> Self
+  where
+    T: std::error::Error,
+  {
+    let mut error = Error::error(value.to_string());
+    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
+    error
+  }
+
+  pub fn is_error(&self) -> bool {
+    self.severity == Severity::Error
+  }
+  pub fn is_warn(&self) -> bool {
+    self.severity == Severity::Warning
+  }
+
+  pub fn wrap_err<D>(self, msg: D) -> Self
+  where
+    D: std::fmt::Display,
+  {
+    Self(Box::new(ErrorData {
+      message: msg.to_string(),
+      source_error: Some(Box::new(self)),
+      ..Default::default()
+    }))
+  }
 }
 
-impl Diagnostic for TraceableError {
-  fn severity(&self) -> Option<Severity> {
-    Some(self.severity)
+impl Display for Error {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", &self.message)
+  }
+}
+
+impl std::error::Error for Error {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    self
+      .source_error
+      .as_ref()
+      .map(|e| e as &(dyn std::error::Error + 'static))
+  }
+}
+
+impl MietteDiagnostic for Error {
+  fn code(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .code
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn severity(&self) -> Option<miette::Severity> {
+    match self.severity {
+      Severity::Error => Some(miette::Severity::Error),
+      Severity::Warning => Some(miette::Severity::Warning),
+    }
   }
 
   fn help(&self) -> Option<Box<dyn Display + '_>> {
@@ -69,290 +183,141 @@ impl Diagnostic for TraceableError {
       .map(|c| c as Box<dyn Display>)
   }
 
-  fn url(&self) -> Option<Box<dyn Display + '_>> {
-    self
-      .url
-      .as_ref()
-      .map(Box::new)
-      .map(|c| c as Box<dyn Display>)
-  }
-
-  fn source_code(&self) -> Option<&dyn SourceCode> {
-    self.src.as_ref().map(|s| &**s as &dyn SourceCode)
+  fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+    self.src.as_ref().map(|s| s as &dyn miette::SourceCode)
   }
 
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
-    use miette::macro_helpers::{OptionalWrapper, ToOption};
-    std::option::Option::Some(Box::new(
-      vec![
-        OptionalWrapper::<SourceSpan>::new()
-          .to_option(&self.label)
-          .map(|label| miette::LabeledSpan::new_with_span(None, *label)),
-      ]
-      .into_iter()
-      .filter(Option::is_some)
-      .flatten(),
-    ))
+    let Some(labels) = &self.labels else {
+      return None;
+    };
+    Some(Box::new(labels.iter().map(|item| {
+      LabeledSpan::new(item.name.clone(), item.offset, item.len)
+    })))
+  }
+
+  fn diagnostic_source(&self) -> Option<&dyn MietteDiagnostic> {
+    self
+      .source_error
+      .as_ref()
+      .map(|s| &**s as &dyn MietteDiagnostic)
   }
 }
 
-impl TraceableError {
-  pub fn with_severity(mut self, severity: impl Into<Severity>) -> Self {
-    self.severity = severity.into();
-    self
+macro_rules! impl_from_error {
+  ($($t:ty),*) => {
+    $(
+      impl From<$t> for Error {
+        fn from(value: $t) -> Error {
+          Error::from_error(value)
+        }
+      }
+    ) *
   }
+}
 
-  pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
-    self.kind = kind;
-    self
-  }
+impl_from_error! {
+    std::fmt::Error,
+    std::io::Error,
+    std::string::FromUtf8Error
+}
 
-  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
-    self.help = help.map(|h| h.into());
-    self
+impl<T> From<std::sync::mpsc::SendError<T>> for Error {
+  fn from(value: std::sync::mpsc::SendError<T>) -> Self {
+    Error::from_error(value)
   }
+}
 
-  pub fn with_url(mut self, url: Option<impl Into<String>>) -> Self {
-    self.url = url.map(|u| u.into());
-    self
+impl From<anyhow::Error> for Error {
+  fn from(value: anyhow::Error) -> Self {
+    let mut error = Error::error(value.to_string());
+    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
+    error
   }
+}
 
-  pub fn with_hide_stack(mut self, hide_stack: Option<bool>) -> Self {
-    self.hide_stack = hide_stack;
-    self
-  }
-
-  pub fn from_source_file(
-    source_file: &SourceFile,
-    start: usize,
-    end: usize,
-    title: String,
-    message: String,
-  ) -> Self {
-    Self::from_arc_string(
-      Some(source_file.src.clone().into_string().into()),
-      start,
-      end,
-      title,
-      message,
-    )
-  }
-
-  pub fn from_file(
-    file_src: String,
-    start: usize,
-    end: usize,
-    title: String,
-    message: String,
-  ) -> Self {
-    Self::from_arc_string(Some(Arc::new(file_src)), start, end, title, message)
-  }
-  // lazy set source_file if we can't know the source content in advance
-  pub fn from_lazy_file(start: usize, end: usize, title: String, message: String) -> Self {
-    Self::from_arc_string(None, start, end, title, message)
-  }
-
-  pub fn from_arc_string(
-    src: Option<Arc<String>>,
-    start: usize,
-    end: usize,
-    title: String,
-    message: String,
-  ) -> Self {
-    Self {
-      title,
-      kind: Default::default(),
-      message,
-      severity: Default::default(),
-      src,
-      label: SourceSpan::new(start.into(), end.saturating_sub(start)),
-      help: None,
-      url: None,
+#[cfg(test)]
+mod test {
+  use super::{Error, ErrorData, Label};
+  use crate::{Renderer, Severity};
+  #[test]
+  fn should_error_display() {
+    let renderer = Renderer::new(false);
+    let sub_err = Error(Box::new(ErrorData {
+      severity: Severity::Warning,
+      message: "An unexpected keyword.".into(),
+      src: Some("const a = { const };\nconst b = { var };".into()),
+      labels: Some(vec![
+        Label {
+          name: Some("keyword 1".into()),
+          offset: 12,
+          len: 5,
+        },
+        Label {
+          name: Some("keyword 2".into()),
+          offset: 33,
+          len: 3,
+        },
+      ]),
+      help: Some("Maybe you should remove it.".into()),
+      source_error: None,
+      code: Some("ModuleAnalysisWarning".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
       hide_stack: None,
-    }
+    }));
+    let mid_err = Error(Box::new(ErrorData {
+      severity: Severity::Error,
+      message: "Can not parse current module.".into(),
+      src: Some("const a = { const };".into()),
+      labels: Some(vec![Label {
+        name: Some("parse failed".into()),
+        offset: 0,
+        len: 1,
+      }]),
+      help: Some("See follow info.".into()),
+      source_error: Some(Box::new(sub_err)),
+      code: Some("ModuleParseError".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
+      hide_stack: None,
+    }));
+    let root_err = Error(Box::new(ErrorData {
+      severity: Severity::Error,
+      message: "Build Module Failed".into(),
+      src: None,
+      labels: None,
+      help: None,
+      source_error: Some(Box::new(mid_err)),
+      code: Some("ModuleBuildError".into()),
+      details: Some("detail info".into()),
+      stack: Some("stack info".into()),
+      hide_stack: None,
+    }));
+    let expect_display = r#"
+ × Build Module Failed
+  ├─▶   × Can not parse current module.
+  │      ╭────
+  │    1 │ const a = { const };
+  │      · ┬
+  │      · ╰── parse failed
+  │      ╰────
+  │     help: See follow info.
+  │   
+  ╰─▶   ⚠ An unexpected keyword.
+         ╭─[1:12]
+       1 │ const a = { const };
+         ·             ──┬──
+         ·               ╰── keyword 1
+       2 │ const b = { var };
+         ·             ─┬─
+         ·              ╰── keyword 2
+         ╰────
+        help: Maybe you should remove it.
+"#;
+    assert_eq!(
+      renderer.render(&root_err).unwrap().trim(),
+      expect_display.trim()
+    );
   }
-
-  pub fn hide_stack(&self) -> Option<bool> {
-    self.hide_stack
-  }
-}
-
-/// Multiple errors to represent different kinds of errors.
-/// NEVER implement this with [miette::Diagnostic],
-/// because it makes code hard to maintain.
-#[derive(Debug, Default)]
-pub struct BatchErrors(pub Vec<miette::Error>);
-
-impl BatchErrors {
-  pub fn into_inner(self) -> Vec<miette::Error> {
-    self.0
-  }
-}
-
-impl From<BatchErrors> for Vec<crate::Diagnostic> {
-  fn from(value: BatchErrors) -> Self {
-    value.0.into_iter().map(crate::Diagnostic::from).collect()
-  }
-}
-
-impl From<miette::Error> for BatchErrors {
-  fn from(value: miette::Error) -> Self {
-    Self(vec![value])
-  }
-}
-
-impl From<Vec<miette::Error>> for BatchErrors {
-  fn from(value: Vec<miette::Error>) -> Self {
-    Self(value)
-  }
-}
-
-#[macro_export]
-macro_rules! impl_diagnostic_transparent {
-  (code = $value:expr, $ty:ty) => {
-    impl miette::Diagnostic for $ty {
-      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        Some(Box::new($value))
-      }
-
-      fn severity(&self) -> Option<miette::Severity> {
-        self.0.severity()
-      }
-
-      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        self.0.help()
-      }
-
-      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        self.0.url()
-      }
-
-      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        self.0.source_code()
-      }
-
-      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        self.0.labels()
-      }
-
-      fn related<'a>(
-        &'a self,
-      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-        self.0.related()
-      }
-
-      fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        self.0.diagnostic_source()
-      }
-    }
-  };
-  ($ty:ty) => {
-    impl miette::Diagnostic for $ty {
-      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        self.0.code()
-      }
-
-      fn severity(&self) -> Option<miette::Severity> {
-        self.0.severity()
-      }
-
-      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        self.0.help()
-      }
-
-      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        self.0.url()
-      }
-
-      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        self.0.source_code()
-      }
-
-      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
-        self.0.labels()
-      }
-
-      fn related<'a>(
-        &'a self,
-      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
-        self.0.related()
-      }
-
-      fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        self.0.diagnostic_source()
-      }
-    }
-  };
-}
-
-impl_diagnostic_transparent!(InternalError);
-
-#[macro_export]
-macro_rules! impl_error_transparent {
-  ($ty:ty) => {
-    impl std::error::Error for ModuleBuildError {
-      fn source(&self) -> ::core::option::Option<&(dyn std::error::Error + 'static)> {
-        std::error::Error::source(<Error as AsRef<dyn std::error::Error>>::as_ref(&self.0))
-      }
-    }
-
-    #[allow(unused_qualifications)]
-    impl ::core::fmt::Display for ModuleBuildError {
-      #[allow(clippy::used_underscore_binding)]
-      fn fmt(&self, __formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        ::core::fmt::Display::fmt(&self.0, __formatter)
-      }
-    }
-  };
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub enum DiagnosticKind {
-  JavaScript,
-  Typescript,
-  Jsx,
-  Tsx,
-  Scss,
-  Css,
-  #[default]
-  Internal,
-  Io,
-  Json,
-  Html,
-}
-
-/// About the manually implementation,
-/// display string should be snake, for consistency.
-impl std::fmt::Display for DiagnosticKind {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DiagnosticKind::JavaScript => write!(f, "javascript"),
-      DiagnosticKind::Typescript => write!(f, "typescript"),
-      DiagnosticKind::Jsx => write!(f, "jsx"),
-      DiagnosticKind::Tsx => write!(f, "tsx"),
-      DiagnosticKind::Scss => write!(f, "scss"),
-      DiagnosticKind::Css => write!(f, "css"),
-      DiagnosticKind::Internal => write!(f, "internal"),
-      DiagnosticKind::Io => write!(f, "io"),
-      DiagnosticKind::Json => write!(f, "json"),
-      DiagnosticKind::Html => write!(f, "html"),
-    }
-  }
-}
-
-fn _assert() {
-  fn _assert_send_sync<T: Send + Sync>() {}
-  _assert_send_sync::<InternalError>();
-  _assert_send_sync::<DiagnosticError>();
-}
-
-/// (message, stack, backtrace, hide_stack)
-#[derive(Debug, Error, Diagnostic)]
-#[diagnostic()]
-#[error("{reason}\n{backtrace}")]
-pub struct NodeError {
-  pub reason: String,
-  pub stack: Option<String>,
-  pub backtrace: String,
-  pub hide_stack: Option<bool>,
 }

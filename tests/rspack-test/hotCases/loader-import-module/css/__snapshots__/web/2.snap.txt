@@ -1,0 +1,98 @@
+# Case css: Step 2
+
+## Changed Files
+- colors.js
+- stylesheet.css.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 436
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./stylesheet.css.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]("main", {
+"./stylesheet.css.js": 
+/*!***************************!*\
+  !*** ./stylesheet.css.js ***!
+  \***************************/
+(function (module) {
+module.exports = "body { background: url(\"https://test.cases/path/assets/file.jpg\"); color: #00f; }";
+
+}),
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./stylesheet.css.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./stylesheet.css.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./stylesheet.css.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./stylesheet.css.js
+
+Disposed Callback:

@@ -32,7 +32,6 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
 ropey = { workspace = true }
-rspack_base64 = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }
@@ -78,6 +77,7 @@ swc_core = { workspace = true, features = [
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
+urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 

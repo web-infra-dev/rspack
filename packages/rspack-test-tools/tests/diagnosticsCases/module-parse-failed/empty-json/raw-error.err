@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleParseError,
-    moduleIdentifier: json|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-parse-failed/empty-json/empty.json,
-    moduleName: ./empty.json,
-  },
-]

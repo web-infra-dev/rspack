@@ -47,7 +47,7 @@ impl ProvideParserPlugin {
           .collect_vec(),
         Some(parser.source_map.clone()),
       );
-      parser.dependencies.push(Box::new(dep));
+      parser.add_dependency(Box::new(dep));
 
       // add value dependency
       let cache_key = format!("{VALUE_DEP_PREFIX}{name}");

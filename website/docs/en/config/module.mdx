@@ -13,21 +13,43 @@ Used to decide how to handle different types of modules in a project.
 
 ## module.defaultRules
 
-- **Type:** `Rule[]`
+- **Type:** `(Rule | Falsy)[]`
 
-An array of rules applied by default for modules.
+`defaultRules` configures the built-in module resolution and processing rules that Rspack enables by default. These rules are applied automatically to ensure that common resource types such as JavaScript, JSON, CSS, and Wasm can be correctly resolved and bundled.
 
-See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381) for details.
+You can extend, override, or disable these default rules to gain finer control over the build behavior.
+
+For example, extending the default rules:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [
-      '...', // you can use "..." to reference those rules applied by webpack by default
+      // Use "..." to reference Rspack’s default rules
+      '...',
+      // Add a custom rule
+      {
+        test: /\.foo$/,
+        use: ['foo-loader'],
+      },
     ],
   },
 };
 ```
+
+If you want to remove all of Rspack's default rules, simply omit `"..."`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    defaultRules: [],
+  },
+};
+```
+
+:::tip
+See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) for the full list of default rules.
+:::
 
 ## module.noParse
 
@@ -67,6 +89,64 @@ export default {
   },
 };
 ```
+
+## module.unsafeCache
+
+- **Type:** `boolean | RegExp`
+
+This is a performance optimization option that reduces the overhead of recording module resolution-related files in Rspack by **assuming that the resolution results of matched modules will not change**.
+
+During module resolution, Rspack needs to record relevant files that may affect the resolution results. For example:
+
+```js
+import 'the-module';
+```
+
+When resolving `the-module`, Rspack not only obtains the actual module path but also records the associated `package.json`:
+
+```json
+{
+  "exports": {
+    ".": "./lib/index.js"
+  }
+}
+```
+
+Because the `exports` field in `package.json` may affect the module's resolution path. When these files change, Rspack needs to re-perform module resolution.
+
+After enabling `unsafeCache`, matched modules are considered to have stable resolution results that will not change, so Rspack will no longer record files associated with the resolution of these modules.
+
+`unsafeCache` has the following default behavior:
+
+- If [cache](/config/cache) is disabled, the value is `false`
+- If [cache](/config/cache) is enabled:
+  - For modules from the `node_modules` directory, the value is `true`
+  - In other cases, the value is `false`
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    unsafeCache: false,
+  },
+};
+```
+
+:::tip Differences from Webpack
+Even when `module.unsafeCache: false` is set, Rspack still caches the association between `Dependency` and `Module` because Rspack uses an incremental algorithm when building the module graph. In contrast, Webpack completely disables module graph caching.
+
+To ensure resolution accuracy, Rspack completely records all related files during the module resolution process when `unsafeCache` is disabled.
+:::
+
+:::tip Relationship with `watchOptions.ignored`
+File recording: Occurs during the make phase, storing associated paths and building indexes with Dependencies.
+
+File watching: After compilation ends, recorded file paths are passed to the watcher, which can ignore specific paths through the `ignored` configuration.
+
+Incremental building: When the watcher detects file changes, Rspack finds the affected Dependencies through the paths and re-executes module resolution.
+
+Both are architecturally layered, each responsible for different functional phases.
+:::
 
 ## module.parser
 
@@ -164,6 +244,31 @@ export default {
 };
 ```
 
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+Enable [Magic comments](/api/runtime-api/module-methods#magic-comments) support for CommonJS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+Note that only `webpackIgnore` comment is supported at the moment:
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
 ### module.parser.javascript.dynamicImportMode
 
 <PropertyType
@@ -253,21 +358,38 @@ export default {
 ### module.parser.javascript.url
 
 <PropertyType
-  type="true | false | 'relative'"
+  type="true | false | 'relative' | 'new-url-relative'"
   defaultValueList={[{ defaultValue: 'true' }]}
 />
 
 Enable parsing of `new URL()` syntax.
 
-When use 'relative', Rspack would generate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+- `true`: Generate absolute URLs that include the root URL (default behavior).
+- `'relative'`: Generate relative URLs without the root URL.
+- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
 
-```html
-<!-- with 'relative' -->
-<img src="icon.svg" />
+When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
 
-<!-- without 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
 ```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// would become 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -279,6 +401,14 @@ export default {
     },
   },
 };
+```
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
 ```
 
 ### module.parser.javascript.exprContextCritical
@@ -546,7 +676,7 @@ export default {
 };
 ```
 
-Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 :::warning
 This is currently an experimental feature. You must enable [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
@@ -581,6 +711,8 @@ export default {
 };
 ```
 
+> See [Web Workers](/guide/features/web-workers) for more details.
+
 ### module.parser.javascript.overrideStrict
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
@@ -597,6 +729,29 @@ export default {
     parser: {
       javascript: {
         overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
       },
     },
   },
@@ -639,6 +794,8 @@ Inline optimization is applied when the constant value is:
 - `string` with length \<= 6
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineConst: true, // This is currently an experimental feature and requires explicit enabling
@@ -646,17 +803,45 @@ export default {
   module: {
     parser: {
       javascript: {
-        inlineConst: true,
+        inlineConst: isProduction,
       },
     },
   },
 };
 ```
 
+Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
+
 Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
 :::warning
 This is currently an experimental feature, so you also need to enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence).
+:::
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Allow the JavaScript parser to understand JSX syntax so that parsing and minimization can operate on files that keep JSX in the final bundle.
+
+Enable this option when you set the loader's JSX mode to "preserve" and want to defer the actual JSX transform to a later tool (for example, libraries that ship JSX output or rely on a custom JSX runtime).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This option is experimental in Rspack and may change or be removed.
 :::
 
 ### module.parser["javascript/auto"]
@@ -1179,7 +1364,7 @@ export default {
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
-- **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
+- **Supported Template string:** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
 Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
 
@@ -1958,8 +2143,10 @@ export default {
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
-This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 A basic example:
@@ -2007,9 +2194,6 @@ export default {
         },
       },
     ],
-  },
-  experiments: {
-    layers: true,
   },
 };
 ```
@@ -2304,16 +2488,33 @@ export default {
 
 There are two phases that all loaders enter one after the other:
 
-- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/types#pitching-loader) for details.
+- **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
 
 ### Rule.type
 
-- **Type:** `'javascript/auto' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
+- **Type:**
+
+```ts
+type RuleType =
+  | 'asset'
+  | 'css'
+  | 'css/auto'
+  | 'css/module'
+  | 'javascript/auto'
+  | 'javascript/dynamic'
+  | 'javascript/esm'
+  | 'json';
+```
 
 Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing.
 
-By default, Rspack will determine the type of the module based on the file extension. For example, `.js` and `.mjs` files will be treated as `javascript/auto` modules, and `.json` files will be treated as `json` modules.
+By default, Rspack will determine the type of the module based on the file extension. For example:
+
+- `.js` files will be treated as `javascript/auto` modules.
+- `.mjs` files, as well as `.js` files in packages with `type="module"` in package.json, will be treated as `javascript/esm` modules.
+- `.json` files will be treated as `json` modules.
+- `.css` files will be treated as `css/auto` modules.
 
 For example, if you want to load a `.json` file through a custom loader, you'd need to set the type to `javascript/auto` to bypass Rspack's built-in JSON importing.
 
@@ -2332,13 +2533,13 @@ export default {
 };
 ```
 
-All `type` options are as follows:
+The meanings of all `type` options are as follows:
 
-- `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ES modules.
-- `'javascript/esm'`：JavaScript modules, treated as ES modules.
-- `'javascript/dynamic'`：JavaScript modules, treated as Script.
+- `'javascript/auto'`: JavaScript modules. Rspack automatically determines the module type based on file content, providing the best compatibility.
+- `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
+- `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Native CSS Support](/guide/tech/css#native-css-support).
+- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ### Rule.layer
@@ -2349,8 +2550,10 @@ All `type` options are as follows:
 
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
+For more information about layers, see the [Layer guide](/guide/features/layer).
+
 :::warning
-This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 ```js title="rspack.config.mjs"
@@ -2556,6 +2759,28 @@ export default {
             type: 'asset/resource',
           },
         ],
+      },
+    ],
+  },
+};
+```
+
+### Rule.extractSourceMap
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type**: `boolean`
+- **Default:** `false`
+
+Extracts existing source map data from files (from their `//# sourceMappingURL` comment), useful for preserving the source maps of third-party libraries.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
       },
     ],
   },

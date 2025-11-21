@@ -133,15 +133,17 @@ impl ChunkGraph {
     source_type: String,
   ) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
+    let module_graph = compilation.get_module_graph();
+
+    let chunk_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      &chunk.chunk_ukey,
+      SourceType::from(source_type.as_str()),
+      &module_graph,
+    );
 
     Ok(
-      compilation
-        .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
-          &chunk.chunk_ukey,
-          SourceType::from(source_type.as_str()),
-          &compilation.get_module_graph(),
-        )
+      chunk_modules
+        .into_iter()
         .map(|module| ModuleObject::with_ref(module, compilation.compiler_id()))
         .collect(),
     )

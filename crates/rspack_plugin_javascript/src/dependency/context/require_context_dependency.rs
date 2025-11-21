@@ -3,7 +3,7 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource, module_raw,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, module_raw,
 };
 use rspack_error::Diagnostic;
 
@@ -15,7 +15,7 @@ pub struct RequireContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
@@ -50,8 +50,8 @@ impl Dependency for RequireContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

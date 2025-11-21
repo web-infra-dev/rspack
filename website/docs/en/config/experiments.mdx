@@ -6,12 +6,12 @@ import PropertyType from '@components/PropertyType';
 
 # Experiments
 
-Enable and try out some experimental features.
+Enables experimental features.
 
 - **Type:** `object`
 
 :::tip
-In minor releases, Rspack may make changes to the APIs of these experimental features and provide detailed explanations of these changes in the release notes. So if you are using experimental features, please pay attention to the minor release notes.
+In minor releases, Rspack may change the APIs of experimental features. If you're using experimental features, pay attention to the minor release notes for detailed explanations of changes.
 :::
 
 ## experiments.asyncWebAssembly
@@ -19,7 +19,7 @@ In minor releases, Rspack may make changes to the APIs of these experimental fea
 - **Type:** `boolean`
 - **Default:** `false`
 
-Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+Supports the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), making WebAssembly modules async.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -29,14 +29,14 @@ export default {
 };
 ```
 
-And it is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
+This is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
 
 ## experiments.outputModule
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Once enabled, Rspack will output ECMAScript module syntax whenever possible. For instance, `import()` to load chunks, ESM exports to expose chunk data, among others.
+When enabled, Rspack outputs ECMAScript module syntax whenever possible. For example, `import()` to load chunks, ESM exports to expose chunk data, and more.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -51,7 +51,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Once enabled, Rspack will enable native CSS support, and CSS related parser and generator options.
+When enabled, Rspack enables native CSS support and CSS-related parser and generator options.
 
 - [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
 - [`module.parser.css`](/config/module#moduleparsercss)
@@ -75,68 +75,12 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Use defaults of the next major Rspack and show warnings in any problematic places.
+Uses defaults from the next major Rspack version and shows warnings for any problematic configuration.
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
     futureDefaults: true,
-  },
-};
-```
-
-## experiments.topLevelAwait
-
-:::warning
-
-This option has been deprecated and will be removed in Rspack v2.0.
-
-Top-level await will be always enabled in the future. Please remove this option from your Rspack configuration."
-
-:::
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-await), `Top-level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
-
-Enabled by default and can be disabled with this configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
-
-:::
-
-## experiments.layers
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Controls whether to enable the layer feature. Layers can add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
-
-The `layer` of the `index.js` module is by default `null`, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` will become `(client)/./index.js`. At this point, the `index.js` modules in these two different layers will be treated as distinct modules, because their unique `identifier`s are different. As a result, the final output will include the artifacts of both modules.
-
-By default, a module's layer is `null`, and it will inherit its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and you can add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
   },
 };
 ```
@@ -203,36 +147,6 @@ The table below shows the results of incremental in different scenarios:
 | rebuild/HMR  |          ✅          |
 
 Starting from v1.4.0, Rspack enables incremental builds for all phases by default using `'advance-silent'` mode. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta addedVersion="1.2.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
-
-:::info
-Enabled by default in versions 1.3.0 to 1.4.8, and disabled by default in version 1.4.9 and later.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
-
-This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
-:::
 
 ## experiments.parallelLoader
 
@@ -718,7 +632,7 @@ In below example, you can simply replace the default input file system to any fi
 The replacing of `compiler.inputFileSystem` will only take effect before `compiler.run` called; Replacing after `compiler.run` will not take effect.
 :::
 
-More detailed case can be found [here](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system/webpack.config.js)
+More detailed case can be found [here](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -811,7 +725,7 @@ Please refer to [inline const example](https://github.com/rspack-contrib/rstack-
 
 The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
 
-Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
 
 ## experiments.typeReexportsPresence
 
@@ -822,7 +736,7 @@ Please refer to [collect typescript info example](https://github.com/rspack-cont
 
 The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
 
-Please refer to [collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info) for more details.
+Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 ## experiments.nativeWatcher
 
@@ -833,7 +747,7 @@ Please refer to [collect typescript info example](https://github.com/rspack-cont
 
 By default, Rspack uses Watchpack to monitor file changes, which generally works well in most scenarios.
 However, in certain specific environments, issues may arise. For example, Watchpack may experience performance problems when there are a large number of file changes.
-More detail see: [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
+More detail see: [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223).
 
 If you encounter performance issues with the default watcher, you can try enabling nativeWatcher.
 
@@ -855,9 +769,17 @@ export default {
 <ApiMeta addedVersion="1.5.0" />
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true` (enabled by default after v1.6.0)
 
 Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
 
 A side-effect-free module is a module that meets one of the following conditions:
 
@@ -880,6 +802,113 @@ A side-effect-free module is a module that meets one of the following conditions
    1. barrel file is not side effects free
    2. the star re-export is used
 
-> For more details please checkout: [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+:::
 
+> For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Currently, only `import defer * as ns from "./module"` is supported, while `import.defer()` will be supported in future versions.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+## experiments.topLevelAwait
+
+:::warning
+
+This option has been deprecated and will be removed in Rspack v2.0.
+
+Top-level await will always be enabled in the future. Remove this option from your Rspack configuration.
+
+:::
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module#ruletype) set to `javascript/esm`.
+
+Enabled by default. Can be disabled with this configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    topLevelAwait: false,
+  },
+};
+```
+
+## experiments.lazyCompilation
+
+<ApiMeta deprecatedVersion="1.5.0" />
+
+:::warning
+
+This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
+
+:::
+
+## experiments.layers
+
+<ApiMeta deprecatedVersion="1.6.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+:::warning
+This option is deprecated. Layers are now always enabled. Remove this option from your Rspack configuration.
+:::
+
+Controls whether to enable the layer feature. Layers add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
+
+The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
+
+By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    layers: true,
+  },
+};
+```
+
+## experiments.parallelCodeSplitting
+
+<ApiMeta deprecatedVersion="1.6.2" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
+
+:::warning
+This option is deprecated, it has a huge performance regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead.
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+  optimization: {
+    removeAvailableModules: true,
+  },
+};
+```
+
+:::warning
+When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
+
+This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
 :::

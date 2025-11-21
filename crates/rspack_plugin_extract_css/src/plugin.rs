@@ -11,9 +11,10 @@ use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, SourceType, get_undo_path,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
+  ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -120,7 +121,7 @@ impl PluginCssExtract {
     Self::new_inner(Arc::new(options))
   }
 
-  // port from https://github.com/webpack-contrib/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
+  // port from https://github.com/webpack/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
   fn sort_modules<'comp>(
     &self,
     chunk: &Chunk,
@@ -330,7 +331,7 @@ impl PluginCssExtract {
           .module_by_identifier(&conflict.fallback_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "".into(),
           format!(
             r#"chunk {} [{PLUGIN_NAME}]
@@ -372,9 +373,10 @@ despite it was not able to fulfill desired ordering with these modules:
               .collect::<Vec<_>>()
               .join("\n")
           ),
-        )
-        .with_file(Some(filename.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(filename.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
 
@@ -578,10 +580,11 @@ async fn content_hash(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -625,10 +628,11 @@ async fn render_manifest(
     return Ok(());
   }
 
-  let rendered_modules = compilation
-    .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SOURCE_TYPE[0], &module_graph)
-    .collect::<Vec<_>>();
+  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    chunk_ukey,
+    SOURCE_TYPE[0],
+    &module_graph,
+  );
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -640,7 +644,8 @@ async fn render_manifest(
     &self.options.chunk_filename
   };
 
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info =
+    AssetInfo::default().with_asset_type(ManifestAssetType::Custom("extract-css".into()));
   let filename = compilation
     .get_path_with_info(
       filename_template,
@@ -690,7 +695,7 @@ async fn render_manifest(
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()

@@ -12,7 +12,6 @@ import type Url from "node:url";
 import type { LoaderDefinitionFunction } from "../config";
 import type { PitchLoaderDefinitionFunction } from "../config/adapterRuleUse";
 import type { Compiler } from "../exports";
-import { nonWebpackRequire } from "../util/require";
 import type { LoaderObject } from ".";
 import LoaderLoadingError from "./LoaderLoadingError";
 
@@ -31,12 +30,13 @@ export default function loadLoader(
 	callback: (err: unknown) => void
 ): void {
 	if (IS_BROWSER) {
-		// Why is IS_BROWSER used here:
-		// @see [../utils/require.ts]
-		nonWebpackRequire()(loader.path).then(module => {
-			handleResult(loader, module, callback);
-		}, callback);
-		return;
+		let module: LoaderModule;
+		try {
+			module = compiler.__internal_browser_require(loader.path) as LoaderModule;
+		} catch (e) {
+			return callback(e);
+		}
+		return handleResult(loader, module, callback);
 	}
 
 	if (loader.type === "module") {
@@ -52,7 +52,7 @@ export default function loadLoader(
 			callback(e);
 		}
 	} else {
-		let module: any;
+		let module: LoaderModule;
 		try {
 			module = require(loader.path);
 		} catch (e) {

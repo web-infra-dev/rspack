@@ -7,7 +7,7 @@ use std::{
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexMap, UkeyIndexSet, UkeySet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -688,19 +688,27 @@ impl Chunk {
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id(&compilation.chunk_ids_artifact).hash(hasher);
-    for module in compilation
+    let runtime_modules = compilation
       .chunk_graph
-      .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
+      .get_chunk_runtime_modules_iterable(&self.ukey)
+      .copied()
+      .collect::<IdentifierSet>();
+
+    for module_identifier in compilation
+      .chunk_graph
+      .get_ordered_chunk_modules_identifier(&self.ukey)
     {
-      let module_identifier = module.identifier();
-      let hash = compilation
+      if runtime_modules.contains(&module_identifier) {
+        continue;
+      }
+      if let Some(hash) = compilation
         .code_generation_results
         .get_hash(&module_identifier, Some(&self.runtime))
-        .unwrap_or_else(|| {
-          panic!("Module ({module_identifier}) should have hash result when updating chunk hash.");
-        });
-      hash.hash(hasher);
+      {
+        hash.hash(hasher);
+      }
     }
+
     for (runtime_module_identifier, _) in compilation
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&self.ukey, compilation)
@@ -715,6 +723,7 @@ impl Chunk {
         });
       hash.hash(hasher);
     }
+
     "entry".hash(hasher);
     for (module, chunk_group) in compilation
       .chunk_graph
@@ -800,30 +809,63 @@ impl Chunk {
 
   pub fn get_child_ids_by_order<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
-    order: &ChunkGroupOrderKey,
+    order_key: &ChunkGroupOrderKey,
     compilation: &Compilation,
     filter_fn: &F,
   ) -> Option<Vec<ChunkId>> {
-    self
-      .get_children_of_type_in_order(order, compilation, true)
-      .map(|order_children| {
-        order_children
-          .iter()
-          .flat_map(|(_, child_chunks)| {
-            child_chunks.iter().filter_map(|chunk_ukey| {
-              if filter_fn(chunk_ukey, compilation) {
-                compilation
-                  .chunk_by_ukey
-                  .expect_get(chunk_ukey)
-                  .id(&compilation.chunk_ids_artifact)
-                  .cloned()
-              } else {
-                None
-              }
+    let mut list = vec![];
+    for group_ukey in self.get_sorted_groups_iter(&compilation.chunk_group_by_ukey) {
+      let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+      if group
+        .chunks
+        .last()
+        .is_some_and(|chunk_ukey| chunk_ukey.eq(&self.ukey))
+      {
+        for child_group_ukey in group.children_iterable() {
+          let child_group = compilation.chunk_group_by_ukey.expect_get(child_group_ukey);
+          if let Some(order) = child_group
+            .kind
+            .get_normal_options()
+            .and_then(|o| match order_key {
+              ChunkGroupOrderKey::Prefetch => o.prefetch_order,
+              ChunkGroupOrderKey::Preload => o.preload_order,
             })
-          })
-          .collect_vec()
-      })
+          {
+            list.push((order, *child_group_ukey));
+          }
+        }
+      }
+    }
+
+    list.sort_by(|a, b| {
+      let order = b.0.cmp(&a.0);
+      match order {
+        Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
+        _ => order,
+      }
+    });
+
+    let mut chunk_ids = vec![];
+    for (_, child_group_ukey) in list.iter() {
+      let child_group = compilation.chunk_group_by_ukey.expect_get(child_group_ukey);
+      for chunk_ukey in child_group.chunks.iter() {
+        if filter_fn(chunk_ukey, compilation)
+          && let Some(chunk_id) = compilation
+            .chunk_by_ukey
+            .expect_get(chunk_ukey)
+            .id(&compilation.chunk_ids_artifact)
+            .cloned()
+        {
+          chunk_ids.push(chunk_id);
+        }
+      }
+    }
+
+    if chunk_ids.is_empty() {
+      return None;
+    }
+
+    Some(chunk_ids)
   }
 
   pub fn get_child_ids_by_orders_map<F: Fn(&ChunkUkey, &Compilation) -> bool + Sync>(
@@ -915,10 +957,7 @@ pub fn chunk_hash_js<'a>(
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     return true;
   }
-  if !chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::JavaScript, module_graph)
-    .is_empty()
-  {
+  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
     return true;
   }
   false

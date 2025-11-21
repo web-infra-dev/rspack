@@ -4,7 +4,7 @@ use rspack_core::{
   AssetInfo, ChunkGraph, Compilation, CompilationAfterProcessAssets, CompilationAsset,
   DependenciesBlock, DependencyType, ExtendedReferencedExport, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin,
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -810,7 +810,7 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
   };
 
   let content = serde_json::to_string_pretty(&report)
-    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
+    .map_err(|e| Error::error(format!("Failed to serialize share usage report: {e}")))?;
 
   let filename = &self.options.filename;
 
@@ -823,12 +823,18 @@ async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()
     }
     compilation.assets_mut().insert(
       unique_filename,
-      CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
+      CompilationAsset::new(
+        Some(RawStringSource::from(content).boxed()),
+        AssetInfo::default(),
+      ),
     );
   } else {
     compilation.assets_mut().insert(
       filename.clone(),
-      CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
+      CompilationAsset::new(
+        Some(RawStringSource::from(content).boxed()),
+        AssetInfo::default(),
+      ),
     );
   }
 

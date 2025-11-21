@@ -1,6 +1,9 @@
-use rspack_core::{ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals, SpanExt};
-use rspack_util::itoa;
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals,
+};
+use rspack_util::{SpanExt, itoa};
 use swc_core::{
+  atoms::Atom,
   common::Spanned,
   ecma::ast::{CallExpr, VarDeclarator},
 };
@@ -11,11 +14,11 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
+pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
 
 #[derive(Debug, Clone)]
-struct NestedRequireData {
-  name: String,
+pub struct NestedRequireData {
+  pub name: String,
   update: bool,
   loc: DependencyRange,
   in_short_hand: bool,
@@ -37,24 +40,24 @@ impl CompatibilityPlugin {
       return None;
     }
     let dep = ConstDependency::new(expr.callee.span().into(), "require".into(), None);
-    if let Some(last) = parser.dependencies.last()
-      && let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
-      && let options = last.options()
-      && options.recursive
-      && options.request == "."
-    {
-      parser.dependencies.pop();
-      // TODO: dependency getWarnings getErrors
-      parser.warning_diagnostics.pop();
+    if let Some(last) = parser.pop_dependency() {
+      if let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
+        && let options = last.options()
+        && options.recursive
+        && options.request == "."
+      {
+      } else {
+        parser.add_dependency(last);
+      }
     }
-    parser.presentational_dependencies.push(Box::new(dep));
+    parser.add_presentational_dependency(Box::new(dep));
     Some(true)
   }
 
   fn tag_nested_require_data(
     &self,
     parser: &mut JavascriptParser,
-    name: String,
+    name: Atom,
     rename: String,
     in_short_hand: bool,
     start: u32,
@@ -62,7 +65,7 @@ impl CompatibilityPlugin {
   ) {
     parser.tag_variable(
       name,
-      NESTED_WEBPACK_IDENTIFIER_TAG,
+      NESTED_IDENTIFIER_TAG,
       Some(NestedRequireData {
         name: rename,
         update: false,
@@ -85,13 +88,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))
       .is_some()
     {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          (0, 0).into(),
-          "//".into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        (0, 0).into(),
+        "//".into(),
+        None,
+      )));
     }
 
     None
@@ -110,7 +111,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -126,7 +127,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     } else if ident.sym == RuntimeGlobals::EXPORTS.name() {
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         "__nested_webpack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -147,7 +148,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     if for_name == RuntimeGlobals::EXPORTS.name() {
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         "__nested_webpack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -159,7 +160,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
         parser,
-        ident.sym.to_string(),
+        ident.sym.clone(),
         {
           let mut start_buffer = itoa::Buffer::new();
           let start_str = start_buffer.format(start);
@@ -179,13 +180,13 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
-    let name = ident.sym.as_str();
+    let name = &ident.sym;
     if name != RuntimeGlobals::REQUIRE.name() {
       None
     } else {
       self.tag_nested_require_data(
         parser,
-        name.to_string(),
+        name.clone(),
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
@@ -205,7 +206,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != NESTED_WEBPACK_IDENTIFIER_TAG {
+    if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
     let tag_info = parser
@@ -213,24 +214,24 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .expect_get_mut_tag_info(parser.current_tag_info?);
 
     let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);
-    let mut deps = Vec::with_capacity(2);
+    let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
       let shorthand = nested_require_data.in_short_hand;
-      deps.push(ConstDependency::new(
-        nested_require_data.loc.clone(),
+      deps.push(Box::new(ConstDependency::new(
+        nested_require_data.loc,
         if shorthand {
           format!("{}: {}", ident.sym, name.clone()).into()
         } else {
           name.clone().into()
         },
         None,
-      ));
+      )));
       nested_require_data.update = true;
     }
     tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
-    deps.push(ConstDependency::new(
+    deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
         format!("{}: {}", ident.sym, name.clone()).into()
@@ -238,10 +239,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         name.clone().into()
       },
       None,
-    ));
-    for dep in deps {
-      parser.presentational_dependencies.push(Box::new(dep));
-    }
+    )));
+    parser.add_presentational_dependencies(deps);
     Some(true)
   }
 

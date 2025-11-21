@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -14,8 +14,7 @@ pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
   range_decl: Option<DependencyRange>,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
 }
 
 impl ESMExportHeaderDependency {
@@ -24,10 +23,11 @@ impl ESMExportHeaderDependency {
     range_decl: Option<DependencyRange>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       range,
       range_decl,
-      source_map,
+      loc,
       id: DependencyId::default(),
     }
   }
@@ -40,7 +40,7 @@ impl Dependency for ESMExportHeaderDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn dependency_type(&self) -> &DependencyType {

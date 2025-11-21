@@ -48,7 +48,7 @@ fn test_normalize_custom_filename() {
  */
 pub fn minify_file_comments(
   comments: &SingleThreadedComments,
-  preserve_comments: BoolOr<JsMinifyCommentOption>,
+  preserve_comments: &BoolOr<JsMinifyCommentOption>,
   preserve_annotations: bool,
 ) {
   match preserve_comments {

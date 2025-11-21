@@ -1,7 +1,0 @@
-Array [
-  Object {
-    loc: 2:8-14,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-loader/loader.js!<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-loader/index.js,
-    moduleName: ./index.js,
-  },
-]

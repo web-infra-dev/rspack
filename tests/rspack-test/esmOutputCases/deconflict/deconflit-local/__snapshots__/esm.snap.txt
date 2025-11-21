@@ -1,0 +1,19 @@
+```mjs title=main.mjs
+// ./foo.js
+const local = 'foo'
+const value = 42
+
+// ./index.js
+
+
+const index_local = 'index'
+const index_index_local = ''
+
+it('should have deconflicted symbol', () => {
+	expect(value).toBe(42)
+	expect(index_local).toBe('index')
+	expect(index_index_local).toBe('')
+})
+
+
+```

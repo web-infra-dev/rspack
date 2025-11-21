@@ -6,7 +6,6 @@ import { join } from "node:path";
 export default {
 	dependencies: [
 		"@swc/types",
-		"graceful-fs",
 		"browserslist-load-config",
 		{
 			name: "webpack-sources",
@@ -14,9 +13,7 @@ export default {
 		},
 		{
 			name: "watchpack",
-			externals: {
-				"graceful-fs": "../graceful-fs/index.js"
-			},
+			dtsExternals: ["graceful-fs"],
 			afterBundle(task) {
 				const importStatement = "import fs from 'graceful-fs';";
 				const dtsPath = join(task.distPath, "index.d.ts");

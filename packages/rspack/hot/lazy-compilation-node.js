@@ -1,5 +1,3 @@
-
-
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 
 /**
@@ -16,7 +14,7 @@ exports.activate = function (options) {
 	var request = (
 		urlBase.startsWith("https") ? require("https") : require("http")
 	).request(
-		urlBase + data,
+		urlBase + encodeURIComponent(data),
 		{
 			agent: false,
 			headers: { accept: "text/event-stream" }

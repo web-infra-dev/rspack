@@ -1,0 +1,69 @@
+```mjs title=main.mjs
+import { value } from "./module-module_js.mjs";
+
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/export_webpack_require
+var __webpack_require_temp__ = __webpack_require__;
+export { __webpack_require_temp__ as __webpack_require__ };
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/module_chunk_loading
+(() => {
+// no BaseURI
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var installedChunks = {"main": 0,};
+      var installChunk = (data) => {
+    var __webpack_ids__ = data.__webpack_ids__;
+    var __webpack_modules__ = data.__webpack_modules__;
+    var __webpack_runtime__ = data.__webpack_runtime__;
+    // add "modules" to the modules object,
+    // then flag all "ids" as loaded and fire callback
+    var moduleId, chunkId, i = 0;
+    for (moduleId in __webpack_modules__) {
+        if (__webpack_require__.o(__webpack_modules__, moduleId)) {
+            __webpack_require__.m[moduleId] = __webpack_modules__[moduleId];
+        }
+    }
+    if (__webpack_runtime__) __webpack_runtime__(__webpack_require__);
+    for (; i < __webpack_ids__.length; i++) {
+        chunkId = __webpack_ids__[i];
+        if (__webpack_require__.o(installedChunks, chunkId) && installedChunks[chunkId]) {
+            installedChunks[chunkId][0]();
+        }
+        installedChunks[__webpack_ids__[i]] = 0;
+    }
+    
+};// no chunk on demand loading
+
+        __webpack_require__.C = installChunk;
+        // no on chunks loaded
+// no HMR
+// no HMR manifest
+
+})();
+
+// ./index.js
+
+
+it('should have correct export from module', async () => {
+	expect(value()).toBe(42)
+})
+
+
+```
+
+```mjs title=module-module_js.mjs
+// ./module.js
+let value = () => 42;
+
+
+
+export { value };
+
+```

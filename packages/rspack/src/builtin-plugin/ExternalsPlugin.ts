@@ -18,7 +18,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
 	constructor(
 		private type: string,
-		private externals: Externals
+		private externals: Externals,
+		private placeInInitial?: boolean
 	) {
 		super();
 	}
@@ -30,7 +31,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 			type,
 			externals: (Array.isArray(externals) ? externals : [externals])
 				.filter(Boolean)
-				.map(item => this.#getRawExternalItem(item))
+				.map(item => this.#getRawExternalItem(item)),
+			placeInInitial: this.placeInInitial ?? false
 		};
 		return createBuiltinPlugin(this.name, raw);
 	}

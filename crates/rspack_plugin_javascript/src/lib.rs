@@ -1,13 +1,13 @@
 #![recursion_limit = "256"]
 
 pub mod dependency;
+mod magic_comment;
 pub mod parser_and_generator;
 mod parser_plugin;
 mod plugin;
 pub mod runtime;
 pub mod utils;
 pub mod visitors;
-mod webpack_comment;
 pub use parser_plugin::*;
 use rspack_core::rspack_sources::SourceMap;
 

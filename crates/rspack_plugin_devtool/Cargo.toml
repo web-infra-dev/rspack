@@ -16,7 +16,6 @@ itertools                = { workspace = true }
 memchr                   = { workspace = true }
 rayon                    = { workspace = true }
 regex                    = { workspace = true }
-rspack_base64            = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
@@ -28,6 +27,7 @@ rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 simd-json                = { workspace = true }
 sugar_path               = { workspace = true }
+thread_local             = { workspace = true }
 tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]

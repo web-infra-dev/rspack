@@ -1,6 +1,5 @@
 const button = document.createElement("button");
 button.textContent = "Click me";
-document.body.appendChild(button);
 
 button.addEventListener("click", () => {
   // Dynamic import already contains code that adds component to the page
@@ -9,3 +8,4 @@ button.addEventListener("click", () => {
     console.log("Component loaded");
   });
 });
+document.body.appendChild(button);

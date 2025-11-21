@@ -4,9 +4,9 @@ use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
-  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
+  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
+  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
@@ -30,13 +30,13 @@ use crate::{
     ExternalModuleDependencyTemplate, ImportContextDependencyTemplate, ImportDependencyTemplate,
     ImportEagerDependencyTemplate, ImportMetaContextDependencyTemplate,
     ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
-    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
+    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
+    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
-    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
@@ -63,7 +63,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport,
+    DependencyType::EsmExportImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -163,7 +163,7 @@ async fn compilation(
   );
   // other
   compilation.set_dependency_factory(
-    DependencyType::WebpackIsIncluded,
+    DependencyType::IsIncluded,
     Arc::new(IgnoreErrorModuleFactory {
       normal_module_factory: params.normal_module_factory.clone(),
     }),
@@ -355,8 +355,8 @@ async fn compilation(
     Arc::new(ExportInfoDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    WebpackIsIncludedDependencyTemplate::template_type(),
-    Arc::new(WebpackIsIncludedDependencyTemplate::default()),
+    IsIncludedDependencyTemplate::template_type(),
+    Arc::new(IsIncludedDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ModuleArgumentDependencyTemplate::template_type(),
@@ -437,33 +437,25 @@ async fn content_hash(
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self
-      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
-      .await?;
-  } else {
+  if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
   }
 
-  self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
-
   let module_graph = compilation.get_module_graph();
-  let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    &module_graph,
-  );
+  let mut ordered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
   // SAFETY: module identifier is unique
-  ordered_modules.sort_unstable_by_key(|m| m.identifier().as_str());
+  ordered_modules.sort_unstable();
 
   ordered_modules
     .iter()
-    .map(|mgm| {
+    .map(|mid| {
       (
         compilation
           .code_generation_results
-          .get_hash(&mgm.identifier(), Some(chunk.runtime())),
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, mgm.identifier()),
+          .get_hash(mid, Some(chunk.runtime())),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *mid),
       )
     })
     .for_each(|(current, id)| {
@@ -473,13 +465,13 @@ async fn content_hash(
       }
     });
 
-  for (runtime_module_idenfitier, _) in compilation
+  for (runtime_module_identifier, _) in compilation
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
     if let Some(hash) = compilation
       .runtime_modules_hash
-      .get(runtime_module_idenfitier)
+      .get(runtime_module_identifier)
     {
       hash.hash(&mut hasher);
     }
@@ -498,9 +490,26 @@ async fn render_manifest(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
-  let is_main_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
+    let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+
+    group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
+  });
+  let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+
+  if !is_hot_update
+    && is_runtime_chunk
+    && !chunk_has_runtime_or_js(
+      chunk_ukey,
+      &compilation.chunk_graph,
+      &compilation.get_module_graph(),
+    )
+  {
+    return Ok(());
+  }
   if !is_hot_update
     && !is_main_chunk
+    && !is_runtime_chunk
     && !chunk_has_js(
       chunk_ukey,
       &compilation.chunk_graph,
@@ -514,7 +523,7 @@ async fn render_manifest(
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
   let output_path = compilation
     .get_path_with_info(
@@ -540,14 +549,23 @@ async fn render_manifest(
     )
     .await?;
 
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+  let hooks = hooks.read().await;
+
   let (source, _) = compilation
     .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if is_hot_update {
+      let source = if let Some(source) = hooks
+        .render_chunk_content
+        .call(compilation, chunk_ukey, &mut asset_info)
+        .await?
+      {
+        source.source
+      } else if is_hot_update {
         self
           .render_chunk(compilation, chunk_ukey, &output_path)
           .await?
-      } else if is_main_chunk {
+      } else if is_runtime_chunk {
         self
           .render_main(compilation, chunk_ukey, &output_path)
           .await?
@@ -610,7 +628,10 @@ impl Plugin for JsPlugin {
   }
 
   fn clear_cache(&self, id: CompilationId) {
-    crate::plugin::COMPILATION_HOOKS_MAP.remove(&id);
+    crate::plugin::COMPILATION_HOOKS_MAP
+      .write()
+      .expect("should have js plugin drive")
+      .remove(&id);
   }
 }
 
@@ -624,9 +645,24 @@ fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &Modu
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     true
   } else {
-    chunk_graph
-      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
-      .next()
-      .is_some()
+    chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
   }
+}
+
+fn chunk_has_runtime_or_js(
+  chunk: &ChunkUkey,
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+) -> bool {
+  if chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk)
+    .next()
+    .is_some()
+  {
+    return true;
+  }
+  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
+    return true;
+  }
+  false
 }

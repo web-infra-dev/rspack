@@ -41,14 +41,14 @@ impl RuntimeModule for ShareRuntimeModule {
     > = FxHashMap::default();
     for c in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
-      let modules = compilation
+      let mut modules = compilation
         .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(&c, SourceType::ShareInit, &module_graph)
-        .sorted_unstable_by_key(|m| m.identifier());
-      for m in modules {
+        .get_chunk_modules_identifier_by_source_type(&c, SourceType::ShareInit, &module_graph);
+      modules.sort_unstable();
+      for mid in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(chunk.runtime()));
+          .get(&mid, Some(chunk.runtime()));
         let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
           continue;
         };

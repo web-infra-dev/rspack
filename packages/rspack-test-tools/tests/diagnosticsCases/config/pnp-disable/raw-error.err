@@ -1,7 +1,0 @@
-Array [
-  Object {
-    loc: 1:0-32,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/tests/diagnosticsCases/config/pnp-disable/index.js,
-    moduleName: ./index.js,
-  },
-]

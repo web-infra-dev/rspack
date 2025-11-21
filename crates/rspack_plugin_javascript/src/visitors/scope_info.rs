@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use rustc_hash::FxHashMap;
+use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScopeInfoId(u32);
@@ -182,19 +183,17 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn get<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) -> Option<VariableInfoId> {
+  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
     let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key.as_ref()) {
+    if let Some(&top_value) = definitions.map.get(key) {
       if top_value == VariableInfo::TOMBSTONE || top_value == VariableInfo::UNDEFINED {
         None
       } else {
         Some(top_value)
       }
     } else if definitions.stack.len() > 1 {
-      for index in (0..definitions.stack.len() - 1).rev() {
-        // SAFETY: boundary had been checked
-        let id = unsafe { definitions.stack.get_unchecked(index) };
-        if let Some(&value) = self.expect_get_scope(*id).map.get(key.as_ref()) {
+      for &id in definitions.stack.iter().rev().skip(1) {
+        if let Some(&value) = self.expect_get_scope(id).map.get(key) {
           if value == VariableInfo::TOMBSTONE || value == VariableInfo::UNDEFINED {
             return None;
           } else {
@@ -203,28 +202,24 @@ impl ScopeInfoDB {
         }
       }
       let definitions = self.expect_get_mut_scope(id);
-      definitions
-        .map
-        .insert(key.as_ref().to_string(), VariableInfo::TOMBSTONE);
+      definitions.map.insert(key.clone(), VariableInfo::TOMBSTONE);
       None
     } else {
       None
     }
   }
 
-  pub fn set(&mut self, id: ScopeInfoId, key: String, variable_info_id: VariableInfoId) {
+  pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
     let scope = self.expect_get_mut_scope(id);
     scope.map.insert(key, variable_info_id);
   }
 
-  pub fn delete<S: AsRef<str>>(&mut self, id: ScopeInfoId, key: S) {
+  pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     let scope = self.expect_get_mut_scope(id);
     if scope.stack.len() > 1 {
-      scope
-        .map
-        .insert(key.as_ref().to_string(), VariableInfo::TOMBSTONE);
+      scope.map.insert(key.clone(), VariableInfo::TOMBSTONE);
     } else {
-      scope.map.remove(key.as_ref());
+      scope.map.remove(key);
     }
   }
 }
@@ -299,7 +294,7 @@ pub struct VariableInfo {
   ///
   /// The variable `a` is tagged as `ESM_SPECIFIER_TAG`, so `call_hooks_name`
   /// will call the aliased name `"a"` for hooks.
-  pub name: Option<String>,
+  pub name: Option<Atom>,
 
   pub flags: VariableInfoFlags,
 
@@ -342,7 +337,7 @@ impl VariableInfo {
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
-    name: Option<String>,
+    name: Option<Atom>,
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
@@ -378,12 +373,12 @@ impl VariableInfo {
 #[derive(Debug)]
 pub struct ScopeInfo {
   stack: Vec<ScopeInfoId>,
-  map: FxHashMap<String, VariableInfoId>,
+  map: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
 
 impl ScopeInfo {
-  pub fn variable_map(&self) -> &FxHashMap<String, VariableInfoId> {
+  pub fn variable_map(&self) -> &FxHashMap<Atom, VariableInfoId> {
     &self.map
   }
 

@@ -1,0 +1,7 @@
+Array [
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-import-syntax-error/syntax-error.js,
+    moduleName: ,
+  },
+]

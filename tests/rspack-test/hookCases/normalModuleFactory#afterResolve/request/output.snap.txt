@@ -1,0 +1,94 @@
+```js title=main.js
+(() => {
+var __webpack_modules__ = ({
+"../../normalModuleFactory​#afterResolve/request/a.js": (function (module) {
+module.exports = "a";
+
+
+}),
+"../../normalModuleFactory​#afterResolve/request/c.js": (function (module) {
+module.exports = "b";
+
+
+}),
+
+});
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+
+// EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/a.js
+var a = __webpack_require__("../../normalModuleFactory​#afterResolve/request/a.js");
+var a_default = /*#__PURE__*/__webpack_require__.n(a);
+// EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/c.js
+var c = __webpack_require__("../../normalModuleFactory​#afterResolve/request/c.js");
+var c_default = /*#__PURE__*/__webpack_require__.n(c);
+;// CONCATENATED MODULE: external "fs"
+const external_fs_namespaceObject = require("fs");
+var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
+;// CONCATENATED MODULE: ../../normalModuleFactory​#afterResolve/request/request.js
+
+
+
+
+it("should modify request by after resolve hook", () => {
+	expect((a_default())).toBe("a");
+	expect((c_default())).toBe("b");
+	const ext = ".js";
+	expect(external_fs_default().readFileSync(__filename, "utf-8")).toContain("request/c" + ext);
+});
+
+})();
+
+})()
+;
+```

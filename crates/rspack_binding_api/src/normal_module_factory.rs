@@ -55,28 +55,19 @@ impl From<&NormalModuleCreateData> for JsCreateData {
     Self {
       request: value.request.to_owned(),
       user_request: value.user_request.to_owned(),
-      resource: value.resource_resolve_data.resource.to_owned(),
+      resource: value.resource_resolve_data.resource().to_owned(),
     }
   }
 }
 
 impl JsCreateData {
   pub fn update_nmf_data(self, create_data: &mut NormalModuleCreateData) {
-    fn update_resource_data(old_resource_data: &mut ResourceData, new_resource: String) {
-      if old_resource_data.resource_path.is_some()
-        && let Some(parsed) = parse_resource(&new_resource)
-      {
-        old_resource_data.set_path(parsed.path);
-        old_resource_data.set_query_optional(parsed.query);
-        old_resource_data.set_fragment_optional(parsed.fragment);
-      }
-      old_resource_data.set_resource(new_resource);
-    }
-
     create_data.request = self.request;
     create_data.user_request = self.user_request;
-    if create_data.resource_resolve_data.resource != self.resource {
-      update_resource_data(&mut create_data.resource_resolve_data, self.resource);
+    if create_data.resource_resolve_data.resource() != self.resource {
+      create_data
+        .resource_resolve_data
+        .update_resource_data(self.resource);
     }
   }
 }
@@ -128,7 +119,7 @@ impl JsResolveData {
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.to_owned(),
         user_request: create_data.user_request.to_owned(),
-        resource: create_data.resource_resolve_data.resource.to_owned(),
+        resource: create_data.resource_resolve_data.resource().to_owned(),
       }),
     }
   }

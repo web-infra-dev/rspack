@@ -6,11 +6,7 @@ use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::{
-  DiagnosticExt, Result,
-  miette::{self, Diagnostic as MietteDiagnostic},
-  thiserror::{self, Error},
-};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -20,10 +16,18 @@ use crate::parser_and_generator::JavaScriptParserAndGenerator;
 const VALUE_DEP_PREFIX: &str = "rspack/ProvidePlugin ";
 type ProvideValue = HashMap<String, Vec<String>>;
 
-#[derive(Debug, Error, MietteDiagnostic)]
-#[error("ProvidePlugin:\nConflicting values for '{0}' ({1} !== {2})")]
-#[diagnostic(severity(Warning))]
+#[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
+
+impl ConflictingValuesError {
+  fn into_diagnostic(self) -> Diagnostic {
+    Error::warning(format!(
+      "ProvidePlugin:\nConflicting values for '{}' ({} !== {})",
+      self.0, self.1, self.2
+    ))
+    .into()
+  }
+}
 
 #[plugin]
 #[derive(Default, Debug, Clone)]
@@ -61,9 +65,7 @@ async fn compilation(
       && prev != &value
     {
       compilation.push_diagnostic(
-        ConflictingValuesError(key.clone(), prev.clone(), value)
-          .boxed()
-          .into(),
+        ConflictingValuesError(key.clone(), prev.clone(), value).into_diagnostic(),
       );
     } else {
       compilation.value_cache_versions.insert(cache_key, value);
@@ -77,7 +79,7 @@ async fn compilation(
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()

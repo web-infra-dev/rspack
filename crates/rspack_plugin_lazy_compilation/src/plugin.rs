@@ -3,21 +3,24 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
-  DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
+  utils::calc_value_dependency_key,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
+static DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
   RspackRegex::new(
     r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
   )
@@ -63,18 +66,26 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   entries: bool, // enable for entries
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
-  cacheable: bool,
+  client: String,
+  active_modules: RwLock<IdentifierSet>,
 }
 
 impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   pub fn new(
-    cacheable: bool,
     backend: T,
     test: Option<LazyCompilationTest<F>>,
     entries: bool,
     imports: bool,
+    client: String,
   ) -> Self {
-    Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
+    Self::new_inner(
+      Mutex::new(backend),
+      entries,
+      imports,
+      test,
+      client,
+      Default::default(),
+    )
   }
 
   async fn check_test(
@@ -105,6 +116,10 @@ async fn compilation(
       params.normal_module_factory.clone(),
     )) as Arc<dyn ModuleFactory>,
   );
+
+  compilation
+    .value_cache_versions
+    .insert(calc_value_dependency_key("client"), self.client.clone());
 
   Ok(())
 }
@@ -168,7 +183,7 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
+  if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
         module_factory_create_data.compiler_id,
@@ -180,30 +195,59 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  let mut backend = self.backend.lock().await;
-  let module_identifier = module.identifier();
-
+  let module_identifier: ModuleIdentifier =
+    format!("lazy-compilation-proxy|{}", module.identifier()).into();
+  let readable_identifier = format!(
+    "lazy-compilation-proxy|{}",
+    module_factory_create_data
+      .context
+      .shorten(&module.identifier())
+  );
+  let active = self
+    .active_modules
+    .read()
+    .await
+    .contains(&module_identifier);
   let lib_ident = module.lib_ident(LibIdentOptions {
     context: module_factory_create_data.options.context.as_str(),
   });
-  let info = backend
-    .module(
-      module_identifier,
-      create_data.resource_resolve_data.resource.clone(),
-    )
-    .await?;
 
-  *module = Box::new(LazyCompilationProxyModule::new(
+  *module = LazyCompilationProxyModule::new(
     module_identifier,
+    readable_identifier,
     lib_ident.map(|ident| ident.into_owned()),
-    module_factory_create_data.clone(),
-    create_data.resource_resolve_data.resource.clone(),
-    self.cacheable,
-    info.active,
-    info.data,
-    info.client,
-  ));
+    module_factory_create_data,
+    create_data.resource_resolve_data.resource().to_owned(),
+    active,
+    self.client.clone(),
+  )
+  .boxed();
 
+  Ok(())
+}
+
+#[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
+async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let active_modules = self.backend.lock().await.current_active_modules().await?;
+  let mut module_graph = compilation.get_module_graph_mut();
+  let mut errors = vec![];
+  for module_id in &active_modules {
+    let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
+      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
+      continue;
+    };
+
+    let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
+      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
+      continue;
+    };
+
+    active_module.invalid();
+  }
+
+  *self.active_modules.write().await = active_modules.into_iter().collect();
+
+  compilation.extend_diagnostics(errors);
   Ok(())
 }
 
@@ -218,6 +262,8 @@ impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
       .normal_module_factory_hooks
       .module
       .tap(normal_module_factory_module::new(self));
+
+    ctx.compiler_hooks.make.tap(compiler_make::new(self));
     Ok(())
   }
 }

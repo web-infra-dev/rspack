@@ -1,37 +1,35 @@
-# 简介
+# Rspack 插件
 
 Rspack 通过丰富插件生态来增强编译功能，这些插件分为以下几类：
 
-## 同步自 webpack 的内置插件
+## 内置插件
 
-为了对齐 webpack 的功能，Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
-
-详见 [同步自 webpack 的内置插件 - 总览](/plugins/webpack/index)。
-
-## Rspack 独有的内置插件
-
-Rspack 结合自身实现特点，提供了一些独有的插件，替代对应的 webpack 生态插件，旨在提供更高效的性能。
+Rspack 内置了一些高性能的插件，它们可以用于替代 webpack 生态中的一些流行插件，并提供更高效的性能。
 
 包括：
 
 - [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)
 - [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
+- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)
 - [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
 - [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)
 - [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)
 - [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)
 - [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)
 - [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)
 
-## 兼容的 webpack 生态插件
+## 内置插件（对齐 webpack）
+
+为了对齐 webpack 的功能，Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
+
+详见 [内置插件（对齐 webpack） - 总览](/plugins/webpack/index)。
+
+## 社区插件
 
 Rspack 致力于兼容 webpack 生态内的插件，以便于使用社区中已经积累和验证的优秀功能。
 
 请查看 [插件兼容列表](/guide/compatibility/plugin) 获取经过我们兼容性测试的 webpack 插件清单。
 
-## 社区插件
-
-你可以在 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 中查看社区提供的 Rspack 插件。
+你还可以在 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 中查看社区提供的 Rspack 插件。
 
 欢迎将你开发的插件添加到这个仓库中。

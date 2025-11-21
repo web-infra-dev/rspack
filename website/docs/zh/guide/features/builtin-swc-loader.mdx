@@ -350,7 +350,7 @@ import Btn from 'foo/es/MyButton';
 
 可以看出配置 `customName: "foo/es/{{ member }}"` 的效果等同于配置 `` customName: (member) => `foo/es/${member}` ``，但是不会有 Node-API 的调用开销。
 
-这里使用到的模版是 [handlebars](https://handlebarsjs.com)，模版配置中还内置了一些有用的辅助函数，还是以上面的导入语句为例：
+模版字符串中还内置了一些有用的辅助函数，还是以上面的导入语句为例：
 
 配置如下：
 
@@ -463,8 +463,6 @@ import 'antd/es/button/style';
 
 为了保证收集到的信息的准确性，用户需要确保 `builtin:swc-loader` 后续的 Normal Loader 不会去修改这些已经被收集到的相关信息对应的 AST，以免导致收集到的信息和实际的代码不一致的情况。
 
-详细示例可参考：[collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
-
 #### rspackExperiments.collectTypeScriptInfo.typeExports
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
@@ -474,6 +472,8 @@ import 'antd/es/button/style';
 
 是否收集类型导出信息，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
 
+详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
+
 #### rspackExperiments.collectTypeScriptInfo.exportedEnum
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
@@ -481,13 +481,15 @@ import 'antd/es/button/style';
 - **类型：** `boolean | 'const-only'`
 - **默认值：** `false`
 
-是否收集导出的 `enum` 信息。
+是否收集导出的 `enum` 信息，提供给 Rspack 对 `enums` 进行跨模块的内联优化。
 
 - `true` 将收集所有 `enum` 信息，包括 `const enum` 和普通 `enum`。
 - `false` 不收集任何 `enum` 信息。
-- `'const-only'` 仅收集 `const enum` 信息，使 Rspack 能够对其进行跨模块内联优化。
+- `'const-only'` 仅收集 `const enum` 信息，仅对 `const enum` 进行跨模块的内联优化。
 
 ```js title="rspack.config.mjs"
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default {
   experiments: {
     inlineEnum: true, // 目前为实验性功能，需开启此选项
@@ -507,7 +509,7 @@ export default {
               },
               rspackExperiments: {
                 collectTypeScriptInfo: {
-                  exportedEnum: true,
+                  exportedEnum: isProduction,
                 },
               },
             },
@@ -518,3 +520,11 @@ export default {
   },
 };
 ```
+
+由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
+
+详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
+
+:::info
+默认会对所有 `enum` 进行内联优化，若仅对 `const enum` 进行内联请使用 `'const-only'` 并配置 `transform.tsEnumIsMutable = true`，详细示例可参考：[inline const enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+:::

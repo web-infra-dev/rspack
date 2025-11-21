@@ -10,7 +10,7 @@ version.workspace       = true
 
 [dependencies]
 async-trait = { workspace = true }
-rustc-hash  = { workspace = true }
+serde_json  = { workspace = true }
 tokio       = { workspace = true }
 tracing     = { workspace = true }
 
@@ -20,6 +20,7 @@ rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
+rspack_paths             = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_regex             = { workspace = true }
 rspack_util              = { workspace = true }

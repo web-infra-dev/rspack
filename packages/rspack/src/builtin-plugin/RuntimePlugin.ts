@@ -14,6 +14,7 @@ export const RuntimePluginImpl = create(
 
 export type RuntimePluginHooks = {
 	createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+	createLink: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 	linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 	linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 };
@@ -38,6 +39,7 @@ RuntimePlugin.getHooks = RuntimePlugin.getCompilationHooks = (
 	if (hooks === undefined) {
 		hooks = {
 			createScript: new liteTapable.SyncWaterfallHook(["code", "chunk"]),
+			createLink: new liteTapable.SyncWaterfallHook(["code", "chunk"]),
 			linkPreload: new liteTapable.SyncWaterfallHook(["code", "chunk"]),
 			linkPrefetch: new liteTapable.SyncWaterfallHook(["code", "chunk"])
 		};
@@ -48,7 +50,7 @@ RuntimePlugin.getHooks = RuntimePlugin.getCompilationHooks = (
 
 export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 	`RuntimePlugin`
-> = (getCompiler, createTap, createMapTap) => {
+> = (getCompiler, createTap) => {
 	return {
 		registerRuntimePluginCreateScriptTaps: createTap(
 			binding.RegisterJsTapKind.RuntimePluginCreateScript,
@@ -59,6 +61,19 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return function (data: binding.JsCreateScriptData) {
+					return queried.call(data.code, data.chunk);
+				};
+			}
+		),
+		registerRuntimePluginCreateLinkTaps: createTap(
+			binding.RegisterJsTapKind.RuntimePluginCreateLink,
+			function () {
+				return RuntimePlugin.getCompilationHooks(
+					getCompiler().__internal__get_compilation()!
+				).createLink;
+			},
+			function (queried) {
+				return function (data: binding.JsCreateLinkData) {
 					return queried.call(data.code, data.chunk);
 				};
 			}

@@ -6,13 +6,13 @@ import WebpackLicense from '@components/WebpackLicense';
 
 Rspack provides the same interface as webpack for implementing HMR.
 
-If you have enabled Hot Module Replacement via the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin), its interface will be exposed under the `module.hot` and `import.meta.webpackHot` objects.
+If you've enabled Hot Module Replacement via the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin), its interface is exposed on the `module.hot` and `import.meta.webpackHot` objects.
 
-Note that in ESM, please use `import.meta.webpackHot` instead of `module.hot`.
+In ESM, use `import.meta.webpackHot` instead of `module.hot`.
 
 ## Example
 
-Typically, you will need to check to see if the interface is accessible, then begin working with it. As an example, here's how you might `accept` an updated module:
+First, check if the interface is available, then use it. Here's how to `accept` an updated module:
 
 ```js
 if (module.hot) {
@@ -35,7 +35,7 @@ The following methods are supported by `module.hot` and `import.meta.webpackHot`
 
 ### accept
 
-Accept updates for the given `dependencies` and fire a `callback` to react to those updates, in addition, you can attach an optional error handler:
+Accepts updates for the given `dependencies` and fires a `callback` to handle those updates. You can also attach an optional error handler:
 
 ```js
 module.hot.accept(
@@ -52,21 +52,21 @@ import.meta.webpackHot.accept(
 );
 ```
 
-When using ESM `import` all imported symbols from `dependencies` are automatically updated. Note: The dependency string must match exactly with the `from` string in the `import`. In some cases `callback` can even be omitted. Using `require()` in the `callback` doesn't make sense here.
+When using ESM `import`, all imported symbols from `dependencies` are automatically updated. Note: The dependency string must exactly match the `from` string in the `import`. In some cases, `callback` can be omitted. Using `require()` in the `callback` isn't useful here.
 
-When using CommonJS you need to update dependencies manually by using `require()` in the `callback`. Omitting the `callback` doesn't make sense here.
+When using CommonJS, update dependencies manually using `require()` in the `callback`. Omitting the `callback` isn't useful here.
 
 #### errorHandler for accept
 
 `(err, {moduleId, dependencyId}) => {}`
 
-- `err`: the error thrown by the callback in second argument or during dependency execution when using ESM dependencies.
-- `moduleId`: the current module id.
-- `dependencyId`: the module id of the (first) changed dependency.
+- `err`: The error thrown by the callback in the second argument or during dependency execution when using ESM dependencies.
+- `moduleId`: The current module ID.
+- `dependencyId`: The module ID of the (first) changed dependency.
 
 ### accept (self)
 
-Accept updates for itself.
+Accepts updates for itself.
 
 ```js
 module.hot.accept(
@@ -79,23 +79,23 @@ import.meta.webpackHot.accept(
 );
 ```
 
-When this module or dependencies are updated, this module can be disposed and re-evaluated without informing parents. This makes sense if this module has no exports (or exports are updated in another way).
+When this module or its dependencies are updated, it can be disposed and re-evaluated without notifying parents. This makes sense if the module has no exports (or exports are updated in another way).
 
-The `errorHandler` is fired when the evaluation of this module (or dependencies) has thrown an exception.
+The `errorHandler` fires when evaluating this module (or its dependencies) throws an exception.
 
 #### errorHandler for self accept
 
 `(err, {moduleId, module}) => {}`
 
-- `err`: the error when evaluating the new version.
-- `moduleId`: the current module id.
-- `module`: the current module instance.
-  - `module.hot`: allow to use the HMR API of the errored module instance. A common scenario is to self accept it again. It also makes sense to add a dispose handler to pass data along. Note that the errored module might be already partially executed, so make sure to not get into a inconsistent state. You can use `module.hot.data` to store partial state.
-  - `module.exports`: can be overridden, but be careful since property names might be mangled in production mode.
+- `err`: The error when evaluating the new version.
+- `moduleId`: The current module ID.
+- `module`: The current module instance.
+  - `module.hot`: Allows using the HMR API of the errored module instance. A common scenario is to self-accept it again. It also makes sense to add a dispose handler to pass data along. Note that the errored module might already be partially executed, so avoid getting into an inconsistent state. Use `module.hot.data` to store partial state.
+  - `module.exports`: Can be overridden, but be careful since property names might be mangled in production mode.
 
 ### decline
 
-Reject updates for the given `dependencies` forcing the update to fail with a `'decline'` code.
+Rejects updates for the given `dependencies`, forcing the update to fail with a `'decline'` code.
 
 ```js
 module.hot.decline(
@@ -108,11 +108,11 @@ import.meta.webpackHot.decline(
 );
 ```
 
-Flag a dependency as not-update-able. This makes sense when changing exports of this dependency can't be handled or handling is not implemented yet. Depending on your HMR management code, an update to these dependencies (or unaccepted dependencies of it) usually causes a full-reload of the page.
+Flags a dependency as not updatable. This makes sense when changes to this dependency's exports can't be handled or handling isn't implemented yet. Depending on your HMR management code, updates to these dependencies (or their unaccepted dependencies) usually cause a full page reload.
 
 ### decline (self)
 
-Reject updates for itself.
+Rejects updates for itself.
 
 ```js
 module.hot.decline();

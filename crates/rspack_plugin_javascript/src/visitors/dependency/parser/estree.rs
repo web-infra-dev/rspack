@@ -1,5 +1,6 @@
 //! The compat estree helpers for swc ecma ast
 
+use rspack_util::atom::ModuleExportNameExt;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -58,13 +59,18 @@ impl Spanned for ExportAllDeclaration<'_> {
 impl ExportAllDeclaration<'_> {
   pub fn source(&self) -> &Atom {
     match self {
-      ExportAllDeclaration::All(e) => &e.src.value,
-      ExportAllDeclaration::NamedAll(e) => {
-        &e.src
-          .as_ref()
-          .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
-          .value
-      }
+      ExportAllDeclaration::All(e) => e
+        .src
+        .value
+        .as_atom()
+        .expect("ModuleExportName should be a valid utf8"),
+      ExportAllDeclaration::NamedAll(e) => e
+        .src
+        .as_ref()
+        .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
+        .value
+        .as_atom()
+        .expect("ModuleExportName should be a valid utf8"),
     }
   }
 
@@ -99,7 +105,7 @@ impl ExportAllDeclaration<'_> {
         e.specifiers
           .first()
           .and_then(|e| e.as_namespace())
-          .map(|e| e.name.atom())
+          .map(|e| e.name.atom_ref())
           .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must one specifier"),
       ),
     }
@@ -136,7 +142,11 @@ impl ExportNamedDeclaration<'_> {
   pub fn source(&self) -> Option<&Atom> {
     match self {
       Self::Decl(_) => None,
-      Self::Specifiers(e) => e.src.as_ref().map(|s| &s.value),
+      Self::Specifiers(e) => e.src.as_ref().map(|s| {
+        s.value
+          .as_atom()
+          .expect("ModuleExportName should be a valid utf8")
+      }),
     }
   }
 
@@ -172,7 +182,7 @@ impl ExportNamedDeclaration<'_> {
         },
         ExportSpecifier::Named(n) => {
           let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
-          (n.orig.atom().clone(), exported_name.atom().clone(), exported_name.span())
+          (n.orig.atom().into_owned(), exported_name.atom().into_owned(), exported_name.span())
         },
       }
     })

@@ -11,10 +11,10 @@ use rspack_cacheable::{
   with::{AsInner, AsOption, AsPreset, AsString},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
-use crate::{Scheme, get_scheme};
+use crate::{Scheme, get_scheme, parse_resource};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Content {
@@ -120,26 +120,29 @@ impl Debug for Content {
 #[derive(Debug, Clone)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
-  pub resource: String,
+  resource: String,
   /// Absolute resource path only
   #[cacheable(with=AsOption<AsPreset>)]
-  pub resource_path: Option<Utf8PathBuf>,
+  resource_path: Option<Utf8PathBuf>,
   /// Resource query with `?` prefix
-  pub resource_query: Option<String>,
+  resource_query: Option<String>,
   /// Resource fragment with `#` prefix
-  pub resource_fragment: Option<String>,
-  pub resource_description: Option<DescriptionData>,
-  pub mimetype: Option<String>,
-  pub parameters: Option<String>,
-  pub encoding: Option<String>,
-  pub encoded_content: Option<String>,
-  pub context: Option<String>,
+  resource_fragment: Option<String>,
+  resource_description: Option<DescriptionData>,
+  mimetype: Option<String>,
+  parameters: Option<String>,
+  encoding: Option<String>,
+  encoded_content: Option<String>,
+  context: Option<String>,
   #[cacheable(with=AsInner)]
-  pub(crate) scheme: OnceCell<Scheme>,
+  scheme: OnceCell<Scheme>,
 }
 
 impl ResourceData {
-  pub fn new(resource: String) -> Self {
+  pub fn new_with_resource(resource: String) -> Self {
+    if let Some(parsed) = parse_resource(&resource) {
+      return Self::new_with_path(resource, parsed.path, parsed.query, parsed.fragment);
+    };
     Self {
       resource,
       resource_path: None,
@@ -154,114 +157,147 @@ impl ResourceData {
       context: None,
     }
   }
+
+  pub fn new_with_path(
+    resource: String,
+    path: Utf8PathBuf,
+    query: Option<String>,
+    fragment: Option<String>,
+  ) -> Self {
+    Self {
+      resource,
+      resource_path: Some(path),
+      resource_query: query,
+      resource_fragment: fragment,
+      resource_description: None,
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+      scheme: OnceCell::new(),
+      context: None,
+    }
+  }
+
   pub fn set_context(&mut self, context: Option<String>) {
     self.context = context;
   }
-  pub fn get_context(&self) -> Option<&String> {
-    self.context.as_ref()
+
+  pub fn context(&self) -> Option<&str> {
+    self.context.as_deref()
   }
 
   pub fn get_scheme(&self) -> &Scheme {
-    self.scheme.get_or_init(|| get_scheme(&self.resource))
+    self.scheme.get_or_init(|| {
+      if let Some(path) = self.path() {
+        get_scheme(path.as_str())
+      } else {
+        Scheme::None
+      }
+    })
+  }
+
+  pub fn resource(&self) -> &str {
+    &self.resource
   }
 
   pub fn set_resource(&mut self, v: String) {
     self.resource = v;
   }
 
-  pub fn path<P: Into<Utf8PathBuf>>(mut self, v: P) -> Self {
-    self.resource_path = Some(v.into());
-    self
+  pub fn path(&self) -> Option<&Utf8Path> {
+    self.resource_path.as_deref()
   }
 
   pub fn set_path<P: Into<Utf8PathBuf>>(&mut self, v: P) {
-    self.resource_path = Some(v.into());
+    let new_path = v.into();
+    if let Some(path) = self.path()
+      && path != new_path
+    {
+      self.scheme.take();
+      self.resource_path = Some(new_path);
+    }
   }
 
   pub fn set_path_optional<P: Into<Utf8PathBuf>>(&mut self, v: Option<P>) {
-    self.resource_path = v.map(Into::into);
+    if let Some(v) = v {
+      self.set_path(v);
+    }
   }
 
-  pub fn query(mut self, v: String) -> Self {
-    self.resource_query = Some(v);
-    self
+  pub fn query(&self) -> Option<&str> {
+    self.resource_query.as_deref()
   }
 
   pub fn set_query(&mut self, v: String) {
     self.resource_query = Some(v);
   }
 
-  pub fn query_optional(mut self, v: Option<String>) -> Self {
-    self.resource_query = v;
-    self
-  }
-
   pub fn set_query_optional(&mut self, v: Option<String>) {
     self.resource_query = v;
   }
 
-  pub fn fragment(mut self, v: String) -> Self {
-    self.resource_fragment = Some(v);
-    self
+  pub fn fragment(&self) -> Option<&str> {
+    self.resource_fragment.as_deref()
   }
 
   pub fn set_fragment(&mut self, v: String) {
     self.resource_fragment = Some(v);
   }
 
-  pub fn fragment_optional(mut self, v: Option<String>) -> Self {
-    self.resource_fragment = v;
-    self
-  }
-
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.resource_fragment = v;
   }
 
-  pub fn description(mut self, v: DescriptionData) -> Self {
-    self.resource_description = Some(v);
-    self
+  pub fn description(&self) -> Option<&DescriptionData> {
+    self.resource_description.as_ref()
   }
 
-  pub fn description_optional(mut self, v: Option<DescriptionData>) -> Self {
+  pub fn set_description_optional(&mut self, v: Option<DescriptionData>) {
     self.resource_description = v;
-    self
   }
 
-  pub fn mimetype(mut self, v: String) -> Self {
-    self.mimetype = Some(v);
-    self
+  pub fn mimetype(&self) -> Option<&str> {
+    self.mimetype.as_deref()
   }
 
   pub fn set_mimetype(&mut self, v: String) {
     self.mimetype = Some(v);
   }
 
-  pub fn parameters(mut self, v: String) -> Self {
-    self.parameters = Some(v);
-    self
+  pub fn parameters(&self) -> Option<&str> {
+    self.parameters.as_deref()
   }
 
   pub fn set_parameters(&mut self, v: String) {
     self.parameters = Some(v);
   }
 
-  pub fn encoding(mut self, v: String) -> Self {
-    self.encoding = Some(v);
-    self
+  pub fn encoding(&self) -> Option<&str> {
+    self.encoding.as_deref()
   }
 
   pub fn set_encoding(&mut self, v: String) {
     self.encoding = Some(v);
   }
 
-  pub fn encoded_content(mut self, v: String) -> Self {
-    self.encoded_content = Some(v);
-    self
+  pub fn encoded_content(&self) -> Option<&str> {
+    self.encoded_content.as_deref()
   }
 
   pub fn set_encoded_content(&mut self, v: String) {
     self.encoded_content = Some(v);
+  }
+
+  pub fn update_resource_data(&mut self, new_resource: String) {
+    if self.resource_path.is_some()
+      && let Some(parsed) = parse_resource(&new_resource)
+    {
+      self.set_path(parsed.path);
+      self.set_query_optional(parsed.query);
+      self.set_fragment_optional(parsed.fragment);
+    }
+    self.set_resource(new_resource);
   }
 }
 

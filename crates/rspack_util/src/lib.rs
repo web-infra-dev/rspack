@@ -2,10 +2,10 @@ mod merge;
 
 pub mod asset_condition;
 pub mod atom;
+pub mod base64;
 pub mod comparators;
 #[cfg(feature = "debug_tool")]
 pub mod debug_tool;
-pub mod diff_mode;
 pub mod env;
 pub mod ext;
 pub mod fx_hash;
@@ -18,13 +18,17 @@ pub mod queue;
 pub mod ryu_js;
 pub mod size;
 pub mod source_map;
+pub mod span;
 pub mod swc;
 pub mod test;
 pub mod tracing_preset;
 
 use std::future::Future;
 
+#[cfg(allocative)]
+pub use allocative;
 pub use merge::{MergeFrom, merge_from_optional_with};
+pub use span::SpanExt;
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
 where

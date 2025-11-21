@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec, Skip},
+  with::{AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
@@ -24,8 +24,7 @@ pub struct ProvideDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
 
@@ -37,10 +36,11 @@ impl ProvideDependency {
     ids: Vec<Atom>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
+    let loc = range.to_loc(source_map.as_ref());
     Self {
       range,
       request,
-      source_map,
+      loc,
       identifier,
       ids,
       id: DependencyId::new(),
@@ -56,7 +56,7 @@ impl Dependency for ProvideDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {

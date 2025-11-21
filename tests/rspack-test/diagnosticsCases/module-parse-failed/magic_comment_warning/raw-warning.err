@@ -1,0 +1,42 @@
+Array [
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseWarning,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/magic_comment_warning/index.js,
+    moduleName: ./index.js,
+  },
+]

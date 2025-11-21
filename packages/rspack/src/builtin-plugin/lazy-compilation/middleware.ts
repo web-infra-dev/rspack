@@ -90,19 +90,17 @@ export const lazyCompilationMiddleware = (
 			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
 			options.prefix = `${prefix}__${i++}`;
 			const activeModules = new Set<string>();
-			const filesByKey = new Map<string, string>();
 
 			middlewareByCompiler.set(
 				options.prefix,
 				lazyCompilationMiddlewareInternal(
 					compiler,
 					activeModules,
-					filesByKey,
 					options.prefix
 				)
 			);
 
-			applyPlugin(c, options, activeModules, filesByKey);
+			applyPlugin(c, options, activeModules);
 		}
 
 		const keys = [...middlewareByCompiler.keys()];
@@ -133,7 +131,6 @@ export const lazyCompilationMiddleware = (
 	}
 
 	const activeModules: Set<string> = new Set();
-	const filesByKey: Map<string, string> = new Map();
 
 	const options = {
 		// TODO: remove this when experiments.lazyCompilation is removed
@@ -141,13 +138,12 @@ export const lazyCompilationMiddleware = (
 		...compiler.options.lazyCompilation
 	};
 
-	applyPlugin(compiler, options, activeModules, filesByKey);
+	applyPlugin(compiler, options, activeModules);
 
 	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
 	return lazyCompilationMiddlewareInternal(
 		compiler,
 		activeModules,
-		filesByKey,
 		lazyCompilationPrefix
 	);
 };
@@ -155,29 +151,17 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
 	compiler: Compiler,
 	options: LazyCompilationOptions,
-	activeModules: Set<string>,
-	filesByKey: Map<string, string>
+	activeModules: Set<string>
 ) {
 	const plugin = new BuiltinLazyCompilationPlugin(
-		({ module, path }) => {
-			const data = `${encodeURIComponent(
-				module.replace(/\\/g, "/").replace(/@/g, "_")
-			)}`;
-			filesByKey.set(data, path);
-			const active = activeModules.has(data);
-
-			return {
-				// port in server url can change frequently,
-				// even configuration is totally the same
-				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-				data,
-				active
-			};
+		() => {
+			const res = new Set(activeModules);
+			activeModules.clear();
+			return res;
 		},
-		// @ts-expect-error internal option
-		options.cacheable ?? true,
 		options.entries ?? true,
 		options.imports ?? true,
+		`${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
 		options.test
 	);
 	plugin.apply(compiler);
@@ -187,7 +171,6 @@ function applyPlugin(
 const lazyCompilationMiddlewareInternal = (
 	compiler: Compiler | MultiCompiler,
 	activeModules: Set<string>,
-	filesByKey: Map<string, string>,
 	lazyCompilationPrefix: string
 ): MiddlewareHandler => {
 	const logger = compiler.getInfrastructureLogger("LazyCompilation");
@@ -198,7 +181,10 @@ const lazyCompilationMiddlewareInternal = (
 			return next?.();
 		}
 
-		const modules = req.url.slice(lazyCompilationPrefix.length).split("@");
+		const modules = req.url
+			.slice(lazyCompilationPrefix.length)
+			.split("@")
+			.map(decodeURIComponent);
 		req.socket.setNoDelay(true);
 
 		res.setHeader("content-type", "text/event-stream");
@@ -216,21 +202,7 @@ const lazyCompilationMiddlewareInternal = (
 		}
 
 		if (moduleActivated.length && compiler.watching) {
-			const rebuiltModules = new Set(
-				moduleActivated
-					.map(key => {
-						const filePath = filesByKey.get(key);
-						if (!filePath) {
-							logger.warn(`Cannot find correct file path for module ${key}`);
-						}
-						return filePath;
-					})
-					.filter(Boolean) as string[]
-			);
-
-			if (rebuiltModules.size) {
-				compiler.watching.invalidateWithChangesAndRemovals(rebuiltModules);
-			}
+			compiler.watching.invalidate();
 		}
 	};
 };

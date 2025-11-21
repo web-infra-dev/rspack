@@ -1,25 +1,18 @@
 use std::{fmt::Debug, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable,
-  with::{As, Skip},
-};
 use rspack_error::{Diagnostic, Result};
-use rspack_paths::ArcPath;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory, cache::persistent::FromContext,
+  ModuleLayer, Resolve, ResolverFactory,
 };
 
-#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub resolve_options: Option<Arc<Resolve>>,
-  #[cacheable(with=As<FromContext>)]
   pub options: Arc<CompilerOptions>,
   pub request: String,
   pub context: Context,
@@ -29,10 +22,9 @@ pub struct ModuleFactoryCreateData {
   pub issuer_layer: Option<ModuleLayer>,
   pub resolver_factory: Arc<ResolverFactory>,
 
-  pub file_dependencies: HashSet<ArcPath>,
-  pub context_dependencies: HashSet<ArcPath>,
-  pub missing_dependencies: HashSet<ArcPath>,
-  #[cacheable(with=Skip)]
+  pub file_dependencies: ArcPathSet,
+  pub context_dependencies: ArcPathSet,
+  pub missing_dependencies: ArcPathSet,
   pub diagnostics: Vec<Diagnostic>,
 }
 

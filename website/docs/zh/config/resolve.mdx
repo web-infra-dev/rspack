@@ -28,6 +28,18 @@ import WebpackLicense from '@components/WebpackLicense';
 - `require("abc")` 会尝试解析 `<root>/src/abc`。
 - `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/files.js`。
 
+### 对包解析的影响
+
+当你使用 `resolve.alias` 将包名导入（例如 `import 'lib'`）重定向到 monorepo 或 `node_modules` 中的具体目录时，模块的解析方式会发生变化：
+
+- **默认情况**：如果导入的是包名，Rspack 会执行完整的包解析流程：读取该包的 `package.json`，并根据 `[exports](https://nodejs.org/api/packages.html#exports)` 字段决定入口文件和子路径映射。
+- **重定向后**：当别名被替换成实际的文件系统路径，例如 `./node_modules/lib`，Rspack 不再将其视为包名，而是按普通路径进行解析。这会跳过包的默认解析逻辑，导致 `package.json` 中的 `exports` 等字段不再生效。这是 Node.js 的标准解析行为。
+
+### Monorepo 场景
+
+如果希望 monorepo 中的各个包依然保持和正常 npm 包一致的解析方式，不建议通过 `alias` 将包名直接指向源码目录。
+推荐的做法是使用包管理器的工作区功能，将子包符号链接到 `node_modules` 中，让它们像普通依赖一样被解析。
+
 ## resolve.aliasFields
 
 - **类型：** `string[]`
@@ -196,7 +208,49 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `[".js", ".json", ".wasm"]`
 
-按照顺序解析模块，例如 `require('./index')`，会依次尝试解析 `'./index.js'`、`'./index.json'`...
+自动添加导入文件的扩展名。这意味着你可以导入文件，而不需要显式地写它们的扩展名。
+
+例如，当导入 `./index` 时，Rspack 将尝试按以下顺序解析：
+
+- `./index.js`
+- `./index.json`
+- `./index.wasm`
+
+### 示例
+
+下面演示如何配置自定义扩展名来包含 TypeScript 和 JSX 文件：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.json'],
+  },
+};
+```
+
+当同一目录下存在同名但扩展名不同的多个文件时，Rspack 会选择在数组中位置更靠前的扩展名对应的文件进行解析。
+
+例如，如果同一目录下同时存在 `index.js` 和 `index.ts`，而你的配置是 `['.ts', '.js']`，那么 `import './index'` 将会解析为 `index.ts`。
+
+### 扩展默认值
+
+注意：显式配置 `resolve.extensions` 会完全覆盖默认数组，这意味着 Rspack 将不再尝试使用默认扩展名进行解析。
+
+如果你希望在自定义扩展名的同时保留默认扩展名，可以使用展开语法 `'...'`：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    // 等价于 ['.ts', '.js', '.json', '.wasm']
+    extensions: ['.ts', '...'],
+  },
+};
+```
+
+### 性能建议
+
+- 避免添加过多扩展名，因为每个扩展名都会增加解析开销。尽量保持 `extensions` 数组精简以提升解析性能。
+- 将最常用的扩展名放在数组前面。
 
 ## resolve.extensionAlias
 
@@ -323,7 +377,7 @@ export default {
 - **类型：** `string[]`
 - **默认值：** 根据 [target](/config/target) 选项确定
 
-当从 npm 包导入时，例如 `import React from 'react'`，`resolve.mainFields` 用于确定其 `package.json` 中的哪些字段会被解析。
+控制用于定位包入口文件的 package.json 字段优先级。Rspack 在解析 npm 包入口时，会按该列表的顺序依次尝试这些字段。
 
 当 `target` 配置为 `'web'`, `'webworker'`, 或未指定时，默认值为 `["browser", "module", "main"]`。
 
@@ -356,6 +410,20 @@ export default {
 ```
 
 当 `import foo from 'foo'` 时，Rspack 会解析到 `browser` 字段中的模块，因为 `browser` 字段在 `mainFields` 数组中优先级最高。
+
+注意 [`exports` 字段](https://nodejs.org/api/packages.html#packages_exports) 的优先级高于 `mainFields`。如果入口通过 `exports` 解析成功，Rspack 会忽略 `browser`、`module` 和 `main` 字段。
+
+例如，下面的 package.json 中，`lib` 会通过 `exports` 字段解析到 `./dist/index.mjs`，而 `main` 字段将被忽略。
+
+```json title="package.json"
+{
+  "name": "lib",
+  "main": "./dist/index.cjs",
+  "exports": {
+    ".": "./dist/index.mjs"
+  }
+}
+```
 
 ## resolve.mainFiles
 

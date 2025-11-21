@@ -60,7 +60,7 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
 
     let m = module.as_normal_module();
     if let Some(m) = m {
-      let resource_path = &m.resource_resolved_data().resource_path;
+      let resource_path = m.resource_resolved_data().path();
 
       let dep = dep
         .as_any()

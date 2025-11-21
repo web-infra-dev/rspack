@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import crypto from "node:crypto";
 import Hash from "./hash";
 import createMd4 from "./hash/md4";
 import createXXHash64 from "./hash/xxhash64";
@@ -119,7 +118,6 @@ class BulkUpdateDecorator extends Hash {
 	}
 }
 
-/* istanbul ignore next */
 class DebugHash extends Hash {
 	string: string;
 
@@ -136,7 +134,7 @@ class DebugHash extends Hash {
 	 */
 	update(data: string, inputEncoding: string): this;
 	update(data: Buffer): this;
-	update(data: string | Buffer, inputEncoding?: string): this {
+	update(data: string | Buffer): this {
 		let normalizedData: string;
 		if (Buffer.isBuffer(data)) {
 			normalizedData = data.toString("utf-8");
@@ -253,11 +251,14 @@ export const createHash = (
 			return new WasmHashAdapter(hash);
 		}
 		case "native-md4":
-			return new BulkUpdateDecorator(() => crypto.createHash("md4"), "md4");
+			return new BulkUpdateDecorator(() => {
+				const { createHash } = require("node:crypto");
+				return createHash("md4");
+			}, "md4");
 		default:
-			return new BulkUpdateDecorator(
-				() => crypto.createHash(algorithm),
-				algorithm
-			);
+			return new BulkUpdateDecorator(() => {
+				const { createHash } = require("node:crypto");
+				return createHash(algorithm);
+			}, algorithm);
 	}
 };

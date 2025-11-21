@@ -10,6 +10,9 @@ import type ModuleGraph from "../ModuleGraph";
 import type { ResolveCallback } from "./adapterRuleUse";
 import type { DevServerOptions } from "./devServer";
 
+/** https://github.com/microsoft/TypeScript/issues/29729 */
+export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
+
 export type FilenameTemplate = string;
 
 export type Filename =
@@ -48,19 +51,18 @@ export type Falsy = false | "" | 0 | null | undefined;
 
 //#region Entry
 /** The publicPath of the resource referenced by this entry. */
-export type PublicPath = "auto" | Filename;
+export type PublicPath =
+	| LiteralUnion<"auto", string>
+	| Exclude<Filename, string>;
 
 /** The baseURI of the resource referenced by this entry. */
 export type BaseUri = string;
 
 /** How this entry load other chunks. */
-export type ChunkLoadingType =
-	| string
-	| "jsonp"
-	| "import-scripts"
-	| "require"
-	| "async-node"
-	| "import";
+export type ChunkLoadingType = LiteralUnion<
+	"jsonp" | "import-scripts" | "require" | "async-node" | "import",
+	string
+>;
 
 /** How this entry load other chunks. */
 export type ChunkLoading = false | ChunkLoadingType;
@@ -69,11 +71,10 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType =
-	| string
-	| "fetch-streaming"
-	| "fetch"
-	| "async-node";
+export type WasmLoadingType = LiteralUnion<
+	"fetch-streaming" | "fetch" | "async-node",
+	string
+>;
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -106,8 +107,7 @@ export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 export type LibraryExport = string | string[];
 
 /** Configure how the library will be exposed. */
-export type LibraryType =
-	| string
+export type LibraryType = LiteralUnion<
 	| "var"
 	| "module"
 	| "assign"
@@ -125,7 +125,9 @@ export type LibraryType =
 	| "umd"
 	| "umd2"
 	| "jsonp"
-	| "system";
+	| "system",
+	string
+>;
 
 /** When using output.library.type: "umd", setting output.library.umdNamedDefine to true will name the AMD module of the UMD build. */
 export type UmdNamedDefine = boolean;
@@ -353,8 +355,35 @@ export type SourceMapFilename = string;
 /** This option determines the module's namespace */
 export type DevtoolNamespace = string;
 
+export interface ModuleFilenameTemplateContext {
+	/** The identifier of the module */
+	identifier: string;
+	/** The shortened identifier of the module */
+	shortIdentifier: string;
+	/** The resource of the module request */
+	resource: string;
+	/** The resource path of the module request */
+	resourcePath: string;
+	/** The absolute resource path of the module request */
+	absoluteResourcePath: string;
+	/** The loaders of the module request */
+	loaders: string;
+	/** All loaders of the module request */
+	allLoaders: string;
+	/** The query of the module identifier */
+	query: string;
+	/** The module id of the module */
+	moduleId: string;
+	/** The hash of the module identifier */
+	hash: string;
+	/** The module namespace */
+	namespace: string;
+}
+
 /** This option is only used when devtool uses an option that requires module names. */
-export type DevtoolModuleFilenameTemplate = string | ((info: any) => any);
+export type DevtoolModuleFilenameTemplate =
+	| string
+	| ((context: ModuleFilenameTemplateContext) => string);
 
 /** A fallback is used when the template string or function above yields duplicates. */
 export type DevtoolFallbackModuleFilenameTemplate =
@@ -939,6 +968,9 @@ export type RuleSetRule = {
 
 	/** A kind of Nested Rule, an array of Rules that is also used when the parent Rule matches. */
 	rules?: (RuleSetRule | Falsy)[];
+
+	/** Whether to extract source maps from the module. */
+	extractSourceMap?: boolean;
 };
 
 /** A list of rules. */
@@ -1015,6 +1047,15 @@ export type CssModuleParserOptions = {
 
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
+export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+
+export type JavascriptParserCommonjsOption =
+	| boolean
+	| {
+			/** Controls how CommonJS export mutations are handled. */
+			exports?: JavascriptParserCommonjsExports;
+	  };
+
 export type JavascriptParserOptions = {
 	/**
 	 * Specifies global mode for dynamic import.
@@ -1050,7 +1091,7 @@ export type JavascriptParserOptions = {
 	 * Enable parsing of new URL() syntax.
 	 * @default true
 	 * */
-	url?: "relative" | boolean;
+	url?: "relative" | "new-url-relative" | boolean;
 
 	/**
 	 * Enable warnings for full dynamic dependencies
@@ -1105,14 +1146,31 @@ export type JavascriptParserOptions = {
 	// TODO: add docs
 	requireResolve?: boolean;
 
+	/**
+	 * CommonJS-specific parser options. `true` enables the default behaviour, `{ exports: 'skipInEsm' }` preserves CommonJS export mutations when executed inside ESM.
+	 * @default true
+	 */
+	commonjs?: JavascriptParserCommonjsOption;
+
 	// TODO: add docs
 	importDynamic?: boolean;
+
+	/**
+	 * Enable magic comments for CommonJS require() expressions.
+	 */
+	commonjsMagicComments?: boolean;
 
 	/** Inline const values in this module */
 	inlineConst?: boolean;
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+
+	/** Whether to enable JSX parsing */
+	jsx?: boolean;
+
+	/** Whether to enable defer import */
+	deferImport?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -1356,6 +1414,11 @@ export type ModuleOptions = {
 
 	/** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
 	noParse?: NoParseOption;
+
+	/**
+	 * Cache the resolving of module requests.
+	 */
+	unsafeCache?: boolean | RegExp;
 };
 
 //#endregion
@@ -1708,7 +1771,7 @@ export type CacheOptions = boolean;
 
 //#region Stats
 
-type StatsPresets =
+export type StatsPresets =
 	| "normal"
 	| "none"
 	| "verbose"
@@ -1727,6 +1790,33 @@ type ModuleFilterTypes =
 	| boolean
 	| ModuleFilterItemTypes
 	| ModuleFilterItemTypes[];
+
+export type StatsColorOptions = {
+	/**
+	 * Custom color for bold text.
+	 */
+	bold?: string;
+	/**
+	 * Custom color for cyan text.
+	 */
+	cyan?: string;
+	/**
+	 * Custom color for green text.
+	 */
+	green?: string;
+	/**
+	 * Custom color for magenta text.
+	 */
+	magenta?: string;
+	/**
+	 * Custom color for red text.
+	 */
+	red?: string;
+	/**
+	 * Custom color for yellow text.
+	 */
+	yellow?: string;
+};
 
 /** Options for stats */
 export type StatsOptions = {
@@ -1787,7 +1877,7 @@ export type StatsOptions = {
 	 * Enables or disables the use of colors in the output.
 	 * @default false
 	 */
-	colors?: boolean;
+	colors?: boolean | StatsColorOptions;
 	/**
 	 * Enables or disables the display of the hash.
 	 * @default true
@@ -2101,6 +2191,10 @@ export type StatsOptions = {
 	warningsSpace?: number;
 };
 
+export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+	children?: StatsValue | (StatsValue | undefined)[];
+};
+
 /**
  * Represents the value for stats configuration.
  */
@@ -2333,7 +2427,7 @@ export type Optimization = {
 	 * Customize the minimizer.
 	 * By default, `rspack.SwcJsMinimizerRspackPlugin` and `rspack.LightningCssMinimizerRspackPlugin` are used.
 	 */
-	minimizer?: Array<"..." | Plugin>;
+	minimizer?: ("..." | Plugin)[];
 
 	/**
 	 * Whether to merge chunks which contain the same modules.
@@ -2463,9 +2557,9 @@ export type ExperimentCacheOptions =
 			buildDependencies?: string[];
 			version?: string;
 			snapshot?: {
-				immutablePaths?: Array<string | RegExp>;
-				unmanagedPaths?: Array<string | RegExp>;
-				managedPaths?: Array<string | RegExp>;
+				immutablePaths?: (string | RegExp)[];
+				unmanagedPaths?: (string | RegExp)[];
+				managedPaths?: (string | RegExp)[];
 			};
 			storage?: {
 				type: "filesystem";
@@ -2683,6 +2777,7 @@ export type Experiments = {
 	css?: boolean;
 	/**
 	 * Enable module layers feature.
+	 * @deprecated This option is deprecated, layers is enabled since v1.6.0
 	 * @default false
 	 */
 	layers?: boolean;
@@ -2692,6 +2787,7 @@ export type Experiments = {
 	incremental?: IncrementalPresets | Incremental;
 	/**
 	 * Enable multi-threaded code splitting algorithm.
+	 * @deprecated This option is deprecated, it has a huge regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead
 	 */
 	parallelCodeSplitting?: boolean;
 	/**
@@ -2743,6 +2839,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	lazyBarrel?: boolean;
+	/**
+	 * Enable defer import feature
+	 * @default false
+	 */
+	deferImport?: boolean;
 };
 //#endregion
 
@@ -2789,7 +2890,7 @@ export type WatchOptions = {
 /**
  * Options for devServer, it based on `webpack-dev-server@5`
  * */
-export interface DevServer extends DevServerOptions {}
+export type DevServer = DevServerOptions;
 
 export type { Middleware as DevServerMiddleware } from "./devServer";
 //#endregion

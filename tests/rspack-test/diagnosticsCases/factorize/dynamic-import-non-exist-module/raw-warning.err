@@ -1,0 +1,6 @@
+Array [
+  Object {
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/dynamic-import-non-exist-module/index.js,
+    moduleName: ./index.js,
+  },
+]

@@ -1,9 +1,10 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType,
-  ModuleIdentifier, Plugin, RuntimeGlobals, UsageState, get_entry_runtime, property_access,
+  CanInlineUse, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationFinishModules, CompilationParams, CompilerCompilation, EntryData, LibraryExport,
+  LibraryOptions, LibraryType, ModuleIdentifier, Plugin, RuntimeGlobals, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -156,6 +157,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       let info = export_info.as_data_mut(&mut module_graph);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
+      info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
       let exports_info = module_graph.get_exports_info(&module_identifier);
       if self.ns_object_used {

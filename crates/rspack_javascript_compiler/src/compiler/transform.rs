@@ -16,7 +16,7 @@ use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
-use rspack_error::{AnyhowResultToRspackResultExt, Error, miette::MietteDiagnostic};
+use rspack_error::Result;
 use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
 use serde_json::error::Category;
 use swc_config::{is_module::IsModule, merge::Merge};
@@ -25,8 +25,8 @@ use swc_core::{
   base::{
     BoolOr,
     config::{
-      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, JsMinifyFormatOptions,
-      Rc, RootMode, SourceMapsConfig,
+      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, OutputCharset, Rc,
+      RootMode, SourceMapsConfig,
     },
     sourcemap,
   },
@@ -60,9 +60,9 @@ impl JavaScriptCompiler {
     filename: Option<FileName>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
-    inspect_parsed_ast: impl FnOnce(&Program),
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<TransformOutput, Error>
+  ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
     S: Into<String>,
@@ -262,7 +262,7 @@ impl<'a> JavaScriptTransformer<'a> {
     fm: Arc<SourceFile>,
     compiler: &'a JavaScriptCompiler,
     mut options: SwcOptions,
-  ) -> Result<Self, Error> {
+  ) -> Result<Self> {
     GLOBALS.set(&compiler.globals, || {
       let top_level_mark = Mark::new();
       let unresolved_mark = Mark::new();
@@ -271,8 +271,7 @@ impl<'a> JavaScriptTransformer<'a> {
     });
 
     let comments = SingleThreadedComments::default();
-    let config = read_config(&options, &fm.name)
-      .to_rspack_result_from_anyhow()?
+    let config = read_config(&options, &fm.name)?
       .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
 
     let helpers = GLOBALS.set(&compiler.globals, || {
@@ -294,14 +293,14 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform<P>(
     self,
-    inspect_parsed_ast: impl FnOnce(&Program),
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
-  ) -> Result<TransformOutput, Error>
+  ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
   {
-    let built_input = self.parse_built_input(before_pass)?;
+    let mut built_input = self.parse_built_input(before_pass)?;
 
     let target = built_input.target;
     let source_map_kind: SourceMapKind = match self.options.config.source_maps {
@@ -316,18 +315,14 @@ impl<'a> JavaScriptTransformer<'a> {
       names: Default::default(),
     };
 
-    let input_source_map = self
-      .input_source_map(&built_input.input_source_map)
-      .to_rspack_result_from_anyhow()?;
+    let input_source_map = self.input_source_map(&built_input.input_source_map)?;
 
-    inspect_parsed_ast(&built_input.program);
-
-    let (program, diagnostics) = self.transform_with_built_input(built_input)?;
-    let format_opt = JsMinifyFormatOptions {
-      inline_script: false,
-      ascii_only: true,
-      ..Default::default()
-    };
+    let diagnostics = self.transform_with_built_input(&mut built_input, inspect_parsed_ast)?;
+    let ascii_only = built_input
+      .output
+      .charset
+      .as_ref()
+      .is_some_and(|v| matches!(v, OutputCharset::Ascii));
 
     let print_options = PrintOptions {
       source_len: self.fm.byte_length(),
@@ -337,12 +332,14 @@ impl<'a> JavaScriptTransformer<'a> {
       input_source_map: input_source_map.as_ref(),
       minify,
       comments: Some(&self.comments as &dyn Comments),
-      format: &format_opt,
+      preamble: &built_input.output.preamble,
+      ascii_only,
+      inline_script: built_input.codegen_inline_script,
     };
 
     self
       .javascript_compiler
-      .print(&program, print_options)
+      .print(&built_input.program, print_options)
       .map(|o| o.with_diagnostics(diagnostics))
   }
 
@@ -395,7 +392,7 @@ impl<'a> JavaScriptTransformer<'a> {
   fn parse_built_input<P>(
     &'a self,
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<BuiltInput<impl Pass + 'a>, Error>
+  ) -> Result<BuiltInput<impl Pass + 'a>>
   where
     P: Pass + 'a,
   {
@@ -424,8 +421,7 @@ impl<'a> JavaScriptTransformer<'a> {
           before_pass,
         )
       })
-      .map_err(|e| e.to_pretty_error())
-      .to_rspack_result_from_anyhow()
+      .map_err(|e| e.to_pretty_error().into())
     })
   }
 
@@ -435,21 +431,22 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn transform_with_built_input(
     &self,
-    built_input: BuiltInput<impl Pass>,
-  ) -> Result<(Program, Vec<String>), Error> {
-    let program = built_input.program;
-    let mut pass = built_input.pass;
+    built_input: &mut BuiltInput<impl Pass>,
+    inspect_parsed_ast: impl FnOnce(&Program, Mark),
+  ) -> Result<Vec<String>> {
     let mut diagnostics = vec![];
-    let program = self.run(|| {
+    let result = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
+        inspect_parsed_ast(&built_input.program, built_input.unresolved_mark);
+
         let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
           // Apply external plugin passes to the Program AST.
           // External plugins may emit warnings or inject helpers,
           // so we need a handler to properly process them.
-          let program = program.apply(&mut pass);
+          built_input.pass.process(&mut built_input.program);
           diagnostics.extend(handler.take_diagnostics());
 
-          Ok(program)
+          Ok(())
         });
 
         result.map_err(|err| {
@@ -476,10 +473,14 @@ impl<'a> JavaScriptTransformer<'a> {
               The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
               Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
               See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.rs/errors/swc-plugin-version"};
-            MietteDiagnostic::new(format!("{error_msg}{help_msg}")).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+            let mut error = rspack_error::error!(format!("{error_msg}{help_msg}"));
+            error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
+            error
           } else {
             let error_msg = err.to_pretty_string();
-            MietteDiagnostic::new(error_msg).with_code(SWC_MIETTE_DIAGNOSTIC_CODE)
+            let mut error = rspack_error::error!(error_msg);
+            error.code = Some(SWC_MIETTE_DIAGNOSTIC_CODE.into());
+            error
           }
         })
       })
@@ -495,14 +496,12 @@ impl<'a> JavaScriptTransformer<'a> {
 
       minify_file_comments(
         comments,
-        built_input.preserve_comments,
+        &built_input.preserve_comments,
         preserve_annotations,
       );
     }
 
-    program
-      .map(|program| (program, diagnostics))
-      .map_err(|e| e.into())
+    result.map(|_| diagnostics)
   }
 
   pub fn input_source_map(

@@ -5,12 +5,7 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::{
-  Diagnostic, Result,
-  emitter::{
-    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
-  },
-};
+use rspack_error::{Diagnostic, Display, Result, StdioDisplayer, StringDisplayer};
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;
@@ -21,8 +16,8 @@ pub use r#struct::*;
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
   Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, SourceType, UsedExports,
-  compilation::make::ExecutedRuntimeModule,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
+  compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
@@ -36,13 +31,13 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn emit_diagnostics(&self) -> Result<()> {
-    let mut displayer = StdioDiagnosticDisplay::default();
+    let displayer = StdioDisplayer::default();
     displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     displayer.emit_batch_diagnostic(self.compilation.get_errors())
   }
 
   pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
-    let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
+    let displayer = StringDisplayer::new(false, sorted);
     let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
     Ok(format!("{warnings}{errors}"))
@@ -250,6 +245,7 @@ impl Stats<'_> {
           module,
           false,
           None,
+          None,
           options,
         )
       })
@@ -275,6 +271,7 @@ impl Stats<'_> {
             &executor_module_graph_cache,
             module,
             true,
+            None,
             None,
             options,
           )
@@ -358,6 +355,7 @@ impl Stats<'_> {
                 m,
                 false,
                 Some(&root_modules),
+                Some(c.runtime()),
                 options,
               )
             })
@@ -378,12 +376,12 @@ impl Stats<'_> {
         let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
         let chunk_filter = |_: &ChunkUkey, __: &Compilation| true;
         for order in &orders {
-          if let Some(order_chlidren) =
+          if let Some(order_children) =
             c.get_child_ids_by_order(order, self.compilation, &chunk_filter)
           {
             children_by_order.insert(
               order.clone(),
-              order_chlidren
+              order_children
                 .into_iter()
                 .map(|id| id.to_string())
                 .collect(),
@@ -618,7 +616,7 @@ impl Stats<'_> {
   }
 
   pub fn get_errors<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
+    let diagnostic_displayer = StringDisplayer::new(self.compilation.options.stats.colors, false);
 
     let module_graph = self.compilation.get_module_graph();
 
@@ -626,7 +624,7 @@ impl Stats<'_> {
       .compilation
       .get_errors_sorted()
       .map(|d| {
-        let module_identifier = d.module_identifier();
+        let module_identifier = d.module_identifier;
         let (module_name, module_id) = module_identifier
           .as_ref()
           .and_then(move |identifier| {
@@ -638,7 +636,7 @@ impl Stats<'_> {
           .unzip();
 
         let chunk = d
-          .chunk()
+          .chunk
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
@@ -648,9 +646,9 @@ impl Stats<'_> {
           self.compilation,
           &self.compilation.options,
         );
-        let code = d.code().map(|code| code.to_string());
+        let code = d.code.clone();
         StatsError {
-          name: d.code().map(|c| c.to_string()),
+          name: code.clone(),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
@@ -658,8 +656,8 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
-          file: d.file(),
+          loc: d.loc.as_ref().map(|loc| loc.to_string()),
+          file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
@@ -668,8 +666,8 @@ impl Stats<'_> {
             c.id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.as_str())
           }),
-          details: d.details(),
-          stack: d.stack(),
+          details: d.details.clone(),
+          stack: d.stack.clone(),
           module_trace,
         }
       })
@@ -679,7 +677,7 @@ impl Stats<'_> {
   }
 
   pub fn get_warnings<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
+    let diagnostic_displayer = StringDisplayer::new(self.compilation.options.stats.colors, false);
 
     let module_graph = self.compilation.get_module_graph();
 
@@ -687,7 +685,7 @@ impl Stats<'_> {
       .compilation
       .get_warnings_sorted()
       .map(|d| {
-        let module_identifier = d.module_identifier();
+        let module_identifier = d.module_identifier;
         let (module_name, module_id) = module_identifier
           .as_ref()
           .and_then(|identifier| {
@@ -699,7 +697,7 @@ impl Stats<'_> {
           .unzip();
 
         let chunk = d
-          .chunk()
+          .chunk
           .map(ChunkUkey::from)
           .map(|key| self.compilation.chunk_by_ukey.expect_get(&key));
 
@@ -710,10 +708,10 @@ impl Stats<'_> {
           &self.compilation.options,
         );
 
-        let code = d.code().map(|code| code.to_string());
+        let code = d.code.clone();
 
         StatsError {
-          name: d.code().map(|c| c.to_string()),
+          name: code.clone(),
           message: diagnostic_displayer
             .emit_diagnostic(d)
             .expect("should print diagnostics"),
@@ -721,8 +719,8 @@ impl Stats<'_> {
           module_identifier,
           module_name,
           module_id: module_id.flatten(),
-          loc: d.loc().map(|loc| loc.to_string()),
-          file: d.file(),
+          loc: d.loc.as_ref().map(|loc| loc.to_string()),
+          file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
@@ -731,8 +729,8 @@ impl Stats<'_> {
             c.id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.as_str())
           }),
-          details: d.details(),
-          stack: d.stack(),
+          details: d.details.clone(),
+          stack: d.stack.clone(),
           module_trace,
         }
       })
@@ -767,6 +765,7 @@ impl Stats<'_> {
     module: &'a BoxModule,
     executed: bool,
     root_modules: Option<&IdentifierSet>,
+    runtime: Option<&RuntimeSpec>,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
@@ -779,10 +778,14 @@ impl Stats<'_> {
         .compilation
         .module_executor
         .as_ref()
-        .map(|executor| executor.make_artifact.built_modules.contains(&identifier))
+        .map(|executor| executor.make_artifact.built_modules().contains(&identifier))
         .unwrap_or_default()
     } else {
-      self.compilation.built_modules().contains(&identifier)
+      self
+        .compilation
+        .build_module_graph_artifact
+        .built_modules()
+        .contains(&identifier)
     };
 
     let code_generated = self
@@ -895,23 +898,20 @@ impl Stats<'_> {
       let errors = self
         .compilation
         .get_errors()
-        .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+        .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       let warnings = self
         .compilation
         .get_warnings()
-        .filter(|d| d.module_identifier().is_some_and(|id| id == identifier))
+        .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       let profile = if let Some(p) = mgm.profile()
-        && let Some(factory) = p.factory.duration()
-        && let Some(building) = p.building.duration()
+        && let Some(factory) = p.factory_duration()
+        && let Some(building) = p.building_duration()
       {
-        Some(StatsModuleProfile {
-          factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
-          building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
-        })
+        Some(StatsModuleProfile { factory, building })
       } else {
         None
       };
@@ -1058,7 +1058,7 @@ impl Stats<'_> {
             r#type,
             user_request,
             explanation,
-            active: connection.active,
+            active: connection.is_active(module_graph, runtime, module_graph_cache),
             loc,
           })
         })
@@ -1127,6 +1127,7 @@ impl Stats<'_> {
             module,
             executed,
             root_modules,
+            runtime,
             options,
           )
         })
@@ -1197,7 +1198,7 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
-      stats.name_for_condition = module.name_for_condition.as_ref().map(|n| n.to_string());
+      stats.name_for_condition = module.name_for_condition.clone();
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);
@@ -1366,7 +1367,7 @@ pub fn create_stats_errors<'a>(
   diagnostics
     .par_iter()
     .map(|d| {
-      let module_identifier = d.module_identifier();
+      let module_identifier = d.module_identifier;
       let (module_name, module_id) = module_identifier
         .as_ref()
         .and_then(|identifier| {
@@ -1378,7 +1379,7 @@ pub fn create_stats_errors<'a>(
         .unzip();
 
       let chunk = d
-        .chunk()
+        .chunk
         .map(ChunkUkey::from)
         .map(|key| compilation.chunk_by_ukey.expect_get(&key));
 
@@ -1389,11 +1390,11 @@ pub fn create_stats_errors<'a>(
         &compilation.options,
       );
 
-      let code = d.code().map(|code| code.to_string());
+      let code = d.code.clone();
 
-      let mut diagnostic_displayer = DiagnosticDisplayer::new(colored);
+      let diagnostic_displayer = StringDisplayer::new(colored, false);
       StatsError {
-        name: d.code().map(|c| c.to_string()),
+        name: code.clone(),
         message: diagnostic_displayer
           .emit_diagnostic(d)
           .expect("should print diagnostics"),
@@ -1401,15 +1402,15 @@ pub fn create_stats_errors<'a>(
         module_identifier,
         module_name,
         module_id: module_id.flatten(),
-        loc: d.loc().map(|loc| loc.to_string()),
-        file: d.file(),
+        loc: d.loc.as_ref().map(|loc| loc.to_string()),
+        file: d.file.as_ref().map(|file| file.as_path()),
 
         chunk_name: chunk.and_then(|c| c.name()),
         chunk_entry: chunk.map(|c| c.has_runtime(&compilation.chunk_group_by_ukey)),
         chunk_initial: chunk.map(|c| c.can_be_initial(&compilation.chunk_group_by_ukey)),
         chunk_id: chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
-        details: d.details(),
-        stack: d.stack(),
+        details: d.details.clone(),
+        stack: d.stack.clone(),
         module_trace,
       }
     })

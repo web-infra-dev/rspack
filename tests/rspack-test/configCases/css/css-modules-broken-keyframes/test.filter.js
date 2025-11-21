@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support webpack.ids.DeterministicModuleIdsPlugin and webpack.experiments.ids.SyncModuleIdsPlugin";

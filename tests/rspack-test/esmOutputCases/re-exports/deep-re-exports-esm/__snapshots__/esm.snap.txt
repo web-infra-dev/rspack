@@ -1,0 +1,27 @@
+```mjs title=main.mjs
+// ./lib3.js
+const lib3_lib3 = 42
+
+// ./lib2.js
+
+
+const lib2_lib2 = 42
+
+// ./lib.js
+
+
+const lib_lib = 42
+
+// ./index.js
+
+
+it('should re-export esm correctly', async () => {
+	const { lib, lib2, lib3 } = await import(/* webpackIgnore: true */ './main.mjs')
+	expect(lib).toBe(42)
+	expect(lib2).toBe(42)
+	expect(lib3).toBe(42)
+})
+
+export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib };
+
+```

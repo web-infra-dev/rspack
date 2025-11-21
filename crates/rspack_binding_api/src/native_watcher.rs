@@ -1,13 +1,14 @@
 use std::{
   boxed::Box,
   path::{Path, PathBuf},
+  time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use napi::bindgen_prelude::*;
 use napi_derive::*;
-use rspack_fs::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
+use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -49,6 +50,10 @@ pub struct NativeWatcher {
   closed: bool,
 }
 
+fn timestamp_to_system_time(millis: u64) -> SystemTime {
+  UNIX_EPOCH + Duration::from_millis(millis)
+}
+
 #[napi]
 impl NativeWatcher {
   #[napi(constructor)]
@@ -76,6 +81,7 @@ impl NativeWatcher {
     files: (Vec<String>, Vec<String>),
     directories: (Vec<String>, Vec<String>),
     missing: (Vec<String>, Vec<String>),
+    start_time: BigInt,
     #[napi(ts_arg_type = "(err: Error | null, result: NativeWatchResult) => void")]
     callback: Function<'static>,
     #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: Function<'static>,
@@ -90,6 +96,8 @@ impl NativeWatcher {
     let js_event_handler = JsEventHandler::new(callback)?;
     let js_event_handler_undelayed = JsEventHandlerUndelayed::new(callback_undelayed)?;
 
+    let start_time = start_time.get_u64().1;
+
     reference.share_with(env, |native_watcher| {
       napi::bindgen_prelude::spawn(async move {
         native_watcher
@@ -98,6 +106,7 @@ impl NativeWatcher {
             to_tuple_path_iterator(files),
             to_tuple_path_iterator(directories),
             to_tuple_path_iterator(missing),
+            timestamp_to_system_time(start_time),
             Box::new(js_event_handler),
             Box::new(js_event_handler_undelayed),
           )
@@ -186,7 +195,7 @@ impl JsEventHandler {
   }
 }
 
-impl rspack_fs::EventAggregateHandler for JsEventHandler {
+impl rspack_watcher::EventAggregateHandler for JsEventHandler {
   fn on_event_handle(
     &self,
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
@@ -240,7 +249,7 @@ impl JsEventHandlerUndelayed {
   }
 }
 
-impl rspack_fs::EventHandler for JsEventHandlerUndelayed {
+impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
     self.inner.call(
       changed_file,

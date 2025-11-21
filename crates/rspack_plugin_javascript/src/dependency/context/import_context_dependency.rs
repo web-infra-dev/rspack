@@ -3,9 +3,10 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
+use swc_core::atoms::Atom;
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
@@ -18,7 +19,7 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
@@ -43,6 +44,10 @@ impl ImportContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.options.referenced_exports = Some(referenced_exports);
+  }
 }
 
 #[cacheable_dyn]
@@ -59,8 +64,8 @@ impl Dependency for ImportContextDependency {
     &DependencyType::ImportContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

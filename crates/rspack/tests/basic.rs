@@ -19,8 +19,12 @@ mod tests {
       assert!(errors.is_empty());
 
       let asset = &compiler.compilation.assets().get("main.js").unwrap();
-      assert_eq!(asset.source.as_ref().unwrap().source(), "console.log(123);");
-    });
+      assert_eq!(
+        asset.source.as_ref().unwrap().source().into_string_lossy(),
+        "console.log(123);"
+      );
+    })
+    .await;
   }
 
   #[tokio::test(flavor = "multi_thread")]
@@ -41,10 +45,11 @@ mod tests {
 
       let asset = &compiler.compilation.assets().get("main.js").unwrap();
       assert_eq!(
-        asset.source.as_ref().unwrap().source(),
+        asset.source.as_ref().unwrap().source().into_string_lossy(),
         "console.log(123);\n//# sourceMappingURL=main.js.map"
       );
       assert!(compiler.compilation.assets().get("main.js.map").is_some());
-    });
+    })
+    .await;
   }
 }

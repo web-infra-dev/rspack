@@ -41,9 +41,7 @@ pub async fn module_rule_matcher<'a>(
   matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule
-      .try_match(resource_data.resource.as_str().into())
-      .await?
+    && !test_rule.try_match(resource_data.resource().into()).await?
   {
     return Ok(false);
   }
@@ -51,8 +49,7 @@ pub async fn module_rule_matcher<'a>(
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   let resource_path = resource_data
-    .resource_path
-    .as_deref()
+    .path()
     .unwrap_or_else(|| Utf8Path::new(""))
     .as_str();
 
@@ -79,11 +76,8 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
-    if let Some(resource_query) = &resource_data.resource_query {
-      if !resource_query_rule
-        .try_match(resource_query.as_str().into())
-        .await?
-      {
+    if let Some(resource_query) = resource_data.query() {
+      if !resource_query_rule.try_match(resource_query.into()).await? {
         return Ok(false);
       }
     } else if !resource_query_rule.match_when_empty().await? {
@@ -92,9 +86,9 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
-    if let Some(resource_fragment) = &resource_data.resource_fragment {
+    if let Some(resource_fragment) = resource_data.fragment() {
       if !resource_fragment_condition
-        .try_match(resource_fragment.as_str().into())
+        .try_match(resource_fragment.into())
         .await?
       {
         return Ok(false);
@@ -105,11 +99,8 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(mimetype_condition) = &module_rule.mimetype {
-    if let Some(mimetype) = &resource_data.mimetype {
-      if !mimetype_condition
-        .try_match(mimetype.as_str().into())
-        .await?
-      {
+    if let Some(mimetype) = resource_data.mimetype() {
+      if !mimetype_condition.try_match(mimetype.into()).await? {
         return Ok(false);
       }
     } else if !mimetype_condition.match_when_empty().await? {
@@ -166,7 +157,7 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(description_data) = &module_rule.description_data {
-    if let Some(resource_description) = &resource_data.resource_description {
+    if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
         if let Some(v) = k
           .split('.')
@@ -208,6 +199,8 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
+  matched_rules.push(&module_rule.effect);
+
   if let Some(rules) = &module_rule.rules {
     module_rules_matcher(
       rules,
@@ -243,6 +236,6 @@ pub async fn module_rule_matcher<'a>(
       return Ok(false);
     }
   }
-  matched_rules.push(&module_rule.effect);
+
   Ok(true)
 }

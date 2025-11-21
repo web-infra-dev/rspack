@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, SpanExt};
+use rspack_core::ConstDependency;
+use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
@@ -140,13 +141,11 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
   let param = scanner.evaluate_expression(&stmt.test);
   let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {
-    scanner
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (param.range().0, param.range().1 - 1).into(),
-        boolean.to_string().into_boxed_str(),
-        None,
-      )));
+    scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+      param.range().into(),
+      boolean.to_string().into_boxed_str(),
+      None,
+    )));
   } else {
     scanner.walk_expression(&stmt.test);
   }
@@ -172,17 +171,15 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
       )
     };
 
-    scanner
-      .presentational_dependencies
-      .push(Box::new(ConstDependency::new(
-        (
-          branch_to_remove.span().real_lo(),
-          branch_to_remove.span().hi().0 - 1,
-        )
-          .into(),
-        replacement.into_boxed_str(),
-        None,
-      )))
+    scanner.add_presentational_dependency(Box::new(ConstDependency::new(
+      (
+        branch_to_remove.span().real_lo(),
+        branch_to_remove.span().real_hi(),
+      )
+        .into(),
+      replacement.into_boxed_str(),
+      None,
+    )))
   }
   Some(boolean)
 }

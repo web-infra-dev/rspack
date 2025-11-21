@@ -9,6 +9,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
+allocative       = { workspace = true, optional = true }
 dashmap          = { workspace = true }
 hashlink         = { workspace = true }
 indexmap         = { workspace = true }
@@ -16,3 +17,7 @@ rayon            = { workspace = true }
 rspack_cacheable = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 ustr             = { workspace = true, features = ["serde"] }
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)']
+level     = "warn"

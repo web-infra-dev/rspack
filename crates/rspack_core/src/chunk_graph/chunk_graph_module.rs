@@ -338,7 +338,7 @@ impl ChunkGraph {
         for_each_runtime(
           runtime,
           |runtime| {
-            let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
+            let runtime = runtime.map(|r| RuntimeSpec::from_iter([*r]));
             let active_state = connection.active_state(&mg, runtime.as_ref(), mg_cache);
             active_state.hash(&mut hasher);
           },

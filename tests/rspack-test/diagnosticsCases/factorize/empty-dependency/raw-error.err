@@ -1,0 +1,14 @@
+Array [
+  Object {
+    code: Empty dependency,
+    loc: 1:8-10,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/empty-dependency/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: Empty dependency,
+    loc: 2:0-9,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/empty-dependency/index.js,
+    moduleName: ./index.js,
+  },
+]

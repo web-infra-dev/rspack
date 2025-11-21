@@ -208,7 +208,7 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
                   core::ptr::null::<Archived<#target_ident>>() as *const <dyn #trait_ident as ArchiveUnsized>::Archived
               ))
           }
-          inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable()) }
+          inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable(), concat!(module_path!(), "::", stringify!(#target_ident))) }
           inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<#target_ident>>) }
 
           impl DeserializeDyn<dyn #trait_ident> for #archived_target_ident

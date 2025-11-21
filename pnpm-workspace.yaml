@@ -11,9 +11,7 @@ packages:
   - "examples/**/*"
   - "!examples/three"
   - "tests/e2e"
-  - "tests/webpack-examples"
-  - "tests/webpack-test"
-  - "tests/webpack-cli-test"
+  - "tests/rspack-test"
   - "tests/bench"
   # this following is used to test resolve in monorepo
-  - "packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/*"
+  - "tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*"

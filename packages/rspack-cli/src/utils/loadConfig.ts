@@ -1,50 +1,75 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-	type MultiRspackOptions,
-	type RspackOptions,
-	util
-} from "@rspack/core";
-import type { RspackCLIOptions } from "../types";
+import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
+import { addHook } from "pirates";
 import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
-import isEsmFile from "./isEsmFile";
-import isTsFile from "./isTsFile";
+import { isEsmFile } from "./isEsmFile";
+import isTsFile, { TS_EXTENSION } from "./isTsFile";
+import type { CommonOptions } from "./options";
+import { rspack } from "./rspackCore";
 
-interface RechoirError extends Error {
-	failures: RechoirError[];
-	error: Error;
+const injectInlineSourceMap = ({
+	code,
+	map
+}: {
+	code: string;
+	map: string | undefined;
+}): string => {
+	if (map) {
+		const base64Map = Buffer.from(map, "utf8").toString("base64");
+		const sourceMapContent = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
+		return `${code}\n${sourceMapContent}`;
+	}
+	return code;
+};
+
+export function compile(sourcecode: string, filename: string) {
+	const { code, map } = rspack.experiments.swc.transformSync(sourcecode, {
+		jsc: {
+			parser: {
+				syntax: "typescript",
+				tsx: false,
+				decorators: true,
+				dynamicImport: true
+			}
+		},
+		filename: filename,
+		module: { type: "commonjs" },
+		sourceMaps: true,
+		isModule: true
+	});
+	return injectInlineSourceMap({ code, map });
 }
 
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 
-const registerLoader = async (configPath: string) => {
-	const ext = path.extname(configPath);
-	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
+// modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
+const registerLoader = (configPath: string) => {
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
 	if (isEsmFile(configPath) && isTsFile(configPath)) {
 		return;
 	}
 
-	const { default: interpret } = await import("interpret");
-	const extensions = Object.fromEntries(
-		Object.entries(interpret.extensions).filter(([key]) => key === ext)
-	);
-	if (Object.keys(extensions).length === 0) {
+	// Only support TypeScript files with a CommonJS loader here
+	if (!isTsFile(configPath)) {
 		throw new Error(`config file "${configPath}" is not supported.`);
 	}
 
-	try {
-		const { default: rechoir } = await import("rechoir");
-		rechoir.prepare(extensions, configPath);
-	} catch (error) {
-		const failures = (error as RechoirError)?.failures;
-		if (failures) {
-			const messages = failures.map(failure => failure.error.message);
-			throw new Error(`${messages.join("\n")}`);
+	addHook(
+		(code, filename) => {
+			try {
+				return compile(code, filename);
+			} catch (err) {
+				throw new Error(
+					`Failed to transform file "${filename}" when loading TypeScript config file:\n ${err instanceof Error ? err.message : String(err)}`
+				);
+			}
+		},
+		{
+			exts: TS_EXTENSION
 		}
-		throw error;
-	}
+	);
 };
 
 export type LoadedRspackConfig =
@@ -72,7 +97,7 @@ export async function loadExtendedConfig(
 	config: RspackOptions,
 	configPath: string,
 	cwd: string,
-	options: RspackCLIOptions
+	options: CommonOptions
 ): Promise<{
 	config: RspackOptions;
 	pathMap: WeakMap<RspackOptions, string[]>;
@@ -81,7 +106,7 @@ export async function loadExtendedConfig(
 	config: MultiRspackOptions,
 	configPath: string,
 	cwd: string,
-	options: RspackCLIOptions
+	options: CommonOptions
 ): Promise<{
 	config: MultiRspackOptions;
 	pathMap: WeakMap<RspackOptions, string[]>;
@@ -90,7 +115,7 @@ export async function loadExtendedConfig(
 	config: RspackOptions | MultiRspackOptions,
 	configPath: string,
 	cwd: string,
-	options: RspackCLIOptions
+	options: CommonOptions
 ): Promise<{
 	config: RspackOptions | MultiRspackOptions;
 	pathMap: WeakMap<RspackOptions, string[]>;
@@ -99,7 +124,7 @@ export async function loadExtendedConfig(
 	config: RspackOptions | MultiRspackOptions,
 	configPath: string,
 	cwd: string,
-	options: RspackCLIOptions
+	options: CommonOptions
 ): Promise<{
 	config: RspackOptions | MultiRspackOptions;
 	pathMap: WeakMap<RspackOptions, string[]>;
@@ -186,15 +211,15 @@ export async function loadExtendedConfig(
 
 		// Register loader for TypeScript files
 		if (isTsFile(resolvedPath) && options.configLoader === "register") {
-			await registerLoader(resolvedPath);
+			registerLoader(resolvedPath);
 		}
 
 		// Load the extended configuration
-		let loadedConfig = await crossImport(resolvedPath, cwd);
+		let loadedConfig = await crossImport(resolvedPath);
 
 		// If the extended config is a function, execute it
 		if (typeof loadedConfig === "function") {
-			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			loadedConfig = loadedConfig(options.env, options);
 			// if return promise we should await its result
 			if (
 				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
@@ -212,7 +237,7 @@ export async function loadExtendedConfig(
 			...(extendedPathMap.get(extendedConfig) || [])
 		];
 		// Merge the configurations
-		resultConfig = util.cleverMerge(extendedConfig, resultConfig);
+		resultConfig = rspack.util.cleverMerge(extendedConfig, resultConfig);
 		// Set config paths
 		pathMap.set(resultConfig, configPaths);
 	}
@@ -221,11 +246,12 @@ export async function loadExtendedConfig(
 }
 
 export async function loadRspackConfig(
-	options: RspackCLIOptions,
+	options: CommonOptions,
 	cwd = process.cwd()
 ): Promise<{ loadedConfig: LoadedRspackConfig; configPath: string } | null> {
 	// calc config path.
-	let configPath: string = "";
+	let configPath = "";
+
 	if (options.config) {
 		configPath = path.resolve(cwd, options.config);
 		if (!fs.existsSync(configPath)) {
@@ -236,14 +262,15 @@ export async function loadRspackConfig(
 		if (!defaultConfig) {
 			return null;
 		}
+
 		configPath = defaultConfig;
 	}
 
 	// load config
 	if (isTsFile(configPath) && options.configLoader === "register") {
-		await registerLoader(configPath);
+		registerLoader(configPath);
 	}
-	const loadedConfig = await crossImport(configPath, cwd);
+	const loadedConfig = await crossImport(configPath);
 
 	return { loadedConfig, configPath };
 }

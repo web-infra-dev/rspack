@@ -1,0 +1,21 @@
+{
+  "name": "@rspack/binding-linux-x64-musl",
+  "version": "1.6.4",
+  "license": "MIT",
+  "description": "Node binding for rspack",
+  "main": "rspack.linux-x64-musl.node",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
+  "publishConfig": {
+    "access": "public",
+    "os": ["linux"],
+    "cpu": ["x64"],
+    "libc": ["musl"]
+  },
+  "files": ["rspack.linux-x64-musl.node"]
+}

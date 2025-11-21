@@ -16,10 +16,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
-use rspack_error::{
-  DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt, TraceableError,
-  miette::Diagnostic,
-};
+use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
@@ -43,7 +40,8 @@ impl<'a> LocalIdentOptions<'a> {
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
-    let relative_resource = make_paths_relative(&compiler_options.context, &resource_data.resource);
+    let relative_resource =
+      make_paths_relative(&compiler_options.context, resource_data.resource());
     Self {
       relative_resource,
       local_name_ident,
@@ -416,40 +414,39 @@ pub fn css_parsing_traceable_error(
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
-  severity: RspackSeverity,
-) -> TraceableError {
-  TraceableError::from_arc_string(
-    Some(source_code),
+  severity: Severity,
+) -> Error {
+  let mut error = Error::from_string(
+    Some(source_code.to_string()),
     start as usize,
     end as usize,
     match severity {
-      RspackSeverity::Error => "CSS parse error".to_string(),
-      RspackSeverity::Warn => "CSS parse warning".to_string(),
+      Severity::Error => "CSS parse error".to_string(),
+      Severity::Warning => "CSS parse warning".to_string(),
     },
     message.into(),
-  )
-  .with_severity(severity)
+  );
+  error.severity = severity;
+  error
 }
 
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
-  diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  diagnostics: &mut Vec<Diagnostic>,
   source_code: impl Fn() -> Arc<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
-    diagnostics.push(
-      css_parsing_traceable_error(
-        source_code(),
-        start,
-        end,
-        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
-        RspackSeverity::Warn,
-      )
-      .with_help(Some("Remove '~' from the request."))
-      .boxed(),
+    let mut error = css_parsing_traceable_error(
+      source_code(),
+      start,
+      end,
+      "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+      Severity::Warning,
     );
+    error.help = Some("Remove '~' from the request.".into());
+    diagnostics.push(error.into());
     specifier
   } else {
     specifier

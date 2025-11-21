@@ -86,62 +86,6 @@ export default {
 };
 ```
 
-## experiments.topLevelAwait
-
-:::warning
-
-该配置项已经废弃，将在 Rspack v2.0 中被移除。
-
-未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
-
-:::
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
-
-默认开启，可通过该配置关闭：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
-
-:::
-
-## experiments.layers
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
-
-`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
-
-模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
 ## experiments.incremental
 
 <ApiMeta addedVersion="1.1.0-beta.0" />
@@ -204,36 +148,6 @@ export default {
 | 重构建/HMR |    ✅    |
 
 Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta addedVersion="1.2.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
-
-:::info
-1.3.0 至 1.4.8 版本默认开启，1.4.9 版本后默认关闭。
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
-
-这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
-:::
 
 ## experiments.parallelLoader
 
@@ -715,7 +629,7 @@ import imageUrl from 'https://example.com/image.png';
 一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
 
 下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/zh/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
-更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-test-tools/tests/configCases/input-file-system/webpack.config.js)。
+更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -802,7 +716,7 @@ const __webpack_modules__ = {
 };
 ```
 
-详细示例可参考：[inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
+详细示例可参考：[inline const 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
 
 ## experiments.inlineEnum
 
@@ -813,7 +727,7 @@ const __webpack_modules__ = {
 
 实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
 
-详细示例可参考：[collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
 
 ## experiments.typeReexportsPresence
 
@@ -824,7 +738,7 @@ const __webpack_modules__ = {
 
 实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
 
-详细示例可参考：[collect typescript info example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/collect-typescript-info)
+详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
 
 ## experiments.nativeWatcher
 
@@ -856,9 +770,17 @@ export default {
 <ApiMeta addedVersion="1.5.0" />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true` (v1.6.0 后默认开启)
 
 是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    lazyBarrel: true,
+  },
+};
+```
 
 无副作用模块是指满足以下条件之一的模块：
 
@@ -881,6 +803,113 @@ export default {
    1. 重导出模块（barrel file）不是无副作用的
    2. star re-export 被使用了
 
+:::
+
 > 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
 
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。目前仅支持 `import defer * as ns from "./module"`，`import.defer()` 会在后续版本支持。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+## experiments.topLevelAwait
+
+:::warning
+
+该配置项已经废弃，将在 Rspack v2.0 中被移除。
+
+未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
+
+:::
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
+
+默认开启，可通过该配置关闭：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    topLevelAwait: false,
+  },
+};
+```
+
+## experiments.lazyCompilation
+
+<ApiMeta deprecatedVersion="1.5.0" />
+
+:::warning
+
+该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
+
+:::
+
+## experiments.layers
+
+<ApiMeta deprecatedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+:::warning
+该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
+:::
+
+控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
+
+`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
+
+模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    layers: true,
+  },
+};
+```
+
+## experiments.parallelCodeSplitting
+
+<ApiMeta deprecatedVersion="1.6.2" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
+
+:::warning
+该选项已被废弃，在某些包含大量循环 chunk 的边缘情况下会出现严重的性能问题，我们会在未来改进 build_chunk_graph 的性能来替代该选项。
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+  optimization: {
+    removeAvailableModules: true,
+  },
+};
+```
+
+:::warning
+当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
+
+这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
 :::

@@ -101,54 +101,31 @@ export default defineConfig({
           'https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4',
       },
     ],
+    editLink: {
+      docRepoBaseUrl:
+        'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
+    },
     locales: [
       {
         lang: 'en',
         title: 'Rspack',
         description: 'The fast Rust-based web bundler',
         label: 'English',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
-          text: '📝 Edit this page on GitHub',
-        },
       },
       {
         lang: 'zh',
         title: 'Rspack',
         description: '基于 Rust 的高性能 web 打包工具',
         label: '简体中文',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/rspack/tree/main/website/docs',
-          text: '📝 在 GitHub 上编辑此页',
-        },
       },
     ],
   },
   head: [
     ({ routePath }) => {
       const getOgImage = () => {
-        if (routePath.endsWith('blog/announcing-0-7')) {
-          return 'assets/rspack-og-image-v0-7.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-0-alpha')) {
-          return 'assets/rspack-og-image-v1-0-alpha.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-0')) {
-          return 'assets/rspack-og-image-v1-0.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-1')) {
-          return 'assets/rspack-og-image-v1-1.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-2')) {
-          return 'assets/rspack-og-image-v1-2.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-3')) {
-          return 'assets/rspack-og-image-v1-3.png';
-        }
-        if (routePath.endsWith('blog/announcing-1-4')) {
-          return 'assets/rspack-og-image-v1-4.png';
+        if (routePath.includes('blog/announcing-')) {
+          const version = routePath.split('announcing-')[1];
+          return `assets/rspack-og-image-v${version}.png`;
         }
         if (routePath.endsWith('blog/rspack-next-partner')) {
           return 'assets/next-rspack-og-image.png';
@@ -160,15 +137,10 @@ export default defineConfig({
     },
   ],
   builderConfig: {
-    dev: {
-      lazyCompilation: true,
-    },
     plugins: [
       pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
-        title: 'Rspack',
-        type: 'website',
         url: PUBLISH_URL,
         description: 'Fast Rust-based web bundler',
         twitter: {

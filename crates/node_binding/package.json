@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.4.11",
+  "version": "1.6.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -12,7 +12,8 @@
   "files": [
     "binding.js",
     "binding.d.ts",
-    "napi-binding.d.ts"
+    "napi-binding.d.ts",
+    "webcontainer-fallback.cjs"
   ],
   "scripts": {
     "build:dev": "node scripts/build.js",
@@ -22,8 +23,8 @@
     "build:release": "node scripts/build.js --profile release",
     "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
     "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
-    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js",
-    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js --profile release-wasi",
+    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
+    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
@@ -32,9 +33,9 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@napi-rs/cli": "3.0.4",
-    "@napi-rs/wasm-runtime": "^1.0.1",
-    "emnapi": "^1.4.5",
-    "typescript": "^5.9.2"
+    "@napi-rs/wasm-runtime": "1.0.7",
+    "emnapi": "^1.7.1",
+    "typescript": "^5.9.3"
   },
   "napi": {
     "binaryName": "rspack",
@@ -64,9 +65,14 @@
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
-    "@rspack/binding-darwin-x64": "workspace:*",
-    "@rspack/binding-linux-x64-gnu": "workspace:*",
+    "@rspack/binding-win32-arm64-msvc": "workspace:*",
+    "@rspack/binding-linux-arm64-gnu": "workspace:*",
+    "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-win32-ia32-msvc": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",
-    "@rspack/binding-win32-x64-msvc": "workspace:*"
+    "@rspack/binding-darwin-x64": "workspace:*",
+    "@rspack/binding-win32-x64-msvc": "workspace:*",
+    "@rspack/binding-linux-x64-gnu": "workspace:*",
+    "@rspack/binding-linux-x64-musl": "workspace:*"
   }
 }

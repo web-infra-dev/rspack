@@ -49,16 +49,17 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("check case sensitive modules");
   let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
+  let all_modules = module_graph.modules();
   let mut not_conflect: FxHashMap<String, Identifier> =
-    HashMap::with_capacity_and_hasher(module_graph.modules().len(), FxBuildHasher);
+    HashMap::with_capacity_and_hasher(all_modules.len(), FxBuildHasher);
   let mut conflict: FxHashMap<String, IdentifierSet> = FxHashMap::default();
 
-  for module in module_graph.modules().values() {
+  for module in all_modules.values() {
     // Ignore `data:` URLs, because it's not a real path
     if let Some(normal_module) = module.as_normal_module()
       && normal_module
         .resource_resolved_data()
-        .encoded_content
+        .encoded_content()
         .is_some()
     {
       continue;

@@ -9,7 +9,6 @@ pub struct ModuleGraphModule {
   // edges from module to module
   outgoing_connections: HashSet<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
-  // we can cache it after all of module are cacheable
   #[cacheable(with=Skip)]
   incoming_connections: HashSet<DependencyId>,
 
@@ -23,8 +22,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub exports: ExportsInfo,
-  #[cacheable(with=Skip)]
-  pub profile: Option<Box<ModuleProfile>>,
+  pub profile: Option<ModuleProfile>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
 }
@@ -71,12 +69,12 @@ impl ModuleGraphModule {
     &self.outgoing_connections
   }
 
-  pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {
+  pub fn set_profile(&mut self, profile: ModuleProfile) {
     self.profile = Some(profile);
   }
 
   pub fn profile(&self) -> Option<&ModuleProfile> {
-    self.profile.as_deref()
+    self.profile.as_ref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

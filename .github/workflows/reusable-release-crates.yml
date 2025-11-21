@@ -1,0 +1,63 @@
+name: Reusable Release Crates
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        description: "DryRun release"
+        required: true
+        default: false
+      push_tags:
+        type: boolean
+        description: "Push tags to repository"
+        required: true
+        default: true
+
+jobs:
+  rust_tests:
+    name: Run Rust Tests
+    uses: ./.github/workflows/reusable-rust-test.yml
+    with:
+      # Use separated strategy to check all crates
+      cargo-check-strategy: "separated"
+
+  release_crates:
+    environment: crate
+    name: Release Crates
+    permissions:
+      contents: write
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    needs: [rust_tests]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: release
+
+      - uses: cargo-bins/cargo-binstall@afcf9780305558bcc9e4bc94b7589ab2bb8b6106 # v1.15.9
+
+      - name: Install cargo-workspaces
+        run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Publish Crates
+        run: |
+          ./x crate-publish --token $CARGO_REGISTRY_TOKEN ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.push_tags && '--push-tags' || '' }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

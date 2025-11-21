@@ -1,0 +1,27 @@
+```mjs title=main.mjs
+import { createRequire as __rspack_external_createRequire } from "node:module";
+const __rspack_external_createRequire_require = __rspack_external_createRequire(import.meta.url);
+import { readFile, writeFile } from "fs";
+
+// fs
+
+// ./module.js
+
+
+console.log.bind(console)
+
+// ./index.js
+
+
+it('should handle aliased external', async () => {
+	const {f, w} = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(f).toBe(__rspack_external_createRequire_require('fs').readFile)
+	expect(w).toBe(__rspack_external_createRequire_require('fs').writeFile)
+})
+
+
+
+export { readFile as f, writeFile as w } from "fs";
+
+```

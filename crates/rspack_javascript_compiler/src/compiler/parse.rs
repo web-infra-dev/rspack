@@ -6,7 +6,7 @@ use swc_core::{
   common::{FileName, SourceFile, comments::Comments, input::SourceFileInput},
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
-    parser::{self, Parser, Syntax, lexer::Lexer},
+    parser::{self, Parser, Syntax, lexer::Lexer, unstable::TokenAndSpan},
   },
 };
 use swc_node_comments::SwcComments;
@@ -52,8 +52,8 @@ impl JavaScriptCompiler {
       comments.as_ref().map(|c| c as &dyn Comments),
     );
 
-    parse_with_lexer(lexer, is_module)
-      .map(|program| {
+    parse_with_lexer(lexer, is_module, false)
+      .map(|(program, _)| {
         Ast::new(program, self.cm.clone(), comments)
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
       })
@@ -62,9 +62,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| {
-              rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
-            })
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
             .collect::<Vec<_>>(),
         )
       })
@@ -76,20 +74,22 @@ impl JavaScriptCompiler {
     lexer: Lexer,
     is_module: IsModule,
     comments: Option<SwcComments>,
-  ) -> Result<Ast, BatchErrors> {
-    parse_with_lexer(lexer, is_module)
-      .map(|program| {
-        Ast::new(program, self.cm.clone(), comments)
-          .with_context(ast::Context::new(self.cm.clone(), Some(self.globals)))
+    with_tokens: bool,
+  ) -> Result<(Ast, Option<Vec<TokenAndSpan>>), BatchErrors> {
+    parse_with_lexer(lexer, is_module, with_tokens)
+      .map(|(program, tokens)| {
+        (
+          Ast::new(program, self.cm.clone(), comments)
+            .with_context(ast::Context::new(self.cm.clone(), Some(self.globals))),
+          tokens,
+        )
       })
       .map_err(|errs| {
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| {
-              rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, fm))
-            })
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm))
             .collect::<Vec<_>>(),
         )
       })
@@ -105,40 +105,59 @@ impl JavaScriptCompiler {
     comments: Option<&dyn Comments>,
   ) -> Result<SwcProgram, BatchErrors> {
     let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
-    parse_with_lexer(lexer, is_module).map_err(|errs| {
-      BatchErrors(
-        errs
-          .dedup_ecma_errors()
-          .into_iter()
-          .map(|err| {
-            rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(err, &fm))
-          })
-          .collect::<Vec<_>>(),
-      )
-    })
+    parse_with_lexer(lexer, is_module, false)
+      .map(|(program, _)| program)
+      .map_err(|errs| {
+        BatchErrors(
+          errs
+            .dedup_ecma_errors()
+            .into_iter()
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
+            .collect::<Vec<_>>(),
+        )
+      })
   }
 }
-
+use swc_core::ecma::parser::unstable::Capturing;
 fn parse_with_lexer(
   lexer: Lexer,
   is_module: IsModule,
-) -> Result<SwcProgram, Vec<parser::error::Error>> {
+  with_tokens: bool,
+) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
   let inner = || {
-    let mut parser = Parser::new_from(lexer);
-    let program_result = match is_module {
-      IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
-      IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
-      IsModule::Unknown => parser.parse_program(),
-      IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+    // don't call capturing when with_tokens is false to avoid performance cost
+    let (tokens, program_result, mut errors) = if with_tokens {
+      let lexer = Capturing::new(lexer);
+      let mut parser = Parser::new_from(lexer);
+      let program_result = match is_module {
+        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+        IsModule::Unknown => parser.parse_program(),
+        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+      };
+      (
+        Some(parser.input_mut().iter_mut().take()),
+        program_result,
+        parser.take_errors(),
+      )
+    } else {
+      let mut parser = Parser::new_from(lexer);
+      let program_result = match is_module {
+        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+        IsModule::Unknown => parser.parse_program(),
+        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+      };
+      (None, program_result, parser.take_errors())
     };
-    let mut errors = parser.take_errors();
+
     // Using combinator will let rustc unhappy.
     match program_result {
       Ok(program) => {
         if !errors.is_empty() {
           return Err(errors);
         }
-        Ok(program)
+        Ok((program, tokens))
       }
       Err(err) => {
         errors.push(err);

@@ -2,11 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use itertools::Itertools;
-use rspack_core::{Compilation, CrossOriginLoading, Mode};
+use rspack_core::{Compilation, Mode};
 use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
-use rspack_error::{
-  AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, miette,
-};
+use rspack_error::{AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, error};
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -32,10 +30,7 @@ pub struct HtmlTemplate {
 }
 
 impl HtmlTemplate {
-  pub async fn new(
-    config: &HtmlRspackPluginOptions,
-    compilation: &Compilation,
-  ) -> Result<Self, miette::Error> {
+  pub async fn new(config: &HtmlRspackPluginOptions, compilation: &Compilation) -> Result<Self> {
     if let Some(content) = &config.template_content {
       Ok(Self {
         render: if config.template_fn.is_some() {
@@ -124,7 +119,7 @@ impl HtmlTemplate {
     body_tags: &Vec<HtmlPluginTag>,
     assets: &HtmlPluginAssets,
     compilation: &Compilation,
-  ) -> Result<(), miette::Error> {
+  ) -> Result<()> {
     if matches!(config.template_parameters, TemplateParameters::Disabled) {
       self.parameters = Some(serde_json::json!({}));
       Ok(())
@@ -157,10 +152,7 @@ impl HtmlTemplate {
             },
             "output": {
               "publicPath": config.get_public_path(compilation, filename).await,
-            "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
-                CrossOriginLoading::Disable => "false",
-                CrossOriginLoading::Enable(value) => value,
-            },
+              "crossOriginLoading": compilation.options.output.cross_origin_loading.to_string(),
             }
           },
         }),
@@ -179,15 +171,17 @@ impl HtmlTemplate {
             Ok(new_data) => match serde_json::from_str(&new_data) {
               Ok(data) => res = data,
               Err(err) => {
-                return Err(miette::Error::msg(format!(
-                  "HtmlRspackPlugin: failed to parse template parameters: {err}"
-                )));
+                return Err(error!(
+                  "HtmlRspackPlugin: failed to parse template parameters: {}",
+                  err
+                ));
               }
             },
             Err(err) => {
-              return Err(miette::Error::msg(format!(
-                "HtmlRspackPlugin: failed to generate template parameters: {err}"
-              )));
+              return Err(error!(
+                "HtmlRspackPlugin: failed to generate template parameters: {}",
+                err
+              ));
             }
           }
         }
@@ -199,10 +193,7 @@ impl HtmlTemplate {
     }
   }
 
-  pub async fn render(
-    &mut self,
-    config: &HtmlRspackPluginOptions,
-  ) -> Result<String, miette::Error> {
+  pub async fn render(&mut self, config: &HtmlRspackPluginOptions) -> Result<String> {
     let parameters = self.parameters.to_owned().expect("should have parameters");
     match &self.render {
       TemplateRender::Template(content) => {

@@ -8,9 +8,9 @@ use rspack_core::{
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
-  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyType, Filename, GenerateContext, GeneratorOptions, ManifestAssetType, Module,
+  ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData,
+  Plugin, PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
@@ -18,7 +18,7 @@ use rspack_error::{
 };
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{ext::DynHash, identifier::make_paths_relative};
+use rspack_util::{base64, ext::DynHash, identifier::make_paths_relative};
 
 mod asset_exports_dependency;
 
@@ -31,7 +31,6 @@ pub struct AssetPlugin;
 static JS_AND_CSS_URL_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::CssUrl];
 static JS_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 static CSS_URL_TYPES: &[SourceType; 1] = &[SourceType::CssUrl];
-static NO_TYPES: &[SourceType; 0] = &[];
 
 static ASSET_AND_JS_AND_CSS_URL_TYPES: &[SourceType; 3] = &[
   SourceType::Asset,
@@ -45,7 +44,7 @@ static ASSET_TYPES: &[SourceType; 1] = &[SourceType::Asset];
 const DEFAULT_ENCODING: &str = "base64";
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum DataUrlOptions {
   Inline(bool),
   Source,
@@ -59,31 +58,31 @@ const ASSET_RESOURCE: bool = false;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-enum CanonicalizedDataUrlOption {
+pub enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
 }
 
 impl CanonicalizedDataUrlOption {
-  fn is_source(&self) -> bool {
+  pub fn is_source(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Source)
   }
 
-  fn is_inline(&self) -> bool {
+  pub fn is_inline(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_INLINE))
   }
 
-  fn is_resource(&self) -> bool {
+  pub fn is_resource(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_RESOURCE))
   }
 }
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AssetParserAndGenerator {
   emit: bool,
   data_url: DataUrlOptions,
-  parsed_asset_config: Option<CanonicalizedDataUrlOption>,
+  pub parsed_asset_config: Option<CanonicalizedDataUrlOption>,
 }
 
 impl AssetParserAndGenerator {
@@ -121,9 +120,9 @@ impl AssetParserAndGenerator {
 
   fn decode_data_uri_content(encoding: &str, content: &str, source: &BoxSource) -> Vec<u8> {
     if encoding == "base64"
-      && let Some(cleaned) = rspack_base64::clean_base64(content)
+      && let Some(cleaned) = base64::clean_base64(content)
     {
-      return rspack_base64::decode_to_vec(cleaned.as_bytes())
+      return base64::decode_to_vec(cleaned.as_bytes())
         .unwrap_or_else(|_| source.buffer().to_vec());
     }
 
@@ -152,7 +151,7 @@ impl AssetParserAndGenerator {
     compilation: &Compilation,
   ) -> Option<String> {
     let func_ctx = AssetGeneratorDataUrlFnCtx {
-      filename: resource_data.resource.clone(),
+      filename: resource_data.resource().to_owned(),
       module,
       compilation,
     };
@@ -177,12 +176,12 @@ impl AssetParserAndGenerator {
     {
       return Ok(mimetype.to_owned());
     }
-    if let Some(mimetype) = &resource_data.mimetype
-      && let Some(parameters) = &resource_data.parameters
+    if let Some(mimetype) = resource_data.mimetype()
+      && let Some(parameters) = resource_data.parameters()
     {
       return Ok(format!("{mimetype}{parameters}"));
     }
-    if let Some(resource_path) = &resource_data.resource_path {
+    if let Some(resource_path) = resource_data.path() {
       return mime_guess::MimeGuess::from_path(resource_path)
         .first_raw()
         .map(ToOwned::to_owned)
@@ -208,7 +207,7 @@ impl AssetParserAndGenerator {
     {
       return encoding.to_string();
     }
-    if let Some(encoding) = &resource_data.encoding {
+    if let Some(encoding) = resource_data.encoding() {
       return encoding.to_owned();
     }
     String::from(DEFAULT_ENCODING)
@@ -220,8 +219,8 @@ impl AssetParserAndGenerator {
     encoding: &str,
     source: &BoxSource,
   ) -> Result<String> {
-    if let Some(encoded_content) = &resource_data.encoded_content
-      && let Some(resource_encoding) = &resource_data.encoding
+    if let Some(encoded_content) = resource_data.encoded_content()
+      && let Some(resource_encoding) = resource_data.encoding()
       && resource_encoding == encoding
       && AssetParserAndGenerator::decode_data_uri_content(encoding, encoded_content, source)
         .eq(&source.buffer().to_vec())
@@ -233,7 +232,7 @@ impl AssetParserAndGenerator {
       return Ok(urlencoding::encode_binary(&source.buffer()).into_owned());
     }
     if encoding == DEFAULT_ENCODING {
-      return Ok(rspack_base64::encode_to_string(source.buffer()));
+      return Ok(base64::encode_to_string(source.buffer()));
     }
     Err(error!("Unsupported encoding {encoding}"))
   }
@@ -241,10 +240,10 @@ impl AssetParserAndGenerator {
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
     let relative = make_paths_relative(
       compilation.options.context.as_ref(),
-      &module
+      module
         .match_resource()
         .unwrap_or(module.resource_resolved_data())
-        .resource,
+        .resource(),
     );
     if let Some(stripped) = relative.strip_prefix("./") {
       return stripped.to_owned();
@@ -321,7 +320,7 @@ impl AssetParserAndGenerator {
     Ok((public_path, info))
   }
 
-  fn get_import_mode(
+  pub fn get_import_mode(
     &self,
     module_generator_options: Option<&GeneratorOptions>,
   ) -> Result<AssetGeneratorImportMode> {
@@ -355,24 +354,20 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       {
         let module_type = module.module_type();
         source_types.insert(SourceType::from(module_type));
-      }
-    }
-
-    if source_types.is_empty() {
-      if self
-        .parsed_asset_config
-        .as_ref()
-        .is_some_and(|x| x.is_source() || x.is_inline())
-        || !self.emit
+      } else if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id)
+        && matches!(dependency.dependency_type(), DependencyType::LoaderImport)
       {
-        return JS_TYPES;
-      } else {
-        return ASSET_AND_JS_TYPES;
+        source_types.insert(SourceType::JavaScript);
       }
     }
 
-    let has_js = source_types.contains(&SourceType::JavaScript);
-    let has_css = source_types.contains(&SourceType::Css);
+    let is_import_mode_preserve = self
+      .get_import_mode(
+        module
+          .as_normal_module()
+          .and_then(|x| x.get_generator_options()),
+      )
+      .is_ok_and(|x| x.is_preserve());
 
     if self
       .parsed_asset_config
@@ -380,25 +375,37 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .is_some_and(|x| x.is_source() || x.is_inline())
       || !self.emit
     {
-      return if has_js && has_css {
-        JS_AND_CSS_URL_TYPES
-      } else if has_js {
-        JS_TYPES
-      } else if has_css {
-        CSS_URL_TYPES
+      if source_types.is_empty() {
+        return JS_TYPES;
       } else {
-        NO_TYPES
+        let has_js = source_types.contains(&SourceType::JavaScript);
+        let has_css = source_types.contains(&SourceType::Css);
+        if has_js && has_css {
+          return JS_AND_CSS_URL_TYPES;
+        } else if has_css {
+          return CSS_URL_TYPES;
+        } else {
+          return JS_TYPES;
+        }
+      }
+    }
+
+    if source_types.is_empty() {
+      return if is_import_mode_preserve {
+        ASSET_AND_JS_TYPES
+      } else {
+        ASSET_TYPES
       };
     }
 
+    let has_js = source_types.contains(&SourceType::JavaScript);
+    let has_css = source_types.contains(&SourceType::Css);
     if has_js && has_css {
       ASSET_AND_JS_AND_CSS_URL_TYPES
-    } else if has_js {
-      ASSET_AND_JS_TYPES
     } else if has_css {
       ASSET_AND_CSS_URL_TYPES
     } else {
-      ASSET_TYPES
+      ASSET_AND_JS_TYPES
     }
   }
 
@@ -622,13 +629,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           asset_path
         } else if parsed_asset_config.is_source() {
-          format!(r"{:?}", source.source())
+          format!(r"{:?}", source.source().into_string_lossy())
         } else {
           unreachable!()
         };
 
         if generate_context.requested_source_type == SourceType::CssUrl {
-          return Ok(RawStringSource::from("").boxed());
+          return Ok(RawStringSource::from_static("").boxed());
         }
 
         if import_mode.is_preserve() && parsed_asset_config.is_resource() {
@@ -687,6 +694,38 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
+          let contenthash = self.hash_for_source(source, &compilation.options);
+          let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
+          let source_file_name = self.get_source_file_name(normal_module, compilation);
+          let (_, filename, mut asset_info) = self
+            .get_asset_module_filename(
+              normal_module,
+              module_generator_options,
+              compilation,
+              Some(contenthash),
+              &source_file_name,
+              true,
+            )
+            .await?;
+
+          generate_context
+            .data
+            .insert(CodeGenerationDataFilename::new(
+              filename,
+              match module_generator_options
+                .and_then(|x| x.asset_public_path())
+                .unwrap_or_else(|| &compilation.options.output.public_path)
+              {
+                PublicPath::Filename(p) => PublicPath::render_filename(compilation, p).await,
+                PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+              },
+            ));
+
+          asset_info.set_source_filename(source_file_name);
+          generate_context
+            .data
+            .insert(CodeGenerationDataAssetInfo::new(asset_info));
+
           Ok(source.clone().boxed())
         }
       }
@@ -764,18 +803,16 @@ async fn render_manifest(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
 
-  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SourceType::Asset,
-    &module_graph,
-  );
+  let ordered_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::Asset, &module_graph);
 
   let assets = ordered_modules
     .par_iter()
-    .map(|m| {
+    .map(|mid| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&m.identifier(), Some(chunk.runtime()));
+        .get(mid, Some(chunk.runtime()));
 
       let result = code_gen_result.get(&SourceType::Asset).map(|source| {
         let asset_filename = code_gen_result
@@ -787,12 +824,14 @@ async fn render_manifest(
           .data
           .get::<CodeGenerationDataAssetInfo>()
           .expect("should have asset_info")
-          .inner();
+          .inner()
+          .to_owned()
+          .with_asset_type(ManifestAssetType::Asset);
         RenderManifestEntry {
           source: source.clone(),
           filename: asset_filename.to_owned(),
           has_filename: true,
-          info: asset_info.to_owned(),
+          info: asset_info,
           auxiliary: true,
         }
       });

@@ -3,29 +3,34 @@ mod options;
 mod plugin;
 mod transformer;
 
-use std::default::Default;
+use std::{default::Default, path::Path};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
-use rspack_error::{Diagnostic, Result, miette};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
-use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_loader_runner::{Identifier, Loader, LoaderContext};
+#[cfg(allocative)]
+use rspack_util::allocative;
 pub use rspack_workspace::rspack_swc_core_version;
+use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
-  common::FileName,
+  common::{FileName, SyntaxContext},
 };
 
 use crate::collect_ts_info::collect_typescript_info;
 
 #[cacheable]
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SwcLoader {
   identifier: Identifier,
+  #[cfg_attr(allocative, allocative(skip))]
   options_with_additional: SwcCompilerOptionsWithAdditional,
 }
 
@@ -66,10 +71,15 @@ impl SwcLoader {
           .transform
           .merge(MergingOption::from(Some(transform)));
       }
-      if let Some(pre_source_map) = loader_context.source_map().cloned()
-        && let Ok(source_map) = pre_source_map.to_json()
-      {
-        swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+
+      if loader_context.context.source_map_kind.enabled() {
+        if let Some(pre_source_map) = loader_context.source_map().cloned()
+          && let Ok(source_map) = pre_source_map.to_json()
+        {
+          swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+        }
+      } else {
+        swc_options.config.input_source_map = Some(InputSourceMap::Bool(false));
       }
       swc_options.filename = resource_path.as_str().to_string();
       swc_options.source_file_name = Some(resource_path.as_str().to_string());
@@ -95,7 +105,7 @@ impl SwcLoader {
     };
 
     let javascript_compiler = JavaScriptCompiler::new();
-    let filename = FileName::Real(resource_path.into_std_path_buf());
+    let filename = FileName::Real(resource_path.clone().into_std_path_buf());
 
     let source = content.into_string_lossy();
     let is_typescript =
@@ -104,14 +114,14 @@ impl SwcLoader {
 
     let TransformOutput {
       code,
-      map,
+      mut map,
       diagnostics,
     } = javascript_compiler.transform(
       source,
       Some(filename),
       swc_options,
-      Some(loader_context.context.module_source_map_kind),
-      |program| {
+      Some(loader_context.context.source_map_kind),
+      |program, unresolved_mark| {
         if !is_typescript {
           return;
         }
@@ -122,21 +132,46 @@ impl SwcLoader {
         else {
           return;
         };
-        collected_ts_info = Some(collect_typescript_info(program, options));
+        collected_ts_info = Some(collect_typescript_info(
+          program,
+          SyntaxContext::empty().apply_mark(unresolved_mark),
+          options,
+        ));
       },
       |_| transformer::transform(&self.options_with_additional.rspack_experiments),
     )?;
 
     for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(
-        miette::miette! { severity = miette::Severity::Warning, "{}", diagnostic }.into(),
-      );
+      loader_context.emit_diagnostic(Error::warning(diagnostic).into());
     }
 
     if let Some(collected_ts_info) = collected_ts_info {
       loader_context.parse_meta.insert(
         COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
         Box::new(collected_ts_info),
+      );
+    }
+
+    // When compiling target modules, SWC retrieves the source map via sourceMapUrl.
+    // The sources paths in the source map are relative to the target module. We need to resolve these paths
+    // to absolute paths using the resource path to avoid incorrect project path references.
+    if let (Some(map), Some(resource_dir)) = (map.as_mut(), resource_path.parent()) {
+      map.set_sources(
+        map
+          .sources()
+          .iter()
+          .map(|source| {
+            let source_path = Path::new(source);
+            if source_path.is_relative() {
+              source_path
+                .absolutize_with(resource_dir.as_std_path())
+                .to_string_lossy()
+                .into_owned()
+            } else {
+              source.to_string()
+            }
+          })
+          .collect::<Vec<_>>(),
       );
     }
 
@@ -151,6 +186,10 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for SwcLoader {
+  fn identifier(&self) -> Identifier {
+    self.identifier
+  }
+
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
     perfetto.track_name = "loader:builtin-swc",
     perfetto.process_name = "Loader Analysis",
@@ -170,11 +209,5 @@ impl Loader<RunnerContext> for SwcLoader {
     }
     #[cfg(any(not(debug_assertions), target_family = "wasm"))]
     inner()
-  }
-}
-
-impl Identifiable for SwcLoader {
-  fn identifier(&self) -> Identifier {
-    self.identifier
   }
 }

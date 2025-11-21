@@ -300,11 +300,7 @@ pub fn get_full_chunk_name(
   let full_module_names = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
-    .map(|id| {
-      module_graph
-        .module_by_identifier(id)
-        .expect("Module not found")
-    })
+    .filter_map(|id| module_graph.module_by_identifier(id))
     .map(|module| get_full_module_name(module, context))
     .collect::<Vec<_>>();
 
@@ -360,7 +356,6 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
 
 fn compare_chunks_by_modules<'a>(
   chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
@@ -372,9 +367,9 @@ fn compare_chunks_by_modules<'a>(
     .entry(a_ukey)
     .or_insert_with(|| {
       chunk_graph
-        .get_ordered_chunk_modules(&a_ukey, module_graph)
+        .get_ordered_chunk_modules_identifier(&a_ukey)
         .into_iter()
-        .map(|m| ChunkGraph::get_module_id(module_ids, m.identifier()).map(|s| s.as_str()))
+        .map(|m| ChunkGraph::get_module_id(module_ids, m).map(|s| s.as_str()))
         .collect_vec()
     })
     .clone();
@@ -382,9 +377,9 @@ fn compare_chunks_by_modules<'a>(
     .entry(b_ukey)
     .or_insert_with(|| {
       chunk_graph
-        .get_ordered_chunk_modules(&b_ukey, module_graph)
+        .get_ordered_chunk_modules_identifier(&b_ukey)
         .into_iter()
-        .map(|m| ChunkGraph::get_module_id(module_ids, m.identifier()).map(|s| s.as_str()))
+        .map(|m| ChunkGraph::get_module_id(module_ids, m).map(|s| s.as_str()))
         .collect_vec()
     })
     .clone();
@@ -427,7 +422,6 @@ fn compare_chunks_by_groups(
 
 pub fn compare_chunks_natural<'a>(
   chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,
@@ -444,14 +438,8 @@ pub fn compare_chunks_natural<'a>(
     return runtime_ordering;
   }
 
-  let modules_ordering = compare_chunks_by_modules(
-    chunk_graph,
-    module_graph,
-    module_ids,
-    a,
-    b,
-    ordered_chunk_modules_cache,
-  );
+  let modules_ordering =
+    compare_chunks_by_modules(chunk_graph, module_ids, a, b, ordered_chunk_modules_cache);
   if modules_ordering != Ordering::Equal {
     return modules_ordering;
   }

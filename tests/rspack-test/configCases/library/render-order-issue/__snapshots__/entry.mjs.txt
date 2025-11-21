@@ -1,0 +1,91 @@
+import * as __rspack_external_externals1 from "externals1";
+import * as __rspack_external_externals0 from "externals0";
+var __webpack_modules__ = ({
+"./bar.js": 
+/*!****************************!*\
+  !*** ./bar.js + 1 modules ***!
+  \****************************/
+(function () {
+
+;// CONCATENATED MODULE: external "externals0"
+
+;// CONCATENATED MODULE: ./bar.js
+
+__rspack_external_externals0.v;
+
+}),
+"./entry.js": 
+/*!******************!*\
+  !*** ./entry.js ***!
+  \******************/
+(function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports.entry1 = __webpack_require__(/*! ./entry1.js */ "./entry1.js")
+module.exports.entry2 = __webpack_require__(/*! ./entry2.js */ "./entry2.js")
+
+}),
+"./entry1.js": 
+/*!*******************!*\
+  !*** ./entry1.js ***!
+  \*******************/
+(function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
+module.exports.name = "entry1"
+
+}),
+"./entry2.js": 
+/*!*******************!*\
+  !*** ./entry2.js ***!
+  \*******************/
+(function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__(/*! ./bar */ "./bar.js")
+module.exports.name = "entry2"
+
+}),
+"./foo.js": 
+/*!****************************!*\
+  !*** ./foo.js + 1 modules ***!
+  \****************************/
+(function () {
+
+;// CONCATENATED MODULE: external "externals1"
+
+;// CONCATENATED MODULE: ./foo.js
+
+__rspack_external_externals1.v;
+
+}),
+
+});
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+// startup
+// Load entry module and return exports
+// This entry module used 'module' so it can't be inlined
+var __webpack_exports__ = __webpack_require__("./entry.js");
+var __webpack_exports__entry1 = __webpack_exports__.entry1;
+var __webpack_exports__entry2 = __webpack_exports__.entry2;
+export { __webpack_exports__entry1 as entry1, __webpack_exports__entry2 as entry2 };
+
+var __webpack_exports_default__ = { entry1: __webpack_exports__entry1, entry2: __webpack_exports__entry2 };
+export default __webpack_exports_default__;

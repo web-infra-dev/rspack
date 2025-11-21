@@ -7,7 +7,6 @@ import path from "node:path";
 import chalk from "chalk";
 import filenamify from "filenamify";
 import { diff } from "jest-diff";
-import type { FileMatcherOptions } from "../../../jest";
 import { serializers } from "../serializers";
 
 const { serialize } = require(
@@ -21,7 +20,7 @@ const { getSerializers } = require(
  * Check if 2 strings or buffer are equal
  */
 const isEqual = (a: string | Buffer, b: string | Buffer): boolean => {
-	// @ts-ignore: TypeScript gives error if we pass string to buffer.equals
+	// @ts-expect-error: TypeScript gives error if we pass string to buffer.equals
 	return Buffer.isBuffer(a) ? a.equals(b) : a === b;
 };
 
@@ -32,7 +31,7 @@ const isEqual = (a: string | Buffer, b: string | Buffer): boolean => {
  * @param filepath Path to the file to match against
  * @param options Additional options for matching
  */
-export function toMatchFileSnapshot(
+export function toMatchFileSnapshotSync(
 	this: {
 		testPath: string;
 		currentTestName: string;
