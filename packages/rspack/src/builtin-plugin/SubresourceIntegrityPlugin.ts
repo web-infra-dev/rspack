@@ -190,6 +190,18 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 			return;
 		}
 
+		try {
+			const url = new URL(tagSrc);
+			if (
+				(url.protocol === "http:" || url.protocol === "https:") &&
+				(!publicPath || !tagSrc.startsWith(publicPath))
+			) {
+				return;
+			}
+		} catch (_) {
+			// do nothing
+		}
+
 		const src = relative(publicPath, decodeURIComponent(tagSrc));
 		tag.attributes.integrity =
 			this.getIntegrityChecksumForAsset(src) ||
