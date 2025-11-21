@@ -58,15 +58,6 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Setup directory structure for demo
-        run: |
-          # Create a symlink in parent directory so demo can reference ../rspack
-          PARENT_DIR=$(dirname $GITHUB_WORKSPACE)
-          CURRENT_DIR=$(basename $GITHUB_WORKSPACE)
-          cd "$PARENT_DIR"
-          ln -sfn "$CURRENT_DIR" rspack
-          cd "$CURRENT_DIR"
-
       - name: Clone rspack-diff-minimal
         run: git clone https://github.com/yifancong/rspack-diff-minimal.git
 
