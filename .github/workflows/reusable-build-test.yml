@@ -149,8 +149,19 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          ref: ${{ inputs.ref }}
+
       - name: Clone rspack-diff-minimal
         run: git clone https://github.com/yifancong/rspack-diff-minimal.git
+
+      - name: Setup Pnpm
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
 
       - name: Install dependencies
         working-directory: rspack-diff-minimal
