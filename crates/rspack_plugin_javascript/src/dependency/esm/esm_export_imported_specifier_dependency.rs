@@ -531,7 +531,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::Unused(ExportModeUnused { name }) => ctxt.init_fragments.push(
         NormalInitFragment::new(
-          to_normal_comment(&format!("unused ESM reexport {name}")),
+          to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
           InitFragmentKey::unique(),
@@ -701,8 +701,7 @@ impl ESMExportImportedSpecifierDependency {
           let key = render_used_name(used_name.as_ref());
 
           if checked {
-            let key =
-              InitFragmentKey::ESMImport(format!("ESM reexport (checked) {import_var} {name}"));
+            let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
@@ -772,8 +771,8 @@ impl ESMExportImportedSpecifierDependency {
         // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
         let mut content = format!(
           r"
-/* ESM reexport (unknown) */ var __rspack_reexport = {{}};
-/* ESM reexport (unknown) */ for( var __rspack_import_key in {import_var}) "
+/* reexport */ var __rspack_reexport = {{}};
+/* reexport */ for( var __rspack_import_key in {import_var}) "
         );
 
         if ignored.len() > 1 {
@@ -802,7 +801,7 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(
-              "{content}\n/* ESM reexport (unknown) */ {}({}, __rspack_reexport);\n",
+              "{content}\n/* reexport */ {}({}, __rspack_reexport);\n",
               RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
               exports_name
             ),
