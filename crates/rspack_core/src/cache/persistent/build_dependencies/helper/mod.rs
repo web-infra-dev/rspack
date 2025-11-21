@@ -35,6 +35,14 @@ impl Helper {
           condition_names: Some(vec!["import".into(), "require".into(), "node".into()]),
           exports_fields: Some(vec![vec!["exports".into()]]),
           builtin_modules: true,
+          extensions: Some(vec![
+            ".js".into(),
+            ".ts".into(),
+            ".mjs".into(),
+            ".cjs".into(),
+            ".json".into(),
+            ".node".into(),
+          ]),
           ..Default::default()
         },
         fs,
@@ -182,10 +190,10 @@ mod test {
   async fn helper_file_test() {
     let fs = Arc::new(MemoryFileSystem::default());
     fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/a.js".into(), r#"require("./a1")"#.as_bytes())
+    fs.write("/a.js".into(), r#"console.log("a")"#.as_bytes())
       .await
       .unwrap();
-    fs.write("/a1.js".into(), r#"console.log('a')"#.as_bytes())
+    fs.write("/a1.jsx".into(), r#"console.log('a1')"#.as_bytes())
       .await
       .unwrap();
     fs.write("/b.js".into(), r#"console.log('b')"#.as_bytes())
@@ -194,14 +202,38 @@ mod test {
     fs.write("/c.txt".into(), r#"123"#.as_bytes())
       .await
       .unwrap();
+    fs.write("/e.ts".into(), r#"console.log("e")"#.as_bytes())
+      .await
+      .unwrap();
+    fs.write("/e1.tsx".into(), r#"console.log("e1")"#.as_bytes())
+      .await
+      .unwrap();
+    fs.write("/f.json".into(), r#"{"name":"f"}"#.as_bytes())
+      .await
+      .unwrap();
+    fs.write("/g.cjs".into(), r#"console.log("g")"#.as_bytes())
+      .await
+      .unwrap();
+    fs.write("/h.mjs".into(), r#"console.log("h")"#.as_bytes())
+      .await
+      .unwrap();
+    fs.write("/i.node".into(), r#""#.as_bytes()).await.unwrap();
     fs.write(
       "/index.js".into(),
       r#"
 import "./a";
+import "./a1";
 import "./b";
 
 require("./c.txt");
 require("./d.md");
+
+require("./e");
+require("./e1");
+require("./f");
+require("./g");
+require("./h");
+require("./i");
 "#
       .as_bytes(),
     )
@@ -213,9 +245,9 @@ require("./d.md");
       .resolve("/index.js".into())
       .await
       .expect("should have deps");
-    assert_eq!(deps.len(), 3);
+    assert_eq!(deps.len(), 8);
     let warnings = helper.into_warnings();
-    assert_eq!(warnings.len(), 1);
+    assert_eq!(warnings.len(), 3);
   }
 
   #[tokio::test]
