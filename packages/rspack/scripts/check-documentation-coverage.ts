@@ -111,12 +111,7 @@ function checkPluginsDocumentationCoverage() {
 		"RuntimePlugin", // This plugin only provides hooks, should not be used separately
 		"RsdoctorPlugin", // This plugin is not stable yet
 		"RstestPlugin", // This plugin is not stable yet
-		"RslibPlugin", // This plugin is not stable yet
-		// Internal MF/treeshake helpers; not part of public plugin surface
-		"CollectShareEntryPlugin",
-		"OptimizeDependencyReferencedExportsPlugin",
-		"ShareContainerPlugin",
-		"TreeshakeSharePlugin"
+		"RslibPlugin" // This plugin is not stable yet
 	];
 
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(
