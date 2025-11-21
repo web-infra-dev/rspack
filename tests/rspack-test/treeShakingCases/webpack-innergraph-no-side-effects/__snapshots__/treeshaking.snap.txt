@@ -11,13 +11,13 @@ it("should be able to load package without side effects where modules are unused
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   test: () => (test)
 });
 /* import */var _package__rspack_import_0 = __webpack_require__("./package/index.js");
 
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_package__rspack_import_0.a);
+/* export default */ const __rspack_default_export = (_package__rspack_import_0.a);
 
 function test() {}
 

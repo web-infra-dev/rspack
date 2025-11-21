@@ -4,13 +4,13 @@
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   bar: () => (bar),
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 var foo = function () {
 	return 42;
 };
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (foo);
+/* export default */ const __rspack_default_export = (foo);
 
 function bar() {
 	return contrivedExample(foo);

@@ -26,12 +26,12 @@ function test() {}
 }),
 "./locale_zh.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 /* import */var _zh_locale__rspack_import_0 = __webpack_require__("./zh_locale.js");
 
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (_zh_locale__rspack_import_0["default"]);
+/* export default */ const __rspack_default_export = (_zh_locale__rspack_import_0["default"]);
 
 
 }),

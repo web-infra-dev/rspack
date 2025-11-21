@@ -2,7 +2,7 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./dead.js": (function () {
-/* export default */ function __WEBPACK_DEFAULT_EXPORT__() {
+/* export default */ function __rspack_default_export() {
 	return "dead";
 }
 
@@ -10,12 +10,12 @@
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (/* export default binding */ __rspack_default_export)
 });
 /* import */var _dead__rspack_import_0 = __webpack_require__("./dead.js");
 
 
-/* export default */ function __WEBPACK_DEFAULT_EXPORT__() {
+/* export default */ function __rspack_default_export() {
 	return "foo";
 }
 

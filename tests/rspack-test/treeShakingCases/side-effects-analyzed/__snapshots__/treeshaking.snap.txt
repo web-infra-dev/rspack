@@ -11,12 +11,12 @@
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (/* export default binding */ __rspack_default_export)
 });
 const secret = "888";
 const result = 20000;
 const something = function () {};
-/* export default */ function __WEBPACK_DEFAULT_EXPORT__() {}
+/* export default */ function __rspack_default_export() {}
 
 
 }),
