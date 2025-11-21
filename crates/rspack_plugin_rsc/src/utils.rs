@@ -14,7 +14,7 @@ enum DependenciesBlockIdentifier {
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
-pub struct ServerEntryModules<'a> {
+pub struct ServerEntries<'a> {
   module_graph: &'a ModuleGraph<'a>,
   module_graph_cache: &'a ModuleGraphCacheArtifact,
   entries_queue: Queue<(DependenciesBlockIdentifier, Option<RuntimeSpec>)>,
@@ -23,7 +23,7 @@ pub struct ServerEntryModules<'a> {
   visited_modules: IdentifierSet,
 }
 
-impl<'a> ServerEntryModules<'a> {
+impl<'a> ServerEntries<'a> {
   pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph<'a>) -> Self {
     let entries = &compilation.entries;
 
@@ -60,7 +60,7 @@ impl<'a> ServerEntryModules<'a> {
   }
 }
 
-impl<'a> Iterator for ServerEntryModules<'a> {
+impl<'a> Iterator for ServerEntries<'a> {
   type Item = (&'a NormalModule, Option<RuntimeSpec>);
 
   fn next(&mut self) -> Option<Self::Item> {
@@ -141,12 +141,14 @@ impl<'a> Iterator for ServerEntryModules<'a> {
         }
       }
 
-      if let Some((dependencies_block_identifier, runtime)) = self.entries_queue.dequeue() {
-        self.runtime = runtime;
-        self.blocks_queue.push_back(dependencies_block_identifier);
-        self.visited_modules.clear();
-      } else {
-        break;
+      if self.blocks_queue.is_empty() {
+        if let Some((dependencies_block_identifier, runtime)) = self.entries_queue.dequeue() {
+          self.runtime = runtime;
+          self.blocks_queue.push_back(dependencies_block_identifier);
+          self.visited_modules.clear();
+        } else {
+          break;
+        }
       }
     }
 
