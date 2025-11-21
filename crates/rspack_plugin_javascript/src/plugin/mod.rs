@@ -335,7 +335,8 @@ impl JsPlugin {
 
         if use_federation_async {
           let startup_fn = RuntimeGlobals::STARTUP_ENTRYPOINT;
-          let needs_on_chunks_loaded = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
+          let needs_on_chunks_loaded =
+            runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
           mf_async_startup = true;
           let mut buf2: Vec<Cow<str>> = Vec::new();
 
