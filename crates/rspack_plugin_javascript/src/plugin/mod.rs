@@ -471,7 +471,16 @@ impl JsPlugin {
           if !federation_entry_calls.is_empty() {
             let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact);
             let chunk_id_str = serde_json::to_string(chunk_id).expect("invalid chunk_id");
-            let entry_fn_body = federation_entry_calls.join("; ");
+            // Ensure all entry modules execute before returning. Using an IIFE avoids early
+            // return short-circuit when multiple entry calls exist.
+            let entry_fn_body = if federation_entry_calls.len() == 1 {
+              federation_entry_calls[0].clone()
+            } else {
+              let (last, rest) = federation_entry_calls
+                .split_last()
+                .expect("non-empty entries");
+              format!("(function(){{ {}; return {}; }})()", rest.join("; "), last)
+            };
 
             if mf_async_startup {
               let is_esm_output = compilation.options.output.module;
