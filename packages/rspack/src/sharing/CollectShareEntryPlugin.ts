@@ -64,7 +64,8 @@ export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
 					if (!asset) {
 						throw new Error(`Can not get ${filename}`);
 					}
-					this._collectedEntries = JSON.parse(asset.source.source().toString());
+					const parsed = JSON.parse(asset.source.source().toString());
+					this._collectedEntries = parsed.shared ?? parsed;
 				}
 			);
 		});

@@ -306,7 +306,67 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let entries = self.resolved_entries.read().await;
+  let mut entries = self.resolved_entries.read().await.clone();
+  {
+    // Ensure we have entries for unresolved consumes even if factorize didn't capture them
+    let consumes = self.get_matched_consumes();
+    let resolver = self.get_resolver();
+    let context = self.get_context();
+    for (request, config) in &consumes.unresolved {
+      if entries.contains_key(&config.share_key) {
+        continue;
+      }
+
+      let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
+      let import_resolved = match &config.import {
+        None => None,
+        Some(import) => resolver
+          .resolve(
+            if direct_fallback {
+              context.clone()
+            } else {
+              context.clone()
+            }
+            .as_ref(),
+            import,
+          )
+          .await
+          .ok(),
+      }
+      .and_then(|i| match i {
+        ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
+        ResolveResult::Ignored => None,
+      });
+
+      let inferred_version = if let Some(resolved_path) = import_resolved.as_ref() {
+        self.infer_version(resolved_path).await
+      } else {
+        None
+      };
+      let version = inferred_version.or_else(|| {
+        config.required_version.as_ref().and_then(|v| match v {
+          ConsumeVersion::Version(v) => Some(v.clone()),
+          ConsumeVersion::False => None,
+        })
+      });
+      let Some(version) = version else { continue };
+
+      let mut requests = FxHashSet::default();
+      requests.insert(CollectedShareRequest {
+        request: import_resolved
+          .clone()
+          .unwrap_or_else(|| request.to_string()),
+        version: version.to_string(),
+      });
+      entries.insert(
+        config.share_key.clone(),
+        CollectShareEntryRecord {
+          share_scope: config.share_scope.clone(),
+          requests,
+        },
+      );
+    }
+  }
 
   let mut shared: FxHashMap<&str, CollectShareEntryAssetItem<'_>> = FxHashMap::default();
   let mut ordered_requests: FxHashMap<&str, Vec<[String; 2]>> = FxHashMap::default();
