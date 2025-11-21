@@ -348,42 +348,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     self.manifest_file_name.clone(),
   ];
   for file_name in file_names {
-    if let Some(file_name) = &file_name {
-      if let Some(file) = compilation.assets().get(file_name) {
-        if let Some(source) = file.get_source() {
-          if let SourceValue::String(content) = source.source() {
-            if let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content) {
-              let shared_referenced_exports = self
-                .shared_referenced_exports
-                .read()
-                .expect("lock poisoned");
+    if let Some(file_name) = &file_name
+      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(source) = file.get_source()
+      && let SourceValue::String(content) = source.source()
+      && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
+    {
+      let shared_referenced_exports = self
+        .shared_referenced_exports
+        .read()
+        .expect("lock poisoned");
 
-              for shared in &mut stats_root.shared {
-                if let Some(runtime_map) = shared_referenced_exports.get(&shared.name) {
-                  let mut used_exports_set = HashSet::new();
+      for shared in &mut stats_root.shared {
+        if let Some(runtime_map) = shared_referenced_exports.get(&shared.name) {
+          let mut used_exports_set = HashSet::new();
 
-                  for exports in runtime_map.values() {
-                    if !exports.is_empty() {
-                      for export in exports {
-                        used_exports_set.insert(export.clone());
-                      }
-                    }
-                  }
-
-                  shared.usedExports = used_exports_set.into_iter().collect::<Vec<_>>();
-                }
+          for exports in runtime_map.values() {
+            if !exports.is_empty() {
+              for export in exports {
+                used_exports_set.insert(export.clone());
               }
-
-              let updated_content = serde_json::to_string_pretty(&stats_root)
-                .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
-
-              compilation.update_asset(file_name, |_, info| {
-                Ok((RawStringSource::from(updated_content).boxed(), info))
-              })?;
             }
           }
+
+          shared.usedExports = used_exports_set.into_iter().collect::<Vec<_>>();
         }
       }
+
+      let updated_content = serde_json::to_string_pretty(&stats_root)
+        .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
+
+      compilation.update_asset(file_name, |_, info| {
+        Ok((RawStringSource::from(updated_content).boxed(), info))
+      })?;
     }
   }
 
@@ -513,11 +510,9 @@ async fn dependency_referenced_exports(
       rustc_hash::FxBuildHasher,
     > = shared_referenced_exports
       .entry(share_key.to_string())
-      .or_insert_with(FxHashMap::default);
+      .or_default();
 
-    let export_set = runtime_map
-      .entry(runtime.as_str().to_string())
-      .or_insert_with(FxHashSet::default);
+    let export_set = runtime_map.entry(runtime.as_str().to_string()).or_default();
 
     for referenced_export in &final_exports {
       match referenced_export {
