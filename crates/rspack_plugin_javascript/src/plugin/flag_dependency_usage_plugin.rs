@@ -45,7 +45,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn apply(&mut self) {
+  async fn apply(&mut self) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
@@ -95,20 +95,19 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       self.compilation.module_graph_cache_artifact.freeze();
 
       // collect referenced exports from modules by calling `dependency.get_referenced_exports`
-      // and also added referenced modules to the queue for further processing
-      let batch_res = batch
-        .into_par_iter()
-        .map(|(block_id, runtime, force_side_effects)| {
-          let (referenced_exports, module_tasks) =
-            self.process_module(block_id, runtime.as_ref(), force_side_effects, self.global);
-          (
-            runtime,
-            force_side_effects,
-            referenced_exports,
-            module_tasks,
-          )
-        })
-        .collect::<Vec<_>>();
+      // and also added referenced modules to queue for further processing
+      let mut batch_res = vec![];
+      for (block_id, runtime, force_side_effects) in batch {
+        let (referenced_exports, module_tasks) = self
+          .process_module(block_id, runtime.as_ref(), force_side_effects, self.global)
+          .await;
+        batch_res.push((
+          runtime,
+          force_side_effects,
+          referenced_exports,
+          module_tasks,
+        ));
+      }
 
       let mut nested_tasks = vec![];
       let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
@@ -235,7 +234,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn process_module(
+  async fn process_module(
     &self,
     block_id: ModuleOrAsyncDependenciesBlock,
     runtime: Option<&RuntimeSpec>,
@@ -259,19 +258,39 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
     for (dep_id, module_id) in dependencies.into_iter() {
       let old_referenced_exports = map.remove(&module_id);
-      let Some(referenced_exports) = get_dependency_referenced_exports(
+
+      let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         &self.compilation.get_module_graph(),
         &self.compilation.module_graph_cache_artifact,
         runtime,
-      ) else {
-        continue;
-      };
+      );
 
-      if let Some(new_referenced_exports) =
-        merge_referenced_exports(old_referenced_exports, referenced_exports)
-      {
-        map.insert(module_id, new_referenced_exports);
+      // 直接使用 await 调用异步钩子
+      self
+        .compilation
+        .plugin_driver
+        .compilation_hooks
+        .dependency_referenced_exports
+        .call(
+          &*self.compilation,
+          &dep_id,
+          &referenced_exports_result,
+          runtime,
+        )
+        .await;
+
+      match referenced_exports_result {
+        Some(mut referenced_exports) => {
+          if let Some(new_referenced_exports) =
+            merge_referenced_exports(old_referenced_exports, referenced_exports)
+          {
+            map.insert(module_id, new_referenced_exports);
+          }
+        }
+        None => {
+          continue;
+        }
       }
     }
 
@@ -633,7 +652,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   }
 
   let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
-  proxy.apply();
+  proxy.apply().await;
   Ok(None)
 }
 

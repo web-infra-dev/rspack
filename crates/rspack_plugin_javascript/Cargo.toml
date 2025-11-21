@@ -13,6 +13,7 @@ bitflags = { workspace = true }
 cow-utils = { workspace = true }
 either = { workspace = true }
 fast-glob = { workspace = true }
+futures = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
