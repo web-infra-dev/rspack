@@ -43,15 +43,18 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 		this._globalName = encodeName(`${options.mfName}_${shareName}_${version}`);
 		const fileName = independentShareFileName || `${version}/share-entry.js`;
 		this._shareName = shareName;
+		const resolvedLibrary =
+			library != null
+				? { ...library, name: library.name ?? this._globalName }
+				: {
+						type: "var",
+						name: this._globalName
+					};
+
 		this._options = {
 			name: shareName,
 			request: request,
-			library: (library
-				? { ...library, name: this._globalName }
-				: undefined) || {
-				type: "var",
-				name: this._globalName
-			},
+			library: resolvedLibrary,
 			version,
 			fileName
 		};

@@ -233,15 +233,19 @@ impl CollectShareEntryPlugin {
       ResolveResult::Ignored => None,
     });
 
-    // 首先尝试从 import_resolved 路径推断版本
-    let version = if let Some(resolved_path) = import_resolved.as_ref() {
-      self
-        .infer_version(resolved_path)
-        .await
-        .map(ConsumeVersion::Version)
+    // Prefer inferring version from resolved path; fall back to required_version
+    let inferred_version = if let Some(resolved_path) = import_resolved.as_ref() {
+      self.infer_version(resolved_path).await
     } else {
       None
     };
+
+    let version = inferred_version.or_else(|| {
+      config.required_version.as_ref().and_then(|v| match v {
+        ConsumeVersion::Version(v) => Some(v.clone()),
+        ConsumeVersion::False => None,
+      })
+    });
 
     // 如果无法获取版本信息，直接结束方法
     let version = match version {
@@ -337,7 +341,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     );
   }
 
-  let json = serde_json::to_string_pretty(&shared)
+  let json = serde_json::to_string_pretty(&serde_json::json!({ "shared": shared }))
     .expect("CollectShareEntryPlugin: failed to serialize share entries");
 
   // 获取文件名，如果不存在则使用默认值

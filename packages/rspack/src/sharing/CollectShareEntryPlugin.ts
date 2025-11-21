@@ -65,7 +65,6 @@ export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
 						throw new Error(`Can not get ${filename}`);
 					}
 					this._collectedEntries = JSON.parse(asset.source.source().toString());
-					compilation.deleteAsset(filename);
 				}
 			);
 		});
