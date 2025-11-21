@@ -1,3 +1,5 @@
 module.exports = {
-  noTests: true
+  findBundle() {
+    return [];
+  }
 };
