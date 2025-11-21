@@ -141,7 +141,7 @@ importers:
   examples/module-federation-react-example:
     devDependencies:
       '@playwright/test':
-        specifier: ^1.54.2
+        specifier: ^1.56.0
         version: 1.56.0
       '@rspack/cli':
         specifier: workspace:*
@@ -180,7 +180,7 @@ importers:
         specifier: ^5.21.8
         version: 5.29.1(date-fns@4.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       axios:
-        specifier: ^1.11.0
+        specifier: ^1.13.2
         version: 1.13.2
       chart.js:
         specifier: ^4.4.7
@@ -192,13 +192,13 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       react:
-        specifier: ^19.1.0
+        specifier: ^19.1.1
         version: 19.2.0
       react-chartjs-2:
         specifier: ^5.2.0
         version: 5.3.1(chart.js@4.5.1)(react@19.2.0)
       react-dom:
-        specifier: ^19.1.0
+        specifier: ^19.1.1
         version: 19.2.0(react@19.2.0)
       react-redux:
         specifier: ^9.2.0
@@ -217,13 +217,13 @@ importers:
         specifier: ^1.10.4
         version: 1.15.3(@swc/helpers@0.5.17)
       '@types/react':
-        specifier: ^19.1.8
+        specifier: ^19.1.13
         version: 19.1.15
       '@types/react-dom':
-        specifier: ^19.1.6
+        specifier: ^19.1.9
         version: 19.1.9(@types/react@19.1.15)
       html-webpack-plugin:
-        specifier: ^5.6.3
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1(@swc/core@1.15.3(@swc/helpers@0.5.17)))
       serve:
         specifier: ^14.2.4
@@ -250,13 +250,13 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       react:
-        specifier: ^19.1.0
+        specifier: ^19.1.1
         version: 19.2.0
       react-chartjs-2:
         specifier: ^5.2.0
         version: 5.3.1(chart.js@4.5.1)(react@19.2.0)
       react-dom:
-        specifier: ^19.1.0
+        specifier: ^19.1.1
         version: 19.2.0(react@19.2.0)
       react-redux:
         specifier: ^9.2.0
@@ -272,13 +272,13 @@ importers:
         specifier: ^1.10.4
         version: 1.15.3(@swc/helpers@0.5.17)
       '@types/react':
-        specifier: ^19.1.8
+        specifier: ^19.1.13
         version: 19.1.15
       '@types/react-dom':
-        specifier: ^19.1.6
+        specifier: ^19.1.9
         version: 19.1.9(@types/react@19.1.15)
       html-webpack-plugin:
-        specifier: ^5.6.3
+        specifier: ^5.6.5
         version: 5.6.5(@rspack/core@packages+rspack)(webpack@5.102.1(@swc/core@1.15.3(@swc/helpers@0.5.17)))
       serve:
         specifier: ^14.2.4
@@ -742,7 +742,7 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.5)
       '@playwright/test':
-        specifier: 1.56.0
+        specifier: ^1.56.0
         version: 1.56.0
       '@rspack/core':
         specifier: workspace:*
@@ -18915,7 +18915,7 @@ snapshots:
       mime-types: 2.1.35
       neo-async: 2.6.2
       schema-utils: 4.3.3
-      tapable: 2.2.3
+      tapable: 2.3.0
       terser-webpack-plugin: 5.3.14(@swc/core@1.15.3(@swc/helpers@0.5.17))(webpack@5.99.9(@swc/core@1.15.3(@swc/helpers@0.5.17)))
       watchpack: 2.4.4
       webpack-sources: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
