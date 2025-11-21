@@ -150,7 +150,7 @@ jobs:
         shell: bash
     steps:
       - name: Clone rspack-diff-minimal
-        run: git clone git@github.com:yifancong/rspack-diff-minimal.git
+        run: git clone https://github.com/yifancong/rspack-diff-minimal.git
 
       - name: Install dependencies
         working-directory: rspack-diff-minimal
