@@ -8,8 +8,9 @@ use camino::Utf8Path;
 use regex::Regex;
 use rspack_core::{
   BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
-  CompilerThisCompilation, Context, DependencyCategory, DependencyType, ModuleFactoryCreateData,
-  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  CompilerThisCompilation, Context, DependenciesBlock, DependencyCategory, DependencyType, Module,
+  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, error};
@@ -322,37 +323,102 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let entries = self.resolved_entries.read().await;
+  dbg!("process_assets");
+  // 遍历图中的 ConsumeSharedModule，收集其 fallback 映射到的真实模块地址
+  let module_graph = compilation.get_module_graph();
+  let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
+  let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
 
-  let mut shared: FxHashMap<&str, CollectShareEntryAssetItem<'_>> = FxHashMap::default();
-  let mut ordered_requests: FxHashMap<&str, Vec<[String; 2]>> = FxHashMap::default();
-
-  for (share_key, record) in entries.iter() {
-    if record.requests.is_empty() {
+  for (id, module) in module_graph.modules().into_iter() {
+    let module_type = module.module_type();
+    dbg!(&module_type);
+    if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
       continue;
     }
-    let mut requests: Vec<[String; 2]> = record
-      .requests
-      .iter()
-      .map(|item| [item.request.clone(), item.version.clone()])
-      .collect();
-    requests.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-    ordered_requests.insert(share_key.as_str(), requests);
+
+    if let Some(consume) = module
+      .as_any()
+      .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
+    {
+      // 从 readable_identifier 中解析 share_scope 与 share_key
+      let ident = consume.readable_identifier(&Context::default()).to_string();
+      dbg!(&ident);
+      // 形如: "consume shared module ({scope}) {share_key}@..."
+      let (scope, key) = {
+        let mut scope = String::new();
+        let mut key = String::new();
+        if let Some(start) = ident.find("(")
+          && let Some(end) = ident.find(")")
+          && end > start
+        {
+          scope = ident[start + 1..end].to_string();
+        }
+        if let Some(pos) = ident.find(") ") {
+          let rest = &ident[pos + 2..];
+          let at = rest.find('@').unwrap_or(rest.len());
+          key = rest[..at].to_string();
+        }
+        (scope, key)
+      };
+
+      if key.is_empty() {
+        continue;
+      }
+
+      // 收集该 consume 模块的依赖与异步块中的依赖对应的真实模块
+      let mut target_modules = Vec::new();
+      for dep_id in consume.get_dependencies() {
+        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+          target_modules.push(*target_id);
+        }
+      }
+      for block_id in consume.get_blocks() {
+        if let Some(block) = module_graph.block_by_id(block_id) {
+          for dep_id in block.get_dependencies() {
+            if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+              target_modules.push(*target_id);
+            }
+          }
+        }
+      }
+
+      // 将真实模块的资源路径加入到映射集合，并推断版本
+      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
+      for target_id in target_modules {
+        if let Some(target) = module_graph.module_by_identifier(&target_id) {
+          if let Some(normal) = target.as_any().downcast_ref::<rspack_core::NormalModule>() {
+            let resource = normal.resource_resolved_data().resource().to_string();
+            let version = self
+              .infer_version(&resource)
+              .await
+              .unwrap_or_else(|| "".to_string());
+            let pair = [resource, version];
+            if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
+              reqs.push(pair);
+            }
+          }
+        }
+      }
+      reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
+      ordered_requests.insert(key.clone(), reqs);
+      if !scope.is_empty() {
+        share_scopes.insert(key.clone(), scope);
+      }
+    }
   }
 
-  for (share_key, record) in entries.iter() {
-    if record.requests.is_empty() {
-      continue;
-    }
-    let requests = ordered_requests
-      .get(share_key.as_str())
-      .map(|v| v.as_slice())
-      .unwrap_or(&[]);
+  // 生成资产内容
+  let mut shared: FxHashMap<&str, CollectShareEntryAssetItem<'_>> = FxHashMap::default();
+  for (share_key, requests) in ordered_requests.iter() {
+    let scope = share_scopes
+      .get(share_key)
+      .map(|s| s.as_str())
+      .unwrap_or("");
     shared.insert(
       share_key.as_str(),
       CollectShareEntryAssetItem {
-        share_scope: record.share_scope.as_str(),
-        requests,
+        share_scope: scope,
+        requests: requests.as_slice(),
       },
     );
   }
