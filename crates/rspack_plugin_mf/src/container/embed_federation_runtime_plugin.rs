@@ -7,7 +7,7 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
@@ -106,6 +106,9 @@ async fn additional_chunk_runtime_requirements_tree(
 
   if is_enabled {
     // Add STARTUP or STARTUP_ENTRYPOINT based on mf_async_startup experiment
+    // Note: we intentionally do NOT gate on collected federation dependencies here,
+    // because entry chunks that delegate to a shared runtime still need the startup
+    // wrapper even when federation runtime is only present in the runtime chunk.
     if use_async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
@@ -141,20 +144,6 @@ async fn additional_tree_runtime_requirements(
   // Only add requirements for entry chunks (non-runtime chunks with entries)
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   if has_runtime || !has_entry_modules {
-    return Ok(());
-  }
-
-  // Only process chunks that have federation dependencies
-  let collected_deps = self
-    .collected_dependency_ids
-    .lock()
-    .expect("Failed to lock collected_dependency_ids")
-    .iter()
-    .cloned()
-    .collect::<Vec<DependencyId>>();
-  let has_federation_deps = !collected_deps.is_empty();
-
-  if !has_federation_deps {
     return Ok(());
   }
 
@@ -290,14 +279,16 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit startup calls
   if !has_runtime && has_entry_modules {
-    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let mut startup_with_call = ConcatSource::default();
 
     // Add startup call
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    let startup_global = if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+    // Async startup uses STARTUP_ENTRYPOINT; otherwise fall back to the
+    // synchronous STARTUP global to preserve existing distribution of
+    // `__webpack_require__.x`.
+    let startup_global = if self.async_startup {
       RuntimeGlobals::STARTUP_ENTRYPOINT.name()
     } else {
       RuntimeGlobals::STARTUP.name()
