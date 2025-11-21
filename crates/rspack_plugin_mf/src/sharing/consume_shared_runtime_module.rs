@@ -41,6 +41,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk_runtime_requirements =
+      ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let async_federation_startup = chunk_runtime_requirements
+      .map(|req| req.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP))
+      .unwrap_or(false);
     let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
@@ -91,17 +96,19 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ids,
       );
     }
-    for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
-      let modules = compilation
-        .chunk_graph
-        .get_chunk_modules_identifier_by_source_type(
-          &chunk,
-          SourceType::ConsumeShared,
-          &module_graph,
-        );
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-      for mid in modules {
-        add_module(mid, chunk, &mut initial_consumes);
+    if !async_federation_startup {
+      for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
+        let modules = compilation
+          .chunk_graph
+          .get_chunk_modules_identifier_by_source_type(
+            &chunk,
+            SourceType::ConsumeShared,
+            &module_graph,
+          );
+        let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+        for mid in modules {
+          add_module(mid, chunk, &mut initial_consumes);
+        }
       }
     }
     let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
