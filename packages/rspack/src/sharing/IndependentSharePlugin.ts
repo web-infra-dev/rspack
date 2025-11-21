@@ -343,7 +343,7 @@ export class IndependentSharePlugin {
 					)
 					.map(([key, options]) => ({
 						[key]: {
-							import: false,
+							import: extraOptions ? options.import : false,
 							shareKey: options.shareKey || key,
 							shareScope: options.shareScope,
 							requiredVersion: options.requiredVersion,
