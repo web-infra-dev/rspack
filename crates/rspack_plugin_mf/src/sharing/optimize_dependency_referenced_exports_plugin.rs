@@ -45,11 +45,13 @@ struct SharedEntryData {
   used_exports: Vec<Atom>,
 }
 
+type SharedReferencedExports = FxHashMap<String, FxHashMap<String, FxHashSet<String>>>;
+
 #[plugin]
 #[derive(Debug, Clone)]
 pub struct OptimizeDependencyReferencedExportsPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
-  shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashMap<String, FxHashSet<String>>>>>,
+  shared_referenced_exports: Arc<RwLock<SharedReferencedExports>>,
   inject_used_exports: bool,
   stats_file_name: Option<String>,
   manifest_file_name: Option<String>,
@@ -58,7 +60,7 @@ pub struct OptimizeDependencyReferencedExportsPlugin {
 impl OptimizeDependencyReferencedExportsPlugin {
   pub fn new(options: OptimizeDependencyReferencedExportsPluginOptions) -> Self {
     let mut shared_map = FxHashMap::default();
-    let inject_used_exports = options.inject_used_exports.clone();
+    let inject_used_exports = options.inject_used_exports;
     for config in options.shared.into_iter().filter(|c| c.treeshake) {
       let atoms = config
         .used_exports
@@ -73,10 +75,7 @@ impl OptimizeDependencyReferencedExportsPlugin {
       );
     }
 
-    let shared_referenced_exports = Arc::new(RwLock::new(FxHashMap::<
-      String,
-      FxHashMap<String, FxHashSet<String>>,
-    >::default()));
+    let shared_referenced_exports = Arc::new(RwLock::new(SharedReferencedExports::default()));
 
     Self::new_inner(
       shared_map,
@@ -134,16 +133,12 @@ fn collect_processed_modules(
 async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
     let module_graph = compilation.get_module_graph();
-    module_graph
-      .modules()
-      .into_iter()
-      .map(|(id, _)| id)
-      .collect()
+    module_graph.modules().into_keys().collect()
   };
   self.apply_custom_exports();
 
   for module_id in module_ids {
-    let (share_key, modules_to_process) = match {
+    let block_result = {
       let module_graph = compilation.get_module_graph();
       let module = module_graph.module_by_identifier(&module_id);
       module.and_then(|module| {
@@ -218,7 +213,9 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         };
         Some((share_key, modules_to_process))
       })
-    } {
+    };
+
+    let (share_key, modules_to_process) = match block_result {
       Some(result) => result,
       None => continue,
     };

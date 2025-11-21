@@ -1,40 +1,27 @@
 use std::{
   collections::hash_map::Entry,
   path::{Path, PathBuf},
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, OnceLock},
 };
 
-use camino::Utf8Path;
-use regex::Regex;
 use rspack_core::{
-  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
-  CompilerThisCompilation, Context, DependencyCategory, DependencyType, ModuleFactoryCreateData,
+  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerThisCompilation,
+  Context, DependencyCategory, DependencyType, ModuleFactoryCreateData,
   NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   rspack_sources::{RawStringSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Result, error};
-use rspack_fs::ReadableFileSystem;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use tokio::sync::RwLock;
 
 use super::consume_shared_plugin::{
-  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, PACKAGE_NAME,
-  RELATIVE_REQUEST, get_description_file, get_required_version_from_description_file,
+  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, RELATIVE_REQUEST,
   resolve_matched_configs,
 };
 
 const DEFAULT_FILENAME: &str = "collect-share-entries.json";
-
-#[derive(Debug, Clone)]
-struct CollectShareEntryMeta {
-  request: String,
-  share_key: String,
-  share_scope: String,
-  is_prefix: bool,
-  consume: Arc<ConsumeOptions>,
-}
 
 #[derive(Debug, Clone, Default)]
 struct CollectShareEntryRecord {
@@ -47,9 +34,6 @@ struct CollectedShareRequest {
   request: String,
   version: String,
 }
-
-// 直接输出共享模块映射，移除 shared 层级
-type CollectShareEntryAsset<'a> = FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>;
 
 #[derive(Debug, Serialize)]
 struct CollectShareEntryAssetItem<'a> {
@@ -149,13 +133,12 @@ impl CollectShareEntryPlugin {
 
       if found_node_modules && package_json_path.exists() {
         // 尝试读取 package.json
-        if let Ok(content) = std::fs::read_to_string(&package_json_path) {
-          if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            // 读取 version 字段
-            if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
-              return Some(version.to_string());
-            }
-          }
+        if let Ok(content) = std::fs::read_to_string(&package_json_path)
+          && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+          // 读取 version 字段
+          && let Some(version) = json.get("version").and_then(|v| v.as_str())
+        {
+          return Some(version.to_string());
         }
       }
     }
@@ -251,15 +234,12 @@ impl CollectShareEntryPlugin {
     });
 
     // 首先尝试从 import_resolved 路径推断版本
-    let version = if let Some(ref resolved_path) = import_resolved {
-      if let Some(inferred) = self.infer_version(resolved_path).await {
-        Some(ConsumeVersion::Version(inferred))
-      } else {
-        // 如果推断失败，直接返回 None，不记录这个条目
-        None
-      }
+    let version = if let Some(resolved_path) = import_resolved.as_ref() {
+      self
+        .infer_version(resolved_path)
+        .await
+        .map(ConsumeVersion::Version)
     } else {
-      // 如果没有 resolved 路径，也直接返回 None
       None
     };
 
@@ -364,8 +344,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let filename = self
     .options
     .filename
-    .as_ref()
-    .map(|f| f.clone())
+    .clone()
     .unwrap_or_else(|| DEFAULT_FILENAME.to_string());
 
   compilation.emit_asset(
