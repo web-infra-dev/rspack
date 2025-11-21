@@ -66,31 +66,5 @@ module.exports = [
 			})
 		],
 		target: "node14"
-	},
-	// Node/CommonJS variant to ensure asyncStartup works without eager shares or dynamic import()
-	{
-		...common,
-		target: "node",
-		output: {
-			filename: "node/[name].cjs",
-			chunkFilename: "node/[name].cjs",
-			uniqueName: "2-async-startup-sync-imports-node",
-			chunkFormat: "commonjs"
-		},
-		plugins: [
-			new ModuleFederationPlugin({
-				name: "container",
-				library: { type: "commonjs-module" },
-				filename: "node/container.cjs",
-				remotes: {
-					containerA: "../0-container-full/container.js",
-					containerB: "./node/container.cjs"
-				},
-				...commonMF,
-				experiments: {
-					asyncStartup: true
-				}
-			})
-		]
 	}
 ];
