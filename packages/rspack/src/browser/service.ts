@@ -26,7 +26,7 @@ export enum RequestType {
 export type HandleIncomingRequest = (
 	requestType: RequestType,
 	...args: unknown[]
-) => Promise<unknown> | unknown;
+) => Promise<void> | void;
 
 export async function run() {
 	throw new Error("Not support browser");
