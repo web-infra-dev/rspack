@@ -12,11 +12,11 @@ _foo__rspack_import_1["default"];
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 function Provider() {}
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (Provider);
+/* export default */ const __rspack_default_export = (Provider);
 
 
 }),

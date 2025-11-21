@@ -3,10 +3,10 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 var a = 1;
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (a);
+/* export default */ const __rspack_default_export = (a);
 
 
 }),

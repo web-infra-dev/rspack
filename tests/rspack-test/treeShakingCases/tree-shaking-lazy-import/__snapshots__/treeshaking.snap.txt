@@ -4,7 +4,7 @@
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 /* import */var _test__rspack_import_0 = __webpack_require__("./test.js");
 
@@ -12,17 +12,17 @@ function myanswer() {
 	_test__rspack_import_0["default"];
 }
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (myanswer);
+/* export default */ const __rspack_default_export = (myanswer);
 
 
 }),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 function test() {}
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (test);
+/* export default */ const __rspack_default_export = (test);
 
 
 }),

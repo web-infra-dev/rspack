@@ -33,7 +33,7 @@ var z = "z";
 }),
 "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 /* import */var _tracker__rspack_import_0 = __webpack_require__("../node_modules/pmodule/tracker.js");
 
@@ -42,7 +42,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 (0,_tracker__rspack_import_0.track)("index.js");
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = ("def");
+/* export default */ const __rspack_default_export = ("def");
 
 
 }),

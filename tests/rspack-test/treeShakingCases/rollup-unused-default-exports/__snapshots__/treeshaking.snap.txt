@@ -12,7 +12,7 @@ function mutate(obj) {
 	return obj;
 }
 
-/* unused export default */ var __WEBPACK_DEFAULT_EXPORT__ = (mutate(foo));
+/* unused export default */ var __rspack_default_export = (mutate(foo));
 
 
 }),
