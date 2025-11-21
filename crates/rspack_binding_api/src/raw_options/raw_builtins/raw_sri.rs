@@ -22,9 +22,22 @@ pub struct RawSubresourceIntegrityPluginOptions {
   pub html_plugin: String,
 }
 
-impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOptions {
-  fn from(options: RawSubresourceIntegrityPluginOptions) -> Self {
-    Self {
+impl TryFrom<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(options: RawSubresourceIntegrityPluginOptions) -> Result<Self, rspack_error::Error> {
+    let html_plugin = options.html_plugin.try_into()?;
+    if options.hash_func_names.is_empty() {
+      return Err(rspack_error::Error::error(
+        "Expect at least one SRI hash function name.".to_string(),
+      ));
+    }
+    let hash_func_names = options
+      .hash_func_names
+      .into_iter()
+      .map(SubresourceIntegrityHashFunction::try_from)
+      .collect::<Result<Vec<_>, rspack_error::Error>>()?;
+    Ok(Self {
       integrity_callback: if let Some(func) = options.integrity_callback {
         Some(Arc::new(move |data| {
           let func = func.clone();
@@ -33,13 +46,9 @@ impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOp
       } else {
         None
       },
-      hash_func_names: options
-        .hash_func_names
-        .into_iter()
-        .map(SubresourceIntegrityHashFunction::from)
-        .collect::<Vec<_>>(),
-      html_plugin: options.html_plugin.into(),
-    }
+      hash_func_names,
+      html_plugin,
+    })
   }
 }
 
