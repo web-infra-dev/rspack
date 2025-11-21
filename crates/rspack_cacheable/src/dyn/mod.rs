@@ -149,15 +149,12 @@ impl<T: ?Sized> ArchivedDynMetadata<T> {
   /// Returns the pointer metadata for the trait object this metadata refers to.
   pub fn lookup_metadata(&self) -> DynMetadata<T> {
     let dyn_id = self.dyn_id.to_native();
-    let (vtable, debug_name) = DYN_REGISTRY
-      .get(&dyn_id)
-      .unwrap_or_else(|| {
-        panic!(
-          "attempted to get vtable for an unregistered impl (dyn_id={} / 0x{:x})",
-          dyn_id, dyn_id
-        )
-      })
-      .clone();
+    let &(vtable, debug_name) = DYN_REGISTRY.get(&dyn_id).unwrap_or_else(|| {
+      panic!(
+        "attempted to get vtable for an unregistered impl (dyn_id={} / 0x{:x})",
+        dyn_id, dyn_id
+      )
+    });
     let meta = unsafe { vtable.cast() };
     let _ = debug_name;
     meta
