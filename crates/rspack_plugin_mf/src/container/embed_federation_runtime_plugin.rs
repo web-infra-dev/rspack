@@ -7,7 +7,7 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
@@ -290,16 +290,19 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit startup calls
   if !has_runtime && has_entry_modules {
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let mut startup_with_call = ConcatSource::default();
 
     // Add startup call
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    startup_with_call.add(RawStringSource::from(format!(
-      "{}();\n",
+    let startup_global = if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+      RuntimeGlobals::STARTUP_ENTRYPOINT.name()
+    } else {
       RuntimeGlobals::STARTUP.name()
-    )));
+    };
+    startup_with_call.add(RawStringSource::from(format!("{startup_global}();\n")));
 
     startup_with_call.add(render_source.source.clone());
     render_source.source = startup_with_call.boxed();
