@@ -73,11 +73,6 @@ jobs:
       - name: Link packages and install dependencies
         working-directory: rspack-diff-minimal
         run: |
-          # Update package.json to link local packages
-          # From rspack-diff-minimal, rspack root is at ../rspack
-          npm pkg set "devDependencies.@rspack/binding=link:../rspack/crates/node_binding"
-          npm pkg set "devDependencies.@rspack/core=link:../rspack/packages/rspack"
-          npm pkg set "devDependencies.@rspack/cli=link:../rspack/packages/rspack-cli"
           pnpm install
 
       - name: Build demo project
