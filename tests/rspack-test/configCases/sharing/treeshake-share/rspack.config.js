@@ -21,30 +21,22 @@ module.exports = {
 	plugins: [
 		new ModuleFederationPlugin({
 			name:'treeshake_share',
-			manifest: true,
+			manifest: {},
 			shared: {
 				'ui-lib': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake: true,
+					usedExports: ['Badge']
 				},
 				'ui-lib2': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake: true
 				},
 				'ui-lib-side-effect': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake: true
 				}
 			}
-		}),
-		new OptimizeDependencyReferencedExportsPlugin([
-			['ui-lib',{
-				treeshake:true,
-				usedExports: ['Badge']
-			}],
-			['ui-lib2',{
-				treeshake:true,
-			}],
-			['ui-lib-side-effect',{
-				treeshake:true,
-			}]
-		])
+		})
 	]
 };
