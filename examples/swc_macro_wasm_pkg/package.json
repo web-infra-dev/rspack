@@ -10,8 +10,5 @@
   ],
   "main": "swc_macro_wasm.js",
   "types": "swc_macro_wasm.d.ts",
-  "sideEffects": [
-    "./swc_macro_wasm.js",
-    "./snippets/*"
-  ]
+  "sideEffects": ["./swc_macro_wasm.js", "./snippets/*"]
 }

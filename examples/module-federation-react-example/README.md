@@ -34,6 +34,7 @@ module-federation-react-example/
 ## 🛠️ Setup & Development
 
 1. **Install dependencies:**
+
    ```bash
    cd examples/module-federation-react-example
    pnpm install
@@ -58,6 +59,7 @@ pnpm dev-server:optimized
 ```
 
 The enhanced dev server provides:
+
 - **Development Mode**: Starts dev servers with better logging and process management
 - **Production Mode**: Builds, optimizes, and serves production bundles for testing
 - **Integrated Workflow**: Single command for the complete build → optimize → serve pipeline
@@ -67,25 +69,32 @@ The enhanced dev server provides:
 For production builds, follow this complete pipeline:
 
 ### Step 1: Build Applications
+
 ```bash
 pnpm build
 ```
+
 This builds both host and remote applications using Rspack, generating:
+
 - `host/dist/` - Main application bundle
 - `remote/dist/` - Remote components bundle
 - `share-usage.json` files for optimization analysis
 
 ### Step 2: Optimize Shared Chunks (Tree-Shaking)
+
 ```bash
 pnpm optimize
 ```
+
 This runs the advanced tree-shaking optimization that:
+
 - Analyzes shared module usage across applications
 - Removes unused exports from shared libraries
 - Reduces bundle sizes by 30-70%
 - Generates optimization reports
 
 ### Step 3: Serve Production Build
+
 ```bash
 # Start host application
 pnpm -C host serve
@@ -95,6 +104,7 @@ pnpm -C remote serve
 ```
 
 ### Complete Production Pipeline
+
 ```bash
 # One-command production build with optimization
 pnpm build && pnpm optimize
@@ -103,12 +113,14 @@ pnpm build && pnpm optimize
 ## 🎯 What's Demonstrated
 
 ### Host Application
+
 - Full dashboard with multiple pages
 - Consumes remote components dynamically
 - Shared state management across federated modules
 - Responsive layout with Ant Design
 
 ### Remote Application
+
 - Exports reusable React components:
   - `UserCard` - User profile display
   - `DataTable` - Advanced data grid
@@ -117,6 +129,7 @@ pnpm build && pnpm optimize
 - Components work standalone or integrated
 
 ### Shared Dependencies
+
 - `react` & `react-dom` - Singleton shared
 - `antd` - UI component library
 - `@reduxjs/toolkit` & `react-redux` - State management
@@ -129,6 +142,7 @@ pnpm build && pnpm optimize
 ### Module Federation Setup
 
 **Remote exposes:**
+
 ```javascript
 exposes: {
   "./UserCard": "./src/components/UserCard",
@@ -140,9 +154,10 @@ exposes: {
 ```
 
 **Host consumes:**
+
 ```javascript
 remotes: {
-  remote: "remote@http://localhost:3002/remoteEntry.js"
+	remote: "remote@http://localhost:3002/remoteEntry.js";
 }
 ```
 
@@ -156,6 +171,7 @@ The optimization script (`scripts/optimize-shared-chunks.js`) provides:
 - **Detailed Reporting**: Generate optimization reports with `pnpm optimize --report`
 
 ### Optimization Results
+
 - **Before**: ~2MB initial bundle size
 - **After**: ~600KB optimized bundle size
 - **Savings**: 30-70% reduction in shared module sizes
@@ -169,6 +185,7 @@ The optimization script (`scripts/optimize-shared-chunks.js`) provides:
 This runtime error occurs due to aggressive tree-shaking of transitive dependencies. See detailed analysis in `docs/module-federation-redux-isplainobject-analysis.md`.
 
 **Solution**: The optimization process handles this automatically, but if you encounter issues:
+
 ```bash
 # Clean and rebuild
 pnpm clean
@@ -176,11 +193,13 @@ pnpm build && pnpm optimize
 ```
 
 **Build Failures**
+
 - Ensure all dependencies are installed: `pnpm install`
 - Check that both applications build individually: `pnpm -C host build && pnpm -C remote build`
 - Verify WASM optimizer is available: `ls scripts/optimize-shared-chunks.js`
 
 **Port Conflicts**
+
 - Host runs on port 3001, Remote on port 3002
 - Change ports in `rspack.config.js` if needed
 
@@ -201,12 +220,14 @@ node scripts/dev-server.js prod  # alias
 ```
 
 **Development Mode Features:**
+
 - Starts both host and remote dev servers
 - Enhanced logging with prefixed output `[HOST]` and `[REMOTE]`
 - Automatic server readiness detection
 - Graceful shutdown with Ctrl+C
 
 **Production Mode Features:**
+
 - Builds both applications
 - Runs tree-shaking optimization
 - Serves optimized production bundles

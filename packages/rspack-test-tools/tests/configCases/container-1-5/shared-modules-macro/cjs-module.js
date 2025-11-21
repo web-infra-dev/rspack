@@ -46,6 +46,6 @@ module.exports.anotherMixed = {
 	}
 };
 
-module.exports.unusedCjsFunction = function() {
+module.exports.unusedCjsFunction = function () {
 	return "unused cjs function";
 };

@@ -1,4 +1,3 @@
-
 function usedLocalFunction() {
 	return "This local function is used";
 }

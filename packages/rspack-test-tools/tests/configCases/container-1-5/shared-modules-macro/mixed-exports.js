@@ -6,7 +6,7 @@ import { usedUtil } from "./esm-utils.js";
 export const namedExport = "named value";
 
 // CJS style exports
-exports.mixedFunction = function(data) {
+exports.mixedFunction = function (data) {
 	return processCjsData(data) + " + " + usedUtil();
 };
 
@@ -18,12 +18,12 @@ module.exports.moduleExportsProp = {
 	timestamp: Date.now()
 };
 
-module.exports.interopFunction = function() {
+module.exports.interopFunction = function () {
 	return "interop function result";
 };
 
 // Unused mixed exports
-exports.unusedMixedFunction = function() {
+exports.unusedMixedFunction = function () {
 	return "unused mixed function";
 };
 

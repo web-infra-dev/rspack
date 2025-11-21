@@ -30,7 +30,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### antd
 
-#### host/node_modules_pnpm_antd_5_27_0_date-fns_4_1_0_react-dom_18_3_1_react_18_3_1__react_18_3_1_node-45059f0.js
+#### host/node_modules_pnpm_antd_5_27_0_date-fns_4_1_0_react-dom_18_3_1_react_18_3_1\_\_react_18_3_1_node-45059f0.js
 
 - **Original Size:** 8,580,171 bytes
 - **Optimized Size:** 6,325,195 bytes
@@ -97,7 +97,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 **Kept Modules:** 932 modules retained
 
-#### remote/vendors-node_modules_pnpm_antd_5_27_0_date-fns_4_1_0_react-dom_18_3_1_react_18_3_1__react_18_-b5c5a3.a4f624a087559709.js
+#### remote/vendors-node*modules_pnpm_antd_5_27_0_date-fns_4_1_0_react-dom_18_3_1_react_18_3_1\_\_react_18*-b5c5a3.a4f624a087559709.js
 
 - **Original Size:** 8,195,723 bytes
 - **Optimized Size:** 5,987,619 bytes
@@ -166,7 +166,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### @reduxjs/toolkit
 
-#### host/node_modules_pnpm_reduxjs_toolkit_2_8_2_react-redux_9_2_0__types_react_18_3_23_react_18_3_1_r-b7a319.js
+#### host/node_modules_pnpm_reduxjs_toolkit_2_8_2_react-redux_9_2_0\_\_types_react_18_3_23_react_18_3_1_r-b7a319.js
 
 - **Original Size:** 167,059 bytes
 - **Optimized Size:** 125,395 bytes
@@ -182,7 +182,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 **Kept Modules:** 4 modules retained
 
-#### remote/vendors-node_modules_pnpm_reduxjs_toolkit_2_8_2_react-redux_9_2_0__types_react_18_3_23_react_-3c49cc.cf30e018de44fba2.js
+#### remote/vendors-node*modules_pnpm_reduxjs_toolkit_2_8_2_react-redux_9_2_0\_\_types_react_18_3_23_react*-3c49cc.cf30e018de44fba2.js
 
 - **Original Size:** 167,063 bytes
 - **Optimized Size:** 125,399 bytes
@@ -216,7 +216,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### react-dom
 
-#### host/node_modules_pnpm_react-dom_18_3_1_react_18_3_1_node_modules_react-dom_index_js-_47d21.js
+#### host/node_modules_pnpm_react-dom_18_3_1_react_18_3_1_node_modules_react-dom_index_js-\_47d21.js
 
 - **Original Size:** 1,354,126 bytes
 - **Optimized Size:** 1,652,057 bytes
@@ -248,7 +248,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### @ant-design/icons
 
-#### host/node_modules_pnpm_ant-design_icons_5_6_1_react-dom_18_3_1_react_18_3_1__react_18_3_1_node_mod-feb44f0.js
+#### host/node_modules_pnpm_ant-design_icons_5_6_1_react-dom_18_3_1_react_18_3_1\_\_react_18_3_1_node_mod-feb44f0.js
 
 - **Original Size:** 5,672,537 bytes
 - **Optimized Size:** 312,352 bytes
@@ -315,7 +315,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 **Kept Modules:** 64 modules retained
 
-#### remote/vendors-node_modules_pnpm_ant-design_icons_5_6_1_react-dom_18_3_1_react_18_3_1__react_18_3_1_-e996c6.5bacf7c70887b33b.js
+#### remote/vendors-node*modules_pnpm_ant-design_icons_5_6_1_react-dom_18_3_1_react_18_3_1\_\_react_18_3_1*-e996c6.5bacf7c70887b33b.js
 
 - **Original Size:** 5,266,179 bytes
 - **Optimized Size:** 183,005 bytes
@@ -384,7 +384,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### react-router-dom
 
-#### host/node_modules_pnpm_react-router-dom_7_8_1_react-dom_18_3_1_react_18_3_1__react_18_3_1_node_mod-e31d020.js
+#### host/node_modules_pnpm_react-router-dom_7_8_1_react-dom_18_3_1_react_18_3_1\_\_react_18_3_1_node_mod-e31d020.js
 
 - **Original Size:** 539,492 bytes
 - **Optimized Size:** 444,887 bytes
@@ -421,7 +421,7 @@ Generated: 2025-08-19T00:54:33.568Z
 
 ### react-redux
 
-#### host/node_modules_pnpm_react-redux_9_2_0__types_react_18_3_23_react_18_3_1_redux_5_0_1_node_module-c6d9df1.js
+#### host/node_modules_pnpm_react-redux_9_2_0\_\_types_react_18_3_23_react_18_3_1_redux_5_0_1_node_module-c6d9df1.js
 
 - **Original Size:** 45,842 bytes
 - **Optimized Size:** 24,649 bytes
@@ -443,4 +443,3 @@ Generated: 2025-08-19T00:54:33.568Z
 - **Optimized Size:** 19,098 bytes
 - **Size Reduction:** -29.65%
 - **Status:** Skipped (No modules pruned from 1 pushes)
-

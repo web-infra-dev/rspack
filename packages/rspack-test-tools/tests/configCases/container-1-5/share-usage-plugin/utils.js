@@ -5,15 +5,15 @@ export function validateData(data) {
 	if (isEmpty(data)) {
 		return { valid: false, reason: "Data is empty" };
 	}
-	
+
 	if (isArray(data)) {
 		return { valid: true, type: "array", length: data.length };
 	}
-	
+
 	if (isObject(data)) {
 		return { valid: true, type: "object", keys: Object.keys(data).length };
 	}
-	
+
 	return { valid: true, type: typeof data };
 }
 

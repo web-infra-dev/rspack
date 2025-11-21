@@ -2,14 +2,18 @@
 import React from "react";
 
 export function HelloComponent(props) {
-	return React.createElement("div", { className: "hello" }, 
+	return React.createElement(
+		"div",
+		{ className: "hello" },
 		`Hello, ${props.name || "World"}!`
 	);
 }
 
 export function ListComponent(props) {
-	return React.createElement("ul", { className: "list" },
-		props.items.map((item, index) => 
+	return React.createElement(
+		"ul",
+		{ className: "list" },
+		props.items.map((item, index) =>
 			React.createElement("li", { key: index }, item)
 		)
 	);

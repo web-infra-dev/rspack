@@ -18,7 +18,7 @@
     "clean": "rimraf dist coverage host/dist remote/dist node_modules/.cache"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.56.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "css-loader": "^7.1.2",

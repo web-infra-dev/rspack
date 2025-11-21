@@ -51,6 +51,7 @@ pnpm test:all
 ### Unit Tests (`test/unit/`)
 
 Fast, isolated tests for specific functionality:
+
 - Tree shaking logic
 - Macro processing
 - Configuration handling
@@ -59,6 +60,7 @@ Fast, isolated tests for specific functionality:
 ### Integration Tests (`test/integration/`)
 
 Tests that verify the build and optimization pipeline:
+
 - Build output verification
 - Share usage analysis
 - Optimization results
@@ -67,6 +69,7 @@ Tests that verify the build and optimization pipeline:
 ### E2E Tests (`test/e2e/`)
 
 Browser-based tests using Puppeteer:
+
 - App functionality after optimization
 - Module Federation runtime
 - Remote component loading
@@ -75,6 +78,7 @@ Browser-based tests using Puppeteer:
 ### Performance Tests (`test/performance/`)
 
 Benchmarks and performance metrics:
+
 - Optimization speed
 - Memory usage
 - Size reduction metrics
@@ -85,43 +89,43 @@ Benchmarks and performance metrics:
 ### Basic Test Structure
 
 ```javascript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('Feature Name', () => {
-  it('should do something', () => {
-    // Arrange
-    const input = createTestInput();
-    
-    // Act
-    const result = performAction(input);
-    
-    // Assert
-    expect(result).toBe(expectedValue);
-  });
+describe("Feature Name", () => {
+	it("should do something", () => {
+		// Arrange
+		const input = createTestInput();
+
+		// Act
+		const result = performAction(input);
+
+		// Assert
+		expect(result).toBe(expectedValue);
+	});
 });
 ```
 
 ### Using Test Utils
 
 ```javascript
-import { optimizeChunk, analyzeChunk } from '../utils/optimization.js';
+import { optimizeChunk, analyzeChunk } from "../utils/optimization.js";
 
-it('should optimize chunk', () => {
-  const optimized = optimizeChunk(chunkPath, config);
-  const analysis = analyzeChunk(optimizedPath);
-  
-  expect(analysis.reduction).toBeGreaterThan(30);
+it("should optimize chunk", () => {
+	const optimized = optimizeChunk(chunkPath, config);
+	const analysis = analyzeChunk(optimizedPath);
+
+	expect(analysis.reduction).toBeGreaterThan(30);
 });
 ```
 
 ### Testing with Fixtures
 
 ```javascript
-it('should handle fixture correctly', () => {
-  const fixture = path.join(__dirname, '../fixtures/lodash-chunk.js');
-  const result = processFixture(fixture);
-  
-  expect(result).toMatchSnapshot();
+it("should handle fixture correctly", () => {
+	const fixture = path.join(__dirname, "../fixtures/lodash-chunk.js");
+	const result = processFixture(fixture);
+
+	expect(result).toMatchSnapshot();
 });
 ```
 
@@ -135,6 +139,7 @@ it('should handle fixture correctly', () => {
 ## CI/CD Integration
 
 Tests are run automatically on:
+
 - Pull requests
 - Main branch commits
 - Release builds
@@ -165,15 +170,18 @@ pnpm vitest -t "tree shaking"
 ## Common Issues
 
 ### Tests fail with "module not found"
+
 - Run `pnpm install` in the root directory
 - Ensure `pnpm build` has been run
 
 ### E2E tests timeout
+
 - Check if preview servers are running
 - Increase timeout in test configuration
 - Check for port conflicts
 
 ### Performance tests are slow
+
 - This is expected for large chunks
 - Run with `--no-coverage` for faster execution
 - Use smaller fixtures for development
@@ -181,6 +189,7 @@ pnpm vitest -t "tree shaking"
 ## Contributing
 
 When adding new tests:
+
 1. Place in appropriate category directory
 2. Follow existing naming conventions
 3. Add fixtures if needed

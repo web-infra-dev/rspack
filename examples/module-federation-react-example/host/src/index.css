@@ -1,74 +1,74 @@
 /* @import '~antd/dist/reset.css'; */
 
 * {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5;
+	margin: 0;
+	padding: 0;
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+		"Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	background-color: #f0f2f5;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+	font-family:
+		source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 .app-layout {
-  min-height: 100vh;
+	min-height: 100vh;
 }
 
 .app-header {
-  background: #fff;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	background: #fff;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .app-content {
-  margin: 24px;
-  min-height: 280px;
+	margin: 24px;
+	min-height: 280px;
 }
 
 .page-header {
-  margin-bottom: 24px;
+	margin-bottom: 24px;
 }
 
 .dashboard-stats {
-  margin-bottom: 24px;
+	margin-bottom: 24px;
 }
 
 .chart-container {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	background: #fff;
+	padding: 24px;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 400px;
 }
 
 .error-container {
-  text-align: center;
-  padding: 48px;
+	text-align: center;
+	padding: 48px;
 }
 
 .remote-component-wrapper {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
+	background: #fff;
+	padding: 24px;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	margin-bottom: 24px;
 }

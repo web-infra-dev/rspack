@@ -17,8 +17,8 @@ function formatPercentage(value) {
 }
 
 const helpers = {
-	isPositive: (n) => n > 0,
-	isNegative: (n) => n < 0
+	isPositive: n => n > 0,
+	isNegative: n => n < 0
 };
 
 // Export using module.exports = { ... } pattern

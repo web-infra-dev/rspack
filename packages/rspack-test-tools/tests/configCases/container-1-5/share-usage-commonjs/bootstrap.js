@@ -4,7 +4,10 @@
 const { formatDate, processData } = require("./cjs-exports-pattern");
 
 // Import from CommonJS module using module.exports = { ... } pattern
-const { calculateSum, formatCurrency } = require("./cjs-module-exports-pattern");
+const {
+	calculateSum,
+	formatCurrency
+} = require("./cjs-module-exports-pattern");
 
 // Import from CommonJS module with mixed patterns
 const mixedModule = require("./cjs-mixed-pattern");

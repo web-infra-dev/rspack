@@ -7,11 +7,11 @@ function processData(data) {
 
 module.exports = {
 	processData,
-	helperFunction: function() {
+	helperFunction: function () {
 		return "helper";
 	}
 };
 
-module.exports.additionalExport = function() {
+module.exports.additionalExport = function () {
 	return "additional";
 };

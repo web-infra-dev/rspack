@@ -5,10 +5,10 @@ function mainExport() {
 }
 
 module.exports = mainExport;
-module.exports.utilityA = function() {
+module.exports.utilityA = function () {
 	return "utility A";
 };
-module.exports.utilityB = function() {
+module.exports.utilityB = function () {
 	return "utility B";
 };
 

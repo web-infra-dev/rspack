@@ -1,15 +1,15 @@
 /* @import '~antd/dist/reset.css'; */
 
 .component-demo {
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
+	background: #fff;
+	padding: 24px;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	margin-bottom: 24px;
 }
 
 .component-title {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+	margin-bottom: 24px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid #f0f0f0;
 }
