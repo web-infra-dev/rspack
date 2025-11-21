@@ -362,7 +362,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 if let Some(runtime_map) = shared_referenced_exports.get(&shared.name) {
                   let mut used_exports_set = HashSet::new();
 
-                  for (_runtime, exports) in runtime_map {
+                  for exports in runtime_map.values() {
                     if !exports.is_empty() {
                       for export in exports {
                         used_exports_set.insert(export.clone());
@@ -480,65 +480,63 @@ async fn dependency_referenced_exports(
     return Ok(());
   }
   let mut final_exports = exports.clone();
-  if final_exports.is_empty() {
-    if dependency.dependency_type() == &DependencyType::EsmImportSpecifier {
-      if let Some(esm_dep) = dependency
-        .as_any()
-        .downcast_ref::<ESMImportSpecifierDependency>()
-      {
-        let ids = esm_dep.get_ids(&module_graph);
-        if ids.is_empty() {
-          return Ok(());
-        }
-        final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
-          &module_graph,
-          Some(ExportsType::DefaultWithNamed),
-        );
-      }
+  if final_exports.is_empty()
+    && dependency.dependency_type() == &DependencyType::EsmImportSpecifier
+    && let Some(esm_dep) = dependency
+      .as_any()
+      .downcast_ref::<ESMImportSpecifierDependency>()
+  {
+    let ids = esm_dep.get_ids(&module_graph);
+    if ids.is_empty() {
+      return Ok(());
     }
+    final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
+      &module_graph,
+      Some(ExportsType::DefaultWithNamed),
+    );
   }
   if final_exports.is_empty() {
     return Ok(());
   }
 
   // Process each referenced export
-  if let Some(runtime) = runtime {
-    if self.shared_map.contains_key(share_key) {
-      let mut shared_referenced_exports = self
-        .shared_referenced_exports
-        .write()
-        .expect("lock poisoned");
-      let runtime_map: &mut HashMap<
-        String,
-        std::collections::HashSet<String, rustc_hash::FxBuildHasher>,
-        rustc_hash::FxBuildHasher,
-      > = shared_referenced_exports
-        .entry(share_key.to_string())
-        .or_insert_with(|| FxHashMap::default());
+  if let Some(runtime) = runtime
+    && self.shared_map.contains_key(share_key)
+  {
+    let mut shared_referenced_exports = self
+      .shared_referenced_exports
+      .write()
+      .expect("lock poisoned");
+    let runtime_map: &mut HashMap<
+      String,
+      std::collections::HashSet<String, rustc_hash::FxBuildHasher>,
+      rustc_hash::FxBuildHasher,
+    > = shared_referenced_exports
+      .entry(share_key.to_string())
+      .or_insert_with(FxHashMap::default);
 
-      let export_set = runtime_map
-        .entry(runtime.as_str().to_string())
-        .or_insert_with(|| FxHashSet::default());
+    let export_set = runtime_map
+      .entry(runtime.as_str().to_string())
+      .or_insert_with(FxHashSet::default);
 
-      for referenced_export in &final_exports {
-        match referenced_export {
-          ExtendedReferencedExport::Array(exports_array) => {
-            for export in exports_array {
-              export_set.insert(export.to_string());
-            }
+    for referenced_export in &final_exports {
+      match referenced_export {
+        ExtendedReferencedExport::Array(exports_array) => {
+          for export in exports_array {
+            export_set.insert(export.to_string());
           }
-          ExtendedReferencedExport::Export(referenced) => {
-            if referenced.name.is_empty() {
-              continue;
-            }
-            let flattened = referenced
-              .name
-              .iter()
-              .map(|atom| atom.to_string())
-              .collect::<Vec<_>>()
-              .join(".");
-            export_set.insert(flattened);
+        }
+        ExtendedReferencedExport::Export(referenced) => {
+          if referenced.name.is_empty() {
+            continue;
           }
+          let flattened = referenced
+            .name
+            .iter()
+            .map(|atom| atom.to_string())
+            .collect::<Vec<_>>()
+            .join(".");
+          export_set.insert(flattened);
         }
       }
     }

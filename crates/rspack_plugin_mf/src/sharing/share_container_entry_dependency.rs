@@ -62,7 +62,7 @@ impl Dependency for ShareContainerEntryDependency {
 #[cacheable_dyn]
 impl ModuleDependency for ShareContainerEntryDependency {
   fn request(&self) -> &str {
-    &self.resource_identifier
+    &self.request
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

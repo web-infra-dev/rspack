@@ -123,13 +123,13 @@ impl Module for ShareContainerEntryModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut dependencies: Vec<BoxDependency> = Vec::new();
-
-    dependencies.push(Box::new(StaticExportsDependency::new(
-      StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
-      false,
-    )));
-    dependencies.push(Box::new(ShareContainerDependency::new(self.name.clone())));
+    let dependencies: Vec<BoxDependency> = vec![
+      Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        false,
+      )),
+      Box::new(ShareContainerDependency::new(self.name.clone())),
+    ];
 
     Ok(BuildResult {
       dependencies,
@@ -176,15 +176,14 @@ impl Module for ShareContainerEntryModule {
     let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
 
     // 使用 returning_function 生成 installInitialConsumes 函数
-    let install_initial_consumes_call = format!(
-      r#"localBundlerRuntime.installInitialConsumes({{ 
+    let install_initial_consumes_call = r#"localBundlerRuntime.installInitialConsumes({ 
         installedModules: localInstalledModules, 
         initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes, 
         moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping, 
         webpackRequire: __webpack_require__, 
         asyncLoad: true 
-      }})"#
-    );
+      })"#
+      .to_string();
     let install_initial_consumes_fn = returning_function(
       &compilation.options.output.environment,
       &install_initial_consumes_call,
