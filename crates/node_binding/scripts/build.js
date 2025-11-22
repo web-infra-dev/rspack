@@ -38,6 +38,7 @@ async function build() {
 			"--no-js",
 			// "--no-const-enum",
 			"--no-dts-header",
+			"-v",
 			"--pipe",
 			`"node ${path.resolve(__dirname, "dts-header.js")}"`
 		];
