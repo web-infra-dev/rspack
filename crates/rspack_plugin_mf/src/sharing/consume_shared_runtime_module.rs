@@ -135,10 +135,14 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
+      source += include_str!("./consumesCommon.js");
+      if !initial_consumes.is_empty() {
+        source += include_str!("./consumesInitial.js");
+      }
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        source += include_str!("./consumesLoading.js");
       }
       return Ok(source);
     }

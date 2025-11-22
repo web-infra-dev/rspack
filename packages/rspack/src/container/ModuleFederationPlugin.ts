@@ -34,7 +34,6 @@ export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
-		const { name, shared } = this._options;
 		const { webpack } = compiler;
 		const paths = getPaths(this._options);
 		compiler.options.resolve.alias = {
@@ -47,6 +46,8 @@ export class ModuleFederationPlugin {
 		const treeshakeEntries = sharedOptions.filter(
 			([, config]) => config.treeshake
 		);
+		const enhanced = true;
+		const { name, shared } = this._options;
 		if (treeshakeEntries.length > 0) {
 			this._independentSharePlugin = new IndependentSharePlugin({
 				name,
@@ -57,29 +58,38 @@ export class ModuleFederationPlugin {
 		}
 
 		let runtimePluginApplied = false;
+		const applyRuntime = async () => {
+			if (runtimePluginApplied) return;
+			runtimePluginApplied = true;
+			const entryRuntime = getDefaultEntryRuntime(
+				paths,
+				this._options,
+				compiler,
+				this._independentSharePlugin?.buildAssets || {}
+			);
+			new ModuleFederationRuntimePlugin({
+				entryRuntime
+			}).apply(compiler);
+		};
+
 		compiler.hooks.beforeRun.tapPromise(
 			{
 				name: "ModuleFederationPlugin",
 				stage: 100
 			},
-			async () => {
-				if (runtimePluginApplied) return;
-				runtimePluginApplied = true;
-				const entryRuntime = getDefaultEntryRuntime(
-					paths,
-					this._options,
-					compiler,
-					this._independentSharePlugin?.buildAssets || {}
-				);
-				new ModuleFederationRuntimePlugin({
-					entryRuntime
-				}).apply(compiler);
-			}
+			applyRuntime
+		);
+		compiler.hooks.watchRun.tapPromise(
+			{
+				name: "ModuleFederationPlugin",
+				stage: 100
+			},
+			applyRuntime
 		);
 
 		new webpack.container.ModuleFederationPluginV1({
 			...this._options,
-			enhanced: true
+			enhanced
 		}).apply(compiler);
 
 		if (this._options.manifest) {

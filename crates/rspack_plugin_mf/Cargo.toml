@@ -23,6 +23,7 @@ rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
 camino      = { workspace = true }
+cow-utils   = { workspace = true }
 hashlink    = { workspace = true }
 itertools   = { workspace = true }
 regex       = { workspace = true }

@@ -4,6 +4,7 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use cow_utils::CowUtils;
 use rspack_core::{
   BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerThisCompilation,
   Context, DependencyCategory, DependencyType, ModuleFactoryCreateData,
@@ -30,7 +31,7 @@ struct CollectShareEntryRecord {
 }
 
 fn normalize_request_path(path: &str) -> String {
-  path.replace('\\', "/")
+  path.cow_replace('\\', "/").into_owned()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
