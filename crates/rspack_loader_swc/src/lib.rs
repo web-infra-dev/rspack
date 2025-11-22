@@ -2,8 +2,9 @@ mod collect_ts_info;
 mod options;
 mod plugin;
 mod transformer;
+mod transforms;
 
-use std::{default::Default, path::Path};
+use std::{default::Default, path::Path, sync::Arc};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
@@ -105,7 +106,7 @@ impl SwcLoader {
     };
 
     let javascript_compiler = JavaScriptCompiler::new();
-    let filename = FileName::Real(resource_path.clone().into_std_path_buf());
+    let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
 
     let source = content.into_string_lossy();
     let is_typescript =
@@ -118,7 +119,7 @@ impl SwcLoader {
       diagnostics,
     } = javascript_compiler.transform(
       source,
-      Some(filename),
+      Some(filename.clone()),
       swc_options,
       Some(loader_context.context.source_map_kind),
       |program, unresolved_mark| {
@@ -138,7 +139,18 @@ impl SwcLoader {
           options,
         ));
       },
-      |_| transformer::transform(&self.options_with_additional.rspack_experiments),
+      |_| {
+        if self.options_with_additional.rspack_experiments.rsc {
+          transforms::server_components(
+            filename,
+            transforms::Config::WithOptions(transforms::Options {
+              // TODO: 应该当做配置项传入
+              is_react_server_layer: true,
+            }),
+          );
+        }
+        transformer::transform(&self.options_with_additional.rspack_experiments)
+      },
     )?;
 
     for diagnostic in diagnostics {

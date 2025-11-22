@@ -15,6 +15,8 @@ use swc_core::base::config::{
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
   pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+  #[serde(default)]
+  pub rsc: bool,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -28,6 +30,7 @@ pub struct RawCollectTypeScriptInfoOptions {
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
+  pub(crate) rsc: bool,
 }
 
 #[derive(Default, Debug)]
@@ -50,6 +53,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
       collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
+      rsc: value.rsc,
     }
   }
 }

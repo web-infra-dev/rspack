@@ -25,6 +25,7 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
@@ -45,6 +46,32 @@ pub struct BuildContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RSCModuleType {
+  ServerEntry,
+  Server,
+  Client,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum ClientEntryType {
+  Cjs,
+  Auto,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct RSCMeta {
+  pub module_type: RSCModuleType,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub client_refs: Vec<Wtf8Atom>,
+  pub client_entry_type: Option<ClientEntryType>,
+  pub action_ids: Option<HashMap<Arc<str>, Arc<str>>>,
+  pub is_client_ref: bool,
 }
 
 #[cacheable]
@@ -73,6 +100,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
+  pub rsc: Option<RSCMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -101,6 +129,7 @@ impl Default for BuildInfo {
       assets: Default::default(),
       module: false,
       collected_typescript_info: None,
+      rsc: None,
       extras: Default::default(),
     }
   }
