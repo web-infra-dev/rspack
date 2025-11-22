@@ -16,6 +16,7 @@ export type ConsumeSharedPluginOptions = {
 	consumes: Consumes;
 	shareScope?: string;
 	enhanced?: boolean;
+	asyncStartup?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
 export type ConsumesItem = string;
@@ -86,7 +87,8 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 					eager: !!item.eager
 				})
 			),
-			enhanced: options.enhanced ?? false
+			enhanced: options.enhanced ?? false,
+			asyncStartup: options.asyncStartup ?? false
 		};
 	}
 
@@ -98,7 +100,8 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 				key,
 				...v
 			})),
-			enhanced: this._options.enhanced
+			enhanced: this._options.enhanced,
+			asyncStartup: this._options.asyncStartup
 		};
 		return createBuiltinPlugin(this.name, rawOptions);
 	}

@@ -6,9 +6,9 @@
   "dependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
-    "@mui/material": "^5.15.20",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
+    "@mui/material": "^5.15.20",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",
@@ -33,9 +33,9 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "0.21.3",
-    "@module-federation/runtime": "0.21.3",
-    "@module-federation/sdk": "0.21.3",
+    "@module-federation/enhanced": "0.21.6",
+    "@module-federation/runtime": "0.21.6",
+    "@module-federation/sdk": "0.21.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.15",
     "@rspack/plugin-react-refresh": "^1.5.3",
     "raw-loader": "^4.0.2",

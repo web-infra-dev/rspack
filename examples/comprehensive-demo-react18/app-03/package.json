@@ -6,7 +6,7 @@
   "dependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
-    "@module-federation/enhanced": "0.21.3",
+    "@module-federation/enhanced": "0.21.6",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.1.4",

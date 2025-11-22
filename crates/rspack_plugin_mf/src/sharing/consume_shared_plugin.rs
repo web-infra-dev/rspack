@@ -160,6 +160,7 @@ fn get_required_version_from_description_file(
 pub struct ConsumeSharedPluginOptions {
   pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
   pub enhanced: bool,
+  pub async_startup: bool,
 }
 
 #[plugin]
@@ -485,7 +486,10 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
   compilation.add_runtime_module(
     chunk_ukey,
-    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+    Box::new(ConsumeSharedRuntimeModule::new(
+      self.options.enhanced,
+      self.options.async_startup,
+    )),
   )?;
   Ok(())
 }

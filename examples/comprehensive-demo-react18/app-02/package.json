@@ -8,7 +8,7 @@
     "@babel/preset-react": "^7.28.5",
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
-    "@module-federation/enhanced": "0.21.3",
+    "@module-federation/enhanced": "0.21.6",
     "@mui/material": "^5.15.20",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",

@@ -244,6 +244,8 @@ impl JsPlugin {
     let mut startup: Vec<Cow<str>> = Vec::new();
     let mut allow_inline_startup = true;
     let mut mf_async_startup = false;
+    let mf_async_startup_flag =
+      runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
     let supports_arrow_function = compilation
       .options
       .output
@@ -330,12 +332,20 @@ impl JsPlugin {
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
       if chunk.has_entry_module(&compilation.chunk_graph) {
-        let use_federation_async =
-          runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+        let use_federation_async = mf_async_startup_flag;
+
+        if cfg!(debug_assertions) && mf_async_startup_flag {
+          tracing::debug!(
+            "render_startup async MF chunk={:?} has_entry_modules={} reqs={:?}",
+            chunk_ukey,
+            chunk.has_entry_module(&compilation.chunk_graph),
+            runtime_requirements
+          );
+        }
 
         if use_federation_async {
           let startup_fn = RuntimeGlobals::STARTUP_ENTRYPOINT;
-          let needs_on_chunks_loaded =
+          let _needs_on_chunks_loaded =
             runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
           mf_async_startup = true;
           let mut buf2: Vec<Cow<str>> = Vec::new();
@@ -353,7 +363,7 @@ impl JsPlugin {
           buf2.push("// Call federation runtime initialization".into());
           buf2.push("var runtimeInitialization = undefined;".into());
           buf2.push(format!("if (typeof {} === \"function\") {{", startup_fn).into());
-          buf2.push(format!("  runtimeInitialization = {}();", startup_fn).into());
+          buf2.push(format!("  runtimeInitialization = {};", startup_fn).into());
           buf2.push("} else {".into());
           buf2.push(
             format!(
@@ -488,7 +498,7 @@ impl JsPlugin {
                 // ESM output with top-level await
                 buf2.push(
                   format!(
-                    "const {}Promise = Promise.resolve(runtimeInitialization).then(async () => {{",
+                    "const {}Promise = Promise.resolve().then(() => {{ return typeof runtimeInitialization === \"function\" ? runtimeInitialization() : runtimeInitialization; }}).then(() => {{ return typeof __webpack_require__.I === \"function\" ? __webpack_require__.I(\"default\") : undefined; }}).then(async () => {{",
                     RuntimeGlobals::EXPORTS
                   )
                   .into(),
@@ -518,26 +528,22 @@ impl JsPlugin {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
                 buf2.push("});".into());
-                if needs_on_chunks_loaded {
-                  buf2.push(
-                    format!(
-                      "export default await {}Promise.then(res => {}(res));",
-                      RuntimeGlobals::EXPORTS,
-                      RuntimeGlobals::ON_CHUNKS_LOADED
-                    )
-                    .into(),
-                  );
-                } else {
-                  buf2.push(
-                    format!("export default await {}Promise;", RuntimeGlobals::EXPORTS).into(),
-                  );
-                }
-              } else {
-                // CJS output with Promise chain
-                buf2.push("// Wrap startup in Promise.all with federation handlers".into());
+                buf2.push("export default await ".into());
                 buf2.push(
                   format!(
-                    "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
+                    "{}Promise.then(res => typeof {} === \"function\" ? {}(res) : res);",
+                    RuntimeGlobals::EXPORTS,
+                    RuntimeGlobals::ON_CHUNKS_LOADED,
+                    RuntimeGlobals::ON_CHUNKS_LOADED
+                  )
+                  .into(),
+                );
+              } else {
+                // CJS output with Promise chain
+                buf2.push("// Wrap startup in Promise chain with federation handlers".into());
+                buf2.push(
+                  format!(
+                    "var {} = Promise.resolve().then(function() {{ return typeof runtimeInitialization === \"function\" ? runtimeInitialization() : runtimeInitialization; }}).then(function() {{ return typeof __webpack_require__.I === \"function\" ? __webpack_require__.I(\"default\") : undefined; }}).then(function() {{",
                     RuntimeGlobals::EXPORTS
                   )
                   .into(),
@@ -571,23 +577,22 @@ impl JsPlugin {
                 } else {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
-                if needs_on_chunks_loaded {
-                  buf2.push(
-                    format!(
-                      "}}).then(function(res) {{ return {}(res); }});",
-                      RuntimeGlobals::ON_CHUNKS_LOADED
-                    )
-                    .into(),
-                  );
-                } else {
-                  buf2.push("});".into());
-                }
+                buf2.push("}).then(function(res) {".into());
+                buf2.push(
+                  format!(
+                    "  return typeof {} === \"function\" ? {}(res) : res;",
+                    RuntimeGlobals::ON_CHUNKS_LOADED,
+                    RuntimeGlobals::ON_CHUNKS_LOADED
+                  )
+                  .into(),
+                );
+                buf2.push("});".into());
               }
             } else {
-              buf2.push("// Wrap startup in Promise.all with federation handlers".into());
+              buf2.push("// Wrap startup in Promise chain with federation handlers".into());
               buf2.push(
                 format!(
-                  "var {} = Promise.resolve(runtimeInitialization).then(function() {{",
+                  "var {} = Promise.resolve().then(function() {{ return typeof runtimeInitialization === \"function\" ? runtimeInitialization() : runtimeInitialization; }}).then(function() {{ return typeof __webpack_require__.I === \"function\" ? __webpack_require__.I(\"default\") : undefined; }}).then(function() {{",
                   RuntimeGlobals::EXPORTS
                 )
                 .into(),
@@ -621,6 +626,15 @@ impl JsPlugin {
               } else {
                 buf2.push(format!("  return {};", entry_fn_body).into());
               }
+              buf2.push("}).then(function(res) {".into());
+              buf2.push(
+                format!(
+                  "  return typeof {} === \"function\" ? {}(res) : res;",
+                  RuntimeGlobals::ON_CHUNKS_LOADED,
+                  RuntimeGlobals::ON_CHUNKS_LOADED
+                )
+                .into(),
+              );
               buf2.push("});".into());
             }
 
@@ -1235,15 +1249,22 @@ impl JsPlugin {
           startup_global
         )));
         result.add(RawStringSource::from(format!(
-          "  runtimeInitialization = {}();\n",
+          "  runtimeInitialization = {};\n",
           startup_global
         )));
         result.add(RawStringSource::from("}\n"));
         result.add(RawStringSource::from("var promises = [];\n"));
         result.add(RawStringSource::from(format!(
-          "var {} = Promise.resolve(runtimeInitialization).then(function() {{\n",
+          "var {} = Promise.resolve().then(function() {{ return typeof runtimeInitialization === 'function' ? runtimeInitialization() : runtimeInitialization; }}).then(function() {{ return typeof __webpack_require__.I === 'function' ? __webpack_require__.I('default') : undefined; }}).then(function() {{\n",
           RuntimeGlobals::EXPORTS.name()
         )));
+        result.add(RawStringSource::from(
+          "  if (__webpack_require__.federation && __webpack_require__.federation.bundlerRuntime && typeof __webpack_require__.federation.bundlerRuntime.flushInitialConsumes === 'function') {\n",
+        ));
+        result.add(RawStringSource::from(
+          "    __webpack_require__.federation.bundlerRuntime.flushInitialConsumes();\n",
+        ));
+        result.add(RawStringSource::from("  }\n"));
         result.add(RawStringSource::from("  var handlers = [\n"));
         result.add(RawStringSource::from("    function(chunkId, promises) {\n"));
         result.add(RawStringSource::from("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);\n"));

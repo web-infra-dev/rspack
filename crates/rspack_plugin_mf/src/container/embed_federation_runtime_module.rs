@@ -107,9 +107,13 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let startup = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
       result.push_str(&format!("var prevStartup = {};\n", startup));
       result.push_str("var hasRun = false;\n");
+      result.push_str("var __mfInitialConsumes;\n");
+      result.push_str(
+        "function __mfSetupInitialConsumesDeferral() {\n\tvar runtime = __webpack_require__.federation && __webpack_require__.federation.bundlerRuntime;\n\tif (!runtime || typeof runtime.installInitialConsumes !== 'function') return;\n\tvar origInstallInitialConsumes = runtime.installInitialConsumes;\n\truntime.installInitialConsumes = function(opts) { __mfInitialConsumes = opts; };\n\truntime.flushInitialConsumes = function() { if (__mfInitialConsumes) { var opts = __mfInitialConsumes; __mfInitialConsumes = undefined; return origInstallInitialConsumes(opts); } };\n}\n",
+      );
       result.push_str(&run_function);
       result.push_str(&format!(
-        "{startup} = function() {{\n\trunFederationRuntime();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
+        "{startup} = function() {{\n\trunFederationRuntime();\n\t__mfSetupInitialConsumesDeferral();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
         startup = startup
       ));
     } else {
@@ -128,7 +132,13 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       install_chunk = install_chunk
     ));
 
-    result.push_str("runFederationRuntime();\n");
+    // For async startup we defer executing the federation runtime until the
+    // async startup entrypoint runs (or a chunk install occurs) so that share
+    // scope initialization can complete first. In sync mode we keep the eager
+    // execution to match the legacy bootstrap order.
+    if !self.options.async_startup {
+      result.push_str("runFederationRuntime();\n");
+    }
 
     Ok(result)
   }

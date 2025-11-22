@@ -139,6 +139,7 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
 pub struct RawConsumeSharedPluginOptions {
   pub consumes: Vec<RawConsumeOptions>,
   pub enhanced: bool,
+  pub async_startup: Option<bool>,
 }
 
 impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
@@ -151,6 +152,7 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
         .map(|(k, v)| (k, Arc::new(v)))
         .collect(),
       enhanced: value.enhanced,
+      async_startup: value.async_startup.unwrap_or(false),
     }
   }
 }

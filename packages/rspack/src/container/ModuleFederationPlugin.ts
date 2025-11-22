@@ -48,10 +48,14 @@ export class ModuleFederationPlugin {
 		// Generate the runtime entry content
 		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
 
+		const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
+			asyncStartup: this._options.experiments?.asyncStartup ?? false
+		};
+
 		// Pass only the entry runtime to the Rust-side plugin
 		new ModuleFederationRuntimePlugin({
 			entryRuntime,
-			experiments: this._options.experiments
+			experiments: runtimeExperiments
 		}).apply(compiler);
 
 		new webpack.container.ModuleFederationPluginV1({

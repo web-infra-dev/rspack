@@ -19,6 +19,9 @@ export interface ModuleFederationPluginV1Options {
 	shareScope?: string;
 	shared?: Shared;
 	enhanced?: boolean;
+	experiments?: {
+		asyncStartup?: boolean;
+	};
 }
 
 export class ModuleFederationPluginV1 {
@@ -27,6 +30,7 @@ export class ModuleFederationPluginV1 {
 	apply(compiler: Compiler) {
 		const { _options: options } = this;
 		const enhanced = options.enhanced ?? false;
+		const asyncStartup = options.experiments?.asyncStartup ?? false;
 
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
@@ -40,7 +44,7 @@ export class ModuleFederationPluginV1 {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
-			new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
+			new ShareRuntimePlugin(enhanced).apply(compiler);
 			if (
 				options.exposes &&
 				(Array.isArray(options.exposes)
@@ -74,7 +78,8 @@ export class ModuleFederationPluginV1 {
 				new SharePlugin({
 					shared: options.shared,
 					shareScope: options.shareScope,
-					enhanced
+					enhanced,
+					asyncStartup
 				}).apply(compiler);
 			}
 		});

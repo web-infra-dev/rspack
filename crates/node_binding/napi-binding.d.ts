@@ -1853,6 +1853,7 @@ export interface RawConsumeOptions {
 export interface RawConsumeSharedPluginOptions {
   consumes: Array<RawConsumeOptions>
   enhanced: boolean
+  asyncStartup?: boolean
 }
 
 export interface RawContainerPluginOptions {
