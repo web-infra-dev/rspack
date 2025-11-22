@@ -3,10 +3,12 @@ use std::{collections::HashMap, sync::Arc};
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption, ManifestSharedOption,
-  ModuleFederationManifestPluginOptions, ModuleFederationRuntimePluginOptions, ProvideOptions,
-  ProvideVersion, RemoteAliasTarget, RemoteOptions, StatsBuildInfo,
+  CollectShareEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
+  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
+  ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ModuleFederationRuntimePluginOptions, OptimizeDependencyReferencedExportsPluginOptions,
+  OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
+  ShareContainerEntryOptions, ShareContainerPluginOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -135,6 +137,51 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
 
 #[derive(Debug)]
 #[napi(object)]
+pub struct RawCollectShareEntryPluginOptions {
+  pub consumes: Vec<RawConsumeOptions>,
+  pub filename: Option<String>,
+}
+
+impl From<RawCollectShareEntryPluginOptions> for CollectShareEntryPluginOptions {
+  fn from(value: RawCollectShareEntryPluginOptions) -> Self {
+    Self {
+      consumes: value
+        .consumes
+        .into_iter()
+        .map(|provide| {
+          let (key, consume_options): (String, ConsumeOptions) = provide.into();
+          (key, std::sync::Arc::new(consume_options))
+        })
+        .collect(),
+      filename: value.filename,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawShareContainerPluginOptions {
+  pub name: String,
+  pub request: String,
+  pub version: String,
+  pub file_name: Option<String>,
+  pub library: JsLibraryOptions,
+}
+
+impl From<RawShareContainerPluginOptions> for ShareContainerPluginOptions {
+  fn from(value: RawShareContainerPluginOptions) -> Self {
+    ShareContainerPluginOptions {
+      name: value.name,
+      request: value.request,
+      version: value.version,
+      library: value.library.into(),
+      file_name: value.file_name.clone().map(Into::into),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
 pub struct RawConsumeSharedPluginOptions {
   pub consumes: Vec<RawConsumeOptions>,
   pub enhanced: bool,
@@ -150,6 +197,50 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
         .map(|(k, v)| (k, Arc::new(v)))
         .collect(),
       enhanced: value.enhanced,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawOptimizeSharedConfig {
+  pub share_key: String,
+  pub treeshake: bool,
+  pub used_exports: Option<Vec<String>>,
+}
+
+impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
+  fn from(value: RawOptimizeSharedConfig) -> Self {
+    Self {
+      share_key: value.share_key,
+      treeshake: value.treeshake,
+      used_exports: value.used_exports.unwrap_or_default(),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawOptimizeDependencyReferencedExportsPluginOptions {
+  pub shared: Vec<RawOptimizeSharedConfig>,
+  pub inject_used_exports: Option<bool>,
+  pub manifest_file_name: Option<String>,
+  pub stats_file_name: Option<String>,
+}
+
+impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
+  for OptimizeDependencyReferencedExportsPluginOptions
+{
+  fn from(value: RawOptimizeDependencyReferencedExportsPluginOptions) -> Self {
+    Self {
+      shared: value
+        .shared
+        .into_iter()
+        .map(|config| config.into())
+        .collect(),
+      inject_used_exports: value.inject_used_exports.unwrap_or(true),
+      manifest_file_name: value.manifest_file_name,
+      stats_file_name: value.stats_file_name,
     }
   }
 }

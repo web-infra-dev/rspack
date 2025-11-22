@@ -1,0 +1,522 @@
+use std::{
+  collections::hash_map::Entry,
+  path::{Path, PathBuf},
+  sync::{Arc, LazyLock, OnceLock},
+};
+
+use camino::Utf8Path;
+use regex::Regex;
+use rspack_core::{
+  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
+  CompilerThisCompilation, Context, DependenciesBlock, DependencyCategory, DependencyType, Module,
+  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver,
+  rspack_sources::{RawStringSource, SourceExt},
+};
+use rspack_error::{Diagnostic, Result, error};
+use rspack_fs::ReadableFileSystem;
+use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde::Serialize;
+use tokio::sync::RwLock;
+
+use super::consume_shared_plugin::{
+  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, PACKAGE_NAME,
+  RELATIVE_REQUEST, get_description_file, get_required_version_from_description_file,
+  resolve_matched_configs,
+};
+
+const DEFAULT_FILENAME: &str = "collect-share-entries.json";
+
+#[derive(Debug, Clone)]
+struct CollectShareEntryMeta {
+  request: String,
+  share_key: String,
+  share_scope: String,
+  is_prefix: bool,
+  consume: Arc<ConsumeOptions>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct CollectShareEntryRecord {
+  share_scope: String,
+  requests: FxHashSet<CollectedShareRequest>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CollectedShareRequest {
+  request: String,
+  version: String,
+}
+
+// 直接输出共享模块映射，移除 shared 层级
+type CollectShareEntryAsset<'a> = FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>;
+
+#[derive(Debug, Serialize)]
+struct CollectShareEntryAssetItem<'a> {
+  #[serde(rename = "shareScope")]
+  share_scope: &'a str,
+  requests: &'a [[String; 2]],
+}
+
+#[derive(Debug)]
+pub struct CollectShareEntryPluginOptions {
+  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
+  pub filename: Option<String>,
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct CollectShareEntryPlugin {
+  options: CollectShareEntryPluginOptions,
+  resolver: OnceLock<Arc<Resolver>>,
+  compiler_context: OnceLock<Context>,
+  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
+  resolved_entries: RwLock<FxHashMap<String, CollectShareEntryRecord>>,
+}
+
+impl CollectShareEntryPlugin {
+  pub fn new(options: CollectShareEntryPluginOptions) -> Self {
+    // let consumes: Vec<CollectShareEntryMeta> = options
+    //   .consumes
+    //   .into_iter()
+    //   .map(|(request, consume)| {
+    //     let consume = consume.clone();
+    //     let share_key = consume.share_key.clone();
+    //     let share_scope = consume.share_scope.clone();
+    //     let is_prefix = request.ends_with('/');
+    //     CollectShareEntryMeta {
+    //       request,
+    //       share_key,
+    //       share_scope,
+    //       is_prefix,
+    //       consume,
+    //     }
+    //   })
+    //   .collect();
+
+    Self::new_inner(
+      options,
+      Default::default(),
+      Default::default(),
+      Default::default(),
+      Default::default(),
+    )
+  }
+
+  /// 根据模块请求路径推断版本信息
+  /// 例如：../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
+  /// 会找到 react-dom 的 package.json 并读取 version 字段
+  async fn infer_version(&self, request: &str) -> Option<String> {
+    // 将请求路径转换为 Path
+    let path = Path::new(request);
+
+    // 查找包含 node_modules 的路径段
+    let mut node_modules_found = false;
+    let mut package_path = None;
+
+    for component in path.components() {
+      let comp_str = component.as_os_str().to_string_lossy();
+      if comp_str == "node_modules" {
+        node_modules_found = true;
+        continue;
+      }
+
+      if node_modules_found {
+        // 下一个组件应该是包名
+        package_path = Some(comp_str.to_string());
+        break;
+      }
+    }
+
+    if let Some(package_name) = package_path {
+      // 构建 package.json 的完整路径
+      let mut package_json_path = PathBuf::new();
+      let mut found_node_modules = false;
+
+      for component in path.components() {
+        let comp_str = component.as_os_str().to_string_lossy();
+        package_json_path.push(comp_str.as_ref());
+
+        if comp_str == "node_modules" {
+          found_node_modules = true;
+          // 添加包名目录
+          package_json_path.push(&package_name);
+          // 添加 package.json
+          package_json_path.push("package.json");
+          break;
+        }
+      }
+
+      if found_node_modules && package_json_path.exists() {
+        // 尝试读取 package.json
+        if let Ok(content) = std::fs::read_to_string(&package_json_path) {
+          if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+            // 读取 version 字段
+            if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
+              return Some(version.to_string());
+            }
+          }
+        }
+      }
+    }
+
+    None
+  }
+
+  fn init_context(&self, compilation: &Compilation) {
+    self
+      .compiler_context
+      .set(compilation.options.context.clone())
+      .expect("failed to set compiler context");
+  }
+
+  fn get_context(&self) -> Context {
+    self
+      .compiler_context
+      .get()
+      .expect("init_context first")
+      .clone()
+  }
+
+  fn init_resolver(&self, compilation: &Compilation) {
+    self
+      .resolver
+      .set(
+        compilation
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: None,
+            resolve_to_context: false,
+            dependency_category: DependencyCategory::Esm,
+          }),
+      )
+      .expect("failed to set resolver for multiple times");
+  }
+
+  fn get_resolver(&self) -> Arc<Resolver> {
+    self.resolver.get().expect("init_resolver first").clone()
+  }
+
+  async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
+    let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
+    self
+      .matched_consumes
+      .set(Arc::new(config))
+      .expect("failed to set matched consumes");
+  }
+
+  fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
+    self
+      .matched_consumes
+      .get()
+      .expect("init_matched_consumes first")
+      .clone()
+  }
+
+  async fn record_entry(
+    &self,
+    context: &Context,
+    request: &str,
+    config: Arc<ConsumeOptions>,
+    mut add_diagnostic: impl FnMut(Diagnostic),
+  ) {
+    let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
+    let import_resolved = match &config.import {
+      None => None,
+      Some(import) => {
+        let resolver = self.get_resolver();
+        resolver
+          .resolve(
+            if direct_fallback {
+              self.get_context()
+            } else {
+              context.clone()
+            }
+            .as_ref(),
+            import,
+          )
+          .await
+          .map_err(|_e| {
+            add_diagnostic(Diagnostic::error(
+              "ModuleNotFoundError".into(),
+              format!("resolving fallback for shared module {request}"),
+            ))
+          })
+          .ok()
+      }
+    }
+    .and_then(|i| match i {
+      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
+      ResolveResult::Ignored => None,
+    });
+
+    // 首先尝试从 import_resolved 路径推断版本
+    let version = if let Some(ref resolved_path) = import_resolved {
+      if let Some(inferred) = self.infer_version(resolved_path).await {
+        Some(ConsumeVersion::Version(inferred))
+      } else {
+        // 如果推断失败，直接返回 None，不记录这个条目
+        None
+      }
+    } else {
+      // 如果没有 resolved 路径，也直接返回 None
+      None
+    };
+
+    // 如果无法获取版本信息，直接结束方法
+    let version = match version {
+      Some(v) => v,
+      None => return, // 直接结束 record_entry 方法
+    };
+
+    let share_key = config.share_key.clone();
+    let share_scope = config.share_scope.clone();
+    let mut resolved_entries = self.resolved_entries.write().await;
+    match resolved_entries.entry(share_key) {
+      Entry::Occupied(mut entry) => {
+        let record = entry.get_mut();
+        record.share_scope = share_scope;
+        record.requests.insert(CollectedShareRequest {
+          request: import_resolved
+            .clone()
+            .unwrap_or_else(|| request.to_string()),
+          version: version.to_string(),
+        });
+      }
+      Entry::Vacant(entry) => {
+        let mut requests = FxHashSet::default();
+        requests.insert(CollectedShareRequest {
+          request: import_resolved
+            .clone()
+            .unwrap_or_else(|| request.to_string()),
+          version: version.to_string(),
+        });
+        entry.insert(CollectShareEntryRecord {
+          share_scope,
+          requests,
+        });
+      }
+    }
+  }
+}
+
+#[plugin_hook(CompilerThisCompilation for CollectShareEntryPlugin)]
+async fn this_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut rspack_core::CompilationParams,
+) -> Result<()> {
+  if self.compiler_context.get().is_none() {
+    self.init_context(compilation);
+  }
+  if self.resolver.get().is_none() {
+    self.init_resolver(compilation);
+  }
+  if self.matched_consumes.get().is_none() {
+    self
+      .init_matched_consumes(compilation, self.get_resolver())
+      .await;
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  dbg!("process_assets");
+  // 遍历图中的 ConsumeSharedModule，收集其 fallback 映射到的真实模块地址
+  let module_graph = compilation.get_module_graph();
+  let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
+  let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
+
+  for (id, module) in module_graph.modules().into_iter() {
+    let module_type = module.module_type();
+    dbg!(&module_type);
+    if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
+      continue;
+    }
+
+    if let Some(consume) = module
+      .as_any()
+      .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
+    {
+      // 从 readable_identifier 中解析 share_scope 与 share_key
+      let ident = consume.readable_identifier(&Context::default()).to_string();
+      dbg!(&ident);
+      // 形如: "consume shared module ({scope}) {share_key}@..."
+      let (scope, key) = {
+        let mut scope = String::new();
+        let mut key = String::new();
+        if let Some(start) = ident.find("(")
+          && let Some(end) = ident.find(")")
+          && end > start
+        {
+          scope = ident[start + 1..end].to_string();
+        }
+        if let Some(pos) = ident.find(") ") {
+          let rest = &ident[pos + 2..];
+          let at = rest.find('@').unwrap_or(rest.len());
+          key = rest[..at].to_string();
+        }
+        (scope, key)
+      };
+
+      if key.is_empty() {
+        continue;
+      }
+
+      // 收集该 consume 模块的依赖与异步块中的依赖对应的真实模块
+      let mut target_modules = Vec::new();
+      for dep_id in consume.get_dependencies() {
+        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+          target_modules.push(*target_id);
+        }
+      }
+      for block_id in consume.get_blocks() {
+        if let Some(block) = module_graph.block_by_id(block_id) {
+          for dep_id in block.get_dependencies() {
+            if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+              target_modules.push(*target_id);
+            }
+          }
+        }
+      }
+
+      // 将真实模块的资源路径加入到映射集合，并推断版本
+      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
+      for target_id in target_modules {
+        if let Some(target) = module_graph.module_by_identifier(&target_id) {
+          if let Some(normal) = target.as_any().downcast_ref::<rspack_core::NormalModule>() {
+            let resource = normal.resource_resolved_data().resource().to_string();
+            let version = self
+              .infer_version(&resource)
+              .await
+              .unwrap_or_else(|| "".to_string());
+            let pair = [resource, version];
+            if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
+              reqs.push(pair);
+            }
+          }
+        }
+      }
+      reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
+      ordered_requests.insert(key.clone(), reqs);
+      if !scope.is_empty() {
+        share_scopes.insert(key.clone(), scope);
+      }
+    }
+  }
+
+  // 生成资产内容
+  let mut shared: FxHashMap<&str, CollectShareEntryAssetItem<'_>> = FxHashMap::default();
+  for (share_key, requests) in ordered_requests.iter() {
+    let scope = share_scopes
+      .get(share_key)
+      .map(|s| s.as_str())
+      .unwrap_or("");
+    shared.insert(
+      share_key.as_str(),
+      CollectShareEntryAssetItem {
+        share_scope: scope,
+        requests: requests.as_slice(),
+      },
+    );
+  }
+
+  let json = serde_json::to_string_pretty(&shared)
+    .expect("CollectShareEntryPlugin: failed to serialize share entries");
+
+  // 获取文件名，如果不存在则使用默认值
+  let filename = self
+    .options
+    .filename
+    .as_ref()
+    .map(|f| f.clone())
+    .unwrap_or_else(|| DEFAULT_FILENAME.to_string());
+
+  compilation.emit_asset(
+    filename,
+    CompilationAsset::new(
+      Some(RawStringSource::from(json).boxed()),
+      Default::default(),
+    ),
+  );
+  Ok(())
+}
+
+#[plugin_hook(NormalModuleFactoryFactorize for CollectShareEntryPlugin)]
+async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
+  let dep = data.dependencies[0]
+    .as_module_dependency()
+    .expect("should be module dependency");
+  if matches!(
+    dep.dependency_type(),
+    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+  ) {
+    return Ok(None);
+  }
+  let request = dep.request();
+
+  // 直接复用 consume_shared_plugin 的匹配逻辑
+  let consumes = self.get_matched_consumes();
+
+  // 1. 精确匹配 - 使用 unresolved
+  if let Some(matched) = consumes.unresolved.get(request) {
+    self
+      .record_entry(&data.context, request, matched.clone(), |d| {
+        data.diagnostics.push(d)
+      })
+      .await;
+    return Ok(None);
+  }
+
+  // 2. 前缀匹配 - 使用 prefixed
+  for (prefix, options) in &consumes.prefixed {
+    if request.starts_with(prefix) {
+      let remainder = &request[prefix.len()..];
+      self
+        .record_entry(
+          &data.context,
+          request,
+          Arc::new(ConsumeOptions {
+            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+            import_resolved: options.import_resolved.clone(),
+            share_key: options.share_key.clone() + remainder,
+            share_scope: options.share_scope.clone(),
+            required_version: options.required_version.clone(),
+            package_name: options.package_name.clone(),
+            strict_version: options.strict_version,
+            singleton: options.singleton,
+            eager: options.eager,
+          }),
+          |d| data.diagnostics.push(d),
+        )
+        .await;
+      return Ok(None);
+    }
+  }
+
+  Ok(None)
+}
+
+impl Plugin for CollectShareEntryPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.CollectShareEntryPlugin"
+  }
+
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .factorize
+      .tap(factorize::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+    Ok(())
+  }
+}
