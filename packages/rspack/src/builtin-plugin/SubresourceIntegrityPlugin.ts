@@ -14,6 +14,8 @@ import { create } from "./base";
 const PLUGIN_NAME = "SubresourceIntegrityPlugin";
 const NATIVE_HTML_PLUGIN = "HtmlRspackPlugin";
 
+const HTTP_PROTOCOL_REGEX = /^https?:/;
+
 type HtmlTagObject = {
 	attributes: {
 		[attributeName: string]: string | boolean | null | undefined;
@@ -185,21 +187,36 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 			return;
 		}
 
-		const tagSrc = getTagSrc(tag);
+		let tagSrc = getTagSrc(tag);
 		if (!tagSrc) {
 			return;
 		}
 
+		let isUrlSrc = false;
 		try {
 			const url = new URL(tagSrc);
-			if (
-				(url.protocol === "http:" || url.protocol === "https:") &&
-				(!publicPath || !tagSrc.startsWith(publicPath))
-			) {
+			isUrlSrc = url.protocol === "http:" || url.protocol === "https:";
+		} catch (_) {
+			isUrlSrc = tagSrc.startsWith("//");
+		}
+
+		if (isUrlSrc) {
+			if (!publicPath) {
 				return;
 			}
-		} catch (_) {
-			// do nothing
+			const protocolRelativePublicPath = publicPath.replace(
+				HTTP_PROTOCOL_REGEX,
+				""
+			);
+			const protocolRelativeTagSrc = tagSrc.replace(HTTP_PROTOCOL_REGEX, "");
+			if (protocolRelativeTagSrc.startsWith(protocolRelativePublicPath)) {
+				tagSrc = protocolRelativeTagSrc.replace(
+					protocolRelativePublicPath,
+					publicPath
+				);
+			} else {
+				return;
+			}
 		}
 
 		const src = relative(publicPath, decodeURIComponent(tagSrc));
