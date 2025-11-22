@@ -5,7 +5,7 @@
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* import */var _containers__rspack_import_0 = __webpack_require__("./src/containers/containers.js");
+/* import */ var _containers__rspack_import_0 = __webpack_require__("./src/containers/containers.js");
 
 const { PlatformProvider } = _containers__rspack_import_0;
 
@@ -22,7 +22,7 @@ const Index = () => {
 __webpack_require__.d(__webpack_exports__, {
   PlatformProvider: () => (/* reexport safe */ _platform_container__rspack_import_0.PlatformProvider)
 });
-/* import */var _platform_container__rspack_import_0 = __webpack_require__("./src/containers/platform-container/index.js");
+/* import */ var _platform_container__rspack_import_0 = __webpack_require__("./src/containers/platform-container/index.js");
 
 
 
@@ -39,7 +39,7 @@ const PlatformProvider = 1000;
 
 }),
 "./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _App__rspack_import_0 = __webpack_require__("./src/App.js");
+/* import */ var _App__rspack_import_0 = __webpack_require__("./src/App.js");
 
 
 (0,_App__rspack_import_0["default"])();

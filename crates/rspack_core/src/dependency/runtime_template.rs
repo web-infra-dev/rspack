@@ -556,7 +556,7 @@ pub fn import_statement(
   }
 
   let import_content = format!(
-    "/* import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
     RuntimeGlobals::REQUIRE
   );
   if matches!(exports_type, ExportsType::Dynamic) {
@@ -564,7 +564,7 @@ pub fn import_statement(
     return (
       import_content,
       format!(
-        "/* import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );

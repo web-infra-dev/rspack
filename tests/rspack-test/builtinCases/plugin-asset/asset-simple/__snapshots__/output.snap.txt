@@ -3,9 +3,9 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _images_file_png__rspack_import_0 = __webpack_require__("./images/file.png");
-/* import */var _images_file_jpg__rspack_import_1 = __webpack_require__("./images/file.jpg");
-/* import */var _images_file_svg__rspack_import_2 = __webpack_require__("./images/file.svg");
+/* import */ var _images_file_png__rspack_import_0 = __webpack_require__("./images/file.png");
+/* import */ var _images_file_jpg__rspack_import_1 = __webpack_require__("./images/file.jpg");
+/* import */ var _images_file_svg__rspack_import_2 = __webpack_require__("./images/file.svg");
 
 
 

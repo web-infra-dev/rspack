@@ -21,7 +21,7 @@ exports.test = function () {
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* import */var _answer__rspack_import_0 = __webpack_require__("./answer.js");
+/* import */ var _answer__rspack_import_0 = __webpack_require__("./answer.js");
 
 _answer__rspack_import_0.test;
 
@@ -34,7 +34,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: () => (/* reexport safe */ _a_js__rspack_import_0.a),
   b: () => (/* reexport safe */ _a_js__rspack_import_0.b)
 });
-/* import */var _a_js__rspack_import_0 = __webpack_require__("./a.js");
+/* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
 
 
 
