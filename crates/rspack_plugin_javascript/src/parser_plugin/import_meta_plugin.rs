@@ -79,11 +79,15 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
-      Some(eval::evaluate_to_string(
-        self.import_meta_url(parser),
-        start,
-        end,
-      ))
+      if parser.compiler_options.output.environment.supports_document() {
+        None
+      } else {
+        Some(eval::evaluate_to_string(
+          self.import_meta_url(parser),
+          start,
+          end,
+        ))
+      }
     } else {
       None
     }
@@ -226,12 +230,16 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        format!("'{}'", self.import_meta_url(parser)).into(),
-        None,
-      )));
-      Some(true)
+      if parser.compiler_options.output.environment.supports_document() {
+        Some(true)
+      } else {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{}'", self.import_meta_url(parser)).into(),
+          None,
+        )));
+        Some(true)
+      }
     } else if for_name == expr_name::IMPORT_META_VERSION {
       // import.meta.webpack
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
