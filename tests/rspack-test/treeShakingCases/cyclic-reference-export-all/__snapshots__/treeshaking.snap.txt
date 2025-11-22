@@ -3,7 +3,7 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 /* import */var _containers__rspack_import_0 = __webpack_require__("./src/containers/containers.js");
 
@@ -14,7 +14,7 @@ const Index = () => {
 	return "something";
 };
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (Index);
+/* export default */ const __rspack_default_export = (Index);
 
 
 }),

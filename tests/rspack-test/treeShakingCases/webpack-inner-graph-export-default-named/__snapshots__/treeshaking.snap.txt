@@ -53,65 +53,65 @@ class def {
 }),
 "./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
 }),
 "./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
+/* export default */ const __rspack_default_export = (false);
 
 
 }),
 "./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
 }),
 "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
 }),
 "./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
+/* export default */ const __rspack_default_export = (false);
 
 
 }),
 "./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
 }),

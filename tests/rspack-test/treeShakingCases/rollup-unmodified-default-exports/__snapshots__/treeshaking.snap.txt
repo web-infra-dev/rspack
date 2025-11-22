@@ -3,14 +3,14 @@
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 var Foo = function () {
 	console.log("side effect");
 	this.isFoo = true;
 };
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (Foo);
+/* export default */ const __rspack_default_export = (Foo);
 
 Foo.prototype = {
 	answer: function () {

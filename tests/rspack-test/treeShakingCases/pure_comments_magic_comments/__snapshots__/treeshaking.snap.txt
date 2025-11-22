@@ -10,7 +10,7 @@ function res() {
 	answer;
 }
 const a = 3;
-/* unused export default */ var __WEBPACK_DEFAULT_EXPORT__ = (/*#__PURE__*/(/* unused pure expression or super */ null && (res())));
+/* unused export default */ var __rspack_default_export = (/*#__PURE__*/(/* unused pure expression or super */ null && (res())));
 
 
 }),
