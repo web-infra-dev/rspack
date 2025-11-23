@@ -5,6 +5,16 @@
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
   "main": "./packages/rspack/dist/index.js",
+  "overrides": {
+    "@module-federation/webpack-bundler-runtime": "0.21.6",
+    "@module-federation/runtime-tools": "0.21.6"
+  },
+  "pnpm": {
+    "overrides": {
+      "@module-federation/webpack-bundler-runtime": "0.21.6",
+      "@module-federation/runtime-tools": "0.21.6"
+    }
+  },
   "scripts": {
     "x": "zx x.mjs",
     "setup": "pnpm install && pnpm run build:cli:dev",
