@@ -503,6 +503,9 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::ModuleFederationRuntimePlugin => {
         let options = downcast_into::<RawModuleFederationRuntimePluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        if std::env::var("RSPACK_DEBUG_MF_ASYNC").is_ok() {
+          eprintln!("[mf-async] raw runtime plugin opts: {:?}", options);
+        }
         plugins.push(ModuleFederationRuntimePlugin::new(options.into()).boxed())
       }
       BuiltinPluginName::ModuleFederationManifestPlugin => {

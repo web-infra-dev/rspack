@@ -1853,6 +1853,7 @@ export interface RawConsumeOptions {
 export interface RawConsumeSharedPluginOptions {
   consumes: Array<RawConsumeOptions>
   enhanced: boolean
+  asyncStartup?: boolean
 }
 
 export interface RawContainerPluginOptions {
@@ -2468,8 +2469,13 @@ export interface RawModuleFederationManifestPluginOptions {
   buildInfo?: RawStatsBuildInfo
 }
 
+export interface RawModuleFederationRuntimeExperimentsOptions {
+  asyncStartup?: boolean
+}
+
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
+  experiments?: RawModuleFederationRuntimeExperimentsOptions
 }
 
 export interface RawModuleFilenameTemplateFnCtx {

@@ -32,6 +32,10 @@ async fn runtime_requirements_in_tree(
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
+  let mut async_chunk_loading = self.async_chunk_loading;
+  if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
+    async_chunk_loading = true;
+  }
 
   if is_enabled_for_chunk
     && runtime_requirements.contains(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES)
@@ -41,7 +45,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupChunkDependenciesRuntimeModule::new(self.async_chunk_loading).boxed(),
+      StartupChunkDependenciesRuntimeModule::new(async_chunk_loading).boxed(),
     )?;
   }
 
@@ -51,7 +55,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),
+      StartupEntrypointRuntimeModule::new(async_chunk_loading).boxed(),
     )?;
   }
 

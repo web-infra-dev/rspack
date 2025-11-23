@@ -5,8 +5,9 @@ use napi_derive::napi;
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
   ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption, ManifestSharedOption,
-  ModuleFederationManifestPluginOptions, ModuleFederationRuntimePluginOptions, ProvideOptions,
-  ProvideVersion, RemoteAliasTarget, RemoteOptions, StatsBuildInfo,
+  ModuleFederationManifestPluginOptions, ModuleFederationRuntimeExperimentsOptions,
+  ModuleFederationRuntimePluginOptions, ProvideOptions, ProvideVersion, RemoteAliasTarget,
+  RemoteOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -138,6 +139,7 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
 pub struct RawConsumeSharedPluginOptions {
   pub consumes: Vec<RawConsumeOptions>,
   pub enhanced: bool,
+  pub async_startup: Option<bool>,
 }
 
 impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
@@ -150,6 +152,7 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
         .map(|(k, v)| (k, Arc::new(v)))
         .collect(),
       enhanced: value.enhanced,
+      async_startup: value.async_startup.unwrap_or(false),
     }
   }
 }
@@ -216,12 +219,30 @@ impl From<RawVersionWrapper> for ConsumeVersion {
 pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
+  pub experiments: Option<RawModuleFederationRuntimeExperimentsOptions>,
 }
 
 impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+      experiments: value.experiments.map(Into::into).unwrap_or_default(),
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawModuleFederationRuntimeExperimentsOptions {
+  pub async_startup: Option<bool>,
+}
+
+impl From<RawModuleFederationRuntimeExperimentsOptions>
+  for ModuleFederationRuntimeExperimentsOptions
+{
+  fn from(value: RawModuleFederationRuntimeExperimentsOptions) -> Self {
+    Self {
+      async_startup: value.async_startup.unwrap_or(false),
     }
   }
 }

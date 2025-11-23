@@ -1348,6 +1348,7 @@ class ConsumeSharedPlugin extends RspackBuiltinPlugin {
             eager: boolean;
         }][];
         enhanced: boolean;
+        asyncStartup: boolean;
     };
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
@@ -1358,6 +1359,7 @@ export type ConsumeSharedPluginOptions = {
     consumes: Consumes;
     shareScope?: string;
     enhanced?: boolean;
+    asyncStartup?: boolean;
 };
 
 // @public (undocumented)
@@ -4840,6 +4842,8 @@ class ModuleFederationPlugin {
 // @public (undocumented)
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
     // (undocumented)
+    experiments?: ModuleFederationRuntimeExperimentsOptions;
+    // (undocumented)
     implementation?: string;
     // (undocumented)
     manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
@@ -4861,6 +4865,10 @@ export interface ModuleFederationPluginV1Options {
     // (undocumented)
     enhanced?: boolean;
     // (undocumented)
+    experiments?: {
+        asyncStartup?: boolean;
+    };
+    // (undocumented)
     exposes?: Exposes;
     // (undocumented)
     filename?: string;
@@ -4878,6 +4886,12 @@ export interface ModuleFederationPluginV1Options {
     shared?: Shared;
     // (undocumented)
     shareScope?: string;
+}
+
+// @public (undocumented)
+interface ModuleFederationRuntimeExperimentsOptions {
+    // (undocumented)
+    asyncStartup?: boolean;
 }
 
 declare namespace ModuleFilenameHelpers {
@@ -7381,6 +7395,8 @@ class SharePlugin {
     // (undocumented)
     apply(compiler: Compiler): void;
     // (undocumented)
+    _asyncStartup: boolean;
+    // (undocumented)
     _consumes: {
         [x: string]: {
             import: string | false | undefined;
@@ -7416,6 +7432,7 @@ export type SharePluginOptions = {
     shareScope?: string;
     shared: Shared;
     enhanced: boolean;
+    asyncStartup?: boolean;
 };
 
 // @public (undocumented)

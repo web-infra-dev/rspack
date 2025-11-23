@@ -1,0 +1,28 @@
+{
+  "name": "comprehensive-demo-react18",
+  "description": "Multi-framework comprehensive demo for React 18",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "pnpm build && pnpm serve",
+    "legacy:start": "pnpm legacy:build && pnpm serve",
+    "build": "pnpm --filter comprehensive-demo-react18_app* --parallel build",
+    "legacy:build": "pnpm --filter comprehensive-demo-react18_app* legacy:build",
+    "serve": "pnpm --filter comprehensive-demo-react18_app* --parallel serve",
+    "dev": "pnpm --filter comprehensive-demo-react18_app* --parallel dev",
+    "legacy:dev": "pnpm --filter comprehensive-demo-react18_app* --parallel legacy:dev",
+    "clean": "pnpm --filter comprehensive-demo-react18_app* --parallel clean",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:debug": "npx playwright test --debug",
+    "e2e:ci": "pnpm build && npx playwright install --with-deps && npx playwright test --reporter=list",
+    "legacy:e2e:ci": "pnpm legacy:build && npx playwright install --with-deps && LEGACY_START=true npx playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@rsdoctor/rspack-plugin": "0.3.7",
+    "@rsdoctor/webpack-plugin": "0.3.7",
+    "concurrently": "8.2.2",
+    "playwright": "^1.54.2",
+    "wait-on": "7.2.0"
+  }
+}

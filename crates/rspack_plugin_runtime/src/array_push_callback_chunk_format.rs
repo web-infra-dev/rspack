@@ -53,7 +53,9 @@ async fn additional_chunk_runtime_requirements(
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
-    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    }
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }
@@ -148,7 +150,10 @@ async fn render_chunk(
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
+        let runtime_requirements =
+          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+        let passive = !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
+        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, passive);
         let last_entry_module = entries
           .keys()
           .next_back()
@@ -168,8 +173,6 @@ async fn render_chunk(
           )
           .await?;
         source.add(render_source.source);
-        let runtime_requirements =
-          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
           source.add(RawStringSource::from_static(
             "return __webpack_exports__;\n",
