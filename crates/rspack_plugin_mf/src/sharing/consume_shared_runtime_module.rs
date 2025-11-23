@@ -14,16 +14,14 @@ pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
   enhanced: bool,
-  async_startup: bool,
 }
 
 impl ConsumeSharedRuntimeModule {
-  pub fn new(enhanced: bool, async_startup: bool) -> Self {
+  pub fn new(enhanced: bool) -> Self {
     Self::with_default(
       Identifier::from("webpack/runtime/consumes_loading"),
       None,
       enhanced,
-      async_startup,
     )
   }
 }
@@ -39,22 +37,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let debug_async = std::env::var("RSPACK_DEBUG_MF_ASYNC").is_ok();
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-    // Detect async federation startup globally. Older bootstraps set the
-    // bespoke ASYNC_FEDERATION_STARTUP requirement, but the current async
-    // startup path is keyed off STARTUP_ENTRYPOINT. Treat either as a signal
-    // that startup is async so we can avoid emitting eager initialConsumes that
-    // would call loadShareSync synchronously.
-    let async_federation_startup = self.async_startup
-      || compilation.chunk_by_ukey.keys().any(|ukey| {
-        let reqs = ChunkGraph::get_chunk_runtime_requirements(compilation, ukey);
-        reqs.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP)
-          || reqs.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-      });
     let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
@@ -105,19 +91,17 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ids,
       );
     }
-    if !async_federation_startup {
-      for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
-        let modules = compilation
-          .chunk_graph
-          .get_chunk_modules_identifier_by_source_type(
-            &chunk,
-            SourceType::ConsumeShared,
-            &module_graph,
-          );
-        let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-        for mid in modules {
-          add_module(mid, chunk, &mut initial_consumes);
-        }
+    for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
+      let modules = compilation
+        .chunk_graph
+        .get_chunk_modules_identifier_by_source_type(
+          &chunk,
+          SourceType::ConsumeShared,
+          &module_graph,
+        );
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+      for mid in modules {
+        add_module(mid, chunk, &mut initial_consumes);
       }
     }
     let module_id_to_consume_data_mapping = if module_id_to_consume_data_mapping.is_empty() {
@@ -137,20 +121,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&chunk_to_module_mapping)
     };
-    let initial_consumes_json = if async_federation_startup || initial_consumes.is_empty() {
+    let initial_consumes_json = if initial_consumes.is_empty() {
       "[]".to_string()
     } else {
       json_stringify(&initial_consumes)
     };
-    if debug_async {
-      eprintln!(
-        "[mf-async] consumes runtime chunk {:?} async_startup={} detected_global_async={} initial_count={}",
-        chunk_ukey,
-        self.async_startup,
-        async_federation_startup,
-        initial_consumes.len()
-      );
-    }
     let mut source = format!(
       r#"
 __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
@@ -159,31 +134,18 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes_json = initial_consumes_json,
     );
-
-    // In async startup we must avoid any synchronous loadShareSync paths. Emit
-    // only the async loading handler and skip the synchronous initialConsumes
-    // installer entirely (even if the list were populated) to ensure consumes
-    // resolve via promises.
-    let async_mode = async_federation_startup;
-
     if self.enhanced {
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") };\n";
+        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
       }
       return Ok(source);
     }
-
-    // Always include the common runtime helpers so the consumes loader has the
-    // shared state it expects (e.g. `installedModules`), even when async startup
-    // is active. Skip the synchronous initial consumes installer in async mode
-    // to avoid eager loadShareSync.
     source += include_str!("./consumesCommon.js");
-    if !async_mode && !initial_consumes.is_empty() {
+    if !initial_consumes.is_empty() {
       source += include_str!("./consumesInitial.js");
     }
-
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {

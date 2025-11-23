@@ -1,21 +1,33 @@
 const path = require("path");
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const resolveFrom = request =>
+	require.resolve(request, {
+		paths: [
+			__dirname,
+			path.resolve(
+				__dirname,
+				"../comprehensive-demo-react18/app-02/node_modules"
+			),
+			path.resolve(__dirname, "../../node_modules")
+		]
+	});
+
+const { ModuleFederationPlugin } = require(
+	resolveFrom("@module-federation/enhanced/webpack")
+);
 
 module.exports = {
-	target: "node",
+	target: "async-node",
 	mode: "development",
 	context: __dirname,
-	experiments: {
-		asyncStartup: true
-	},
 	entry: {
 		remote: path.resolve(__dirname, "remote.js")
 	},
 	output: {
-		path: path.join(__dirname, "dist/remote"),
+		path: path.join(__dirname, "dist/webpack-remote"),
 		filename: "[name].js",
 		chunkFormat: "commonjs",
-		library: { type: "commonjs-module" }
+		library: { type: "commonjs-module" },
+		publicPath: "auto"
 	},
 	plugins: [
 		new ModuleFederationPlugin({
@@ -32,10 +44,5 @@ module.exports = {
 			}
 		})
 	],
-	resolve: {
-		alias: {
-			react: require.resolve("react"),
-			"react-dom": require.resolve("react-dom")
-		}
-	}
+	resolve: {}
 };

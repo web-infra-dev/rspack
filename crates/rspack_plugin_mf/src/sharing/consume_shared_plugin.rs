@@ -486,10 +486,7 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
   compilation.add_runtime_module(
     chunk_ukey,
-    Box::new(ConsumeSharedRuntimeModule::new(
-      self.options.enhanced,
-      self.options.async_startup,
-    )),
+    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
   )?;
   Ok(())
 }

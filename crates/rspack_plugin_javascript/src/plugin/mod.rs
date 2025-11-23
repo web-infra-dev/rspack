@@ -344,7 +344,6 @@ impl JsPlugin {
         }
 
         if use_federation_async {
-          let startup_fn = RuntimeGlobals::STARTUP_ENTRYPOINT;
           let _needs_on_chunks_loaded =
             runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
           mf_async_startup = true;
@@ -361,18 +360,13 @@ impl JsPlugin {
           );
           buf2.push("var promises = [];".into());
           buf2.push("// Call federation runtime initialization".into());
-          buf2.push("var runtimeInitialization = undefined;".into());
-          buf2.push(format!("if (typeof {} === \"function\") {{", startup_fn).into());
-          buf2.push(format!("  runtimeInitialization = {};", startup_fn).into());
-          buf2.push("} else {".into());
           buf2.push(
             format!(
-              "  console.warn(\"[Module Federation] {} is not a function, skipping federation startup\");",
-              startup_fn
+              "if (typeof {startup} === \"function\") {{ {startup}(); }} else {{ console.warn(\"[Module Federation] {startup} is not a function, skipping startup extension\"); }}",
+              startup = RuntimeGlobals::STARTUP.name()
             )
             .into(),
           );
-          buf2.push("}".into());
 
           let entries = compilation
             .chunk_graph
@@ -495,31 +489,32 @@ impl JsPlugin {
             if mf_async_startup {
               let is_esm_output = compilation.options.output.module;
               if is_esm_output {
-                // ESM output with top-level await
                 buf2.push(
                   format!(
-                    "const {}Promise = Promise.resolve().then(() => {{ return typeof runtimeInitialization === \"function\" ? runtimeInitialization() : runtimeInitialization; }}).then(() => {{ return typeof __webpack_require__.I === \"function\" ? __webpack_require__.I(\"default\") : undefined; }}).then(async () => {{",
-                    RuntimeGlobals::EXPORTS
+                    "typeof {} === \"function\" && {}();",
+                    RuntimeGlobals::STARTUP.name(),
+                    RuntimeGlobals::STARTUP.name()
                   )
                   .into(),
                 );
-                buf2.push("  const handlers = [".into());
-                buf2.push("    (chunkId, promises) => (__webpack_require__.f.consumes || (() => {}))(chunkId, promises),".into());
-                buf2.push("    (chunkId, promises) => (__webpack_require__.f.remotes || (() => {}))(chunkId, promises)".into());
-                buf2.push("  ];".into());
-                buf2.push(
-                  format!(
-                    "  await Promise.all(handlers.reduce((p, handler) => {{ handler({}, p); return p; }}, promises));",
-                    chunk_id_str
-                  )
-                  .into(),
-                );
+                buf2.push("const handlers = [".into());
+                buf2.push("  (chunkId, promises) => (__webpack_require__.f.consumes || (() => {}))(chunkId, promises),".into());
+                buf2.push("  (chunkId, promises) => (__webpack_require__.f.remotes || (() => {}))(chunkId, promises)".into());
+                buf2.push("];".into());
+                buf2.push(format!(
+                  "const {}Promise = Promise.all(handlers.reduce((p, handler) => (handler({}, p), p), promises))",
+                  RuntimeGlobals::EXPORTS,
+                  chunk_id_str
+                ).into());
+                buf2.push(".then(() => {".into());
                 if !all_chunk_ids.is_empty() {
                   buf2.push(
                     format!(
-                      "  return {}(0, {}, () => {{ return {}; }});",
+                      "  return {} ? {}(0, {}, () => {{ return {}; }}) : {};",
+                      RuntimeGlobals::STARTUP_ENTRYPOINT,
                       RuntimeGlobals::STARTUP_ENTRYPOINT,
                       stringify_array(&all_chunk_ids),
+                      entry_fn_body,
                       entry_fn_body
                     )
                     .into(),
@@ -527,49 +522,61 @@ impl JsPlugin {
                 } else {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
-                buf2.push("});".into());
+                buf2.push("}).then(res => typeof ".into());
+                buf2.push(
+                  format!(
+                    "{} === \"function\" ? {}(res) : res);",
+                    RuntimeGlobals::ON_CHUNKS_LOADED,
+                    RuntimeGlobals::ON_CHUNKS_LOADED
+                  )
+                  .into(),
+                );
                 buf2.push(format!("let {};", RuntimeGlobals::EXPORTS).into());
                 buf2.push("export default ".into());
                 buf2.push(
                   format!(
-                    "({exports} = await {exports}Promise.then(res => typeof {on_chunks_loaded} === \"function\" ? {on_chunks_loaded}(res) : res), {exports});",
-                    exports = RuntimeGlobals::EXPORTS,
-                    on_chunks_loaded = RuntimeGlobals::ON_CHUNKS_LOADED
+                    "({exports} = await {exports}Promise, {exports});",
+                    exports = RuntimeGlobals::EXPORTS
                   )
                   .into(),
                 );
               } else {
                 // CJS output with Promise chain
                 buf2.push("// Wrap startup in Promise chain with federation handlers".into());
+                // Align async bootstrap with webpack/enhanced: run startup hook, load
+                // federation handlers for the current chunk, then execute entry via the
+                // async startup entrypoint.
                 buf2.push(
                   format!(
-                    "var {} = Promise.resolve().then(function() {{ return typeof runtimeInitialization === \"function\" ? runtimeInitialization() : runtimeInitialization; }}).then(function() {{ return typeof __webpack_require__.I === \"function\" ? __webpack_require__.I(\"default\") : undefined; }}).then(function() {{",
-                    RuntimeGlobals::EXPORTS
+                    "typeof {} === \"function\" && {}();",
+                    RuntimeGlobals::STARTUP.name(),
+                    RuntimeGlobals::STARTUP.name()
                   )
                   .into(),
                 );
-                buf2.push("  var handlers = [".into());
-                buf2.push("    function(chunkId, promises) {".into());
-                buf2.push("      return (__webpack_require__.f.consumes || function(chunkId, promises) {})(chunkId, promises);".into());
-                buf2.push("    },".into());
-                buf2.push("    function(chunkId, promises) {".into());
-                buf2.push("      return (__webpack_require__.f.remotes || function(chunkId, promises) {})(chunkId, promises);".into());
-                buf2.push("    }".into());
-                buf2.push("  ];".into());
+                buf2.push(format!("var {} = Promise.all([", RuntimeGlobals::EXPORTS).into());
+                buf2.push(
+                  "  (__webpack_require__.f.consumes || function(chunkId, promises) {}),".into(),
+                );
+                buf2.push(
+                  "  (__webpack_require__.f.remotes || function(chunkId, promises) {})".into(),
+                );
                 buf2.push(
                   format!(
-                    "  return Promise.all(handlers.reduce(function(p, handler) {{ return handler({}, p), p; }}, promises));",
+                    "].reduce(function(p, handler) {{ return handler({}, p), p; }}, promises))",
                     chunk_id_str
                   )
                   .into(),
                 );
-                buf2.push("}).then(function() {".into());
+                buf2.push(".then(function() {".into());
                 if !all_chunk_ids.is_empty() {
                   buf2.push(
                     format!(
-                      "  return {}(0, {}, function() {{ return {}; }});",
+                      "  return {} ? {}(0, {}, function() {{ return {}; }}) : {};",
+                      RuntimeGlobals::STARTUP_ENTRYPOINT,
                       RuntimeGlobals::STARTUP_ENTRYPOINT,
                       stringify_array(&all_chunk_ids),
+                      entry_fn_body,
                       entry_fn_body
                     )
                     .into(),

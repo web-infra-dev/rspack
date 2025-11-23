@@ -5,6 +5,8 @@ node_modules/
 # Build outputs
 dist/
 dist-webpack/
+dist-rspack/
+dist-dev/
 .rspack/
 .webpack/
 */public/

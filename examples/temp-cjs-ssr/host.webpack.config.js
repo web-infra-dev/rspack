@@ -1,22 +1,36 @@
 const path = require("path");
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const resolveFrom = request =>
+	require.resolve(request, {
+		paths: [
+			__dirname,
+			path.resolve(
+				__dirname,
+				"../comprehensive-demo-react18/app-02/node_modules"
+			),
+			path.resolve(__dirname, "../../node_modules")
+		]
+	});
+const { ModuleFederationPlugin } = require(
+	resolveFrom("@module-federation/enhanced/webpack")
+);
 
-const remoteEntryPath = path.join(__dirname, "dist/remote/remoteEntry.js");
+const remoteEntryPath = path.join(
+	__dirname,
+	"dist/webpack-remote/remoteEntry.js"
+);
 
 module.exports = {
-	target: "node",
+	target: "async-node",
 	mode: "development",
 	context: __dirname,
-	experiments: {
-		asyncStartup: true
-	},
 	entry: {
 		main: path.resolve(__dirname, "host.js")
 	},
 	output: {
-		path: path.join(__dirname, "dist/host"),
+		path: path.join(__dirname, "dist/webpack-host"),
 		filename: "[name].js",
-		chunkFormat: "commonjs"
+		chunkFormat: "commonjs",
+		publicPath: "auto"
 	},
 	plugins: [
 		new ModuleFederationPlugin({
@@ -35,11 +49,5 @@ module.exports = {
 			}
 		})
 	],
-	resolve: {
-		alias: {
-			react: require.resolve("react"),
-			"react-dom": require.resolve("react-dom"),
-			"react-dom/server": require.resolve("react-dom/server")
-		}
-	}
+	resolve: {}
 };

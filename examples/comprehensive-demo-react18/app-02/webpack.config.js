@@ -97,9 +97,6 @@ module.exports = {
 				}
 			}
 		}),
-		new HtmlWebpackPlugin({
-			template: "./public/index.html",
-			chunks: ["main"]
-		})
+		new HtmlWebpackPlugin({ chunks: ["main"] })
 	].filter(Boolean)
 };

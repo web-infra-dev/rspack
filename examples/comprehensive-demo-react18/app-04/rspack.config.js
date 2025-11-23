@@ -58,7 +58,8 @@ module.exports = {
 	plugins: [
 		new HtmlRspackPlugin({
 			templateContent: () =>
-				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 04</title>\n</head>\n<body>\n  <div id="app_04"></div>\n</body>\n</html>`
+				`<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <title>App 04</title>\n</head>\n<body>\n  <div id="app_04"></div>\n</body>\n</html>`,
+			chunks: ["bundle"]
 		}),
 		new ModuleFederationPlugin({
 			name: "app_04",

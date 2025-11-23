@@ -88,57 +88,25 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.pop();
     }
 
-    let module_exec_body = if module_executions.is_empty() {
-      "\t// no federation runtime modules to execute\n".to_string()
-    } else {
-      format!("{module_executions}\n")
-    };
-
-    let run_function = format!(
-      "function runFederationRuntime() {{\n\tif (hasRun) return;\n\thasRun = true;\n{module_exec_body}}}\n",
-      module_exec_body = module_exec_body
+    // Generate prevStartup wrapper pattern with defensive checks
+    // Always wrap the synchronous startup global (`__webpack_require__.x`) so
+    // federation runtime runs before any startup code (mirrors webpack/enhanced).
+    let startup = RuntimeGlobals::STARTUP.name();
+    let result = format!(
+      r#"var prevStartup = typeof {startup} === 'function' ? {startup} : function(){{}};
+var hasRun = false;
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[MF] Invalid prevStartup');
+	}}
+}};"#
     );
-
-    let install_chunk = RuntimeGlobals::EXTERNAL_INSTALL_CHUNK.name();
-
-    // Generate wrapper pattern ensuring federation runtime executes before startup or chunk installation runs
-    let mut result = String::new();
-    if self.options.async_startup {
-      let startup = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
-      result.push_str(&format!("var prevStartup = {};\n", startup));
-      result.push_str("var hasRun = false;\n");
-      result.push_str("var __mfInitialConsumes;\n");
-      result.push_str(
-        "function __mfSetupInitialConsumesDeferral() {\n\tvar runtime = __webpack_require__.federation && __webpack_require__.federation.bundlerRuntime;\n\tif (!runtime || typeof runtime.installInitialConsumes !== 'function') return;\n\tvar origInstallInitialConsumes = runtime.installInitialConsumes;\n\truntime.installInitialConsumes = function(opts) { __mfInitialConsumes = opts; };\n\truntime.flushInitialConsumes = function() { if (__mfInitialConsumes) { var opts = __mfInitialConsumes; __mfInitialConsumes = undefined; return origInstallInitialConsumes(opts); } };\n}\n",
-      );
-      result.push_str(&run_function);
-      result.push_str(&format!(
-        "{startup} = function() {{\n\trunFederationRuntime();\n\t__mfSetupInitialConsumesDeferral();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
-        startup = startup
-      ));
-    } else {
-      let startup = RuntimeGlobals::STARTUP.name();
-      result.push_str(&format!("var prevStartup = {startup};\n"));
-      result.push_str("var hasRun = false;\n");
-      result.push_str(&run_function);
-      result.push_str(&format!(
-        "{startup} = function() {{\n\trunFederationRuntime();\n\tif (typeof prevStartup === 'function') {{\n\t\treturn prevStartup.apply(this, arguments);\n\t}} else {{\n\t\tconsole.warn('[MF] Invalid prevStartup');\n\t}}\n}};\n",
-        startup = startup
-      ));
-    }
-
-    result.push_str(&format!(
-      "var prevExternalInstallChunk = {install_chunk};\nif (typeof prevExternalInstallChunk === 'function') {{\n\t{install_chunk} = function() {{\n\t\trunFederationRuntime();\n\t\treturn prevExternalInstallChunk.apply(this, arguments);\n\t}};\n}}\n",
-      install_chunk = install_chunk
-    ));
-
-    // For async startup we defer executing the federation runtime until the
-    // async startup entrypoint runs (or a chunk install occurs) so that share
-    // scope initialization can complete first. In sync mode we keep the eager
-    // execution to match the legacy bootstrap order.
-    if !self.options.async_startup {
-      result.push_str("runFederationRuntime();\n");
-    }
 
     Ok(result)
   }

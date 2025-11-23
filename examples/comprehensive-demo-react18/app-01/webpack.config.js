@@ -106,9 +106,7 @@ module.exports = {
 				}
 			}
 		}),
-		new HtmlWebpackPlugin({
-			template: "./public/index.html"
-		})
+		new HtmlWebpackPlugin({ chunks: ["main"] })
 		// new RsdoctorWebpackPlugin({
 		//   // plugin options
 		// }),
