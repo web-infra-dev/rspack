@@ -418,10 +418,10 @@ importers:
         specifier: 0.21.6
         version: 0.21.6(@rspack/core@1.6.4(@swc/helpers@0.5.17))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(webpack@5.102.1)
       react:
-        specifier: 19.2.0
+        specifier: ^19.1.1
         version: 19.2.0
       react-dom:
-        specifier: 19.2.0
+        specifier: ^19.1.1
         version: 19.2.0(react@19.2.0)
     devDependencies:
       webpack:
