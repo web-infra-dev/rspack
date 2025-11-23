@@ -7,6 +7,10 @@ import {
 	ContainerReferencePlugin,
 	type Remotes
 } from "./ContainerReferencePlugin";
+import {
+	type ModuleFederationRuntimeExperimentsOptions, 
+	ModuleFederationRuntimePlugin
+} from "./ModuleFederationRuntimePlugin";
 
 export interface ModuleFederationPluginV1Options {
 	exposes?: Exposes;
@@ -31,6 +35,19 @@ export class ModuleFederationPluginV1 {
 		const { _options: options } = this;
 		const enhanced = options.enhanced ?? false;
 		const asyncStartup = options.experiments?.asyncStartup ?? false;
+
+		// Classic (non‑enhanced) MF still needs the runtime plugin to request the
+		// proper startup globals when asyncStartup is enabled. The enhanced path
+		// wires this up in `ModuleFederationPlugin`, so guard to avoid double
+		// registration.
+		if (!enhanced) {
+			const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
+				asyncStartup
+			};
+			new ModuleFederationRuntimePlugin({
+				experiments: runtimeExperiments
+			}).apply(compiler);
+		}
 
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
