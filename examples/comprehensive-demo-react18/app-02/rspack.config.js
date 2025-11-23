@@ -4,7 +4,6 @@ const {
 	container: { ModuleFederationPlugin }
 } = rspack;
 
-const buildId = Date.now();
 const deps = require("./package.json").dependencies;
 const ReactRefreshWebpackPlugin = require("@rspack/plugin-react-refresh");
 const isProd = process.env.NODE_ENV === "production";
@@ -76,8 +75,8 @@ module.exports = {
 			name: "app_02",
 			filename: "remoteEntry.js",
 			remotes: {
-				app_01: `app_01@http://localhost:3001/remoteEntry.js?v=${buildId}`,
-				app_03: `app_03@http://localhost:3003/remoteEntry.js?v=${buildId}`
+				app_01: `app_01@http://localhost:3001/remoteEntry.js`,
+				app_03: `app_03@http://localhost:3003/remoteEntry.js`
 			},
 			exposes: {
 				"./Dialog": "./src/Dialog",

@@ -3,7 +3,6 @@ const {
 	HtmlRspackPlugin,
 	container: { ModuleFederationPlugin }
 } = rspack;
-const buildId = Date.now();
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -74,7 +73,7 @@ module.exports = {
 			name: "app_03",
 			filename: "remoteEntry.js",
 			remotes: {
-				app_01: `app_01@http://localhost:3001/remoteEntry.js?v=${buildId}`
+				app_01: `app_01@http://localhost:3001/remoteEntry.js`
 			},
 			exposes: {
 				"./Button": "./src/Button"

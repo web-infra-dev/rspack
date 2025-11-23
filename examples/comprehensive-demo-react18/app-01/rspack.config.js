@@ -7,7 +7,6 @@ const {
 const { RsdoctorRspackPlugin } = require("@rsdoctor/rspack-plugin");
 const ReactRefreshWebpackPlugin = require("@rspack/plugin-react-refresh");
 
-const buildId = Date.now();
 const deps = require("./package.json").dependencies;
 const isProd = process.env.NODE_ENV === "production";
 module.exports = {
@@ -80,9 +79,9 @@ module.exports = {
 			name: "app_01",
 			filename: "remoteEntry.js",
 			remotes: {
-				app_02: `app_02@http://localhost:3002/remoteEntry.js?v=${buildId}`,
-				app_03: `app_03@http://localhost:3003/remoteEntry.js?v=${buildId}`,
-				app_04: `app_04@http://localhost:3004/remoteEntry.js?v=${buildId}`
+				app_02: `app_02@http://localhost:3002/remoteEntry.js`,
+				app_03: `app_03@http://localhost:3003/remoteEntry.js`,
+				app_04: `app_04@http://localhost:3004/remoteEntry.js`
 			},
 			exposes: {
 				"./SideNav": "./src/SideNav",
