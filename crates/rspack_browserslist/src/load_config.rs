@@ -1,4 +1,4 @@
-use browserslist::Opts;
+use browserslist::{Error, Opts};
 
 /// Configuration parsed from input string and context directory
 #[derive(Debug, Default)]
@@ -69,7 +69,7 @@ pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerCo
 }
 
 /// Loads the browsers list based on the input and context.
-pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<String>> {
+pub fn load_browserslist(input: Option<&str>, context: &str) -> Result<Vec<String>, Error> {
   let BrowserslistHandlerConfig {
     config_path,
     env,
@@ -77,8 +77,12 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
     query,
     context,
   } = parse(input, context);
-
-  let mut opts = Opts::default();
+  // don't support unknown Node.js version, align with babel
+  let mut opts = Opts {
+    throw_on_missing: true,
+    ignore_unknown_versions: false,
+    ..Default::default()
+  };
   if let Some(config) = config_path {
     opts.config = Some(config);
   } else {
@@ -122,7 +126,7 @@ pub fn load_browserslist(input: Option<&str>, context: &str) -> Option<Vec<Strin
       browserslist::execute(&opts)
     }
   } {
-    Ok(browsers) => Some(browsers.into_iter().map(|d| d.to_string()).collect()),
-    Err(_) => None,
+    Ok(browsers) => Ok(browsers.into_iter().map(|d| d.to_string()).collect()),
+    Err(err) => Err(err),
   }
 }

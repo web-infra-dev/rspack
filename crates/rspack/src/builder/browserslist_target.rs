@@ -349,8 +349,7 @@ mod tests {
       .to_string();
 
     // Example: Load browsers list, pass query string or None for default config
-    let browsers =
-      load_browserslist(Some("last 2 versions, not dead"), &context).unwrap_or_default();
+    let browsers = load_browserslist(Some("last 2 versions, not dead"), &context).unwrap();
 
     println!("browsers: {browsers:?}");
 
@@ -358,6 +357,21 @@ mod tests {
     let properties = resolve(browsers);
 
     println!("prop: {properties:#?}")
+  }
+  #[test]
+  fn test_unsupported_node_version() {
+    let context = std::env::current_dir()
+      .unwrap()
+      .to_str()
+      .unwrap()
+      .to_string();
+
+    // Example: Load browsers list, pass query string or None for default config
+    let browsers_error = load_browserslist(Some("node 30.6.0"), &context).unwrap_err();
+    assert_eq!(
+      browsers_error.to_string(),
+      "missing config for Browserslist environment 'node 30.6.0'"
+    );
   }
 
   #[test]
