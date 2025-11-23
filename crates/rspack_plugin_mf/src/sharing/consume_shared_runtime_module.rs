@@ -175,12 +175,13 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       return Ok(source);
     }
 
-    // Only include the sync common/initial handlers when not in async mode.
-    if !async_mode {
-      source += include_str!("./consumesCommon.js");
-      if !initial_consumes.is_empty() {
-        source += include_str!("./consumesInitial.js");
-      }
+    // Always include the common runtime helpers so the consumes loader has the
+    // shared state it expects (e.g. `installedModules`), even when async startup
+    // is active. Skip the synchronous initial consumes installer in async mode
+    // to avoid eager loadShareSync.
+    source += include_str!("./consumesCommon.js");
+    if !async_mode && !initial_consumes.is_empty() {
+      source += include_str!("./consumesInitial.js");
     }
 
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
