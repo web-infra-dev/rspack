@@ -27,13 +27,13 @@ function _create_class(Constructor, protoProps, staticProps) {
 
 }),
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _util_js__rspack_import_0 = __webpack_require__("./util.js");
+/* import */ var _util_js__rspack_import_0 = __webpack_require__("./util.js");
 
 
 
 }),
 "./util.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _swc_helpers_create_class__rspack_import_0 = __webpack_require__("../../../../node_modules/<PNPM_INNER>/@swc/helpers/esm/_create_class.js");
+/* import */ var _swc_helpers_create_class__rspack_import_0 = __webpack_require__("../../../../node_modules/<PNPM_INNER>/@swc/helpers/esm/_create_class.js");
 
 var ConsoleExporterWeb;
 ConsoleExporterWeb = (function () {

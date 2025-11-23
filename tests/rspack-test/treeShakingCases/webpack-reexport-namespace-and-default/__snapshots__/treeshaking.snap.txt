@@ -2,9 +2,9 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
-/* import */var _package1_script2__rspack_import_1 = __webpack_require__("./package1/script2.js");
-/* import */var _package2_script__rspack_import_2 = __webpack_require__("./package2/script.js");
+/* import */ var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
+/* import */ var _package1_script2__rspack_import_1 = __webpack_require__("./package1/script2.js");
+/* import */ var _package2_script__rspack_import_2 = __webpack_require__("./package2/script.js");
 
 
 
@@ -31,8 +31,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   mod: () => (mod)
 });
-/* import */var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
-/* import */var _package2_script__rspack_import_1 = __webpack_require__("./package2/script.js");
+/* import */ var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
+/* import */ var _package2_script__rspack_import_1 = __webpack_require__("./package2/script.js");
 
 
 
@@ -44,7 +44,7 @@ const mod = _package2_script__rspack_import_1["default"];
 __webpack_require__.d(__webpack_exports__, {
   exportDefaultUsed: () => (exportDefaultUsed)
 });
-/* import */var _script1__rspack_import_0 = __webpack_require__("./package1/script1.js");
+/* import */ var _script1__rspack_import_0 = __webpack_require__("./package1/script1.js");
 
 /* unused export default */ var __rspack_default_export = ((/* unused pure expression or super */ null && (mod)));
 
@@ -54,7 +54,7 @@ const exportDefaultUsed = false;
 
 }),
 "./package1/script1.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _script2__rspack_import_0 = __webpack_require__("./package1/script2.js");
+/* import */ var _script2__rspack_import_0 = __webpack_require__("./package1/script2.js");
 
 /* unused export default */ var __rspack_default_export = (1);
 
@@ -79,7 +79,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export),
   exportDefaultUsed: () => (exportDefaultUsed)
 });
-/* import */var _script1__rspack_import_0 = __webpack_require__("./package2/script1.js");
+/* import */ var _script1__rspack_import_0 = __webpack_require__("./package2/script1.js");
 
 /* export default */ const __rspack_default_export = (_script1__rspack_import_0["default"]);
 

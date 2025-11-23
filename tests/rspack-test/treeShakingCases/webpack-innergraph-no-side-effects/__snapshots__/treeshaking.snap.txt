@@ -14,7 +14,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export),
   test: () => (test)
 });
-/* import */var _package__rspack_import_0 = __webpack_require__("./package/index.js");
+/* import */ var _package__rspack_import_0 = __webpack_require__("./package/index.js");
 
 
 /* export default */ const __rspack_default_export = (_package__rspack_import_0.a);

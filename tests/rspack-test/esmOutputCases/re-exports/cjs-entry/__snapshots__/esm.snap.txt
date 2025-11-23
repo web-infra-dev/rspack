@@ -20,7 +20,7 @@ __webpack_require__.d(__webpack_exports__, {
   bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
   foo: () => (foo)
 });
-/* import */var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
+/* import */ var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
