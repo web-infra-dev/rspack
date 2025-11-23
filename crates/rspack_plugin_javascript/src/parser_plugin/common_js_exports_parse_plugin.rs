@@ -13,7 +13,7 @@ use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    ConsumeSharedExportsDependency, ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::JavascriptParser,
@@ -221,12 +221,24 @@ fn handle_assign_export(
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
-  parser.add_dependency(Box::new(CommonJsExportsDependency::new(
-    assign_expr.left.span().into(),
-    None,
-    base,
-    remaining.to_owned(),
-  )));
+  let shared_key = CommonJsExportsParserPlugin::detect_shared_module_key(parser);
+
+  if let Some(shared_key) = shared_key {
+    parser.add_dependency(Box::new(ConsumeSharedExportsDependency::new(
+      assign_expr.left.span().into(),
+      Some(assign_expr.span.into()),
+      base,
+      remaining.to_owned(),
+      shared_key,
+    )));
+  } else {
+    parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+      assign_expr.left.span().into(),
+      Some(assign_expr.span.into()),
+      base,
+      remaining.to_owned(),
+    )));
+  }
   parser.walk_expression(&assign_expr.right);
   Some(true)
 }
@@ -267,6 +279,21 @@ impl CommonJsExportsParserPlugin {
 
   fn should_skip_handler(&self, parser: &JavascriptParser) -> bool {
     self.skip_in_esm && parser.is_esm
+  }
+
+  /// Detect if this module should use ConsumeSharedExportsDependency based on Module Federation context
+  fn detect_shared_module_key(parser: &JavascriptParser) -> Option<String> {
+    // BuildMeta.shared_key is set by ProvideSharedPlugin
+    if let Some(ref shared_key) = parser.build_meta.shared_key {
+      return Some(shared_key.clone());
+    }
+
+    // BuildMeta.consume_shared_key is set by ConsumeSharedPlugin
+    if let Some(ref consume_shared_key) = parser.build_meta.consume_shared_key {
+      return Some(consume_shared_key.clone());
+    }
+
+    None
   }
 }
 
@@ -352,12 +379,23 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           get_value_of_property_description(arg2),
         );
       }
-      parser.add_dependency(Box::new(CommonJsExportsDependency::new(
-        call_expr.span.into(),
-        Some(arg2.span().into()),
-        base,
-        vec![property.into()],
-      )));
+      let shared_key = CommonJsExportsParserPlugin::detect_shared_module_key(parser);
+      if let Some(shared_key) = shared_key {
+        parser.add_dependency(Box::new(ConsumeSharedExportsDependency::new(
+          call_expr.span.into(),
+          Some(arg2.span().into()),
+          base,
+          vec![property.into()],
+          shared_key,
+        )));
+      } else {
+        parser.add_dependency(Box::new(CommonJsExportsDependency::new(
+          call_expr.span.into(),
+          Some(arg2.span().into()),
+          base,
+          vec![property.into()],
+        )));
+      }
 
       parser.walk_expression(arg2);
       return Some(true);

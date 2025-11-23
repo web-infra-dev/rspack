@@ -30,5 +30,5 @@ ustr            = { workspace = true }
 xxhash-rust     = { workspace = true, features = ["const_xxh64"] }
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

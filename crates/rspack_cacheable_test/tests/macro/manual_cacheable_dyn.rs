@@ -149,7 +149,7 @@ fn test_manual_cacheable_dyn_macro() {
         core::ptr::null::<Archived<Dog>>() as *const <dyn Animal as ArchiveUnsized>::Archived
       ))
     }
-    inventory::submit! { DynEntry::new(__DYN_ID_DOG_ANIMAL, get_vtable()) }
+    inventory::submit! { DynEntry::new(__DYN_ID_DOG_ANIMAL, get_vtable(), "Dog") }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Dog>>) }
 
     impl DeserializeDyn<dyn Animal> for ArchivedDog
@@ -211,7 +211,7 @@ fn test_manual_cacheable_dyn_macro() {
         core::ptr::null::<Archived<Cat>>() as *const <dyn Animal as ArchiveUnsized>::Archived
       ))
     }
-    inventory::submit! { DynEntry::new(__DYN_ID_CAT_ANIMAL, get_vtable()) }
+    inventory::submit! { DynEntry::new(__DYN_ID_CAT_ANIMAL, get_vtable(), "Cat") }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Cat>>) }
 
     impl DeserializeDyn<dyn Animal> for ArchivedCat

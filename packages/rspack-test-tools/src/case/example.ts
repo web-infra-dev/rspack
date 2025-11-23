@@ -9,6 +9,7 @@ function overrideOptions(
 	context: ITestContext,
 	options: RspackOptions
 ) {
+	options.cache = false;
 	options.context = context.getSource();
 	options.output = options.output || {};
 	options.output.pathinfo = true;

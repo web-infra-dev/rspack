@@ -85,6 +85,10 @@ impl ProvideSharedModule {
       source_map_kind: SourceMapKind::empty(),
     }
   }
+
+  pub fn share_key(&self) -> &str {
+    &self.name
+  }
 }
 
 impl Identifiable for ProvideSharedModule {

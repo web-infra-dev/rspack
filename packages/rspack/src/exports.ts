@@ -267,10 +267,15 @@ export const container = {
 	ModuleFederationPluginV1
 };
 
+import { CollectShareEntryPlugin } from "./sharing/CollectShareEntryPlugin";
 import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
+import { OptimizeDependencyReferencedExportsPlugin } from "./sharing/OptimizeDependencyReferencedExportsPlugin";
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+import { ShareContainerPlugin } from "./sharing/ShareContainerPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
+import { TreeshakeSharePlugin } from "./sharing/TreeShakeSharePlugin";
 
+export type { CollectShareEntryPluginOptions } from "./sharing/CollectShareEntryPlugin";
 export type {
 	ConsumeSharedPluginOptions,
 	Consumes,
@@ -285,6 +290,7 @@ export type {
 	ProvidesItem,
 	ProvidesObject
 } from "./sharing/ProvideSharedPlugin";
+export type { ShareContainerPluginOptions } from "./sharing/ShareContainerPlugin";
 export type {
 	Shared,
 	SharedConfig,
@@ -292,8 +298,13 @@ export type {
 	SharedObject,
 	SharePluginOptions
 } from "./sharing/SharePlugin";
+export type { TreeshakeSharePluginOptions } from "./sharing/TreeShakeSharePlugin";
 export const sharing = {
 	ProvideSharedPlugin,
+	CollectShareEntryPlugin,
+	TreeshakeSharePlugin,
+	ShareContainerPlugin,
+	OptimizeDependencyReferencedExportsPlugin,
 	ConsumeSharedPlugin,
 	SharePlugin
 };

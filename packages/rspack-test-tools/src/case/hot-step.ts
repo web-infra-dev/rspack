@@ -311,7 +311,12 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 			})
 			.trim();
 
-		env.expect(content).toMatchFileSnapshotSync(snapshotPath);
+		if (process.env.UPDATE_SNAPSHOT === "1") {
+			fs.ensureDirSync(path.dirname(snapshotPath));
+			fs.writeFileSync(snapshotPath, content);
+		} else {
+			env.expect(content).toMatchFileSnapshotSync(snapshotPath);
+		}
 	}
 
 	const originRun = processor.run;

@@ -3,6 +3,7 @@ mod common_js_exports_dependency;
 mod common_js_full_require_dependency;
 mod common_js_require_dependency;
 mod common_js_self_reference_dependency;
+mod consume_shared_exports_dependency;
 mod module_decorator_dependency;
 mod require_ensure_dependency;
 mod require_ensure_item_dependency;
@@ -24,6 +25,9 @@ pub use common_js_require_dependency::{
 };
 pub use common_js_self_reference_dependency::{
   CommonJsSelfReferenceDependency, CommonJsSelfReferenceDependencyTemplate,
+};
+pub use consume_shared_exports_dependency::{
+  ConsumeSharedExportsDependency, ConsumeSharedExportsDependencyTemplate,
 };
 pub use module_decorator_dependency::{
   ModuleDecoratorDependency, ModuleDecoratorDependencyTemplate,

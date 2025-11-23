@@ -11,11 +11,16 @@ use crate::ShareRuntimeModule;
 #[derive(Debug)]
 pub struct ShareRuntimePlugin {
   enhanced: bool,
+  _enable_export_usage_tracking: bool,
 }
 
 impl ShareRuntimePlugin {
   pub fn new(enhanced: bool) -> Self {
-    Self::new_inner(enhanced)
+    Self::new_inner(enhanced, false)
+  }
+
+  pub fn with_export_usage_tracking(enhanced: bool, enable_export_usage_tracking: bool) -> Self {
+    Self::new_inner(enhanced, enable_export_usage_tracking)
   }
 }
 

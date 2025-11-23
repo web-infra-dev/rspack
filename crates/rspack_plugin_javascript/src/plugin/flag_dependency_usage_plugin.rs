@@ -45,7 +45,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn apply(&mut self) {
+  async fn apply(&mut self) {
     let mut module_graph = self.compilation.get_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
@@ -95,20 +95,19 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       self.compilation.module_graph_cache_artifact.freeze();
 
       // collect referenced exports from modules by calling `dependency.get_referenced_exports`
-      // and also added referenced modules to the queue for further processing
-      let batch_res = batch
-        .into_par_iter()
-        .map(|(block_id, runtime, force_side_effects)| {
-          let (referenced_exports, module_tasks) =
-            self.process_module(block_id, runtime.as_ref(), force_side_effects, self.global);
-          (
-            runtime,
-            force_side_effects,
-            referenced_exports,
-            module_tasks,
-          )
-        })
-        .collect::<Vec<_>>();
+      // and also added referenced modules to queue for further processing
+      let mut batch_res = vec![];
+      for (block_id, runtime, force_side_effects) in batch {
+        let (referenced_exports, module_tasks) = self
+          .process_module(block_id, runtime.as_ref(), force_side_effects, self.global)
+          .await;
+        batch_res.push((
+          runtime,
+          force_side_effects,
+          referenced_exports,
+          module_tasks,
+        ));
+      }
 
       let mut nested_tasks = vec![];
       let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
@@ -235,7 +234,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn process_module(
+  async fn process_module(
     &self,
     block_id: ModuleOrAsyncDependenciesBlock,
     runtime: Option<&RuntimeSpec>,
@@ -259,19 +258,39 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
     for (dep_id, module_id) in dependencies.into_iter() {
       let old_referenced_exports = map.remove(&module_id);
-      let Some(referenced_exports) = get_dependency_referenced_exports(
+
+      let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         &self.compilation.get_module_graph(),
         &self.compilation.module_graph_cache_artifact,
         runtime,
-      ) else {
-        continue;
-      };
+      );
 
-      if let Some(new_referenced_exports) =
-        merge_referenced_exports(old_referenced_exports, referenced_exports)
-      {
-        map.insert(module_id, new_referenced_exports);
+      // 直接使用 await 调用异步钩子
+      self
+        .compilation
+        .plugin_driver
+        .compilation_hooks
+        .dependency_referenced_exports
+        .call(
+          &*self.compilation,
+          &dep_id,
+          &referenced_exports_result,
+          runtime,
+        )
+        .await;
+
+      match referenced_exports_result {
+        Some(mut referenced_exports) => {
+          if let Some(new_referenced_exports) =
+            merge_referenced_exports(old_referenced_exports, referenced_exports)
+          {
+            map.insert(module_id, new_referenced_exports);
+          }
+        }
+        None => {
+          continue;
+        }
       }
     }
 
@@ -331,6 +350,29 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
+
+    // Special handling for ConsumeShared modules
+    // ConsumeShared modules need enhanced usage tracking to work properly with tree-shaking
+    if module.module_type() == &rspack_core::ModuleType::ConsumeShared {
+      // Create a temporary Queue for process_consume_shared_module
+      let mut temp_queue = Queue::new();
+      self.process_consume_shared_module(
+        module_id,
+        used_exports,
+        runtime,
+        force_side_effects,
+        &mut temp_queue,
+      );
+      // Convert Queue items to the expected tuple format
+      while let Some((module_id, runtime)) = temp_queue.dequeue() {
+        queue.push((
+          ModuleOrAsyncDependenciesBlock::Module(module_id),
+          runtime,
+          false,
+        ));
+      }
+      return queue;
+    }
     if !used_exports.is_empty() {
       let need_insert = matches!(
         module.build_meta().exports_type,
@@ -462,6 +504,126 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     queue
   }
+
+  /// Enhanced processing for ConsumeShared modules
+  /// This ensures ConsumeShared modules get proper usage tracking like normal modules
+  fn process_consume_shared_module(
+    &mut self,
+    module_id: ModuleIdentifier,
+    used_exports: Vec<ExtendedReferencedExport>,
+    runtime: Option<RuntimeSpec>,
+    force_side_effects: bool,
+    queue: &mut Queue<(ModuleIdentifier, Option<RuntimeSpec>)>,
+  ) {
+    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mgm = module_graph
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have mgm");
+    let mgm_exports_info = mgm.exports;
+
+    // Process ConsumeShared modules the same as normal modules for usage tracking
+    // This allows proper tree-shaking of ConsumeShared exports
+    if !used_exports.is_empty() {
+      // Handle export usage same as normal modules
+      for used_export_info in used_exports {
+        let (used_exports, can_mangle, can_inline) = match used_export_info {
+          rspack_core::ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
+          rspack_core::ExtendedReferencedExport::Export(export) => {
+            (export.name, export.can_mangle, export.can_inline)
+          }
+        };
+
+        if used_exports.is_empty() {
+          // Namespace usage - mark all exports as used in unknown way
+          let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
+          if flag {
+            queue.enqueue((module_id, runtime.clone()));
+          }
+        } else {
+          // Specific export usage - process each export in the path
+          let mut current_exports_info = mgm_exports_info;
+          let len = used_exports.len();
+
+          for (i, used_export) in used_exports.into_iter().enumerate() {
+            let export_info = current_exports_info.get_export_info(&mut module_graph, &used_export);
+
+            // Apply mangling and inlining constraints
+            if !can_mangle {
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_can_mangle_use(Some(false));
+            }
+            if !can_inline {
+              export_info
+                .as_data_mut(&mut module_graph)
+                .set_can_inline_use(Some(CanInlineUse::No));
+            }
+
+            let last_one = i == len - 1;
+            if !last_one {
+              // Intermediate property access - mark as OnlyPropertiesUsed
+              let nested_info = export_info.as_data(&module_graph).exports_info();
+              if let Some(nested_info) = nested_info {
+                let changed_flag = export_info
+                  .as_data_mut(&mut module_graph)
+                  .set_used_conditionally(
+                    Box::new(|used| used == &rspack_core::UsageState::Unused),
+                    rspack_core::UsageState::OnlyPropertiesUsed,
+                    runtime.as_ref(),
+                  );
+                if changed_flag {
+                  let current_module = if current_exports_info == mgm_exports_info {
+                    Some(module_id)
+                  } else {
+                    self
+                      .exports_info_module_map
+                      .get(&current_exports_info)
+                      .cloned()
+                  };
+                  if let Some(current_module) = current_module {
+                    queue.enqueue((current_module, runtime.clone()));
+                  }
+                }
+                current_exports_info = nested_info;
+                continue;
+              }
+            }
+
+            // Final property or direct export - mark as Used
+            let changed_flag = export_info
+              .as_data_mut(&mut module_graph)
+              .set_used_conditionally(
+                Box::new(|v| v != &rspack_core::UsageState::Used),
+                rspack_core::UsageState::Used,
+                runtime.as_ref(),
+              );
+            if changed_flag {
+              let current_module = if current_exports_info == mgm_exports_info {
+                Some(module_id)
+              } else {
+                self
+                  .exports_info_module_map
+                  .get(&current_exports_info)
+                  .cloned()
+              };
+              if let Some(current_module) = current_module {
+                queue.enqueue((current_module, runtime.clone()));
+              }
+            }
+            break;
+          }
+        }
+      }
+    } else {
+      // No specific exports used - handle side effects
+      let changed_flag = mgm_exports_info
+        .as_data_mut(&mut module_graph)
+        .set_used_for_side_effects_only(runtime.as_ref());
+      if changed_flag {
+        queue.enqueue((module_id, runtime));
+      }
+    }
+  }
 }
 
 #[plugin]
@@ -490,7 +652,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   }
 
   let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
-  proxy.apply();
+  proxy.apply().await;
   Ok(None)
 }
 
