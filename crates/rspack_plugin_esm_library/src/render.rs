@@ -381,7 +381,9 @@ impl EsmLibraryPlugin {
         final_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
           RuntimeGlobals::REQUIRE,
-          runtime_chunk.as_u32()
+          ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, &runtime_chunk)
+            .expect("should have id for chunk")
+            .as_str()
         )));
       }
     }
@@ -473,7 +475,9 @@ impl EsmLibraryPlugin {
               .join(", ")
           )
         },
-        chunk.as_u32()
+        ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, chunk)
+          .expect("should have chunk id")
+          .as_str()
       )));
     }
 
@@ -569,7 +573,12 @@ impl EsmLibraryPlugin {
           .join(", "),
         match re_export_from {
           crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk_ukey.as_u32()))
+            Cow::Owned(format!(
+              "__RSPACK_ESM_CHUNK_{}",
+              ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, chunk_ukey)
+                .expect("should have chunk id")
+                .as_str()
+            ))
           }
           crate::chunk_link::ReExportFrom::Request(request) => {
             Cow::Borrowed(request)
