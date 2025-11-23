@@ -528,13 +528,13 @@ impl JsPlugin {
                   buf2.push(format!("  return {};", entry_fn_body).into());
                 }
                 buf2.push("});".into());
-                buf2.push("export default await ".into());
+                buf2.push(format!("let {};", RuntimeGlobals::EXPORTS).into());
+                buf2.push("export default ".into());
                 buf2.push(
                   format!(
-                    "{}Promise.then(res => typeof {} === \"function\" ? {}(res) : res);",
-                    RuntimeGlobals::EXPORTS,
-                    RuntimeGlobals::ON_CHUNKS_LOADED,
-                    RuntimeGlobals::ON_CHUNKS_LOADED
+                    "({exports} = await {exports}Promise.then(res => typeof {on_chunks_loaded} === \"function\" ? {on_chunks_loaded}(res) : res), {exports});",
+                    exports = RuntimeGlobals::EXPORTS,
+                    on_chunks_loaded = RuntimeGlobals::ON_CHUNKS_LOADED
                   )
                   .into(),
                 );
