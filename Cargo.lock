@@ -4868,6 +4868,7 @@ dependencies = [
  "derive_more",
  "futures",
  "indexmap",
+ "once_cell",
  "pathdiff",
  "rayon",
  "regex",
