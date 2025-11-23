@@ -45,7 +45,7 @@ async fn render_module_content(
     init_fragments.push(
       NormalInitFragment::new(
         format!(
-          "import {{ createRequire as __rspack_external_createRequire }} from \"{}\";\n{} __rspack_external_createRequire_require = __rspack_external_createRequire({}.url);\n",
+          "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
           if need_prefix { "node:module" } else { "module" },
           if compilation.options.output.environment.supports_const() {
             "const"

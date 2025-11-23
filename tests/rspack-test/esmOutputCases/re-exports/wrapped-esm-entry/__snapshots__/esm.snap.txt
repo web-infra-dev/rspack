@@ -14,9 +14,9 @@ __webpack_require__.d(__webpack_exports__, {
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   starExports: () => (/* reexport safe */ _lib2__rspack_import_2.i)
 });
-/* import */var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
-/* import */var _lib__rspack_import_1 = __webpack_require__(/*! ./lib */ "./lib.js");
-/* import */var _lib2__rspack_import_2 = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+/* import */ var _lib__rspack_import_1 = __webpack_require__(/*! ./lib */ "./lib.js");
+/* import */ var _lib2__rspack_import_2 = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

@@ -531,7 +531,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::Unused(ExportModeUnused { name }) => ctxt.init_fragments.push(
         NormalInitFragment::new(
-          to_normal_comment(&format!("unused ESM reexport {name}")),
+          to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
           InitFragmentKey::unique(),
@@ -701,8 +701,7 @@ impl ESMExportImportedSpecifierDependency {
           let key = render_used_name(used_name.as_ref());
 
           if checked {
-            let key =
-              InitFragmentKey::ESMImport(format!("ESM reexport (checked) {import_var} {name}"));
+            let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
@@ -773,25 +772,25 @@ impl ESMExportImportedSpecifierDependency {
         // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
         let mut content = format!(
           r"
-/* ESM reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
-/* ESM reexport (unknown) */ for( var __WEBPACK_IMPORT_KEY__ in {import_var}) "
+/* reexport */ var __rspack_reexport = {{}};
+/* reexport */ for( var __rspack_import_key in {import_var}) "
         );
 
         if ignored.len() > 1 {
           content += &format!(
-            "if({}.indexOf(__WEBPACK_IMPORT_KEY__) < 0) ",
+            "if({}.indexOf(__rspack_import_key) < 0) ",
             serde_json::to_string(&ignored).expect("should serialize to array")
           );
         } else if let Some(item) = ignored.iter().next() {
           content += &format!(
-            "if(__WEBPACK_IMPORT_KEY__ !== {}) ",
+            "if(__rspack_import_key !== {}) ",
             serde_json::to_string(item).expect("should serialize to string")
           );
         }
-        content += "__WEBPACK_REEXPORT_OBJECT__[__WEBPACK_IMPORT_KEY__] =";
+        content += "__rspack_reexport[__rspack_import_key] =";
         // TODO should decide if `modern` is true
         content +=
-          &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __WEBPACK_IMPORT_KEY__)");
+          &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
@@ -803,7 +802,7 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(
-              "{content}\n/* ESM reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
+              "{content}\n/* reexport */ {}({}, __rspack_reexport);\n",
               RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
               exports_name
             ),

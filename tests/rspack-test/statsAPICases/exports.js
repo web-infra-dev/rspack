@@ -71,7 +71,7 @@ module.exports = {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: ebb4200b82e431d1,
+			      hash: 2a4fcd21c37fffc7,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -459,7 +459,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: 4eef549f69015bed,
+			  hash: 4114978a03e09ff7,
 			  modules: Array [
 			    Object {
 			      assets: Array [],

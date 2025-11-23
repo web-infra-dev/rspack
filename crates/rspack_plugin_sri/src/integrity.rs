@@ -11,16 +11,17 @@ pub enum SubresourceIntegrityHashFunction {
   Sha512,
 }
 
-impl From<String> for SubresourceIntegrityHashFunction {
-  fn from(s: String) -> Self {
-    match s.as_str() {
-      "sha256" => Self::Sha256,
-      "sha384" => Self::Sha384,
-      "sha512" => Self::Sha512,
-      _ => panic!(
-        "sri hash function only support 'sha256', 'sha384' or 'sha512', but got '{}'.",
-        s
-      ),
+impl TryFrom<String> for SubresourceIntegrityHashFunction {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: String) -> Result<Self, rspack_error::Error> {
+    match value.as_str() {
+      "sha256" => Ok(Self::Sha256),
+      "sha384" => Ok(Self::Sha384),
+      "sha512" => Ok(Self::Sha512),
+      _ => Err(rspack_error::Error::error(format!(
+        "Expect SRI hash function to be 'sha256', 'sha384' or 'sha512', but got '{value}'."
+      ))),
     }
   }
 }

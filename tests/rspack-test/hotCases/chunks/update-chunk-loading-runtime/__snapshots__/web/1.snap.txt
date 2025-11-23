@@ -10,9 +10,9 @@
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 686
+- Update: main.LAST_HASH.hot-update.js, size: 687
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 19042
-- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 509
+- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 503
 
 ## Manifest
 
@@ -44,7 +44,7 @@ self["webpackHotUpdate"]("main", {
   \******************/
 (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var vendor__rspack_import_0 = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
+/* import */ var vendor__rspack_import_0 = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
 
 module.hot.data.ok = true;
 module.hot.data.loadChunk = () => __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
@@ -742,9 +742,9 @@ self["webpackHotUpdate"]("vendors-node_modules_vendor_js", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+/* export default */ const __rspack_default_export = (2);
 
 
 }),

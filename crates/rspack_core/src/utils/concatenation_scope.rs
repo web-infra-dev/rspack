@@ -14,10 +14,9 @@ use crate::{
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
 };
 
-pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> =
-  LazyLock::new(|| "__WEBPACK_DEFAULT_EXPORT__".into());
+pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";
-pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
+pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 
 static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(

@@ -15,9 +15,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 926
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 572
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 668
+- Update: shared.LAST_HASH.hot-update.js, size: 915
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 566
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 663
 
 ## Manifest
 
@@ -90,9 +90,9 @@ self["webpackHotUpdate"]("shared", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* export default */ const __rspack_default_export = (3);
 
 
 }),
@@ -103,10 +103,10 @@ __webpack_require__.d(__webpack_exports__, {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* import */var _moduleS__rspack_import_0 = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* import */ var _moduleS__rspack_import_0 = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
+/* export default */ const __rspack_default_export = (3);
 
 
 
@@ -136,9 +136,9 @@ self["webpackHotUpdate"]("workerA_js", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* export default */ const __rspack_default_export = (3);
 
 
 }),
@@ -174,10 +174,10 @@ self["webpackHotUpdate"]("workerB_js", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* import */var _module__rspack_import_0 = __webpack_require__(/*! ./module */ "./module.js");
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* import */ var _module__rspack_import_0 = __webpack_require__(/*! ./module */ "./module.js");
+/* export default */ const __rspack_default_export = (3);
 
 
 

@@ -1,8 +1,8 @@
-import { createRequire as __rspack_external_createRequire } from "node:module";
-const __rspack_external_createRequire_require = __rspack_external_createRequire(import.meta.url);
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 var __webpack_modules__ = ({
 928: (function (module) {
-module.exports = __rspack_external_createRequire_require("path");
+module.exports = __rspack_createRequire_require("path");
 
 }),
 227: (function (module, __unused_webpack_exports, __webpack_require__) {

@@ -98,7 +98,7 @@ use rspack_plugin_runtime::{
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
-use rspack_plugin_sri::SubresourceIntegrityPlugin;
+use rspack_plugin_sri::{SubresourceIntegrityPlugin, SubresourceIntegrityPluginOptions};
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
@@ -847,9 +847,15 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::SubresourceIntegrityPlugin => {
         let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let options = raw_options.into();
-        plugins.push(SubresourceIntegrityPlugin::new(options).boxed());
+          .and_then(SubresourceIntegrityPluginOptions::try_from);
+        match raw_options {
+          Ok(options) => {
+            plugins.push(SubresourceIntegrityPlugin::new(options, None).boxed());
+          }
+          Err(error) => {
+            plugins.push(SubresourceIntegrityPlugin::new(Default::default(), Some(error)).boxed());
+          }
+        }
       }
       BuiltinPluginName::ModuleInfoHeaderPlugin => {
         let verbose = downcast_into::<bool>(self.options)
