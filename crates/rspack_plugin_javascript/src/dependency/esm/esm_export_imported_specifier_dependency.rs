@@ -768,11 +768,15 @@ impl ESMExportImportedSpecifierDependency {
           ignored.extend(hidden);
         }
 
-        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
+        let environment = compilation.options.output.environment;
+        let supports_arrow_function = environment.supports_arrow_function();
+        let supports_const = environment.supports_const();
+
         let mut content = format!(
           r"
 /* reexport */ var __rspack_reexport = {{}};
-/* reexport */ for( var __rspack_import_key in {import_var}) "
+/* reexport */ for( {} __rspack_import_key in {import_var}) ",
+          if supports_const { "const" } else { "var" }
         );
 
         if ignored.len() > 1 {
@@ -787,9 +791,14 @@ impl ESMExportImportedSpecifierDependency {
           );
         }
         content += "__rspack_reexport[__rspack_import_key] =";
-        // TODO should decide if `modern` is true
-        content +=
-          &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
+
+        if supports_arrow_function {
+          content += &format!("() => {import_var}[__rspack_import_key]");
+        } else {
+          content +=
+            &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
+        }
+
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
