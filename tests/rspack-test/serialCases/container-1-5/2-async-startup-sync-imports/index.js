@@ -37,6 +37,7 @@ it("should work in CommonJS format", () => {
 	const baseDir = __dirname.endsWith("module") ? path.dirname(__dirname) : __dirname;
 	const content = fs.readFileSync(path.join(baseDir, "main.js"), "utf-8");
 	expect(content).toContain("Promise.resolve().then(function() {");
+	expect(content).toContain("__webpack_require__.O(");
 
 	// Functional test: verify bundle actually runs
 	return import("./App").then(({ default: App }) => {
