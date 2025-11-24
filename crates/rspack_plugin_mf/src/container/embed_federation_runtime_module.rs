@@ -88,24 +88,49 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.pop();
     }
 
-    // Generate prevStartup wrapper pattern with defensive checks
+    // Generate prevStartup wrapper pattern with defensive checks.
     // Always wrap the synchronous startup global (`__webpack_require__.x`) so
     // federation runtime runs before any startup code (mirrors webpack/enhanced).
+    // When async startup is enabled we must also wrap `__webpack_require__.X`
+    // because runtimeChunk: "single" paths use X and would otherwise skip MF init.
     let startup = RuntimeGlobals::STARTUP.name();
+    let startup_entry = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
+    let wrap_async = self.options.async_startup;
+
+    let async_wrapper = if wrap_async {
+      format!(
+        r#"
+var prevStartupEntry = typeof {startup_entry} === 'function' ? {startup_entry} : undefined;
+{startup_entry} = function() {{
+	__webpack_require__mf_startup_once();
+	if (typeof prevStartupEntry === 'function') {{
+		return prevStartupEntry.apply(this, arguments);
+	}}
+}};"#,
+        startup_entry = startup_entry
+      )
+    } else {
+      String::new()
+    };
+
     let result = format!(
       r#"var prevStartup = typeof {startup} === 'function' ? {startup} : function(){{}};
 var hasRun = false;
-{startup} = function() {{
+var __webpack_require__mf_startup_once = function() {{
 	if (!hasRun) {{
 		hasRun = true;
 {module_executions}
 	}}
+}};
+{startup} = function() {{
+	__webpack_require__mf_startup_once();
 	if (typeof prevStartup === 'function') {{
 		return prevStartup();
 	}} else {{
 		console.warn('[MF] Invalid prevStartup');
 	}}
-}};"#
+}};
+{async_wrapper}"#
     );
 
     Ok(result)
