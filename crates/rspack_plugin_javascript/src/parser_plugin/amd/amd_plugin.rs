@@ -53,7 +53,10 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     if for_name == "requirejs.onError" {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
-        RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER)
+          .into(),
         Some(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       )));
       return Some(true);
@@ -63,7 +66,10 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     if for_name == "define.amd" || for_name == "require.amd" {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
-        RuntimeGlobals::AMD_OPTIONS.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::AMD_OPTIONS)
+          .into(),
         Some(RuntimeGlobals::AMD_OPTIONS),
       )));
       return Some(true);
@@ -137,7 +143,10 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     if for_name == DEFINE {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         ident.span().into(),
-        RuntimeGlobals::AMD_DEFINE.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::AMD_DEFINE)
+          .into(),
         Some(RuntimeGlobals::AMD_DEFINE),
       )));
       return Some(true);
@@ -186,7 +195,10 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     if for_name == DEFINE {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
-        RuntimeGlobals::AMD_DEFINE.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::AMD_DEFINE)
+          .into(),
         Some(RuntimeGlobals::AMD_DEFINE),
       )));
       return Some(false);

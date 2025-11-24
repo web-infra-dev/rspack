@@ -1,5 +1,4 @@
 use bitflags::bitflags;
-use swc_core::ecma::atoms::Atom;
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -270,94 +269,6 @@ impl Default for RuntimeGlobals {
   }
 }
 
-impl RuntimeGlobals {
-  pub const fn name(&self) -> &'static str {
-    use RuntimeGlobals as R;
-    match *self {
-      R::REQUIRE_SCOPE => "__webpack_require__.*",
-      R::MODULE => "module",
-      R::MODULE_ID => "module.id",
-      R::MODULE_LOADED => "module.loaded",
-      R::REQUIRE => "__webpack_require__",
-      R::MODULE_CACHE => "__webpack_require__.c",
-      R::ENSURE_CHUNK => "__webpack_require__.e",
-      R::ENSURE_CHUNK_HANDLERS => "__webpack_require__.f",
-      R::PUBLIC_PATH => "__webpack_require__.p",
-      R::GET_CHUNK_SCRIPT_FILENAME => "__webpack_require__.u",
-      R::GET_CHUNK_CSS_FILENAME => "__webpack_require__.k",
-      R::LOAD_SCRIPT => "__webpack_require__.l",
-      R::HAS_OWN_PROPERTY => "__webpack_require__.o",
-      R::MODULE_FACTORIES_ADD_ONLY => "__webpack_require__.m (add only)",
-      R::ON_CHUNKS_LOADED => "__webpack_require__.O",
-      R::CHUNK_CALLBACK => "webpackChunk",
-      R::MODULE_FACTORIES => "__webpack_require__.m",
-      R::INTERCEPT_MODULE_EXECUTION => "__webpack_require__.i",
-      R::HMR_DOWNLOAD_MANIFEST => "__webpack_require__.hmrM",
-      R::HMR_DOWNLOAD_UPDATE_HANDLERS => "__webpack_require__.hmrC",
-      R::GET_UPDATE_MANIFEST_FILENAME => "__webpack_require__.hmrF",
-      R::GET_CHUNK_UPDATE_SCRIPT_FILENAME => "__webpack_require__.hu",
-      R::GET_CHUNK_UPDATE_CSS_FILENAME => "__webpack_require__.hk",
-      R::HMR_MODULE_DATA => "__webpack_require__.hmrD",
-      R::HMR_RUNTIME_STATE_PREFIX => "__webpack_require__.hmrS",
-      R::AMD_DEFINE => "__webpack_require__.amdD",
-      R::AMD_OPTIONS => "__webpack_require__.amdO",
-      R::EXTERNAL_INSTALL_CHUNK => "__webpack_require__.C",
-      R::GET_FULL_HASH => "__webpack_require__.h",
-      R::GLOBAL => "__webpack_require__.g",
-      R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
-      R::INSTANTIATE_WASM => "__webpack_require__.v",
-      R::ASYNC_MODULE => "__webpack_require__.a",
-      R::ASYNC_MODULE_EXPORT_SYMBOL => "__webpack_require__.aE",
-      R::BASE_URI => "__webpack_require__.b",
-      R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
-      R::STARTUP_CHUNK_DEPENDENCIES => "__webpack_require__.x (chunk dependencies)",
-      R::CREATE_SCRIPT_URL => "__webpack_require__.tu",
-      R::CREATE_SCRIPT => "__webpack_require__.ts",
-      R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
-      R::DEFINE_PROPERTY_GETTERS => "__webpack_require__.d",
-      R::ENTRY_MODULE_ID => "__webpack_require__.s",
-      R::STARTUP_NO_DEFAULT => "__webpack_require__.x (no default handler)",
-      R::ENSURE_CHUNK_INCLUDE_ENTRIES => "__webpack_require__.f (include entries)",
-      R::STARTUP => "__webpack_require__.x",
-      R::MAKE_NAMESPACE_OBJECT => "__webpack_require__.r",
-      R::MAKE_DEFERRED_NAMESPACE_OBJECT => "__webpack_require__.z",
-      R::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => "__webpack_require__.zS",
-      R::EXPORTS => "__webpack_exports__",
-      R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
-      R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
-      R::ESM_MODULE_DECORATOR => "__webpack_require__.hmd",
-      R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
-      R::SYSTEM_CONTEXT => "__webpack_require__.y",
-      R::THIS_AS_EXPORTS => "top-level-this-exports",
-      R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
-      R::SHARE_SCOPE_MAP => "__webpack_require__.S",
-      R::INITIALIZE_SHARING => "__webpack_require__.I",
-      R::SCRIPT_NONCE => "__webpack_require__.nc",
-      R::RELATIVE_URL => "__webpack_require__.U",
-      R::CHUNK_NAME => "__webpack_require__.cn",
-      R::RUNTIME_ID => "__webpack_require__.j",
-      R::PREFETCH_CHUNK => "__webpack_require__.E",
-      R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
-      R::PRELOAD_CHUNK => "__webpack_require__.G",
-      R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
-      R::UNCAUGHT_ERROR_HANDLER => "__webpack_require__.oe",
-      // rspack only
-      R::RSPACK_VERSION => "__webpack_require__.rv",
-      R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",
-      R::HAS_CSS_MODULES => "has css modules",
-
-      R::HAS_FETCH_PRIORITY => "has fetch priority",
-      _ => unreachable!(),
-    }
-  }
-}
-
-impl From<RuntimeGlobals> for Atom {
-  fn from(value: RuntimeGlobals) -> Self {
-    value.name().into()
-  }
-}
-
 #[cfg(test)]
 mod test {
   use super::*;
@@ -369,20 +280,5 @@ mod test {
     assert_eq!(flags.len(), 2);
     assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
     assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-  }
-
-  #[test]
-  fn test_pretty_print() {
-    let flags = RuntimeGlobals::PUBLIC_PATH.name();
-    assert_eq!(format!("{flags}"), "__webpack_require__.p");
-    let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME.name();
-    assert_eq!(format!("{flags}"), "__webpack_require__.k");
-  }
-
-  #[test]
-  #[should_panic]
-  fn test_panic_when_print_multiple_flags() {
-    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
-    print!("{flags}");
   }
 }

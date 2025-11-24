@@ -7,7 +7,7 @@ use std::sync::Arc;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  ParserOptions, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
@@ -51,6 +51,7 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
+  runtime_template: &RuntimeTemplate,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source_map,
@@ -71,6 +72,7 @@ pub fn scan_dependencies(
     unresolved_mark,
     parser_plugins,
     parse_meta,
+    runtime_template,
   );
 
   parser.walk_program(program.get_inner_program());

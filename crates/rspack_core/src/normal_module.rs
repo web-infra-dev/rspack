@@ -632,6 +632,7 @@ impl Module for NormalModule {
         build_info: &mut inner.build_info,
         build_meta: &mut inner.build_meta,
         parse_meta: loader_result.parse_meta,
+        runtime_template: &build_context.runtime_template,
       })
       .await?
       .split_into_parts();

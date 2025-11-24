@@ -110,7 +110,10 @@ impl JavascriptParserPlugin for URLPlugin {
       }
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         arg2.span().into(),
-        RuntimeGlobals::BASE_URI.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::BASE_URI)
+          .into(),
         Some(RuntimeGlobals::BASE_URI),
       )));
       return Some(true);

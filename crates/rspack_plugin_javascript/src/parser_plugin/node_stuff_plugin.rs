@@ -138,7 +138,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         ident.span.into(),
-        RuntimeGlobals::GLOBAL.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
+          .into(),
         Some(RuntimeGlobals::GLOBAL),
       )));
       return Some(true);
@@ -158,7 +161,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
-        RuntimeGlobals::GLOBAL.name().into(),
+        parser
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
+          .into(),
         Some(RuntimeGlobals::GLOBAL),
       )));
       return Some(false);

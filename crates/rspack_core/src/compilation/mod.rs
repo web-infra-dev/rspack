@@ -356,7 +356,7 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
-      runtime_template: RuntimeTemplate::new(options.output.environment),
+      runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
       other_module_graph: None,
