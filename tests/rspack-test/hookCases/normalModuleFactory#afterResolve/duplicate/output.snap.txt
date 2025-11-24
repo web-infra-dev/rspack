@@ -70,12 +70,12 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
 (() => {
 "use strict";
-/* import */var _a__rspack_import_0 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/a.js");
-/* import */var _a__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_a__rspack_import_0);
-/* import */var _b__rspack_import_1 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/c.js");
-/* import */var _b__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_1);
-/* import */var fs__rspack_import_2 = __webpack_require__("fs");
-/* import */var fs__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(fs__rspack_import_2);
+/* import */ var _a__rspack_import_0 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/a.js");
+/* import */ var _a__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_a__rspack_import_0);
+/* import */ var _b__rspack_import_1 = __webpack_require__("../../normalModuleFactory​#afterResolve/duplicate/c.js");
+/* import */ var _b__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_1);
+/* import */ var fs__rspack_import_2 = __webpack_require__("fs");
+/* import */ var fs__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(fs__rspack_import_2);
 
  // b.js will be transform to c.js
 
