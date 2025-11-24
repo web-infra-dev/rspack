@@ -323,15 +323,13 @@ async fn this_compilation(
 
 #[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  dbg!("process_assets");
   // 遍历图中的 ConsumeSharedModule，收集其 fallback 映射到的真实模块地址
   let module_graph = compilation.get_module_graph();
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
   let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
 
-  for (id, module) in module_graph.modules().into_iter() {
+  for (_id, module) in module_graph.modules().into_iter() {
     let module_type = module.module_type();
-    dbg!(&module_type);
     if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
       continue;
     }
@@ -342,7 +340,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     {
       // 从 readable_identifier 中解析 share_scope 与 share_key
       let ident = consume.readable_identifier(&Context::default()).to_string();
-      dbg!(&ident);
       // 形如: "consume shared module ({scope}) {share_key}@..."
       let (scope, key) = {
         let mut scope = String::new();
@@ -360,11 +357,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         (scope, key)
       };
-
       if key.is_empty() {
         continue;
       }
-
       // 收集该 consume 模块的依赖与异步块中的依赖对应的真实模块
       let mut target_modules = Vec::new();
       for dep_id in consume.get_dependencies() {
