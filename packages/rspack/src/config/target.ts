@@ -77,7 +77,7 @@ export type EcmaTargetProperties = {
 	/**  const and let variable declarations are available */
 	const: boolean | null;
 	/**  method shorthand in object is available  */
-	shorthandMethod: boolean | null;
+	methodShorthand: boolean | null;
 	/**  arrow functions are available */
 	arrowFunction: boolean | null;
 	/**  for of iteration is available */

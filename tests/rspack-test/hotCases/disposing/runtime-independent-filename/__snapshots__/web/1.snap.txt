@@ -6,11 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-<<<<<<< HEAD
-- Update: main.LAST_HASH.hot-update.js, size: 18493
-=======
-- Update: main.LAST_HASH.hot-update.js, size: 18517
->>>>>>> 3851b3cdb7 (feat: supports method shorthand)
+- Update: main.LAST_HASH.hot-update.js, size: 18480
 
 ## Manifest
 

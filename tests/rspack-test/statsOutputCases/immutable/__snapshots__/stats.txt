@@ -1,7 +1,2 @@
-<<<<<<< HEAD
 asset 40d3459af213c94e.js xx KiB [emitted] [immutable] (name: main)
-asset 92c4383731fffcb4.js 243 bytes [emitted] [immutable]
-=======
-asset a58127a21451ebc1.js xx KiB [emitted] [immutable] (name: main)
 asset 92c4383731fffcb4.js 230 bytes [emitted] [immutable]
->>>>>>> 3851b3cdb7 (feat: supports method shorthand)

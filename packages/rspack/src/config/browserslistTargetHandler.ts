@@ -99,7 +99,7 @@ export const resolve = (
 			kaios: [2, 5],
 			node: [6, 0]
 		}),
-		shorthandMethod: rawChecker({
+		methodShorthand: rawChecker({
 			chrome: 47,
 			and_chr: 47,
 			edge: 12,
