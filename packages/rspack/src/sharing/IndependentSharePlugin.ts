@@ -30,7 +30,7 @@ const filterPlugin = (plugin: Plugins[0]) => {
 	if (!plugin) {
 		return true;
 	}
-	const pluginName = plugin["name"] || plugin["constructor"]?.name;
+	const pluginName = plugin.name || plugin.constructor?.name;
 	if (!pluginName) {
 		return true;
 	}
@@ -169,11 +169,10 @@ export class IndependentSharePlugin {
 	}
 
 	apply(compiler: Compiler) {
-		compiler.hooks.beforeRun.tapAsync(
+		compiler.hooks.beforeRun.tapPromise(
 			"IndependentSharePlugin",
-			async (compiler, callback) => {
+			async compiler => {
 				await this.createIndependentCompilers(compiler);
-				callback();
 			}
 		);
 
@@ -202,12 +201,12 @@ export class IndependentSharePlugin {
 						return;
 					}
 					const statsContent = JSON.parse(stats.source.source().toString()) as {
-						shared: Array<{
+						shared: {
 							name: string;
 							version: string;
 							fallback?: string;
 							fallbackName?: string;
-						}>;
+						}[];
 					};
 
 					const { shared } = statsContent;
