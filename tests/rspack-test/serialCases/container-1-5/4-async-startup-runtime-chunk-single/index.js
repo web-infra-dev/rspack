@@ -15,6 +15,17 @@ if (globalThis.__FEDERATION__) {
 	globalThis.__FEDERATION__.__INSTANCES__ = [];
 }
 
+// Ensure shared scopes don't carry over versions set by earlier serial cases.
+globalThis.__federation_shared__ = {};
+
+// Reset mocked-react back to the baseline version used in this case.
+try {
+	const { setVersion } = require("mocked-react");
+	setVersion("2.1.0");
+} catch (e) {
+	// ignore when module isn't in cache yet
+}
+
 const isESM = () =>
 	__dirname.includes("/module") || __dirname.includes("\\module");
 const runtimeFile = () =>
