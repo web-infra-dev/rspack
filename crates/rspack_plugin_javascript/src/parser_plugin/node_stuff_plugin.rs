@@ -181,28 +181,92 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     use crate::visitors::expr_name;
 
     match for_name {
-      expr_name::IMPORT_META_FILENAME | expr_name::IMPORT_META_DIRNAME => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          unary_expr.span().into(),
-          "'string'".into(),
-          None,
-        )));
-        Some(true)
+      FILE_NAME | expr_name::IMPORT_META_FILENAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.filename is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+        {
+          return None;
+        }
+        // fallthrough
       }
-      _ => None,
+      DIR_NAME | expr_name::IMPORT_META_DIRNAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.dirname is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+        {
+          return None;
+        }
+        // fallthrough
+      }
+      _ => return None,
     }
+
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      unary_expr.span().into(),
+      "'string'".into(),
+      None,
+    )));
+    Some(true)
   }
 
   fn evaluate_typeof<'a>(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     use crate::visitors::expr_name;
 
     match for_name {
-      expr_name::IMPORT_META_FILENAME | expr_name::IMPORT_META_DIRNAME => {
+      expr_name::IMPORT_META_FILENAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.filename is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+        {
+          return None;
+        }
+        Some(eval::evaluate_to_string(
+          "string".to_string(),
+          expr.span.real_lo(),
+          expr.span.real_hi(),
+        ))
+      }
+      expr_name::IMPORT_META_DIRNAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.dirname is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+        {
+          return None;
+        }
         Some(eval::evaluate_to_string(
           "string".to_string(),
           expr.span.real_lo(),
@@ -252,6 +316,19 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         end,
       ))
     } else if for_name == expr_name::IMPORT_META_FILENAME {
+      // Skip processing if importMeta is disabled
+      if parser.javascript_options.import_meta == Some(false) {
+        return None;
+      }
+      // Skip processing if node.filename is disabled
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+      {
+        return None;
+      }
       let filename = Url::from_file_path(parser.resource_data.resource())
         .expect("should be a path")
         .to_file_path()
@@ -260,6 +337,19 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         .into_owned();
       Some(eval::evaluate_to_string(filename, start, end))
     } else if for_name == expr_name::IMPORT_META_DIRNAME {
+      // Skip processing if importMeta is disabled
+      if parser.javascript_options.import_meta == Some(false) {
+        return None;
+      }
+      // Skip processing if node.dirname is disabled
+      if parser
+        .compiler_options
+        .node
+        .as_ref()
+        .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+      {
+        return None;
+      }
       let dirname = Url::from_file_path(parser.resource_data.resource())
         .expect("should be a path")
         .to_file_path()
@@ -284,6 +374,19 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
     match for_name {
       expr_name::IMPORT_META_FILENAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.filename is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+        {
+          return None;
+        }
         // import.meta.filename
         let filename = Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
@@ -299,6 +402,19 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         Some(true)
       }
       expr_name::IMPORT_META_DIRNAME => {
+        // Skip processing if importMeta is disabled
+        if parser.javascript_options.import_meta == Some(false) {
+          return None;
+        }
+        // Skip processing if node.dirname is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+        {
+          return None;
+        }
         // import.meta.dirname
         let dirname = Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
@@ -324,8 +440,21 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser: &mut JavascriptParser,
     property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
+    // Skip processing if importMeta is disabled
+    if parser.javascript_options.import_meta == Some(false) {
+      return None;
+    }
     match property.id.as_str() {
       "filename" => {
+        // Skip processing if node.filename is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
+        {
+          return None;
+        }
         // This is the same as the url.fileURLToPath() of the import.meta.url
         let filename = Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
@@ -336,6 +465,15 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         Some(format!(r#"filename: "{}""#, filename))
       }
       "dirname" => {
+        // Skip processing if node.dirname is disabled
+        if parser
+          .compiler_options
+          .node
+          .as_ref()
+          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
+        {
+          return None;
+        }
         // This is the same as the path.dirname() of the import.meta.filename
         let dirname = Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
