@@ -6,7 +6,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, RuntimeGlobals, RuntimeTemplate, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -93,6 +94,7 @@ impl Branch {
     &self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,
+    runtime_template: &RuntimeTemplate,
   ) -> String {
     let local_module_var = match local_module_var {
       Some(name) => name,
@@ -107,7 +109,7 @@ impl Branch {
         format!(
           "!(__WEBPACK_AMD_DEFINE_RESULT__ = (#).call(exports, {require}, exports, module),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))",
-          require = RuntimeGlobals::REQUIRE.name()
+          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
       }
       o if o == Branch::O => "!(module.exports = #)".to_string(),
@@ -118,7 +120,7 @@ impl Branch {
 		(__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, {require}, exports, module)) :
 		__WEBPACK_AMD_DEFINE_FACTORY__),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))",
-          require = RuntimeGlobals::REQUIRE.name()
+          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
       }
       a_f if a_f == (Branch::A | Branch::F) => "!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, __WEBPACK_AMD_DEFINE_RESULT__ = (#).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
@@ -135,7 +137,7 @@ impl Branch {
           "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
           var_name = local_module_var,
           module_id = json_stringify(named_module),
-          require = RuntimeGlobals::REQUIRE.name(),
+          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }
       l_o if l_o == (Branch::L | Branch::O) => format!("!({local_module_var} = #)"),
@@ -144,7 +146,7 @@ impl Branch {
           "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
           var_name = local_module_var,
           module_id = json_stringify(named_module),
-          require = RuntimeGlobals::REQUIRE.name(),
+          require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }
       l_a_f if l_a_f == (Branch::L | Branch::A | Branch::F) => format!("!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, {local_module_var} = (#).apply({local_module_var}exports = {{}}, __WEBPACK_AMD_DEFINE_ARRAY__), {local_module_var} === undefined && ({local_module_var} = {local_module_var}exports))"),
@@ -290,7 +292,11 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
 
     let local_module_var = dep.local_module_var();
 
-    let text = branch.get_content(&local_module_var, &dep.named_module);
+    let text = branch.get_content(
+      &local_module_var,
+      &dep.named_module,
+      &code_generatable_context.compilation.runtime_template,
+    );
     let definition = branch.get_definition(&local_module_var);
 
     let mut texts = text.split('#');

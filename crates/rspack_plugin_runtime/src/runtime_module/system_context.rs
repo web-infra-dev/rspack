@@ -19,10 +19,12 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SYSTEM_CONTEXT)
     ))
   }
 }

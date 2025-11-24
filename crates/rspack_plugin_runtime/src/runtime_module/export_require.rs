@@ -26,11 +26,15 @@ impl RuntimeModule for ExportRequireRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "var {EXPORT_TEMP_NAME} = {};\nexport {{ {EXPORT_TEMP_NAME} as {} }};\n",
-      RuntimeGlobals::REQUIRE,
-      RuntimeGlobals::REQUIRE
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     ))
   }
 

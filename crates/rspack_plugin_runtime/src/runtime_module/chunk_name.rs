@@ -29,7 +29,9 @@ impl RuntimeModule for ChunkNameRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       Ok(format!(
         "{} = {};",
-        RuntimeGlobals::CHUNK_NAME,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
         serde_json::to_string(&chunk.name()).expect("Invalid json string")
       ))
     } else {

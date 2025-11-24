@@ -58,7 +58,8 @@ impl JavascriptParserPlugin for CommonJsPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_ID,
       )));
-      parser.build_info.module_concatenation_bailout = Some(RuntimeGlobals::MODULE_ID.to_string());
+      parser.build_info.module_concatenation_bailout =
+        Some(RuntimeGlobals::MODULE_ID.name().to_string());
       return Some(true);
     }
 
@@ -67,7 +68,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
         RuntimeGlobals::MODULE_LOADED,
       )));
       parser.build_info.module_concatenation_bailout =
-        Some(RuntimeGlobals::MODULE_LOADED.to_string());
+        Some(RuntimeGlobals::MODULE_LOADED.name().to_string());
       return Some(true);
     }
 

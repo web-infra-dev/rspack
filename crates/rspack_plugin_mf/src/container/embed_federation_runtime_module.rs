@@ -88,7 +88,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
-    let startup = RuntimeGlobals::STARTUP.name();
+    let startup = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP);
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;

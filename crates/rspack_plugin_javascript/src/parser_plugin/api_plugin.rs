@@ -54,7 +54,7 @@ const API_INIT_SHARING: &str = "__webpack_init_sharing__";
 const API_NONCE: &str = "__webpack_nonce__";
 const API_CHUNK_NAME: &str = "__webpack_chunkname__";
 const API_RUNTIME_ID: &str = "__webpack_runtime_id__";
-const API_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
+const API_REQUIRE: &str = "__webpack_require__";
 const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
 const API_VERSION: &str = "__rspack_version__";
 const API_UNIQUE_ID: &str = "__rspack_unique_id__";
@@ -140,7 +140,7 @@ impl JavascriptParserPlugin for APIPlugin {
       API_HASH => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
+          format!("{}()", RuntimeGlobals::GET_FULL_HASH.name()).into(),
           Some(RuntimeGlobals::GET_FULL_HASH),
         )));
         Some(true)
@@ -269,7 +269,7 @@ impl JavascriptParserPlugin for APIPlugin {
       API_VERSION => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
+          format!("{}()", RuntimeGlobals::RSPACK_VERSION.name()).into(),
           Some(RuntimeGlobals::RSPACK_VERSION),
         )));
         Some(true)
@@ -277,7 +277,7 @@ impl JavascriptParserPlugin for APIPlugin {
       API_UNIQUE_ID => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
+          format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID.name()).into(),
           Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
         )));
         Some(true)
@@ -342,8 +342,8 @@ impl JavascriptParserPlugin for APIPlugin {
         member_expr.span().into(),
         format!(
           "{}[{}]",
-          RuntimeGlobals::MODULE_CACHE,
-          RuntimeGlobals::ENTRY_MODULE_ID
+          RuntimeGlobals::MODULE_CACHE.name(),
+          RuntimeGlobals::ENTRY_MODULE_ID.name()
         )
         .into(),
         Some(runtime_requirements),

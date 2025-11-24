@@ -50,7 +50,13 @@ impl ModuleChunkLoadingRuntimeModule {
           compilation.options.output.import_meta_name
         )
       });
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template(&self, template_id: TemplateId) -> String {
@@ -180,7 +186,12 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_module",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -229,7 +240,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     } else {
       source.push_str("// no chunk on demand loading\n");
@@ -312,7 +325,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         r#"
         {} = installChunk;
         "#,
-        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
     } else {
       source.push_str("// no external install chunk\n");
@@ -325,7 +340,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             return installedChunks[chunkId] === 0;
         }}
         "#,
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     } else {
       source.push_str("// no on chunks loaded\n");

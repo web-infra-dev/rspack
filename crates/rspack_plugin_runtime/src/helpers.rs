@@ -231,7 +231,9 @@ pub fn generate_entry_startup(
   let mut source = String::default();
   source.push_str(&format!(
     "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
-    RuntimeGlobals::ENTRY_MODULE_ID
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
   ));
 
   let module_ids_code = &module_id_exprs
@@ -254,9 +256,13 @@ pub fn generate_entry_startup(
         return {};
       }});\n",
       if passive {
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       } else {
-        RuntimeGlobals::STARTUP_ENTRYPOINT
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
       },
       stringify_chunks_to_array(&chunks_ids),
       module_ids_code
@@ -264,7 +270,9 @@ pub fn generate_entry_startup(
     if passive {
       source.push_str(&format!(
         "var __webpack_exports__ = {}();\n",
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     }
   }

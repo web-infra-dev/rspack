@@ -26,8 +26,10 @@ impl RuntimeModule for PublicPathRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = \"{}\";",
-      RuntimeGlobals::PUBLIC_PATH.name(),
-      &PublicPath::render_filename(compilation, &self.public_path).await
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+      &PublicPath::render_filename(compilation, &self.public_path).await,
     ))
   }
 

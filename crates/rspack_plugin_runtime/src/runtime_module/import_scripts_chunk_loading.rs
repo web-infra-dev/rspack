@@ -53,7 +53,13 @@ impl ImportScriptsChunkLoadingRuntimeModule {
         .expect("should able to be serde_json::to_string")
       )
     };
-    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
+    Ok(format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    ))
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -125,7 +131,12 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     // object to store loaded chunks
     // "1" means "already loaded"
     if with_hmr {
-      let state_expression = format!("{}_importScripts", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+      let state_expression = format!(
+        "{}_importScripts",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      );
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,

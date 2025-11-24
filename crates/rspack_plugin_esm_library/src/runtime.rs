@@ -18,11 +18,13 @@ impl RuntimeModule for RegisterModuleRuntime {
     "esm library register module runtime".into()
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = function registerModules(modules) {{ Object.assign({}, modules) }}\n",
       Self::runtime_id(),
-      RuntimeGlobals::MODULE_FACTORIES,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
     ))
   }
 }

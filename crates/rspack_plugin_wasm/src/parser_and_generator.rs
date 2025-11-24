@@ -273,7 +273,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
-          RuntimeGlobals::INSTANTIATE_WASM,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
           serde_json::to_string(&hash).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
@@ -299,7 +301,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }} catch(e) {{ __webpack_async_result__(e); }}
 }}, 1);
 ",
-            RuntimeGlobals::ASYNC_MODULE,
+            compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           );
 
           RawStringSource::from(format!("{decl}{async_dependencies}"))

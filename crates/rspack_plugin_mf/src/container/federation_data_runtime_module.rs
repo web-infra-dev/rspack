@@ -49,7 +49,12 @@ impl RuntimeModule for FederationDataRuntimeModule {
 }
 
 pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> String {
-  let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
+  let federation_global = format!(
+    "{}.federation",
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+  );
 
   let condition_map =
     compilation

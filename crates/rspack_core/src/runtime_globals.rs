@@ -1,5 +1,3 @@
-use std::fmt;
-
 use bitflags::bitflags;
 use swc_core::ecma::atoms::Atom;
 
@@ -266,13 +264,6 @@ bitflags! {
   }
 }
 
-impl fmt::Display for RuntimeGlobals {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let name = self.name();
-    f.write_str(name)
-  }
-}
-
 impl Default for RuntimeGlobals {
   fn default() -> Self {
     Self::empty()
@@ -382,9 +373,9 @@ mod test {
 
   #[test]
   fn test_pretty_print() {
-    let flags = RuntimeGlobals::PUBLIC_PATH;
+    let flags = RuntimeGlobals::PUBLIC_PATH.name();
     assert_eq!(format!("{flags}"), "__webpack_require__.p");
-    let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
+    let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME.name();
     assert_eq!(format!("{flags}"), "__webpack_require__.k");
   }
 

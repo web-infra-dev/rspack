@@ -99,6 +99,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
           Some(&runtime_condition),
           *runtime,
           runtime_requirements,
+          &compilation.runtime_template,
         )
       };
 

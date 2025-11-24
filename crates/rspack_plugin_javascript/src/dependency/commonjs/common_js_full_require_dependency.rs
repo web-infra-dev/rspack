@@ -200,7 +200,9 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
         UsedName::Normal(used) => {
           format!(
             "{}({}){}{}",
-            RuntimeGlobals::REQUIRE,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             module_id(compilation, &dep.id, &dep.request, false),
             comment,
             property_access(used, 0)
@@ -215,7 +217,9 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } else {
       format!(
         r#"{}({})"#,
-        RuntimeGlobals::REQUIRE,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         module_id(compilation, &dep.id, &dep.request, false)
       )
     };

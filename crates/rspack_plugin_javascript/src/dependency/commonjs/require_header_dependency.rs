@@ -73,13 +73,16 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
 
     let TemplateContext {
       runtime_requirements,
+      compilation,
       ..
     } = code_generatable_context;
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       dep.range.start,
       dep.range.end,
-      RuntimeGlobals::REQUIRE.name(),
+      &compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
     );
   }

@@ -221,7 +221,9 @@ pub fn stringified_exports<'a>(
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           format!(
             "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             json_stringify(&unescape(ident))
           )
         }
@@ -294,7 +296,9 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
           .expect("should json stringify module id");
           format!(
             "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             json_stringify(&ident)
           )
         }

@@ -15,8 +15,8 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, merge_runtime, property_name,
-  runtime_condition_expression,
+  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, RuntimeTemplate,
+  merge_runtime, property_name, runtime_condition_expression,
 };
 
 static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
@@ -161,6 +161,7 @@ pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
   fn returning_function(&self, return_value: &str, args: &str) -> String;
+  fn runtime_template(&self) -> &RuntimeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -271,6 +272,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
       Some(runtime_condition),
       self.runtime,
       self.runtime_requirements,
+      &self.compilation.runtime_template,
     )
   }
 
@@ -279,6 +281,10 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
       .compilation
       .runtime_template
       .returning_function(return_value, args)
+  }
+
+  fn runtime_template(&self) -> &RuntimeTemplate {
+    &self.compilation.runtime_template
   }
 }
 
@@ -295,6 +301,10 @@ impl InitFragmentRenderContext for ChunkRenderContext {
 
   fn returning_function(&self, _return_value: &str, _args: &str) -> String {
     unreachable!("should not call returning function in chunk render context")
+  }
+
+  fn runtime_template(&self) -> &RuntimeTemplate {
+    unreachable!("should not call runtime template in chunk render context")
   }
 }
 
@@ -387,7 +397,9 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     Ok(InitFragmentContents {
       start: format!(
         "{}({}, {});\n",
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        context
+          .runtime_template()
+          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
         self.exports_argument,
         exports
       ),

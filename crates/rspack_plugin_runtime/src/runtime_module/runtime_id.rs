@@ -45,7 +45,9 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
 
       Ok(format!(
         "{} = {};",
-        RuntimeGlobals::RUNTIME_ID,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
         serde_json::to_string(&id).expect("Invalid json string")
       ))
     } else {

@@ -604,7 +604,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .insert(RuntimeGlobals::PUBLIC_PATH);
             format!(
               r#"{} + "{}""#,
-              RuntimeGlobals::PUBLIC_PATH,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
               original_filename
             )
           };

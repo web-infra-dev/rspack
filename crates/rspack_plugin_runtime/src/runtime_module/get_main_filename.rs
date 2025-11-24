@@ -52,7 +52,15 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             ))
-            .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
+            .hash(
+              format!(
+                "\" + {}() + \"",
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+              )
+              .as_str(),
+            )
             .runtime(chunk.runtime().as_str()),
         )
         .await?;
@@ -62,7 +70,10 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        self.global, filename
+        compilation
+          .runtime_template
+          .render_runtime_globals(&self.global),
+        filename,
       ))
     } else {
       unreachable!("should attach chunk for get_main_filename")

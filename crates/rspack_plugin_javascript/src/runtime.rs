@@ -207,7 +207,11 @@ pub async fn render_module(
         });
       }
       if need_require {
-        args.push(RuntimeGlobals::REQUIRE.to_string());
+        args.push(
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        );
       }
 
       let mut container_sources = ConcatSource::default();
@@ -288,7 +292,9 @@ pub async fn render_chunk_runtime_modules(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "function({}) {{\n",
-    RuntimeGlobals::REQUIRE
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawStringSource::from_static("\n}\n"));

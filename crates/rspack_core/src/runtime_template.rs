@@ -1,38 +1,32 @@
 use std::{
   collections::HashMap,
   fmt::Debug,
-  sync::{LazyLock, Mutex},
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use regex::{Captures, Regex};
-use rspack_dojang::{Context, Dojang, Operand};
+use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value};
 
 use crate::{Environment, RuntimeGlobals};
 
 pub struct RuntimeTemplate {
-  environment: Environment,
+  environment: Arc<Environment>,
+  runtime_globals: Arc<Map<String, Value>>,
   dojang: Dojang,
 }
-
-static RUNTIME_GLOBALS_VALUE: LazyLock<Map<String, Value>> = LazyLock::new(|| {
-  RuntimeGlobals::all()
-    .iter_names()
-    .map(|(name, value)| (name.to_string(), Value::String(value.to_string())))
-    .collect::<Map<String, Value>>()
-});
 
 static RUNTIME_GLOBALS_PATTERN: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\$\$RUNTIME_GLOBAL_(.*?)\$\$").expect("failed to create regex"));
 
-fn replace_runtime_globals(template: String) -> String {
+fn replace_runtime_globals(template: String, runtime_globals: &Map<String, Value>) -> String {
   RUNTIME_GLOBALS_PATTERN
     .replace_all(&template, |caps: &Captures| {
       let name = caps.get(1).expect("name should be a string").as_str();
-      RUNTIME_GLOBALS_VALUE
+      runtime_globals
         .get(name)
         .map(|value| match value {
           Value::String(value) => value.clone(),
@@ -53,47 +47,71 @@ impl Debug for RuntimeTemplate {
 
 impl RuntimeTemplate {
   pub fn new(environment: Environment) -> Self {
+    let runtime_globals = Arc::new(
+      RuntimeGlobals::all()
+        .iter_names()
+        .map(|(name, value)| (name.to_string(), Value::String(value.name().to_string())))
+        .collect::<Map<String, Value>>(),
+    );
+    let environment = Arc::new(environment);
+
     let mut dojang = Dojang::new();
 
-    if environment.supports_arrow_function() {
-      dojang
-        .add_function_1("basicFunction".into(), basic_function_arrow)
-        .expect("failed to add template function `basicFunction`");
-      dojang
-        .add_function_2("returningFunction".into(), returning_function_arrow)
-        .expect("failed to add template function `returningFunction`");
-      dojang
-        .add_function_2("expressionFunction".into(), expression_function_arrow)
-        .expect("failed to add template function `expressionFunction`");
-      dojang
-        .add_function_0("emptyFunction".into(), empty_function_arrow)
-        .expect("failed to add template function `emptyFunction`");
-    } else {
-      dojang
-        .add_function_1("basicFunction".into(), basic_function)
-        .expect("failed to add template function `basicFunction`");
-      dojang
-        .add_function_2("returningFunction".into(), returning_function)
-        .expect("failed to add template function `returningFunction`");
-      dojang
-        .add_function_2("expressionFunction".into(), expression_function)
-        .expect("failed to add template function `expressionFunction`");
-      dojang
-        .add_function_0("emptyFunction".into(), empty_function)
-        .expect("failed to add template function `emptyFunction`");
-    }
+    let runtime_globals_cloned = runtime_globals.clone();
+    let environment_cloned = environment.clone();
+    dojang.functions.insert(
+      "basicFunction".into(),
+      FunctionContainer::F1(Box::new(move |args: Operand| {
+        basic_function(args, &runtime_globals_cloned, &environment_cloned)
+      })),
+    );
 
-    if environment.supports_destructuring() {
-      dojang
-        .add_function_2("destructureArray".into(), array_destructure)
-        .expect("failed to add template function `destructureArray`");
-    } else {
-      dojang
-        .add_function_2("destructureArray".into(), array_variable)
-        .expect("failed to add template function `destructureArray`");
-    }
+    let runtime_globals_cloned = runtime_globals.clone();
+    let environment_cloned = environment.clone();
+    dojang.functions.insert(
+      "returningFunction".into(),
+      FunctionContainer::F2(Box::new(move |args: Operand, return_value: Operand| {
+        returning_function(
+          args,
+          return_value,
+          &runtime_globals_cloned,
+          &environment_cloned,
+        )
+      })),
+    );
+
+    let runtime_globals_cloned = runtime_globals.clone();
+    let environment_cloned = environment.clone();
+    dojang.functions.insert(
+      "expressionFunction".into(),
+      FunctionContainer::F2(Box::new(move |args: Operand, expression: Operand| {
+        expression_function(
+          args,
+          expression,
+          &runtime_globals_cloned,
+          &environment_cloned,
+        )
+      })),
+    );
+
+    let environment_cloned = environment.clone();
+    dojang.functions.insert(
+      "emptyFunction".into(),
+      FunctionContainer::F0(Box::new(move || empty_function(&environment_cloned))),
+    );
+
+    let runtime_globals_cloned = runtime_globals.clone();
+    let environment_cloned = environment.clone();
+    dojang.functions.insert(
+      "destructureArray".into(),
+      FunctionContainer::F2(Box::new(move |items: Operand, value: Operand| {
+        array_destructure(items, value, &runtime_globals_cloned, &environment_cloned)
+      })),
+    );
+
     Self {
       environment,
+      runtime_globals,
       dojang,
     }
   }
@@ -110,7 +128,17 @@ impl RuntimeTemplate {
   }
 
   pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
-    let mut render_params = Value::Object(RUNTIME_GLOBALS_VALUE.clone());
+    let mut render_params = Value::Object(Default::default());
+
+    render_params
+      .as_object_mut()
+      .unwrap_or_else(|| unreachable!())
+      .extend(
+        self
+          .runtime_globals
+          .iter()
+          .map(|(k, v)| (k.clone(), v.clone())),
+      );
 
     if let Some(params) = params {
       match params {
@@ -160,114 +188,146 @@ impl RuntimeTemplate {
       format!("function({args}) {{\n {body} \n}}")
     }
   }
+
+  pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
+    runtime_globals.name().into()
+  }
 }
 
-fn to_string(val: &Operand) -> String {
-  replace_runtime_globals(match val {
-    Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
-    _ => String::default(),
-  })
+fn to_string(val: &Operand, runtime_globals: &Map<String, Value>) -> String {
+  replace_runtime_globals(
+    match val {
+      Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
+      _ => String::default(),
+    },
+    runtime_globals,
+  )
 }
 
-fn join_to_string(val: &Operand, sep: &str) -> String {
-  replace_runtime_globals(match val {
-    Operand::Array(items) => items.iter().map(to_string).join(sep),
-    _ => to_string(val),
-  })
+fn join_to_string(val: &Operand, sep: &str, runtime_globals: &Map<String, Value>) -> String {
+  replace_runtime_globals(
+    match val {
+      Operand::Array(items) => items
+        .iter()
+        .map(|item| to_string(item, runtime_globals))
+        .join(sep),
+      _ => to_string(val, runtime_globals),
+    },
+    runtime_globals,
+  )
 }
 
-fn basic_function_arrow(args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    r#"({}) =>"#,
-    join_to_string(&args, ", ")
-  )))
+fn basic_function(
+  args: Operand,
+  runtime_globals: &Map<String, Value>,
+  environment: &Arc<Environment>,
+) -> Operand {
+  if environment.supports_arrow_function() {
+    Operand::Value(Value::from(format!(
+      r#"({}) =>"#,
+      join_to_string(&args, ", ", runtime_globals)
+    )))
+  } else {
+    Operand::Value(Value::from(format!(
+      r#"function({})"#,
+      join_to_string(&args, ", ", runtime_globals)
+    )))
+  }
 }
 
-fn basic_function(args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    r#"function({})"#,
-    join_to_string(&args, ", ")
-  )))
+fn returning_function(
+  return_value: Operand,
+  args: Operand,
+  runtime_globals: &Map<String, Value>,
+  environment: &Arc<Environment>,
+) -> Operand {
+  if environment.supports_arrow_function() {
+    Operand::Value(Value::from(format!(
+      "({}) => ({})",
+      join_to_string(&args, ", ", runtime_globals),
+      to_string(&return_value, runtime_globals)
+    )))
+  } else {
+    Operand::Value(Value::from(format!(
+      "function({}) {{ return {}; }}",
+      join_to_string(&args, ", ", runtime_globals),
+      to_string(&return_value, runtime_globals)
+    )))
+  }
 }
 
-fn returning_function_arrow(return_value: Operand, args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    "({}) => ({})",
-    join_to_string(&args, ", "),
-    to_string(&return_value)
-  )))
+fn expression_function(
+  expression: Operand,
+  args: Operand,
+  runtime_globals: &Map<String, Value>,
+  environment: &Arc<Environment>,
+) -> Operand {
+  if environment.supports_arrow_function() {
+    Operand::Value(Value::from(format!(
+      "({}) => ({})",
+      join_to_string(&args, ", ", runtime_globals),
+      to_string(&expression, runtime_globals)
+    )))
+  } else {
+    Operand::Value(Value::from(format!(
+      "function({}) {{ {}; }}",
+      join_to_string(&args, ", ", runtime_globals),
+      to_string(&expression, runtime_globals)
+    )))
+  }
 }
 
-fn expression_function(expression: Operand, args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    "function({}) {{ {}; }}",
-    join_to_string(&args, ", "),
-    to_string(&expression)
-  )))
+fn empty_function(environment: &Arc<Environment>) -> Operand {
+  if environment.supports_arrow_function() {
+    Operand::Value(Value::from("() => {}"))
+  } else {
+    Operand::Value(Value::from("function() {}"))
+  }
 }
 
-fn expression_function_arrow(expression: Operand, args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    "({}) => ({})",
-    join_to_string(&args, ", "),
-    to_string(&expression)
-  )))
-}
-
-fn returning_function(return_value: Operand, args: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    "function({}) {{ return {}; }}",
-    join_to_string(&args, ", "),
-    to_string(&return_value)
-  )))
-}
-
-fn array_destructure(items: Operand, value: Operand) -> Operand {
-  Operand::Value(Value::from(format!(
-    "var [{}] = {};",
-    join_to_string(&items, ", "),
-    to_string(&value)
-  )))
-}
-
-fn array_variable(items: Operand, value: Operand) -> Operand {
-  let value_name = to_string(&value);
-  let items = match items {
-    Operand::Array(items) => items
-      .iter()
-      .enumerate()
-      .map(|(idx, item)| {
-        let item_name = to_string(item);
-        if item_name.is_empty() {
-          String::default()
-        } else {
-          format!("var {item_name} = {value_name}[{idx}];")
-        }
-      })
-      .join("\n"),
-    Operand::Value(val) => val
-      .as_str()
-      .unwrap_or_default()
-      .split(",")
-      .enumerate()
-      .map(|(idx, item)| {
-        let item_name = item.trim().to_string();
-        if item_name.is_empty() {
-          String::default()
-        } else {
-          format!("var {item_name} = {value_name}[{idx}];")
-        }
-      })
-      .join("\n"),
-    _ => String::default(),
-  };
-  Operand::Value(Value::from(items))
-}
-
-fn empty_function() -> Operand {
-  Operand::Value(Value::from("function() {}"))
-}
-
-fn empty_function_arrow() -> Operand {
-  Operand::Value(Value::from("function() {}"))
+fn array_destructure(
+  items: Operand,
+  value: Operand,
+  runtime_globals: &Map<String, Value>,
+  environment: &Arc<Environment>,
+) -> Operand {
+  if environment.supports_destructuring() {
+    Operand::Value(Value::from(format!(
+      "var [{}] = {};",
+      join_to_string(&items, ", ", runtime_globals),
+      to_string(&value, runtime_globals)
+    )))
+  } else {
+    let value_name = to_string(&value, runtime_globals);
+    let items = match items {
+      Operand::Array(items) => items
+        .iter()
+        .enumerate()
+        .map(|(idx, item)| {
+          let item_name = to_string(item, runtime_globals);
+          if item_name.is_empty() {
+            String::default()
+          } else {
+            format!("var {item_name} = {value_name}[{idx}];")
+          }
+        })
+        .join("\n"),
+      Operand::Value(val) => val
+        .as_str()
+        .unwrap_or_default()
+        .split(",")
+        .enumerate()
+        .map(|(idx, item)| {
+          let item_name = item.trim().to_string();
+          if item_name.is_empty() {
+            String::default()
+          } else {
+            format!("var {item_name} = {value_name}[{idx}];")
+          }
+        })
+        .join("\n"),
+      _ => String::default(),
+    };
+    Operand::Value(Value::from(items))
+  }
 }

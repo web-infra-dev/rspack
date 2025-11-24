@@ -114,7 +114,9 @@ impl RuntimeModule for ShareRuntimeModule {
 __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
-      share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
+      share_scope_map = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
