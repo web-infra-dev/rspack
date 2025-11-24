@@ -1,12 +1,13 @@
 use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
-use rspack_collections::Identifiable;
+use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilerFinishMake,
-  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
-  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
+  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, GroupOptions, Logger,
+  Module, ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
   RuntimeSpec,
+  build_module_graph::{UpdateParam, update_module_graph},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,11 +16,13 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::json;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  client_reference_dependency::ClientReferenceDependency, constants::WEBPACK_LAYERS,
-  utils::ServerEntryModules,
+  client_reference_dependency::ClientReferenceDependency,
+  constants::WEBPACK_LAYERS,
+  utils::{EntryModules, ServerEntries},
 };
 
 /// { [client import path]: [exported names] }
@@ -28,12 +31,11 @@ pub type CssImports = FxHashMap<String, Vec<String>>;
 
 type ActionIdNamePair = (Arc<str>, Arc<str>);
 
+#[derive(Debug)]
 struct ClientEntry {
-  server_entry_module: ModuleIdentifier,
-  // entry_name: String,
+  entry_name: String,
+  runtime: Option<RuntimeSpec>,
   client_imports: ClientComponentImports,
-  // bundle_path: String,
-  absolute_page_path: String,
 }
 
 struct ComponentInfo {
@@ -42,11 +44,12 @@ struct ComponentInfo {
   action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
+#[derive(Debug)]
 struct InjectedClientEntry {
   // should_invalidate: bool,
-  add_ssr_entry: (AsyncDependenciesBlock, ModuleIdentifier),
-  add_rsc_entry: (AsyncDependenciesBlock, ModuleIdentifier),
-  ssr_dep: DependencyId,
+  runtime: Option<RuntimeSpec>,
+  add_ssr_entry: (BoxDependency, EntryOptions),
+  ssr_dependency_id: DependencyId,
 }
 
 // 该插件只在 server 上执行
@@ -229,7 +232,7 @@ pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
   let rsc = get_module_rsc_information(module);
-  let has_client_directive = matches!(rsc, Some(rsc) if rsc.is_client_ref);
+  let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RSCModuleType::Client);
   let is_action_layer_entry = is_action_client_layer_module(module);
   let is_image = if let Some(module) = module.as_normal_module() {
     IMAGE_REGEX.is_match(module.resource_resolved_data().resource())
@@ -256,14 +259,13 @@ impl ReactServerComponentsPlugin {
     let mut created_action_ids: FxHashSet<String> = Default::default();
 
     let module_graph = compilation.get_module_graph();
-    let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
-    // 从 server entry 开始遍历依赖图，收集 "use client" 组件和 "use server"
-    for (server_entry_module, runtime) in server_entry_modules {
+    let entry_modules = EntryModules::new(compilation, &module_graph);
+    for (entry_module, entry_name, runtime) in entry_modules {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
       let mut merged_css_imports: CssImports = CssImports::default();
 
-      for dependency_id in module_graph.get_outgoing_deps_in_order(&server_entry_module.id()) {
+      for dependency_id in module_graph.get_outgoing_deps_in_order(&entry_module.identifier()) {
         let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
           continue;
         };
@@ -293,46 +295,40 @@ impl ReactServerComponentsPlugin {
 
         merged_css_imports.extend(component_info.css_imports);
 
-        client_entries_to_inject.push(ClientEntry {
-          server_entry_module: server_entry_module.id(),
-          client_imports: component_info.client_component_imports,
-          absolute_page_path: entry_request.to_string(),
-        });
+        if !component_info.client_component_imports.is_empty() {
+          client_entries_to_inject.push(ClientEntry {
+            entry_name: entry_name.to_string(),
+            runtime: runtime.clone(),
+            client_imports: component_info.client_component_imports,
+          });
+        }
       }
 
-      // 处理收集到的 use client
       // Make sure CSS imports are deduplicated before injecting the client entry
       // and SSR modules.
       // let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
       for mut client_entry_to_inject in client_entries_to_inject {
-        // let client_imports = &mut client_entry_to_inject.client_imports;
-        // if let Some(css_imports) = deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
+        let client_imports = &mut client_entry_to_inject.client_imports;
+        // if let Some(css_imports) =
+        //   deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
         // {
         //   for curr in css_imports {
-        //     client_imports.insert(curr.clone(), FxHashSet::default());
+        //     client_imports.insert(curr.clone(), HashSet::default());
         //   }
         // }
 
+        let entry_name = client_entry_to_inject.entry_name.to_string();
         let injected =
           self.inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject);
 
         // Track all created SSR dependencies for each entry from the server layer.
-        // created_ssr_dependencies_for_entry
-        //   .entry(entry_name)
-        //   .or_insert_with(Vec::new)
-        //   .push(injected.ssr_dep);
+        created_ssr_dependencies_for_entry
+          .entry(entry_name)
+          .or_insert_with(Vec::new)
+          .push(injected.ssr_dependency_id);
 
         add_client_entry_and_ssr_modules_list.push(injected);
       }
-
-      add_client_entry_and_ssr_modules_list.push(self.inject_client_entry_and_ssr_modules(
-        compilation,
-        ClientEntry {
-          client_imports: Default::default(),
-          server_entry_module: server_entry_module.id(),
-          absolute_page_path: "".to_string(),
-        },
-      ));
 
       // if !action_entry_imports.is_empty() {
       //   if !action_maps_per_entry.contains_key(name) {
@@ -377,26 +373,33 @@ impl ReactServerComponentsPlugin {
     // in parallel to the server compiler.
 
     // Wait for action entries to be added.
-    // let args = add_client_entry_and_ssr_modules_list
-    //   .into_iter()
-    //   .flat_map(|add_client_entry_and_ssr_modules| {
-    //     vec![
-    //       add_client_entry_and_ssr_modules.add_rsc_entry,
-    //       add_client_entry_and_ssr_modules.add_ssr_entry,
-    //     ]
-    //   })
-    //   .chain(add_action_entry_list.into_iter())
-    //   .collect::<Vec<_>>();
-    // let included_deps: Vec<_> = args.iter().map(|(dep, _)| *dep.id()).collect();
-    // compilation.add_include(args).await?;
-    // for dep in included_deps {
-    //   let mut mg = compilation.get_module_graph_mut();
-    //   let Some(m) = mg.get_module_by_dependency_id(&dep) else {
-    //     continue;
-    //   };
-    //   let info = mg.get_exports_info(&m.identifier());
-    //   info.set_used_in_unknown_way(&mut mg, runtime.as_ref());
-    // }
+
+    let runtimes = add_client_entry_and_ssr_modules_list
+      .iter()
+      .map(|injected| injected.runtime.clone())
+      .collect::<Vec<_>>();
+    let add_include_args: Vec<(BoxDependency, EntryOptions)> =
+      add_client_entry_and_ssr_modules_list
+        .into_iter()
+        .map(|add_client_entry_and_ssr_modules: InjectedClientEntry| {
+          add_client_entry_and_ssr_modules.add_ssr_entry
+        })
+        // .chain(add_action_entry_list.into_iter())
+        .collect();
+    let included_dependencies: Vec<_> = add_include_args
+      .iter()
+      .map(|(dependency, _)| *dependency.id())
+      .collect();
+    compilation.add_include(add_include_args).await?;
+    for (idx, dependency_id) in included_dependencies.into_iter().enumerate() {
+      let mut mg = compilation.get_module_graph_mut();
+      let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&module.identifier());
+      let runtime = runtimes[idx].as_ref();
+      info.set_used_in_unknown_way(&mut mg, runtime);
+    }
 
     // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     // let mut action_maps_per_client_entry: FxHashMap<
@@ -645,12 +648,12 @@ impl ReactServerComponentsPlugin {
     client_entry: ClientEntry,
   ) -> InjectedClientEntry {
     let ClientEntry {
-      server_entry_module,
+      entry_name,
+      runtime,
       client_imports,
-      absolute_page_path,
     } = client_entry;
 
-    // let mut should_invalidate = false;
+    let mut should_invalidate = false;
 
     let mut modules: Vec<_> = client_imports
       .keys()
@@ -664,8 +667,8 @@ impl ReactServerComponentsPlugin {
     //   let a_is_css = REGEX_CSS.is_match(&a.0);
     //   let b_is_css = REGEX_CSS.is_match(&b.0);
     //   match (a_is_css, b_is_css) {
-    //     (false, true) => std::cmp::Ordering::Less,
-    //     (true, false) => std::cmp::Ordering::Greater,
+    //     (false, true) => Ordering::Less,
+    //     (true, false) => Ordering::Greater,
     //     (_, _) => a.0.cmp(&b.0),
     //   }
     // });
@@ -673,42 +676,33 @@ impl ReactServerComponentsPlugin {
     // For the client entry, we always use the CJS build of Next.js. If the
     // server is using the ESM build (when using the Edge runtime), we need to
     // replace them.
-    // let client_browser_loader = {
-    //   let mut serializer = form_urlencoded::Serializer::new(String::new());
-    //   for (request, ids) in &modules {
-    //     let module_json = if self.is_edge_server {
-    //       serde_json::to_string(&json!({
-    //           "request": NEXT_DIST_ESM_REGEX.replace(request, &*NEXT_DIST),
-    //           "ids": ids
-    //       }))
-    //       .unwrap()
-    //     } else {
-    //       serde_json::to_string(&json!({
-    //           "request": request,
-    //           "ids": ids
-    //       }))
-    //       .unwrap()
-    //     };
-    //     serializer.append_pair("modules", &module_json);
-    //   }
-    //   serializer.append_pair("server", "false");
+    let client_browser_loader = {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      for (request, ids) in &modules {
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": ids
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "false");
+      format!("builtin:client-entry-loader?{}!", serializer.finish())
+    };
 
-    //   format!("next-flight-client-entry-loader?{}!", serializer.finish())
-    // };
-
-    // let client_server_loader = {
-    //   let mut serializer = form_urlencoded::Serializer::new(String::new());
-    //   for (request, ids) in &modules {
-    //     let module_json = serde_json::to_string(&json!({
-    //         "request": request,
-    //         "ids": ids
-    //     }))
-    //     .unwrap();
-    //     serializer.append_pair("modules", &module_json);
-    //   }
-    //   serializer.append_pair("server", "true");
-    //   format!("next-flight-client-entry-loader?{}!", serializer.finish())
-    // };
+    let client_server_loader = {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      for (request, ids) in &modules {
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": ids
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "true");
+      format!("builtin:client-entry-loader?{}!", serializer.finish())
+    };
 
     // Add for the client compilation
     // Inject the entry to the client compiler.
@@ -728,45 +722,26 @@ impl ReactServerComponentsPlugin {
     //     .insert(bundle_path, client_browser_loader.clone());
     // }
 
-    // let client_component_ssr_entry_dep =
-    //   ClientReferenceDependency::new(client_server_loader.to_string());
-    // let ssr_dep = *(client_component_ssr_entry_dep.id());
-    // let mut client_component_ssr_entry_block = AsyncDependenciesBlock::new(
-    //   server_entry_module,
-    //   None,
-    //   None,
-    //   vec![Box::new(client_component_ssr_entry_dep)],
-    //   None,
-    // );
+    let client_component_ssr_entry_dep = EntryDependency::new(
+      client_server_loader.to_string(),
+      compilation.options.context.clone(),
+      Some("react-client-components".to_string()),
+      false,
+    );
+    let ssr_dependency_id = *(client_component_ssr_entry_dep.id());
 
-    // let client_component_rsc_entry_dep = ClientReferenceDependency::new(client_server_loader);
-    // let mut client_component_rsc_entry_block = AsyncDependenciesBlock::new(
-    //   server_entry_module,
-    //   None,
-    //   None,
-    //   vec![Box::new(client_component_rsc_entry_dep)],
-    //   None,
-    // );
-
-    // InjectedClientEntry {
-    //   add_ssr_entry: (
-    //     Box::new(client_component_ssr_entry_dep),
-    //     EntryOptions {
-    //       name: Some(entry_name.to_string()),
-    //       layer: Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
-    //       ..Default::default()
-    //     },
-    //   ),
-    //   add_rsc_entry: (
-    //     Box::new(client_component_rsc_entry_dep),
-    //     EntryOptions {
-    //       name: Some(entry_name.to_string()),
-    //       layer: Some(WEBPACK_LAYERS.react_server_components.to_string()),
-    //       ..Default::default()
-    //     },
-    //   ),
-    //   ssr_dep,
-    // }
-    todo!()
+    InjectedClientEntry {
+      runtime,
+      // should_invalidate,
+      add_ssr_entry: (
+        Box::new(client_component_ssr_entry_dep),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          layer: Some("react-client-components".to_string()),
+          ..Default::default()
+        },
+      ),
+      ssr_dependency_id,
+    }
   }
 }

@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 pub struct WebpackResourceQueries {
@@ -118,3 +119,5 @@ pub const APP_CLIENT_INTERNALS: &'static str = "app-pages-internals";
 
 // server/server-reference-manifest
 pub const SERVER_REFERENCE_MANIFEST: &str = "server-reference-manifest";
+
+pub static REGEX_CSS: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.(css|scss|sass)(\?.*)?$").unwrap());

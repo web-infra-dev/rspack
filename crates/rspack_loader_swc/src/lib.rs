@@ -10,7 +10,9 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RunnerContext};
+use rspack_core::{
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RSCModuleType, RunnerContext,
+};
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -155,11 +157,14 @@ impl SwcLoader {
             && let Some(layer) = loader_context.context.module.get_layer()
             && KNOWN_RSC_LAYERS.contains(&layer.as_str())
           {
+            let is_react_server_layer = layer == "react-server-components";
+            let build_info = loader_context.context.module.build_info_mut();
             Box::new(transforms::server_components(
               filename,
               transforms::Config::WithOptions(transforms::Options {
-                is_react_server_layer: layer == "react-server-components",
+                is_react_server_layer,
               }),
+              &mut build_info.rsc,
             )) as Box<dyn swc_core::ecma::ast::Pass>
           } else {
             Box::new(noop_pass()) as Box<dyn swc_core::ecma::ast::Pass>
@@ -168,6 +173,65 @@ impl SwcLoader {
         )
       },
     )?;
+
+    let module = &loader_context.context.module;
+    let is_react_server_layer = module
+      .get_layer()
+      .is_some_and(|layer| layer == "react-server-components");
+    if is_react_server_layer && let Some(rsc) = module.build_info().rsc.as_ref() {
+      let ids = rsc
+        .client_refs
+        .iter()
+        .filter_map(|export| export.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+      // TODO 生成代码需要区分 ESM 和 CJS
+      if rsc.module_type == RSCModuleType::Client {
+        let mut esm_source = format!(
+          r#"import {{ registerClientReference }} from "react-server-dom-webpack/server"
+"#,
+        );
+
+        if rsc
+          .client_refs
+          .iter()
+          .any(|client_ref| client_ref.as_str() == Some("*"))
+        {
+          panic!(
+            r#"It's currently unsupported to use "export *" in a client boundary. Please use named exports instead."#
+          );
+        }
+
+        for client_ref in &rsc.client_refs {
+          match client_ref.as_str() {
+            Some("default") => {
+              esm_source.push_str(&format!(
+                r#"export default registerClientReference(
+function() {{ throw new Error("") }},
+"default",
+)
+"#
+              ));
+            }
+            Some(ident) => {
+              esm_source.push_str(&format!(
+                r#"export const {} = registerClientReference(
+function() {{ throw new Error("") }},
+"{}",
+)
+"#,
+                ident, ident
+              ));
+            }
+            _ => {}
+          }
+        }
+
+        loader_context.finish_with(esm_source);
+        return Ok(());
+      }
+    }
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(Error::warning(diagnostic).into());

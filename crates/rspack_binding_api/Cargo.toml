@@ -40,6 +40,7 @@ rspack_paths              = { workspace = true }
 rspack_plugin_esm_library = { workspace = true }
 rspack_plugin_html        = { workspace = true }
 rspack_plugin_javascript  = { workspace = true }
+rspack_plugin_rsc         = { workspace = true }
 rspack_plugin_rsdoctor    = { workspace = true }
 rspack_plugin_rslib       = { workspace = true }
 rspack_plugin_rstest      = { workspace = true }
@@ -109,7 +110,6 @@ rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }
 rspack_plugin_remove_duplicate_modules = { workspace = true }
 rspack_plugin_remove_empty_chunks      = { workspace = true }
-rspack_plugin_rsc                      = { workspace = true }
 rspack_plugin_runtime_chunk            = { workspace = true }
 rspack_plugin_schemes                  = { workspace = true }
 rspack_plugin_size_limits              = { workspace = true }

@@ -1,13 +1,13 @@
-use std::{iter::FromIterator, rc::Rc, sync::Arc};
+use std::{iter::FromIterator, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{ClientEntryType, RSCMeta, RSCModuleType};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use swc::atoms::Wtf8Atom;
+use swc::atoms::{Atom, Wtf8Atom};
 use swc_core::{
-  common::{DUMMY_SP, FileName, Span, errors::HANDLER, util::take::Take},
+  common::{DUMMY_SP, FileName, Span, SyntaxContext, errors::HANDLER, util::take::Take},
   ecma::{
     ast::*,
     utils::{ExprFactory, prepend_stmts, quote_ident, quote_str},
@@ -42,15 +42,23 @@ pub struct Options {
   pub is_react_server_layer: bool,
 }
 
+struct DirectiveImportCollection {
+  pub is_server_entry: bool,
+  pub is_client_entry: bool,
+  pub is_action_file: bool,
+  pub imports: Vec<ModuleImports>,
+  pub export_names: Vec<Wtf8Atom>,
+}
+
 /// A visitor that transforms given module to use module proxy if it's a React
 /// server component.
 /// **NOTE** Turbopack uses ClientDirectiveTransformer for the
 /// same purpose, so does not run this transform.
-struct ReactServerComponents {
+struct ReactServerComponents<'a> {
   is_react_server_layer: bool,
   filepath: String,
-  rsc_meta: Option<RSCMeta>,
-  directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Wtf8Atom>)>,
+  rsc_meta: &'a mut Option<RSCMeta>,
+  directive_import_collection: Option<DirectiveImportCollection>,
 }
 
 #[derive(Clone, Debug)]
@@ -67,7 +75,7 @@ enum RSCErrorKind {
   ErrReactApi((String, Span)),
 }
 
-impl VisitMut for ReactServerComponents {
+impl VisitMut for ReactServerComponents<'_> {
   noop_visit_mut_type!();
 
   fn visit_mut_module(&mut self, module: &mut Module) {
@@ -78,11 +86,10 @@ impl VisitMut for ReactServerComponents {
     module.visit_with(&mut validator);
     self.directive_import_collection = validator.directive_import_collection;
 
-    let is_client_entry = self
-      .directive_import_collection
-      .as_ref()
-      .expect("directive_import_collection must be set")
-      .0;
+    let directive_import_collection = self.directive_import_collection.as_ref().unwrap();
+
+    let is_server_entry = directive_import_collection.is_server_entry;
+    let is_client_entry = directive_import_collection.is_client_entry;
 
     self.remove_top_level_directive(module);
 
@@ -90,17 +97,19 @@ impl VisitMut for ReactServerComponents {
 
     if self.is_react_server_layer {
       if is_client_entry {
-        self.to_module_ref(module, is_cjs);
+        self.set_client_metadata(is_cjs);
         return;
+      } else if is_server_entry {
+        self.set_server_entry_metadata();
       }
     } else if is_client_entry {
-      self.set_rsc_metadata(is_cjs);
+      self.set_client_metadata(is_cjs);
     }
     module.visit_mut_children_with(self)
   }
 }
 
-impl ReactServerComponents {
+impl ReactServerComponents<'_> {
   /// removes specific directive from the AST.
   fn remove_top_level_directive(&mut self, module: &mut Module) {
     module.body.retain(|item| {
@@ -118,77 +127,14 @@ impl ReactServerComponents {
     });
   }
 
-  // Convert the client module to the module reference code and add a special
-  // comment to the top of the file.
-  fn to_module_ref(&mut self, module: &mut Module, is_cjs: bool) {
-    // Clear all the statements and module declarations.
-    module.body.clear();
-
-    let proxy_ident = quote_ident!("createProxy");
-    let filepath = quote_str!(&*self.filepath);
-
-    prepend_stmts(
-      &mut module.body,
-      vec![
-        ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
-          span: DUMMY_SP,
-          kind: VarDeclKind::Const,
-          decls: vec![VarDeclarator {
-            span: DUMMY_SP,
-            name: Pat::Object(ObjectPat {
-              span: DUMMY_SP,
-              props: vec![ObjectPatProp::Assign(AssignPatProp {
-                span: DUMMY_SP,
-                key: proxy_ident.into(),
-                value: None,
-              })],
-              optional: false,
-              type_ann: None,
-            }),
-            init: Some(Box::new(Expr::Call(CallExpr {
-              span: DUMMY_SP,
-              callee: quote_ident!("require").as_callee(),
-              args: vec![quote_str!("private-next-rsc-mod-ref-proxy").as_arg()],
-              ..Default::default()
-            }))),
-            definite: false,
-          }],
-          ..Default::default()
-        })))),
-        ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-          span: DUMMY_SP,
-          expr: Box::new(Expr::Assign(AssignExpr {
-            span: DUMMY_SP,
-            left: MemberExpr {
-              span: DUMMY_SP,
-              obj: Box::new(Expr::Ident(quote_ident!("module").into())),
-              prop: MemberProp::Ident(quote_ident!("exports")),
-            }
-            .into(),
-            op: op!("="),
-            right: Box::new(Expr::Call(CallExpr {
-              span: DUMMY_SP,
-              callee: quote_ident!("createProxy").as_callee(),
-              args: vec![filepath.as_arg()],
-              ..Default::default()
-            })),
-          })),
-        })),
-      ]
-      .into_iter(),
-    );
-
-    self.set_rsc_metadata(is_cjs);
-  }
-
-  fn set_rsc_metadata(&mut self, is_cjs: bool) {
+  fn set_client_metadata(&mut self, is_cjs: bool) {
     let export_names = &self
       .directive_import_collection
       .as_ref()
       .expect("directive_import_collection must be set")
-      .3;
+      .export_names;
 
-    self.rsc_meta = Some(RSCMeta {
+    *self.rsc_meta = Some(RSCMeta {
       module_type: RSCModuleType::Client,
       client_refs: export_names.to_vec(),
       client_entry_type: if is_cjs {
@@ -198,6 +144,16 @@ impl ReactServerComponents {
       },
       action_ids: None,
       is_client_ref: true,
+    });
+  }
+
+  fn set_server_entry_metadata(&mut self) {
+    *self.rsc_meta = Some(RSCMeta {
+      module_type: RSCModuleType::ServerEntry,
+      client_refs: vec![],
+      client_entry_type: None,
+      action_ids: None,
+      is_client_ref: false,
     });
   }
 }
@@ -235,11 +191,10 @@ fn report_error(error_kind: RSCErrorKind) {
 }
 
 /// Collects top level directives and imports
-fn collect_top_level_directives_and_imports(
-  module: &Module,
-) -> (bool, bool, Vec<ModuleImports>, Vec<Wtf8Atom>) {
+fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportCollection {
   let mut imports: Vec<ModuleImports> = vec![];
   let mut finished_directives = false;
+  let mut is_server_entry = false;
   let mut is_client_entry = false;
   let mut is_action_file = false;
 
@@ -257,7 +212,9 @@ fn collect_top_level_directives_and_imports(
           Some(expr_stmt) => {
             match &*expr_stmt.expr {
               Expr::Lit(Lit::Str(Str { value, .. })) => {
-                if &**value == "use client" {
+                if &**value == "use server-entry" {
+                  is_server_entry = true;
+                } else if &**value == "use client" {
                   if !finished_directives {
                     is_client_entry = true;
 
@@ -396,7 +353,13 @@ fn collect_top_level_directives_and_imports(
     }
   });
 
-  (is_client_entry, is_action_file, imports, export_names)
+  DirectiveImportCollection {
+    is_server_entry,
+    is_client_entry,
+    is_action_file,
+    imports,
+    export_names,
+  }
 }
 
 /// A visitor to assert given module file is a valid React server component.
@@ -404,12 +367,9 @@ struct ReactServerComponentValidator {
   is_react_server_layer: bool,
   filepath: String,
   invalid_server_lib_apis_mapping: FxHashMap<&'static str, Vec<&'static str>>,
-  pub directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<Wtf8Atom>)>,
+  pub directive_import_collection: Option<DirectiveImportCollection>,
   imports: ImportMap,
 }
-
-// A type to workaround a clippy warning.
-type RcVec<T> = Rc<Vec<T>>;
 
 impl ReactServerComponentValidator {
   pub fn new(is_react_server_layer: bool, filename: String) -> Self {
@@ -508,30 +468,19 @@ impl Visit for ReactServerComponentValidator {
   fn visit_module(&mut self, module: &Module) {
     self.imports = ImportMap::analyze(module);
 
-    let (is_client_entry, is_action_file, imports, export_names) =
-      collect_top_level_directives_and_imports(module);
-    let imports = Rc::new(imports);
-    let export_names = Rc::new(export_names);
-
-    self.directive_import_collection = Some((
-      is_client_entry,
-      is_action_file,
-      imports.clone(),
-      export_names,
-    ));
+    let directive_import_collection = collect_top_level_directives_and_imports(module);
 
     if self.is_react_server_layer {
-      if is_client_entry {
-        return;
-      } else {
+      if !directive_import_collection.is_client_entry {
         // Only assert server graph if file's bundle target is "server", e.g.
         // * server components pages
         // * pages bundles on SSR layer
         // * middleware
         // * app/pages api routes
-        self.assert_server_graph(&imports);
+        self.assert_server_graph(&directive_import_collection.imports);
       }
     }
+    self.directive_import_collection = Some(directive_import_collection);
 
     module.visit_children_with(self);
   }
@@ -539,20 +488,18 @@ impl Visit for ReactServerComponentValidator {
 
 /// Runs react server component transform for the module proxy, as well as
 /// running assertion.
-pub fn server_components(filename: Arc<FileName>, config: Config) -> impl Pass + VisitMut {
+pub fn server_components(
+  filename: Arc<FileName>,
+  config: Config,
+  rsc_meta: &mut Option<RSCMeta>,
+) -> impl Pass + VisitMut {
   let is_react_server_layer: bool = match &config {
     Config::WithOptions(x) => x.is_react_server_layer,
     _ => false,
   };
   visit_mut_pass(ReactServerComponents {
     is_react_server_layer,
-    rsc_meta: Some(RSCMeta {
-      module_type: RSCModuleType::Server,
-      client_refs: vec![],
-      client_entry_type: None,
-      action_ids: None,
-      is_client_ref: false,
-    }),
+    rsc_meta,
     filepath: match &*filename {
       FileName::Custom(path) => format!("<{path}>"),
       _ => filename.to_string(),

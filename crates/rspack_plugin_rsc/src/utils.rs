@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, Compilation, ConnectionState, DependenciesBlock, GroupOptions,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalModule, RSCModuleType,
-  RuntimeSpec, get_entry_runtime,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphRef, ModuleIdentifier, NormalModule,
+  RSCModuleType, RuntimeSpec, get_entry_runtime,
 };
 use rspack_util::queue::Queue;
 
@@ -152,6 +152,46 @@ impl<'a> Iterator for ServerEntries<'a> {
       }
     }
 
+    None
+  }
+}
+
+pub struct EntryModules<'a> {
+  entries_iter: indexmap::map::Iter<'a, String, rspack_core::EntryData>,
+  module_graph: &'a ModuleGraphRef<'a>,
+  // runtime: Option<RuntimeSpec>,
+}
+
+impl<'a> EntryModules<'a> {
+  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraphRef<'a>) -> Self {
+    let entries_iter = compilation.entries.iter();
+    Self {
+      entries_iter,
+      module_graph,
+    }
+  }
+}
+
+impl<'a> Iterator for EntryModules<'a> {
+  type Item = (&'a NormalModule, &'a str, Option<RuntimeSpec>);
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if let Some((entry_name, entry_data)) = self.entries_iter.next() {
+      let entry_dependency = entry_data.dependencies[0];
+      if let Some(entry_module_identifier) =
+        self.module_graph.get_resolved_module(&entry_dependency)
+      {
+        if let Some(entry_module) = self
+          .module_graph
+          .module_by_identifier(entry_module_identifier)
+        {
+          if let Some(normal_module) = entry_module.as_normal_module() {
+            let runtime = RuntimeSpec::from_entry_options(&entry_data.options);
+            return Some((normal_module, entry_name, runtime));
+          }
+        }
+      }
+    }
     None
   }
 }

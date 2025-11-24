@@ -954,6 +954,13 @@ impl<'a> ModuleGraph<'a> {
       .as_ref()
   }
 
+  pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
+    self
+      .loop_partials(|p| p.connections.get(dependency_id))?
+      .as_ref()
+      .map(|con| &con.resolved_module)
+  }
+
   pub fn connection_by_dependency_id_mut(
     &mut self,
     dependency_id: &DependencyId,
