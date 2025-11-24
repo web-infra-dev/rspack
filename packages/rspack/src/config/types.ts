@@ -872,7 +872,7 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
-	parallel?: boolean;
+	parallel?: boolean | number;
 
 	options?: RuleSetLoaderOptions;
 };

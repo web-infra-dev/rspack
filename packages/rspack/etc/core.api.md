@@ -4509,7 +4509,7 @@ class LoaderObject {
     // (undocumented)
     options?: string | object;
     // (undocumented)
-    parallel?: boolean;
+    parallel?: boolean | number;
     // (undocumented)
     path: string;
     // (undocumented)
@@ -7048,7 +7048,7 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 export type RuleSetLoaderWithOptions = {
     ident?: string;
     loader: RuleSetLoader;
-    parallel?: boolean;
+    parallel?: boolean | number;
     options?: RuleSetLoaderOptions;
 };
 
