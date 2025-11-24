@@ -1,0 +1,46 @@
+import { Stability, ApiMeta } from '@components/ApiMeta';
+
+# TreeShakeSharedPlugin
+
+<ApiMeta stability={Stability.Experimental} />
+
+**Overview**
+- Performs on-demand builds and export optimization for `shared` dependencies in Module Federation.
+- When `reshake` is false, enables `SharedUsedExportsOptimizerPlugin` to inject runtime used-exports.
+- If any shared entry has `treeshake: true` and `import !== false`, uses `IndependentSharedPlugin` to build independent artifacts per shared package and write back to stats/manifest.
+
+**Options**
+- `mfConfig`: `ModuleFederationPluginOptions` with `name`, `shared`, `library`, `manifest`, `injectUsedExports`.
+- `plugins`: extra plugins reused in independent builds.
+- `reshake`: whether to perform additional tree-shaking during independent builds.
+
+**Usage**
+```js
+// rspack.config.js
+const { TreeShakeSharedPlugin } = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new TreeShakeSharedPlugin({
+      mfConfig: {
+        name: 'app',
+        shared: {
+          'lodash-es': { treeshake: true },
+          react: { treeshake: true, requiredVersion: '18.3.1' }
+        },
+        library: { type: 'var', name: 'App' },
+        manifest: { statsFileName: 'stats.json', manifestFileName: 'manifest.json' },
+        injectUsedExports: true
+      },
+      plugins: [],
+      reshake: false
+    })
+  ]
+};
+```
+
+**Behavior**
+- Normalizes `shared` into `[shareName, SharedConfig][]`.
+- Registers `SharedUsedExportsOptimizerPlugin` when `reshake` is `false` to inject used exports from stats.
+- Triggers independent compilation for `treeshake` entries and writes produced assets back into stats/manifest.
+

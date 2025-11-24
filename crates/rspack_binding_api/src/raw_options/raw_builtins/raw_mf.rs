@@ -3,12 +3,12 @@ use std::{collections::HashMap, sync::Arc};
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  CollectShareEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
+  CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
   ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
-  ModuleFederationRuntimePluginOptions, OptimizeDependencyReferencedExportsPluginOptions,
-  OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
-  ShareContainerEntryOptions, ShareContainerPluginOptions, StatsBuildInfo,
+  ModuleFederationRuntimePluginOptions, OptimizeSharedConfig, ProvideOptions, ProvideVersion,
+  RemoteAliasTarget, RemoteOptions, ShareContainerEntryOptions, ShareContainerPluginOptions,
+  SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -142,7 +142,7 @@ pub struct RawCollectShareEntryPluginOptions {
   pub filename: Option<String>,
 }
 
-impl From<RawCollectShareEntryPluginOptions> for CollectShareEntryPluginOptions {
+impl From<RawCollectShareEntryPluginOptions> for CollectSharedEntryPluginOptions {
   fn from(value: RawCollectShareEntryPluginOptions) -> Self {
     Self {
       consumes: value
@@ -221,17 +221,15 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
 
 #[derive(Debug)]
 #[napi(object)]
-pub struct RawOptimizeDependencyReferencedExportsPluginOptions {
+pub struct RawSharedUsedExportsOptimizerPluginOptions {
   pub shared: Vec<RawOptimizeSharedConfig>,
   pub inject_used_exports: Option<bool>,
   pub manifest_file_name: Option<String>,
   pub stats_file_name: Option<String>,
 }
 
-impl From<RawOptimizeDependencyReferencedExportsPluginOptions>
-  for OptimizeDependencyReferencedExportsPluginOptions
-{
-  fn from(value: RawOptimizeDependencyReferencedExportsPluginOptions) -> Self {
+impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptimizerPluginOptions {
+  fn from(value: RawSharedUsedExportsOptimizerPluginOptions) -> Self {
     Self {
       shared: value
         .shared

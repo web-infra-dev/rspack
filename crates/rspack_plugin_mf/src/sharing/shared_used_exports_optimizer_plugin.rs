@@ -19,10 +19,9 @@ use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
-  consume_shared_module::ConsumeSharedModule,
-  optimize_dependency_referenced_exports_runtime_module::OptimizeDependencyReferencedExportsRuntimeModule,
-  provide_shared_module::ProvideSharedModule,
+  consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
   share_container_entry_module::ShareContainerEntryModule,
+  shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
 use crate::manifest::StatsRoot;
 #[derive(Debug, Clone)]
@@ -33,7 +32,7 @@ pub struct OptimizeSharedConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct OptimizeDependencyReferencedExportsPluginOptions {
+pub struct SharedUsedExportsOptimizerPluginOptions {
   pub shared: Vec<OptimizeSharedConfig>,
   pub inject_used_exports: bool,
   pub stats_file_name: Option<String>,
@@ -47,7 +46,7 @@ struct SharedEntryData {
 
 #[plugin]
 #[derive(Debug, Clone)]
-pub struct OptimizeDependencyReferencedExportsPlugin {
+pub struct SharedUsedExportsOptimizerPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashMap<String, FxHashSet<String>>>>>,
   inject_used_exports: bool,
@@ -55,8 +54,8 @@ pub struct OptimizeDependencyReferencedExportsPlugin {
   manifest_file_name: Option<String>,
 }
 
-impl OptimizeDependencyReferencedExportsPlugin {
-  pub fn new(options: OptimizeDependencyReferencedExportsPluginOptions) -> Self {
+impl SharedUsedExportsOptimizerPlugin {
+  pub fn new(options: SharedUsedExportsOptimizerPluginOptions) -> Self {
     let mut shared_map = FxHashMap::default();
     let inject_used_exports = options.inject_used_exports.clone();
     for config in options.shared.into_iter().filter(|c| c.treeshake) {
@@ -128,7 +127,7 @@ fn collect_processed_modules(
 }
 
 #[plugin_hook(
-  CompilationOptimizeDependencies for OptimizeDependencyReferencedExportsPlugin,
+  CompilationOptimizeDependencies for SharedUsedExportsOptimizerPlugin,
   stage = 1
 )]
 async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
@@ -341,18 +340,20 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   Ok(None)
 }
 
-#[plugin_hook(CompilationProcessAssets for OptimizeDependencyReferencedExportsPlugin)]
+#[plugin_hook(CompilationProcessAssets for SharedUsedExportsOptimizerPlugin, stage = 1)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let file_names = vec![
     self.stats_file_name.clone(),
     self.manifest_file_name.clone(),
   ];
+  dbg!(&file_names);
   for file_name in file_names {
     if let Some(file_name) = &file_name {
       if let Some(file) = compilation.assets().get(file_name) {
         if let Some(source) = file.get_source() {
           if let SourceValue::String(content) = source.source() {
             if let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content) {
+              dbg!(&content);
               let shared_referenced_exports = self
                 .shared_referenced_exports
                 .read()
@@ -407,7 +408,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(
-  CompilationAdditionalTreeRuntimeRequirements for OptimizeDependencyReferencedExportsPlugin
+  CompilationAdditionalTreeRuntimeRequirements for SharedUsedExportsOptimizerPlugin
 )]
 async fn additional_tree_runtime_requirements(
   &self,
@@ -422,7 +423,7 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
   compilation.add_runtime_module(
     chunk_ukey,
-    OptimizeDependencyReferencedExportsRuntimeModule::new(
+    SharedUsedExportsOptimizerRuntimeModule::new(
       self
         .shared_referenced_exports
         .read()
@@ -448,7 +449,7 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[plugin_hook(CompilationDependencyReferencedExports for OptimizeDependencyReferencedExportsPlugin)]
+#[plugin_hook(CompilationDependencyReferencedExports for SharedUsedExportsOptimizerPlugin)]
 async fn dependency_referenced_exports(
   &self,
   compilation: &Compilation,
@@ -546,9 +547,9 @@ async fn dependency_referenced_exports(
   Ok(())
 }
 
-impl Plugin for OptimizeDependencyReferencedExportsPlugin {
+impl Plugin for SharedUsedExportsOptimizerPlugin {
   fn name(&self) -> &'static str {
-    "rspack.sharing.OptimizeDependencyReferencedExportsPlugin"
+    "rspack.sharing.SharedUsedExportsOptimizerPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {

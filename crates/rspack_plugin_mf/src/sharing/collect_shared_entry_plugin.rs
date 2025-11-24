@@ -1,44 +1,30 @@
 use std::{
   collections::hash_map::Entry,
   path::{Path, PathBuf},
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, OnceLock},
 };
 
-use camino::Utf8Path;
-use regex::Regex;
 use rspack_core::{
-  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerCompilation,
-  CompilerThisCompilation, Context, DependenciesBlock, DependencyCategory, DependencyType, Module,
-  ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver,
+  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerThisCompilation,
+  Context, DependenciesBlock, DependencyCategory, DependencyType, Module, ModuleFactoryCreateData,
+  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   rspack_sources::{RawStringSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Result, error};
-use rspack_fs::ReadableFileSystem;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use tokio::sync::RwLock;
 
 use super::consume_shared_plugin::{
-  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, PACKAGE_NAME,
-  RELATIVE_REQUEST, get_description_file, get_required_version_from_description_file,
+  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, RELATIVE_REQUEST,
   resolve_matched_configs,
 };
 
-const DEFAULT_FILENAME: &str = "collect-share-entries.json";
-
-#[derive(Debug, Clone)]
-struct CollectShareEntryMeta {
-  request: String,
-  share_key: String,
-  share_scope: String,
-  is_prefix: bool,
-  consume: Arc<ConsumeOptions>,
-}
+const DEFAULT_FILENAME: &str = "collect-shared-entries.json";
 
 #[derive(Debug, Clone, Default)]
-struct CollectShareEntryRecord {
+struct CollectSharedEntryRecord {
   share_scope: String,
   requests: FxHashSet<CollectedShareRequest>,
 }
@@ -49,52 +35,31 @@ struct CollectedShareRequest {
   version: String,
 }
 
-// 直接输出共享模块映射，移除 shared 层级
-type CollectShareEntryAsset<'a> = FxHashMap<&'a str, CollectShareEntryAssetItem<'a>>;
-
 #[derive(Debug, Serialize)]
-struct CollectShareEntryAssetItem<'a> {
+struct CollectSharedEntryAssetItem<'a> {
   #[serde(rename = "shareScope")]
   share_scope: &'a str,
   requests: &'a [[String; 2]],
 }
 
 #[derive(Debug)]
-pub struct CollectShareEntryPluginOptions {
+pub struct CollectSharedEntryPluginOptions {
   pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
   pub filename: Option<String>,
 }
 
 #[plugin]
 #[derive(Debug)]
-pub struct CollectShareEntryPlugin {
-  options: CollectShareEntryPluginOptions,
+pub struct CollectSharedEntryPlugin {
+  options: CollectSharedEntryPluginOptions,
   resolver: OnceLock<Arc<Resolver>>,
   compiler_context: OnceLock<Context>,
   matched_consumes: OnceLock<Arc<MatchedConsumes>>,
-  resolved_entries: RwLock<FxHashMap<String, CollectShareEntryRecord>>,
+  resolved_entries: RwLock<FxHashMap<String, CollectSharedEntryRecord>>,
 }
 
-impl CollectShareEntryPlugin {
-  pub fn new(options: CollectShareEntryPluginOptions) -> Self {
-    // let consumes: Vec<CollectShareEntryMeta> = options
-    //   .consumes
-    //   .into_iter()
-    //   .map(|(request, consume)| {
-    //     let consume = consume.clone();
-    //     let share_key = consume.share_key.clone();
-    //     let share_scope = consume.share_scope.clone();
-    //     let is_prefix = request.ends_with('/');
-    //     CollectShareEntryMeta {
-    //       request,
-    //       share_key,
-    //       share_scope,
-    //       is_prefix,
-    //       consume,
-    //     }
-    //   })
-    //   .collect();
-
+impl CollectSharedEntryPlugin {
+  pub fn new(options: CollectSharedEntryPluginOptions) -> Self {
     Self::new_inner(
       options,
       Default::default(),
@@ -104,14 +69,14 @@ impl CollectShareEntryPlugin {
     )
   }
 
-  /// 根据模块请求路径推断版本信息
-  /// 例如：../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
-  /// 会找到 react-dom 的 package.json 并读取 version 字段
+  /// Infer package version from a module request path
+  /// Example: ../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
+  /// It locates react-dom's package.json and reads the version field
   async fn infer_version(&self, request: &str) -> Option<String> {
-    // 将请求路径转换为 Path
+    // Convert request string to Path
     let path = Path::new(request);
 
-    // 查找包含 node_modules 的路径段
+    // Find the node_modules segment
     let mut node_modules_found = false;
     let mut package_path = None;
 
@@ -123,14 +88,14 @@ impl CollectShareEntryPlugin {
       }
 
       if node_modules_found {
-        // 下一个组件应该是包名
+        // The next component should be the package name
         package_path = Some(comp_str.to_string());
         break;
       }
     }
 
     if let Some(package_name) = package_path {
-      // 构建 package.json 的完整路径
+      // Build the full path to package.json
       let mut package_json_path = PathBuf::new();
       let mut found_node_modules = false;
 
@@ -140,19 +105,19 @@ impl CollectShareEntryPlugin {
 
         if comp_str == "node_modules" {
           found_node_modules = true;
-          // 添加包名目录
+          // Append package name directory
           package_json_path.push(&package_name);
-          // 添加 package.json
+          // Append package.json
           package_json_path.push("package.json");
           break;
         }
       }
 
       if found_node_modules && package_json_path.exists() {
-        // 尝试读取 package.json
+        // Try reading package.json
         if let Ok(content) = std::fs::read_to_string(&package_json_path) {
           if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            // 读取 version 字段
+            // Read the version field
             if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
               return Some(version.to_string());
             }
@@ -251,23 +216,23 @@ impl CollectShareEntryPlugin {
       ResolveResult::Ignored => None,
     });
 
-    // 首先尝试从 import_resolved 路径推断版本
+    // First try to infer version from the import_resolved path
     let version = if let Some(ref resolved_path) = import_resolved {
       if let Some(inferred) = self.infer_version(resolved_path).await {
         Some(ConsumeVersion::Version(inferred))
       } else {
-        // 如果推断失败，直接返回 None，不记录这个条目
+        // If inference fails, return None and skip this entry
         None
       }
     } else {
-      // 如果没有 resolved 路径，也直接返回 None
+      // If there is no resolved path, also return None
       None
     };
 
-    // 如果无法获取版本信息，直接结束方法
+    // If no version info can be obtained, exit early
     let version = match version {
       Some(v) => v,
-      None => return, // 直接结束 record_entry 方法
+      None => return, // Early return from record_entry
     };
 
     let share_key = config.share_key.clone();
@@ -292,7 +257,7 @@ impl CollectShareEntryPlugin {
             .unwrap_or_else(|| request.to_string()),
           version: version.to_string(),
         });
-        entry.insert(CollectShareEntryRecord {
+        entry.insert(CollectSharedEntryRecord {
           share_scope,
           requests,
         });
@@ -301,7 +266,7 @@ impl CollectShareEntryPlugin {
   }
 }
 
-#[plugin_hook(CompilerThisCompilation for CollectShareEntryPlugin)]
+#[plugin_hook(CompilerThisCompilation for CollectSharedEntryPlugin)]
 async fn this_compilation(
   &self,
   compilation: &mut Compilation,
@@ -321,9 +286,9 @@ async fn this_compilation(
   Ok(())
 }
 
-#[plugin_hook(CompilationProcessAssets for CollectShareEntryPlugin)]
+#[plugin_hook(CompilationProcessAssets for CollectSharedEntryPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  // 遍历图中的 ConsumeSharedModule，收集其 fallback 映射到的真实模块地址
+  // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
   let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
@@ -338,9 +303,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // 从 readable_identifier 中解析 share_scope 与 share_key
+      // Parse share_scope and share_key from readable_identifier
       let ident = consume.readable_identifier(&Context::default()).to_string();
-      // 形如: "consume shared module ({scope}) {share_key}@..."
+      // Format: "consume shared module ({scope}) {share_key}@..."
       let (scope, key) = {
         let mut scope = String::new();
         let mut key = String::new();
@@ -360,7 +325,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if key.is_empty() {
         continue;
       }
-      // 收集该 consume 模块的依赖与异步块中的依赖对应的真实模块
+      // Collect target modules from dependencies and async blocks
       let mut target_modules = Vec::new();
       for dep_id in consume.get_dependencies() {
         if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
@@ -377,7 +342,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
 
-      // 将真实模块的资源路径加入到映射集合，并推断版本
+      // Add real module resource paths to the map and infer version
       let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
       for target_id in target_modules {
         if let Some(target) = module_graph.module_by_identifier(&target_id) {
@@ -402,8 +367,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  // 生成资产内容
-  let mut shared: FxHashMap<&str, CollectShareEntryAssetItem<'_>> = FxHashMap::default();
+  // Build asset content
+  let mut shared: FxHashMap<&str, CollectSharedEntryAssetItem<'_>> = FxHashMap::default();
   for (share_key, requests) in ordered_requests.iter() {
     let scope = share_scopes
       .get(share_key)
@@ -411,7 +376,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .unwrap_or("");
     shared.insert(
       share_key.as_str(),
-      CollectShareEntryAssetItem {
+      CollectSharedEntryAssetItem {
         share_scope: scope,
         requests: requests.as_slice(),
       },
@@ -419,9 +384,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let json = serde_json::to_string_pretty(&shared)
-    .expect("CollectShareEntryPlugin: failed to serialize share entries");
+    .expect("CollectSharedEntryPlugin: failed to serialize share entries");
 
-  // 获取文件名，如果不存在则使用默认值
+  // Get filename, or use default when absent
   let filename = self
     .options
     .filename
@@ -439,7 +404,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(NormalModuleFactoryFactorize for CollectShareEntryPlugin)]
+#[plugin_hook(NormalModuleFactoryFactorize for CollectSharedEntryPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dep = data.dependencies[0]
     .as_module_dependency()
@@ -452,10 +417,10 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   }
   let request = dep.request();
 
-  // 直接复用 consume_shared_plugin 的匹配逻辑
+  // Reuse the matching logic from consume_shared_plugin
   let consumes = self.get_matched_consumes();
 
-  // 1. 精确匹配 - 使用 unresolved
+  // 1. Exact match - use `unresolved`
   if let Some(matched) = consumes.unresolved.get(request) {
     self
       .record_entry(&data.context, request, matched.clone(), |d| {
@@ -465,7 +430,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
     return Ok(None);
   }
 
-  // 2. 前缀匹配 - 使用 prefixed
+  // 2. Prefix match - use `prefixed`
   for (prefix, options) in &consumes.prefixed {
     if request.starts_with(prefix) {
       let remainder = &request[prefix.len()..];
@@ -494,9 +459,9 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   Ok(None)
 }
 
-impl Plugin for CollectShareEntryPlugin {
+impl Plugin for CollectSharedEntryPlugin {
   fn name(&self) -> &'static str {
-    "rspack.CollectShareEntryPlugin"
+    "rspack.CollectSharedEntryPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {

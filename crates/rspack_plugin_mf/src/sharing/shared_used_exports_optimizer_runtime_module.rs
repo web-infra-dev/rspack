@@ -9,13 +9,13 @@ use rspack_error::{Result, error};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct OptimizeDependencyReferencedExportsRuntimeModule {
+pub struct SharedUsedExportsOptimizerRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
   shared_used_exports: Arc<BTreeMap<String, BTreeMap<String, Vec<String>>>>,
 }
 
-impl OptimizeDependencyReferencedExportsRuntimeModule {
+impl SharedUsedExportsOptimizerRuntimeModule {
   pub fn new(shared_used_exports: Arc<BTreeMap<String, BTreeMap<String, Vec<String>>>>) -> Self {
     Self::with_default(
       Identifier::from("module_federation/shared_used_exports"),
@@ -26,7 +26,7 @@ impl OptimizeDependencyReferencedExportsRuntimeModule {
 }
 
 #[async_trait]
-impl RuntimeModule for OptimizeDependencyReferencedExportsRuntimeModule {
+impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }

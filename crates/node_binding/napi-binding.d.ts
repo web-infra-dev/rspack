@@ -540,12 +540,12 @@ export declare enum BuiltinPluginName {
   SplitChunksPlugin = 'SplitChunksPlugin',
   RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
-  OptimizeDependencyReferencedExportsPlugin = 'OptimizeDependencyReferencedExportsPlugin',
+  SharedUsedExportsOptimizerPlugin = 'SharedUsedExportsOptimizerPlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
-  CollectShareEntryPlugin = 'CollectShareEntryPlugin',
+  CollectSharedEntryPlugin = 'CollectSharedEntryPlugin',
   ShareContainerPlugin = 'ShareContainerPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
@@ -2592,13 +2592,6 @@ export interface RawOptimizationOptions {
   avoidEntryIife: boolean
 }
 
-export interface RawOptimizeDependencyReferencedExportsPluginOptions {
-  shared: Array<RawOptimizeSharedConfig>
-  injectUsedExports?: boolean
-  manifestFileName?: string
-  statsFileName?: string
-}
-
 export interface RawOptimizeSharedConfig {
   shareKey: string
   treeshake: boolean
@@ -2847,6 +2840,13 @@ export interface RawShareContainerPluginOptions {
   version: string
   fileName?: string
   library: JsLibraryOptions
+}
+
+export interface RawSharedUsedExportsOptimizerPluginOptions {
+  shared: Array<RawOptimizeSharedConfig>
+  injectUsedExports?: boolean
+  manifestFileName?: string
+  statsFileName?: string
 }
 
 export interface RawSizeLimitsPluginOptions {

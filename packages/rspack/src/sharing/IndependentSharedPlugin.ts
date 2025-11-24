@@ -8,15 +8,15 @@ import {
 } from "../container/ModuleFederationManifestPlugin";
 import { parseOptions } from "../container/options";
 import {
-	CollectShareEntryPlugin,
+	CollectSharedEntryPlugin,
 	type ShareRequestsMap
-} from "./CollectShareEntryPlugin";
+} from "./CollectSharedEntryPlugin";
 import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
-import { OptimizeDependencyReferencedExportsPlugin } from "./OptimizeDependencyReferencedExportsPlugin";
 import {
 	ShareContainerPlugin,
 	type ShareContainerPluginOptions
 } from "./ShareContainerPlugin";
+import { SharedUsedExportsOptimizerPlugin } from "./SharedUsedExportsOptimizerPlugin";
 import type { Shared, SharedConfig } from "./SharePlugin";
 import { encodeName, isRequiredVersion } from "./utils";
 
@@ -35,10 +35,10 @@ const filterPlugin = (plugin: Plugins[0]) => {
 		return true;
 	}
 	return ![
-		"TreeshakeSharePlugin",
-		"IndependentSharePlugin",
+		"TreeShakeSharedPlugin",
+		"IndependentSharedPlugin",
 		"ModuleFederationPlugin",
-		"OptimizeDependencyReferencedExportsPlugin",
+		"SharedUsedExportsOptimizerPlugin",
 		"HtmlWebpackPlugin"
 	].includes(pluginName);
 };
@@ -107,7 +107,7 @@ class VirtualEntryPlugin {
 	}
 }
 
-export class IndependentSharePlugin {
+export class IndependentSharedPlugin {
 	mfName: string;
 	shared: Shared;
 	library?: LibraryOptions;
@@ -121,7 +121,7 @@ export class IndependentSharePlugin {
 	buildAssets: ShareFallback = {};
 	injectUsedExports?: boolean;
 
-	name = "IndependentSharePlugin";
+	name = "IndependentSharedPlugin";
 	constructor(options: IndependentSharePluginOptions) {
 		const {
 			outputDir,
@@ -170,21 +170,20 @@ export class IndependentSharePlugin {
 
 	apply(compiler: Compiler) {
 		compiler.hooks.beforeRun.tapPromise(
-			"IndependentSharePlugin",
+			"IndependentSharedPlugin",
 			async compiler => {
 				await this.createIndependentCompilers(compiler);
 			}
 		);
 
 		// clean hooks
-		compiler.hooks.shutdown.tapAsync("IndependentSharePlugin", callback => {
+		compiler.hooks.shutdown.tapAsync("IndependentSharedPlugin", callback => {
 			this.cleanup();
-			console.log("cleanup");
 			callback();
 		});
 
 		// inject buildAssets to stats
-		compiler.hooks.compilation.tap("IndependentSharePlugin", compilation => {
+		compiler.hooks.compilation.tap("IndependentSharedPlugin", compilation => {
 			compilation.hooks.processAssets.tapPromise(
 				{
 					name: "injectBuildAssets",
@@ -195,38 +194,49 @@ export class IndependentSharePlugin {
 					if (!this.manifest) {
 						return;
 					}
-					const { statsFileName } = getFileName(this.manifest);
-					const stats = compilation.getAsset(statsFileName);
-					if (!stats) {
-						return;
-					}
-					const statsContent = JSON.parse(stats.source.source().toString()) as {
-						shared: {
-							name: string;
-							version: string;
-							fallback?: string;
-							fallbackName?: string;
-						}[];
-					};
-
-					const { shared } = statsContent;
-					Object.entries(this.buildAssets).forEach(([key, item]) => {
-						const targetShared = shared.find(s => s.name === key);
-						if (!targetShared) {
+					const { statsFileName, manifestFileName } = getFileName(
+						this.manifest
+					);
+					const injectBuildAssetsIntoStatsOrManifest = (filename: string) => {
+						const stats = compilation.getAsset(filename);
+						if (!stats) {
 							return;
 						}
-						item.forEach(([entry, version, globalName]) => {
-							if (version === targetShared.version) {
-								targetShared.fallback = entry;
-								targetShared.fallbackName = globalName;
-							}
-						});
-					});
+						const statsContent = JSON.parse(
+							stats.source.source().toString()
+						) as {
+							shared: {
+								name: string;
+								version: string;
+								fallback?: string;
+								fallbackName?: string;
+							}[];
+						};
 
-					compilation.updateAsset(
-						statsFileName,
-						new compiler.webpack.sources.RawSource(JSON.stringify(statsContent))
-					);
+						const { shared } = statsContent;
+						Object.entries(this.buildAssets).forEach(([key, item]) => {
+							const targetShared = shared.find(s => s.name === key);
+							if (!targetShared) {
+								return;
+							}
+							item.forEach(([entry, version, globalName]) => {
+								if (version === targetShared.version) {
+									targetShared.fallback = entry;
+									targetShared.fallbackName = globalName;
+								}
+							});
+						});
+
+						compilation.updateAsset(
+							filename,
+							new compiler.webpack.sources.RawSource(
+								JSON.stringify(statsContent)
+							)
+						);
+					};
+
+					injectBuildAssetsIntoStatsOrManifest(statsFileName);
+					injectBuildAssetsIntoStatsOrManifest(manifestFileName);
 				}
 			);
 		});
@@ -306,9 +316,9 @@ export class IndependentSharePlugin {
 
 		const finalPlugins = [];
 		const rspack = parentCompiler.rspack;
-		let extraPlugin: CollectShareEntryPlugin | ShareContainerPlugin;
+		let extraPlugin: CollectSharedEntryPlugin | ShareContainerPlugin;
 		if (!extraOptions) {
-			extraPlugin = new CollectShareEntryPlugin({
+			extraPlugin = new CollectSharedEntryPlugin({
 				sharedOptions,
 				shareScope: "default"
 			});
@@ -358,7 +368,7 @@ export class IndependentSharePlugin {
 
 		if (treeshake) {
 			finalPlugins.push(
-				new OptimizeDependencyReferencedExportsPlugin(
+				new SharedUsedExportsOptimizerPlugin(
 					sharedOptions,
 					this.injectUsedExports
 				)

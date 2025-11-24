@@ -73,7 +73,6 @@ import { RawProvideOptions } from '@rspack/binding';
 import { RawRslibPluginOptions } from '@rspack/binding';
 import { RawRstestPluginOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
-import { RawShareContainerPluginOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { readFileSync } from 'fs';
 import { ReadStream as ReadStream_2 } from 'fs';
@@ -808,29 +807,6 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 
 // @public (undocumented)
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint;
-
-// @public (undocumented)
-class CollectShareEntryPlugin extends RspackBuiltinPlugin {
-    constructor(options: CollectShareEntryPluginOptions);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    getData(): ShareRequestsMap;
-    // (undocumented)
-    getFilename(): string;
-    // (undocumented)
-    name: BuiltinPluginName;
-    // (undocumented)
-    raw(): BuiltinPlugin;
-    // (undocumented)
-    sharedOptions: NormalizedSharedOptions;
-}
-
-// @public (undocumented)
-export type CollectShareEntryPluginOptions = {
-    sharedOptions: NormalizedSharedOptions;
-    shareScope?: string;
-};
 
 // @public (undocumented)
 type CollectTypeScriptInfoOptions = {
@@ -5492,15 +5468,6 @@ interface Optimize {
 export const optimize: Optimize;
 
 // @public (undocumented)
-class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
-    constructor(sharedOptions: [string, SharedConfig][], injectUsedExports?: boolean, manifestOptions?: ModuleFederationManifestPluginOptions);
-    // (undocumented)
-    name: BuiltinPluginName;
-    // (undocumented)
-    raw(): BuiltinPlugin | undefined;
-}
-
-// @public (undocumented)
 interface OptimizerConfig {
     // (undocumented)
     globals?: GlobalPassOption;
@@ -6657,7 +6624,6 @@ declare namespace rspackExports {
         RemotesItems,
         RemotesObject,
         container,
-        CollectShareEntryPluginOptions,
         ConsumeSharedPluginOptions,
         Consumes,
         ConsumesConfig,
@@ -6668,13 +6634,12 @@ declare namespace rspackExports {
         ProvidesConfig,
         ProvidesItem,
         ProvidesObject,
-        ShareContainerPluginOptions,
         Shared,
         SharedConfig,
         SharedItem,
         SharedObject,
         SharePluginOptions,
-        TreeshakeSharePluginOptions,
+        TreeshakeSharedPluginOptions,
         sharing,
         LightningcssFeatureOptions,
         LightningcssLoaderOptions,
@@ -7382,37 +7347,6 @@ interface SetterProperty extends PropBase, HasSpan {
 }
 
 // @public (undocumented)
-class ShareContainerPlugin extends RspackBuiltinPlugin {
-    constructor(options: ShareContainerPluginOptions);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    filename: string;
-    // (undocumented)
-    getData(): string[];
-    // (undocumented)
-    _globalName: string;
-    // (undocumented)
-    name: BuiltinPluginName;
-    // (undocumented)
-    _options: RawShareContainerPluginOptions;
-    // (undocumented)
-    raw(compiler: Compiler): BuiltinPlugin;
-    // (undocumented)
-    _shareName: string;
-}
-
-// @public (undocumented)
-export type ShareContainerPluginOptions = {
-    mfName: string;
-    shareName: string;
-    version: string;
-    request: string;
-    library?: LibraryOptions;
-    independentShareFileName?: string;
-};
-
-// @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 
 // @public (undocumented)
@@ -7456,6 +7390,9 @@ type SharedOptimizationSplitChunksCacheGroup = {
     maxInitialRequests?: number;
     automaticNameDelimiter?: string;
 };
+
+// @public (undocumented)
+type ShareFallback = Record<string, [string, string, string][]>;
 
 // @public (undocumented)
 class SharePlugin {
@@ -7503,18 +7440,9 @@ export type SharePluginOptions = {
 };
 
 // @public (undocumented)
-type ShareRequestsMap = Record<string, {
-    shareScope: string;
-    requests: [string, string][];
-}>;
-
-// @public (undocumented)
 export const sharing: {
     ProvideSharedPlugin: typeof ProvideSharedPlugin;
-    CollectShareEntryPlugin: typeof CollectShareEntryPlugin;
-    TreeshakeSharePlugin: typeof TreeshakeSharePlugin;
-    ShareContainerPlugin: typeof ShareContainerPlugin;
-    OptimizeDependencyReferencedExportsPlugin: typeof OptimizeDependencyReferencedExportsPlugin;
+    TreeShakeSharedPlugin: typeof TreeShakeSharedPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
     SharePlugin: typeof SharePlugin;
 };
@@ -8499,10 +8427,12 @@ interface TransformConfig {
 function transformSync(source: string, options?: Options): TransformOutput;
 
 // @public (undocumented)
-class TreeshakeSharePlugin {
-    constructor(options: TreeshakeSharePluginOptions);
+class TreeShakeSharedPlugin {
+    constructor(options: TreeshakeSharedPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
+    // (undocumented)
+    get buildAssets(): ShareFallback;
     // (undocumented)
     mfConfig: ModuleFederationPluginOptions;
     // (undocumented)
@@ -8516,7 +8446,7 @@ class TreeshakeSharePlugin {
 }
 
 // @public (undocumented)
-export interface TreeshakeSharePluginOptions {
+export interface TreeshakeSharedPluginOptions {
     // (undocumented)
     mfConfig: ModuleFederationPluginOptions;
     // (undocumented)

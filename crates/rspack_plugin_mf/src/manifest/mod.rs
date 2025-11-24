@@ -84,7 +84,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   }
   None
 }
-#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
+#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin, stage = 0)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
   let entry_point_names: HashSet<String> = compilation

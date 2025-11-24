@@ -1,8 +1,5 @@
-const path = require("path");
+const { container } = require("@rspack/core");
 
-const { container ,sharing} = require("@rspack/core");
-
-const {OptimizeDependencyReferencedExportsPlugin } = sharing;
 const { ModuleFederationPlugin } = container;
 
 /** @type {import("@rspack/core").Configuration} */
@@ -24,27 +21,19 @@ module.exports = {
 			manifest: true,
 			shared: {
 				'ui-lib': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake:true,
+					usedExports: ['Badge']
 				},
 				'ui-lib2': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake:true,
 				},
 				'ui-lib-side-effect': {
-					requiredVersion:'*'
+					requiredVersion:'*',
+					treeshake:true,
 				}
 			}
-		}),
-		new OptimizeDependencyReferencedExportsPlugin([
-			['ui-lib',{
-				treeshake:true,
-				usedExports: ['Badge']
-			}],
-			['ui-lib2',{
-				treeshake:true,
-			}],
-			['ui-lib-side-effect',{
-				treeshake:true,
-			}]
-		])
+		})
 	]
 };

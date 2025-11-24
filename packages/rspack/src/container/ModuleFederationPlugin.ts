@@ -1,10 +1,8 @@
 import type { Compiler } from "../Compiler";
 import type { ExternalsType } from "../config";
-import {
-	IndependentSharePlugin,
-	type ShareFallback
-} from "../sharing/IndependentSharePlugin";
+import type { ShareFallback } from "../sharing/IndependentSharedPlugin";
 import type { SharedConfig } from "../sharing/SharePlugin";
+import { TreeShakeSharedPlugin } from "../sharing/TreeShakeSharedPlugin";
 import { isRequiredVersion } from "../sharing/utils";
 import {
 	ModuleFederationManifestPlugin,
@@ -29,12 +27,11 @@ export interface ModuleFederationPluginOptions
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 export class ModuleFederationPlugin {
-	private _independentSharePlugin?: IndependentSharePlugin;
+	private _treeShakeSharedPlugin?: TreeShakeSharedPlugin;
 
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
-		const { name, shared } = this._options;
 		const { webpack } = compiler;
 		const paths = getPaths(this._options);
 		compiler.options.resolve.alias = {
@@ -48,12 +45,11 @@ export class ModuleFederationPlugin {
 			([, config]) => config.treeshake
 		);
 		if (treeshakeEntries.length > 0) {
-			this._independentSharePlugin = new IndependentSharePlugin({
-				name,
-				shared: shared || {},
-				outputFilePath: this._options.independentShareFilePath
+			this._treeShakeSharedPlugin = new TreeShakeSharedPlugin({
+				mfConfig: this._options,
+				reshake: false
 			});
-			this._independentSharePlugin.apply(compiler);
+			this._treeShakeSharedPlugin.apply(compiler);
 		}
 
 		let runtimePluginApplied = false;
@@ -69,7 +65,7 @@ export class ModuleFederationPlugin {
 					paths,
 					this._options,
 					compiler,
-					this._independentSharePlugin?.buildAssets || {}
+					this._treeShakeSharedPlugin?.buildAssets || {}
 				);
 				new ModuleFederationRuntimePlugin({
 					entryRuntime

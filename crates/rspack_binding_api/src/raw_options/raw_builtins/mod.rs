@@ -34,8 +34,8 @@ use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
   RawCollectShareEntryPluginOptions, RawModuleFederationManifestPluginOptions,
-  RawModuleFederationRuntimePluginOptions, RawOptimizeDependencyReferencedExportsPluginOptions,
-  RawProvideOptions,
+  RawModuleFederationRuntimePluginOptions, RawProvideOptions,
+  RawSharedUsedExportsOptimizerPluginOptions,
 };
 use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
@@ -79,10 +79,9 @@ use rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  CollectShareEntryPlugin, ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin,
-  ModuleFederationManifestPlugin, ModuleFederationRuntimePlugin,
-  OptimizeDependencyReferencedExportsPlugin, ProvideSharedPlugin, ShareContainerPlugin,
-  ShareRuntimePlugin,
+  CollectSharedEntryPlugin, ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin,
+  ModuleFederationManifestPlugin, ModuleFederationRuntimePlugin, ProvideSharedPlugin,
+  ShareContainerPlugin, ShareRuntimePlugin, SharedUsedExportsOptimizerPlugin,
 };
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
@@ -173,12 +172,12 @@ pub enum BuiltinPluginName {
   SplitChunksPlugin,
   RemoveDuplicateModulesPlugin,
   ShareRuntimePlugin,
-  OptimizeDependencyReferencedExportsPlugin,
+  SharedUsedExportsOptimizerPlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
-  CollectShareEntryPlugin,
+  CollectSharedEntryPlugin,
   ShareContainerPlugin,
   ModuleFederationRuntimePlugin,
   ModuleFederationManifestPlugin,
@@ -472,12 +471,11 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
-      BuiltinPluginName::OptimizeDependencyReferencedExportsPlugin => {
-        let options =
-          downcast_into::<RawOptimizeDependencyReferencedExportsPluginOptions>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .into();
-        plugins.push(OptimizeDependencyReferencedExportsPlugin::new(options).boxed());
+      BuiltinPluginName::SharedUsedExportsOptimizerPlugin => {
+        let options = downcast_into::<RawSharedUsedExportsOptimizerPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?
+          .into();
+        plugins.push(SharedUsedExportsOptimizerPlugin::new(options).boxed());
       }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
@@ -508,11 +506,11 @@ impl<'a> BuiltinPlugin<'a> {
         provides.sort_unstable_by_key(|(k, _)| k.to_string());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
-      BuiltinPluginName::CollectShareEntryPlugin => {
+      BuiltinPluginName::CollectSharedEntryPlugin => {
         let options = downcast_into::<RawCollectShareEntryPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into();
-        plugins.push(CollectShareEntryPlugin::new(options).boxed())
+        plugins.push(CollectSharedEntryPlugin::new(options).boxed())
       }
       BuiltinPluginName::ShareContainerPlugin => {
         let options = downcast_into::<RawShareContainerPluginOptions>(self.options)

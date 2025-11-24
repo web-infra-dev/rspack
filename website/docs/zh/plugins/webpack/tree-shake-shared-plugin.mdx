@@ -1,0 +1,46 @@
+import { Stability, ApiMeta } from '@components/ApiMeta';
+
+# TreeShakeSharedPlugin
+
+<ApiMeta stability={Stability.Experimental} />
+
+**概览**
+- 基于模块联邦配置对 shared 依赖进行按需构建与导出优化。
+- 非 `reshake` 模式下，启用 `SharedUsedExportsOptimizerPlugin` 注入运行时已用导出信息。
+- 当 shared 项存在 `treeshake: true` 且 `import !== false` 时，使用 `IndependentSharedPlugin` 为每个共享包生成独立产物并回填到清单。
+
+**选项**
+- `mfConfig`：`ModuleFederationPluginOptions`，传入模块联邦的 name、shared、library、manifest、injectUsedExports。
+- `plugins`：额外插件列表，可在独立编译中复用。
+- `reshake`：是否在独立编译阶段执行二次摇树优化。
+
+**使用示例**
+```js
+// rspack.config.js
+const { TreeShakeSharedPlugin } = require('@rspack/core');
+
+module.exports = {
+  plugins: [
+    new TreeShakeSharedPlugin({
+      mfConfig: {
+        name: 'app',
+        shared: {
+          'lodash-es': { treeshake: true },
+          react: { treeshake: true, requiredVersion: '18.3.1' }
+        },
+        library: { type: 'var', name: 'App' },
+        manifest: { statsFileName: 'stats.json', manifestFileName: 'manifest.json' },
+        injectUsedExports: true
+      },
+      plugins: [],
+      reshake: false
+    })
+  ]
+};
+```
+
+**行为说明**
+- 读取 `shared` 配置后标准化为 `[shareName, SharedConfig][]`。
+- 当 `reshake` 为 `false` 时，注册 `SharedUsedExportsOptimizerPlugin`，基于 stats 清单注入已用导出集合。
+- 对 `treeshake` 的共享包触发独立编译，产出回写到 stats/manifest 中的 fallback 字段。
+

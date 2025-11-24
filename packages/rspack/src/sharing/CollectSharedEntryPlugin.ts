@@ -14,7 +14,7 @@ import {
 	type NormalizedSharedOptions
 } from "./SharePlugin";
 
-export type CollectShareEntryPluginOptions = {
+export type CollectSharedEntryPluginOptions = {
 	sharedOptions: NormalizedSharedOptions;
 	shareScope?: string;
 };
@@ -27,13 +27,13 @@ export type ShareRequestsMap = Record<
 	}
 >;
 
-const SHARE_ENTRY_ASSET = "collect-share-entries.json";
-export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
-	name = BuiltinPluginName.CollectShareEntryPlugin;
+const SHARE_ENTRY_ASSET = "collect-shared-entries.json";
+export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.CollectSharedEntryPlugin;
 	sharedOptions: NormalizedSharedOptions;
 	private _collectedEntries: ShareRequestsMap;
 
-	constructor(options: CollectShareEntryPluginOptions) {
+	constructor(options: CollectSharedEntryPluginOptions) {
 		super();
 		const { sharedOptions } = options;
 
@@ -52,11 +52,12 @@ export class CollectShareEntryPlugin extends RspackBuiltinPlugin {
 	apply(compiler: Compiler) {
 		super.apply(compiler);
 
-		compiler.hooks.thisCompilation.tap("Collect share entry", compilation => {
+		compiler.hooks.thisCompilation.tap("Collect shared entry", compilation => {
 			compilation.hooks.processAssets.tapPromise(
 				{
-					name: "CollectShareEntry",
-					stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+					name: "CollectSharedEntry",
+					stage:
+						compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
 				},
 				async () => {
 					const filename = this.getFilename();

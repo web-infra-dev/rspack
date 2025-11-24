@@ -1,7 +1,6 @@
 import type { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
 import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
-import { OptimizeDependencyReferencedExportsPlugin } from "./OptimizeDependencyReferencedExportsPlugin";
 import { ProvideSharedPlugin } from "./ProvideSharedPlugin";
 import { isRequiredVersion } from "./utils";
 
@@ -118,14 +117,5 @@ export class SharePlugin {
 			provides: this._provides,
 			enhanced: this._enhanced
 		}).apply(compiler);
-
-		const treeshakeOptions = this._sharedOptions.filter(
-			([, config]) => config.treeshake
-		);
-		if (treeshakeOptions.length > 0) {
-			new OptimizeDependencyReferencedExportsPlugin(treeshakeOptions).apply(
-				compiler
-			);
-		}
 	}
 }

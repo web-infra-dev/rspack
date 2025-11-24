@@ -175,7 +175,7 @@ impl Module for ShareContainerEntryModule {
 
     let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
 
-    // 使用 returning_function 生成 installInitialConsumes 函数
+    // Generate installInitialConsumes function using returning_function
     let install_initial_consumes_call = format!(
       r#"localBundlerRuntime.installInitialConsumes({{ 
         installedModules: localInstalledModules, 
@@ -191,14 +191,14 @@ impl Module for ShareContainerEntryModule {
       "",
     );
 
-    // 使用 basic_function 创建 initShareContainer 函数，支持多语句函数体
+    // Create initShareContainer function using basic_function, supporting multi-statement body
     let init_body = format!(
       r#"
     var installedModules = {{}};
     {federation_global}.instance = mfInstance;
     {federation_global}.bundlerRuntime = bundlerRuntime;
     
-    // 将参数保存到局部变量，避免闭包问题
+    // Save parameters to local variables to avoid closure issues
     var localBundlerRuntime = bundlerRuntime;
     var localInstalledModules = installedModules;
     

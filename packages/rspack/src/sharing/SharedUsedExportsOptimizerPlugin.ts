@@ -1,6 +1,6 @@
 import type {
 	BuiltinPlugin,
-	RawOptimizeDependencyReferencedExportsPluginOptions
+	RawSharedUsedExportsOptimizerPluginOptions
 } from "@rspack/binding";
 import { BuiltinPluginName } from "@rspack/binding";
 
@@ -20,8 +20,8 @@ type OptimizeSharedConfig = {
 	usedExports?: string[];
 };
 
-export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlugin {
-	name = BuiltinPluginName.OptimizeDependencyReferencedExportsPlugin;
+export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.SharedUsedExportsOptimizerPlugin;
 	private sharedOptions: [string, SharedConfig][];
 	private injectUsedExports: boolean;
 	private manifestOptions: ModuleFederationManifestPluginOptions;
@@ -37,7 +37,7 @@ export class OptimizeDependencyReferencedExportsPlugin extends RspackBuiltinPlug
 		this.manifestOptions = manifestOptions ?? {};
 	}
 
-	private buildOptions(): RawOptimizeDependencyReferencedExportsPluginOptions {
+	private buildOptions(): RawSharedUsedExportsOptimizerPluginOptions {
 		const shared: OptimizeSharedConfig[] = this.sharedOptions.map(
 			([shareKey, config]) => ({
 				shareKey,

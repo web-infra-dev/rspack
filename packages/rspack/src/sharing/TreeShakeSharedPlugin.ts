@@ -1,24 +1,25 @@
 import type { Compiler } from "../Compiler";
 import type { Plugins } from "../config";
 import type { ModuleFederationPluginOptions } from "../container/ModuleFederationPlugin";
-import { IndependentSharePlugin } from "./IndependentSharePlugin";
-import { OptimizeDependencyReferencedExportsPlugin } from "./OptimizeDependencyReferencedExportsPlugin";
+import { IndependentSharedPlugin } from "./IndependentSharedPlugin";
+import { SharedUsedExportsOptimizerPlugin } from "./SharedUsedExportsOptimizerPlugin";
 import { normalizeSharedOptions } from "./SharePlugin";
 
-export interface TreeshakeSharePluginOptions {
+export interface TreeshakeSharedPluginOptions {
 	mfConfig: ModuleFederationPluginOptions;
 	plugins?: Plugins;
 	reshake?: boolean;
 }
 
-export class TreeshakeSharePlugin {
+export class TreeShakeSharedPlugin {
 	mfConfig: ModuleFederationPluginOptions;
 	outputDir: string;
 	plugins?: Plugins;
 	reshake?: boolean;
+	private _independentSharePlugin?: IndependentSharedPlugin;
 
-	name = "TreeshakeSharePlugin";
-	constructor(options: TreeshakeSharePluginOptions) {
+	name = "TreeShakeSharedPlugin";
+	constructor(options: TreeshakeSharedPluginOptions) {
 		const { mfConfig, plugins, reshake } = options;
 		this.mfConfig = mfConfig;
 		this.outputDir = mfConfig.independentShareDir || "independent-packages";
@@ -38,7 +39,7 @@ export class TreeshakeSharePlugin {
 		}
 
 		if (!reshake) {
-			new OptimizeDependencyReferencedExportsPlugin(
+			new SharedUsedExportsOptimizerPlugin(
 				sharedOptions,
 				mfConfig.injectUsedExports,
 				mfConfig.manifest
@@ -50,14 +51,20 @@ export class TreeshakeSharePlugin {
 				([_, config]) => config.treeshake && config.import !== false
 			)
 		) {
-			new IndependentSharePlugin({
+			this._independentSharePlugin = new IndependentSharedPlugin({
 				name: name,
 				shared: shared,
 				outputDir,
 				plugins,
 				treeshake: reshake,
-				library
-			}).apply(compiler);
+				library,
+				manifest: mfConfig.manifest
+			});
+			this._independentSharePlugin.apply(compiler);
 		}
+	}
+
+	get buildAssets() {
+		return this._independentSharePlugin?.buildAssets || {};
 	}
 }

@@ -1,4 +1,4 @@
-const { TreeshakeSharePlugin } = require("@rspack/core").sharing;
+const { TreeShakeSharedPlugin } = require("@rspack/core").sharing;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 		chunkFilename: "[id].js"
 	},
 	plugins: [
-		new TreeshakeSharePlugin({
+		new TreeShakeSharedPlugin({
 			reshake: true,
 					plugins: [
 					{
