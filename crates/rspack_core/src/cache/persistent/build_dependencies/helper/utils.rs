@@ -1,9 +1,7 @@
-use std::path::Component;
-
-use rspack_paths::ArcPath;
+use std::path::{Component, Path};
 
 /// Check if a path is a node package path.
-pub fn is_node_package_path(path: &ArcPath) -> bool {
+pub fn is_node_package_path(path: &Path) -> bool {
   let mut result = false;
   for comp in path.components() {
     if let Component::Normal(os_str) = comp {

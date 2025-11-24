@@ -1,3 +1,4 @@
+mod utils;
 mod visitor;
 
 use std::sync::Arc;
@@ -5,7 +6,7 @@ use std::sync::Arc;
 use indoc::formatdoc;
 use rspack_fs::ReadableFileSystem;
 use rspack_javascript_compiler::JavaScriptCompiler;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_resolver::ResolveError;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
@@ -13,6 +14,7 @@ use swc_core::{
   common::FileName,
   ecma::{ast::EsVersion, parser::Syntax},
 };
+pub use utils::is_node_package_path;
 
 use self::visitor::DependencyVisitor;
 use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver};
@@ -130,6 +132,12 @@ impl Helper {
       match self.resolver.resolve(dirname.as_std_path(), &req).await {
         Ok(ResolveResult::Resource(resource)) => {
           result.insert(resource.path);
+          if let Some(data) = resource.description_data {
+            let package_json_path = data.path();
+            if is_node_package_path(package_json_path) {
+              result.insert(package_json_path.join("package.json").assert_utf8());
+            }
+          }
         }
         Err(ResolveInnerError::RspackResolver(ResolveError::Builtin(_))) => {
           // builtin module ignore
@@ -218,6 +226,24 @@ mod test {
       .await
       .unwrap();
     fs.write("/i.node".into(), r#""#.as_bytes()).await.unwrap();
+    fs.create_dir_all("/node_modules/lib1/".into())
+      .await
+      .unwrap();
+    fs.write(
+      "/node_modules/lib1/package.json".into(),
+      r#"{"name":"lib1","version": "1.0.0","main":"./index.js"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
+    fs.write("/node_modules/lib1/index.js".into(), r#""#.as_bytes())
+      .await
+      .unwrap();
+    fs.write(
+      "/package.json".into(),
+      r#"{"name":"project","version": "1.0.0","main":"./index.js"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
     fs.write(
       "/index.js".into(),
       r#"
@@ -234,6 +260,7 @@ require("./f");
 require("./g");
 require("./h");
 require("./i");
+require("lib1");
 "#
       .as_bytes(),
     )
@@ -245,7 +272,7 @@ require("./i");
       .resolve("/index.js".into())
       .await
       .expect("should have deps");
-    assert_eq!(deps.len(), 8);
+    assert_eq!(deps.len(), 10);
     let warnings = helper.into_warnings();
     assert_eq!(warnings.len(), 3);
   }
