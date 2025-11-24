@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
+  ChunkGraph, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
   FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
   get_exports_type, missing_module_promise, module_id,
 };
@@ -165,7 +165,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     } else {
       Cow::Owned(format!(
         "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ref_chunk.as_u32()
+        ChunkGraph::get_chunk_id(
+          &code_generatable_context.compilation.chunk_ids_artifact,
+          &ref_chunk
+        )
+        .expect("should have id")
       ))
     };
 
