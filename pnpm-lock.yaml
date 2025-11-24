@@ -169,8 +169,8 @@ importers:
         version: 1.7.8
     devDependencies:
       '@rslib/core':
-        specifier: 0.18.0
-        version: 0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
+        specifier: 0.18.1
+        version: 0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -313,10 +313,10 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.2
-        version: 1.4.2(@rsbuild/core@1.6.7)
+        version: 1.4.2(@rsbuild/core@1.6.8)
       '@rslib/core':
-        specifier: 0.18.0
-        version: 0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
+        specifier: 0.18.1
+        version: 0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
       '@swc/types':
         specifier: 0.1.25
         version: 0.1.25
@@ -397,8 +397,8 @@ importers:
         version: 4.10.2
     devDependencies:
       '@rslib/core':
-        specifier: 0.18.0
-        version: 0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
+        specifier: 0.18.1
+        version: 0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -905,7 +905,7 @@ importers:
     devDependencies:
       '@rsbuild/plugin-sass':
         specifier: ^1.4.0
-        version: 1.4.0(@rsbuild/core@1.6.7)
+        version: 1.4.0(@rsbuild/core@1.6.8)
       '@rspress/core':
         specifier: 2.0.0-rc.1
         version: 2.0.0-rc.1(@types/react@19.1.15)
@@ -950,10 +950,10 @@ importers:
         version: 1.0.3
       rsbuild-plugin-google-analytics:
         specifier: 1.0.4
-        version: 1.0.4(@rsbuild/core@1.6.7)
+        version: 1.0.4(@rsbuild/core@1.6.8)
       rsbuild-plugin-open-graph:
         specifier: 1.1.0
-        version: 1.1.0(@rsbuild/core@1.6.7)
+        version: 1.1.0(@rsbuild/core@1.6.8)
       rspress-plugin-font-open-sans:
         specifier: 1.0.3
         version: 1.0.3(@rspress/core@2.0.0-rc.1(@types/react@19.1.15))
@@ -2882,6 +2882,11 @@ packages:
     engines: {node: '>=18.12.0'}
     hasBin: true
 
+  '@rsbuild/core@1.6.8':
+    resolution: {integrity: sha512-sVdzmrLV5hQtSTd2NqWNQg/KX30R4UatA8d6FHnpO2r44CJv+HXow3sjtYMhpmB+z3GIxidwcvLpmRbZcq+/+Q==}
+    engines: {node: '>=18.12.0'}
+    hasBin: true
+
   '@rsbuild/plugin-node-polyfill@1.4.2':
     resolution: {integrity: sha512-Vq1So9ZQa0nz9scgDfAa/t7bLPl7lYBQw6n3Qhd8hGUpPXacSjr0xLdJ2c20EDihOO4qJKN4zlomBYVjCHPy0A==}
     peerDependencies:
@@ -2900,8 +2905,8 @@ packages:
     peerDependencies:
       '@rsbuild/core': 1.x
 
-  '@rslib/core@0.18.0':
-    resolution: {integrity: sha512-ZLonxKnef5Hx4zZj2ZckicVnM0KwTP9x8XcNnZBuXo82maXVmSSERtvMrB7aufxlFjqEThOHG6RNuLZToM1eFQ==}
+  '@rslib/core@0.18.1':
+    resolution: {integrity: sha512-eDDz6y8anIAF17gQJBDfH6l/JTidkXANYAFq8iuymFQg/wE2PEKyBNC2K6n+jg4rT1a7AhuVbHZb5oDumaFopQ==}
     engines: {node: '>=18.12.0'}
     hasBin: true
     peerDependencies:
@@ -7132,8 +7137,8 @@ packages:
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
 
-  rsbuild-plugin-dts@0.18.0:
-    resolution: {integrity: sha512-GzzcnYDoILabBddQH5wMQK93peZbHXnoF9wtFz0INRotAS2xIwBb1rIeFRpfn/fgXfSlFu4C8QbqD6U8PgXzJA==}
+  rsbuild-plugin-dts@0.18.1:
+    resolution: {integrity: sha512-2nj8zlMxyEkc4Z7wFo1zn1R2SQNyUSH1+g0hx5RKP0yJJojRovYbENjLf6ixFo7RwUU0PhS9EnuiiKqHPt8+FA==}
     engines: {node: '>=18.12.0'}
     peerDependencies:
       '@microsoft/api-extractor': ^7
@@ -10228,7 +10233,15 @@ snapshots:
       core-js: 3.46.0
       jiti: 2.6.1
 
-  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.7)':
+  '@rsbuild/core@1.6.8':
+    dependencies:
+      '@rspack/core': 1.6.4(@swc/helpers@0.5.17)
+      '@rspack/lite-tapable': 1.1.0
+      '@swc/helpers': 0.5.17
+      core-js: 3.47.0
+      jiti: 2.6.1
+
+  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.8)':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10254,7 +10267,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 1.6.7
+      '@rsbuild/core': 1.6.8
 
   '@rsbuild/plugin-react@1.4.2(@rsbuild/core@1.6.7)':
     dependencies:
@@ -10264,19 +10277,19 @@ snapshots:
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-sass@1.4.0(@rsbuild/core@1.6.7)':
+  '@rsbuild/plugin-sass@1.4.0(@rsbuild/core@1.6.8)':
     dependencies:
-      '@rsbuild/core': 1.6.7
+      '@rsbuild/core': 1.6.8
       deepmerge: 4.3.1
       loader-utils: 2.0.4
       postcss: 8.5.6
       reduce-configs: 1.1.1
       sass-embedded: 1.93.2
 
-  '@rslib/core@0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)':
+  '@rslib/core@0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(typescript@5.9.3)':
     dependencies:
-      '@rsbuild/core': 1.6.7
-      rsbuild-plugin-dts: 0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(@rsbuild/core@1.6.7)(typescript@5.9.3)
+      '@rsbuild/core': 1.6.8
+      rsbuild-plugin-dts: 0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(@rsbuild/core@1.6.8)(typescript@5.9.3)
     optionalDependencies:
       '@microsoft/api-extractor': 7.54.0(@types/node@20.19.25)
       typescript: 5.9.3
@@ -15393,21 +15406,21 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@0.18.0(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(@rsbuild/core@1.6.7)(typescript@5.9.3):
+  rsbuild-plugin-dts@0.18.1(@microsoft/api-extractor@7.54.0(@types/node@20.19.25))(@rsbuild/core@1.6.8)(typescript@5.9.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 1.6.7
+      '@rsbuild/core': 1.6.8
     optionalDependencies:
       '@microsoft/api-extractor': 7.54.0(@types/node@20.19.25)
       typescript: 5.9.3
 
-  rsbuild-plugin-google-analytics@1.0.4(@rsbuild/core@1.6.7):
+  rsbuild-plugin-google-analytics@1.0.4(@rsbuild/core@1.6.8):
     optionalDependencies:
-      '@rsbuild/core': 1.6.7
+      '@rsbuild/core': 1.6.8
 
-  rsbuild-plugin-open-graph@1.1.0(@rsbuild/core@1.6.7):
+  rsbuild-plugin-open-graph@1.1.0(@rsbuild/core@1.6.8):
     optionalDependencies:
-      '@rsbuild/core': 1.6.7
+      '@rsbuild/core': 1.6.8
 
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.0-rc.1(@types/react@19.1.15)):
     dependencies:
