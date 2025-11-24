@@ -13,6 +13,7 @@ cow-utils                       = { workspace = true }
 derive_more                     = { workspace = true, features = ["debug"] }
 futures                         = { workspace = true }
 indexmap                        = { workspace = true }
+once_cell                       = { workspace = true }
 pathdiff                        = { workspace = true }
 rayon                           = { workspace = true }
 regex                           = { workspace = true }
