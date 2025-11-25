@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
   ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, module_namespace_promise,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -154,15 +154,18 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_namespace_promise(
-        code_generatable_context,
-        &dep.id,
-        block,
-        &dep.request,
-        dep.dependency_type().as_str(),
-        false,
-      )
-      .as_str(),
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .module_namespace_promise(
+          code_generatable_context,
+          &dep.id,
+          block,
+          &dep.request,
+          dep.dependency_type().as_str(),
+          false,
+        )
+        .as_str(),
       None,
     );
   }

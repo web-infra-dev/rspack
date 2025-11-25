@@ -30,7 +30,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -530,8 +530,7 @@ impl JsPlugin {
             format!(
               "// the startup function\n{} = {};\n",
               runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
-              basic_function(
-                &compilation.options.output.environment,
+              compilation.runtime_template.basic_function(
                 "",
                 &format!(
                   "{}\nreturn {}",

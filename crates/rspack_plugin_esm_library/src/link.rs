@@ -16,8 +16,8 @@ use rspack_core::{
   PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
   get_js_chunk_filename_template, get_target, property_access, property_name,
-  reserved_names::RESERVED_NAMES, returning_function, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
+  to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
@@ -348,11 +348,9 @@ impl EsmLibraryPlugin {
               ns_obj.push(format!(
                 "\n  {}: {}",
                 property_name(&used_name).expect("should have property_name"),
-                returning_function(
-                  &compilation.options.output.environment,
-                  &binding.render(),
-                  ""
-                )
+                compilation
+                  .runtime_template
+                  .returning_function(&binding.render(), "")
               ));
             }
           }

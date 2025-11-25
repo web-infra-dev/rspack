@@ -8,7 +8,7 @@ use rspack_core::{
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
   LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, ValueCacheVersions,
-  impl_module_meta_info, module_namespace_promise, module_update_hash,
+  impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -266,7 +266,7 @@ impl Module for LazyCompilationProxyModule {
             module.hot.data.resolveSelf(module.exports);
         }}
         ",
-        module_namespace_promise(
+        compilation.runtime_template.module_namespace_promise(
           &mut template_ctx,
           &dep_id,
           Some(block_id),

@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   ChunkGraph, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
   FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
-  get_exports_type, missing_module_promise, module_id,
+  get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -27,7 +27,7 @@ fn then_expr(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return missing_module_promise(request);
+    return compilation.runtime_template.missing_module_promise(request);
   };
 
   let exports_type = get_exports_type(
@@ -36,7 +36,9 @@ fn then_expr(
     dep_id,
     &module.identifier(),
   );
-  let module_id_expr = module_id(compilation, dep_id, request, false);
+  let module_id_expr = compilation
+    .runtime_template
+    .module_id(compilation, dep_id, request, false);
 
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
@@ -132,7 +134,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       .request();
 
     let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
-      let missing_promise = missing_module_promise(request);
+      let missing_promise = code_generatable_context
+        .compilation
+        .runtime_template
+        .missing_module_promise(request);
       source.replace(
         import_dep.range.start,
         import_dep.range.end,

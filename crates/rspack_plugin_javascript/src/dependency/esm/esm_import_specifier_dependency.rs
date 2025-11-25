@@ -12,8 +12,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
   PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, SharedSourceMap,
   TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, export_from_import, get_exports_type, property_access,
-  to_normal_comment,
+  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -341,7 +340,6 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
-      compilation,
       runtime,
       concatenation_scope,
       module,
@@ -384,9 +382,9 @@ impl ESMImportSpecifierDependencyTemplate {
         )
       }
     } else {
-      let mg = compilation.get_module_graph();
+      let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
-      let import_var = compilation.get_import_var(
+      let import_var = code_generatable_context.compilation.get_import_var(
         module.identifier(),
         target_module,
         dep.user_request(),
@@ -394,18 +392,21 @@ impl ESMImportSpecifierDependencyTemplate {
         *runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      export_from_import(
-        code_generatable_context,
-        true,
-        &dep.request,
-        &import_var,
-        ids,
-        &dep.id,
-        dep.call,
-        !dep.direct_import,
-        Some(dep.shorthand || dep.asi_safe),
-        dep.phase,
-      )
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .export_from_import(
+          code_generatable_context,
+          true,
+          &dep.request,
+          &import_var,
+          ids,
+          &dep.id,
+          dep.call,
+          !dep.direct_import,
+          Some(dep.shorthand || dep.asi_safe),
+          dep.phase,
+        )
     }
   }
 

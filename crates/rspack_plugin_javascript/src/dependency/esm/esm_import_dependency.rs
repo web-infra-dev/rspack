@@ -10,7 +10,7 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
   SharedSourceMap, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
-  filter_runtime, import_statement,
+  filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -170,7 +170,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = import_statement(
+  let content: (String, String) = compilation.runtime_template.import_statement(
     *module,
     compilation,
     runtime_requirements,

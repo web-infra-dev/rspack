@@ -3,7 +3,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, module_id,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -123,13 +123,16 @@ impl DependencyTemplate for RequireResolveDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        dep.weak,
-      )
-      .as_str(),
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          dep.weak,
+        )
+        .as_str(),
       None,
     );
   }

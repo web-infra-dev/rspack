@@ -19,7 +19,7 @@ use crate::{
   StaticExportsSpec, UsedExports, extract_url_and_global, impl_module_meta_info,
   module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block, to_identifier,
+  to_identifier,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -408,7 +408,9 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&self.user_request)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&self.user_request)
           )
         } else {
           String::new()
@@ -437,7 +439,9 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&get_request_string(request))
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&get_request_string(request))
           )
         } else {
           String::new()
@@ -732,7 +736,9 @@ if(typeof {global} !== "undefined") return resolve();
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
-            throw_missing_module_error_block(&external_variable)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&external_variable)
           )
         } else {
           String::new()
