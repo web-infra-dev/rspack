@@ -107,7 +107,9 @@ impl fmt::Debug for IncrementalState {
     match self {
       Self::Cold => write!(f, "Cold"),
       Self::Hot { mutations } => {
-        let mutations = mutations.lock().expect("failed to lock mutations");
+        let mutations = mutations
+          .lock()
+          .expect("Mutex poisoned: failed to acquire lock on incremental mutations for debug");
         f.debug_struct("Hot").field("mutations", &*mutations).finish()
       }
     }
@@ -209,7 +211,11 @@ impl Incremental {
   pub fn mutations_write(&self) -> Option<MutexGuard<'_, Mutations>> {
     if let IncrementalState::Hot { mutations } = &self.state {
       if self.passes().allow_write() {
-        return Some(mutations.lock().expect("failed to lock mutations"));
+        return Some(
+          mutations
+            .lock()
+            .expect("Mutex poisoned: failed to acquire write lock on incremental mutations"),
+        );
       }
     }
     None
@@ -218,7 +224,11 @@ impl Incremental {
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<MutexGuard<'_, Mutations>> {
     if let IncrementalState::Hot { mutations } = &self.state {
       if self.passes().allow_read(passes) {
-        return Some(mutations.lock().expect("failed to lock mutations"));
+        return Some(
+          mutations
+            .lock()
+            .expect("Mutex poisoned: failed to acquire read lock on incremental mutations"),
+        );
       }
     }
     None
