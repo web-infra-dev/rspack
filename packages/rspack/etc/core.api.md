@@ -3413,6 +3413,18 @@ type IntermediateFileSystemExtras = {
 };
 
 // @public (undocumented)
+type InternalManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    remoteAliasMap?: RemoteAliasMap;
+    exposes?: ManifestExposeOption[];
+    shared?: ManifestSharedOption[];
+};
+
+// @public (undocumented)
 interface Invalid extends Node_4, HasSpan {
     // (undocumented)
     type: "Invalid";
@@ -4819,16 +4831,7 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
-type ModuleFederationManifestPluginOptions = {
-    name?: string;
-    globalName?: string;
-    filePath?: string;
-    disableAssetsAnalyze?: boolean;
-    fileName?: string;
-    remoteAliasMap?: RemoteAliasMap;
-    exposes?: ManifestExposeOption[];
-    shared?: ManifestSharedOption[];
-};
+type ModuleFederationManifestPluginOptions = boolean | Pick<InternalManifestPluginOptions, "disableAssetsAnalyze" | "filePath" | "fileName">;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -4842,7 +4845,13 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
+    independentShareDir?: string;
+    // (undocumented)
+    independentShareFilePath?: string;
+    // (undocumented)
+    injectUsedExports?: boolean;
+    // (undocumented)
+    manifest?: ModuleFederationManifestPluginOptions;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
@@ -5234,6 +5243,9 @@ export type NoParseOption = NoParseOptionSingle | NoParseOptionSingle[];
 
 // @public (undocumented)
 type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
+
+// @public (undocumented)
+type NormalizedSharedOptions = [string, SharedConfig][];
 
 // @public (undocumented)
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
@@ -6627,6 +6639,7 @@ declare namespace rspackExports {
         SharedItem,
         SharedObject,
         SharePluginOptions,
+        TreeshakeSharedPluginOptions,
         sharing,
         LightningcssFeatureOptions,
         LightningcssLoaderOptions,
@@ -7347,6 +7360,9 @@ export type SharedConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
+    treeshake?: boolean;
+    usedExports?: string[];
+    independentShareFileName?: string;
 };
 
 // @public (undocumented)
@@ -7374,6 +7390,9 @@ type SharedOptimizationSplitChunksCacheGroup = {
     maxInitialRequests?: number;
     automaticNameDelimiter?: string;
 };
+
+// @public (undocumented)
+type ShareFallback = Record<string, [string, string, string][]>;
 
 // @public (undocumented)
 class SharePlugin {
@@ -7408,6 +7427,8 @@ class SharePlugin {
         };
     }[];
     // (undocumented)
+    _sharedOptions: NormalizedSharedOptions;
+    // (undocumented)
     _shareScope: string | undefined;
 }
 
@@ -7421,6 +7442,7 @@ export type SharePluginOptions = {
 // @public (undocumented)
 export const sharing: {
     ProvideSharedPlugin: typeof ProvideSharedPlugin;
+    TreeShakeSharedPlugin: typeof TreeShakeSharedPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
     SharePlugin: typeof SharePlugin;
 };
@@ -8403,6 +8425,35 @@ interface TransformConfig {
 
 // @public (undocumented)
 function transformSync(source: string, options?: Options): TransformOutput;
+
+// @public (undocumented)
+class TreeShakeSharedPlugin {
+    constructor(options: TreeshakeSharedPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    get buildAssets(): ShareFallback;
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    outputDir: string;
+    // (undocumented)
+    plugins?: Plugins;
+    // (undocumented)
+    reshake?: boolean;
+}
+
+// @public (undocumented)
+export interface TreeshakeSharedPluginOptions {
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    plugins?: Plugins;
+    // (undocumented)
+    reshake?: boolean;
+}
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";

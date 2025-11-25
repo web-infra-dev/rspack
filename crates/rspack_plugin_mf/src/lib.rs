@@ -16,16 +16,22 @@ pub use manifest::{
   ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
 };
 pub use sharing::{
+  collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
   },
   provide_shared_module::ProvideSharedModule,
   provide_shared_plugin::{ProvideOptions, ProvideSharedPlugin, ProvideVersion},
+  share_container_entry_dependency::ShareContainerEntryOptions,
+  share_container_plugin::{ShareContainerPlugin, ShareContainerPluginOptions},
   share_runtime_module::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
+  shared_used_exports_optimizer_plugin::{
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+  },
 };
 
 mod utils {

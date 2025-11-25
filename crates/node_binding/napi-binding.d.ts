@@ -540,10 +540,13 @@ export declare enum BuiltinPluginName {
   SplitChunksPlugin = 'SplitChunksPlugin',
   RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
+  SharedUsedExportsOptimizerPlugin = 'SharedUsedExportsOptimizerPlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  CollectSharedEntryPlugin = 'CollectSharedEntryPlugin',
+  ShareContainerPlugin = 'ShareContainerPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
@@ -1837,6 +1840,11 @@ export interface RawCircularDependencyRspackPluginOptions {
   onEnd?: () => void
 }
 
+export interface RawCollectShareEntryPluginOptions {
+  consumes: Array<RawConsumeOptions>
+  filename?: string
+}
+
 export interface RawConsumeOptions {
   key: string
   import?: string
@@ -2584,6 +2592,12 @@ export interface RawOptimizationOptions {
   avoidEntryIife: boolean
 }
 
+export interface RawOptimizeSharedConfig {
+  shareKey: string
+  treeshake: boolean
+  usedExports?: Array<string>
+}
+
 export interface RawOptions {
   name?: string
   mode?: undefined | 'production' | 'development' | 'none'
@@ -2818,6 +2832,21 @@ export interface RawRuntimeChunkNameFnCtx {
 
 export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
+}
+
+export interface RawShareContainerPluginOptions {
+  name: string
+  request: string
+  version: string
+  fileName?: string
+  library: JsLibraryOptions
+}
+
+export interface RawSharedUsedExportsOptimizerPluginOptions {
+  shared: Array<RawOptimizeSharedConfig>
+  injectUsedExports?: boolean
+  manifestFileName?: string
+  statsFileName?: string
 }
 
 export interface RawSizeLimitsPluginOptions {
