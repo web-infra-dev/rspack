@@ -1,6 +1,6 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
+  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
@@ -91,16 +91,25 @@ impl RuntimeModule for RemoteRuntimeModule {
         remotes,
       );
     }
+
     let remotes_loading_impl = if self.enhanced {
-      "__webpack_require__.f.remotes = __webpack_require__.f.remotes || function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+      format!(
+        "{ensure_chunk_handlers}.remotes = {ensure_chunk_handlers}.remotes || function() {{ throw new Error(\"should have {ensure_chunk_handlers}.remotes\"); }}",
+        ensure_chunk_handlers = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+      )
     } else {
-      include_str!("./remotesLoading.js")
+      include_str!("./remotesLoading.js").to_string()
     };
     Ok(format!(
       r#"
-__webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
+{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
 "#,
+      require_name = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,

@@ -211,12 +211,24 @@ impl Module for ContainerEntryModule {
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        compilation
-          .runtime_template
-          .returning_function("__webpack_require__.getContainer", ""),
-        compilation
-          .runtime_template
-          .returning_function("__webpack_require__.initContainer", ""),
+        compilation.runtime_template.returning_function(
+          &format!(
+            "{}.getContainer",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ),
+          ""
+        ),
+        compilation.runtime_template.returning_function(
+          &format!(
+            "{}.initContainer",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ),
+          ""
+        ),
       )
     } else {
       format!(

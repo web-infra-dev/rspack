@@ -1,5 +1,6 @@
 use rspack_core::{
-  Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule, impl_runtime_module,
+  Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -7,8 +8,11 @@ use rspack_core::{
 pub(crate) struct RegisterModuleRuntime {}
 
 impl RegisterModuleRuntime {
-  pub(crate) fn runtime_id() -> &'static str {
-    "__webpack_require__.add"
+  pub(crate) fn runtime_id(runtime_template: &RuntimeTemplate) -> String {
+    format!(
+      "{}.add",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    )
   }
 }
 
@@ -21,7 +25,7 @@ impl RuntimeModule for RegisterModuleRuntime {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = function registerModules(modules) {{ Object.assign({}, modules) }}\n",
-      Self::runtime_id(),
+      Self::runtime_id(&compilation.runtime_template),
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),

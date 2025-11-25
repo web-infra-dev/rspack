@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use itertools::Itertools as _;
 use regex::Regex;
@@ -6,11 +6,6 @@ use rspack_core::{ConstDependency, RuntimeGlobals};
 use serde_json::{Value, json};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
-
-static REQUIRE_FUNCTION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
-});
-static REQUIRE_IDENTIFIER: &str = "__webpack_require__";
 
 pub fn gen_const_dep(
   parser: &JavascriptParser,
@@ -33,9 +28,14 @@ pub fn gen_const_dep(
     )
   };
 
-  if REQUIRE_FUNCTION_REGEX.is_match(&code) {
+  let require_name = parser
+    .runtime_template
+    .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+  let require_function_regex = Regex::new(&format!("{}\\s*(!?\\.)", &require_name))
+    .expect("should init `REQUIRE_FUNCTION_REGEX`");
+  if require_function_regex.is_match(&code) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(REQUIRE_IDENTIFIER) {
+  } else if code.contains(&require_name) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)

@@ -230,7 +230,10 @@ pub fn generate_entry_startup(
 
   let mut source = String::default();
   source.push_str(&format!(
-    "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
+    "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId) }}\n",
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
     compilation
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)

@@ -85,8 +85,6 @@ pub fn module_id_rstest(
   }
 }
 
-const REQUIRE_IMPORT_ACTUAL: &str = "__webpack_require__.rstest_import_actual";
-
 // To support use `__webpack_require__.import_actual` for `importActual`.
 fn module_namespace_promise_rstest(
   code_generatable_context: &mut TemplateContext,
@@ -108,7 +106,12 @@ fn module_namespace_promise_rstest(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return format!("__webpack_require__(\"{request}\")");
+    return format!(
+      "{}(\"{request}\")",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
   };
 
   let promise =
@@ -125,9 +128,16 @@ fn module_namespace_promise_rstest(
   let module_id_expr = module_id_rstest(compilation, dep_id, request, weak);
 
   let final_require = if is_import_actual {
-    REQUIRE_IMPORT_ACTUAL
+    format!(
+      "{}.rstest_import_actual",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    )
   } else {
-    "__webpack_require__"
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
   let header = if weak {
