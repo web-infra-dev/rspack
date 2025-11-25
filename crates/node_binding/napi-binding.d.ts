@@ -2097,6 +2097,7 @@ export interface RawEnvironment {
   optionalChaining?: boolean
   templateLiteral?: boolean
   dynamicImportInWorker?: boolean
+  importMetaDirnameAndFilename?: boolean
 }
 
 export interface RawEsmLibraryPlugin {

@@ -2,6 +2,7 @@ use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
   RuntimeGlobals, get_context, parse_resource,
 };
+use rspack_error::Diagnostic;
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
@@ -33,10 +34,50 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     if for_name == DIR_NAME {
       let dirname = match node_option.dirname {
         NodeDirnameOption::Mock => Some("/".to_string()),
-        NodeDirnameOption::WarnMock => Some("/".to_string()),
+        NodeDirnameOption::WarnMock => {
+          parser.add_warning(Diagnostic::warn(
+            "NODE_DIRNAME".to_string(),
+            format!("\"{DIR_NAME}\" has been used, it will be mocked."),
+          ));
+          Some("/".to_string())
+        }
         NodeDirnameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
+          let external_url_dep = ExternalModuleDependency::new(
+            "url".to_string(),
+            vec![(
+              "fileURLToPath".to_string(),
+              "__webpack_fileURLToPath__".to_string(),
+            )],
+            None,
+          );
+
+          let external_path_dep = ExternalModuleDependency::new(
+            "path".to_string(),
+            vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+            None,
+          );
+
+          let const_dep = CachedConstDependency::new(
+            ident.span.into(),
+            DIR_NAME.into(),
+            "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
+              .to_string()
+              .into(),
+          );
+
+          parser.add_presentational_dependency(Box::new(external_url_dep));
+          parser.add_presentational_dependency(Box::new(external_path_dep));
+          parser.add_presentational_dependency(Box::new(const_dep));
+          return Some(true);
+        }
+        NodeDirnameOption::EvalOnly => {
+          // For CJS output, preserve __dirname (let Node.js runtime handle it)
+          if !parser.compiler_options.output.module {
+            return None;
+          }
+
           let external_url_dep = ExternalModuleDependency::new(
             "url".to_string(),
             vec![(
@@ -75,7 +116,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             .to_string_lossy()
             .to_string(),
         ),
-        _ => None,
+        NodeDirnameOption::False => None,
       };
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -90,10 +131,42 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     } else if for_name == FILE_NAME {
       let filename = match node_option.filename {
         NodeFilenameOption::Mock => Some("/index.js".to_string()),
-        NodeFilenameOption::WarnMock => Some("/index.js".to_string()),
+        NodeFilenameOption::WarnMock => {
+          parser.add_warning(Diagnostic::warn(
+            "NODE_FILENAME".to_string(),
+            format!("\"{FILE_NAME}\" has been used, it will be mocked."),
+          ));
+          Some("/index.js".to_string())
+        }
         NodeFilenameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
+          let external_dep = ExternalModuleDependency::new(
+            "url".to_string(),
+            vec![(
+              "fileURLToPath".to_string(),
+              "__webpack_fileURLToPath__".to_string(),
+            )],
+            None,
+          );
+
+          let const_dep = CachedConstDependency::new(
+            ident.span.into(),
+            FILE_NAME.into(),
+            "__webpack_fileURLToPath__(import.meta.url)"
+              .to_string()
+              .into(),
+          );
+
+          parser.add_presentational_dependency(Box::new(external_dep));
+          parser.add_presentational_dependency(Box::new(const_dep));
+          return Some(true);
+        }
+        NodeFilenameOption::EvalOnly => {
+          // For CJS output, preserve __filename (let Node.js runtime handle it)
+          if !parser.compiler_options.output.module {
+            return None;
+          }
           let external_dep = ExternalModuleDependency::new(
             "url".to_string(),
             vec![(
@@ -124,7 +197,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             .to_string_lossy()
             .to_string(),
         ),
-        _ => None,
+        NodeFilenameOption::False => None,
       };
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -320,44 +393,76 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if parser.javascript_options.import_meta == Some(false) {
         return None;
       }
-      // Skip processing if node.filename is disabled
-      if parser
-        .compiler_options
-        .node
-        .as_ref()
-        .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
-      {
-        return None;
-      }
-      let filename = Url::from_file_path(parser.resource_data.resource())
-        .expect("should be a path")
-        .to_file_path()
-        .expect("should be a path")
-        .to_string_lossy()
-        .into_owned();
+      // Get the appropriate filename based on node option
+      let filename = match parser.compiler_options.node.as_ref().map(|n| n.filename) {
+        Some(NodeFilenameOption::False) => return None,
+        Some(NodeFilenameOption::Mock) | Some(NodeFilenameOption::WarnMock) => {
+          "/index.js".to_string()
+        }
+        Some(NodeFilenameOption::True) => {
+          // Use relative path
+          parser
+            .resource_data
+            .path()?
+            .as_std_path()
+            .relative(&parser.compiler_options.context)
+            .to_string_lossy()
+            .to_string()
+        }
+        Some(NodeFilenameOption::EvalOnly) => {
+          // For eval-only, use runtime value evaluation
+          // The actual replacement is done in member() method
+          let resource = parse_resource(parser.resource_data.path()?.as_str())?;
+          resource.path.to_string()
+        }
+        Some(NodeFilenameOption::NodeModule) | None => {
+          // Use absolute path for node-module or when no option is set
+          Url::from_file_path(parser.resource_data.resource())
+            .expect("should be a path")
+            .to_file_path()
+            .expect("should be a path")
+            .to_string_lossy()
+            .into_owned()
+        }
+      };
       Some(eval::evaluate_to_string(filename, start, end))
     } else if for_name == expr_name::IMPORT_META_DIRNAME {
       // Skip processing if importMeta is disabled
       if parser.javascript_options.import_meta == Some(false) {
         return None;
       }
-      // Skip processing if node.dirname is disabled
-      if parser
-        .compiler_options
-        .node
-        .as_ref()
-        .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
-      {
-        return None;
-      }
-      let dirname = Url::from_file_path(parser.resource_data.resource())
-        .expect("should be a path")
-        .to_file_path()
-        .expect("should be a path")
-        .parent()
-        .expect("should have a parent")
-        .to_string_lossy()
-        .into_owned();
+      // Get the appropriate dirname based on node option
+      let dirname = match parser.compiler_options.node.as_ref().map(|n| n.dirname) {
+        Some(NodeDirnameOption::False) => return None,
+        Some(NodeDirnameOption::Mock) | Some(NodeDirnameOption::WarnMock) => "/".to_string(),
+        Some(NodeDirnameOption::True) => {
+          // Use relative path
+          parser
+            .resource_data
+            .path()?
+            .parent()?
+            .as_std_path()
+            .relative(&parser.compiler_options.context)
+            .to_string_lossy()
+            .to_string()
+        }
+        Some(NodeDirnameOption::EvalOnly) => {
+          // For eval-only, use runtime value evaluation
+          // The actual replacement is done in member() method
+          parser.resource_data.path()?.parent()?.to_string()
+        }
+        Some(NodeDirnameOption::NodeModule) | None => {
+          // Use absolute path for node-module or when no option is set
+          Url::from_file_path(parser.resource_data.resource())
+            .expect("should be a path")
+            .to_file_path()
+            .expect("should be a path")
+            .parent()
+            .expect("should have a parent")
+            .to_string_lossy()
+            .into_owned()
+        }
+      };
       Some(eval::evaluate_to_string(dirname, start, end))
     } else {
       None
@@ -378,25 +483,66 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         if parser.javascript_options.import_meta == Some(false) {
           return None;
         }
-        // Skip processing if node.filename is disabled
-        if parser
-          .compiler_options
-          .node
-          .as_ref()
-          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
-        {
-          return None;
-        }
-        // import.meta.filename
-        let filename = Url::from_file_path(parser.resource_data.resource())
-          .expect("should be a path")
-          .to_file_path()
-          .expect("should be a path")
-          .to_string_lossy()
-          .into_owned();
+        // Check node.filename option and get the appropriate value
+        let replacement = match parser.compiler_options.node.as_ref().map(|n| n.filename) {
+          Some(NodeFilenameOption::False) => return None,
+          Some(NodeFilenameOption::Mock) => "'/index.js'".to_string(),
+          Some(NodeFilenameOption::WarnMock) => {
+            parser.add_warning(Diagnostic::warn(
+              "NODE_IMPORT_META_FILENAME".to_string(),
+              "\"import.meta.filename\" has been used, it will be mocked.".to_string(),
+            ));
+            "'/index.js'".to_string()
+          }
+          Some(NodeFilenameOption::True) => {
+            // Use relative path
+            let filename = parser
+              .resource_data
+              .path()?
+              .as_std_path()
+              .relative(&parser.compiler_options.context)
+              .to_string_lossy()
+              .to_string();
+            format!("'{filename}'")
+          }
+          Some(NodeFilenameOption::EvalOnly) => {
+            // For ESM output, keep as import.meta.filename
+            if parser.compiler_options.output.module {
+              "import.meta.filename".to_string()
+            } else {
+              // For CJS output, replace with __filename
+              "__filename".to_string()
+            }
+          }
+          Some(NodeFilenameOption::NodeModule) | None => {
+            // For node-module mode, check if native import.meta.filename is supported
+            if parser.compiler_options.output.module
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .import_meta_dirname_and_filename
+                .unwrap_or(false)
+            {
+              // Keep as import.meta.filename - runtime supports it
+              return None;
+            }
+            // Use runtime expression with import.meta.url
+            let external_dep = ExternalModuleDependency::new(
+              "url".to_string(),
+              vec![(
+                "fileURLToPath".to_string(),
+                "__webpack_fileURLToPath__".to_string(),
+              )],
+              None,
+            );
+            parser.add_presentational_dependency(Box::new(external_dep));
+            "__webpack_fileURLToPath__(import.meta.url)".to_string()
+          }
+        };
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           member_expr.span().into(),
-          format!("'{filename}'").into(),
+          replacement.into(),
           None,
         )));
         Some(true)
@@ -406,27 +552,73 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         if parser.javascript_options.import_meta == Some(false) {
           return None;
         }
-        // Skip processing if node.dirname is disabled
-        if parser
-          .compiler_options
-          .node
-          .as_ref()
-          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
-        {
-          return None;
-        }
-        // import.meta.dirname
-        let dirname = Url::from_file_path(parser.resource_data.resource())
-          .expect("should be a path")
-          .to_file_path()
-          .expect("should be a path")
-          .parent()
-          .expect("should have a parent")
-          .to_string_lossy()
-          .into_owned();
+        // Check node.dirname option and get the appropriate value
+        let replacement = match parser.compiler_options.node.as_ref().map(|n| n.dirname) {
+          Some(NodeDirnameOption::False) => return None,
+          Some(NodeDirnameOption::Mock) => "'/'".to_string(),
+          Some(NodeDirnameOption::WarnMock) => {
+            parser.add_warning(Diagnostic::warn(
+              "NODE_IMPORT_META_DIRNAME".to_string(),
+              "\"import.meta.dirname\" has been used, it will be mocked.".to_string(),
+            ));
+            "'/'".to_string()
+          }
+          Some(NodeDirnameOption::True) => {
+            // Use relative path
+            let dirname = parser
+              .resource_data
+              .path()?
+              .parent()?
+              .as_std_path()
+              .relative(&parser.compiler_options.context)
+              .to_string_lossy()
+              .to_string();
+            format!("'{dirname}'")
+          }
+          Some(NodeDirnameOption::EvalOnly) => {
+            // For ESM output, keep as import.meta.dirname
+            if parser.compiler_options.output.module {
+              "import.meta.dirname".to_string()
+            } else {
+              // For CJS output, replace with __dirname
+              "__dirname".to_string()
+            }
+          }
+          Some(NodeDirnameOption::NodeModule) | None => {
+            // For node-module mode, check if native import.meta.dirname is supported
+            if parser.compiler_options.output.module
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .import_meta_dirname_and_filename
+                .unwrap_or(false)
+            {
+              // Keep as import.meta.dirname - runtime supports it
+              return None;
+            }
+            // Use runtime expression with import.meta.url
+            let external_url_dep = ExternalModuleDependency::new(
+              "url".to_string(),
+              vec![(
+                "fileURLToPath".to_string(),
+                "__webpack_fileURLToPath__".to_string(),
+              )],
+              None,
+            );
+            let external_path_dep = ExternalModuleDependency::new(
+              "path".to_string(),
+              vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+              None,
+            );
+            parser.add_presentational_dependency(Box::new(external_url_dep));
+            parser.add_presentational_dependency(Box::new(external_path_dep));
+            "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))".to_string()
+          }
+        };
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           member_expr.span().into(),
-          format!("'{dirname}'").into(),
+          replacement.into(),
           None,
         )));
         Some(true)
@@ -446,44 +638,133 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     }
     match property.id.as_str() {
       "filename" => {
-        // Skip processing if node.filename is disabled
-        if parser
-          .compiler_options
-          .node
-          .as_ref()
-          .is_some_and(|node_option| matches!(node_option.filename, NodeFilenameOption::False))
-        {
-          return None;
-        }
-        // This is the same as the url.fileURLToPath() of the import.meta.url
-        let filename = Url::from_file_path(parser.resource_data.resource())
-          .expect("should be a path")
-          .to_file_path()
-          .expect("should be a path")
-          .to_string_lossy()
-          .into_owned();
-        Some(format!(r#"filename: "{}""#, filename))
+        // Check node.filename option and get the appropriate value
+        let value = match parser.compiler_options.node.as_ref().map(|n| n.filename) {
+          Some(NodeFilenameOption::False) => return None,
+          Some(NodeFilenameOption::Mock) => "\"/index.js\"".to_string(),
+          Some(NodeFilenameOption::WarnMock) => {
+            parser.add_warning(Diagnostic::warn(
+              "NODE_IMPORT_META_FILENAME".to_string(),
+              "\"import.meta.filename\" has been used, it will be mocked.".to_string(),
+            ));
+            "\"/index.js\"".to_string()
+          }
+          Some(NodeFilenameOption::True) => {
+            // Use relative path
+            let filename = parser
+              .resource_data
+              .path()?
+              .as_std_path()
+              .relative(&parser.compiler_options.context)
+              .to_string_lossy()
+              .to_string();
+            format!(r#""{filename}""#)
+          }
+          Some(NodeFilenameOption::EvalOnly) => {
+            // For ESM output, keep as import.meta.filename
+            if parser.compiler_options.output.module {
+              "import.meta.filename".to_string()
+            } else {
+              // For CJS output, replace with __filename
+              "__filename".to_string()
+            }
+          }
+          Some(NodeFilenameOption::NodeModule) | None => {
+            // For node-module mode, check if native import.meta.filename is supported
+            if parser.compiler_options.output.module
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .import_meta_dirname_and_filename
+                .unwrap_or(false)
+            {
+              // Keep as import.meta.filename - runtime supports it
+              "import.meta.filename".to_string()
+            } else {
+              // Use runtime expression with import.meta.url
+              let external_dep = ExternalModuleDependency::new(
+                "url".to_string(),
+                vec![(
+                  "fileURLToPath".to_string(),
+                  "__webpack_fileURLToPath__".to_string(),
+                )],
+                None,
+              );
+              parser.add_presentational_dependency(Box::new(external_dep));
+              "__webpack_fileURLToPath__(import.meta.url)".to_string()
+            }
+          }
+        };
+        Some(format!(r#"filename: {value}"#))
       }
       "dirname" => {
-        // Skip processing if node.dirname is disabled
-        if parser
-          .compiler_options
-          .node
-          .as_ref()
-          .is_some_and(|node_option| matches!(node_option.dirname, NodeDirnameOption::False))
-        {
-          return None;
-        }
-        // This is the same as the path.dirname() of the import.meta.filename
-        let dirname = Url::from_file_path(parser.resource_data.resource())
-          .expect("should be a path")
-          .to_file_path()
-          .expect("should be a path")
-          .parent()
-          .expect("should have a parent")
-          .to_string_lossy()
-          .into_owned();
-        Some(format!(r#"dirname: "{}""#, dirname))
+        // Check node.dirname option and get the appropriate value
+        let value = match parser.compiler_options.node.as_ref().map(|n| n.dirname) {
+          Some(NodeDirnameOption::False) => return None,
+          Some(NodeDirnameOption::Mock) => "\"/\"".to_string(),
+          Some(NodeDirnameOption::WarnMock) => {
+            parser.add_warning(Diagnostic::warn(
+              "NODE_IMPORT_META_DIRNAME".to_string(),
+              "\"import.meta.dirname\" has been used, it will be mocked.".to_string(),
+            ));
+            "\"/\"".to_string()
+          }
+          Some(NodeDirnameOption::True) => {
+            // Use relative path
+            let dirname = parser
+              .resource_data
+              .path()?
+              .parent()?
+              .as_std_path()
+              .relative(&parser.compiler_options.context)
+              .to_string_lossy()
+              .to_string();
+            format!(r#""{dirname}""#)
+          }
+          Some(NodeDirnameOption::EvalOnly) => {
+            // For ESM output, keep as import.meta.dirname
+            if parser.compiler_options.output.module {
+              "import.meta.dirname".to_string()
+            } else {
+              // For CJS output, replace with __dirname
+              "__dirname".to_string()
+            }
+          }
+          Some(NodeDirnameOption::NodeModule) | None => {
+            // For node-module mode, check if native import.meta.dirname is supported
+            if parser.compiler_options.output.module
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .import_meta_dirname_and_filename
+                .unwrap_or(false)
+            {
+              // Keep as import.meta.dirname - runtime supports it
+              "import.meta.dirname".to_string()
+            } else {
+              // Use runtime expression with import.meta.url
+              let external_url_dep = ExternalModuleDependency::new(
+                "url".to_string(),
+                vec![(
+                  "fileURLToPath".to_string(),
+                  "__webpack_fileURLToPath__".to_string(),
+                )],
+                None,
+              );
+              let external_path_dep = ExternalModuleDependency::new(
+                "path".to_string(),
+                vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+                None,
+              );
+              parser.add_presentational_dependency(Box::new(external_url_dep));
+              parser.add_presentational_dependency(Box::new(external_path_dep));
+              "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))".to_string()
+            }
+          }
+        };
+        Some(format!(r#"dirname: {value}"#))
       }
       _ => None,
     }
