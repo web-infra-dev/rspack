@@ -2,8 +2,7 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType,
-  impl_runtime_module,
+  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 
@@ -104,17 +103,9 @@ impl RuntimeModule for ShareRuntimeModule {
       })
       .collect::<Vec<_>>()
       .join(", ");
-    let chunk_runtime_requirements =
-      ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    let async_federation_startup = chunk_runtime_requirements
-      .contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP)
-      || chunk_runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
-
-    let initialize_sharing_impl = if self.enhanced && !async_federation_startup {
+    let initialize_sharing_impl = if self.enhanced {
       "__webpack_require__.I = __webpack_require__.I || function() { throw new Error(\"should have __webpack_require__.I\") }"
     } else {
-      // In async startup we must keep the full async-capable initialization logic
-      // to ensure share scopes are ready before loadShareSync is invoked.
       include_str!("./initializeSharing.js")
     };
     Ok(format!(
