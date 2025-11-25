@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
-  util::{find_chunks, get_hash_varaiable, make_placeholder},
+  util::{find_chunks, get_hash_variable, make_placeholder},
 };
 
 fn add_attribute(
@@ -79,15 +79,15 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
     let source_types = vec![
       (
         SourceType::JavaScript,
-        get_hash_varaiable(&compilation.runtime_template, SourceType::JavaScript),
+        get_hash_variable(&compilation.runtime_template, SourceType::JavaScript),
       ),
       (
         SourceType::Css,
-        get_hash_varaiable(&compilation.runtime_template, SourceType::Css),
+        get_hash_variable(&compilation.runtime_template, SourceType::Css),
       ),
       (
         SourceType::Custom("css/mini-extract".into()),
-        get_hash_varaiable(
+        get_hash_variable(
           &compilation.runtime_template,
           SourceType::Custom("css/mini-extract".into()),
         ),
@@ -176,7 +176,7 @@ pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateSc
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
   data.code = add_attribute(
     "script",
-    &get_hash_varaiable(&ctx.runtime_template, SourceType::JavaScript),
+    &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
     &data.code,
     &ctx.cross_origin_loading,
   );
@@ -189,14 +189,14 @@ pub async fn create_link(&self, mut data: CreateLinkData) -> Result<CreateLinkDa
   if data.code.contains("loadingAttribute") {
     data.code = add_attribute(
       "link",
-      &get_hash_varaiable(&ctx.runtime_template, SourceType::Css),
+      &get_hash_variable(&ctx.runtime_template, SourceType::Css),
       &data.code,
       &ctx.cross_origin_loading,
     );
   } else {
     data.code = add_attribute(
       "linkTag",
-      &get_hash_varaiable(
+      &get_hash_variable(
         &ctx.runtime_template,
         SourceType::Custom("css/mini-extract".into()),
       ),
@@ -215,12 +215,12 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
     data.code = add_attribute(
       "link",
       (if data.code.contains(".miniCssF") {
-        get_hash_varaiable(
+        get_hash_variable(
           &ctx.runtime_template,
           SourceType::Custom("css/mini-extract".into()),
         )
       } else {
-        get_hash_varaiable(&ctx.runtime_template, SourceType::Css)
+        get_hash_variable(&ctx.runtime_template, SourceType::Css)
       })
       .as_str(),
       &data.code,
@@ -229,7 +229,7 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
   } else {
     data.code = add_attribute(
       "link",
-      &get_hash_varaiable(&ctx.runtime_template, SourceType::JavaScript),
+      &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
       &data.code,
       &ctx.cross_origin_loading,
     );

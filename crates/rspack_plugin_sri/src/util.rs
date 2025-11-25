@@ -19,7 +19,7 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   .expect("should initialize `Regex`")
 });
 
-pub fn get_hash_varaiable(runtime_template: &RuntimeTemplate, source_type: SourceType) -> String {
+pub fn get_hash_variable(runtime_template: &RuntimeTemplate, source_type: SourceType) -> String {
   let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
   match source_type {
     SourceType::JavaScript => format!("{require_name}.sriHashes"),
