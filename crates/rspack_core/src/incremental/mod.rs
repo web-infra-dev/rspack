@@ -1,6 +1,8 @@
 mod mutations;
 
 use std::fmt;
+use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
@@ -93,26 +95,46 @@ impl IncrementalOptions {
   }
 }
 
-#[derive(Debug)]
 enum IncrementalState {
   /// For cold build and cold start
   Cold,
   /// For hot build, hot start, and rebuild
-  Hot { mutations: Mutations },
+  Hot { mutations: Mutex<Mutations> },
 }
 
-#[derive(Debug)]
+impl fmt::Debug for IncrementalState {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Cold => write!(f, "Cold"),
+      Self::Hot { mutations } => {
+        let mutations = mutations.lock().expect("failed to lock mutations");
+        f.debug_struct("Hot").field("mutations", &*mutations).finish()
+      }
+    }
+  }
+}
+
 pub struct Incremental {
   silent: bool,
-  passes: IncrementalPasses,
+  passes: AtomicU16,
   state: IncrementalState,
+}
+
+impl fmt::Debug for Incremental {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("Incremental")
+      .field("silent", &self.silent)
+      .field("passes", &self.passes())
+      .field("state", &self.state)
+      .finish()
+  }
 }
 
 impl Incremental {
   pub fn new_cold(options: IncrementalOptions) -> Self {
     Self {
       silent: options.silent,
-      passes: options.passes,
+      passes: AtomicU16::new(options.passes.bits()),
       state: IncrementalState::Cold,
     }
   }
@@ -120,71 +142,84 @@ impl Incremental {
   pub fn new_hot(options: IncrementalOptions) -> Self {
     Self {
       silent: options.silent,
-      passes: options.passes,
+      passes: AtomicU16::new(options.passes.bits()),
       state: IncrementalState::Hot {
-        mutations: Mutations::default(),
+        mutations: Mutex::new(Mutations::default()),
       },
     }
   }
 
+  /// Get the current passes value
+  fn passes(&self) -> IncrementalPasses {
+    IncrementalPasses::from_bits_retain(self.passes.load(Ordering::Relaxed))
+  }
+
   pub fn disable_passes(
-    &mut self,
+    &self,
     passes: IncrementalPasses,
     thing: &'static str,
     reason: &'static str,
   ) -> Option<Option<Diagnostic>> {
-    if matches!(self.state, IncrementalState::Hot { .. })
-      && let passes = self.passes.intersection(passes)
-      && !passes.is_empty()
-    {
-      self.passes.remove(passes);
-      if self.silent {
-        return Some(None);
+    if matches!(self.state, IncrementalState::Hot { .. }) {
+      let current = IncrementalPasses::from_bits_retain(self.passes.load(Ordering::Relaxed));
+      let passes_to_disable = current.intersection(passes);
+      if !passes_to_disable.is_empty() {
+        // Atomically remove the passes using fetch_and with the negated bits
+        self
+          .passes
+          .fetch_and(!passes_to_disable.bits(), Ordering::Relaxed);
+        if self.silent {
+          return Some(None);
+        }
+        return Some(Some(
+          Error::from(NotFriendlyForIncremental {
+            thing,
+            reason,
+            passes: passes_to_disable,
+          })
+          .into(),
+        ));
       }
-      return Some(Some(
-        Error::from(NotFriendlyForIncremental {
-          thing,
-          reason,
-          passes,
-        })
-        .into(),
-      ));
     }
     None
   }
 
   pub fn enabled(&self) -> bool {
-    self.passes.allow_write()
+    self.passes().allow_write()
   }
 
   pub fn passes_enabled(&self, passes: IncrementalPasses) -> bool {
-    self.passes.allow_read(passes)
+    self.passes().allow_read(passes)
   }
 
   pub fn mutations_writeable(&self) -> bool {
     if matches!(self.state, IncrementalState::Hot { .. }) {
-      return self.passes.allow_write();
+      return self.passes().allow_write();
     }
     false
   }
 
   pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
     if matches!(self.state, IncrementalState::Hot { .. }) {
-      return self.passes.allow_read(passes);
+      return self.passes().allow_read(passes);
     }
     false
   }
 
-  pub fn mutations_write(&mut self) -> Option<&mut Mutations> {
-    if let IncrementalState::Hot { mutations } = &mut self.state {
-      return self.passes.allow_write().then_some(mutations);
+  pub fn mutations_write(&self) -> Option<MutexGuard<'_, Mutations>> {
+    if let IncrementalState::Hot { mutations } = &self.state {
+      if self.passes().allow_write() {
+        return Some(mutations.lock().expect("failed to lock mutations"));
+      }
     }
     None
   }
 
-  pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<&Mutations> {
+  pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<MutexGuard<'_, Mutations>> {
     if let IncrementalState::Hot { mutations } = &self.state {
-      return self.passes.allow_read(passes).then_some(mutations);
+      if self.passes().allow_read(passes) {
+        return Some(mutations.lock().expect("failed to lock mutations"));
+      }
     }
     None
   }

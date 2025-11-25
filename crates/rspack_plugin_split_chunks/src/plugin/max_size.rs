@@ -663,7 +663,7 @@ impl SplitChunksPlugin {
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             );
-            if created && let Some(mutations) = compilation.incremental.mutations_write() {
+            if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
@@ -671,7 +671,7 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           } else {
             let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
+            if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
@@ -691,7 +691,7 @@ impl SplitChunksPlugin {
           if chunk.filename_template().is_some() {
             new_part.set_filename_template(chunk.filename_template().cloned());
           }
-          if let Some(mutations) = compilation.incremental.mutations_write() {
+          if let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
               from: old_chunk,
               to: new_chunk_ukey,
