@@ -60,13 +60,14 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
 						compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
 				},
 				async () => {
-					const filename = this.getFilename();
-					const asset = compilation.getAsset(filename);
-					if (!asset) {
-						throw new Error(`Can not get ${filename}`);
-					}
-					this._collectedEntries = JSON.parse(asset.source.source().toString());
-					compilation.deleteAsset(filename);
+					compilation.getAssets().forEach(asset => {
+						if (asset.name === SHARE_ENTRY_ASSET) {
+							this._collectedEntries = JSON.parse(
+								asset.source.source().toString()
+							);
+						}
+						compilation.deleteAsset(asset.name);
+					});
 				}
 			);
 		});

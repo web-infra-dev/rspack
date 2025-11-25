@@ -84,46 +84,40 @@ impl CollectSharedEntryPlugin {
       }
     }
 
-    // 2) Fallback: walk to node_modules/<pkg>[/...] and read package.json
+    // 2) Fallback: read version from the deepest node_modules/<pkg>/package.json
     let path = Path::new(request);
-    let mut package_json_path = PathBuf::new();
-    let mut found_node_modules = false;
-    let mut need_two_segments = false;
-    let mut captured = false;
-
-    for component in path.components() {
-      let comp_str = component.as_os_str().to_string_lossy();
-      package_json_path.push(comp_str.as_ref());
-      if !found_node_modules && comp_str == "node_modules" {
-        found_node_modules = true;
-        continue;
-      }
-      if found_node_modules && !captured {
-        if comp_str.starts_with('@') {
-          // scoped package: need scope + name
-          need_two_segments = true;
-          continue;
-        } else {
-          if need_two_segments {
-            // this is the name after scope
-            package_json_path.push("package.json");
-            captured = true;
-            break;
-          } else {
-            // unscoped package name is this segment
-            package_json_path.push("package.json");
-            captured = true;
-            break;
+    let comps: Vec<String> = path
+      .components()
+      .map(|c| c.as_os_str().to_string_lossy().to_string())
+      .collect();
+    if let Some(idx) = comps.iter().rposition(|c| c == "node_modules") {
+      let mut pkg_parts: Vec<&str> = Vec::new();
+      if let Some(next) = comps.get(idx + 1) {
+        if next.starts_with('@') {
+          if let Some(next2) = comps.get(idx + 2) {
+            pkg_parts.push(next.as_str());
+            pkg_parts.push(next2.as_str());
           }
+        } else {
+          pkg_parts.push(next.as_str());
         }
       }
-    }
-
-    if captured && package_json_path.exists() {
-      if let Ok(content) = std::fs::read_to_string(&package_json_path) {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-          if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
-            return Some(version.to_string());
+      if !pkg_parts.is_empty() {
+        let mut package_json_path = PathBuf::new();
+        for c in comps.iter().take(idx + 1) {
+          package_json_path.push(c);
+        }
+        for p in &pkg_parts {
+          package_json_path.push(p);
+        }
+        package_json_path.push("package.json");
+        if package_json_path.exists() {
+          if let Ok(content) = std::fs::read_to_string(&package_json_path) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+              if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
+                return Some(version.to_string());
+              }
+            }
           }
         }
       }
@@ -355,6 +349,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .infer_version(&resource)
               .await
               .unwrap_or_else(|| "".to_string());
+            dbg!(&version, &resource);
             let pair = [resource, version];
             if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
               reqs.push(pair);
@@ -407,75 +402,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(NormalModuleFactoryFactorize for CollectSharedEntryPlugin)]
-async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
-  let dep = data.dependencies[0]
-    .as_module_dependency()
-    .expect("should be module dependency");
-  if matches!(
-    dep.dependency_type(),
-    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
-  ) {
-    return Ok(None);
-  }
-  let request = dep.request();
-
-  // Reuse the matching logic from consume_shared_plugin
-  let consumes = self.get_matched_consumes();
-
-  // 1. Exact match - use `unresolved`
-  if let Some(matched) = consumes.unresolved.get(request) {
-    self
-      .record_entry(&data.context, request, matched.clone(), |d| {
-        data.diagnostics.push(d)
-      })
-      .await;
-    return Ok(None);
-  }
-
-  // 2. Prefix match - use `prefixed`
-  for (prefix, options) in &consumes.prefixed {
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
-      self
-        .record_entry(
-          &data.context,
-          request,
-          Arc::new(ConsumeOptions {
-            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
-            import_resolved: options.import_resolved.clone(),
-            share_key: options.share_key.clone() + remainder,
-            share_scope: options.share_scope.clone(),
-            required_version: options.required_version.clone(),
-            package_name: options.package_name.clone(),
-            strict_version: options.strict_version,
-            singleton: options.singleton,
-            eager: options.eager,
-          }),
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-      return Ok(None);
-    }
-  }
-
-  Ok(None)
-}
-
 impl Plugin for CollectSharedEntryPlugin {
   fn name(&self) -> &'static str {
     "rspack.CollectSharedEntryPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compiler_hooks
-      .this_compilation
-      .tap(this_compilation::new(self));
-    ctx
-      .normal_module_factory_hooks
-      .factorize
-      .tap(factorize::new(self));
+    // ctx
+    //   .compiler_hooks
+    //   .this_compilation
+    //   .tap(this_compilation::new(self));
+    // ctx
+    //   .normal_module_factory_hooks
+    //   .factorize
+    //   .tap(factorize::new(self));
     ctx
       .compilation_hooks
       .process_assets
