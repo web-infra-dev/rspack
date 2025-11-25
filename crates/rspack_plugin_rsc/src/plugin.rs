@@ -22,11 +22,13 @@ use rspack_plugin_javascript::dependency::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
 use sugar_path::SugarPath;
-use swc_core::{atoms::Wtf8Atom, common::plugin};
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
+  ClientReferenceManifestPlugin,
   client_compiler_handle::ClientCompilerHandle,
-  plugin_state::{ModuleInfo, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  client_reference_manifest::ManifestExport,
+  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::{ChunkModules, EntryModules},
 };
 
@@ -107,6 +109,8 @@ impl Plugin for ReactServerComponentsPlugin {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     ctx.compiler_hooks.after_emit.tap(after_compile::new(self));
+
+    ClientReferenceManifestPlugin::new().apply(ctx)?;
 
     Ok(())
   }
@@ -434,7 +438,9 @@ impl ReactServerComponentsPlugin {
       info.set_used_in_unknown_way(&mut mg, runtime);
     }
 
-    // TODO: server compiler 模块图编译完毕，开始启动 client compiler 编译 browser module
+    // 启动 client compiler
+    // 1. 等待 client compiler finish make 阶段，检查 client compiler 收集到的 server actions
+    // 2. 根据 server actions 创建 action entries
     self.client_compiler_handle.compile().await?;
 
     // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
@@ -824,14 +830,19 @@ impl ReactServerComponentsPlugin {
       return;
     }
 
-    let key = Path::new(&mod_resource).relative(compilaiton.options.context.as_path());
-    let module_info = ModuleInfo {
-      module_id,
-      r#async: ModuleGraph::is_async(&compilaiton, &module_idenfitifier),
+    let resource_id = Path::new(&mod_resource)
+      .relative(compilaiton.options.context.as_path())
+      .to_string_lossy()
+      .to_string();
+    let manifest_export = ManifestExport {
+      id: module_id.to_string(),
+      name: "*".to_string(),
+      chunks: vec![],
+      r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
     };
     plugin_state
-      .rsc_modules
-      .insert(key.to_string_lossy().to_string(), module_info);
+      .ssr_modules
+      .insert(resource_id, manifest_export);
   }
 
   fn traverse_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {
