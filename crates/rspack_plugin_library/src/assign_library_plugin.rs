@@ -4,11 +4,14 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeGlobals, SourceType, UsageState,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -429,7 +432,12 @@ async fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -468,7 +476,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = Compilation::create_module_graph_mut(build_module_graph_artifact);
     if let Some(export) = export {
       let export_info = module_graph
         .get_exports_info(&module_identifier)

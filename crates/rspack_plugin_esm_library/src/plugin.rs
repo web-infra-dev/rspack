@@ -7,14 +7,16 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, ChunkGraph, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkGraph, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
   ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  PrefetchExportsInfoMode, RuntimeGlobals,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -93,7 +95,12 @@ async fn render_chunk_content(
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
@@ -254,7 +261,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     );
   }
 
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = Compilation::create_module_graph_mut(build_module_graph_artifact);
   for m in entry_modules {
     let exports_info = module_graph
       .get_exports_info(&m)

@@ -1,5 +1,6 @@
 use std::{
   collections::hash_map::Entry,
+  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -11,9 +12,9 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
-  RuntimeSpec, UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
+  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -445,7 +446,14 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.exports = assign_tuple.3;
 
     let is_async = ModuleGraph::is_async(compilation, source_module);
-    ModuleGraph::set_async(compilation, *target_module, is_async);
+    let mut async_modules_artifact = mem::take(&mut compilation.async_modules_artifact);
+    ModuleGraph::set_async(
+      compilation,
+      &mut async_modules_artifact,
+      *target_module,
+      is_async,
+    );
+    compilation.async_modules_artifact = async_modules_artifact;
   }
 
   pub fn move_module_connections(
@@ -1030,7 +1038,8 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn set_async(
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    async_modules_artifact: &mut AsyncModulesArtifact,
     module_id: ModuleIdentifier,
     is_async: bool,
   ) -> bool {
@@ -1039,9 +1048,9 @@ impl<'a> ModuleGraph<'a> {
       return false;
     }
     if original {
-      compilation.async_modules_artifact.remove(&module_id)
+      async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules_artifact.insert(module_id)
+      async_modules_artifact.insert(module_id)
     }
   }
 

@@ -1,8 +1,12 @@
 mod mutations;
 
-use std::fmt;
-use std::sync::atomic::{AtomicU16, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::{
+  fmt,
+  sync::{
+    Mutex, MutexGuard,
+    atomic::{AtomicU16, Ordering},
+  },
+};
 
 use bitflags::bitflags;
 pub use mutations::{Mutation, Mutations};
@@ -110,7 +114,9 @@ impl fmt::Debug for IncrementalState {
         let mutations = mutations
           .lock()
           .expect("Mutex poisoned: failed to acquire lock on incremental mutations for debug");
-        f.debug_struct("Hot").field("mutations", &*mutations).finish()
+        f.debug_struct("Hot")
+          .field("mutations", &*mutations)
+          .finish()
       }
     }
   }
@@ -209,27 +215,27 @@ impl Incremental {
   }
 
   pub fn mutations_write(&self) -> Option<MutexGuard<'_, Mutations>> {
-    if let IncrementalState::Hot { mutations } = &self.state {
-      if self.passes().allow_write() {
-        return Some(
-          mutations
-            .lock()
-            .expect("Mutex poisoned: failed to acquire write lock on incremental mutations"),
-        );
-      }
+    if let IncrementalState::Hot { mutations } = &self.state
+      && self.passes().allow_write()
+    {
+      return Some(
+        mutations
+          .lock()
+          .expect("Mutex poisoned: failed to acquire write lock on incremental mutations"),
+      );
     }
     None
   }
 
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<MutexGuard<'_, Mutations>> {
-    if let IncrementalState::Hot { mutations } = &self.state {
-      if self.passes().allow_read(passes) {
-        return Some(
-          mutations
-            .lock()
-            .expect("Mutex poisoned: failed to acquire read lock on incremental mutations"),
-        );
-      }
+    if let IncrementalState::Hot { mutations } = &self.state
+      && self.passes().allow_read(passes)
+    {
+      return Some(
+        mutations
+          .lock()
+          .expect("Mutex poisoned: failed to acquire read lock on incremental mutations"),
+      );
     }
     None
   }
