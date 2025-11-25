@@ -4719,6 +4719,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simd-json",
+ "sugar_path",
  "swc_core",
  "tokio",
  "tracing",

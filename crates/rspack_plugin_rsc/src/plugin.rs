@@ -1,13 +1,16 @@
-use std::sync::{Arc, LazyLock, Mutex};
+use std::{
+  path::Path,
+  sync::{Arc, LazyLock, Mutex},
+};
 
 use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilerFinishMake,
-  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, GroupOptions, Logger,
-  Module, ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
-  RuntimeSpec,
+  AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilerAfterEmit,
+  CompilerFinishMake, Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter,
+  GroupOptions, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier,
+  ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
   build_module_graph::{UpdateParam, update_module_graph},
 };
 use rspack_error::Result;
@@ -18,12 +21,13 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
-use swc_core::atoms::Wtf8Atom;
+use sugar_path::SugarPath;
+use swc_core::{atoms::Wtf8Atom, common::plugin};
 
 use crate::{
   client_compiler_handle::ClientCompilerHandle,
-  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
-  utils::EntryModules,
+  plugin_state::{ModuleInfo, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  utils::{ChunkModules, EntryModules},
 };
 
 /// { [client import path]: [exported names] }
@@ -78,6 +82,22 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilerAfterEmit for ReactServerComponentsPlugin)]
+async fn after_compile(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.ReactServerComponentsPlugin");
+
+  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+  let plugin_state = guard
+    .entry(compilation.compiler_id())
+    .or_insert(PluginState::default());
+
+  let start = logger.time("traverse modules");
+  self.traverse_modules(compilation, plugin_state);
+  logger.time_end(start);
+
+  Ok(())
+}
+
 impl Plugin for ReactServerComponentsPlugin {
   fn name(&self) -> &'static str {
     "rspack.ReactServerComponentsPlugin"
@@ -85,6 +105,9 @@ impl Plugin for ReactServerComponentsPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+
+    ctx.compiler_hooks.after_emit.tap(after_compile::new(self));
+
     Ok(())
   }
 }
@@ -306,31 +329,38 @@ impl ReactServerComponentsPlugin {
         }
       }
 
-      // Make sure CSS imports are deduplicated before injecting the client entry
-      // and SSR modules.
-      // let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
-      for mut client_entry_to_inject in client_entries_to_inject {
-        let client_imports = &mut client_entry_to_inject.client_imports;
-        // if let Some(css_imports) =
-        //   deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
-        // {
-        //   for curr in css_imports {
-        //     client_imports.insert(curr.clone(), HashSet::default());
-        //   }
-        // }
+      {
+        let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+        let plugin_state = guard
+          .entry(compilation.compiler_id())
+          .or_insert(PluginState::default());
 
-        let entry_name = client_entry_to_inject.entry_name.to_string();
-        let injected = self
-          .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject)
-          .await;
+        // Make sure CSS imports are deduplicated before injecting the client entry
+        // and SSR modules.
+        // let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
+        for mut client_entry_to_inject in client_entries_to_inject {
+          let client_imports = &mut client_entry_to_inject.client_imports;
+          // if let Some(css_imports) =
+          //   deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
+          // {
+          //   for curr in css_imports {
+          //     client_imports.insert(curr.clone(), HashSet::default());
+          //   }
+          // }
 
-        // Track all created SSR dependencies for each entry from the server layer.
-        created_ssr_dependencies_for_entry
-          .entry(entry_name)
-          .or_insert_with(Vec::new)
-          .push(injected.ssr_dependency_id);
+          let entry_name = client_entry_to_inject.entry_name.to_string();
+          let injected = self
+            .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject, plugin_state)
+            .await;
 
-        add_client_entry_and_ssr_modules_list.push(injected);
+          // Track all created SSR dependencies for each entry from the server layer.
+          created_ssr_dependencies_for_entry
+            .entry(entry_name)
+            .or_insert_with(Vec::new)
+            .push(injected.ssr_dependency_id);
+
+          add_client_entry_and_ssr_modules_list.push(injected);
+        }
       }
 
       // if !action_entry_imports.is_empty() {
@@ -652,6 +682,7 @@ impl ReactServerComponentsPlugin {
     &self,
     compilation: &Compilation,
     client_entry: ClientEntry,
+    plugin_state: &mut PluginState,
   ) -> InjectedClientEntry {
     let ClientEntry {
       entry_name,
@@ -722,17 +753,9 @@ impl ReactServerComponentsPlugin {
     //   let should_invalidate_cb = &self.should_invalidate_cb;
     //   should_invalidate = should_invalidate_cb(should_invalidate_cb_ctx);
     // } else {
-    {
-      // TODO: 在这里 lock 性能不好
-      // TODO: 即使没有 use client 也需要向 PLUGIN_STATE_BY_COMPILER_ID 写入，避免 client compiler 认为 server compiler 出错
-      let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-      let plugin_state = guard
-        .entry(compilation.compiler_id())
-        .or_insert(PluginState::default());
-      plugin_state
-        .injected_client_entries
-        .insert(entry_name.to_string(), client_browser_loader);
-    }
+    plugin_state
+      .injected_client_entries
+      .insert(entry_name.to_string(), client_browser_loader);
     // }
 
     let client_component_ssr_entry_dep = EntryDependency::new(
@@ -756,5 +779,74 @@ impl ReactServerComponentsPlugin {
       ),
       ssr_dependency_id,
     }
+  }
+
+  fn record_module(
+    &self,
+    compilaiton: &Compilation,
+    module_graph: &ModuleGraphRef<'_>,
+    module_idenfitifier: ModuleIdentifier,
+    module_id: ModuleId,
+    plugin_state: &mut PluginState,
+  ) {
+    let Some(module) = module_graph.module_by_identifier(&module_idenfitifier) else {
+      return;
+    };
+    let Some(normal_module) = module.as_normal_module() else {
+      return;
+    };
+
+    if !normal_module
+      .get_layer()
+      .is_some_and(|layer| layer == "react-client-components")
+    {
+      return;
+    }
+
+    // Match Resource is undefined unless an import is using the inline match resource syntax
+    // https://webpack.js.org/api/loaders/#inline-matchresource
+    let mod_path = normal_module
+      .match_resource()
+      .map(|resource| resource.path())
+      .unwrap_or(normal_module.resource_resolved_data().path());
+    let mod_query = normal_module.resource_resolved_data().query().unwrap_or("");
+    // query is already part of mod.resource
+    // so it's only necessary to add it for matchResource or mod.resourceResolveData
+    let mod_resource = match mod_path {
+      Some(mod_path) => format!("{}{}", mod_path.as_str(), mod_query),
+      None => normal_module
+        .resource_resolved_data()
+        .resource()
+        .to_string(),
+    };
+
+    if mod_resource.is_empty() {
+      return;
+    }
+
+    let key = Path::new(&mod_resource).relative(compilaiton.options.context.as_path());
+    let module_info = ModuleInfo {
+      module_id,
+      r#async: ModuleGraph::is_async(&compilaiton, &module_idenfitifier),
+    };
+    plugin_state
+      .rsc_modules
+      .insert(key.to_string_lossy().to_string(), module_info);
+  }
+
+  fn traverse_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {
+    let module_graph = compilation.get_module_graph();
+    let chunk_modules = ChunkModules::new(compilation, &module_graph);
+    for (module_identifier, module_id) in chunk_modules {
+      self.record_module(
+        compilation,
+        &module_graph,
+        module_identifier,
+        module_id,
+        plugin_state,
+      );
+    }
+
+    println!("plugin_state {:#?}", plugin_state);
   }
 }
