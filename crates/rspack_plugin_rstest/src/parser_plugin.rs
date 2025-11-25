@@ -1,6 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, SharedSourceMap,
+  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, RuntimeGlobals,
+  SharedSourceMap,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -401,7 +402,13 @@ impl RstestParserPlugin {
       0 => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           call_expr.callee.span().into(),
-          "__webpack_require__.rstest_reset_modules".into(),
+          format!(
+            "{}.rstest_reset_modules",
+            parser
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          )
+          .into(),
           None,
         )));
         Some(true)

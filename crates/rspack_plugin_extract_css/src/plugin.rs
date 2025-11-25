@@ -538,7 +538,12 @@ async fn runtime_requirement_in_tree(
         "css",
         "mini-css",
         SOURCE_TYPE[0],
-        "__webpack_require__.miniCssF".into(),
+        format!(
+          "{}.miniCssF",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        ),
         move |runtime_requirements| {
           runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
         },

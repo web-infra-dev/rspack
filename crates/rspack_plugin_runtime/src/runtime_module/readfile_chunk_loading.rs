@@ -213,10 +213,13 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       source.push_str(&format!(
         r#"
         // ReadFile + VM.run chunk loading for javascript"
-        __webpack_require__.f.readFileVm = function (chunkId, promises) {{
+        {}.readFileVm = function (chunkId, promises) {{
           {body}
         }};
-        "#
+        "#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     }
 

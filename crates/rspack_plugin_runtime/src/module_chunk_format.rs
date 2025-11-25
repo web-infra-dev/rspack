@@ -161,7 +161,10 @@ async fn render_chunk(
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
-      "import {{ __webpack_require__ }} from '{}';\n",
+      "import {{ {} }} from '{}';\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -177,7 +180,10 @@ async fn render_chunk(
     let mut startup_source = vec![];
 
     startup_source.push(format!(
-      "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
+      "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId); }}",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
