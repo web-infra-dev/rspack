@@ -4,6 +4,8 @@
 //! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
 //! checks that intercepts and modifies the startup execution order.
 
+use std::fmt::Write;
+
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -75,65 +77,62 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut runtime_requirements = RuntimeGlobals::default();
-    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
+    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
 
     for dep_id in federation_runtime_modules {
       let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
-      module_executions.push_str("\t\t");
+      module_executions.push_str("		");
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
-    // Remove trailing newline
-    if !module_executions.is_empty() {
-      module_executions.pop();
-    }
 
-    // Generate prevStartup wrapper pattern with defensive checks.
-    // Always wrap the synchronous startup global (`__webpack_require__.x`) so
-    // federation runtime runs before any startup code (mirrors webpack/enhanced).
-    // When async startup is enabled we must also wrap `__webpack_require__.X`
-    // because runtimeChunk: "single" paths use X and would otherwise skip MF init.
+    // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
+    // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
     let startup = RuntimeGlobals::STARTUP.name();
     let startup_entry = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
     let wrap_async = self.options.async_startup;
 
-    let async_wrapper = if wrap_async {
-      format!(
-        r#"
-var prevStartupEntry = typeof {startup_entry} === 'function' ? {startup_entry} : undefined;
-{startup_entry} = function() {{
-	__webpack_require__mf_startup_once();
-	if (typeof prevStartupEntry === 'function') {{
-		return prevStartupEntry.apply(this, arguments);
-	}}
-}};"#,
-        startup_entry = startup_entry
+    let mut code = String::with_capacity(256 + module_executions.len());
+
+    writeln!(code, "var __webpack_require__mf_has_run = false;").expect("write to string");
+    writeln!(
+      code,
+      "var __webpack_require__mf_startup_once = function() {"
+    )
+    .unwrap();
+    writeln!(code, "	if (__webpack_require__mf_has_run) return;").unwrap();
+    writeln!(code, "	__webpack_require__mf_has_run = true;").unwrap();
+    code.push_str(&module_executions);
+    writeln!(code, "};").unwrap();
+
+    writeln!(code, "function __webpack_require__mf_wrapStartup(prev) {").unwrap();
+    writeln!(
+      code,
+      "	var fn = typeof prev === 'function' ? prev : undefined;"
+    )
+    .unwrap();
+    writeln!(code, "	return function() {").unwrap();
+    writeln!(code, "		__webpack_require__mf_startup_once();").unwrap();
+    writeln!(code, "		if (typeof fn === 'function') {").unwrap();
+    writeln!(code, "			return fn.apply(this, arguments);").unwrap();
+    writeln!(code, "		}").unwrap();
+    writeln!(code, "	};").unwrap();
+    writeln!(code, "}").unwrap();
+
+    writeln!(
+      code,
+      "{startup} = __webpack_require__mf_wrapStartup({startup});"
+    )
+    .unwrap();
+    if wrap_async {
+      writeln!(
+        code,
+        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});"
       )
-    } else {
-      String::new()
-    };
+      .unwrap();
+    }
 
-    let result = format!(
-      r#"var prevStartup = typeof {startup} === 'function' ? {startup} : function(){{}};
-var hasRun = false;
-var __webpack_require__mf_startup_once = function() {{
-	if (!hasRun) {{
-		hasRun = true;
-{module_executions}
-	}}
-}};
-{startup} = function() {{
-	__webpack_require__mf_startup_once();
-	if (typeof prevStartup === 'function') {{
-		return prevStartup();
-	}} else {{
-		console.warn('[MF] Invalid prevStartup');
-	}}
-}};
-{async_wrapper}"#
-    );
-
-    Ok(result)
+    Ok(code)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
