@@ -14,7 +14,9 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
   ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  PrefetchExportsInfoMode, RuntimeGlobals,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
+  get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -93,7 +95,11 @@ async fn render_chunk_content(
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _next_mutations: &mut CollectModuleGraphEffectsArtifact,
+) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
@@ -112,7 +118,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         "module {module_identifier} has bailout reason: {reason}",
       ));
       should_scope_hoisting = false;
-    } else if ModuleGraph::is_async(compilation, module_identifier) {
+    } else if ModuleGraph::is_async(
+      &compilation.collect_build_module_graph_effects_artifact,
+      module_identifier,
+    ) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
     }

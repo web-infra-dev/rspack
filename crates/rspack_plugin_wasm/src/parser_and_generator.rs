@@ -193,7 +193,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let mut len_buffer = itoa::Buffer::new();
                 let len_str = len_buffer.format(len);
                 let import_var = format!("rspack_import_{}", len_str);
-                if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
+                if ModuleGraph::is_async(
+                  &compilation.collect_build_module_graph_effects_artifact,
+                  &mgm.module_identifier,
+                ) {
                   promises.push(import_var.clone());
                 }
                 DepModule {

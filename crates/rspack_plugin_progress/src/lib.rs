@@ -19,6 +19,7 @@ use rspack_core::{
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
   CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, Plugin,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -422,7 +423,11 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
-async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  _compilation: &mut Compilation,
+  _mutations: &mut CollectModuleGraphEffectsArtifact,
+) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }
 

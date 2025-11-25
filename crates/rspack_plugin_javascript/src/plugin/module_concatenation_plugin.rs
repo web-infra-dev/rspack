@@ -884,7 +884,10 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if ModuleGraph::is_async(compilation, &module_id) {
+        if ModuleGraph::is_async(
+          &compilation.collect_build_module_graph_effects_artifact,
+          &module_id,
+        ) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }

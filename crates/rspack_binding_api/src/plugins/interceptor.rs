@@ -41,7 +41,8 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, parse_resource, rspack_sources::RawStringSource,
+  Scheme, collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
+  incremental::Mutations, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -1211,7 +1212,11 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &mut Compilation,
+    _artifacts: &mut CollectModuleGraphEffectsArtifact,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await
   }
