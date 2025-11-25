@@ -8,8 +8,8 @@ use rspack_core::{
   BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions,
   Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType, StaticExportsDependency, StaticExportsSpec, basic_function, impl_module_meta_info,
-  module_raw, module_update_hash, returning_function,
+  SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -162,18 +162,25 @@ impl Module for ShareContainerEntryModule {
         .dependency_by_id(dependency_id)
         .expect("share container dependency should exist");
       if let Some(dependency) = dependency.downcast_ref::<ShareContainerDependency>() {
-        let module_expr = module_raw(
+        let module_expr = compilation.runtime_template.module_raw(
           compilation,
           &mut code_generation_result.runtime_requirements,
           dependency_id,
           dependency.user_request(),
           false,
         );
-        factory = returning_function(&compilation.options.output.environment, &module_expr, "");
+        factory = compilation
+          .runtime_template
+          .returning_function(&module_expr, "");
       }
     }
 
-    let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
+    let federation_global = format!(
+      "{}.federation",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
 
     // Generate installInitialConsumes function using returning_function
     let install_initial_consumes_call = format!(
@@ -185,11 +192,9 @@ impl Module for ShareContainerEntryModule {
         asyncLoad: true 
       }})"#
     );
-    let install_initial_consumes_fn = returning_function(
-      &compilation.options.output.environment,
-      &install_initial_consumes_call,
-      "",
-    );
+    let install_initial_consumes_fn = compilation
+      .runtime_template
+      .returning_function(&install_initial_consumes_call, "");
 
     // Create initShareContainer function using basic_function, supporting multi-statement body
     let init_body = format!(
@@ -210,11 +215,9 @@ impl Module for ShareContainerEntryModule {
       federation_global = federation_global,
       install_initial_consumes_fn = install_initial_consumes_fn
     );
-    let init_share_container_fn = basic_function(
-      &compilation.options.output.environment,
-      "mfInstance, bundlerRuntime",
-      &init_body,
-    );
+    let init_share_container_fn = compilation
+      .runtime_template
+      .basic_function("mfInstance, bundlerRuntime", &init_body);
 
     // Generate the final source string
     let source = format!(
@@ -227,7 +230,9 @@ impl Module for ShareContainerEntryModule {
 	init: function() {{ return initShareContainer;}}
 }});
 "#,
-      runtime = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      runtime = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
       factory = factory,
       init_share_container_fn = init_share_container_fn
     );

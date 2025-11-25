@@ -1,40 +1,22 @@
 use std::{
-  collections::hash_map::Entry,
   path::{Path, PathBuf},
-  sync::{Arc, OnceLock},
+  sync::Arc,
 };
 
 use regex::Regex;
 use rspack_core::{
-  BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerThisCompilation,
-  Context, DependenciesBlock, DependencyCategory, DependencyType, Module, ModuleFactoryCreateData,
-  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
+  Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
-use tokio::sync::RwLock;
 
-use super::consume_shared_plugin::{
-  ABSOLUTE_REQUEST, ConsumeOptions, ConsumeVersion, MatchedConsumes, RELATIVE_REQUEST,
-  resolve_matched_configs,
-};
+use super::consume_shared_plugin::ConsumeOptions;
 
 const DEFAULT_FILENAME: &str = "collect-shared-entries.json";
-
-#[derive(Debug, Clone, Default)]
-struct CollectSharedEntryRecord {
-  share_scope: String,
-  requests: FxHashSet<CollectedShareRequest>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct CollectedShareRequest {
-  request: String,
-  version: String,
-}
 
 #[derive(Debug, Serialize)]
 struct CollectSharedEntryAssetItem<'a> {
@@ -53,21 +35,11 @@ pub struct CollectSharedEntryPluginOptions {
 #[derive(Debug)]
 pub struct CollectSharedEntryPlugin {
   options: CollectSharedEntryPluginOptions,
-  resolver: OnceLock<Arc<Resolver>>,
-  compiler_context: OnceLock<Context>,
-  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
-  resolved_entries: RwLock<FxHashMap<String, CollectSharedEntryRecord>>,
 }
 
 impl CollectSharedEntryPlugin {
   pub fn new(options: CollectSharedEntryPluginOptions) -> Self {
-    Self::new_inner(
-      options,
-      Default::default(),
-      Default::default(),
-      Default::default(),
-      Default::default(),
-    )
+    Self::new_inner(options)
   }
 
   /// Infer package version from a module request path
@@ -125,162 +97,6 @@ impl CollectSharedEntryPlugin {
 
     None
   }
-
-  fn init_context(&self, compilation: &Compilation) {
-    self
-      .compiler_context
-      .set(compilation.options.context.clone())
-      .expect("failed to set compiler context");
-  }
-
-  fn get_context(&self) -> Context {
-    self
-      .compiler_context
-      .get()
-      .expect("init_context first")
-      .clone()
-  }
-
-  fn init_resolver(&self, compilation: &Compilation) {
-    self
-      .resolver
-      .set(
-        compilation
-          .resolver_factory
-          .get(ResolveOptionsWithDependencyType {
-            resolve_options: None,
-            resolve_to_context: false,
-            dependency_category: DependencyCategory::Esm,
-          }),
-      )
-      .expect("failed to set resolver for multiple times");
-  }
-
-  fn get_resolver(&self) -> Arc<Resolver> {
-    self.resolver.get().expect("init_resolver first").clone()
-  }
-
-  async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
-    let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
-    self
-      .matched_consumes
-      .set(Arc::new(config))
-      .expect("failed to set matched consumes");
-  }
-
-  fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    self
-      .matched_consumes
-      .get()
-      .expect("init_matched_consumes first")
-      .clone()
-  }
-
-  async fn record_entry(
-    &self,
-    context: &Context,
-    request: &str,
-    config: Arc<ConsumeOptions>,
-    mut add_diagnostic: impl FnMut(Diagnostic),
-  ) {
-    let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
-    let import_resolved = match &config.import {
-      None => None,
-      Some(import) => {
-        let resolver = self.get_resolver();
-        resolver
-          .resolve(
-            if direct_fallback {
-              self.get_context()
-            } else {
-              context.clone()
-            }
-            .as_ref(),
-            import,
-          )
-          .await
-          .map_err(|_e| {
-            add_diagnostic(Diagnostic::error(
-              "ModuleNotFoundError".into(),
-              format!("resolving fallback for shared module {request}"),
-            ))
-          })
-          .ok()
-      }
-    }
-    .and_then(|i| match i {
-      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
-      ResolveResult::Ignored => None,
-    });
-
-    // First try to infer version from the import_resolved path
-    let version = if let Some(ref resolved_path) = import_resolved {
-      if let Some(inferred) = self.infer_version(resolved_path).await {
-        Some(ConsumeVersion::Version(inferred))
-      } else {
-        // If inference fails, return None and skip this entry
-        None
-      }
-    } else {
-      // If there is no resolved path, also return None
-      None
-    };
-
-    // If no version info can be obtained, exit early
-    let version = match version {
-      Some(v) => v,
-      None => return, // Early return from record_entry
-    };
-
-    let share_key = config.share_key.clone();
-    let share_scope = config.share_scope.clone();
-    let mut resolved_entries = self.resolved_entries.write().await;
-    match resolved_entries.entry(share_key) {
-      Entry::Occupied(mut entry) => {
-        let record = entry.get_mut();
-        record.share_scope = share_scope;
-        record.requests.insert(CollectedShareRequest {
-          request: import_resolved
-            .clone()
-            .unwrap_or_else(|| request.to_string()),
-          version: version.to_string(),
-        });
-      }
-      Entry::Vacant(entry) => {
-        let mut requests = FxHashSet::default();
-        requests.insert(CollectedShareRequest {
-          request: import_resolved
-            .clone()
-            .unwrap_or_else(|| request.to_string()),
-          version: version.to_string(),
-        });
-        entry.insert(CollectSharedEntryRecord {
-          share_scope,
-          requests,
-        });
-      }
-    }
-  }
-}
-
-#[plugin_hook(CompilerThisCompilation for CollectSharedEntryPlugin)]
-async fn this_compilation(
-  &self,
-  compilation: &mut Compilation,
-  _params: &mut rspack_core::CompilationParams,
-) -> Result<()> {
-  if self.compiler_context.get().is_none() {
-    self.init_context(compilation);
-  }
-  if self.resolver.get().is_none() {
-    self.init_resolver(compilation);
-  }
-  if self.matched_consumes.get().is_none() {
-    self
-      .init_matched_consumes(compilation, self.get_resolver())
-      .await;
-  }
-  Ok(())
 }
 
 #[plugin_hook(CompilationProcessAssets for CollectSharedEntryPlugin)]
@@ -408,14 +224,6 @@ impl Plugin for CollectSharedEntryPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    // ctx
-    //   .compiler_hooks
-    //   .this_compilation
-    //   .tap(this_compilation::new(self));
-    // ctx
-    //   .normal_module_factory_hooks
-    //   .factorize
-    //   .tap(factorize::new(self));
     ctx
       .compilation_hooks
       .process_assets

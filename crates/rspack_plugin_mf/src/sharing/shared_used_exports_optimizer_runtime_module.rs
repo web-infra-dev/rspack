@@ -39,11 +39,16 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> Result<String> {
     if self.shared_used_exports.is_empty() {
       return Ok(String::new());
     }
-    let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
+    let federation_global = format!(
+      "{}.federation",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
     let used_exports_json = serde_json::to_string(&*self.shared_used_exports).map_err(|err| {
       error!(
         "OptimizeDependencyReferencedExportsRuntimeModule: failed to serialize used exports: {err}"
