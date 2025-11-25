@@ -334,6 +334,7 @@ export declare class JsCompiler {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
+  getCompilerId(): ExternalObject<CompilerId>
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -603,7 +604,8 @@ export declare enum BuiltinPluginName {
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpUriPlugin = 'HttpUriPlugin',
   CssChunkingPlugin = 'CssChunkingPlugin',
-  ReactServerComponentsPlugin = 'ReactServerComponentsPlugin'
+  ReactServerComponentsPlugin = 'ReactServerComponentsPlugin',
+  ReactClientPlugin = 'ReactClientPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -757,6 +759,10 @@ export interface JsChunkOptionNameCtx {
  */
 export interface JsCleanOptions {
   keep?: string | RegExp | ((path: string) => boolean)
+}
+
+export interface JsClientCompilerHandle {
+  compile: (() => Promise<undefined>)
 }
 
 export interface JsCodegenerationResult {

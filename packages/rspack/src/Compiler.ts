@@ -123,6 +123,8 @@ export type CompilerHooks = {
 	additionalPass: liteTapable.AsyncSeriesHook<[]>;
 };
 
+export const GET_COMPILER_ID = Symbol("getCompilerId");
+
 class Compiler {
 	#instance?: binding.JsCompiler;
 	#initial: boolean;
@@ -1096,6 +1098,10 @@ class Compiler {
 	 */
 	__internal__get_module_execution_results_map() {
 		return this.#moduleExecutionResultsMap;
+	}
+
+	[GET_COMPILER_ID]() {
+		return this.#instance!.getCompilerId();
 	}
 }
 

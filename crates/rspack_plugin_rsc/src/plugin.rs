@@ -1,5 +1,6 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex};
 
+use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
@@ -20,9 +21,9 @@ use serde_json::json;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  client_reference_dependency::ClientReferenceDependency,
-  constants::WEBPACK_LAYERS,
-  utils::{EntryModules, ServerEntries},
+  client_compiler_handle::ClientCompilerHandle,
+  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  utils::EntryModules,
 };
 
 /// { [client import path]: [exported names] }
@@ -54,14 +55,15 @@ struct InjectedClientEntry {
 
 // 该插件只在 server 上执行
 #[plugin]
-#[derive(Debug, Default)]
-pub struct ReactServerComponentsPlugin {}
+#[derive(Debug)]
+pub struct ReactServerComponentsPlugin {
+  #[debug(skip)]
+  client_compiler_handle: ClientCompilerHandle,
+}
 
 impl ReactServerComponentsPlugin {
-  pub fn new() -> Self {
-    Self {
-      inner: Default::default(),
-    }
+  pub fn new(client_compiler_handle: ClientCompilerHandle) -> Self {
+    Self::new_inner(client_compiler_handle)
   }
 }
 
@@ -318,8 +320,9 @@ impl ReactServerComponentsPlugin {
         // }
 
         let entry_name = client_entry_to_inject.entry_name.to_string();
-        let injected =
-          self.inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject);
+        let injected = self
+          .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject)
+          .await;
 
         // Track all created SSR dependencies for each entry from the server layer.
         created_ssr_dependencies_for_entry
@@ -400,6 +403,9 @@ impl ReactServerComponentsPlugin {
       let runtime = runtimes[idx].as_ref();
       info.set_used_in_unknown_way(&mut mg, runtime);
     }
+
+    // TODO: server compiler 模块图编译完毕，开始启动 client compiler 编译 browser module
+    self.client_compiler_handle.compile().await?;
 
     // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     // let mut action_maps_per_client_entry: FxHashMap<
@@ -642,7 +648,7 @@ impl ReactServerComponentsPlugin {
     }
   }
 
-  fn inject_client_entry_and_ssr_modules(
+  async fn inject_client_entry_and_ssr_modules(
     &self,
     compilation: &Compilation,
     client_entry: ClientEntry,
@@ -716,10 +722,17 @@ impl ReactServerComponentsPlugin {
     //   let should_invalidate_cb = &self.should_invalidate_cb;
     //   should_invalidate = should_invalidate_cb(should_invalidate_cb_ctx);
     // } else {
-    //   let mut plugin_state = self.plugin_state.lock().unwrap();
-    //   plugin_state
-    //     .injected_client_entries
-    //     .insert(bundle_path, client_browser_loader.clone());
+    {
+      // TODO: 在这里 lock 性能不好
+      // TODO: 即使没有 use client 也需要向 PLUGIN_STATE_BY_COMPILER_ID 写入，避免 client compiler 认为 server compiler 出错
+      let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+      let plugin_state = guard
+        .entry(compilation.compiler_id())
+        .or_insert(PluginState::default());
+      plugin_state
+        .injected_client_entries
+        .insert(entry_name.to_string(), client_browser_loader);
+    }
     // }
 
     let client_component_ssr_entry_dep = EntryDependency::new(

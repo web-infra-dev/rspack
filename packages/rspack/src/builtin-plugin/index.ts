@@ -83,3 +83,4 @@ export * from "./WarnCaseSensitiveModulesPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./WorkerPlugin";
 export * from "./ReactServerComponentsPlugin";
+export * from "./ReactClientPlugin";

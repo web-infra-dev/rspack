@@ -340,7 +340,8 @@ export {
 	NormalModuleReplacementPlugin,
 	SourceMapDevToolPlugin,
 	SwcJsMinimizerRspackPlugin,
-	ReactServerComponentsPlugin
+	ReactServerComponentsPlugin,
+	ReactClientPlugin
 } from "./builtin-plugin";
 
 ///// Experiments Stuff /////

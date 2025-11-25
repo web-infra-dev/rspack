@@ -4700,7 +4700,9 @@ name = "rspack_plugin_rsc"
 version = "0.6.3"
 dependencies = [
  "async-trait",
+ "derive_more",
  "form_urlencoded",
+ "futures",
  "indexmap",
  "once_cell",
  "regex",
@@ -4718,6 +4720,7 @@ dependencies = [
  "serde_json",
  "simd-json",
  "swc_core",
+ "tokio",
  "tracing",
  "ustr-fxhash",
 ]

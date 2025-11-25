@@ -410,6 +410,11 @@ impl JsCompiler {
       .as_ref()
       .map(|store| JsVirtualFileStore::new(store.clone()))
   }
+
+  #[napi]
+  pub fn get_compiler_id(&self) -> External<CompilerId> {
+    External::new(self.compiler.id())
+  }
 }
 
 struct RunGuard {

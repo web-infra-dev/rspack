@@ -9,7 +9,9 @@ version.workspace = true
 
 [dependencies]
 async-trait                = { workspace = true }
+derive_more                = { workspace = true }
 form_urlencoded            = { workspace = true }
+futures                    = { workspace = true }
 indexmap                   = { workspace = true }
 once_cell                  = { workspace = true }
 regex                      = { workspace = true }
@@ -27,6 +29,7 @@ serde                      = { workspace = true }
 serde_json                 = { workspace = true }
 simd-json                  = { workspace = true }
 swc_core                   = { workspace = true }
+tokio                      = { workspace = true }
 tracing                    = { workspace = true }
 ustr                       = { workspace = true }
 
