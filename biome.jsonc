@@ -71,9 +71,7 @@
 			"!**/packages/rspack-test-tools/template/*",
 			// --- ignore runtime code in browser
 			"!**/packages/rspack/hot",
-			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js",
-			// --- ignore comprehensive example (external code for testing)
-			"!**/examples/comprehensive-demo-react18/**/*"
+			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		],
 		"ignoreUnknown": true
 	},

@@ -23,6 +23,3 @@ packages/rspack-test-tools/src/helper/legacy/**/*
 crates/**
 !crates/**/
 !crates/**/*.md
-
-# Comprehensive demo build outputs
-examples/comprehensive-demo-react18/**/public/

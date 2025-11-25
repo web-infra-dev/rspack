@@ -45,15 +45,20 @@ const config = (i, options) => ({
 					.chunks.map(c => c.id)
 					.sort();
 
-				// The two dynamic chunks have a stable prefix but non-stable suffixes across runtimes (native vs wasm).
-				const dynamicChunkIds = chunkIds.filter(id => id.startsWith("chunk_js-_"));
-				const staticChunkIds = chunkIds.filter(id => !id.startsWith("chunk_js-_")).sort();
-
-				expect(dynamicChunkIds).toHaveLength(2);
-				expect(staticChunkIds).toEqual([
+				expect(chunkIds).toEqual(process.env.WASM ? [
 					"a",
 					"b",
 					"c",
+					"chunk_js-_d5940",
+					"chunk_js-_d5941",
+					"d_css",
+					"x"
+				] : [
+					"a",
+					"b",
+					"c",
+					"chunk_js-_aaff0",
+					"chunk_js-_aaff1",
 					"d_css",
 					"x"
 				]);

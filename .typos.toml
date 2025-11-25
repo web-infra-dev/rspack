@@ -16,7 +16,6 @@ extend-exclude = [
   "biome.jsonc",
   "scripts/test/diff.cjs",
   "scripts/test/binary-path.cjs",
-  "examples/comprehensive-demo-react18",
 ]
 
 [default.extend-identifiers]
