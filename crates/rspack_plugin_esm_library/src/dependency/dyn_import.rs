@@ -66,7 +66,7 @@ fn then_expr(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.collect_build_module_graph_effects_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)

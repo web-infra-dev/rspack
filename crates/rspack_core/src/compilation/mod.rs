@@ -1,5 +1,6 @@
 pub mod build_chunk_graph;
 pub mod build_module_graph;
+pub mod collect_module_graph_effects;
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -40,21 +41,21 @@ use tracing::instrument;
 use ustr::Ustr;
 
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
-  CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
-  ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
-  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef,
-  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap,
-  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
-  ValueCacheVersions,
+  BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions, CgcRuntimeRequirementsArtifact,
+  CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact, ChunkIdsArtifact, ChunkKind,
+  ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerationJob,
+  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
+  CompilerOptions, ConcatenationScope, DependencyCodeGeneration, DependencyTemplate,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, Logger,
+  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut,
+  ModuleGraphPartial, ModuleGraphRef, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
     finish_build_module_graph, update_module_graph,
@@ -74,7 +75,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation,artifacts: &mut CollectModuleGraphEffectsArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -234,7 +235,7 @@ pub struct Compilation {
   assets: CompilationAssets,
   assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
-  diagnostics: Vec<Diagnostic>,
+  pub(crate) diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -243,11 +244,7 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub runtime_template: RuntimeTemplate,
-
-  // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: AsyncModulesArtifact,
-  // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DependenciesDiagnosticsArtifact,
+  /****  legacy artifact start ****/
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: SideEffectsOptimizeArtifact,
   // artifact for module_ids
@@ -274,10 +271,14 @@ pub struct Compilation {
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
   pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
 
+  /****  legacy artifact end ****/
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
+  // new staged base artifact start ****/
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
+  pub collect_build_module_graph_effects_artifact: CollectModuleGraphEffectsArtifact,
+  // new staged base artifact end ****/
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -383,10 +384,8 @@ impl Compilation {
       loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-
-      async_modules_artifact: Default::default(),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: Default::default(),
+      collect_build_module_graph_effects_artifact: Default::default(),
       side_effects_optimize_artifact: Default::default(),
       module_ids_artifact: Default::default(),
       chunk_ids_artifact: Default::default(),
@@ -1469,143 +1468,6 @@ impl Compilation {
     // make finished, make artifact should be readonly thereafter.
     Ok(())
   }
-  // collect build module graph effects for incremental compilation
-  #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
-  pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    if let Some(mutations) = self.incremental.mutations_write() {
-      mutations.extend(
-        self
-          .build_module_graph_artifact
-          .affected_dependencies
-          .updated()
-          .iter()
-          .map(|&dependency| Mutation::DependencyUpdate { dependency }),
-      );
-      mutations.extend(
-        self
-          .build_module_graph_artifact
-          .affected_modules
-          .removed()
-          .iter()
-          .map(|&module| Mutation::ModuleRemove { module }),
-      );
-      mutations.extend(
-        self
-          .build_module_graph_artifact
-          .affected_modules
-          .updated()
-          .iter()
-          .map(|&module| Mutation::ModuleUpdate { module }),
-      );
-      mutations.extend(
-        self
-          .build_module_graph_artifact
-          .affected_modules
-          .added()
-          .iter()
-          .map(|&module| Mutation::ModuleAdd { module }),
-      );
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
-    }
-
-    let start = logger.time("finish modules");
-    // finish_modules means the module graph (modules, connections, dependencies) are
-    // frozen and start to optimize (provided exports, infer async, etc.) based on the
-    // module graph, so any kind of change that affect these should be done before the
-    // finish_modules
-
-    self
-      .plugin_driver
-      .clone()
-      .compilation_hooks
-      .finish_modules
-      .call(self)
-      .await?;
-
-    logger.time_end(start);
-
-    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
-    self.module_graph_cache_artifact.freeze();
-    // Collect dependencies diagnostics at here to make sure:
-    // 1. after finish_modules: has provide exports info
-    // 2. before optimize dependencies: side effects free module hasn't been skipped
-    self.collect_dependencies_diagnostics();
-    self.module_graph_cache_artifact.unfreeze();
-
-    // take make diagnostics
-    let diagnostics = self.build_module_graph_artifact.diagnostics();
-    self.extend_diagnostics(diagnostics);
-    Ok(())
-  }
-  #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
-  fn collect_dependencies_diagnostics(&mut self) {
-    let mutations = self
-      .incremental
-      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-    // TODO move diagnostic collect to make
-    let modules = if let Some(mutations) = mutations
-      && !self.dependencies_diagnostics_artifact.is_empty()
-    {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .dependencies_diagnostics_artifact
-          .remove(&revoked_module);
-      }
-      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
-      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
-    };
-    let module_graph = self.get_module_graph();
-    let module_graph_cache = &self.module_graph_cache_artifact;
-    let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
-      .par_iter()
-      .map(|module_identifier| {
-        let mgm = module_graph
-          .module_graph_module_by_identifier(module_identifier)
-          .expect("should have mgm");
-        let diagnostics = mgm
-          .all_dependencies
-          .iter()
-          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| {
-            dependency
-              .get_diagnostics(&module_graph, module_graph_cache)
-              .map(|diagnostics| {
-                diagnostics.into_iter().map(|mut diagnostic| {
-                  diagnostic.module_identifier = Some(*module_identifier);
-                  diagnostic.loc = dependency.loc();
-                  diagnostic
-                })
-              })
-          })
-          .flatten()
-          .collect::<Vec<_>>();
-        (*module_identifier, diagnostics)
-      })
-      .collect();
-    let all_modules_diagnostics = if mutations.is_some() {
-      self
-        .dependencies_diagnostics_artifact
-        .extend(dependencies_diagnostics);
-      self.dependencies_diagnostics_artifact.clone()
-    } else {
-      dependencies_diagnostics
-    };
-    self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
-  }
-
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());

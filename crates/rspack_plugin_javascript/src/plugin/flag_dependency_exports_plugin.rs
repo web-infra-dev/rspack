@@ -5,7 +5,9 @@ use rspack_core::{
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
   ExportSpecExports, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  PrefetchExportsInfoMode,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
+  get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -184,11 +186,16 @@ pub struct DefaultExportInfo<'a> {
 pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let modules: IdentifierSet = if let Some(mutations) = compilation
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  artifact: &mut CollectModuleGraphEffectsArtifact,
+) -> Result<()> {
+  let modules: IdentifierSet = if let Some(mutations) = artifact
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
+    dbg!(&mutations);
     let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.providedExports");

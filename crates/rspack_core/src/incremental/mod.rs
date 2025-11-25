@@ -108,6 +108,15 @@ pub struct Incremental {
   state: IncrementalState,
 }
 
+impl Default for Incremental {
+  fn default() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::empty(),
+      state: IncrementalState::Cold,
+    }
+  }
+}
 impl Incremental {
   pub fn new_cold(options: IncrementalOptions) -> Self {
     Self {
@@ -185,6 +194,12 @@ impl Incremental {
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<&Mutations> {
     if let IncrementalState::Hot { mutations } = &self.state {
       return self.passes.allow_read(passes).then_some(mutations);
+    }
+    None
+  }
+  pub fn mutations_take(&mut self) -> Option<Mutations> {
+    if let IncrementalState::Hot { mutations } = &mut self.state {
+      return Some(std::mem::take(mutations));
     }
     None
   }

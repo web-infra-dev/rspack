@@ -4,6 +4,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   Compilation, CompilationFinishModules, DependencyType, Logger, ModuleGraph, ModuleIdentifier,
   Plugin,
+  collect_module_graph_effects::artifact::CollectModuleGraphEffectsArtifact,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -14,12 +15,16 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  if let Some(mutations) = compilation
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  artifact: &mut CollectModuleGraphEffectsArtifact,
+) -> Result<()> {
+  if let Some(read_mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
   {
-    mutations
+    read_mutations
       .iter()
       .filter_map(|mutation| {
         if let Mutation::ModuleRemove { module } = mutation {
@@ -29,7 +34,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         }
       })
       .for_each(|module| {
-        compilation.async_modules_artifact.remove(module);
+        compilation
+          .collect_build_module_graph_effects_artifact
+          .async_module_info
+          .remove(module);
       });
   }
 
@@ -46,39 +54,38 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  let mut mutations = compilation
+  let mut collect_mutations = artifact
     .incremental
     .mutations_writeable()
     .then(Mutations::default);
-
-  set_sync_modules(compilation, sync_modules, &mut mutations);
-  set_async_modules(compilation, async_modules, &mut mutations);
+  set_sync_modules(compilation, sync_modules, artifact, &mut collect_mutations);
+  set_async_modules(compilation, async_modules, artifact, &mut collect_mutations);
 
   if compilation
     .incremental
     .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
-    && let Some(mutations) = &mutations
+    && let Some(collect_mutations) = &collect_mutations
   {
     let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
     logger.log(format!(
       "{} modules are updated by set_async",
-      mutations.len()
+      collect_mutations.len()
     ));
   }
-
-  if let Some(compilation_mutations) = compilation.incremental.mutations_write()
-    && let Some(mutations) = mutations
+  if let Some(artifact_mutations) = artifact.incremental.mutations_write()
+    && let Some(collect_mutations) = collect_mutations
   {
-    compilation_mutations.extend(mutations);
+    artifact_mutations.extend(collect_mutations);
   }
-
   Ok(())
 }
-
+// we need to calculate mutations for inferAsyncModules pass separately
+// so make sure use collect_mutations to collect mutations other than artifact.mutations
 fn set_sync_modules(
   compilation: &mut Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
-  mutations: &mut Option<Mutations>,
+  collect_module_graph_effects_artifact: &mut CollectModuleGraphEffectsArtifact,
+  collect_mutations: &mut Option<Mutations>,
 ) {
   let module_graph = compilation.get_module_graph();
   let outgoing_connections = modules
@@ -112,16 +119,20 @@ fn set_sync_modules(
           .collect::<Vec<_>>()
       })
       .iter()
-      .any(|out| ModuleGraph::is_async(compilation, out))
+      .any(|out| ModuleGraph::is_async(collect_module_graph_effects_artifact, out))
     {
       // We can't safely reset is_async to false if there are any outgoing module is async
       continue;
     }
     // The module is_async = false will also decide its parent module is_async, so if the module is_async = false
     // is not changed, this means its parent module will be not affected, so we stop the infer at here.
-    if ModuleGraph::set_async(compilation, module, false) {
-      if let Some(mutations) = mutations {
-        mutations.add(Mutation::ModuleSetAsync { module });
+    if ModuleGraph::set_async(
+      &mut compilation.collect_build_module_graph_effects_artifact,
+      module,
+      false,
+    ) {
+      if let Some(collect_mutations) = collect_mutations {
+        collect_mutations.add(Mutation::ModuleSetAsync { module });
       }
       let module_graph = compilation.get_module_graph();
       module_graph
@@ -149,16 +160,17 @@ fn set_sync_modules(
 fn set_async_modules(
   compilation: &mut Compilation,
   modules: LinkedHashSet<ModuleIdentifier>,
-  mutations: &mut Option<Mutations>,
+  artifact: &mut CollectModuleGraphEffectsArtifact,
+  collect_mutations: &mut Option<Mutations>,
 ) {
   let mut queue = modules;
   let mut visited = IdentifierSet::from_iter(queue.iter().copied());
 
   while let Some(module) = queue.pop_front() {
-    if ModuleGraph::set_async(compilation, module, true)
-      && let Some(mutations) = mutations
+    if ModuleGraph::set_async(artifact, module, true)
+      && let Some(collect_mutations) = collect_mutations
     {
-      mutations.add(Mutation::ModuleSetAsync { module });
+      collect_mutations.add(Mutation::ModuleSetAsync { module });
     }
     let module_graph = compilation.get_module_graph();
     module_graph

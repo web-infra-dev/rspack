@@ -18,6 +18,7 @@ use crate::{
   Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
   SharedPluginDriver,
   cache::{Cache, new_cache},
+  collect_module_graph_effects::collect_build_module_graph_effects,
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
@@ -253,6 +254,7 @@ impl Compiler {
 
     Ok(())
   }
+  #[instrument("Compiler:build_module_graph", target=TRACING_BENCH_TARGET,skip_all)]
   async fn build_module_graph(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
@@ -306,7 +308,10 @@ impl Compiler {
       .cache
       .after_build_module_graph(&self.compilation.build_module_graph_artifact)
       .await;
-
+    self
+      .compilation
+      .diagnostics
+      .extend(self.compilation.build_module_graph_artifact.diagnostics());
     logger.time_end(start);
     Ok(())
   }
@@ -320,10 +325,9 @@ impl Compiler {
       wait_for_signal("seal compilation");
     }
     self.build_module_graph().await?;
-    self
-      .compilation
-      .collect_build_module_graph_effects()
-      .await?;
+
+    collect_build_module_graph_effects(&mut self.compilation).await?;
+
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 

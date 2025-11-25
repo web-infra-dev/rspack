@@ -72,7 +72,10 @@ async fn render_startup(
     return Ok(());
   };
   let mut source = ConcatSource::default();
-  let is_async = ModuleGraph::is_async(compilation, module);
+  let is_async = ModuleGraph::is_async(
+    &compilation.collect_build_module_graph_effects_artifact,
+    module,
+  );
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
   // export { local as exported }

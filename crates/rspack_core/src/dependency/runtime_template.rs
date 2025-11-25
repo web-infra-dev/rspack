@@ -475,7 +475,10 @@ fn get_outgoing_async_modules(
     visited: &mut HashSet<ModuleIdentifier>,
   ) {
     let module_identifier = module.identifier();
-    if !ModuleGraph::is_async(compilation, &module_identifier) {
+    if !ModuleGraph::is_async(
+      &compilation.collect_build_module_graph_effects_artifact,
+      &module_identifier,
+    ) {
       return;
     }
     if !visited.insert(module_identifier) {
@@ -667,7 +670,7 @@ pub fn module_namespace_promise(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.collect_build_module_graph_effects_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
