@@ -16,7 +16,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, RuntimeTemplate,
-  merge_runtime, property_name, runtime_condition_expression,
+  merge_runtime, property_name,
 };
 
 static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
@@ -160,7 +160,6 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn returning_function(&self, return_value: &str, args: &str) -> String;
   fn runtime_template(&self) -> &RuntimeTemplate;
 }
 
@@ -267,20 +266,15 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
   }
 
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
-    runtime_condition_expression(
-      &self.compilation.chunk_graph,
-      Some(runtime_condition),
-      self.runtime,
-      self.runtime_requirements,
-      &self.compilation.runtime_template,
-    )
-  }
-
-  fn returning_function(&self, return_value: &str, args: &str) -> String {
     self
       .compilation
       .runtime_template
-      .returning_function(return_value, args)
+      .runtime_condition_expression(
+        &self.compilation.chunk_graph,
+        Some(runtime_condition),
+        self.runtime,
+        self.runtime_requirements,
+      )
   }
 
   fn runtime_template(&self) -> &RuntimeTemplate {
@@ -297,10 +291,6 @@ impl InitFragmentRenderContext for ChunkRenderContext {
 
   fn runtime_condition_expression(&mut self, _runtime_condition: &RuntimeCondition) -> String {
     unreachable!("should not call runtime condition expression in chunk render context")
-  }
-
-  fn returning_function(&self, _return_value: &str, _args: &str) -> String {
-    unreachable!("should not call returning function in chunk render context")
   }
 
   fn runtime_template(&self) -> &RuntimeTemplate {
@@ -387,7 +377,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
           Ok(format!(
             "{}: {}",
             prop,
-            context.returning_function(&s.1, "")
+            context.runtime_template().returning_function(&s.1, "")
           ))
         })
         .collect::<Result<Vec<_>>>()?

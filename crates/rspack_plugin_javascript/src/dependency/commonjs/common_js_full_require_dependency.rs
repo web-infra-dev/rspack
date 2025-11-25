@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, module_id,
-  property_access, to_normal_comment,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -203,7 +203,9 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            module_id(compilation, &dep.id, &dep.request, false),
+            compilation
+              .runtime_template
+              .module_id(compilation, &dep.id, &dep.request, false),
             comment,
             property_access(used, 0)
           )
@@ -220,7 +222,9 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        module_id(compilation, &dep.id, &dep.request, false)
+        compilation
+          .runtime_template
+          .module_id(compilation, &dep.id, &dep.request, false)
       )
     };
 

@@ -3,7 +3,6 @@ use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  block_promise,
 };
 
 #[cacheable]
@@ -88,12 +87,15 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&dep.id);
-    let promise = block_promise(
-      block,
-      code_generatable_context.runtime_requirements,
-      code_generatable_context.compilation,
-      dep.dependency_type().as_str(),
-    );
+    let promise = code_generatable_context
+      .compilation
+      .runtime_template
+      .block_promise(
+        block,
+        code_generatable_context.runtime_requirements,
+        code_generatable_context.compilation,
+        dep.dependency_type().as_str(),
+      );
     source.replace(
       dep.range.start,
       dep.content_range.start,

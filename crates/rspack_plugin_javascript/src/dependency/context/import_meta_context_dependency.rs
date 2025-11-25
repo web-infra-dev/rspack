@@ -3,7 +3,7 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource, module_raw,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -149,7 +149,7 @@ impl DependencyTemplate for ImportMetaContextDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    let content = module_raw(
+    let content = compilation.runtime_template.module_raw(
       compilation,
       runtime_requirements,
       &dep.id,

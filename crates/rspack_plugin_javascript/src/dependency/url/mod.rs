@@ -8,7 +8,7 @@ use rspack_core::{
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  URLStaticMode, UsedByExports, module_id,
+  URLStaticMode, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -153,7 +153,9 @@ impl DependencyTemplate for URLDependencyTemplate {
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            module_id(compilation, &dep.id, &dep.request, false),
+            compilation
+              .runtime_template
+              .module_id(compilation, &dep.id, &dep.request, false),
           )
           .as_str(),
           None,
@@ -189,7 +191,9 @@ impl DependencyTemplate for URLDependencyTemplate {
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            module_id(compilation, &dep.id, &dep.request, false),
+            compilation
+              .runtime_template
+              .module_id(compilation, &dep.id, &dep.request, false),
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::BASE_URI)

@@ -14,7 +14,7 @@ use rspack_core::{
   Dependency, DependencyId, DependencyType, Filename, GenerateContext, ImportPhase, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule, ParseContext,
   ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
-  StaticExportsSpec, TemplateContext, export_from_import, import_statement,
+  StaticExportsSpec, TemplateContext,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -209,7 +209,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
           .iter()
           .map(|(_, dep_module)| {
-            import_statement(
+            compilation.runtime_template.import_statement(
               module,
               compilation,
               runtime_requirements,
@@ -240,7 +240,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .deps
               .into_iter()
               .map(|(dep_id, export_name)| {
-                let export = export_from_import(
+                let export = compilation.runtime_template.export_from_import(
                   &mut template_context,
                   true,
                   dep_module.request,

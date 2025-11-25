@@ -3,7 +3,6 @@ use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  block_promise,
 };
 
 #[cacheable]
@@ -100,12 +99,15 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
     let block = module_graph.get_parent_block(&dep.id);
     let runtime_template = &code_generatable_context.compilation.runtime_template;
 
-    let promise = block_promise(
-      block,
-      code_generatable_context.runtime_requirements,
-      code_generatable_context.compilation,
-      "AMD require",
-    );
+    let promise = code_generatable_context
+      .compilation
+      .runtime_template
+      .block_promise(
+        block,
+        code_generatable_context.runtime_requirements,
+        code_generatable_context.compilation,
+        "AMD require",
+      );
 
     // has array range but no function range
     if let Some(array_range) = &dep.array_range

@@ -9,10 +9,8 @@ use rspack_core::{
   Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
   FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, basic_function, block_promise, impl_module_meta_info, impl_source_map_config,
-  module_raw, module_update_hash, returning_function,
+  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -213,16 +211,12 @@ impl Module for ContainerEntryModule {
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        returning_function(
-          &compilation.options.output.environment,
-          "__webpack_require__.getContainer",
-          ""
-        ),
-        returning_function(
-          &compilation.options.output.environment,
-          "__webpack_require__.initContainer",
-          ""
-        ),
+        compilation
+          .runtime_template
+          .returning_function("__webpack_require__.getContainer", ""),
+        compilation
+          .runtime_template
+          .returning_function("__webpack_require__.initContainer", ""),
       )
     } else {
       format!(
@@ -266,13 +260,12 @@ var init = function(shareScope, initScope) {{
         define_property_getters = compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        get_scope_reject = basic_function(
-          &compilation.options.output.environment,
+        get_scope_reject = compilation.runtime_template.basic_function(
           "",
           r#"throw new Error('Module "' + module + '" does not exist in container.');"#
         ),
-        export_get = returning_function(&compilation.options.output.environment, "get", ""),
-        export_init = returning_function(&compilation.options.output.environment, "init", ""),
+        export_get = compilation.runtime_template.returning_function("get", ""),
+        export_init = compilation.runtime_template.returning_function("init", ""),
       )
     };
     code_generation_result =
@@ -334,21 +327,26 @@ impl ExposeModuleMap {
         .clone()
         .any(|(_, module, _, _)| module.is_none())
       {
-        throw_missing_module_error_block(
-          &modules_iter
-            .map(|(_, _, request, _)| request)
-            .collect::<Vec<&str>>()
-            .join(", "),
-        )
+        compilation
+          .runtime_template
+          .throw_missing_module_error_block(
+            &modules_iter
+              .map(|(_, _, request, _)| request)
+              .collect::<Vec<&str>>()
+              .join(", "),
+          )
       } else {
-        let block_promise = block_promise(Some(block_id), runtime_requirements, compilation, "");
-        let module_raw = returning_function(
-          &compilation.options.output.environment,
-          &returning_function(
-            &compilation.options.output.environment,
+        let block_promise = compilation.runtime_template.block_promise(
+          Some(block_id),
+          runtime_requirements,
+          compilation,
+          "",
+        );
+        let module_raw = compilation.runtime_template.returning_function(
+          &compilation.runtime_template.returning_function(
             &modules_iter
               .map(|(_, _, request, dependency_id)| {
-                module_raw(
+                compilation.runtime_template.module_raw(
                   compilation,
                   runtime_requirements,
                   dependency_id,
@@ -377,7 +375,7 @@ impl ExposeModuleMap {
         format!(
           "{}: {},",
           json_stringify(name),
-          basic_function(&compilation.options.output.environment, "", factory)
+          compilation.runtime_template.basic_function("", factory)
         )
       })
       .collect::<Vec<_>>()

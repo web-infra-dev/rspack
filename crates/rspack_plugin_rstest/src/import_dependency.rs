@@ -3,7 +3,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   FakeNamespaceObjectMode, ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, block_promise, get_exports_type, module_id_expr, module_raw, weak_error,
+  TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -73,7 +73,9 @@ pub fn module_id_rstest(
     && let Some(module_id) =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    module_id_expr(&compilation.options, request, module_id)
+    compilation
+      .runtime_template
+      .module_id_expr(request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -109,7 +111,10 @@ fn module_namespace_promise_rstest(
     return format!("__webpack_require__(\"{request}\")");
   };
 
-  let promise = block_promise(block, runtime_requirements, compilation, message);
+  let promise =
+    compilation
+      .runtime_template
+      .block_promise(block, runtime_requirements, compilation, message);
   let exports_type = get_exports_type(
     &compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
@@ -132,7 +137,7 @@ fn module_namespace_promise_rstest(
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-      weak_error(request)
+      compilation.runtime_template.weak_error(request)
     ))
   } else {
     None
@@ -144,7 +149,13 @@ fn module_namespace_promise_rstest(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          module_raw(compilation, runtime_requirements, dep_id, request, weak)
+          compilation.runtime_template.module_raw(
+            compilation,
+            runtime_requirements,
+            dep_id,
+            request,
+            weak
+          )
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -172,7 +183,13 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            module_raw(compilation, runtime_requirements, dep_id, request, weak)
+            compilation.runtime_template.module_raw(
+              compilation,
+              runtime_requirements,
+              dep_id,
+              request,
+              weak
+            )
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);

@@ -32,9 +32,8 @@ use crate::{
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
   GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId,
   ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals,
-  RuntimeSpec, RuntimeTemplate, SourceType, block_promise, contextify,
-  get_exports_type_with_strict, impl_module_meta_info, module_update_hash, returning_function,
-  to_path,
+  RuntimeSpec, RuntimeTemplate, SourceType, contextify, get_exports_type_with_strict,
+  impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -360,7 +359,7 @@ impl ContextModule {
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
       "#,
-      keys = returning_function(&compilation.options.output.environment, "[]", ""),
+      keys = compilation.runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -377,7 +376,7 @@ impl ContextModule {
       webpackEmptyContext.id = {id};
       module.exports = webpackEmptyContext;
       "#,
-      keys = returning_function(&compilation.options.output.environment, "[]", ""),
+      keys = compilation.runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -591,7 +590,7 @@ impl ContextModule {
       module.exports = webpackAsyncContext;
       "#,
       map = json_stringify(&map),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -605,7 +604,7 @@ impl ContextModule {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
     let dependencies = block.get_dependencies();
-    let promise = block_promise(
+    let promise = compilation.runtime_template.block_promise(
       Some(block_id),
       &mut code_gen_result.runtime_requirements,
       compilation,
@@ -654,7 +653,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -704,7 +703,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -749,7 +748,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -801,7 +800,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
