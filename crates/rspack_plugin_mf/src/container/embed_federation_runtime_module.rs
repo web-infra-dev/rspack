@@ -4,8 +4,6 @@
 //! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
 //! checks that intercepts and modifies the startup execution order.
 
-use std::fmt::Write;
-
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -94,42 +92,30 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     let mut code = String::with_capacity(256 + module_executions.len());
 
-    writeln!(code, "var __webpack_require__mf_has_run = false;").expect("write to string");
-    writeln!(
-      code,
-      "var __webpack_require__mf_startup_once = function() {"
-    )
-    .unwrap();
-    writeln!(code, "	if (__webpack_require__mf_has_run) return;").unwrap();
-    writeln!(code, "	__webpack_require__mf_has_run = true;").unwrap();
+    code.push_str("var __webpack_require__mf_has_run = false;\n");
+    code.push_str("var __webpack_require__mf_startup_once = function() {\n");
+    code.push_str("	if (__webpack_require__mf_has_run) return;\n");
+    code.push_str("	__webpack_require__mf_has_run = true;\n");
     code.push_str(&module_executions);
-    writeln!(code, "};").unwrap();
+    code.push_str("};\n");
 
-    writeln!(code, "function __webpack_require__mf_wrapStartup(prev) {").unwrap();
-    writeln!(
-      code,
-      "	var fn = typeof prev === 'function' ? prev : undefined;"
-    )
-    .unwrap();
-    writeln!(code, "	return function() {").unwrap();
-    writeln!(code, "		__webpack_require__mf_startup_once();").unwrap();
-    writeln!(code, "		if (typeof fn === 'function') {").unwrap();
-    writeln!(code, "			return fn.apply(this, arguments);").unwrap();
-    writeln!(code, "		}").unwrap();
-    writeln!(code, "	};").unwrap();
-    writeln!(code, "}").unwrap();
+    code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
+    code.push_str("	var fn = typeof prev === 'function' ? prev : undefined;\n");
+    code.push_str("	return function() {\n");
+    code.push_str("		__webpack_require__mf_startup_once();\n");
+    code.push_str("		if (typeof fn === 'function') {\n");
+    code.push_str("			return fn.apply(this, arguments);\n");
+    code.push_str("		}\n");
+    code.push_str("	};\n");
+    code.push_str("}\n");
 
-    writeln!(
-      code,
-      "{startup} = __webpack_require__mf_wrapStartup({startup});"
-    )
-    .unwrap();
+    code.push_str(&format!(
+      "{startup} = __webpack_require__mf_wrapStartup({startup});\n"
+    ));
     if wrap_async {
-      writeln!(
-        code,
-        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});"
-      )
-      .unwrap();
+      code.push_str(&format!(
+        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});\n"
+      ));
     }
 
     Ok(code)
