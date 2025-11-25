@@ -19,9 +19,6 @@ export interface ModuleFederationPluginV1Options {
 	shareScope?: string;
 	shared?: Shared;
 	enhanced?: boolean;
-	experiments?: {
-		asyncStartup?: boolean;
-	};
 }
 
 export class ModuleFederationPluginV1 {

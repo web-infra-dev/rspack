@@ -4863,10 +4863,6 @@ export interface ModuleFederationPluginV1Options {
     // (undocumented)
     enhanced?: boolean;
     // (undocumented)
-    experiments?: {
-        asyncStartup?: boolean;
-    };
-    // (undocumented)
     exposes?: Exposes;
     // (undocumented)
     filename?: string;
