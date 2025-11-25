@@ -210,7 +210,9 @@ impl Module for ContainerEntryModule {
 	get: {},
 	init: {}
 }});"#,
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
         returning_function(
           &compilation.options.output.environment,
           "__webpack_require__.getContainer",
@@ -248,12 +250,22 @@ var init = function(shareScope, initScope) {{
 	get: {export_get},
 	init: {export_init}
 }});"#,
-        current_remote_get_scope = RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-        has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-        share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
+        current_remote_get_scope = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
+        has_own_property = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+        share_scope_map = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
         share_scope = json_stringify(&self.share_scope),
-        initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
-        define_property_getters = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        initialize_sharing = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
+        define_property_getters = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
         get_scope_reject = basic_function(
           &compilation.options.output.environment,
           "",

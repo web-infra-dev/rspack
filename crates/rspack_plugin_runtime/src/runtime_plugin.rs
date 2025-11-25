@@ -356,7 +356,9 @@ async fn runtime_requirements_in_tree(
             "javascript",
             "javascript",
             SourceType::JavaScript,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
             |_| false,
             |chunk, compilation| {
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
@@ -379,7 +381,9 @@ async fn runtime_requirements_in_tree(
             "css",
             "css",
             SourceType::Css,
-            RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
               runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
             },

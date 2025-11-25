@@ -206,7 +206,9 @@ async fn render_startup(
     ));
     startup_with_call.add(RawStringSource::from(format!(
       "{}();\n",
-      RuntimeGlobals::STARTUP.name()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP),
     )));
 
     startup_with_call.add(render_source.source.clone());

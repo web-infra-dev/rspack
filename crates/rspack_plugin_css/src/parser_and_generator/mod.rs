@@ -615,9 +615,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .get_used(generate_context.runtime)
               != UsageState::Unused
           {
-            (RuntimeGlobals::MAKE_NAMESPACE_OBJECT.name(), "(", ")")
+            (
+              generate_context
+                .compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+              "(".to_string(),
+              ")".to_string(),
+            )
           } else {
-            ("", "", "")
+            ("".to_string(), "".to_string(), "".to_string())
           };
           if let Some(exports) = &self.exports {
             if let Some(local_names) = &self.local_names {
@@ -639,17 +646,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
               module,
               generate_context.compilation,
               generate_context.runtime_requirements,
-              ns_obj,
-              left,
-              right,
+              &ns_obj,
+              &left,
+              &right,
               with_hmr,
             )?
           } else {
             format!(
               "{}{}module.exports = {{}}{};\n{}",
-              ns_obj,
-              left,
-              right,
+              &ns_obj,
+              &left,
+              &right,
               if with_hmr {
                 "module.hot.accept();\n"
               } else {

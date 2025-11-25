@@ -10,8 +10,8 @@ use crate::{
   FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
   NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify,
-  property_access, to_comment, to_normal_comment,
+  RuntimeSpec, RuntimeTemplate, TemplateContext, UsedName, compile_boolean_matcher_from_lists,
+  contextify, property_access, to_comment, to_normal_comment,
 };
 
 pub fn runtime_condition_expression(
@@ -19,6 +19,7 @@ pub fn runtime_condition_expression(
   runtime_condition: Option<&RuntimeCondition>,
   runtime: Option<&RuntimeSpec>,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &RuntimeTemplate,
 ) -> String {
   let Some(runtime_condition) = runtime_condition else {
     return "true".to_string();
@@ -61,7 +62,11 @@ pub fn runtime_condition_expression(
     positive_runtime_ids.into_iter().collect::<Vec<_>>(),
     negative_runtime_ids.into_iter().collect::<Vec<_>>(),
   )
-  .render(RuntimeGlobals::RUNTIME_ID.to_string().as_str())
+  .render(
+    runtime_template
+      .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID)
+      .as_str(),
+  )
 }
 
 fn subtract_runtime(a: Option<&RuntimeSpec>, b: Option<&RuntimeSpec>) -> Option<RuntimeSpec> {
@@ -235,7 +240,9 @@ pub fn export_from_import(
       };
       return format!(
         "/*#__PURE__*/ {prefix}({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))",
-        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
         if matches!(exports_type, ExportsType::DefaultOnly) {
           ""
         } else {
@@ -327,7 +334,9 @@ pub fn export_from_import(
         Some(false) => ";",
         None => "Object",
       },
-      RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
       json_stringify(&module_id),
       mode,
     )
@@ -550,14 +559,21 @@ pub fn import_statement(
     let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
     let import_content = format!(
       "/* deferred import */{opt_declaration}{import_var} = {};\n",
-      get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
+      get_property_accessed_deferred_module(
+        exports_type,
+        &module_id_expr,
+        async_deps,
+        &compilation.runtime_template
+      )
     );
     return (import_content, String::new());
   }
 
   let import_content = format!(
     "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
-    RuntimeGlobals::REQUIRE
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE)
   );
   if matches!(exports_type, ExportsType::Dynamic) {
     runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
@@ -565,7 +581,9 @@ pub fn import_statement(
       import_content,
       format!(
         "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
-        RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
       ),
     );
   }
@@ -607,7 +625,9 @@ pub fn module_namespace_promise(
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
-      RuntimeGlobals::MODULE_FACTORIES,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       weak_error(request)
     ))
   } else {
@@ -626,8 +646,12 @@ pub fn module_namespace_promise(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
-          RuntimeGlobals::REQUIRE,
-          RuntimeGlobals::REQUIRE
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         );
       }
     }
@@ -658,14 +682,20 @@ pub fn module_namespace_promise(
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
             ".then({}.bind({}, {module_id_expr}))",
-            RuntimeGlobals::REQUIRE,
-            RuntimeGlobals::REQUIRE
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           );
         }
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -674,15 +704,21 @@ pub fn module_namespace_promise(
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
             ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-            RuntimeGlobals::REQUIRE
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           );
         }
       }
@@ -774,7 +810,9 @@ pub fn block_promise(
 
     format!(
       "{}({comment}{chunk_id}{})",
-      RuntimeGlobals::ENSURE_CHUNK,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
       fetch_priority
         .map(|x| format!(r#", "{x}""#))
         .unwrap_or_default()
@@ -797,7 +835,9 @@ pub fn block_promise(
         .iter()
         .map(|c| format!(
           "{}({}{})",
-          RuntimeGlobals::ENSURE_CHUNK,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
           serde_json::to_string(
             c.id(&compilation.chunk_ids_artifact)
               .expect("should have chunk.id")
@@ -831,7 +871,9 @@ pub fn module_raw(
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(
       "{}({})",
-      RuntimeGlobals::REQUIRE,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       module_id_expr(&compilation.options, request, module_id)
     )
   } else if weak {
@@ -941,13 +983,14 @@ pub fn async_module_factory(
 pub fn define_es_module_flag_statement(
   exports_argument: ExportsArgument,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &RuntimeTemplate,
 ) -> String {
   runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
   runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
   format!(
     "{}({});\n",
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+    runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
     exports_argument
   )
 }
@@ -956,6 +999,7 @@ pub fn get_property_accessed_deferred_module(
   exports_type: ExportsType,
   module_id_expr: &str,
   async_deps: FxIndexSet<ModuleId>,
+  runtime_template: &RuntimeTemplate,
 ) -> String {
   let is_async = !async_deps.is_empty();
   let mut content = "{\nget a() {\n  ".to_string();
@@ -965,13 +1009,14 @@ pub fn get_property_accessed_deferred_module(
   } else {
     content += "return ";
   }
-  content += RuntimeGlobals::REQUIRE.name();
+  content += &runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
   content += "(";
   content += module_id_expr;
   content += ")";
   if is_async {
     content += "[";
-    content += RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL.name();
+    content +=
+      &runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL);
     content += "]";
   }
   content += ";\n";
@@ -986,7 +1031,8 @@ pub fn get_property_accessed_deferred_module(
   content += "},\n";
   if is_async {
     content += "[";
-    content += RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL.name();
+    content += &runtime_template
+      .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL);
     content += "]: ";
     content += &json_stringify(&async_deps);
     content += ",\n";

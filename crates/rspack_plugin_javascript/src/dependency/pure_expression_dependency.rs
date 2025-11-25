@@ -141,6 +141,7 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
         Some(&runtime_condition),
         code_generatable_context.runtime,
         code_generatable_context.runtime_requirements,
+        &code_generatable_context.compilation.runtime_template,
       )),
     };
 

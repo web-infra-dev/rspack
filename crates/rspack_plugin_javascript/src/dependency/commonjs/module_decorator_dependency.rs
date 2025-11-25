@@ -148,7 +148,9 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
       format!(
         "/* module decorator */ {} = {}({});\n",
         module_argument,
-        dep.decorator.name(),
+        compilation
+          .runtime_template
+          .render_runtime_globals(&dep.decorator),
         module_argument
       ),
       InitFragmentStage::StageProvides,

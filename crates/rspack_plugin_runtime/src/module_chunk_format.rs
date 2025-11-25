@@ -178,7 +178,9 @@ async fn render_chunk(
 
     startup_source.push(format!(
       "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
-      RuntimeGlobals::ENTRY_MODULE_ID
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
     ));
 
     let module_graph = compilation.get_module_graph();
@@ -230,7 +232,9 @@ async fn render_chunk(
         let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
           "{}(__webpack_chunk_${}__);",
-          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
           index_str2
         ));
       }
@@ -319,7 +323,9 @@ async fn render_startup(
       )));
       dependent_load.add(RawStringSource::from(format!(
         "{}({});\n",
-        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
         named_import
       )));
     }

@@ -36,7 +36,13 @@ impl JsonpChunkLoadingRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -175,7 +181,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_jsonp", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_jsonp",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -206,7 +217,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
         if with_fetch_priority {
           ", fetchPriority"
         } else {

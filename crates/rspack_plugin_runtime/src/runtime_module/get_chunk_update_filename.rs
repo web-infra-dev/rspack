@@ -50,7 +50,15 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             ))
-            .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+            .hash(
+              format!(
+                "' + {}() + '",
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+              )
+              .as_str(),
+            )
             .id("' + chunkId + '")
             .runtime(chunk.runtime().as_str()),
         )

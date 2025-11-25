@@ -64,7 +64,9 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({});\n",
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
           module.get_exports_argument()
         ),
         InitFragmentStage::StageESMExports,
@@ -80,7 +82,9 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
-          RuntimeGlobals::ASYNC_MODULE,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           module_graph
             .module_by_identifier(&module.identifier())
             .expect("should have mgm")
