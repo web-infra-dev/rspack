@@ -93,21 +93,29 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let mut code = String::with_capacity(256 + module_executions.len());
 
     code.push_str("var __webpack_require__mf_has_run = false;\n");
-    code.push_str("var __webpack_require__mf_startup_once = function() {\n");
+    code.push_str("function __webpack_require__mf_startup_once() {\n");
     code.push_str("	if (__webpack_require__mf_has_run) return;\n");
     code.push_str("	__webpack_require__mf_has_run = true;\n");
     code.push_str(&module_executions);
-    code.push_str("};\n");
+    code.push_str("}\n");
 
     code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
-    code.push_str("	var fn = typeof prev === 'function' ? prev : undefined;\n");
+    code.push_str("	var fn = typeof prev === 'function' ? prev : function(){};\n");
     code.push_str("	return function() {\n");
     code.push_str("		__webpack_require__mf_startup_once();\n");
-    code.push_str("		if (typeof fn === 'function') {\n");
-    code.push_str("			return fn.apply(this, arguments);\n");
-    code.push_str("		}\n");
+    code.push_str("		return fn.apply(this, arguments);\n");
     code.push_str("	};\n");
     code.push_str("}\n");
+
+    // Make STARTUP_ENTRYPOINT tolerant to zero-arg calls (runtimeChunk: 'single' startup path)
+    code.push_str("var __webpack_require__startup = __webpack_require__.X;\n");
+    code.push_str("function __webpack_require__startup_guard(result, chunkIds, fn) {\n");
+    code
+      .push_str("	if (chunkIds === undefined && result === undefined) return Promise.resolve();\n");
+    code.push_str("	if (chunkIds === undefined) chunkIds = [];\n");
+    code.push_str("	return __webpack_require__startup.call(this, result, chunkIds, fn);\n");
+    code.push_str("}\n");
+    code.push_str("__webpack_require__.X = __webpack_require__startup_guard;\n");
 
     code.push_str(&format!(
       "{startup} = __webpack_require__mf_wrapStartup({startup});\n"
