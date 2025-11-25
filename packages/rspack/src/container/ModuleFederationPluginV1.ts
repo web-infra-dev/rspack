@@ -30,7 +30,6 @@ export class ModuleFederationPluginV1 {
 	apply(compiler: Compiler) {
 		const { _options: options } = this;
 		const enhanced = options.enhanced ?? false;
-		const asyncStartup = options.experiments?.asyncStartup ?? false;
 
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
@@ -78,8 +77,7 @@ export class ModuleFederationPluginV1 {
 				new SharePlugin({
 					shared: options.shared,
 					shareScope: options.shareScope,
-					enhanced,
-					asyncStartup
+					enhanced
 				}).apply(compiler);
 			}
 		});

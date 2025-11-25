@@ -8,7 +8,6 @@ export type SharePluginOptions = {
 	shareScope?: string;
 	shared: Shared;
 	enhanced: boolean;
-	asyncStartup?: boolean;
 };
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 export type SharedItem = string;
@@ -32,7 +31,6 @@ export class SharePlugin {
 	_consumes;
 	_provides;
 	_enhanced;
-	_asyncStartup;
 
 	constructor(options: SharePluginOptions) {
 		const sharedOptions = parseOptions(
@@ -82,15 +80,13 @@ export class SharePlugin {
 		this._consumes = consumes;
 		this._provides = provides;
 		this._enhanced = options.enhanced ?? false;
-		this._asyncStartup = options.asyncStartup ?? false;
 	}
 
 	apply(compiler: Compiler) {
 		new ConsumeSharedPlugin({
 			shareScope: this._shareScope,
 			consumes: this._consumes,
-			enhanced: this._enhanced,
-			asyncStartup: this._asyncStartup
+			enhanced: this._enhanced
 		}).apply(compiler);
 		new ProvideSharedPlugin({
 			shareScope: this._shareScope,

@@ -160,7 +160,6 @@ fn get_required_version_from_description_file(
 pub struct ConsumeSharedPluginOptions {
   pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
   pub enhanced: bool,
-  pub async_startup: bool,
 }
 
 #[plugin]
