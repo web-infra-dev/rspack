@@ -217,9 +217,13 @@ async fn render_startup(
       "\n// Federation startup call\n",
     ));
     let startup_global = if self.async_startup {
-      RuntimeGlobals::STARTUP_ENTRYPOINT.name()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
     } else {
-      RuntimeGlobals::STARTUP.name()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP)
     };
     startup_with_call.add(RawStringSource::from(format!("{startup_global}();\n",)));
 

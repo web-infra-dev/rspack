@@ -147,8 +147,12 @@ impl DependencyTemplate for URLDependencyTemplate {
           dep.range.end,
           format!(
             "/* asset import */ new {}({}({}))",
-            RuntimeGlobals::RELATIVE_URL,
-            RuntimeGlobals::REQUIRE,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             module_id(compilation, &dep.id, &dep.request, false),
           )
           .as_str(),
@@ -182,9 +186,13 @@ impl DependencyTemplate for URLDependencyTemplate {
           dep.range_url.end,
           format!(
             "/* asset import */{}({}), {}",
-            RuntimeGlobals::REQUIRE,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             module_id(compilation, &dep.id, &dep.request, false),
-            RuntimeGlobals::BASE_URI
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::BASE_URI)
           )
           .as_str(),
           None,

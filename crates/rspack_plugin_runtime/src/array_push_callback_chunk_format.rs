@@ -141,7 +141,9 @@ async fn render_chunk(
       source.add(RawStringSource::from_static(","));
       source.add(RawStringSource::from(format!(
         "function({}) {{\n",
-        RuntimeGlobals::REQUIRE
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
       if has_runtime_modules {
         source.add(render_runtime_modules(compilation, chunk_ukey).await?);

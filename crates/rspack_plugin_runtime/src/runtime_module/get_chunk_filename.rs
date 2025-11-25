@@ -244,11 +244,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           let hash_len_str = hash_len_buffer.format(*hash_len);
           format!(
             "\" + {}().slice(0, {}) + \"",
-            RuntimeGlobals::GET_FULL_HASH,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
             hash_len_str
           )
         }
-        None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+        None => format!(
+          "\" + {}() + \"",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+        ),
       };
 
       Some(
@@ -329,11 +336,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             let hash_len_str = hash_len_buffer.format(*hash_len);
             format!(
               "\" + {}().slice(0, {}) + \"",
-              RuntimeGlobals::GET_FULL_HASH,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
               hash_len_str
             )
           }
-          None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+          None => format!(
+            "\" + {}() + \"",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+          ),
         };
         let chunk_runtime = chunk.runtime().as_str();
 

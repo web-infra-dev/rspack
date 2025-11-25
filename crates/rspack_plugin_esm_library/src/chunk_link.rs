@@ -187,7 +187,9 @@ impl ExternalInterop {
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
         "const {name} = {}({});\n",
-        RuntimeGlobals::REQUIRE,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
@@ -200,7 +202,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({}, 2);\n",
           namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -209,7 +213,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -218,7 +224,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           default_access,
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name
         )));
 
@@ -237,7 +245,9 @@ impl ExternalInterop {
     } else {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
-        RuntimeGlobals::REQUIRE,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))

@@ -717,7 +717,9 @@ if(typeof {global} !== "undefined") return resolve();
           global = url_and_global.global,
           global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
           url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
-          load_script = RuntimeGlobals::LOAD_SCRIPT.name()
+          load_script = compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
       _ => {

@@ -106,7 +106,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.sym.as_str() == RuntimeGlobals::REQUIRE.name() {
+    if ident.sym.as_str()
+      == parser
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -124,7 +128,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if ident.sym == RuntimeGlobals::EXPORTS.name() {
+    } else if ident.sym
+      == parser
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::EXPORTS)
+    {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -145,7 +153,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == RuntimeGlobals::EXPORTS.name() {
+    if for_name
+      == parser
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::EXPORTS)
+    {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -155,7 +167,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         ident.span().real_hi(),
       );
       return Some(true);
-    } else if for_name == RuntimeGlobals::REQUIRE.name() {
+    } else if for_name
+      == parser
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -181,7 +197,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name != RuntimeGlobals::REQUIRE.name() {
+    if *name
+      != parser
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    {
       None
     } else {
       self.tag_nested_require_data(

@@ -54,7 +54,13 @@ impl ReadFileChunkLoadingRuntimeModule {
           }
         )
       });
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -145,7 +151,12 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let state_expression = format!("{}_readFileVm", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+      let state_expression = format!(
+        "{}_readFileVm",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      );
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
@@ -172,7 +183,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_with_on_chunk_loaded": match with_on_chunk_load {
-            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            true => format!("{}();", compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => "".to_string(),
           }
         })),

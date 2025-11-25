@@ -46,8 +46,12 @@ fn then_expr(
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       appending = format!(
         ".then({}.bind({}, {module_id_expr}))",
-        RuntimeGlobals::REQUIRE,
-        RuntimeGlobals::REQUIRE
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       );
     }
     _ => {
@@ -71,13 +75,19 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
-          RuntimeGlobals::REQUIRE,
-          RuntimeGlobals::REQUIRE
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -86,8 +96,12 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-          RuntimeGlobals::REQUIRE
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
       }
     }

@@ -1404,13 +1404,16 @@ impl Module for ConcatenatedModule {
           result.add(RawStringSource::from(define_es_module_flag_statement(
             self.get_exports_argument(),
             &mut runtime_requirements,
+            &compilation.runtime_template,
           )));
         }
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
         result.add(RawStringSource::from(format!(
           "{}({}, {{{}\n}});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           exports_argument,
           definitions.join(",")
         )));
@@ -1514,7 +1517,9 @@ impl Module for ConcatenatedModule {
         let define_getters = if !ns_obj.is_empty() {
           format!(
             "{}({}, {{ {} }});\n",
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
             name,
             ns_obj.join(",")
           )
@@ -1532,7 +1537,9 @@ impl Module for ConcatenatedModule {
             "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
             module_readable_identifier,
             name,
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
             name,
             define_getters
           ),
@@ -1579,6 +1586,7 @@ impl Module for ConcatenatedModule {
           ),
           &module_id,
           Default::default(),
+          &compilation.runtime_template,
         );
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         result.add(RawStringSource::from(format!(
@@ -1603,7 +1611,9 @@ impl Module for ConcatenatedModule {
               .deferred_namespace_object_name
               .as_ref()
               .expect("should have deferred_namespace_object_name"),
-            RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
             module_id,
             render_make_deferred_namespace_mode_from_exports_type(module.get_exports_type(
               &module_graph,
@@ -1660,6 +1670,7 @@ impl Module for ConcatenatedModule {
               Some(&reference_info.runtime_condition),
               runtime,
               &mut runtime_requirements,
+              &compilation.runtime_template,
             );
 
             if condition != "true" {
@@ -1670,7 +1681,9 @@ impl Module for ConcatenatedModule {
             result.add(RawStringSource::from(format!(
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
-              RuntimeGlobals::REQUIRE,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
               serde_json::to_string(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
@@ -1709,7 +1722,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
         )));
       }
@@ -1721,7 +1736,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_namespace_object2_name()
             .expect("should have interop_namespace_object2_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
         )));
       }
@@ -1733,7 +1750,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_default_access_name()
             .expect("should have interop_default_access_name"),
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name.expect("should have name")
         )));
       }

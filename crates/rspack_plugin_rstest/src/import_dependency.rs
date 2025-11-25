@@ -129,7 +129,9 @@ fn module_namespace_promise_rstest(
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
-      RuntimeGlobals::MODULE_FACTORIES,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       weak_error(request)
     ))
   } else {
@@ -179,7 +181,9 @@ fn module_namespace_promise_rstest(
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -188,14 +192,18 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
             ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
             final_require
           );
         }

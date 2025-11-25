@@ -200,7 +200,9 @@ installedChunks[chunkId] = 0;
           with_hmr
             .then_some(format!(
               "var moduleIds = [];\nif(target == {})",
-              RuntimeGlobals::MODULE_FACTORIES
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -218,7 +220,9 @@ installedChunks[chunkId] = 0;
             .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
             .collect::<Vec<_>>()
             .join(","),
-          RuntimeGlobals::MODULE_FACTORIES
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
         Cow::Owned(
@@ -228,7 +232,9 @@ installedChunks[chunkId] = 0;
               let id = serde_json::to_string(id).expect("should ok to convert to string");
               format!(
                 "loadCssChunkData({}, 0, {});",
-                RuntimeGlobals::MODULE_FACTORIES,
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
                 id
               )
             })

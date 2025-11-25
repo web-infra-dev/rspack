@@ -86,8 +86,12 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
     // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
-    let startup = RuntimeGlobals::STARTUP.name();
-    let startup_entry = RuntimeGlobals::STARTUP_ENTRYPOINT.name();
+    let startup = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP);
+    let startup_entry = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT);
     let wrap_async = self.options.async_startup;
 
     let mut code = String::with_capacity(256 + module_executions.len());

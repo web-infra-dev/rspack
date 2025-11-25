@@ -20,11 +20,13 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = {}",
-      RuntimeGlobals::AMD_OPTIONS.name(),
-      self.options
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::AMD_OPTIONS),
+      self.options,
     ))
   }
 }

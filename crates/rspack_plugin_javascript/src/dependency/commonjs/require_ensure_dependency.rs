@@ -107,7 +107,13 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
       source.replace(
         dep.content_range.end,
         error_handler_range.start,
-        &format!(").bind(null, {}))['catch'](", RuntimeGlobals::REQUIRE),
+        &format!(
+          ").bind(null, {}))['catch'](",
+          code_generatable_context
+            .compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        ),
         None,
       );
       source.replace(error_handler_range.end, dep.range.end, ")", None);
@@ -120,8 +126,14 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
         dep.range.end,
         &format!(
           ").bind(null, {}))['catch']({})",
-          RuntimeGlobals::REQUIRE,
-          RuntimeGlobals::UNCAUGHT_ERROR_HANDLER
+          code_generatable_context
+            .compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          code_generatable_context
+            .compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER)
         ),
         None,
       );

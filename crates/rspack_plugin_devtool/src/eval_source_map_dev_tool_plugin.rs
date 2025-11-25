@@ -232,7 +232,13 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       RawStringSource::from(format!(
         "eval({});",
         if compilation.options.output.trusted_types.is_some() {
-          format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)
+          format!(
+            "{}({})",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
+            module_content
+          )
         } else {
           module_content
         }
