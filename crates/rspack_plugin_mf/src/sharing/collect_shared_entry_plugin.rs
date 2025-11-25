@@ -4,6 +4,7 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
+use regex::Regex;
 use rspack_core::{
   BoxModule, Compilation, CompilationAsset, CompilationProcessAssets, CompilerThisCompilation,
   Context, DependenciesBlock, DependencyCategory, DependencyType, Module, ModuleFactoryCreateData,
@@ -73,54 +74,56 @@ impl CollectSharedEntryPlugin {
   /// Example: ../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
   /// It locates react-dom's package.json and reads the version field
   async fn infer_version(&self, request: &str) -> Option<String> {
-    // Convert request string to Path
-    let path = Path::new(request);
-
-    // Find the node_modules segment
-    let mut node_modules_found = false;
-    let mut package_path = None;
-
-    for component in path.components() {
-      let comp_str = component.as_os_str().to_string_lossy();
-      if comp_str == "node_modules" {
-        node_modules_found = true;
-        continue;
-      }
-
-      if node_modules_found {
-        // The next component should be the package name
-        package_path = Some(comp_str.to_string());
-        break;
+    // 1) Try pnpm store path pattern: .pnpm/<pkg>@<version>_
+    let pnpm_re = Regex::new(r"/\\.pnpm/[^/]*@([^/_]+)").ok();
+    if let Some(re) = pnpm_re {
+      if let Some(caps) = re.captures(request) {
+        if let Some(m) = caps.get(1) {
+          return Some(m.as_str().to_string());
+        }
       }
     }
 
-    if let Some(package_name) = package_path {
-      // Build the full path to package.json
-      let mut package_json_path = PathBuf::new();
-      let mut found_node_modules = false;
+    // 2) Fallback: walk to node_modules/<pkg>[/...] and read package.json
+    let path = Path::new(request);
+    let mut package_json_path = PathBuf::new();
+    let mut found_node_modules = false;
+    let mut need_two_segments = false;
+    let mut captured = false;
 
-      for component in path.components() {
-        let comp_str = component.as_os_str().to_string_lossy();
-        package_json_path.push(comp_str.as_ref());
-
-        if comp_str == "node_modules" {
-          found_node_modules = true;
-          // Append package name directory
-          package_json_path.push(&package_name);
-          // Append package.json
-          package_json_path.push("package.json");
-          break;
+    for component in path.components() {
+      let comp_str = component.as_os_str().to_string_lossy();
+      package_json_path.push(comp_str.as_ref());
+      if !found_node_modules && comp_str == "node_modules" {
+        found_node_modules = true;
+        continue;
+      }
+      if found_node_modules && !captured {
+        if comp_str.starts_with('@') {
+          // scoped package: need scope + name
+          need_two_segments = true;
+          continue;
+        } else {
+          if need_two_segments {
+            // this is the name after scope
+            package_json_path.push("package.json");
+            captured = true;
+            break;
+          } else {
+            // unscoped package name is this segment
+            package_json_path.push("package.json");
+            captured = true;
+            break;
+          }
         }
       }
+    }
 
-      if found_node_modules && package_json_path.exists() {
-        // Try reading package.json
-        if let Ok(content) = std::fs::read_to_string(&package_json_path) {
-          if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-            // Read the version field
-            if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
-              return Some(version.to_string());
-            }
+    if captured && package_json_path.exists() {
+      if let Ok(content) = std::fs::read_to_string(&package_json_path) {
+        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+          if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
+            return Some(version.to_string());
           }
         }
       }
@@ -346,8 +349,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
       for target_id in target_modules {
         if let Some(target) = module_graph.module_by_identifier(&target_id) {
-          if let Some(normal) = target.as_any().downcast_ref::<rspack_core::NormalModule>() {
-            let resource = normal.resource_resolved_data().resource().to_string();
+          if let Some(name) = target.name_for_condition() {
+            let resource: String = name.into();
             let version = self
               .infer_version(&resource)
               .await
