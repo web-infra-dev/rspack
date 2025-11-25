@@ -5,6 +5,13 @@ if (typeof EventSource !== "function") {
 }
 
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
+if (
+	!urlBase.startsWith("http") &&
+	typeof __rspack_dev_server_uri !== "undefined"
+) {
+	urlBase = __rspack_dev_server_uri + urlBase;
+}
+
 /** @type {EventSource | undefined} */
 var activeEventSource;
 var compiling = new Set();
