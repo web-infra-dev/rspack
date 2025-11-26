@@ -745,7 +745,7 @@ impl ModuleConcatenationPlugin {
       )
       .await?;
     let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let root_mgm_exports = module_graph
       .module_graph_module_by_identifier(&root_module_id)
       .expect("should have mgm")
@@ -755,7 +755,7 @@ impl ModuleConcatenationPlugin {
     ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
     // integrate
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     for m in modules_set {
       if m == &root_module_id {
         continue;
@@ -991,7 +991,7 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
       if can_be_root {
@@ -1220,7 +1220,7 @@ impl ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        let mut module_graph = compilation.get_module_graph_mut();
+        let mut module_graph = compilation.get_seal_module_graph_mut();
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
@@ -1379,7 +1379,7 @@ impl ModuleConcatenationPlugin {
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     module_graph.batch_set_connections_original_module(set_original_mid_tasks);
     module_graph.batch_set_connections_module(set_mid_tasks);
     module_graph.batch_add_connections(add_connection_tasks);
@@ -1640,7 +1640,7 @@ fn add_concatenated_module(
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
   let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = compilation.get_seal_module_graph_mut();
 
   let root_mgm_exports = module_graph
     .module_graph_module_by_identifier(&root_module_id)
@@ -1651,7 +1651,7 @@ fn add_concatenated_module(
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
   // integrate
 
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = compilation.get_seal_module_graph_mut();
 
   for m in modules_set.iter() {
     if *m == root_module_id {

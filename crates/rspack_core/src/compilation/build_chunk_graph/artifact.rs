@@ -325,7 +325,7 @@ where
 
     if no_change {
       let module_idx = cache.module_idx.clone();
-      let mut module_graph = compilation.get_module_graph_mut();
+      let mut module_graph = compilation.get_seal_module_graph_mut();
       for (m, (pre, post)) in module_idx {
         let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&m) else {
           continue;
