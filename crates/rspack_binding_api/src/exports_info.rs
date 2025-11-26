@@ -33,7 +33,8 @@ impl JsExportsInfo {
 
   fn as_mut(&mut self) -> napi::Result<ModuleGraphMut<'static>> {
     let compilation = unsafe { self.compilation.as_mut() };
-    let module_graph = compilation.get_module_graph_mut();
+    let module_graph =
+      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
     Ok(module_graph)
   }
 }

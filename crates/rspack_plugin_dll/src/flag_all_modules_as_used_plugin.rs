@@ -51,7 +51,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       a
     });
 
-  let mut mg = compilation.get_module_graph_mut();
+  let mut mg = compilation.get_seal_module_graph_mut();
 
   let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
 

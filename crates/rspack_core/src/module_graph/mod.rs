@@ -424,7 +424,7 @@ impl<'a> ModuleGraph<'a> {
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");

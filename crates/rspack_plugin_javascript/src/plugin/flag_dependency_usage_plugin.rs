@@ -46,7 +46,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 
   fn apply(&mut self) {
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph =
+      Compilation::get_make_module_graph_mut(&mut self.compilation.build_module_graph_artifact);
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
 
@@ -202,7 +203,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       {
         // after processing, we will set the exports info data back to the module graph
-        let mut mg = self.compilation.get_module_graph_mut();
+        let mut mg =
+          Compilation::get_make_module_graph_mut(&mut self.compilation.build_module_graph_artifact);
         for (exports_info, res) in non_nested_res {
           for i in res {
             q.enqueue(i);
@@ -327,7 +329,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
   ) -> Vec<ProcessBlockTask> {
     let mut queue = vec![];
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph =
+      Compilation::get_make_module_graph_mut(&mut self.compilation.build_module_graph_artifact);
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");

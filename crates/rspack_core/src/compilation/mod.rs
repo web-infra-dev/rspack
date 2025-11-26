@@ -220,7 +220,8 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  other_module_graph: Option<ModuleGraphPartial>,
+  // module graph partial used in seal phase
+  seal_module_graph_partial: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -359,7 +360,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      other_module_graph: None,
+      seal_module_graph_partial: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -455,7 +456,7 @@ impl Compilation {
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    if let Some(other_module_graph) = &self.other_module_graph {
+    if let Some(other_module_graph) = &self.seal_module_graph_partial {
       ModuleGraph::new_ref([
         Some(self.build_module_graph_artifact.get_module_graph_partial()),
         Some(other_module_graph),
@@ -470,7 +471,7 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.other_module_graph
+    if let Some(other_module_graph) = &self.seal_module_graph_partial
       && let Some(module) = other_module_graph.modules.get(identifier)
     {
       return module.as_ref();
@@ -487,24 +488,27 @@ impl Compilation {
 
     None
   }
-
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    if let Some(other) = &mut self.other_module_graph {
-      ModuleGraph::new_mut(
-        [
-          Some(self.build_module_graph_artifact.get_module_graph_partial()),
-          None,
-        ],
-        other,
-      )
-    } else {
-      ModuleGraph::new_mut(
-        [None, None],
-        self
-          .build_module_graph_artifact
-          .get_module_graph_partial_mut(),
-      )
-    }
+  pub fn get_make_module_graph_mut(
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  ) -> ModuleGraphMut<'_> {
+    ModuleGraph::new_mut(
+      [None, None],
+      build_module_graph_artifact.get_module_graph_partial_mut(),
+    )
+  }
+  // TODO: remove &mut self in the future
+  pub fn get_seal_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
+    let seal_module_graph_partial = self
+      .seal_module_graph_partial
+      .as_mut()
+      .expect("should set seal_module_graph");
+    ModuleGraph::new_mut(
+      [
+        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        None,
+      ],
+      seal_module_graph_partial,
+    )
   }
 
   pub fn file_dependencies(
@@ -649,7 +653,8 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name = options.name.clone();
-    self.get_module_graph_mut().add_dependency(entry);
+    Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+      .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -710,7 +715,8 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      self.get_module_graph_mut().add_dependency(entry);
+      Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+        .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -1608,7 +1614,7 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.other_module_graph = Some(ModuleGraphPartial::default());
+    self.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
