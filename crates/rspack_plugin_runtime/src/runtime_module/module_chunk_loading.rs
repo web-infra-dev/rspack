@@ -69,6 +69,7 @@ impl ModuleChunkLoadingRuntimeModule {
       TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id),
       TemplateId::WithHMR => format!("{}_with_hmr", self.id),
       TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
+      TemplateId::HmrRuntime => format!("{}_hmr_runtime", self.id),
     }
   }
 }
@@ -82,6 +83,7 @@ enum TemplateId {
   WithPreloadLink,
   WithHMR,
   WithHMRManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -123,6 +125,10 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       (
         self.template(TemplateId::WithHMRManifest),
         include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -354,7 +360,11 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
  {}
  {}
       "#,
-        generate_javascript_hmr_runtime("module"),
+        generate_javascript_hmr_runtime(
+          &self.template(TemplateId::HmrRuntime),
+          "module",
+          &compilation.runtime_template
+        )?,
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({

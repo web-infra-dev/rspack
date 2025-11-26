@@ -1,13 +1,11 @@
-use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType, chunk_graph_chunk::ChunkId,
-  get_js_chunk_filename_template, get_undo_path,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeTemplate, SourceType,
+  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path,
 };
-use rspack_util::test::{
-  HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
-};
+use rspack_error::Result;
+use rspack_util::test::is_hot_test;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub fn get_initial_chunk_ids(
@@ -239,13 +237,16 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
   )
 }
 
-pub fn generate_javascript_hmr_runtime(method: &str) -> String {
-  include_str!("runtime/javascript_hot_module_replacement.js")
-    .cow_replace("$key$", method)
-    .cow_replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
-    .cow_replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
-    .cow_replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
-    .cow_replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
-    .cow_replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
-    .into_owned()
+pub fn generate_javascript_hmr_runtime(
+  key: &str,
+  method: &str,
+  runtime_template: &RuntimeTemplate,
+) -> Result<String> {
+  runtime_template.render(
+    key,
+    Some(serde_json::json!({
+      "_loading_method": method,
+      "_is_hot_test": is_hot_test(),
+    })),
+  )
 }
