@@ -298,7 +298,20 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  // TODO: use atom_refcell::AtomicRefCell<BuildModuleGraphArtifact> instead
+  /// Build module graph artifact containing module graph data.
+  ///
+  /// Note: Using `atomic_refcell::AtomicRefCell<BuildModuleGraphArtifact>` here would provide
+  /// thread-safe interior mutability. However, this requires changing multiple methods from
+  /// `&self` to `&mut self` because:
+  /// 1. Methods like `get_module_graph()`, `module_by_identifier()`, and the dependency methods
+  ///    return references that borrow from this artifact
+  /// 2. With `AtomicRefCell`, returning such references requires keeping the borrow guard alive,
+  ///    which is incompatible with the current `&self` method signatures
+  /// 3. Changing to `&mut self` would require updates to 200+ call sites that currently hold
+  ///    multiple shared borrows of `Compilation` while accessing the module graph
+  ///
+  /// The current design provides thread safety through Rust's borrow checker: mutation requires
+  /// `&mut Compilation`, ensuring exclusive access during modifications.
   pub build_module_graph_artifact: BuildModuleGraphArtifact,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
