@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.6",
-    "@microsoft/api-extractor": "7.54.0",
+    "@microsoft/api-extractor": "7.55.1",
     "@microsoft/api-extractor-model": "7.31.3",
     "@rslint/core": "0.1.13",
     "@rspack/cli": "workspace:*",
