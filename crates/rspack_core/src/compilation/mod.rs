@@ -1545,7 +1545,7 @@ impl Compilation {
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
-    let diagnostics = self.build_module_graph_artifact.diagnostics();
+    let diagnostics = build_module_graph_artifact.diagnostics();
     all_diagnostics.extend(diagnostics);
     Ok(all_diagnostics)
   }
