@@ -203,8 +203,26 @@ async fn render_startup(
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
 
-  // Runtime chunks with entry modules: JavaScript plugin handles startup naturally
+  // Runtime chunks with entry modules
   if has_runtime && has_entry_modules {
+    // For async startup, make sure the federation runtime is installed before
+    // any chunk ensure handlers run. We can't change the templates here, so
+    // prepend a guard that triggers the embedded federation startup once and
+    // then runs the remotes/consumes ensure handlers for all known federation
+    // chunk ids so metadata gets registered before the entry executes.
+    if self.async_startup {
+      let mut with_startup = ConcatSource::default();
+      with_startup.add(RawStringSource::from(
+        "if (typeof __webpack_require__mf_startup_once === \"function\") { __webpack_require__mf_startup_once(); }\n",
+      ));
+      // Populate handlers for every federation chunk id we know about.
+      // This mirrors webpack's async startup Promise.all handler iteration.
+      with_startup.add(RawStringSource::from(
+        "(function(){\n  var startupChunkIds = [];\n  if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) { startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping)); }\n  if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) { startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping)); }\n  if (!startupChunkIds.length) return;\n  var f = __webpack_require__.f || {};\n  var handlers = [f.consumes, f.remotes];\n  for (var i = 0; i < handlers.length; i++) {\n    var h = handlers[i];\n    if (typeof h !== \"function\") continue;\n    for (var j = 0; j < startupChunkIds.length; j++) { h(startupChunkIds[j], []); }\n  }\n})();\n",
+      ));
+      with_startup.add(render_source.source.clone());
+      render_source.source = with_startup.boxed();
+    }
     return Ok(());
   }
 
