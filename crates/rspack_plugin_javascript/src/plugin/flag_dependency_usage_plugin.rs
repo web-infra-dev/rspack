@@ -46,8 +46,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 
   fn apply(&mut self) {
-    let mut module_graph =
-      Compilation::get_make_module_graph_mut(&mut self.compilation.build_module_graph_artifact);
+    let mut module_graph = self.compilation.get_seal_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
 
@@ -203,8 +202,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       {
         // after processing, we will set the exports info data back to the module graph
-        let mut mg =
-          Compilation::get_make_module_graph_mut(&mut self.compilation.build_module_graph_artifact);
+        let mut mg = self.compilation.get_seal_module_graph_mut();
         for (exports_info, res) in non_nested_res {
           for i in res {
             q.enqueue(i);
