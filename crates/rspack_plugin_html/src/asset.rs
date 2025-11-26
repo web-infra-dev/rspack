@@ -106,6 +106,8 @@ impl HtmlPluginAssets {
             assets.css.push(final_path.to_string());
           }
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
+          // keep the `if` make the code more readable
+          #[allow(clippy::collapsible_if)]
           if asset_map.insert(final_path.to_string(), asset).is_none() {
             assets.js.push(final_path.to_string());
           }
