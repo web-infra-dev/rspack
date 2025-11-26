@@ -221,7 +221,7 @@ pub struct Compilation {
   pub entries: Entry,
   pub global_entry: EntryData,
   // module graph partial used in seal phase
-  seal_module_graph_partial: Option<ModuleGraphPartial>,
+  pub seal_module_graph_partial: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
