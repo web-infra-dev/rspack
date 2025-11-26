@@ -16,6 +16,7 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
+  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
