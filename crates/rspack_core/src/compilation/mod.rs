@@ -74,7 +74,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, build_module_graph_artifact: &mut BuildModuleGraphArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -1477,7 +1477,12 @@ impl Compilation {
   }
   // collect build module graph effects for incremental compilation
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
-  pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
+  pub async fn collect_build_module_graph_effects(
+    &self,
+    dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  ) -> Result<Vec<Diagnostic>> {
     let logger = self.get_logger("rspack.Compilation");
     if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
@@ -1520,13 +1525,12 @@ impl Compilation {
     // frozen and start to optimize (provided exports, infer async, etc.) based on the
     // module graph, so any kind of change that affect these should be done before the
     // finish_modules
-
     self
       .plugin_driver
       .clone()
       .compilation_hooks
       .finish_modules
-      .call(self)
+      .call(self, async_modules_artifact, build_module_graph_artifact)
       .await?;
 
     logger.time_end(start);
@@ -1536,16 +1540,20 @@ impl Compilation {
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
-    self.collect_dependencies_diagnostics();
+    let mut all_diagnostics =
+      self.collect_dependencies_diagnostics(dependencies_diagnostics_artifact);
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.build_module_graph_artifact.diagnostics();
-    self.extend_diagnostics(diagnostics);
-    Ok(())
+    all_diagnostics.extend(diagnostics);
+    Ok(all_diagnostics)
   }
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
-  fn collect_dependencies_diagnostics(&mut self) {
+  fn collect_dependencies_diagnostics(
+    &self,
+    dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+  ) -> Vec<Diagnostic> {
     // Compute modules while holding the lock, then release it
     let (modules, has_mutations) = {
       let mutations = self
@@ -1560,9 +1568,7 @@ impl Compilation {
             _ => None,
           });
           for revoked_module in revoked_modules {
-            self
-              .dependencies_diagnostics_artifact
-              .remove(&revoked_module);
+            dependencies_diagnostics_artifact.remove(&revoked_module);
           }
           let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
           let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
@@ -1615,14 +1621,12 @@ impl Compilation {
       })
       .collect();
     let all_modules_diagnostics = if has_mutations {
-      self
-        .dependencies_diagnostics_artifact
-        .extend(dependencies_diagnostics);
+      dependencies_diagnostics_artifact.extend(dependencies_diagnostics);
       self.dependencies_diagnostics_artifact.clone()
     } else {
       dependencies_diagnostics
     };
-    self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
+    return all_modules_diagnostics.into_values().flatten().collect();
   }
 
   #[instrument("Compilation:seal", skip_all)]

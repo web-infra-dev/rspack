@@ -1,11 +1,13 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
-  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportSpecExports, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
+  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -184,7 +186,12 @@ pub struct DefaultExportInfo<'a> {
 pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) -> Result<()> {
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
@@ -208,8 +215,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let mut module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let mut module_graph = Compilation::get_make_module_graph_mut(build_module_graph_artifact);
   FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }

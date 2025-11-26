@@ -1,9 +1,11 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  CanInlineUse, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, EntryData, LibraryExport,
-  LibraryOptions, LibraryType, ModuleIdentifier, Plugin, RuntimeGlobals, UsageState,
+  AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier,
+  Plugin, RuntimeGlobals, UsageState,
+  build_module_graph::BuildModuleGraphArtifact,
   get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
@@ -110,7 +112,12 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -149,8 +156,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mut module_graph = Compilation::get_make_module_graph_mut(build_module_graph_artifact);
     if let Some(export) = export {
       let export_info = module_graph
         .get_exports_info(&module_identifier)
