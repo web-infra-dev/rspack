@@ -372,16 +372,34 @@ impl RstestParserPlugin {
     }
   }
 
-  fn hoisted(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  fn hoisted(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    statement_span: Option<Span>,
+  ) -> Option<bool> {
     match call_expr.args.len() {
       1 => {
-        parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-          call_expr.span(),
-          call_expr.callee.span(),
-          call_expr.span().real_lo().to_string(),
-          true,
-          MockMethod::Hoisted,
-        )));
+        let dep = if let Some(stmt_span) = statement_span {
+          MockMethodDependency::new_with_statement_span(
+            call_expr.span(),
+            call_expr.callee.span(),
+            stmt_span,
+            call_expr.span().real_lo().to_string(),
+            true,
+            MockMethod::Hoisted,
+          )
+        } else {
+          MockMethodDependency::new(
+            call_expr.span(),
+            call_expr.callee.span(),
+            call_expr.span().real_lo().to_string(),
+            true,
+            MockMethod::Hoisted,
+          )
+        };
+        parser.add_presentational_dependency(Box::new(dep));
+        Some(false)
       }
       _ => {
         parser.add_error(
@@ -393,6 +411,7 @@ impl RstestParserPlugin {
           )
           .into(),
         );
+        Some(false)
       }
     }
   }
@@ -547,6 +566,7 @@ impl RstestParserPlugin {
     call_expr: &CallExpr,
     ident: &Ident,
     prop: &swc_core::ecma::ast::IdentName,
+    statement_span: Option<Span>,
   ) -> Option<bool> {
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
@@ -602,10 +622,7 @@ impl RstestParserPlugin {
       // rs.resetModules
       ("rs", "resetModules") | ("rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
-      ("rs", "hoisted") | ("rstest", "hoisted") => {
-        self.hoisted(parser, call_expr);
-        Some(true)
-      }
+      ("rs", "hoisted") | ("rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
       _ => {
         // Not a mock module, continue.
         None
@@ -636,7 +653,13 @@ impl JavascriptParserPlugin for RstestParserPlugin {
           && let Some(obj_ident) = member_expr.obj.as_ident()
           && let Some(prop_ident) = member_expr.prop.as_ident()
         {
-          return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+          return self.handle_rstest_method_call(
+            parser,
+            call_expr,
+            obj_ident,
+            prop_ident,
+            Some(stmt.span()),
+          );
         }
       }
     }
@@ -662,7 +685,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       && let Some(obj_ident) = member_expr.obj.as_ident()
       && let Some(prop_ident) = member_expr.prop.as_ident()
     {
-      return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+      return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident, None);
     }
 
     None
