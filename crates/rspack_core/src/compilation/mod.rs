@@ -1567,10 +1567,16 @@ impl Compilation {
           ));
           (modules, true)
         } else {
-          (self.get_module_graph().modules().keys().copied().collect(), true)
+          (
+            self.get_module_graph().modules().keys().copied().collect(),
+            true,
+          )
         }
       } else {
-        (self.get_module_graph().modules().keys().copied().collect(), false)
+        (
+          self.get_module_graph().modules().keys().copied().collect(),
+          false,
+        )
       }
     };
 
@@ -2363,7 +2369,9 @@ impl Compilation {
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
-        if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write() {
+        if chunk_hashes_changed
+          && let Some(mut mutations) = compilation.incremental.mutations_write()
+        {
           mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
         }
       }
