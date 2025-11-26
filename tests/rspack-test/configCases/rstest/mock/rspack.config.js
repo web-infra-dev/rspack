@@ -111,6 +111,10 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
     __webpack_module_cache__[id] = { exports, id, loaded: true };
   }
 };
+
+__webpack_require__.rstest_hoisted = (fn) => {
+  return fn();
+};
 `;
 			}
 		}
@@ -177,5 +181,11 @@ module.exports = [
 			mangleExports: false
 		}
 	},
-	rstestEntry("./mockFirstArgIsImport.js")
+	rstestEntry("./mockFirstArgIsImport.js"),
+	{
+		...rstestEntry("./hoisted.js"),
+		externals: {
+			"@rstest/core": "global @rstest/core"
+		}
+	}
 ];
