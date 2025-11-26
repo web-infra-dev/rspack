@@ -8,7 +8,7 @@ use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module, module_raw,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 
@@ -16,7 +16,6 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
-  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
@@ -75,62 +74,46 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut runtime_requirements = RuntimeGlobals::default();
-    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
+    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
 
     for dep_id in federation_runtime_modules {
-      let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
-      module_executions.push_str("		");
+      let module_str = compilation.runtime_template.module_raw(
+        compilation,
+        &mut runtime_requirements,
+        &dep_id,
+        "",
+        false,
+      );
+      module_executions.push_str("\t\t");
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
+    // Remove trailing newline
+    if !module_executions.is_empty() {
+      module_executions.pop();
+    }
 
-    // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
-    // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
+    // Generate prevStartup wrapper pattern with defensive checks
     let startup = compilation
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::STARTUP);
-    let startup_entry = compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT);
-    let wrap_async = self.options.async_startup;
+    let result = format!(
+      r#"var prevStartup = {startup};
+var hasRun = false;
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}
+	}}
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[MF] Invalid prevStartup');
+	}}
+}};"#
+    );
 
-    let mut code = String::with_capacity(256 + module_executions.len());
-
-    code.push_str("var __webpack_require__mf_has_run = false;\n");
-    code.push_str("function __webpack_require__mf_startup_once() {\n");
-    code.push_str("	if (__webpack_require__mf_has_run) return;\n");
-    code.push_str("	__webpack_require__mf_has_run = true;\n");
-    code.push_str(&module_executions);
-    code.push_str("}\n");
-
-    code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
-    code.push_str("	var fn = typeof prev === 'function' ? prev : function(){};\n");
-    code.push_str("	return function() {\n");
-    code.push_str("		__webpack_require__mf_startup_once();\n");
-    code.push_str("		return fn.apply(this, arguments);\n");
-    code.push_str("	};\n");
-    code.push_str("}\n");
-
-    // Make STARTUP_ENTRYPOINT tolerant to zero-arg calls (runtimeChunk: 'single' startup path)
-    code.push_str("var __webpack_require__startup = __webpack_require__.X;\n");
-    code.push_str("function __webpack_require__startup_guard(result, chunkIds, fn) {\n");
-    code
-      .push_str("	if (chunkIds === undefined && result === undefined) return Promise.resolve();\n");
-    code.push_str("	if (chunkIds === undefined) chunkIds = [];\n");
-    code.push_str("	return __webpack_require__startup.call(this, result, chunkIds, fn);\n");
-    code.push_str("}\n");
-    code.push_str("__webpack_require__.X = __webpack_require__startup_guard;\n");
-
-    code.push_str(&format!(
-      "{startup} = __webpack_require__mf_wrapStartup({startup});\n"
-    ));
-    if wrap_async {
-      code.push_str(&format!(
-        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});\n"
-      ));
-    }
-
-    Ok(code)
+    Ok(result)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
