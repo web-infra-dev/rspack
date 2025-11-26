@@ -707,7 +707,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact)
+        compilation
+          .get_seal_module_graph_mut()
           .set_depth_if_lower(&k, v);
       }
     }
