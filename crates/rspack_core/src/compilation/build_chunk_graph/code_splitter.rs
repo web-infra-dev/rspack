@@ -387,7 +387,7 @@ impl CodeSplitter {
       &mut compilation.chunk_by_ukey,
       &mut compilation.named_chunks,
     );
-    if created && let Some(mutations) = compilation.incremental.mutations_write() {
+    if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
     }
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -640,7 +640,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );
-          if created && let Some(mutations) = compilation.incremental.mutations_write() {
+          if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
           }
           self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -1440,13 +1440,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
-        if created && let Some(mutations) = compilation.incremental.mutations_write() {
+        if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey
       } else {
         let chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey

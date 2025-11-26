@@ -1473,7 +1473,7 @@ impl Compilation {
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
   pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
-    if let Some(mutations) = self.incremental.mutations_write() {
+    if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
         self
           .build_module_graph_artifact
@@ -1540,33 +1540,46 @@ impl Compilation {
   }
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
-    let mutations = self
-      .incremental
-      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-    // TODO move diagnostic collect to make
-    let modules = if let Some(mutations) = mutations
-      && !self.dependencies_diagnostics_artifact.is_empty()
-    {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .dependencies_diagnostics_artifact
-          .remove(&revoked_module);
+    // Compute modules while holding the lock, then release it
+    let (modules, has_mutations) = {
+      let mutations = self
+        .incremental
+        .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+
+      // TODO move diagnostic collect to make
+      if let Some(mutations) = mutations {
+        if !self.dependencies_diagnostics_artifact.is_empty() {
+          let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+            Mutation::ModuleRemove { module } => Some(*module),
+            _ => None,
+          });
+          for revoked_module in revoked_modules {
+            self
+              .dependencies_diagnostics_artifact
+              .remove(&revoked_module);
+          }
+          let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+          let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+          logger.log(format!(
+            "{} modules are affected, {} in total",
+            modules.len(),
+            self.get_module_graph().modules().len()
+          ));
+          (modules, true)
+        } else {
+          (
+            self.get_module_graph().modules().keys().copied().collect(),
+            true,
+          )
+        }
+      } else {
+        (
+          self.get_module_graph().modules().keys().copied().collect(),
+          false,
+        )
       }
-      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
-      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
+
     let module_graph = self.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
@@ -1595,7 +1608,7 @@ impl Compilation {
         (*module_identifier, diagnostics)
       })
       .collect();
-    let all_modules_diagnostics = if mutations.is_some() {
+    let all_modules_diagnostics = if has_mutations {
       self
         .dependencies_diagnostics_artifact
         .extend(dependencies_diagnostics);
@@ -2356,7 +2369,9 @@ impl Compilation {
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
-        if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
+        if chunk_hashes_changed
+          && let Some(mut mutations) = compilation.incremental.mutations_write()
+        {
           mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
         }
       }
@@ -2558,7 +2573,7 @@ impl Compilation {
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+      if chunk_hashes_changed && let Some(mut mutations) = self.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSetHashes {
           chunk: runtime_chunk_ukey,
         });
@@ -2625,7 +2640,7 @@ impl Compilation {
         new_chunk_hash,
         new_content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+      if chunk_hashes_changed && let Some(mut mutations) = self.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
       }
     }
@@ -2741,7 +2756,7 @@ impl Compilation {
     for result in results {
       let (module, hashes) = result?;
       if ChunkGraph::set_module_hashes(self, module, hashes)
-        && let Some(mutations) = self.incremental.mutations_write()
+        && let Some(mut mutations) = self.incremental.mutations_write()
       {
         mutations.add(Mutation::ModuleSetHashes { module });
       }
