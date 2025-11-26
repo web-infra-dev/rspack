@@ -20,10 +20,10 @@
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "1.7.8"
+    "create-rstack": "1.7.11"
   },
   "devDependencies": {
-    "@rslib/core": "0.18.1",
+    "@rslib/core": "0.18.2",
     "typescript": "^5.9.3"
   },
   "publishConfig": {
