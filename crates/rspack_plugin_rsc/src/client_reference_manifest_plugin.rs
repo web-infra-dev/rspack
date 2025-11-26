@@ -31,7 +31,7 @@ use crate::{
     ClientReferenceManifest, CrossOriginMode, ManifestExport, ModuleLoading,
   },
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
-  utils::{EntryModules, GetServerCompilerId, ServerEntries},
+  utils::{EntryModules, GetServerCompilerId},
 };
 
 #[plugin]

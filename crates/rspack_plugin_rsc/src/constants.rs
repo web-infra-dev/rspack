@@ -27,14 +27,12 @@ pub const UNDERSCORE_NOT_FOUND_ROUTE_ENTRY: &str = "/_not-found/page";
 pub const LAYERS_NAMES: LayersNames = LayersNames {
   react_server_components: "react-server-components",
   server_side_rendering: "server-side-rendering",
-  react_client_components: "react-client-components",
   action_browser: "action-browser",
 };
 
 pub struct LayersNames {
   pub react_server_components: &'static str,
   pub server_side_rendering: &'static str,
-  pub react_client_components: &'static str,
   pub action_browser: &'static str,
 }
 

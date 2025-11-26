@@ -51,7 +51,6 @@ pub struct BuildContext {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RSCModuleType {
-  ServerEntry,
   Server,
   Client,
 }

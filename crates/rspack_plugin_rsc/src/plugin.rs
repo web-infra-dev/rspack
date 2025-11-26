@@ -804,7 +804,7 @@ impl ReactServerComponentsPlugin {
 
     if !normal_module
       .get_layer()
-      .is_some_and(|layer| layer == LAYERS_NAMES.react_client_components)
+      .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
     {
       return;
     }
@@ -857,7 +857,5 @@ impl ReactServerComponentsPlugin {
         plugin_state,
       );
     }
-
-    println!("plugin_state {:#?}", plugin_state);
   }
 }

@@ -1,9 +1,9 @@
 use derive_more::Debug;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets, CompilerMake,
-  CrossOriginLoading, EntryDependency, EntryOptions, Logger, Module, ModuleGraph, ModuleId,
-  ModuleIdentifier, Plugin,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
+  CompilerMake, CrossOriginLoading, EntryDependency, EntryOptions, Logger, Module, ModuleGraph,
+  ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -11,7 +11,6 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   client_reference_manifest::{CrossOriginMode, ManifestExport},
-  constants::{LAYERS_NAMES, LayersNames},
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::GetServerCompilerId,
 };
@@ -27,66 +26,90 @@ pub struct ReactClientPlugin {
   get_server_compiler_id: GetServerCompilerId,
 }
 
+fn get_client_components_required_chunks(
+  chunk_group: &ChunkGroup,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let mut required_chunks = vec![];
+  for chunk_ukey in &chunk_group.chunks {
+    let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+      continue;
+    };
+    let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) else {
+      continue;
+    };
+    for file in chunk.files() {
+      required_chunks.push(chunk_id.to_string());
+      // TODO: encode URI path
+      required_chunks.push(file.to_string());
+    }
+  }
+  required_chunks
+}
+
 fn record_module(
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
   compilation: &Compilation,
+  required_chunks: &Vec<String>,
   plugin_state: &mut PluginState,
-) -> Result<(), Box<dyn std::error::Error>> {
+) {
   let Some(module) = compilation.module_by_identifier(module_identifier) else {
-    return Ok(());
+    return;
   };
   let Some(normal_module) = module.as_normal_module() else {
-    return Ok(());
+    return;
   };
+  let Some(rsc) = normal_module.build_info().rsc.as_ref() else {
+    return;
+  };
+  match rsc.module_type {
+    rspack_core::RSCModuleType::Server => todo!(),
+    rspack_core::RSCModuleType::Client => {
+      let resource = if normal_module.module_type().as_str() == "css/mini-extract" {
+        let identifier = normal_module.identifier();
+        if let Some(pos) = identifier.rfind('!') {
+          identifier[pos + 1..].to_string()
+        } else {
+          identifier.to_string()
+        }
+      } else {
+        normal_module
+          .resource_resolved_data()
+          .resource()
+          .to_string()
+      };
+      if resource.is_empty() {
+        return;
+      }
 
-  let resource = if normal_module.module_type().as_str() == "css/mini-extract" {
-    let identifier = normal_module.identifier();
-    if let Some(pos) = identifier.rfind('!') {
-      identifier[pos + 1..].to_string()
-    } else {
-      identifier.to_string()
+      let is_async = ModuleGraph::is_async(compilation, module_identifier);
+      plugin_state.client_modules.insert(
+        resource,
+        ManifestExport {
+          id: module_id.to_string(),
+          name: "*".to_string(),
+          chunks: required_chunks.clone(),
+          r#async: Some(is_async),
+        },
+      );
     }
-  } else {
-    normal_module
-      .resource_resolved_data()
-      .resource()
-      .to_string()
-  };
-  if resource.is_empty() {
-    return Ok(());
   }
-
-  let is_async = ModuleGraph::is_async(compilation, module_identifier);
-  plugin_state.client_modules.insert(
-    resource,
-    ManifestExport {
-      id: module_id.to_string(),
-      name: "*".to_string(),
-      chunks: vec![],
-      r#async: Some(is_async),
-    },
-  );
-
-  Ok(())
 }
 
 fn record_chunk_group(
-  chunk_group_ukey: &ChunkGroupUkey,
+  chunk_group: &ChunkGroup,
   compilation: &Compilation,
+  required_chunks: &Vec<String>,
   checked_chunk_groups: &mut FxHashSet<ChunkGroupUkey>,
   checked_chunks: &mut FxHashSet<ChunkUkey>,
   plugin_state: &mut PluginState,
 ) {
   // Ensure recursion is stopped if we've already checked this chunk group.
-  if checked_chunk_groups.contains(&chunk_group_ukey) {
+  if checked_chunk_groups.contains(&chunk_group.ukey) {
     return;
   }
-  checked_chunk_groups.insert(*chunk_group_ukey);
-
-  let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
-    return;
-  };
+  checked_chunk_groups.insert(chunk_group.ukey);
 
   // Only apply following logic to client module requests from client entry,
   // or if the module is marked as client module. That's because other
@@ -100,22 +123,9 @@ fn record_chunk_group(
     }
     checked_chunks.insert(*chunk_ukey);
 
-    let entry_mods = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+    let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
 
-    for module_identifier in entry_mods {
-      let Some(module) = compilation.module_by_identifier(&module_identifier) else {
-        continue;
-      };
-      let Some(normal_module) = module.as_normal_module() else {
-        continue;
-      };
-      if !normal_module
-        .get_layer()
-        .is_some_and(|layer| layer.as_str() == LAYERS_NAMES.react_client_components)
-      {
-        continue;
-      }
-
+    for module_identifier in entry_modules {
       let module_graph = compilation.get_module_graph();
       let connections = module_graph.get_ordered_outgoing_connections(&module_identifier);
 
@@ -133,6 +143,7 @@ fn record_chunk_group(
               module_id,
               &client_entry_mod_identifier,
               compilation,
+              required_chunks,
               plugin_state,
             );
           } else {
@@ -153,6 +164,7 @@ fn record_chunk_group(
                   concatenated_mod_id,
                   &client_entry_mod_identifier,
                   compilation,
+                  required_chunks,
                   plugin_state,
                 );
               }
@@ -164,10 +176,14 @@ fn record_chunk_group(
   }
 
   // Walk through all children chunk groups too.
-  for child in chunk_group.children_iterable() {
+  for child_ukey in chunk_group.children_iterable() {
+    let Some(child) = compilation.chunk_group_by_ukey.get(child_ukey) else {
+      continue;
+    };
     record_chunk_group(
       child,
       compilation,
+      required_chunks,
       checked_chunk_groups,
       checked_chunks,
       plugin_state,
@@ -236,11 +252,17 @@ impl ReactClientPlugin {
 
       // const requiredChunks = getAppPathRequiredChunks(entrypoint, rootMainFiles)
 
+      let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) else {
+        continue;
+      };
+      let required_chunks = get_client_components_required_chunks(entrypoint, compilation);
+
       let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
       let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
       record_chunk_group(
-        entrypoint_ukey,
+        entrypoint,
         compilation,
+        &required_chunks,
         &mut checked_chunk_groups,
         &mut checked_chunks,
         plugin_state,
@@ -268,7 +290,9 @@ impl Plugin for ReactClientPlugin {
   }
 }
 
-#[plugin_hook(CompilerMake for ReactClientPlugin)]
+// Execution must occur after EntryPlugin to ensure base entries are established
+// before injecting client component entries. Stage 100 ensures proper ordering.
+#[plugin_hook(CompilerMake for ReactClientPlugin, stage = 100)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = (self.get_server_compiler_id)().await?;
 
@@ -283,19 +307,29 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   let context = compilation.options.context.clone();
-  for (runtime, import) in &plugin_state.injected_client_entries {
+  for (entry_name, import) in &plugin_state.injected_client_entries {
+    if compilation.entries.get(entry_name).is_none() {
+      return Err(rspack_error::error!(
+        "Missing required entry '{}' in client compiler. \
+       ReactClientPlugin requires an entry with the same name as the server compiler \
+       for rendering the React application in the browser. \
+       Client components will be injected into this entry.",
+        entry_name,
+      ));
+    };
+
     let dependency = Box::new(EntryDependency::new(
       import.to_string(),
       context.clone(),
-      Some(LAYERS_NAMES.react_client_components.to_string()),
+      None,
       false,
     ));
     compilation
       .add_entry(
         dependency,
         EntryOptions {
-          name: Some(format!("{}_client-components", runtime)),
-          runtime: Some(runtime.to_string().into()),
+          name: Some(format!("{}_client-components", entry_name)),
+          depend_on: Some(vec![entry_name.to_string()]),
           ..Default::default()
         },
       )

@@ -143,21 +143,16 @@ impl SwcLoader {
         ));
       },
       |_| {
-        // React Server Components (RSC) uses specific layers for different execution contexts:
-        // 1. react-server-components layer: The layer for server-only runtime and picking up `react-server` export conditions
-        // 2. server-side-rendering layer: Server Side Rendering layer for app
-        // 3. action-browser layer: The browser client bundle layer for actions
-        const KNOWN_RSC_LAYERS: [&str; 2] = ["react-server-components", "react-client-components"];
-
         (
           if self
             .options_with_additional
             .rspack_experiments
             .react_server_components
-            && let Some(layer) = loader_context.context.module.get_layer()
-            && KNOWN_RSC_LAYERS.contains(&layer.as_str())
           {
-            let is_react_server_layer = layer == "react-server-components";
+            let module = &loader_context.context.module;
+            let is_react_server_layer = module
+              .get_layer()
+              .is_some_and(|layer| layer == "react-server-components");
             let build_info = loader_context.context.module.build_info_mut();
             Box::new(transforms::server_components(
               filename,
