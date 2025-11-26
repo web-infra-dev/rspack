@@ -438,8 +438,16 @@ impl<'parser> JavascriptParser<'parser> {
         )));
       }
       if compiler_options.node.is_some() {
-        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
+        plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(false)));
       }
+    }
+
+    // For ESM-capable modules (JsAuto and JsEsm), always register NodeStuffPlugin to handle
+    // import.meta.dirname/filename. This matches webpack's behavior where NodeStuffPlugin is
+    // registered for all module types. When node: false, it preserves import.meta.dirname/filename as-is.
+    // Note: JsAuto modules need this because they can contain ESM syntax like import.meta.dirname.
+    if module_type.is_js_auto() || module_type.is_js_esm() {
+      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(true)));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {

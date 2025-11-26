@@ -142,7 +142,12 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       && let Some(meta_prop) = member.obj.as_meta_prop()
       && meta_prop.kind == MetaPropKind::ImportMeta
     {
-      if member.prop.is_ident() {
+      if let Some(ident) = member.prop.as_ident() {
+        // Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
+        // and may have runtime values when node.__dirname/node.__filename is false
+        if ident.sym == "dirname" || ident.sym == "filename" {
+          return None;
+        }
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
           member.span().real_hi(),
@@ -151,6 +156,12 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       if let Some(computed) = member.prop.as_computed()
         && computed.expr.is_lit()
       {
+        // Check for computed properties like import.meta["dirname"]
+        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str()) {
+          if str_lit.value == "dirname" || str_lit.value == "filename" {
+            return None;
+          }
+        }
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),
           member.span().real_hi(),
@@ -341,7 +352,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
               _ => None,
             });
 
-          let dep = if let Some(members) = members {
+          let dep = if let Some(members) = &members {
             if members.members.get(1).is_some()
               && members
                 .members_optionals
