@@ -74,6 +74,7 @@ impl RequireChunkLoadingRuntimeModule {
       TemplateId::WithHmr => format!("{}_with_hmr", &base_id),
       TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", &base_id),
       TemplateId::Raw => base_id,
+      TemplateId::HmrRuntime => format!("{}_hmr_runtime", &base_id),
     }
   }
 }
@@ -87,6 +88,7 @@ enum TemplateId {
   WithExternalInstallChunk,
   WithHmr,
   WithHmrManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -124,6 +126,10 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithHmrManifest),
         include_str!("runtime/require_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -234,7 +240,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         .render(&self.template_id(TemplateId::WithHmr), None)?;
 
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("require"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "require",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {

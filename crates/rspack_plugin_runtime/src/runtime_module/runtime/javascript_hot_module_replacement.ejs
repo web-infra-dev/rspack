@@ -3,7 +3,7 @@ var currentUpdate;
 var currentUpdateRemovedChunks;
 var currentUpdateRuntime;
 function applyHandler(options) {
-	if (__webpack_require__.f) delete __webpack_require__.f.$key$Hmr;
+	if (<%- ENSURE_CHUNK_HANDLERS %>) delete <%- ENSURE_CHUNK_HANDLERS %>.<%- _loading_method %>Hmr;
 	currentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
@@ -18,7 +18,7 @@ function applyHandler(options) {
 			var queueItem = queue.pop();
 			var moduleId = queueItem.id;
 			var chain = queueItem.chain;
-			var module = __webpack_require__.c[moduleId];
+			var module = <%- MODULE_CACHE %>[moduleId];
 			if (
 				!module ||
 				(module.hot._selfAccepted && !module.hot._selfInvalidated)
@@ -44,7 +44,7 @@ function applyHandler(options) {
 
 			for (var i = 0; i < module.parents.length; i++) {
 				var parentId = module.parents[i];
-				var parent = __webpack_require__.c[parentId];
+				var parent = <%- MODULE_CACHE %>[parentId];
 				if (!parent) {
 					continue;
 				}
@@ -102,7 +102,7 @@ function applyHandler(options) {
 	};
 
 	for (var moduleId in currentUpdate) {
-		if (__webpack_require__.o(currentUpdate, moduleId)) {
+		if (<%- HAS_OWN_PROPERTY %>(currentUpdate, moduleId)) {
 			var newModuleFactory = currentUpdate[moduleId];
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
@@ -161,7 +161,7 @@ function applyHandler(options) {
 				appliedUpdate[moduleId] = newModuleFactory;
 				addAllToSet(outdatedModules, result.outdatedModules);
 				for (moduleId in result.outdatedDependencies) {
-					if (__webpack_require__.o(result.outdatedDependencies, moduleId)) {
+					if (<%- HAS_OWN_PROPERTY %>(result.outdatedDependencies, moduleId)) {
 						if (!outdatedDependencies[moduleId])
 							outdatedDependencies[moduleId] = [];
 						addAllToSet(
@@ -182,7 +182,7 @@ function applyHandler(options) {
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
 		var outdatedModuleId = outdatedModules[j];
-		var module = __webpack_require__.c[outdatedModuleId];
+		var module = <%- MODULE_CACHE %>[outdatedModuleId];
 		if (
 			module &&
 			(module.hot._selfAccepted || module.hot._main) &&
@@ -197,7 +197,13 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	} $HOT_TEST_OUTDATED$
+	}
+	<% if (_is_hot_test) { %>
+	if (self.__HMR_UPDATED_RUNTIME__) {
+		self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
+		self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+	}
+	<% } %>
 
 	var moduleOutdatedDependencies;
 	return {
@@ -211,26 +217,31 @@ function applyHandler(options) {
 			var queue = outdatedModules.slice();
 			while (queue.length > 0) {
 				var moduleId = queue.pop();
-				var module = __webpack_require__.c[moduleId];
+				var module = <%- MODULE_CACHE %>[moduleId];
 				if (!module) continue;
 
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers; $HOT_TEST_DISPOSE$
+				var disposeHandlers = module.hot._disposeHandlers;
+				<% if (_is_hot_test) { %>
+ 				if (disposeHandlers.length > 0 && self.__HMR_UPDATED_RUNTIME__) {
+        	self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
+      	}
+				<% } %>
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
-				__webpack_require__.hmrD[moduleId] = data;
+				<%- HMR_MODULE_DATA %>[moduleId] = data;
 
 				module.hot.active = false;
 
-				delete __webpack_require__.c[moduleId];
+				delete <%- MODULE_CACHE %>[moduleId];
 
 				delete outdatedDependencies[moduleId];
 
 				for (j = 0; j < module.children.length; j++) {
-					var child = __webpack_require__.c[module.children[j]];
+					var child = <%- MODULE_CACHE %>[module.children[j]];
 					if (!child) continue;
 					idx = child.parents.indexOf(moduleId);
 					if (idx >= 0) {
@@ -241,8 +252,8 @@ function applyHandler(options) {
 
 			var dependency;
 			for (var outdatedModuleId in outdatedDependencies) {
-				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
-					module = __webpack_require__.c[outdatedModuleId];
+				if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {
+					module = <%- MODULE_CACHE %>[outdatedModuleId];
 					if (module) {
 						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						for (j = 0; j < moduleOutdatedDependencies.length; j++) {
@@ -257,20 +268,36 @@ function applyHandler(options) {
 		apply: function (reportError) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
-				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; $HOT_TEST_UPDATED$
+				if (<%- HAS_OWN_PROPERTY %>(appliedUpdate, updateModuleId)) {
+					<%- MODULE_FACTORIES %>[updateModuleId] = appliedUpdate[updateModuleId];
+					<% if (_is_hot_test) { %>
+					if (self.__HMR_UPDATED_RUNTIME__) {
+						self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+					}
+					<% } %>
 				}
 			}
 
 			// run new runtime modules
 			for (var i = 0; i < currentUpdateRuntime.length; i++) {
-				$HOT_TEST_RUNTIME$
+				<% if (_is_hot_test) { %>
+				currentUpdateRuntime[i](new Proxy(<%- REQUIRE %>, {
+					set(target, prop, value, receiver) {
+						if (self.__HMR_UPDATED_RUNTIME__) {
+							self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`<%- REQUIRE %>.${prop}`);
+						}
+						return Reflect.set(target, prop, value, receiver);
+					}
+				}));
+				<% } else { %>
+				currentUpdateRuntime[i](<%- REQUIRE %>);
+				<% } %>
 			}
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
-				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
-					var module = __webpack_require__.c[outdatedModuleId];
+				if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {
+					var module = <%- MODULE_CACHE %>[outdatedModuleId];
 					if (module) {
 						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						var callbacks = [];
@@ -283,7 +310,12 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler); $HOT_TEST_ACCEPT$
+								errorHandlers.push(errorHandler);
+								<% if (_is_hot_test) { %>
+								if (self.__HMR_UPDATED_RUNTIME__) {
+									self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+								}
+								<% } %>
 								dependenciesForCallbacks.push(dependency);
 							}
 						}
@@ -342,7 +374,7 @@ function applyHandler(options) {
 						try {
 							item.errorHandler(err, {
 								moduleId: moduleId,
-								module: __webpack_require__.c[moduleId]
+								module: <%- MODULE_CACHE %>[moduleId]
 							});
 						} catch (err1) {
 							if (options.onErrored) {
@@ -378,19 +410,19 @@ function applyHandler(options) {
 	};
 }
 
-__webpack_require__.hmrI.$key$ = function (moduleId, applyHandlers) {
+<%- HMR_INVALIDATE_MODULE_HANDLERS %>.<%- _loading_method %> = function (moduleId, applyHandlers) {
 	if (!currentUpdate) {
 		currentUpdate = {};
 		currentUpdateRuntime = [];
 		currentUpdateRemovedChunks = [];
 		applyHandlers.push(applyHandler);
 	}
-	if (!__webpack_require__.o(currentUpdate, moduleId)) {
-		currentUpdate[moduleId] = __webpack_require__.m[moduleId];
+	if (!<%- HAS_OWN_PROPERTY %>(currentUpdate, moduleId)) {
+		currentUpdate[moduleId] = <%- MODULE_FACTORIES %>[moduleId];
 	}
 };
 
-__webpack_require__.hmrC.$key$ = function (
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.<%- _loading_method %> = function (
 	chunkIds,
 	removedChunks,
 	removedModules,
@@ -408,7 +440,7 @@ __webpack_require__.hmrC.$key$ = function (
 	currentUpdateRuntime = [];
 	chunkIds.forEach(function (chunkId) {
 		if (
-			__webpack_require__.o(installedChunks, chunkId) &&
+			<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) &&
 			installedChunks[chunkId] !== undefined
 		) {
 			promises.push(loadUpdateChunk(chunkId, updatedModulesList));
@@ -417,11 +449,11 @@ __webpack_require__.hmrC.$key$ = function (
 			currentUpdateChunks[chunkId] = false;
 		}
 	});
-	if (__webpack_require__.f) {
-		__webpack_require__.f.$key$Hmr = function (chunkId, promises) {
+	if (<%- ENSURE_CHUNK_HANDLERS %>) {
+		<%- ENSURE_CHUNK_HANDLERS %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
 			if (
 				currentUpdateChunks &&
-				__webpack_require__.o(currentUpdateChunks, chunkId) &&
+				<%- HAS_OWN_PROPERTY %>(currentUpdateChunks, chunkId) &&
 				!currentUpdateChunks[chunkId]
 			) {
 				promises.push(loadUpdateChunk(chunkId));

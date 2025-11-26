@@ -58,6 +58,7 @@ impl JsonpChunkLoadingRuntimeModule {
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
       TemplateId::WithCallback => format!("{base_id}_with_callback"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -73,6 +74,7 @@ enum TemplateId {
   WithHmrManifest,
   WithOnChunkLoad,
   WithCallback,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -118,6 +120,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithCallback),
         include_str!("runtime/jsonp_chunk_loading_with_callback.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -306,7 +312,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })))?;
 
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("jsonp"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "jsonp",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {
