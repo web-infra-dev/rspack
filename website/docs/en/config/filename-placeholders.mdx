@@ -187,31 +187,20 @@ The function is invoked during the build process and receives an object that con
 
 ```ts
 type PathData = {
-  hash: string;
-  hashWithLength: (number) => string;
-  chunk: Chunk | ChunkPathData;
-  module: Module | ModulePathData;
-  contentHashType: string;
-  contentHash: string;
-  contentHashWithLength: (number) => string;
-  filename: string;
-  url: string;
-  runtime: string | SortableSet<string>;
-  chunkGraph: ChunkGraph;
+  filename?: string;
+  hash?: string;
+  contentHash?: string;
+  runtime?: string;
+  url?: string;
+  id?: string;
+  chunk?: Chunk | ChunkPathData;
+  contentHashType?: string;
 };
 
 type ChunkPathData = {
-  id: string | number;
-  name: string;
-  hash: string;
-  hashWithLength: (number) => string;
-  contentHash: Record<string, string>;
-  contentHashWithLength: Record<string, (number) => string>;
-};
-
-type ModulePathData = {
-  id: string | number;
-  hash: string;
-  hashWithLength: (number) => string;
+  id?: string;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string>;
 };
 ```
