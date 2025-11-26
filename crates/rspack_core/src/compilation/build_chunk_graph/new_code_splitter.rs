@@ -1806,10 +1806,6 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
 
   // Compute affected modules while holding the lock, then release it
   let affected_modules = {
-    let mutations = compilation
-      .incremental
-      .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
-
     if !compilation
       .build_chunk_graph_artifact
       .code_splitting_cache
@@ -1817,6 +1813,9 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
       .module_ordinal
       .is_empty()
     {
+      let mutations = compilation
+        .incremental
+        .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
       mutations.map(|mutations| {
         let mut affected = mutations.get_affected_modules_with_module_graph(module_graph);
         let removed = mutations.iter().filter_map(|mutation| match mutation {

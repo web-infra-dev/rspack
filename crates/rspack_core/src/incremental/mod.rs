@@ -159,7 +159,7 @@ impl Incremental {
 
   /// Get the current passes value
   fn passes(&self) -> IncrementalPasses {
-    IncrementalPasses::from_bits_retain(self.passes.load(Ordering::Relaxed))
+    IncrementalPasses::from_bits_retain(self.passes.load(Ordering::SeqCst))
   }
 
   pub fn disable_passes(
@@ -169,13 +169,13 @@ impl Incremental {
     reason: &'static str,
   ) -> Option<Option<Diagnostic>> {
     if matches!(self.state, IncrementalState::Hot { .. }) {
-      let current = IncrementalPasses::from_bits_retain(self.passes.load(Ordering::Relaxed));
+      let current = IncrementalPasses::from_bits_retain(self.passes.load(Ordering::SeqCst));
       let passes_to_disable = current.intersection(passes);
       if !passes_to_disable.is_empty() {
         // Atomically remove the passes using fetch_and with the negated bits
         self
           .passes
-          .fetch_and(!passes_to_disable.bits(), Ordering::Relaxed);
+          .fetch_and(!passes_to_disable.bits(), Ordering::SeqCst);
         if self.silent {
           return Some(None);
         }
