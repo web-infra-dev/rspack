@@ -298,6 +298,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
+  // TODO: use atom_refcell::AtomicRefCell<BuildModuleGraphArtifact> instead
   pub build_module_graph_artifact: BuildModuleGraphArtifact,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
