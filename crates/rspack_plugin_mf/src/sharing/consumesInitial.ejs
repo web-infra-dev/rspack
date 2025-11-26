@@ -1,0 +1,13 @@
+<%- REQUIRE %>.consumesLoadingData.initialConsumes.forEach(function(id) {
+  <%- MODULE_FACTORIES %>[id] = function(module) {
+    // Handle case when module is used sync
+    installedModules[id] = 0;
+    delete <%- MODULE_CACHE %>[id];
+    var factory = resolveHandler(<%- REQUIRE %>.consumesLoadingData.moduleIdToConsumeDataMapping[id])();
+    if (typeof factory !== "function")
+      throw new Error(
+        "Shared module is not available for eager consumption: " + id
+      );
+    module.exports = factory();
+  };
+});

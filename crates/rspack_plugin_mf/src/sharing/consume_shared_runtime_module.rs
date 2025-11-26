@@ -24,6 +24,20 @@ impl ConsumeSharedRuntimeModule {
       enhanced,
     )
   }
+
+  fn get_template_id(&self, template_id: TemplateId) -> String {
+    match template_id {
+      TemplateId::Common => format!("{}_consumesCommon", self.id),
+      TemplateId::Initial => format!("{}_consumesInitial", self.id),
+      TemplateId::Loading => format!("{}_consumesLoading", self.id),
+    }
+  }
+}
+
+enum TemplateId {
+  Common,
+  Initial,
+  Loading,
 }
 
 #[async_trait::async_trait]
@@ -34,6 +48,23 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.get_template_id(TemplateId::Common),
+        include_str!("./consumesCommon.ejs").to_string(),
+      ),
+      (
+        self.get_template_id(TemplateId::Initial),
+        include_str!("./consumesInitial.ejs").to_string(),
+      ),
+      (
+        self.get_template_id(TemplateId::Loading),
+        include_str!("./consumesLoading.ejs").to_string(),
+      ),
+    ]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -151,14 +182,20 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
       return Ok(source);
     }
-    source += include_str!("./consumesCommon.js");
+    source += &compilation
+      .runtime_template
+      .render(&self.get_template_id(TemplateId::Common), None)?;
     if !initial_consumes.is_empty() {
-      source += include_str!("./consumesInitial.js");
+      source += &compilation
+        .runtime_template
+        .render(&self.get_template_id(TemplateId::Initial), None)?;
     }
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += include_str!("./consumesLoading.js");
+      source += &compilation
+        .runtime_template
+        .render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
   }
