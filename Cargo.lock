@@ -4385,7 +4385,6 @@ name = "rspack_plugin_hmr"
 version = "0.6.5"
 dependencies = [
  "async-trait",
- "cow-utils",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4768,7 +4767,6 @@ version = "0.6.5"
 dependencies = [
  "async-trait",
  "atomic_refcell",
- "cow-utils",
  "derive_more",
  "futures",
  "indexmap",
