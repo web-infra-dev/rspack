@@ -604,7 +604,7 @@ export declare enum BuiltinPluginName {
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpUriPlugin = 'HttpUriPlugin',
   CssChunkingPlugin = 'CssChunkingPlugin',
-  ReactServerComponentsPlugin = 'ReactServerComponentsPlugin',
+  ReactServerPlugin = 'ReactServerPlugin',
   ReactClientPlugin = 'ReactClientPlugin'
 }
 

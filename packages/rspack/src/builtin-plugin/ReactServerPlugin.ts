@@ -5,8 +5,8 @@ import { createCompiler } from "../rspack";
 import { Compiler, ReactClientPlugin, RspackOptions } from "..";
 import path from "path";
 
-export const ReactServerComponentsPlugin = create(
-	BuiltinPluginName.ReactServerComponentsPlugin,
+export const ReactServerPlugin = create(
+	BuiltinPluginName.ReactServerPlugin,
 	function (this: Compiler, clientCompilerOptions: RspackOptions = {}) {
 		if (!clientCompilerOptions.output) {
 			clientCompilerOptions.output = {};

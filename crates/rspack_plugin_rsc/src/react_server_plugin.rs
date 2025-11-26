@@ -61,23 +61,22 @@ struct InjectedClientEntry {
   ssr_dependency_id: DependencyId,
 }
 
-// 该插件只在 server 上执行
 #[plugin]
 #[derive(Debug)]
-pub struct ReactServerComponentsPlugin {
+pub struct ReactServerPlugin {
   #[debug(skip)]
   client_compiler_handle: ClientCompilerHandle,
 }
 
-impl ReactServerComponentsPlugin {
+impl ReactServerPlugin {
   pub fn new(client_compiler_handle: ClientCompilerHandle) -> Self {
     Self::new_inner(client_compiler_handle)
   }
 }
 
-#[plugin_hook(CompilerFinishMake for ReactServerComponentsPlugin)]
+#[plugin_hook(CompilerFinishMake for ReactServerPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ReactServerComponentsPlugin");
+  let logger = compilation.get_logger("rspack.ReactServerPlugin");
 
   let start = logger.time("create client entries");
   self.create_client_entries(compilation).await?;
@@ -86,9 +85,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationProcessAssets for ReactServerComponentsPlugin)]
+#[plugin_hook(CompilationProcessAssets for ReactServerPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ReactServerComponentsPlugin");
+  let logger = compilation.get_logger("rspack.ReactServerPlugin");
 
   let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
   let plugin_state = guard
@@ -102,9 +101,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-impl Plugin for ReactServerComponentsPlugin {
+impl Plugin for ReactServerPlugin {
   fn name(&self) -> &'static str {
-    "rspack.ReactServerComponentsPlugin"
+    "rspack.ReactServerPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
@@ -278,7 +277,7 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
 
 type InjectedActionEntry = (BoxDependency, EntryOptions);
 
-impl ReactServerComponentsPlugin {
+impl ReactServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
 
@@ -842,8 +841,6 @@ impl ReactServerComponentsPlugin {
       r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
     };
     plugin_state.ssr_modules.insert(resource, manifest_export);
-
-    println!("Recorded SSR module: {:#?}", plugin_state.ssr_modules);
   }
 
   fn traverse_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {

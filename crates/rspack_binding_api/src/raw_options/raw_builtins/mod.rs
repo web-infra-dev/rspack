@@ -84,7 +84,7 @@ use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
-use rspack_plugin_rsc::{ReactClientPlugin, ReactServerComponentsPlugin};
+use rspack_plugin_rsc::{ReactClientPlugin, ReactServerPlugin};
 use rspack_plugin_rslib::RslibPlugin;
 use rspack_plugin_runtime::{
   ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
@@ -241,7 +241,7 @@ pub enum BuiltinPluginName {
   CssChunkingPlugin,
 
   // react server components
-  ReactServerComponentsPlugin,
+  ReactServerPlugin,
   ReactClientPlugin,
 }
 
@@ -837,10 +837,10 @@ impl<'a> BuiltinPlugin<'a> {
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
-      BuiltinPluginName::ReactServerComponentsPlugin => {
+      BuiltinPluginName::ReactServerPlugin => {
         let options = downcast_into::<JsClientCompilerHandle>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(ReactServerComponentsPlugin::new(options.into()).boxed());
+        plugins.push(ReactServerPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::ReactClientPlugin => {
         let options = downcast_into::<JsReactClientPluginOptions>(self.options)
