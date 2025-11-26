@@ -1,0 +1,217 @@
+# 文件名占位符
+
+Rspack 的文件名相关配置支持占位符，这样可以在构建过程中根据不同的上下文动态生成输出的文件名，从而更好地区分资源并提升缓存效果。
+
+不同的配置项支持的占位符类型不同。为了方便理解，本页将介绍 Rspack 中所有可使用的上下文类型及其可用模板占位符，并列出各个文件名配置项对应的上下文类型。
+
+## 示例
+
+例如，`[contenthash]` 占位符可以基于文件内容生成唯一的文件名，确保在内容未改变时文件名保持不变，从而实现缓存优化。
+
+下面是一个示例，展示了如何在 [output.filename](/config/output#outputfilename) 中结合使用 `[name]` 和 `[contenthash]` 占位符：
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  entry: {
+    main: './src/main.js',
+    list: './src/list.js',
+  },
+  output: {
+    filename: isProd ? '[name].[contenthash].js' : '[name].js',
+  },
+};
+```
+
+生成的文件如下：
+
+```
+src/
+├── main.js
+└── list.js
+dist/
+├── main.abcdefghabcdefgh.js
+└── list.qwertyuiqwertyui.js
+```
+
+## 文件名配置项
+
+下表整理了常用的文件名相关配置项及其可使用的上下文。
+
+| 配置项                                                                             | 上下文类型                         | 说明                     |
+| ---------------------------------------------------------------------------------- | ---------------------------------- | ------------------------ |
+| [output.filename](/config/output#outputfilename)                                   | Compilation, Chunk                 | 入口 chunks 的文件名     |
+| [output.chunkFilename](/config/output#outputchunkfilename)                         | Chunk                              | 非入口 chunks 的文件名   |
+| [output.cssFilename](/config/output#outputcssfilename)                             | Compilation, Chunk                 | 入口 CSS chunks 的文件名 |
+| [output.cssChunkFilename](/config/output#outputcsschunkfilename)                   | Chunk                              | 非入口 CSS chunks 文件名 |
+| [output.assetModuleFilename](/config/output#outputassetmodulefilename)             | File, Module                       | 静态资源模块的文件名     |
+| [output.webassemblyModuleFilename](/config/output#outputwebassemblymodulefilename) | File, Module                       | WebAssembly 的文件名     |
+| [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename)         | 仅支持 `[fullhash]` 和 `[runtime]` | 热更新清单文件的文件名   |
+| [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename)       | 仅支持 `[fullhash]` 和 `[id]`      | 热更新文件的文件名       |
+| [output.sourceMapFilename](/config/output#outputsourcemapfilename)                 | Compilation, Chunk, File           | source map 的文件名      |
+
+## 占位符类型
+
+### Compilation 占位符
+
+Compilation 占位符提供与整体构建流程相关的信息。
+
+| 模板         | 描述                    |
+| ------------ | ----------------------- |
+| `[fullhash]` | compilation 的完整 hash |
+
+### Chunk 占位符
+
+Chunk 占位符提供与某个 chunk 有关的信息。
+
+| 模板            | 描述                                                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[id]`          | 当前 chunk id                                                                                                                                  |
+| `[name]`        | 当 chunk name 存在则使用名称，否则使用 chunk id                                                                                                |
+| `[chunkhash]`   | chunk 的 hash 值，通过当前 chunk 中所有类型的元素计算所得                                                                                      |
+| `[contenthash]` | chunk 的 hash 值，通过只包含该类型内容的元素计算所得。如：生成 JavaScript 类型的文件则只会使用当前 chunk 中所有 JavaScript 模块计算所得的 hash |
+
+### Module 占位符
+
+Module 占位符提供与某个模块有关的信息。
+
+| 模板            | 描述            |
+| --------------- | --------------- |
+| `[id]`          | 模块的 id       |
+| `[hash]`        | 模块的 hash     |
+| `[contenthash]` | 模块内容的 hash |
+
+### File 占位符
+
+File 占位符提供与某个文件有关的信息。
+
+| 模板         | 描述                                                             |
+| ------------ | ---------------------------------------------------------------- |
+| `[file]`     | 文件名和路径，不包括查询或片段                                   |
+| `[query]`    | 文件 query，包含 `?`                                             |
+| `[fragment]` | 以 `#` 开头的片段名                                              |
+| `[base]`     | 只翻译文件名（包括扩展名），不包括路径名                         |
+| `[path]`     | 文件路径，不包含文件名                                           |
+| `[name]`     | 文件名，不包含扩展名和文件路径                                   |
+| `[ext]`      | 扩展名，包含 `.`（仅支持在 `output.assetModuleFilename` 里使用） |
+
+其中：
+
+- `[file]` 等价于 `[path][base]`
+- `[base]` 等价于 `[name][ext]`
+
+完整路径可以表示为以下形式：
+
+- `[path][name][ext][query][fragment]`
+- `[path][base][query][fragment]`
+- `[file][query][fragment]`。
+
+### URL 占位符
+
+URL 占位符提供与某个 URL 有关的信息。
+
+| 模板    | 描述 |
+| ------- | ---- |
+| `[url]` | URL  |
+
+## Hash 长度
+
+Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:n]` 来指定（默认为 16）。
+
+例如，将 `[contenthash]` 截断为 8 个字符：
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  output: {
+    filename: isProd ? '[name].[contenthash:8].js' : '[name].js',
+  },
+};
+```
+
+你也可以使用 `[hash:base64:8]` 来同时指定 digest（目前仅支持 base64）和长度：
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  output: {
+    filename: isProd ? '[name].[contenthash:base64:8].js' : '[name].js',
+  },
+};
+```
+
+另外，你可以使用 [output.hashDigestLength](/config/output#outputhashdigestlength) 来全局配置长度。
+
+:::tip
+
+在进行本地开发时，建议避免在文件名中使用 hash 值。
+
+这是因为入口文件以及被 [optimization.splitChunks](/plugins/webpack/split-chunks-plugin) 拆分出的 chunks 都会通过 HTML 文件中的 `<script>` 标签进行加载。此时若文件名内包含 hash 值，则会由于 HTML 无法被动态加载而使得热更新失效。
+
+:::
+
+## 转义占位符
+
+如果你希望在最终生成的文件名中保留占位符文本本身，而不是让其被 Rspack 解析为动态内容，你需要对占位符进行转义。
+
+例如，你想让输出文件名为 `[name].js`，而不是将 `[name]` 替换为实际的名称，可以在方括号内加入反斜杠进行转义：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: '\[name\].js',
+  },
+};
+```
+
+## 通过函数使用
+
+除了直接使用字符串，部分选项也可以通过传入函数的方式来自定义文件名生成逻辑。
+
+例如，`output.filename` 选项可以传入一个函数，该函数会在每次生成文件名时被调用，接收一个包含上下文信息的 `PathData` 对象。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: pathData => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
+函数会在构建过程中被调用，并接收一个包含当前上下文信息的对象。你可以基于这些数据构造任意字符串，返回的字符串同样会应用占位符替换规则。
+
+```ts
+type PathData = {
+  hash: string;
+  hashWithLength: (number) => string;
+  chunk: Chunk | ChunkPathData;
+  module: Module | ModulePathData;
+  contentHashType: string;
+  contentHash: string;
+  contentHashWithLength: (number) => string;
+  filename: string;
+  url: string;
+  runtime: string | SortableSet<string>;
+  chunkGraph: ChunkGraph;
+};
+
+type ChunkPathData = {
+  id: string | number;
+  name: string;
+  hash: string;
+  hashWithLength: (number) => string;
+  contentHash: Record<string, string>;
+  contentHashWithLength: Record<string, (number) => string>;
+};
+
+type ModulePathData = {
+  id: string | number;
+  hash: string;
+  hashWithLength: (number) => string;
+};
+```

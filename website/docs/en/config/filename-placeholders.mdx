@@ -1,0 +1,202 @@
+# Filename placeholders
+
+Rspack's filename-related options support placeholders. This lets you generate output filenames dynamically based on the current build context. It helps distinguish different assets and improves caching efficiency.
+
+Different options support different types of placeholders. This page lists all context types available in Rspack, the placeholders each context provides, and which filename options use which context.
+
+## Example
+
+For example, the `[contenthash]` placeholder generates a hash based on the file content. If the content does not change, the filename remains stable. This is ideal for long-term caching.
+
+Here is an example showing how `[name]` and `[contenthash]` can be used in [output.filename](/config/output#outputfilename):
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  entry: {
+    main: './src/main.js',
+    list: './src/list.js',
+  },
+  output: {
+    filename: isProd ? '[name].[contenthash].js' : '[name].js',
+  },
+};
+```
+
+This outputs:
+
+```
+src/
+├── main.js
+└── list.js
+dist/
+├── main.abcdefghabcdefgh.js
+└── list.qwertyuiqwertyui.js
+```
+
+## Filename options
+
+The following table summarizes common filename options and the context types they support:
+
+| Option                                                                             | Context Types                  | Description                   |
+| ---------------------------------------------------------------------------------- | ------------------------------ | ----------------------------- |
+| [output.filename](/config/output#outputfilename)                                   | Compilation, Chunk             | Entry chunk filenames         |
+| [output.chunkFilename](/config/output#outputchunkfilename)                         | Chunk                          | Non-entry chunk filenames     |
+| [output.cssFilename](/config/output#outputcssfilename)                             | Compilation, Chunk             | Entry CSS chunk filenames     |
+| [output.cssChunkFilename](/config/output#outputcsschunkfilename)                   | Chunk                          | Non-entry CSS chunk filenames |
+| [output.assetModuleFilename](/config/output#outputassetmodulefilename)             | File, Module                   | Static asset module filenames |
+| [output.webassemblyModuleFilename](/config/output#outputwebassemblymodulefilename) | File, Module                   | WebAssembly module filenames  |
+| [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename)         | Only `[fullhash]`, `[runtime]` | HMR manifest filename         |
+| [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename)       | Only `[fullhash]`, `[id]`      | HMR chunk filenames           |
+| [output.sourceMapFilename](/config/output#outputsourcemapfilename)                 | Compilation, Chunk, File       | source map filenames          |
+
+## Placeholder types
+
+### Compilation placeholders
+
+Compilation placeholders expose information about the entire build process.
+
+| Template     | Description           |
+| ------------ | --------------------- |
+| `[fullhash]` | Full compilation hash |
+
+### Chunk placeholders
+
+Chunk placeholders expose information about a specific chunk.
+
+| Template        | Description                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `[id]`          | Chunk ID                                                                                                 |
+| `[name]`        | Chunk name if available. otherwise falls back to chunk ID                                                |
+| `[chunkhash]`   | Hash of all content in the chunk                                                                         |
+| `[contenthash]` | Hash of content for a specific file type. for example JavaScript files only hash JS modules in the chunk |
+
+### Module placeholders
+
+Module placeholders expose information about a specific module.
+
+| Template        | Description            |
+| --------------- | ---------------------- |
+| `[id]`          | Module ID              |
+| `[hash]`        | Module hash            |
+| `[contenthash]` | Hash of module content |
+
+### File placeholders
+
+File placeholders expose information derived from the file path.
+
+| Template     | Description                                                              |
+| ------------ | ------------------------------------------------------------------------ |
+| `[file]`     | Full file path without query or fragment                                 |
+| `[query]`    | The query string, including `?`                                          |
+| `[fragment]` | Fragment starting with `#`                                               |
+| `[base]`     | Base filename including extension but without path                       |
+| `[path]`     | Directory path without the filename                                      |
+| `[name]`     | Filename without extension and without path                              |
+| `[ext]`      | Extension including `.` (only supported in `output.assetModuleFilename`) |
+
+Relationships:
+
+- `[file]` equals `[path][base]`
+- `[base]` equals `[name][ext]`
+
+A complete path can be built using any of these forms:
+
+- `[path][name][ext][query][fragment]`
+- `[path][base][query][fragment]`
+- `[file][query][fragment]`
+
+### URL placeholders
+
+URL placeholders expose information about the current request URL.
+
+| Template | Description |
+| -------- | ----------- |
+| `[url]`  | URL value   |
+
+## Hash Length
+
+Hash placeholders (`[hash]`, `[contenthash]`, `[chunkhash]`) support length modifiers using `[hash:n]`, where the default length is 16.
+
+Example truncating `[contenthash]` to 8 characters:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  output: {
+    filename: isProd ? '[name].[contenthash:8].js' : '[name].js',
+  },
+};
+```
+
+You can also specify a digest (only `base64` is supported) and length:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  output: {
+    filename: isProd ? '[name].[contenthash:base64:8].js' : '[name].js',
+  },
+};
+```
+
+Alternatively, you can configure a global default using [output.hashDigestLength](/config/output#outputhashdigestlength).
+
+:::tip
+
+During local development, avoid using hash-based filenames.
+
+Entry chunks and chunks produced by [optimization.splitChunks](/plugins/webpack/split-chunks-plugin) are loaded via `<script>` tags in HTML. If filenames contain hashes, the HTML file cannot update dynamically, which breaks HMR.
+
+:::
+
+## Escaping Placeholders
+
+If you want to preserve the literal placeholder text instead of having Rspack interpolate it, escape the brackets with backslashes.
+
+For example, to include `[name]` in the filename, rather than interpolating it as the chunk name, you can escape it with backslashes:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: '\\[name\\].js',
+  },
+};
+```
+
+## Using functions
+
+Some options allow specifying a function instead of a string.
+
+For example, `output.filename` option accepts a function, which will be called during compilation and receives a `PathData` object containing contextual information.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: pathData => {
+      return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
+    },
+  },
+};
+```
+
+The function is invoked during the build process and receives an object that contains the current context data. You can use this information to construct any string you need, and the returned string will still go through the same placeholder substitution rules.
+
+```ts
+type PathData = {
+  hash: string;
+  hashWithLength: (number) => string;
+  chunk: Chunk | ChunkPathData;
+  module: Module | ModulePathData;
+  contentHashType: string;
+  contentHash: string;
+  contentHashWithLength: (n: number) => string;
+  filename: string;
+  url: string;
+  runtime: string | SortableSet<string>;
+  chunkGraph: ChunkGraph;
+};
+```

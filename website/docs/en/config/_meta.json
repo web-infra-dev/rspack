@@ -4,6 +4,7 @@
     "label": "Introduction"
   },
   "index",
+  "filename-placeholders",
   {
     "type": "section-header",
     "label": "Config options"
