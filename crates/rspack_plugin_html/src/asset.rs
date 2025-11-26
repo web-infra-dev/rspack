@@ -102,11 +102,13 @@ impl HtmlPluginAssets {
         }
         let final_path = generate_posix_path(&asset_uri);
         if extension.eq_ignore_ascii_case("css") {
-          assets.css.push(final_path.to_string());
-          asset_map.insert(final_path.to_string(), asset);
+          if asset_map.insert(final_path.to_string(), asset).is_none() {
+            assets.css.push(final_path.to_string());
+          }
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          assets.js.push(final_path.to_string());
-          asset_map.insert(final_path.to_string(), asset);
+          if asset_map.insert(final_path.to_string(), asset).is_none() {
+            assets.js.push(final_path.to_string());
+          }
         }
       }
     }
