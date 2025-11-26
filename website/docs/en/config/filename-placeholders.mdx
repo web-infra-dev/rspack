@@ -2,7 +2,7 @@
 
 Rspack's filename-related options support placeholders. This lets you generate output filenames dynamically based on the current build context. It helps distinguish different assets and improves caching efficiency.
 
-Different options support different types of placeholders. This page lists all context types available in Rspack, the placeholders each context provides, and which filename options use which context.
+Different options support different types of placeholders. This page lists all placeholder types available in Rspack, and which filename options use which placeholder type.
 
 ## Example
 
@@ -37,9 +37,9 @@ dist/
 
 ## Filename options
 
-The following table summarizes common filename options and the context types they support:
+The following table summarizes common filename options and the placeholder types they support:
 
-| Option                                                                             | Context Types                  | Description                   |
+| Option                                                                             | Placeholder Types              | Description                   |
 | ---------------------------------------------------------------------------------- | ------------------------------ | ----------------------------- |
 | [output.filename](/config/output#outputfilename)                                   | Compilation, Chunk             | Entry chunk filenames         |
 | [output.chunkFilename](/config/output#outputchunkfilename)                         | Chunk                          | Non-entry chunk filenames     |
