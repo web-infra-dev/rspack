@@ -28,6 +28,7 @@ use crate::{
   ClientReferenceManifestPlugin,
   client_compiler_handle::ClientCompilerHandle,
   client_reference_manifest::ManifestExport,
+  constants::LAYERS_NAMES,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::{ChunkModules, EntryModules},
 };
@@ -767,7 +768,7 @@ impl ReactServerComponentsPlugin {
     let client_component_ssr_entry_dep = EntryDependency::new(
       client_server_loader.to_string(),
       compilation.options.context.clone(),
-      Some("react-client-components".to_string()),
+      Some(LAYERS_NAMES.server_side_rendering.to_string()),
       false,
     );
     let ssr_dependency_id = *(client_component_ssr_entry_dep.id());
@@ -779,7 +780,6 @@ impl ReactServerComponentsPlugin {
         Box::new(client_component_ssr_entry_dep),
         EntryOptions {
           name: Some(entry_name.to_string()),
-          layer: Some("react-client-components".to_string()),
           ..Default::default()
         },
       ),
@@ -804,7 +804,7 @@ impl ReactServerComponentsPlugin {
 
     if !normal_module
       .get_layer()
-      .is_some_and(|layer| layer == "react-client-components")
+      .is_some_and(|layer| layer == LAYERS_NAMES.react_client_components)
     {
       return;
     }

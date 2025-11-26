@@ -8,10 +8,10 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
-use sugar_path::SugarPath;
 
 use crate::{
   client_reference_manifest::{CrossOriginMode, ManifestExport},
+  constants::{LAYERS_NAMES, LayersNames},
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::GetServerCompilerId,
 };
@@ -111,7 +111,7 @@ fn record_chunk_group(
       };
       if !normal_module
         .get_layer()
-        .is_some_and(|layer| layer.as_str() == "react-client-components")
+        .is_some_and(|layer| layer.as_str() == LAYERS_NAMES.react_client_components)
       {
         continue;
       }
@@ -287,7 +287,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     let dependency = Box::new(EntryDependency::new(
       import.to_string(),
       context.clone(),
-      Some("react-client-components".to_string()),
+      Some(LAYERS_NAMES.react_client_components.to_string()),
       false,
     ));
     compilation
@@ -296,7 +296,6 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         EntryOptions {
           name: Some(format!("{}_client-components", runtime)),
           runtime: Some(runtime.to_string().into()),
-          layer: Some("react-client-components".to_string()),
           ..Default::default()
         },
       )

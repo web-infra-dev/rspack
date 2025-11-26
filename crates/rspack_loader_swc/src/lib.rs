@@ -209,9 +209,11 @@ impl SwcLoader {
               esm_source.push_str(&format!(
                 r#"export default registerClientReference(
 function() {{ throw new Error("") }},
+"{}",
 "default",
 )
-"#
+"#,
+                loader_context.resource()
               ));
             }
             Some(ident) => {
@@ -219,9 +221,12 @@ function() {{ throw new Error("") }},
                 r#"export const {} = registerClientReference(
 function() {{ throw new Error("") }},
 "{}",
+"{}",
 )
 "#,
-                ident, ident
+                ident,
+                loader_context.resource(),
+                ident
               ));
             }
             _ => {}

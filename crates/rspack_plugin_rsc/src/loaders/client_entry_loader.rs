@@ -124,11 +124,11 @@ impl Loader<RunnerContext> for ClientEntryLoader {
         // If we have '*' in the ids, we include all the imports
         let import_path = simd_json::to_string(&client_component.request).unwrap();
         if client_component.ids.len() == 0 || client_component.ids.iter().any(|id| id == "*") {
-          format!("import({});\n", import_path)
+          format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
         } else {
           let webpack_exports = simd_json::to_string(&client_component.ids).unwrap();
           format!(
-            "import(/* webpackExports: {} */ {});\n",
+            "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
             webpack_exports, import_path
           )
         }

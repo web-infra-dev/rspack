@@ -30,7 +30,6 @@ use crate::{
   client_reference_manifest::{
     ClientReferenceManifest, CrossOriginMode, ManifestExport, ModuleLoading,
   },
-  constants::WEBPACK_LAYERS,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::{EntryModules, GetServerCompilerId, ServerEntries},
 };
@@ -63,10 +62,10 @@ impl ClientReferenceManifestPlugin {
       entry_js_files: Default::default(),
     };
 
-    for (resource_id, manifest_export) in plugin_state.client_modules.drain() {
+    for (resource, manifest_export) in plugin_state.client_modules.drain() {
       manifest
         .client_modules
-        .insert(resource_id.clone(), manifest_export);
+        .insert(resource.clone(), manifest_export);
     }
 
     let json = serde_json::to_string_pretty(&manifest).to_rspack_result()?;
