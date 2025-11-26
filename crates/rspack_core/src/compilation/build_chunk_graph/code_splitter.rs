@@ -387,7 +387,7 @@ impl CodeSplitter {
       &mut compilation.chunk_by_ukey,
       &mut compilation.named_chunks,
     );
-    if created && let Some(mutations) = compilation.incremental.mutations_write() {
+    if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
     }
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -640,7 +640,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );
-          if created && let Some(mutations) = compilation.incremental.mutations_write() {
+          if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
           }
           self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -707,7 +707,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
+        compilation
+          .get_seal_module_graph_mut()
+          .set_depth_if_lower(&k, v);
       }
     }
 
@@ -1163,7 +1165,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let mut module_graph = compilation.get_module_graph_mut();
+      let mut module_graph = compilation.get_seal_module_graph_mut();
       let module = module_graph
         .module_graph_module_by_identifier_mut(&item.module)
         .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
@@ -1208,7 +1210,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let module = module_graph
       .module_graph_module_by_identifier_mut(&item.module)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
@@ -1440,13 +1442,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
-        if created && let Some(mutations) = compilation.incremental.mutations_write() {
+        if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey
       } else {
         let chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey

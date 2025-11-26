@@ -3,7 +3,6 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  module_id,
 };
 
 #[cacheable]
@@ -125,13 +124,16 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        false,
-      )
-      .as_str(),
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          false,
+        )
+        .as_str(),
       None,
     );
   }

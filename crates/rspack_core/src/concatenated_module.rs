@@ -50,13 +50,11 @@ use crate::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, define_es_module_flag_statement,
-  escape_identifier, filter_runtime, get_property_accessed_deferred_module, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
-  returning_function, runtime_condition_expression, subtract_runtime_condition,
-  to_identifier_with_escaped, to_normal_comment,
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1379,7 +1377,7 @@ impl Module for ConcatenatedModule {
         definitions.push(format!(
           "\n  {}: {}",
           property_name(key).expect("should convert to property_name"),
-          returning_function(&compilation.options.output.environment, value, "")
+          compilation.runtime_template.returning_function(value, "")
         ));
       }
 
@@ -1401,11 +1399,14 @@ impl Module for ConcatenatedModule {
 
         if should_add_esm_flag {
           result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawStringSource::from(define_es_module_flag_statement(
-            self.get_exports_argument(),
-            &mut runtime_requirements,
-            &compilation.runtime_template,
-          )));
+          result.add(RawStringSource::from(
+            compilation
+              .runtime_template
+              .define_es_module_flag_statement(
+                self.get_exports_argument(),
+                &mut runtime_requirements,
+              ),
+          ));
         }
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
@@ -1504,11 +1505,9 @@ impl Module for ConcatenatedModule {
             ns_obj.push(format!(
               "\n  {}: {}",
               property_name(&used_name).expect("should have property_name"),
-              returning_function(
-                &compilation.options.output.environment,
-                &final_name.name,
-                ""
-              )
+              compilation
+                .runtime_template
+                .returning_function(&final_name.name, "")
             ));
           }
         }
@@ -1578,16 +1577,17 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
-        let loader = get_property_accessed_deferred_module(
-          module.get_exports_type(
-            &module_graph,
-            &compilation.module_graph_cache_artifact,
-            root_module.build_meta().strict_esm_module,
-          ),
-          &module_id,
-          Default::default(),
-          &compilation.runtime_template,
-        );
+        let loader = compilation
+          .runtime_template
+          .get_property_accessed_deferred_module(
+            module.get_exports_type(
+              &module_graph,
+              &compilation.module_graph_cache_artifact,
+              root_module.build_meta().strict_esm_module,
+            ),
+            &module_id,
+            Default::default(),
+          );
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         result.add(RawStringSource::from(format!(
           "\n// DEFERRED EXTERNAL MODULE: {module_readable_identifier}\nvar {} = {loader};",
@@ -1665,12 +1665,11 @@ impl Module for ConcatenatedModule {
 
             runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-            let condition = runtime_condition_expression(
+            let condition = compilation.runtime_template.runtime_condition_expression(
               &compilation.chunk_graph,
               Some(&reference_info.runtime_condition),
               runtime,
               &mut runtime_requirements,
-              &compilation.runtime_template,
             );
 
             if condition != "true" {

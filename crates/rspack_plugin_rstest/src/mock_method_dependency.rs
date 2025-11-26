@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DependencyCodeGeneration, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment, TemplateContext, TemplateReplaceSource,
+  InitFragmentStage, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::common::Span;
 
@@ -76,7 +76,11 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { init_fragments, .. } = code_generatable_context;
+    let TemplateContext {
+      init_fragments,
+      compilation,
+      ..
+    } = code_generatable_context;
     let dep = dep
       .as_any()
       .downcast_ref::<MockMethodDependency>()
@@ -117,17 +121,18 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
 
     // Start before hoist.
     let callee_range: DependencyRange = dep.callee_span.into();
+    let require_name = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     source.replace(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
       // callee_range.end,
       if dep.hoist {
-        format!(
-          " */ /* RSTEST:{hoist_flag}_HOIST_START:{request} */__webpack_require__.{mock_method}"
-        )
+        format!(" */ /* RSTEST:{hoist_flag}_HOIST_START:{request} */{require_name}.{mock_method}")
       } else {
-        format!(" */ __webpack_require__.{mock_method}")
+        format!(" */ {require_name}.{mock_method}")
       }
       .as_str(),
       None,

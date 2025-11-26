@@ -73,6 +73,7 @@ impl ReadFileChunkLoadingRuntimeModule {
       TemplateId::WithExternalInstallChunk => format!("{base_id}_with_external_install_chunk"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -85,6 +86,7 @@ enum TemplateId {
   WithExternalInstallChunk,
   WithHmr,
   WithHmrManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -118,6 +120,10 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithHmrManifest),
         include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -213,10 +219,13 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       source.push_str(&format!(
         r#"
         // ReadFile + VM.run chunk loading for javascript"
-        __webpack_require__.f.readFileVm = function (chunkId, promises) {{
+        {}.readFileVm = function (chunkId, promises) {{
           {body}
         }};
-        "#
+        "#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     }
 
@@ -234,7 +243,12 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmr), None)?;
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("readFileVm"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "readFileVm",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {

@@ -1021,7 +1021,7 @@ impl CodeSplitter {
       }
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
 
     for (m, idx) in pre_order_indices {
       module_graph
@@ -1182,13 +1182,13 @@ impl CodeSplitter {
                 &mut compilation.chunk_by_ukey,
                 &mut compilation.named_chunks,
               );
-              if add && let Some(mutations) = compilation.incremental.mutations_write() {
+              if add && let Some(mut mutations) = compilation.incremental.mutations_write() {
                 mutations.add(Mutation::ChunkAdd { chunk: ukey });
               };
               ukey
             } else {
               let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-              if let Some(mutations) = compilation.incremental.mutations_write() {
+              if let Some(mut mutations) = compilation.incremental.mutations_write() {
                 mutations.add(Mutation::ChunkAdd { chunk: ukey });
               };
               ukey
@@ -1244,7 +1244,7 @@ impl CodeSplitter {
                 &mut compilation.named_chunks,
               );
 
-              if add && let Some(mutations) = compilation.incremental.mutations_write() {
+              if add && let Some(mut mutations) = compilation.incremental.mutations_write() {
                 mutations.add(Mutation::ChunkAdd {
                   chunk: runtime_chunk_ukey,
                 });
@@ -1327,7 +1327,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
               let assign_depths_map = assigned_depths
                 .remove(&idx)
                 .expect("should have assign depths map");
-              let mut module_graph = compilation.get_module_graph_mut();
+              let mut module_graph = compilation.get_seal_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
               }
@@ -1411,13 +1411,13 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             );
-            if add && let Some(mutations) = compilation.incremental.mutations_write() {
+            if add && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd { chunk: ukey });
             }
             ukey
           } else {
             let ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
+            if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd { chunk: ukey });
             }
             ukey
@@ -1474,7 +1474,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
     }
 
     // the left cache is unused, mark them as removed
-    if let Some(mutations) = compilation.incremental.mutations_write() {
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
       self.cache_chunks.retain(|_, chunk| {
         let should_remove = !compilation.chunk_by_ukey.contains(&chunk.ukey());
 
@@ -1802,27 +1802,35 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     })
     .collect::<IdentifierMap<_>>();
 
-  let mutations = compilation
-    .incremental
-    .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
-
   let module_graph: &ModuleGraph<'_> = &compilation.get_module_graph();
 
-  let mut splitter = if !compilation
-    .build_chunk_graph_artifact
-    .code_splitting_cache
-    .new_code_splitter
-    .module_ordinal
-    .is_empty()
-    && let Some(mutations) = mutations
-  {
-    let mut affected = mutations.get_affected_modules_with_module_graph(module_graph);
-    let removed = mutations.iter().filter_map(|mutation| match mutation {
-      Mutation::ModuleRemove { module } => Some(*module),
-      _ => None,
-    });
-    affected.extend(removed);
+  // Compute affected modules while holding the lock, then release it
+  let affected_modules = {
+    if !compilation
+      .build_chunk_graph_artifact
+      .code_splitting_cache
+      .new_code_splitter
+      .module_ordinal
+      .is_empty()
+    {
+      let mutations = compilation
+        .incremental
+        .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH);
+      mutations.map(|mutations| {
+        let mut affected = mutations.get_affected_modules_with_module_graph(module_graph);
+        let removed = mutations.iter().filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
+          _ => None,
+        });
+        affected.extend(removed);
+        affected
+      })
+    } else {
+      None
+    }
+  };
 
+  let mut splitter = if let Some(affected) = affected_modules {
     // reuse data from last computation
     let mut splitter = std::mem::take(
       &mut compilation

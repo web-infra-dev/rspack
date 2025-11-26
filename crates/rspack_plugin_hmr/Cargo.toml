@@ -18,7 +18,6 @@ rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
-cow-utils   = { workspace = true }
 rustc-hash  = { workspace = true }
 serde_json  = { workspace = true }
 tokio       = { workspace = true }

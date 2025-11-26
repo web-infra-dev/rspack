@@ -30,7 +30,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -183,20 +183,35 @@ impl JsPlugin {
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-      indoc!{r#"
-        var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+      format!(r#"
+        var execOptions = {{ id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: {} }};
+        {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        if (!execOptions.factory) {
+        if (!execOptions.factory) {{
           console.error("undefined factory", moduleId);
           throw Error("RuntimeError: factory is undefined (" + moduleId + ")");
-        }
+        }}
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-      "#}.into()
+      "#,
+        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+      ).into()
     } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-      "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n".into()
+      format!(
+        "__webpack_modules__[moduleId].call(module.exports, module, module.exports, {});\n",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      )
+      .into()
     } else {
-      "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n".into()
+      format!(
+        "__webpack_modules__[moduleId](module, module.exports, {});\n",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      )
+      .into()
     };
 
     if strict_module_error_handling {
@@ -530,8 +545,7 @@ impl JsPlugin {
             format!(
               "// the startup function\n{} = {};\n",
               runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
-              basic_function(
-                &compilation.options.output.environment,
+              compilation.runtime_template.basic_function(
                 "",
                 &format!(
                   "{}\nreturn {}",

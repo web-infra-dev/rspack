@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-arm64-musl",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-arm64-musl.node",

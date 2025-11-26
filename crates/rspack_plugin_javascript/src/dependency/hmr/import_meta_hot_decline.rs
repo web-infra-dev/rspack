@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ModuleDependency, TemplateContext, TemplateReplaceSource, module_id,
+  ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -109,13 +109,16 @@ impl DependencyTemplate for ImportMetaHotDeclineDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        dep.weak(),
-      )
-      .as_str(),
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          dep.weak(),
+        )
+        .as_str(),
       None,
     );
   }

@@ -10,7 +10,6 @@ version.workspace = true
 [dependencies]
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
-cow-utils                = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
 indexmap                 = { workspace = true }

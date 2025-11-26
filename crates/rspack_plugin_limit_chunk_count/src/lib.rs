@@ -299,7 +299,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
   compilation.chunk_graph = new_chunk_graph;
 
-  if let Some(mutations) = compilation.incremental.mutations_write() {
+  if let Some(mut mutations) = compilation.incremental.mutations_write() {
     // ChunkRemove mutations must be added last because a chunk can be removed after another chunk
     // has been integrated into it
     for chunk in integrated_chunks {

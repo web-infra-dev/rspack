@@ -66,7 +66,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     ));
   }
 
-  if let Some(compilation_mutations) = compilation.incremental.mutations_write()
+  if let Some(mut compilation_mutations) = compilation.incremental.mutations_write()
     && let Some(mutations) = mutations
   {
     compilation_mutations.extend(mutations);

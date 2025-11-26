@@ -220,7 +220,8 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  other_module_graph: Option<ModuleGraphPartial>,
+  // module graph partial used in seal phase
+  pub seal_module_graph_partial: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -359,7 +360,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      other_module_graph: None,
+      seal_module_graph_partial: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -455,7 +456,7 @@ impl Compilation {
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    if let Some(other_module_graph) = &self.other_module_graph {
+    if let Some(other_module_graph) = &self.seal_module_graph_partial {
       ModuleGraph::new_ref([
         Some(self.build_module_graph_artifact.get_module_graph_partial()),
         Some(other_module_graph),
@@ -470,7 +471,7 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.other_module_graph
+    if let Some(other_module_graph) = &self.seal_module_graph_partial
       && let Some(module) = other_module_graph.modules.get(identifier)
     {
       return module.as_ref();
@@ -487,24 +488,27 @@ impl Compilation {
 
     None
   }
-
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    if let Some(other) = &mut self.other_module_graph {
-      ModuleGraph::new_mut(
-        [
-          Some(self.build_module_graph_artifact.get_module_graph_partial()),
-          None,
-        ],
-        other,
-      )
-    } else {
-      ModuleGraph::new_mut(
-        [None, None],
-        self
-          .build_module_graph_artifact
-          .get_module_graph_partial_mut(),
-      )
-    }
+  pub fn get_make_module_graph_mut(
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  ) -> ModuleGraphMut<'_> {
+    ModuleGraph::new_mut(
+      [None, None],
+      build_module_graph_artifact.get_module_graph_partial_mut(),
+    )
+  }
+  // TODO: remove &mut self in the future
+  pub fn get_seal_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
+    let seal_module_graph_partial = self
+      .seal_module_graph_partial
+      .as_mut()
+      .expect("should set seal_module_graph");
+    ModuleGraph::new_mut(
+      [
+        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        None,
+      ],
+      seal_module_graph_partial,
+    )
   }
 
   pub fn file_dependencies(
@@ -649,7 +653,8 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name = options.name.clone();
-    self.get_module_graph_mut().add_dependency(entry);
+    Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+      .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -710,7 +715,8 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      self.get_module_graph_mut().add_dependency(entry);
+      Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+        .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -1473,7 +1479,7 @@ impl Compilation {
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
   pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
-    if let Some(mutations) = self.incremental.mutations_write() {
+    if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
         self
           .build_module_graph_artifact
@@ -1540,33 +1546,46 @@ impl Compilation {
   }
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
-    let mutations = self
-      .incremental
-      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-    // TODO move diagnostic collect to make
-    let modules = if let Some(mutations) = mutations
-      && !self.dependencies_diagnostics_artifact.is_empty()
-    {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .dependencies_diagnostics_artifact
-          .remove(&revoked_module);
+    // Compute modules while holding the lock, then release it
+    let (modules, has_mutations) = {
+      let mutations = self
+        .incremental
+        .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+
+      // TODO move diagnostic collect to make
+      if let Some(mutations) = mutations {
+        if !self.dependencies_diagnostics_artifact.is_empty() {
+          let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+            Mutation::ModuleRemove { module } => Some(*module),
+            _ => None,
+          });
+          for revoked_module in revoked_modules {
+            self
+              .dependencies_diagnostics_artifact
+              .remove(&revoked_module);
+          }
+          let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+          let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+          logger.log(format!(
+            "{} modules are affected, {} in total",
+            modules.len(),
+            self.get_module_graph().modules().len()
+          ));
+          (modules, true)
+        } else {
+          (
+            self.get_module_graph().modules().keys().copied().collect(),
+            true,
+          )
+        }
+      } else {
+        (
+          self.get_module_graph().modules().keys().copied().collect(),
+          false,
+        )
       }
-      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
-      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
-    } else {
-      self.get_module_graph().modules().keys().copied().collect()
     };
+
     let module_graph = self.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
@@ -1595,7 +1614,7 @@ impl Compilation {
         (*module_identifier, diagnostics)
       })
       .collect();
-    let all_modules_diagnostics = if mutations.is_some() {
+    let all_modules_diagnostics = if has_mutations {
       self
         .dependencies_diagnostics_artifact
         .extend(dependencies_diagnostics);
@@ -1608,7 +1627,7 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.other_module_graph = Some(ModuleGraphPartial::default());
+    self.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
@@ -2356,7 +2375,9 @@ impl Compilation {
           chunk_hash_result.hash,
           chunk_hash_result.content_hash,
         );
-        if chunk_hashes_changed && let Some(mutations) = compilation.incremental.mutations_write() {
+        if chunk_hashes_changed
+          && let Some(mut mutations) = compilation.incremental.mutations_write()
+        {
           mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
         }
       }
@@ -2558,7 +2579,7 @@ impl Compilation {
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+      if chunk_hashes_changed && let Some(mut mutations) = self.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSetHashes {
           chunk: runtime_chunk_ukey,
         });
@@ -2625,7 +2646,7 @@ impl Compilation {
         new_chunk_hash,
         new_content_hash,
       );
-      if chunk_hashes_changed && let Some(mutations) = self.incremental.mutations_write() {
+      if chunk_hashes_changed && let Some(mut mutations) = self.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
       }
     }
@@ -2741,7 +2762,7 @@ impl Compilation {
     for result in results {
       let (module, hashes) = result?;
       if ChunkGraph::set_module_hashes(self, module, hashes)
-        && let Some(mutations) = self.incremental.mutations_write()
+        && let Some(mut mutations) = self.incremental.mutations_write()
       {
         mutations.add(Mutation::ModuleSetHashes { module });
       }

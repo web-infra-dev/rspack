@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
-use rspack_core::CrossOriginLoading;
+use rspack_core::{CrossOriginLoading, RuntimeTemplate};
 use rspack_error::Result;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8PathBuf;
@@ -54,6 +54,7 @@ pub struct SRICompilationContext {
   pub fs: ArcFs,
   pub output_path: Utf8PathBuf,
   pub cross_origin_loading: CrossOriginLoading,
+  pub runtime_template: Arc<RuntimeTemplate>,
 }
 
 pub struct IntegrityCallbackData {

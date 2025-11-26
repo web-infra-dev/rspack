@@ -40,7 +40,7 @@ enum FilenameKind {
   Fn(#[cacheable(with=Unsupported)] Arc<dyn FilenameFn>),
 }
 
-/// Filename template string or function
+/// Filename placeholders or function
 ///
 /// The function type is generic. The default function type `Arc<dyn FilenameFn>` is thread-safe,
 /// implements `Hash` and `Eq`, and its error type is `rspack_error::Error`.

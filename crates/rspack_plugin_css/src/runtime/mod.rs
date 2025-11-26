@@ -3,7 +3,7 @@ use std::{borrow::Cow, ptr::NonNull};
 use rspack_collections::Identifier;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, basic_function, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
@@ -190,8 +190,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
 
-      let load_css_chunk_data = basic_function(
-        environment,
+      let load_css_chunk_data = compilation.runtime_template.basic_function(
         "target, chunkId",
         &format!(
           r#"{}

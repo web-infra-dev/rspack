@@ -24,6 +24,20 @@ impl ConsumeSharedRuntimeModule {
       enhanced,
     )
   }
+
+  fn get_template_id(&self, template_id: TemplateId) -> String {
+    match template_id {
+      TemplateId::Common => format!("{}_consumesCommon", self.id),
+      TemplateId::Initial => format!("{}_consumesInitial", self.id),
+      TemplateId::Loading => format!("{}_consumesLoading", self.id),
+    }
+  }
+}
+
+enum TemplateId {
+  Common,
+  Initial,
+  Loading,
 }
 
 #[async_trait::async_trait]
@@ -34,6 +48,23 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.get_template_id(TemplateId::Common),
+        include_str!("./consumesCommon.ejs").to_string(),
+      ),
+      (
+        self.get_template_id(TemplateId::Initial),
+        include_str!("./consumesInitial.ejs").to_string(),
+      ),
+      (
+        self.get_template_id(TemplateId::Loading),
+        include_str!("./consumesLoading.ejs").to_string(),
+      ),
+    ]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -126,10 +157,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&initial_consumes)
     };
+    let require_name = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
-__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
+{require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
 "#,
+      require_name = require_name,
       chunk_mapping = chunk_mapping,
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes_json = initial_consumes_json,
@@ -138,18 +173,29 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
-        source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+        source += &format!(
+          "{ensure_chunk_handlers}.consumes = {ensure_chunk_handlers}.consumes || function() {{ throw new Error(\"should have {ensure_chunk_handlers}.consumes\") }}",
+          ensure_chunk_handlers = compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        );
       }
       return Ok(source);
     }
-    source += include_str!("./consumesCommon.js");
+    source += &compilation
+      .runtime_template
+      .render(&self.get_template_id(TemplateId::Common), None)?;
     if !initial_consumes.is_empty() {
-      source += include_str!("./consumesInitial.js");
+      source += &compilation
+        .runtime_template
+        .render(&self.get_template_id(TemplateId::Initial), None)?;
     }
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += include_str!("./consumesLoading.js");
+      source += &compilation
+        .runtime_template
+        .render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
   }

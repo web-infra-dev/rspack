@@ -373,8 +373,8 @@ var satisfy = function(range, version) {
 	return !!p();
 }
 var ensureExistence = function(scopeName, key) {
-	var scope = __webpack_require__.S[scopeName];
-	if(!scope || !__webpack_require__.o(scope, key)) throw new Error("Shared module " + key + " doesn't exist in shared scope " + scopeName);
+	var scope = <%- SHARE_SCOPE_MAP %>[scopeName];
+	if(!scope || !<%- HAS_OWN_PROPERTY %>(scope, key)) throw new Error("Shared module " + key + " doesn't exist in shared scope " + scopeName);
 	return scope;
 };
 var findVersion = function(scope, key) {
@@ -438,9 +438,9 @@ var get = function(entry) {
 	return entry.get()
 };
 var init = function(fn) { return function(scopeName, a, b, c) {
-	var promise = __webpack_require__.I(scopeName);
-	if (promise && promise.then) return promise.then(fn.bind(fn, scopeName, __webpack_require__.S[scopeName], a, b, c));
-	return fn(scopeName, __webpack_require__.S[scopeName], a, b, c);
+	var promise = <%- INITIALIZE_SHARING %>(scopeName);
+	if (promise && promise.then) return promise.then(fn.bind(fn, scopeName, <%- SHARE_SCOPE_MAP %>[scopeName], a, b, c));
+	return fn(scopeName, <%- SHARE_SCOPE_MAP %>[scopeName], a, b, c);
 }; };
 
 var load = /*#__PURE__*/ init(function(scopeName, scope, key) {
@@ -448,7 +448,7 @@ var load = /*#__PURE__*/ init(function(scopeName, scope, key) {
 	return get(findVersion(scope, key));
 });
 var loadFallback = /*#__PURE__*/ init(function(scopeName, scope, key, fallback) {
-	return scope && __webpack_require__.o(scope, key) ? get(findVersion(scope, key)) : fallback();
+	return scope && <%- HAS_OWN_PROPERTY %>(scope, key) ? get(findVersion(scope, key)) : fallback();
 });
 var loadVersionCheck = /*#__PURE__*/ init(function(scopeName, scope, key, version) {
 	ensureExistence(scopeName, key);
@@ -471,23 +471,23 @@ var loadStrictSingletonVersionCheck = /*#__PURE__*/ init(function(scopeName, sco
 	return getStrictSingletonVersion(scope, scopeName, key, version);
 });
 var loadVersionCheckFallback = /*#__PURE__*/ init(function(scopeName, scope, key, version, fallback) {
-	if(!scope || !__webpack_require__.o(scope, key)) return fallback();
+	if(!scope || !<%- HAS_OWN_PROPERTY %>(scope, key)) return fallback();
 	return get(findValidVersion(scope, key, version) || warnInvalidVersion(scope, scopeName, key, version) || findVersion(scope, key));
 });
 var loadSingletonFallback = /*#__PURE__*/ init(function(scopeName, scope, key, fallback) {
-	if(!scope || !__webpack_require__.o(scope, key)) return fallback();
+	if(!scope || !<%- HAS_OWN_PROPERTY %>(scope, key)) return fallback();
 	return getSingleton(scope, scopeName, key);
 });
 var loadSingletonVersionCheckFallback = /*#__PURE__*/ init(function(scopeName, scope, key, version, fallback) {
-	if(!scope || !__webpack_require__.o(scope, key)) return fallback();
+	if(!scope || !<%- HAS_OWN_PROPERTY %>(scope, key)) return fallback();
 	return getSingletonVersion(scope, scopeName, key, version);
 });
 var loadStrictVersionCheckFallback = /*#__PURE__*/ init(function(scopeName, scope, key, version, fallback) {
-	var entry = scope && __webpack_require__.o(scope, key) && findValidVersion(scope, key, version);
+	var entry = scope && <%- HAS_OWN_PROPERTY %>(scope, key) && findValidVersion(scope, key, version);
 	return entry ? get(entry) : fallback();
 });
 var loadStrictSingletonVersionCheckFallback = /*#__PURE__*/ init(function(scopeName, scope, key, version, fallback) {
-	if(!scope || !__webpack_require__.o(scope, key)) return fallback();
+	if(!scope || !<%- HAS_OWN_PROPERTY %>(scope, key)) return fallback();
 	return getStrictSingletonVersion(scope, scopeName, key, version);
 });
 var resolveHandler = function(data) {
