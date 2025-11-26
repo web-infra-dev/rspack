@@ -62,10 +62,22 @@ impl ClientReferenceManifestPlugin {
       entry_js_files: Default::default(),
     };
 
-    for (resource, manifest_export) in plugin_state.client_modules.drain() {
+    println!(
+      "plugin_state.ssr_modules before drain: {:#?}",
+      plugin_state.ssr_modules
+    );
+    for (resource, client_manifest_export) in plugin_state.client_modules.drain() {
+      if let Some(ssr_manifest_export) = plugin_state.ssr_modules.remove(&resource) {
+        let mut v = FxHashMap::default();
+        v.insert("*".to_string(), ssr_manifest_export);
+        manifest
+          .ssr_module_mapping
+          .insert(client_manifest_export.id.to_string(), v);
+      }
+
       manifest
         .client_modules
-        .insert(resource.clone(), manifest_export);
+        .insert(resource, client_manifest_export);
     }
 
     let json = serde_json::to_string_pretty(&manifest).to_rspack_result()?;

@@ -7,10 +7,11 @@ use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilerAfterEmit,
-  CompilerFinishMake, Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter,
-  GroupOptions, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
+  AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilationProcessAssets,
+  CompilerAfterEmit, CompilerFinishMake, Dependency, DependencyId, EntryDependency, EntryOptions,
+  ExportsInfoGetter, GroupOptions, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
+  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
+  RuntimeSpec,
   build_module_graph::{UpdateParam, update_module_graph},
 };
 use rspack_error::Result;
@@ -85,8 +86,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilerAfterEmit for ReactServerComponentsPlugin)]
-async fn after_compile(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilationProcessAssets for ReactServerComponentsPlugin)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.ReactServerComponentsPlugin");
 
   let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
@@ -109,7 +110,10 @@ impl Plugin for ReactServerComponentsPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
-    ctx.compiler_hooks.after_emit.tap(after_compile::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
 
     ClientReferenceManifestPlugin::new().apply(ctx)?;
 
@@ -802,9 +806,10 @@ impl ReactServerComponentsPlugin {
       return;
     };
 
-    if !normal_module
-      .get_layer()
-      .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
+    if normal_module.build_info().rsc.as_ref().is_none()
+      || !normal_module
+        .get_layer()
+        .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
     {
       return;
     }
@@ -818,7 +823,7 @@ impl ReactServerComponentsPlugin {
     let mod_query = normal_module.resource_resolved_data().query().unwrap_or("");
     // query is already part of mod.resource
     // so it's only necessary to add it for matchResource or mod.resourceResolveData
-    let mod_resource = match mod_path {
+    let resource = match mod_path {
       Some(mod_path) => format!("{}{}", mod_path.as_str(), mod_query),
       None => normal_module
         .resource_resolved_data()
@@ -826,23 +831,19 @@ impl ReactServerComponentsPlugin {
         .to_string(),
     };
 
-    if mod_resource.is_empty() {
+    if resource.is_empty() {
       return;
     }
 
-    let resource_id = Path::new(&mod_resource)
-      .relative(compilaiton.options.context.as_path())
-      .to_string_lossy()
-      .to_string();
     let manifest_export = ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: vec![],
       r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
     };
-    plugin_state
-      .ssr_modules
-      .insert(resource_id, manifest_export);
+    plugin_state.ssr_modules.insert(resource, manifest_export);
+
+    println!("Recorded SSR module: {:#?}", plugin_state.ssr_modules);
   }
 
   fn traverse_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {
