@@ -319,7 +319,7 @@ impl EsmLibraryPlugin {
 
       if info.interop_namespace_object_used {
         render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({}, 2);",
+          "var {} = /*#__PURE__*/{}({}, 2);\n",
           info
             .interop_namespace_object_name
             .clone()
@@ -336,7 +336,7 @@ impl EsmLibraryPlugin {
 
       if info.interop_namespace_object2_used {
         render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({});",
+          "var {} = /*#__PURE__*/{}({});\n",
           info
             .interop_namespace_object2_name
             .clone()
