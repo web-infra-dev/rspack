@@ -38,9 +38,10 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 
 	constructor(options: ShareContainerPluginOptions) {
 		super();
-		const { shareName, library, request, independentShareFileName } = options;
+		const { shareName, library, request, independentShareFileName, mfName } =
+			options;
 		const version = options.version || "0.0.0";
-		this._globalName = encodeName(`${options.mfName}_${shareName}_${version}`);
+		this._globalName = encodeName(`${mfName}_${shareName}_${version}`);
 		const fileName = independentShareFileName || `${version}/share-entry.js`;
 		this._shareName = shareName;
 		this._options = {
@@ -49,7 +50,7 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 			library: (library
 				? { ...library, name: this._globalName }
 				: undefined) || {
-				type: "var",
+				type: "global",
 				name: this._globalName
 			},
 			version,
@@ -57,7 +58,7 @@ export class ShareContainerPlugin extends RspackBuiltinPlugin {
 		};
 	}
 	getData() {
-		return [this.name, this._globalName];
+		return [this._options.fileName, this._globalName, this._options.version];
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {

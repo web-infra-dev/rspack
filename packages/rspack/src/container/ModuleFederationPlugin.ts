@@ -229,7 +229,6 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
 	};
 }
 
-// 注入 fallback
 function getDefaultEntryRuntime(
 	paths: RuntimePaths,
 	options: ModuleFederationPluginOptions,
@@ -240,6 +239,7 @@ function getDefaultEntryRuntime(
 	const remoteInfos = getRemoteInfos(options);
 	const runtimePluginImports = [];
 	const runtimePluginVars = [];
+	const libraryType = options.library?.type || "var";
 	for (let i = 0; i < runtimePlugins.length; i++) {
 		const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
 		const pluginSpec = runtimePlugins[i];
@@ -272,6 +272,7 @@ function getDefaultEntryRuntime(
 		`const __module_federation_share_fallbacks__ = ${JSON.stringify(
 			treeshakeShareFallbacks
 		)}`,
+		`const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
 		IS_BROWSER
 			? MF_RUNTIME_CODE
 			: compiler.webpack.Template.getFunctionContent(

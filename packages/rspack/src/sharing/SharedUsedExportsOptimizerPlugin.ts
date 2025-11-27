@@ -12,7 +12,7 @@ import {
 	getFileName,
 	type ModuleFederationManifestPluginOptions
 } from "../container/ModuleFederationManifestPlugin";
-import type { SharedConfig } from "./SharePlugin";
+import type { NormalizedSharedOptions } from "./SharePlugin";
 
 type OptimizeSharedConfig = {
 	shareKey: string;
@@ -22,12 +22,12 @@ type OptimizeSharedConfig = {
 
 export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.SharedUsedExportsOptimizerPlugin;
-	private sharedOptions: [string, SharedConfig][];
+	private sharedOptions: NormalizedSharedOptions;
 	private injectUsedExports: boolean;
 	private manifestOptions: ModuleFederationManifestPluginOptions;
 
 	constructor(
-		sharedOptions: [string, SharedConfig][],
+		sharedOptions: NormalizedSharedOptions,
 		injectUsedExports?: boolean,
 		manifestOptions?: ModuleFederationManifestPluginOptions
 	) {

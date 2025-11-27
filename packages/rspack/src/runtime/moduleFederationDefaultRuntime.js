@@ -4,7 +4,8 @@ var __module_federation_bundler_runtime__,
 	__module_federation_remote_infos__,
 	__module_federation_container_name__,
 	__module_federation_share_strategy__,
-	__module_federation_share_fallbacks__;
+	__module_federation_share_fallbacks__,
+	__module_federation_library_type__;
 module.exports = function () {
 	if (
 		(__webpack_require__.initializeSharingData ||
@@ -47,13 +48,21 @@ module.exports = function () {
 		const containerShareScope =
 			__webpack_require__.initializeExposesData?.shareScope;
 
-		const shareFallbacks = __module_federation_share_fallbacks__ || {};
-
 		for (const key in __module_federation_bundler_runtime__) {
 			__webpack_require__.federation[key] =
 				__module_federation_bundler_runtime__[key];
 		}
 
+		early(
+			__webpack_require__.federation,
+			"libraryType",
+			() => __module_federation_library_type__
+		);
+		early(
+			__webpack_require__.federation,
+			"sharedFallback",
+			() => __module_federation_share_fallbacks__
+		);
 		early(
 			__webpack_require__.federation,
 			"consumesLoadingModuleToHandlerMapping",
@@ -130,18 +139,6 @@ module.exports = function () {
 							shareConfig,
 							get: factory
 						};
-						const fallbackEntry = shareFallbacks[name];
-						if (fallbackEntry) {
-							const fallbackUrl =
-								(__webpack_require__.p || "") + fallbackEntry[1];
-							options.fallbackName = fallbackEntry[0];
-							shareConfig.fallback = fallbackUrl;
-							options.fallback = function () {
-								return __webpack_require__.federation.importExternal(
-									fallbackUrl
-								);
-							};
-						}
 						if (shared[name]) {
 							shared[name].push(options);
 						} else {
@@ -295,9 +292,9 @@ module.exports = function () {
 		});
 
 		__webpack_require__.federation.instance =
-			__webpack_require__.federation.runtime.init(
-				__webpack_require__.federation.initOptions
-			);
+			__webpack_require__.federation.bundlerRuntime.init({
+				webpackRequire: __webpack_require__
+			});
 
 		if (__webpack_require__.consumesLoadingData?.initialConsumes) {
 			__webpack_require__.federation.bundlerRuntime.installInitialConsumes({

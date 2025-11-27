@@ -346,14 +346,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     self.stats_file_name.clone(),
     self.manifest_file_name.clone(),
   ];
-  dbg!(&file_names);
   for file_name in file_names {
     if let Some(file_name) = &file_name {
       if let Some(file) = compilation.assets().get(file_name) {
         if let Some(source) = file.get_source() {
           if let SourceValue::String(content) = source.source() {
             if let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content) {
-              dbg!(&content);
               let shared_referenced_exports = self
                 .shared_referenced_exports
                 .read()
@@ -388,22 +386,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  let assets = compilation.assets();
-  if let Some(manifest_file_name) = &self.manifest_file_name {
-    let manifest = assets.get(manifest_file_name);
-    if manifest.is_none() {
-      return Ok(());
-    }
-  }
-  if let Some(stats_file_name) = &self.stats_file_name {
-    let stats = assets.get(stats_file_name);
-    if stats.is_none() {
-      return Ok(());
-    }
-  }
-
-  // let manifest_name = self.
-  // let stats = compilation.assets().get()
   Ok(())
 }
 

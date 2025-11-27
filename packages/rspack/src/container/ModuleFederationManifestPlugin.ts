@@ -121,6 +121,13 @@ export function getFileName(
 } {
 	if (!manifestOptions) {
 		return {
+			statsFileName: "",
+			manifestFileName: ""
+		};
+	}
+
+	if (typeof manifestOptions === "boolean") {
+		return {
 			statsFileName: STATS_FILE_NAME,
 			manifestFileName: MANIFEST_FILE_NAME
 		};

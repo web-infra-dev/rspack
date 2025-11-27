@@ -237,8 +237,12 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptim
         .map(|config| config.into())
         .collect(),
       inject_used_exports: value.inject_used_exports.unwrap_or(true),
-      manifest_file_name: value.manifest_file_name,
-      stats_file_name: value.stats_file_name,
+      manifest_file_name: value
+        .manifest_file_name
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
+      stats_file_name: value
+        .stats_file_name
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
     }
   }
 }
