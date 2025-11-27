@@ -10,7 +10,7 @@ if (<%- SCRIPT_NONCE %>) {
   script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
 }
 <% if (_unique_prefix) { %>
-script.setAttribute("data-webpack", dataWebpackPrefix + key);
+script.setAttribute("data-rspack", uniqueName + key);
 <% } %>
 <% if (_with_fetch_priority) { %>
 if(fetchPriority) {

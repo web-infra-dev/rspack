@@ -9,7 +9,7 @@ function handleCssComposes(exports, composes) {
 	}
 }
 var loadCssChunkData = <%- _css_chunk_data %> 
-var loadingAttribute = "data-webpack-loading";
+var loadingAttribute = "data-rspack-loading";
 var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
 	var link,
 		needAttach,
@@ -26,7 +26,7 @@ var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority")
 			if (
 				l.rel == "stylesheet" &&
 				((href && href.startsWith(url)) ||
-					l.getAttribute("data-webpack") == uniqueName + ":" + key)
+					l.getAttribute("data-rspack") == uniqueName + ":" + key)
 			) {
 				link = l;
 				break;

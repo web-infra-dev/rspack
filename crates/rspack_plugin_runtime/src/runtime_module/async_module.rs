@@ -18,10 +18,6 @@ impl RuntimeModule for AsyncRuntimeModule {
     compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_queues": "__webpack_queues__",
-        "_error": "__webpack_error__",
-        "_done": "__webpack_done__",
-        "_defer": "__webpack_defer__",
         "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
       })),
     )

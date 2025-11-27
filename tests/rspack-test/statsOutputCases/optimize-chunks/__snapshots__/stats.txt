@@ -34,7 +34,7 @@ chunk {504} (runtime: main) abd.js (abd) 3 bytes <{889}> [rendered]
   ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
   ./modules/b.js [618] 1 bytes {123} {411} {504} [built] [code generated]
   ./modules/d.js [503] 1 bytes {411} {504} [built] [code generated]
-chunk {889} (runtime: main) main.js (main) 524 bytes (javascript) 7 KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
+chunk {889} (runtime: main) main.js (main) 524 bytes (javascript) xx KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
   > ./index main
   ./index.js [237] 523 bytes {889} [built] [code generated]
   ./modules/f.js [633] 1 bytes {889} [dependent] [built] [code generated]

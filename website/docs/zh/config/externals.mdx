@@ -735,7 +735,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 ```
 
 :::tip
-当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-webpack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-webpack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
+当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-rspack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-rspack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
 :::
 
 ### externalsType.this

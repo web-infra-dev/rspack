@@ -192,7 +192,10 @@ async fn render_chunk(
     let mut startup_source = vec![];
 
     startup_source.push(format!(
-      "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId); }}",
+      "var {} = function(moduleId) {{ return {}({} = moduleId); }}",
+      compilation
+        .runtime_template
+        .render_runtime_variable(&RuntimeVariable::StartupExec),
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -260,7 +263,7 @@ async fn render_chunk(
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
 
       startup_source.push(format!(
-        "{}__webpack_exec__({module_id_expr});",
+        "{}{}({module_id_expr});",
         if i + 1 == entries.len() {
           format!(
             "var {} = ",
@@ -270,7 +273,10 @@ async fn render_chunk(
           )
         } else {
           "".to_string()
-        }
+        },
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::StartupExec),
       ));
     }
 

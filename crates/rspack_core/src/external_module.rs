@@ -702,18 +702,18 @@ impl ExternalModule {
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
           r#"
-var __webpack_error__ = new Error();
+var __rspack_error = new Error();
 {export} = new Promise(function(resolve, reject) {{
 if(typeof {global} !== "undefined") return resolve();
 {load_script}({url_str}, function(event) {{
   if(typeof {global} !== "undefined") return resolve();
   var errorType = event && (event.type === 'load' ? 'missing' : event.type);
   var realSrc = event && event.target && event.target.src;
-  __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
-  __webpack_error__.name = 'ScriptExternalLoadError';
-  __webpack_error__.type = errorType;
-  __webpack_error__.request = realSrc;
-  reject(__webpack_error__);
+  __rspack_error.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
+  __rspack_error.name = 'ScriptExternalLoadError';
+  __rspack_error.type = errorType;
+  __rspack_error.request = realSrc;
+  reject(__rspack_error);
 }}, {global_str});
 }}).then(function() {{ return {global}; }});
 "#,

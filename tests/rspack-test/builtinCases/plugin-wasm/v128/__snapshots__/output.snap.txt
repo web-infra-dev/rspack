@@ -2,16 +2,16 @@
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _v128_wasm__rspack_import_0 = __webpack_require__("./v128.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_v128_wasm__rspack_import_0]);
-_v128_wasm__rspack_import_0 = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+var __rspack_async_deps = __rspack_load_async_deps([_v128_wasm__rspack_import_0]);
+_v128_wasm__rspack_import_0 = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];
 
 console.log(_v128_wasm__rspack_import_0["default"].x);
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } });
 
 },
 "./v128.wasm"(module, exports, __webpack_require__) {
