@@ -13,7 +13,7 @@ module.exports = {
 					},
 					{
 						loader: "./loader-in-worker.js",
-						parallel: 2,
+						parallel: { maxWorkers: 2 },
 						options: {}
 					}
 				]

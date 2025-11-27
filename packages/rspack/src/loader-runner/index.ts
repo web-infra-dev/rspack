@@ -144,7 +144,7 @@ export class LoaderObject {
 	pitch?: Function;
 	raw?: boolean;
 	type?: "module" | "commonjs";
-	parallel?: boolean | number;
+	parallel?: boolean | { maxWorkers?: number };
 	/**
 	 * @internal This field is rspack internal. Do not edit.
 	 */
@@ -996,9 +996,8 @@ export async function runLoaders(
 						args
 					},
 					getWorkerLoaderHandlers(),
-					typeof currentLoaderObject?.parallel === "number"
-						? // requested number of threads
-							currentLoaderObject.parallel
+					typeof currentLoaderObject?.parallel === "object"
+						? currentLoaderObject.parallel
 						: undefined
 				)) || [];
 		} else {

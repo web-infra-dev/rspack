@@ -872,7 +872,7 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
-	parallel?: boolean | number;
+	parallel?: boolean | { maxWorkers?: number };
 
 	options?: RuleSetLoaderOptions;
 };
