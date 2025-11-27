@@ -181,7 +181,15 @@ var module = ({}[moduleId] = {{"#,
     }
 
     if need_module_defer {
-      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+      sources.push(
+        format!(
+          "exports: {}[moduleId] || {{}}",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::DeferredExports)
+        )
+        .into(),
+      );
     } else {
       sources.push("exports: {}".into());
     }
@@ -240,14 +248,30 @@ var module = ({}[moduleId] = {{"#,
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push(
+          format!(
+            "delete {}[moduleId];",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::DeferredExports)
+          )
+          .into(),
+        );
       }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push(
+          format!(
+            "delete {}[moduleId];",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::DeferredExports)
+          )
+          .into(),
+        );
       }
     }
 
@@ -315,7 +339,11 @@ var module = ({}[moduleId] = {{"#,
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
       header.push(
-        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
+        format!(
+          "// The deferred module cache\nvar {} = {{}};\n",
+          runtime_template.render_runtime_variable(&RuntimeVariable::DeferredExports)
+        )
+        .into(),
       );
     }
 

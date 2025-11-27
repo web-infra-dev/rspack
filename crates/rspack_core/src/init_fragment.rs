@@ -441,7 +441,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = self.promises.front().expect("at least have one");
       Ok(InitFragmentContents {
         start: format!(
-          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n{sep} = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];"
+          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n{sep} = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];"
         ),
         end: None,
       })
@@ -449,7 +449,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
         start: format!(
-          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n([{sep}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
+          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n([{sep}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);"
         ),
         end: None,
       })

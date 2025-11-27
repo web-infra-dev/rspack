@@ -6,7 +6,7 @@ if (<%- SCRIPT_NONCE %>) {
   link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
 }
 <% if (_unique_name != "") { %>
-link.setAttribute("data-webpack", uniqueName + ":" + key);
+link.setAttribute("data-rspack", uniqueName + ":" + key);
 <% } %>
 <% if (_with_fetch_priority) { %>
 if (fetchPriority) {

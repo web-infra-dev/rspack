@@ -230,7 +230,10 @@ pub fn generate_entry_startup(
 
   let mut source = String::default();
   source.push_str(&format!(
-    "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId) }}\n",
+    "var {} = function(moduleId) {{ return {}({} = moduleId) }}\n",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::StartupExec),
     compilation
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -245,7 +248,14 @@ pub fn generate_entry_startup(
 
   let module_ids_code = &module_id_exprs
     .iter()
-    .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
+    .map(|module_id_expr| {
+      format!(
+        "{}({module_id_expr})",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::StartupExec)
+      )
+    })
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {
