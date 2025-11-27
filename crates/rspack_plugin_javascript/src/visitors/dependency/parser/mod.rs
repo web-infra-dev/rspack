@@ -26,7 +26,7 @@ use rspack_core::{
   SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -225,7 +225,7 @@ pub struct DestructuringAssignmentProperty {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DestructuringAssignmentProperties {
   #[cacheable(with=AsVec<AsCacheable>)]
-  inner: FxHashSet<DestructuringAssignmentProperty>,
+  inner: FxIndexSet<DestructuringAssignmentProperty>,
 }
 
 impl Hash for DestructuringAssignmentProperties {
@@ -237,7 +237,7 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxHashSet<DestructuringAssignmentProperty>) -> Self {
+  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
     Self { inner: properties }
   }
 
