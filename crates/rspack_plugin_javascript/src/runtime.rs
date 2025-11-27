@@ -154,6 +154,18 @@ pub async fn render_module(
     }
   };
 
+  /*
+  If supports method shorthand, render function factory as:
+  "./module.js"(module) { code }
+  Otherwise render as:
+  "./module.js": (function(module) { code })
+  */
+  let use_method_shorthand = compilation
+    .options
+    .output
+    .environment
+    .supports_method_shorthand();
+
   hooks
     .render_module_content
     .call(
@@ -173,7 +185,6 @@ pub async fn render_module(
     sources.add(RawStringSource::from(
       serde_json::to_string(&module_id).to_rspack_result()?,
     ));
-    sources.add(RawStringSource::from_static(": "));
 
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
@@ -220,16 +231,24 @@ pub async fn render_module(
 
       let mut container_sources = ConcatSource::default();
 
-      container_sources.add(RawStringSource::from(format!(
-        "(function ({}) {{\n",
-        args.join(", ")
-      )));
+      if use_method_shorthand {
+        container_sources.add(RawStringSource::from(format!("({}) {{\n", args.join(", "))));
+      } else {
+        container_sources.add(RawStringSource::from(format!(
+          ": (function ({}) {{\n",
+          args.join(", ")
+        )));
+      }
       if module.build_info().strict && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
       container_sources.add(render_source.source);
-      container_sources.add(RawStringSource::from_static("\n\n})"));
-      container_sources.add(RawStringSource::from_static(",\n"));
+
+      if use_method_shorthand {
+        container_sources.add(RawStringSource::from_static("\n\n},\n"));
+      } else {
+        container_sources.add(RawStringSource::from_static("\n\n}),\n"));
+      }
 
       RenderSource {
         source: container_sources.boxed(),

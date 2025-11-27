@@ -1,7 +1,7 @@
 import * as __rspack_external_externals1 from "externals1";
 import * as __rspack_external_externals0 from "externals0";
 var __webpack_modules__ = ({
-"./bar.js": (function () {
+"./bar.js"() {
 
 ;// CONCATENATED MODULE: external "externals0"
 
@@ -9,23 +9,23 @@ var __webpack_modules__ = ({
 
 __rspack_external_externals0.v;
 
-}),
-"./entry.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./entry.js"(module, __unused_webpack_exports, __webpack_require__) {
 module.exports.entry1 = __webpack_require__("./entry1.js")
 module.exports.entry2 = __webpack_require__("./entry2.js")
 
-}),
-"./entry1.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./entry1.js"(module, __unused_webpack_exports, __webpack_require__) {
 module.exports = __webpack_require__("./foo.js")
 module.exports.name = "entry1"
 
-}),
-"./entry2.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./entry2.js"(module, __unused_webpack_exports, __webpack_require__) {
 module.exports = __webpack_require__("./bar.js")
 module.exports.name = "entry2"
 
-}),
-"./foo.js": (function () {
+},
+"./foo.js"() {
 
 ;// CONCATENATED MODULE: external "externals1"
 
@@ -33,7 +33,7 @@ module.exports.name = "entry2"
 
 __rspack_external_externals1.v;
 
-}),
+},
 
 });
 // The module cache

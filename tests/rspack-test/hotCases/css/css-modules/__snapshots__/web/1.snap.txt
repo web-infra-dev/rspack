@@ -8,8 +8,8 @@
 - Bundle: bundle.js
 - Bundle: style2_module_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 48
-- Update: main.LAST_HASH.hot-update.js, size: 725
-- Update: style2_module_css.LAST_HASH.hot-update.js, size: 593
+- Update: main.LAST_HASH.hot-update.js, size: 712
+- Update: style2_module_css.LAST_HASH.hot-update.js, size: 580
 
 ## Manifest
 
@@ -35,7 +35,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./style.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./style.module.css"(module, __unused_webpack_exports, __webpack_require__) {
 var exports = {
   "class-other": "_style_module_css-class-other",
 };
@@ -50,7 +50,7 @@ module.hot.dispose(function(data) { data.exports = stringified_exports; });
 __webpack_require__.r(module.exports = exports);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -76,7 +76,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("style2_module_css", {
-"./style2.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./style2.module.css"(module, __unused_webpack_exports, __webpack_require__) {
 var exports = {
   "bar": "_style2_module_css-bar",
 };
@@ -91,7 +91,7 @@ module.hot.dispose(function(data) { data.exports = stringified_exports; });
 __webpack_require__.r(module.exports = exports);
 
 
-}),
+},
 
 });
 ```

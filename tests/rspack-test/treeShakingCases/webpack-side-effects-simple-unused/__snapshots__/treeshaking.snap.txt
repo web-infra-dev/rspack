@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"../node_modules/pmodule/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"../node_modules/pmodule/b.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   x: () => (x)
 });
@@ -16,8 +16,8 @@ var y = "y";
 (0,_tracker__rspack_import_0.track)("b.js");
 
 
-}),
-"../node_modules/pmodule/c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"../node_modules/pmodule/c.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   z: () => (z)
 });
@@ -30,8 +30,8 @@ var z = "z";
 (0,_tracker__rspack_import_0.track)("c.js");
 
 
-}),
-"../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"../node_modules/pmodule/index.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
@@ -45,8 +45,8 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __rspack_default_export = ("def");
 
 
-}),
-"../node_modules/pmodule/tracker.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"../node_modules/pmodule/tracker.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   log: () => (log),
   track: () => (track)
@@ -63,8 +63,8 @@ function reset() {
 }
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var pmodule_tracker__rspack_import_3 = __webpack_require__("../node_modules/pmodule/tracker.js");
 /* import */ var pmodule__rspack_import_1 = __webpack_require__("../node_modules/pmodule/b.js");
 /* import */ var pmodule__rspack_import_2 = __webpack_require__("../node_modules/pmodule/c.js");
@@ -79,7 +79,7 @@ pmodule__rspack_import_2.z.should.be.eql("z");
 pmodule_tracker__rspack_import_3.log.should.be.eql(["b.js", "c.js", "index.js"]);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

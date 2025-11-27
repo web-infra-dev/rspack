@@ -21,7 +21,7 @@
 
 2 chunks:
   asset bundle2.js xx KiB [emitted] (name: main)
-  asset 907.bundle2.js 548 bytes [emitted] (name: c)
+  asset 907.bundle2.js 496 bytes [emitted] (name: c)
   chunk (runtime: main) bundle2.js (main) 261 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
     ./.|sync 160 bytes [dependent] [built] [code generated]
     ./index.js 101 bytes [built] [code generated] [1 warning]
@@ -45,8 +45,8 @@
 
 3 chunks:
   asset bundle3.js xx KiB [emitted] (name: main)
-  asset 907.bundle3.js 386 bytes [emitted] (name: c)
-  asset 874.bundle3.js 236 bytes [emitted]
+  asset 907.bundle3.js 373 bytes [emitted] (name: c)
+  asset 874.bundle3.js 197 bytes [emitted]
   chunk (runtime: main) 874.bundle3.js 66 bytes <{889}> <{907}> [rendered]
     ./a.js 22 bytes [built] [code generated]
     ./d.js 22 bytes [built] [code generated]
@@ -70,9 +70,9 @@
 
 4 chunks:
   asset bundle4.js xx KiB [emitted] (name: main)
-  asset 907.bundle4.js 386 bytes [emitted] (name: c)
-  asset 719.bundle4.js 182 bytes [emitted]
-  asset 267.bundle4.js 128 bytes [emitted]
+  asset 907.bundle4.js 373 bytes [emitted] (name: c)
+  asset 719.bundle4.js 156 bytes [emitted]
+  asset 267.bundle4.js 115 bytes [emitted]
   chunk (runtime: main) 267.bundle4.js 22 bytes <{889}> [rendered]
     ./a.js 22 bytes [built] [code generated]
   chunk (runtime: main) 719.bundle4.js 44 bytes <{907}> [rendered]

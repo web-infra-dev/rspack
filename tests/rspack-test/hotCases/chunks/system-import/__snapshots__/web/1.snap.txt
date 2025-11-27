@@ -9,8 +9,8 @@
 - Bundle: chunk2_js.chunk.CURRENT_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
-- Update: chunk2_js.LAST_HASH.hot-update.js, size: 519
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 518
+- Update: chunk2_js.LAST_HASH.hot-update.js, size: 493
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 492
 - Update: main.LAST_HASH.hot-update.js, size: 182
 
 ## Manifest
@@ -38,7 +38,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("chunk2_js", {
-"./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -46,8 +46,8 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 2;
 
 
-}),
-"./file2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./file2.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -55,7 +55,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 4;
 
 
-}),
+},
 
 });
 ```
@@ -75,7 +75,7 @@ var value = 4;
 ```js
 "use strict";
 self["webpackHotUpdate"]("chunk_js", {
-"./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -83,8 +83,8 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 2;
 
 
-}),
-"./file2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./file2.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -92,7 +92,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 4;
 
 
-}),
+},
 
 });
 ```

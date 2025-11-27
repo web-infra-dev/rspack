@@ -76,6 +76,8 @@ export type EcmaTargetProperties = {
 	bigIntLiteral: boolean | null;
 	/**  const and let variable declarations are available */
 	const: boolean | null;
+	/**  method shorthand in object is available  */
+	methodShorthand: boolean | null;
 	/**  arrow functions are available */
 	arrowFunction: boolean | null;
 	/**  for of iteration is available */
@@ -243,6 +245,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 				const: v(6),
 				templateLiteral: v(4),
 				optionalChaining: v(14),
+				methodShorthand: v(4),
 				arrowFunction: v(6),
 				asyncFunction: v(7, 6),
 				forOf: v(5),
@@ -289,6 +292,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 				const: v(1, 1),
 				templateLiteral: v(1, 1),
 				optionalChaining: v(8),
+				methodShorthand: v(1, 1),
 				arrowFunction: v(1, 1),
 				asyncFunction: v(1, 7),
 				forOf: v(0, 36),
@@ -327,6 +331,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 				const: v(0, 15),
 				templateLiteral: v(0, 13),
 				optionalChaining: v(0, 44),
+				methodShorthand: v(0, 15),
 				arrowFunction: v(0, 15),
 				asyncFunction: v(0, 21),
 				forOf: v(0, 13),
@@ -349,6 +354,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 				const: v >= 2015,
 				templateLiteral: v >= 2015,
 				optionalChaining: v >= 2020,
+				methodShorthand: v >= 2015,
 				arrowFunction: v >= 2015,
 				forOf: v >= 2015,
 				destructuring: v >= 2015,

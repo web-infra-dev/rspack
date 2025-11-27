@@ -1,16 +1,16 @@
 ```js title=main.js
 (() => {
 var __webpack_modules__ = ({
-"../../normalModuleFactory​#afterResolve/resource/a.js": (function (module) {
+"../../normalModuleFactory​#afterResolve/resource/a.js"(module) {
 module.exports = "a";
 
 
-}),
-"../../normalModuleFactory​#afterResolve/resource/b.js": (function (module) {
+},
+"../../normalModuleFactory​#afterResolve/resource/b.js"(module) {
 module.exports = "c";
 
 
-}),
+},
 
 });
 // The module cache

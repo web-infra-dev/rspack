@@ -519,6 +519,7 @@ pub struct LibraryCustomUmdObject {
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: Option<bool>,
+  pub method_shorthand: Option<bool>,
   pub arrow_function: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
   pub async_function: Option<bool>,
@@ -537,6 +538,10 @@ pub struct Environment {
 impl Environment {
   pub fn supports_const(&self) -> bool {
     self.r#const.unwrap_or_default()
+  }
+
+  pub fn supports_method_shorthand(&self) -> bool {
+    self.method_shorthand.unwrap_or_default()
   }
 
   pub fn supports_arrow_function(&self) -> bool {

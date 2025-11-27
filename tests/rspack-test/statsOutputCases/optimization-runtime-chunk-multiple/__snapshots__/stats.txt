@@ -1,5 +1,5 @@
-Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js 395 bytes
-Entrypoint e2 xx KiB = runtime~e2.js xx KiB e2.js 395 bytes
+Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js 382 bytes
+Entrypoint e2 xx KiB = runtime~e2.js xx KiB e2.js 382 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e2) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) xx KiB [initial] [rendered]

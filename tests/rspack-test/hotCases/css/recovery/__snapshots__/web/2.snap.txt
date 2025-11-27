@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6746
+- Update: main.hot-update.js, size: 6720
 
 ## Manifest
 
@@ -33,7 +33,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"../../../../../../../../packages/rspack/dist/cssExtractHmr.js": (function (__unused_webpack_module, exports) {
+"../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_webpack_module, exports) {
 
 var __nested_webpack_require_18_37__ = {};
 __nested_webpack_require_18_37__.d = (exports1, definition)=>{
@@ -160,8 +160,8 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 
 
-}),
-"./index.css": (function (module, __webpack_exports__, __webpack_require__) {
+},
+"./index.css"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -187,7 +187,7 @@ __webpack_require__.r(__webpack_exports__);
     }
   
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

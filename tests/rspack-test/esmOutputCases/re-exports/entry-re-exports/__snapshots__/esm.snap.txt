@@ -1,15 +1,15 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.js": 
+"./bar.js"
 /*!****************!*\
   !*** ./bar.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
+(__unused_webpack_module, exports) {
 exports.bar = 2
 
 
-}),
+},
 });
 // ./foo.js
 const foo_foo = 1

@@ -5,14 +5,14 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./asset.js": 
+"./asset.js"
 /*!******************!*\
   !*** ./asset.js ***!
   \******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_webpack_exports, __webpack_require__) {
 module.exports = __webpack_require__.p + "ef46db3751d8e999.js";
 
-}),
+},
 });
 // ./index.js
 

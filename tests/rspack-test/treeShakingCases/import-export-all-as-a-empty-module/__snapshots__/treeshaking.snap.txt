@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
   aaa: () => (/* reexport module object */ _app__rspack_import_0),
@@ -18,16 +18,16 @@ const routes = {
 };
 
 
-}),
-"./answer.js": (function () {
+},
+"./answer.js"() {
 
 
-}),
-"./app.js": (function () {
+},
+"./app.js"() {
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 "use strict";
 /* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
 
@@ -35,7 +35,7 @@ _a_js__rspack_import_0.routes;
 _a_js__rspack_import_0.aaa.result;
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

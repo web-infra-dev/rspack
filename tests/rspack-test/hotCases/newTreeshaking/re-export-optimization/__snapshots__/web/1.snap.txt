@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1013
+- Update: main.LAST_HASH.hot-update.js, size: 987
 
 ## Manifest
 
@@ -33,7 +33,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./bar.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -41,8 +41,8 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __rspack_default_export = ('bar');
 
 
-}),
-"./entry.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./entry.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -53,7 +53,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __rspack_default_export = (_reexport__rspack_import_0["default"] + _reexport__rspack_import_1["default"]);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

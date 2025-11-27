@@ -17,5 +17,5 @@ it("should inline enum if there is no usage of non-statical defined (no usage of
   expect(block.includes(`(/* inlined export .InlineableKind.A */ (0)).toBe(0)`)).toBe(true);
   expect(block.includes(`(/* inlined export .InlineableKind.B */ (1)).toBe(1)`)).toBe(true);
   const inlinedModuleId = "./inlineable-enum.ts";
-  expect(generated.includes(`"${inlinedModuleId}": (function`)).toBe(false);
+  expect(generated.includes(`"${inlinedModuleId}"(`)).toBe(false);
 })

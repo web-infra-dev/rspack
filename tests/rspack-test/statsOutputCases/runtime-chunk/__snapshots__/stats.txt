@@ -1,3 +1,3 @@
-Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js 395 bytes
-Entrypoint e2 xx KiB = runtime~e2.js xx KiB e2.js 395 bytes
+Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js 382 bytes
+Entrypoint e2 xx KiB = runtime~e2.js xx KiB e2.js 382 bytes
 Rspack x.x.x compiled successfully
