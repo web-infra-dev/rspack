@@ -15,9 +15,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 815
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 566
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 566
+- Update: shared.LAST_HASH.hot-update.js, size: 653
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 488
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 488
 
 ## Manifest
 
@@ -83,11 +83,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("shared", {
-"./moduleAs.js": 
-/*!*********************!*\
-  !*** ./moduleAs.js ***!
-  \*********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleAs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -96,11 +92,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./moduleBs.js": 
-/*!*********************!*\
-  !*** ./moduleBs.js ***!
-  \*********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleBs.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -127,11 +119,7 @@ __webpack_require__.d(__webpack_exports__, {
 ```js
 "use strict";
 self["webpackHotUpdate"]("workerA_js", {
-"./moduleA.js": 
-/*!********************!*\
-  !*** ./moduleA.js ***!
-  \********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleA.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -165,11 +153,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("workerB_js", {
-"./moduleB.js": 
-/*!********************!*\
-  !*** ./moduleB.js ***!
-  \********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

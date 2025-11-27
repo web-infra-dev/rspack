@@ -8,7 +8,7 @@
 - Bundle: thing_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: thing_js.LAST_HASH.hot-update.js, size: 425
+- Update: thing_js.LAST_HASH.hot-update.js, size: 353
 
 ## Manifest
 
@@ -57,11 +57,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("thing_js", {
-"./thing.js": 
-/*!******************!*\
-  !*** ./thing.js ***!
-  \******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./thing.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

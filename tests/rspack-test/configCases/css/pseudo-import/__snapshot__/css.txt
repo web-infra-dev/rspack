@@ -1,12 +1,5 @@
 Array [
-  /*!***************************!*\
-  !*** ./style.modules.css ***!
-  \***************************/
-
-
-
-
-._style_modules_css-class {
+  ._style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }
@@ -55,14 +48,7 @@ Array [
 
 	unknown: unknown;
 },
-  /*!***************************!*\
-  !*** ./style.modules.css ***!
-  \***************************/
-
-
-
-
-._style_modules_css-class {
+  ._style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }
@@ -111,14 +97,7 @@ Array [
 
 	unknown: unknown;
 },
-  /*!***************************!*\
-  !*** ./style.modules.css ***!
-  \***************************/
-
-
-
-
-._style_modules_css-class {
+  ._style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }

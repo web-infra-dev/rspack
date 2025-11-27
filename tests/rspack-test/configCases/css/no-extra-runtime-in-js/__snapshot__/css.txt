@@ -1,8 +1,5 @@
 Array [
-  /*!*******************!*\
-  !*** ./style.css ***!
-  \*******************/
-.class {
+  .class {
 	color: red;
 	background:
 		url(img.png),
@@ -30,10 +27,7 @@ Array [
 .class-5 {
 	background: url(1237b02e54ad8fd3.png);
 },
-  /*!*******************!*\
-  !*** ./style.css ***!
-  \*******************/
-.class {
+  .class {
 	color: red;
 	background:
 		url(img.png),

@@ -8,8 +8,8 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
-- Update: file_js.LAST_HASH.hot-update.js, size: 475
-- Update: main.LAST_HASH.hot-update.js, size: 753
+- Update: file_js.LAST_HASH.hot-update.js, size: 395
+- Update: main.LAST_HASH.hot-update.js, size: 666
 
 ## Manifest
 
@@ -35,16 +35,12 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("file_js", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Vue: () => (/* reexport safe */ vue__rspack_import_0.Vue)
 });
-/* import */ var vue__rspack_import_0 = __webpack_require__(/*! vue */ "./node_modules/vue.js");
+/* import */ var vue__rspack_import_0 = __webpack_require__("./node_modules/vue.js");
 
 
 
@@ -67,17 +63,13 @@ __webpack_require__.d(__webpack_exports__, {
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./chunk.js": 
-/*!******************!*\
-  !*** ./chunk.js ***!
-  \******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: () => (test)
 });
 function test(count) {
-  return Promise.all(/*! import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */ "./file.js")).then(({ React, Vue }) => count === 0 ? React : Vue)
+  return Promise.all(/* import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, "./file.js")).then(({ React, Vue }) => count === 0 ? React : Vue)
 }
 
 
