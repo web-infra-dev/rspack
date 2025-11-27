@@ -44,20 +44,12 @@ impl ClientEntryLoader {
 
 fn parse_client_entry(object: &BorrowedValue) -> Option<ClientEntry> {
   let object = object.as_object()?;
-
   let request = object.get("request")?.as_str()?.to_string();
-
   let ids_array = object.get("ids")?.try_as_array().ok()?;
-
   let ids = ids_array
     .iter()
     .filter_map(|id_value| id_value.as_str().map(String::from))
     .collect::<Vec<String>>();
-
-  if ids.is_empty() {
-    return None;
-  }
-
   Some(ClientEntry { request, ids })
 }
 
@@ -101,9 +93,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
           }
         }
       } else if k == "server" {
-        let mut bytes = v.to_string().into_bytes();
-        let borrowed_value = simd_json::to_borrowed_value(&mut bytes).unwrap();
-        if borrowed_value.as_bool().unwrap_or(false) {
+        if v == "true" {
           is_server = true;
         }
       }
@@ -124,13 +114,25 @@ impl Loader<RunnerContext> for ClientEntryLoader {
         // If we have '*' in the ids, we include all the imports
         let import_path = simd_json::to_string(&client_component.request).unwrap();
         if client_component.ids.len() == 0 || client_component.ids.iter().any(|id| id == "*") {
-          format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
+          if is_server {
+            format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
+          } else {
+            format!("import({});\n", import_path)
+          }
         } else {
           let webpack_exports = simd_json::to_string(&client_component.ids).unwrap();
-          format!(
-            "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
-            webpack_exports, import_path
-          )
+
+          if is_server {
+            format!(
+              "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
+              webpack_exports, import_path
+            )
+          } else {
+            format!(
+              "import(/* webpackExports: {} */ {});\n",
+              webpack_exports, import_path
+            )
+          }
         }
       })
       .collect::<Vec<String>>()

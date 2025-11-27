@@ -62,6 +62,7 @@ pub enum ClientEntryType {
   Auto,
 }
 
+// TODO: 重构为枚举
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RSCMeta {
@@ -70,7 +71,6 @@ pub struct RSCMeta {
   pub client_refs: Vec<Wtf8Atom>,
   pub client_entry_type: Option<ClientEntryType>,
   pub action_ids: Option<HashMap<Arc<str>, Arc<str>>>,
-  pub is_client_ref: bool,
 }
 
 #[cacheable]

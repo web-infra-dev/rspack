@@ -1,18 +1,13 @@
-use std::{
-  path::Path,
-  sync::{Arc, LazyLock, Mutex},
-};
+use std::sync::{Arc, LazyLock};
 
 use derive_more::Debug;
 use regex::Regex;
-use rspack_collections::{Identifiable, IdentifierSet};
+use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ClientEntryType, Compilation, CompilationProcessAssets,
-  CompilerAfterEmit, CompilerFinishMake, Dependency, DependencyId, EntryDependency, EntryOptions,
-  ExportsInfoGetter, GroupOptions, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
-  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
-  RuntimeSpec,
-  build_module_graph::{UpdateParam, update_module_graph},
+  BoxDependency, ClientEntryType, Compilation, CompilationProcessAssets, CompilerFinishMake,
+  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
+  ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType, Plugin,
+  PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -22,21 +17,20 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
-use sugar_path::SugarPath;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   ClientReferenceManifestPlugin,
   client_compiler_handle::ClientCompilerHandle,
   client_reference_manifest::ManifestExport,
-  constants::LAYERS_NAMES,
+  constants::{LAYERS_NAMES, REGEX_CSS},
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::{ChunkModules, EntryModules},
 };
 
 /// { [client import path]: [exported names] }
 pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
-pub type CssImports = FxHashMap<String, Vec<String>>;
+pub type CssImports = FxHashMap<String, FxHashSet<String>>;
 
 type ActionIdNamePair = (Arc<str>, Arc<str>);
 
@@ -302,21 +296,12 @@ impl ReactServerPlugin {
         let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
           continue;
         };
-        let Some(dependency) = module_graph.dependency_by_id(&dependency_id) else {
-          continue;
-        };
-        let Some(dependency) = dependency.as_module_dependency() else {
-          continue;
-        };
-        // Entry can be any user defined entry files such as layout, page, error, loading, etc.
-        let entry_request = dependency.request();
-
         let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
         else {
           continue;
         };
         let component_info = self.collect_component_info_from_server_entry_dependency(
-          &entry_request,
+          &entry_name,
           runtime.as_ref(),
           &compilation,
           resolved_module.as_ref(),
@@ -343,18 +328,14 @@ impl ReactServerPlugin {
           .entry(compilation.compiler_id())
           .or_insert(PluginState::default());
 
-        // Make sure CSS imports are deduplicated before injecting the client entry
-        // and SSR modules.
-        // let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
+        // TODO: deduplicate CSS Imports for depend on
         for mut client_entry_to_inject in client_entries_to_inject {
           let client_imports = &mut client_entry_to_inject.client_imports;
-          // if let Some(css_imports) =
-          //   deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
-          // {
-          //   for curr in css_imports {
-          //     client_imports.insert(curr.clone(), HashSet::default());
-          //   }
-          // }
+          if let Some(css_imports) = merged_css_imports.get(&client_entry_to_inject.entry_name) {
+            for css_import in css_imports {
+              client_imports.insert(css_import.clone(), FxHashSet::default());
+            }
+          }
 
           let entry_name = client_entry_to_inject.entry_name.to_string();
           let injected = self
@@ -530,7 +511,7 @@ impl ReactServerPlugin {
 
   fn collect_component_info_from_server_entry_dependency(
     &self,
-    entry_request: &str,
+    entry_name: &str,
     runtime: Option<&RuntimeSpec>,
     compilation: &Compilation,
     resolved_module: &dyn Module,
@@ -556,7 +537,7 @@ impl ReactServerPlugin {
     );
 
     let mut css_imports_map: CssImports = Default::default();
-    css_imports_map.insert(entry_request.to_string(), css_imports.into_iter().collect());
+    css_imports_map.insert(entry_name.to_string(), css_imports);
 
     ComponentInfo {
       css_imports: css_imports_map,
@@ -710,19 +691,16 @@ impl ReactServerPlugin {
       })
       .collect();
 
-    // modules.sort_unstable_by(|a, b| {
-    //   let a_is_css = REGEX_CSS.is_match(&a.0);
-    //   let b_is_css = REGEX_CSS.is_match(&b.0);
-    //   match (a_is_css, b_is_css) {
-    //     (false, true) => Ordering::Less,
-    //     (true, false) => Ordering::Greater,
-    //     (_, _) => a.0.cmp(&b.0),
-    //   }
-    // });
+    modules.sort_unstable_by(|a, b| {
+      let a_is_css = REGEX_CSS.is_match(&a.0);
+      let b_is_css = REGEX_CSS.is_match(&b.0);
+      match (a_is_css, b_is_css) {
+        (false, true) => std::cmp::Ordering::Less,
+        (true, false) => std::cmp::Ordering::Greater,
+        (_, _) => a.0.cmp(&b.0),
+      }
+    });
 
-    // For the client entry, we always use the CJS build of Next.js. If the
-    // server is using the ESM build (when using the Edge runtime), we need to
-    // replace them.
     let client_browser_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       for (request, ids) in &modules {

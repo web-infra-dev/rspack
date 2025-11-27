@@ -139,7 +139,6 @@ impl ReactServerComponents<'_> {
         Some(ClientEntryType::Auto)
       },
       action_ids: None,
-      is_client_ref: true,
     });
   }
 }
