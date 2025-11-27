@@ -814,7 +814,9 @@ impl ESMExportImportedSpecifierDependency {
               compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              exports_name
+              compilation
+                .runtime_template
+                .render_exports_argument(exports_name),
             ),
             if is_async {
               InitFragmentStage::StageAsyncESMImports
@@ -976,7 +978,9 @@ impl ESMExportImportedSpecifierDependency {
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-      exports_name,
+      compilation
+        .runtime_template
+        .render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
       return_value
     )

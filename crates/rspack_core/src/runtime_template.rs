@@ -17,10 +17,12 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoGetter, ExportsType,
   FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
-  NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists, contextify,
-  property_access, runtime_globals::runtime_globals_to_string, to_comment, to_normal_comment,
+  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
+  ModuleIdentifier, NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists,
+  contextify, property_access,
+  runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
+  to_comment, to_normal_comment,
 };
 
 pub struct RuntimeTemplate {
@@ -224,6 +226,10 @@ impl RuntimeTemplate {
 
   pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
     runtime_globals_to_string(runtime_globals, &self.compiler_options)
+  }
+
+  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
+    runtime_variable_to_string(runtime_variable, &self.compiler_options)
   }
 }
 
@@ -1155,8 +1161,22 @@ impl RuntimeTemplate {
     format!(
       "{}({});\n",
       self.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-      exports_argument
+      self.render_exports_argument(exports_argument)
     )
+  }
+
+  pub fn render_exports_argument(&self, exports_argument: ExportsArgument) -> String {
+    match exports_argument {
+      ExportsArgument::Exports => "exports".to_string(),
+      ExportsArgument::RspackExports => self.render_runtime_variable(&RuntimeVariable::Exports),
+    }
+  }
+
+  pub fn render_module_argument(&self, module_argument: ModuleArgument) -> String {
+    match module_argument {
+      ModuleArgument::Module => "module".to_string(),
+      ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
+    }
   }
 
   pub fn get_property_accessed_deferred_module(

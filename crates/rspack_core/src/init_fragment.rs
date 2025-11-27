@@ -390,7 +390,9 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
         context
           .runtime_template()
           .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        self.exports_argument,
+        context
+          .runtime_template()
+          .render_exports_argument(self.exports_argument),
         exports
       ),
       end: None,

@@ -5,8 +5,8 @@ import { value } from "./module-module_js.mjs";
 var __webpack_require__ = {};
 
 // webpack/runtime/export_webpack_require
-var __webpack_require_temp__ = __webpack_require__;
-export { __webpack_require_temp__ as __webpack_require__ };
+var __webpack_require__temp = __webpack_require__;
+export { __webpack_require__temp as __webpack_require__ };
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))

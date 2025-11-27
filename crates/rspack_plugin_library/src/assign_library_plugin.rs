@@ -8,7 +8,7 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeGlobals, RuntimeVariable, SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -263,12 +263,18 @@ async fn render_startup(
     .export
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
     let exports_info =
       module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
+    let exports_name = compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::Exports);
     for (_, export_info) in exports_info.exports() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
@@ -277,14 +283,14 @@ async fn render_startup(
       provided.push(export_info_name.clone());
       let name_access = property_access([export_info_name], 0);
       source.add(RawStringSource::from(format!(
-        "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n"
+        "{export_target}{name_access} = {exports_name}{export_access}{name_access};\n"
       )));
     }
 
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var __webpack_exports_export__ = {exports_name}{export_access};\n"
       )));
       exports = "__webpack_exports_export__";
     }
@@ -320,10 +326,10 @@ async fn render_startup(
       "var __webpack_export_target__ = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var __webpack_exports_export__ = {exports_name}{export_access};\n"
       )));
       exports = "__webpack_exports_export__";
     }
@@ -335,7 +341,7 @@ async fn render_startup(
     )));
   } else {
     source.add(RawStringSource::from(format!(
-      "{} = __webpack_exports__{export_access};\n",
+      "{} = {exports_name}{export_access};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), false)
     )));
   }
