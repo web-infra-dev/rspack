@@ -7,7 +7,7 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, ChunkGraph, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkGraph, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
@@ -93,7 +93,11 @@ async fn render_chunk_content(
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
@@ -112,7 +116,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         "module {module_identifier} has bailout reason: {reason}",
       ));
       should_scope_hoisting = false;
-    } else if ModuleGraph::is_async(compilation, module_identifier) {
+    } else if ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
     }

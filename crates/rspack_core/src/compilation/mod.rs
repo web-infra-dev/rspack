@@ -46,14 +46,14 @@ use crate::{
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
   ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType, Entry,
-  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef,
-  ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory,
-  RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap,
-  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
-  ValueCacheVersions,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DerefOption, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial,
+  ModuleGraphRef, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -74,7 +74,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -246,9 +246,9 @@ pub struct Compilation {
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: AsyncModulesArtifact,
+  pub async_modules_artifact: DerefOption<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DependenciesDiagnosticsArtifact,
+  pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: SideEffectsOptimizeArtifact,
   // artifact for module_ids
@@ -298,7 +298,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: BuildModuleGraphArtifact,
+  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -385,9 +385,11 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
-      async_modules_artifact: Default::default(),
+      async_modules_artifact: DerefOption::new(AsyncModulesArtifact::default()),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: Default::default(),
+      dependencies_diagnostics_artifact: DerefOption::new(
+        DependenciesDiagnosticsArtifact::default(),
+      ),
       side_effects_optimize_artifact: Default::default(),
       module_ids_artifact: Default::default(),
       chunk_ids_artifact: Default::default(),
@@ -425,7 +427,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: Default::default(),
+      build_module_graph_artifact: BuildModuleGraphArtifact::default().into(),
       modified_files,
       removed_files,
       input_filesystem,
@@ -452,7 +454,7 @@ impl Compilation {
     );
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    std::mem::swap(&mut self.build_module_graph_artifact, make_artifact);
+    self.build_module_graph_artifact.swap(make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
@@ -687,7 +689,7 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -701,7 +703,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
 
     Ok(())
   }
@@ -735,7 +738,7 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -749,7 +752,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
 
     Ok(())
   }
@@ -1046,8 +1050,8 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
+    let artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = build_module_graph(self, artifact).await?.into();
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1059,7 +1063,7 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let artifact = self.build_module_graph_artifact.take();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
@@ -1069,7 +1073,8 @@ impl Compilation {
       artifact,
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
-    .await?;
+    .await?
+    .into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1464,8 +1469,8 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?.into();
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1477,7 +1482,11 @@ impl Compilation {
   }
   // collect build module graph effects for incremental compilation
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
-  pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
+  pub async fn collect_build_module_graph_effects(
+    &mut self,
+    dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+  ) -> Result<Vec<Diagnostic>> {
     let logger = self.get_logger("rspack.Compilation");
     if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
@@ -1520,13 +1529,12 @@ impl Compilation {
     // frozen and start to optimize (provided exports, infer async, etc.) based on the
     // module graph, so any kind of change that affect these should be done before the
     // finish_modules
-
     self
       .plugin_driver
       .clone()
       .compilation_hooks
       .finish_modules
-      .call(self)
+      .call(self, async_modules_artifact)
       .await?;
 
     logger.time_end(start);
@@ -1536,16 +1544,20 @@ impl Compilation {
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
-    self.collect_dependencies_diagnostics();
+    let mut all_diagnostics =
+      self.collect_dependencies_diagnostics(dependencies_diagnostics_artifact);
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
     let diagnostics = self.build_module_graph_artifact.diagnostics();
-    self.extend_diagnostics(diagnostics);
-    Ok(())
+    all_diagnostics.extend(diagnostics);
+    Ok(all_diagnostics)
   }
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
-  fn collect_dependencies_diagnostics(&mut self) {
+  fn collect_dependencies_diagnostics(
+    &self,
+    dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+  ) -> Vec<Diagnostic> {
     // Compute modules while holding the lock, then release it
     let (modules, has_mutations) = {
       let mutations = self
@@ -1554,15 +1566,13 @@ impl Compilation {
 
       // TODO move diagnostic collect to make
       if let Some(mutations) = mutations {
-        if !self.dependencies_diagnostics_artifact.is_empty() {
+        if !dependencies_diagnostics_artifact.is_empty() {
           let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
             Mutation::ModuleRemove { module } => Some(*module),
             _ => None,
           });
           for revoked_module in revoked_modules {
-            self
-              .dependencies_diagnostics_artifact
-              .remove(&revoked_module);
+            dependencies_diagnostics_artifact.remove(&revoked_module);
           }
           let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
           let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
@@ -1615,14 +1625,12 @@ impl Compilation {
       })
       .collect();
     let all_modules_diagnostics = if has_mutations {
-      self
-        .dependencies_diagnostics_artifact
-        .extend(dependencies_diagnostics);
-      self.dependencies_diagnostics_artifact.clone()
+      dependencies_diagnostics_artifact.extend(dependencies_diagnostics);
+      dependencies_diagnostics_artifact.clone()
     } else {
       dependencies_diagnostics
     };
-    self.extend_diagnostics(all_modules_diagnostics.into_values().flatten());
+    return all_modules_diagnostics.into_values().flatten().collect();
   }
 
   #[instrument("Compilation:seal", skip_all)]

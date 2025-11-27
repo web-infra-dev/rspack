@@ -184,7 +184,7 @@ fn module_namespace_promise_rstest(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)

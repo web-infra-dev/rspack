@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  CanInlineUse, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, EntryData, LibraryExport,
-  LibraryOptions, LibraryType, ModuleIdentifier, Plugin, RuntimeGlobals, UsageState,
-  get_entry_runtime, property_access,
+  AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier,
+  Plugin, RuntimeGlobals, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -110,7 +110,11 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
