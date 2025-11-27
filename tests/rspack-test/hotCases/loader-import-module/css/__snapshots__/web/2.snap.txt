@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 436
+- Update: main.LAST_HASH.hot-update.js, size: 337
 
 ## Manifest
 
@@ -33,11 +33,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./stylesheet.css.js": 
-/*!***************************!*\
-  !*** ./stylesheet.css.js ***!
-  \***************************/
-(function (module) {
+"./stylesheet.css.js": (function (module) {
 module.exports = "body { background: url(\"https://test.cases/path/assets/file.jpg\"); color: #00f; }";
 
 }),

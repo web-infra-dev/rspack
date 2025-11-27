@@ -1535,25 +1535,34 @@ module.exports = {
 ## output.pathinfo
 
 - **类型：** `boolean | 'verbose'`
-- **默认值：** `true`
+- **默认值：** `false`
 
-让 Rspack 在 bundle 中通过注释输出模块的信息。此选项在 [mode](/config/mode) 为 `'development'` 下默认为 `true`，为 `'production'` 下默认为 `false`。`'verbose'` 会打印更多信息，例如模块导出、运行时信息和 `bailout` 原因。
+控制是否在生成的 bundle 中插入与模块相关的注释。这些注释有助于调试、分析打包结果以及理解 tree shaking 行为。
 
-:::warning
-在开发过程中分析生成的代码时，这些注释提供的信息很有用，但不应在生产环境中使用。
-:::
+- `true`: 启用基础的注释输出，包括模块路径信息。
+- `false`: 不输出任何注释，这是默认行为。
+- `'verbose'`：输出更详细的信息，例如模块导出、运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
+
+例如将 `pathinfo` 设置为 `true`：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     pathinfo: true,
   },
 };
 ```
 
-:::tip
-它还在生成的 bundle 中添加了一些关于 tree shaking 的信息。
+生成的代码中会包含类似的注释：
+
+```js
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+```
+
+:::warning
+pathinfo 主要用于开发调试。这些注释会增加 bundle 体积，同时可能泄露源文件结构，请避免在生产环境中启用。
 :::
 
 ## output.publicPath

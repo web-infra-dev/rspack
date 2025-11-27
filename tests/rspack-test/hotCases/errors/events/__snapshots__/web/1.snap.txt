@@ -12,7 +12,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 2795
+- Update: main.LAST_HASH.hot-update.js, size: 2375
 
 ## Manifest
 
@@ -44,11 +44,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./a.js": 
-/*!**************!*\
-  !*** ./a.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -57,11 +53,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./c.js": 
-/*!**************!*\
-  !*** ./c.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -70,11 +62,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./e.js": 
-/*!**************!*\
-  !*** ./e.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./e.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -83,11 +71,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./g.js": 
-/*!**************!*\
-  !*** ./g.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./g.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -96,11 +80,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 }),
-"./i.js": 
-/*!**************!*\
-  !*** ./i.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./i.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -110,11 +90,7 @@ throw new Error("Error while loading module i");
 
 
 }),
-"./j.js": 
-/*!**************!*\
-  !*** ./j.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./j.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -124,11 +100,7 @@ throw new Error("Error while loading module j");
 
 
 }),
-"./l.js": 
-/*!**************!*\
-  !*** ./l.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./l.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
