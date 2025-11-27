@@ -88,7 +88,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
     let content = if let Some(id) = &dep.id {
       format!("{module_argument}.{id}")
     } else {
-      format!("{module_argument}")
+      module_argument
     };
 
     source.replace(dep.range.start, dep.range.end, content.as_str(), None);
