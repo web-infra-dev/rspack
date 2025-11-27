@@ -1,6 +1,3 @@
-/*!**************************!*\
-  !*** ./style.module.css ***!
-  \**************************/
 ._style_module_css-no-space {
 	.class {
 		color: red;

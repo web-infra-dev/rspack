@@ -1,11 +1,11 @@
 ERROR in main.js
   × Chunk minification failed:
   ╰─▶   × JavaScript parse error: 'import', and 'export' cannot be used outside of module code
-          ╭─[8:0]
-        6 │   /******************/
-        7 │ (module, exports) {
-        8 │ import "./abc"
-          · ──────
-        9 │
-       10 │
-          ╰────
+         ╭─[4:0]
+       2 │ var __webpack_modules__ = ({
+       3 │ "./index.js"(module, exports) {
+       4 │ import "./abc"
+         · ──────
+       5 │
+       6 │
+         ╰────

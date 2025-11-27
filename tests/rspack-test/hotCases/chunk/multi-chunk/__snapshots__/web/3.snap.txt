@@ -10,9 +10,9 @@
 - Manifest: a.LAST_HASH.hot-update.json, size: 25
 - Manifest: b.LAST_HASH.hot-update.json, size: 25
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: a.LAST_HASH.hot-update.js, size: 283
-- Update: b.LAST_HASH.hot-update.js, size: 283
-- Update: main.LAST_HASH.hot-update.js, size: 286
+- Update: a.LAST_HASH.hot-update.js, size: 214
+- Update: b.LAST_HASH.hot-update.js, size: 214
+- Update: main.LAST_HASH.hot-update.js, size: 217
 
 ## Manifest
 
@@ -53,11 +53,7 @@
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("a", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 4;
 
 
@@ -86,11 +82,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("b", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 4;
 
 
@@ -119,11 +111,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("main", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 4;
 
 

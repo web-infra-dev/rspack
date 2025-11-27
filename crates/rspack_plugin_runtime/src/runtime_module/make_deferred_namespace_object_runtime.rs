@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeVariable, impl_runtime_module,
+};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -38,7 +40,7 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_module_cache": "__webpack_module_cache__",
+        "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_deferred_exports": "__webpack_module_deferred_exports__",
         "_has_async": has_async,
       })),

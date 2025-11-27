@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 1141
+- Update: main.hot-update.js, size: 994
 
 ## Manifest
 
@@ -32,18 +32,14 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./change.css"
-/*!********************!*\
-  !*** ./change.css ***!
-  \********************/
-(module, __webpack_exports__, __webpack_require__) {
+"./change.css"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
       (function() {
         var localsJsonString = undefined;
-        var cssReload = (__webpack_require__(/*! ../../../../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
         if (
           module.hot.data &&

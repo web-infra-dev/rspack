@@ -1543,25 +1543,34 @@ Note that `[fullhash]` in this parameter will be replaced with a hash of the com
 ## output.pathinfo
 
 - **Type:** `boolean | 'verbose'`
-- **Default:** `true`
+- **Default:** `false`
 
-Tells Rspack to include comments in bundles with information about the contained modules. This option defaults to `true` in `development` and `false` in `production` [mode](/config/mode) respectively. `'verbose'` shows more information like exports, runtime requirements and bailouts.
+Controls whether Rspack adds module-related comments to the generated bundle. These comments are useful for debugging, inspecting build output, and understanding tree-shaking behavior.
 
-:::warning
-While the data these comments can provide is useful during development when reading the generated code, it **should not** be used in production.
-:::
+- `true`: Enables basic comments, including module path information.
+- `false`: Disables all comments, which is the default behavior.
+- `'verbose'`: Outputs detailed comments, such as module exports, runtime details, tree-shaking information, and bailout reasons. This mode is helpful when diagnosing build issues or performing in-depth bundle analysis.
+
+For example, enabling `pathinfo`:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     pathinfo: true,
   },
 };
 ```
 
-:::tip
-It also adds some info about tree shaking to the generated bundle.
+The generated bundle will contain comments like:
+
+```js
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+```
+
+:::warning
+`pathinfo` is primarily intended for development and debugging. These comments increase bundle size and may expose details about your source structure. Avoid using it in production.
 :::
 
 ## output.publicPath

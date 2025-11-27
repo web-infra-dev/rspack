@@ -1,8 +1,5 @@
 Array [
-  /*!***********************************************!*\
-  !*** ../css-modules/at-rule-value.module.css ***!
-  \***********************************************/
-@value my-red blue;
+  @value my-red blue;
 
 .value-in-class {
 	color: my-red;
@@ -233,10 +230,6 @@ colorValue-v3 {
 @value;
 @value test;
 
-
-/*!**********************************************!*\
-  !*** ../css-modules/var-function.module.css ***!
-  \**********************************************/
 :root {
 	--main-bg-color: brown;
 	--my-var: red;
@@ -377,10 +370,6 @@ div {
 	color: var(--not-override-class from "./var-function-export.modules.css")
 }
 
-
-/*!***************************************!*\
-  !*** ../css-modules/style.module.css ***!
-  \***************************************/
 
 
 
@@ -1517,10 +1506,6 @@ div {
 }
 
 
-
-/*!*******************!*\
-  !*** ./style.css ***!
-  \*******************/
 
 
 .class {
@@ -1560,10 +1545,7 @@ div {
 .class {
 	animation: test Xs, test;
 },
-  /*!***********************************************!*\
-  !*** ../css-modules/at-rule-value.module.css ***!
-  \***********************************************/
-@value my-red blue;
+  @value my-red blue;
 
 .value-in-class {
 	color: my-red;
@@ -1794,10 +1776,6 @@ colorValue-v3 {
 @value;
 @value test;
 
-
-/*!**********************************************!*\
-  !*** ../css-modules/var-function.module.css ***!
-  \**********************************************/
 :root {
 	--main-bg-color: brown;
 	--my-var: red;
@@ -1938,10 +1916,6 @@ div {
 	color: var(--not-override-class from "./var-function-export.modules.css")
 }
 
-
-/*!***************************************!*\
-  !*** ../css-modules/style.module.css ***!
-  \***************************************/
 
 
 
@@ -3078,10 +3052,6 @@ div {
 }
 
 
-
-/*!*******************!*\
-  !*** ./style.css ***!
-  \*******************/
 
 
 .class {

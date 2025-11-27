@@ -17,9 +17,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 947
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 553
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 708
+- Update: shared.LAST_HASH.hot-update.js, size: 768
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 475
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 614
 
 ## Manifest
 
@@ -85,11 +85,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("shared", {
-"./moduleAs.js"
-/*!*********************!*\
-  !*** ./moduleAs.js ***!
-  \*********************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleAs.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -98,17 +94,13 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 },
-"./moduleBs.js"
-/*!*********************!*\
-  !*** ./moduleBs.js ***!
-  \*********************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleBs.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);
-if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunkS */ "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
 
 
 },
@@ -130,11 +122,7 @@ if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunkS_js").then(_
 ```js
 "use strict";
 self["webpackHotUpdate"]("workerA_js", {
-"./moduleA.js"
-/*!********************!*\
-  !*** ./moduleA.js ***!
-  \********************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleA.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -168,17 +156,13 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("workerB_js", {
-"./moduleB.js"
-/*!********************!*\
-  !*** ./moduleB.js ***!
-  \********************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./moduleB.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (6);
-if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 
 
 },

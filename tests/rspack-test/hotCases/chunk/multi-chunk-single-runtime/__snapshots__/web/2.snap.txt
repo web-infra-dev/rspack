@@ -10,9 +10,9 @@
 - Bundle: main_async_js.chunk.CURRENT_HASH.js
 - Bundle: runtime.js
 - Manifest: runtime.LAST_HASH.hot-update.json, size: 46
-- Update: a.LAST_HASH.hot-update.js, size: 152
-- Update: b.LAST_HASH.hot-update.js, size: 152
-- Update: main.LAST_HASH.hot-update.js, size: 155
+- Update: a.LAST_HASH.hot-update.js, size: 83
+- Update: b.LAST_HASH.hot-update.js, size: 83
+- Update: main.LAST_HASH.hot-update.js, size: 86
 - Update: runtime.LAST_HASH.hot-update.js, size: 185
 
 ## Manifest
@@ -38,11 +38,7 @@
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("a", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 3;
 
 
@@ -64,11 +60,7 @@ module.exports = 3;
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("b", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 3;
 
 
@@ -90,11 +82,7 @@ module.exports = 3;
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("main", {
-"./file.js"
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(module) {
+"./file.js"(module) {
 module.exports = 3;
 
 

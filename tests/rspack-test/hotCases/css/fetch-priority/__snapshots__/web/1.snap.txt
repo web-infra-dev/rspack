@@ -8,7 +8,7 @@
 - Bundle: style_module_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 47
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: style_module_css.LAST_HASH.hot-update.js, size: 689
+- Update: style_module_css.LAST_HASH.hot-update.js, size: 593
 
 ## Manifest
 
@@ -57,11 +57,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("style_module_css", {
-"./style.module.css"
-/*!**************************!*\
-  !*** ./style.module.css ***!
-  \**************************/
-(module, __unused_webpack_exports, __webpack_require__) {
+"./style.module.css"(module, __unused_webpack_exports, __webpack_require__) {
 var exports = {
   "class-other": "_style_module_css-class-other",
 };

@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeGlobals, SourceType, get_js_chunk_filename_template,
+  RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -239,6 +239,10 @@ pub fn generate_entry_startup(
       .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
   ));
 
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
+
   let module_ids_code = &module_id_exprs
     .iter()
     .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
@@ -246,13 +250,13 @@ pub fn generate_entry_startup(
     .join(", ");
   if chunks_ids.is_empty() {
     if !module_ids_code.is_empty() {
-      source.push_str("var __webpack_exports__ = (");
+      source.push_str(&format!("var {exports_name} = ("));
       source.push_str(module_ids_code);
       source.push_str(");\n");
     }
   } else {
     if !passive {
-      source.push_str("var __webpack_exports__ = ");
+      source.push_str(&format!("var {exports_name} = "));
     }
     source.push_str(&format!(
       "{}(0, {}, function() {{
@@ -272,7 +276,7 @@ pub fn generate_entry_startup(
     ));
     if passive {
       source.push_str(&format!(
-        "var __webpack_exports__ = {}();\n",
+        "var {exports_name} = {}();\n",
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
