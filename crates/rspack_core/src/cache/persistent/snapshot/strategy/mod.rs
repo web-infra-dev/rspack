@@ -1,13 +1,16 @@
-use std::{
-  hash::{Hash, Hasher},
-  path::Path,
-  sync::Arc,
-};
+mod hash_helper;
+mod package_helper;
+
+use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
-use rustc_hash::FxHasher;
+use rspack_paths::{ArcPath, AssertUtf8};
+
+use self::{
+  hash_helper::{ContentHash, HashHelper},
+  package_helper::PackageHelper,
+};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -45,19 +48,21 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  package_version_cache: ArcPathDashMap<Option<String>>,
+  package_helper: PackageHelper,
+  hash_helper: HashHelper,
 }
 
 impl StrategyHelper {
   pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
-      fs,
-      package_version_cache: Default::default(),
+      fs: fs.clone(),
+      package_helper: PackageHelper::new(fs.clone()),
+      hash_helper: HashHelper::new(fs),
     }
   }
 
   /// get path file modified time
-  async fn modified_time(&self, path: &Path) -> Option<u64> {
+  async fn modified_time(&self, path: &ArcPath) -> Option<u64> {
     if let Ok(info) = self.fs.metadata(path.assert_utf8()).await {
       // return the larger of ctime and mtime
       if info.ctime_ms > info.mtime_ms {
@@ -70,55 +75,18 @@ impl StrategyHelper {
     }
   }
 
-  /// get path file version in package.json
-  #[async_recursion::async_recursion]
-  async fn package_version_with_cache(&self, path: &ArcPath) -> Option<String> {
-    if let Some(version) = self.package_version_cache.get(path) {
-      return version.clone();
-    }
-
-    let mut res = None;
-    if let Ok(content) = self.fs.read(&path.join("package.json").assert_utf8()).await
-      && let Ok(mut package_json) =
-        serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&content)
-      && let Some(serde_json::Value::String(version)) = package_json.remove("version")
-    {
-      res = Some(version);
-    }
-
-    if res.is_none()
-      && let Some(p) = path.parent()
-    {
-      res = self.package_version_with_cache(&ArcPath::from(p)).await;
-    }
-
-    self.package_version_cache.insert(path.into(), res.clone());
-    res
-  }
-
-  /// get path file content hash
-  async fn content_hash(&self, path: &Path) -> Option<u64> {
-    // currently only supports files
-    // TODO add cache if directory hash is supported
-    let Ok(content) = self.fs.read(path.assert_utf8()).await else {
-      return None;
-    };
-    let mut hasher = FxHasher::default();
-    content.hash(&mut hasher);
-    Some(hasher.finish())
-  }
-
   /// get path file package version strategy
   pub async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
     self
-      .package_version_with_cache(path)
+      .package_helper
+      .package_version(path)
       .await
       .map(Strategy::PackageVersion)
   }
+
   /// get path file hash strategy
-  pub async fn path_hash(&self, path: &Path) -> Option<Strategy> {
-    let hash = self.content_hash(path).await?;
-    let mtime = self.modified_time(path).await?;
+  pub async fn path_hash(&self, path: &ArcPath) -> Option<Strategy> {
+    let ContentHash { hash, mtime } = self.hash_helper.content_hash(path).await?;
     Some(Strategy::PathHash { mtime, hash })
   }
 
@@ -126,7 +94,7 @@ impl StrategyHelper {
   pub async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
     match strategy {
       Strategy::PackageVersion(version) => {
-        let Some(ref cur_version) = self.package_version_with_cache(path).await else {
+        let Some(ref cur_version) = self.package_helper.package_version(path).await else {
           return ValidateResult::Deleted;
         };
         if cur_version == version {
@@ -142,10 +110,11 @@ impl StrategyHelper {
         if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
-        let Some(file_hash) = self.content_hash(path).await else {
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.content_hash(path).await
+        else {
           return ValidateResult::Deleted;
         };
-        if &file_hash == hash {
+        if &cur_hash == hash {
           ValidateResult::NoChanged
         } else {
           ValidateResult::Modified
@@ -172,62 +141,6 @@ mod tests {
   use super::{Strategy, StrategyHelper, ValidateResult};
 
   #[tokio::test]
-  async fn package_version() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/packages/p1".into()).await.unwrap();
-    fs.write(
-      "/packages/p1/package.json".into(),
-      r#"{"version": "1.2.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-
-    let helper = StrategyHelper::new(fs.clone());
-    assert_eq!(
-      helper
-        .package_version(&ArcPath::from("/packages/p1/file.js"))
-        .await,
-      Some(Strategy::PackageVersion("1.2.0".into()))
-    );
-    assert_eq!(
-      helper
-        .package_version(&ArcPath::from("/packages/p2/file.js"))
-        .await,
-      None
-    );
-  }
-
-  #[tokio::test]
-  async fn path_hash() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
-
-    let helper = StrategyHelper::new(fs.clone());
-    assert_eq!(
-      helper.path_hash(&ArcPath::from("/not_exist.js")).await,
-      None
-    );
-
-    let hash1 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let hash2 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-    assert_eq!(hash1, hash2);
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
-    let hash3 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-    assert_ne!(hash1, hash3);
-
-    fs.write("/hash.js".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    let hash4 = helper.path_hash(&ArcPath::from("/hash.js")).await;
-    assert_ne!(hash1, hash4);
-  }
-
-  #[tokio::test]
   async fn validate_package_version() {
     let fs = Arc::new(MemoryFileSystem::default());
     fs.create_dir_all("/packages/lib".into()).await.unwrap();
@@ -250,7 +163,7 @@ mod tests {
       ValidateResult::NoChanged
     ));
 
-    helper.package_version_cache.clear();
+    let helper = StrategyHelper::new(fs.clone());
     fs.write(
       "/packages/lib/package.json".into(),
       r#"{"version": "1.2.0"}"#.as_bytes(),
@@ -264,7 +177,7 @@ mod tests {
       ValidateResult::Modified
     ));
 
-    helper.package_version_cache.clear();
+    let helper = StrategyHelper::new(fs.clone());
     fs.remove_file("/packages/lib/package.json".into())
       .await
       .unwrap();
@@ -295,6 +208,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.write("/file1.js".into(), "abc".as_bytes())
       .await
       .unwrap();
@@ -306,6 +220,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.write("/file1.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
@@ -317,6 +232,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
       helper
