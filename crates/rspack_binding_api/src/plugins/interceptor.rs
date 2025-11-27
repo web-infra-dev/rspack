@@ -12,8 +12,8 @@ use napi::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
+  BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
@@ -41,7 +41,8 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, parse_resource, rspack_sources::RawStringSource,
+  Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
+  rspack_sources::RawStringSource,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -1211,7 +1212,11 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &mut Compilation,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await
   }

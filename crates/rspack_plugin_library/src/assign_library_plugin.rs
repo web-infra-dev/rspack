@@ -4,7 +4,8 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
@@ -429,7 +430,11 @@ async fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {

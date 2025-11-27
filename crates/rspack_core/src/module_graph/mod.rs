@@ -1,5 +1,6 @@
 use std::{
   collections::hash_map::Entry,
+  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -11,9 +12,9 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
-  RuntimeSpec, UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
+  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -444,8 +445,10 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async = ModuleGraph::is_async(compilation, source_module);
-    ModuleGraph::set_async(compilation, *target_module, is_async);
+    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
+    let mut async_modules_artifact = mem::take(&mut compilation.async_modules_artifact);
+    ModuleGraph::set_async(&mut async_modules_artifact, *target_module, is_async);
+    compilation.async_modules_artifact = async_modules_artifact;
   }
 
   pub fn move_module_connections(
@@ -1010,8 +1013,11 @@ impl<'a> ModuleGraph<'a> {
     has_connections
   }
 
-  pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules_artifact.contains(module_id)
+  pub fn is_async(
+    async_modules_artifact: &AsyncModulesArtifact,
+    module_id: &ModuleIdentifier,
+  ) -> bool {
+    async_modules_artifact.contains(module_id)
   }
 
   pub fn is_deferred(
@@ -1030,18 +1036,18 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn set_async(
-    compilation: &mut Compilation,
+    async_modules_artifact: &mut AsyncModulesArtifact,
     module_id: ModuleIdentifier,
     is_async: bool,
   ) -> bool {
-    let original = Self::is_async(compilation, &module_id);
+    let original = Self::is_async(async_modules_artifact, &module_id);
     if original == is_async {
       return false;
     }
     if original {
-      compilation.async_modules_artifact.remove(&module_id)
+      async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules_artifact.insert(module_id)
+      async_modules_artifact.insert(module_id)
     }
   }
 
