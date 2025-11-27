@@ -390,41 +390,71 @@ export default {
 
 ## output.environment
 
-指示 Rspack 可以在生成的运行时代码中使用哪种 ES 特性。
+- **类型：**
+
+```ts
+type Environment = {
+  /** The environment supports arrow functions ('() => { ... }'). */
+  arrowFunction?: boolean;
+  /** The environment supports async function and await ('async function () { await ... }'). */
+  asyncFunction?: boolean;
+  /** The environment supports BigInt as literal (123n). */
+  bigIntLiteral?: boolean;
+  /** The environment supports const and let for variable declarations. */
+  const?: boolean;
+  /** The environment supports destructuring ('{ a, b } = obj'). */
+  destructuring?: boolean;
+  /** The environment supports 'document' variable. */
+  document?: boolean;
+  /** The environment supports an async import() function to import EcmaScript modules. */
+  dynamicImport?: boolean;
+  /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
+  dynamicImportInWorker?: boolean;
+  /** The environment supports 'for of' iteration ('for (const x of array) { ... }'). */
+  forOf?: boolean;
+  /** The environment supports 'globalThis'. */
+  globalThis?: boolean;
+  /** The environment supports { fn() {} } */
+  methodShorthand?: boolean;
+  /** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
+  module?: boolean;
+  /**
+   * Determines if the node: prefix is generated for core module imports in environments that support it.
+   * This is only applicable to Webpack runtime code.
+   * */
+  nodePrefixForCoreModules?: boolean;
+  /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
+  optionalChaining?: boolean;
+  /** The environment supports template literals. */
+  templateLiteral?: boolean;
+};
+```
+
+`output.environment` 定义 Rspack 在生成运行时代码时可以使用的 ECMAScript 语言特性和宿主环境特性。
+
+该选项仅影响 Rspack 生成的 runtime 代码和辅助函数，不会影响源代码的语法降级。
+
+### 默认值
+
+`output.environment` 的默认值由 [target](/config/target) 自动推断。
+
+Rspack 会基于 `target` 识别目标环境支持的语言能力，例如：
+
+- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 runtime 代码
+- 若 `target` 指向特定 Node 版本，Rspack 会根据该版本的语法能力推断对应字段
+
+通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 runtime 代码的输出形式。
+
+### 示例
+
+例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 runtime 代码。
 
 ```js title="rspack.config.mjs"
 export default {
+  target: ['web', 'es2018'],
   output: {
     environment: {
-      // The environment supports arrow functions ('() => { ... }').
-      arrowFunction: true,
-      // The environment supports async function and await ('async function () { await ... }').
-      asyncFunction: true,
-      // The environment supports BigInt as literal (123n).
-      bigIntLiteral: false,
-      // The environment supports const and let for variable declarations.
-      const: true,
-      // The environment supports destructuring ('{ a, b } = obj').
-      destructuring: true,
-      // The environment supports 'document' variable.
-      document: true,
-      // The environment supports an async import() function to import ECMAScript modules.
-      dynamicImport: false,
-      // The environment supports an async import() when creating a worker, only for web targets at the moment.
-      dynamicImportInWorker: false,
-      // The environment supports 'for of' iteration ('for (const x of array) { ... }').
-      forOf: true,
-      // The environment supports 'globalThis'.
-      globalThis: true,
-      // The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...').
-      module: false,
-      // Determines if the node: prefix is generated for core module imports in environments that support it.
-      // This is only applicable to webpack runtime code.
-      nodePrefixForCoreModules: false,
-      // The environment supports optional chaining ('obj?.a' or 'obj?.()').
-      optionalChaining: true,
-      // The environment supports template literals.
-      templateLiteral: true,
+      const: false,
     },
   },
 };

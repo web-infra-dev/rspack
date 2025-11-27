@@ -2211,7 +2211,6 @@ interface EnvConfig {
 
 // @public
 export type Environment = {
-    methodShorthand?: boolean;
     arrowFunction?: boolean;
     asyncFunction?: boolean;
     bigIntLiteral?: boolean;
@@ -2222,6 +2221,7 @@ export type Environment = {
     dynamicImportInWorker?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
+    methodShorthand?: boolean;
     module?: boolean;
     nodePrefixForCoreModules?: boolean;
     optionalChaining?: boolean;
