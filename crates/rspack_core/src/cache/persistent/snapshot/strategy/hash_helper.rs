@@ -65,10 +65,10 @@ impl HashHelper {
         None
       }
     } else if metadata.is_directory {
-      if let Ok(mut childs) = self.fs.read_dir(utf8_path).await {
-        childs.sort();
+      if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
+        children.sort();
         let mut hasher = FxHasher::default();
-        for item in childs {
+        for item in children {
           let child_path = ArcPath::from(path.join(item));
           if let Some(ContentHash { hash, .. }) = self.content_hash(&child_path).await {
             hash.hash(&mut hasher);
@@ -76,7 +76,7 @@ impl HashHelper {
         }
         Some(ContentHash {
           hash: hasher.finish(),
-          // The mtime value is always set to 0 to force hash comparison.
+          // The mtime value is always set to 0 for directories to force hash comparison.
           mtime: 0,
         })
       } else {
@@ -164,19 +164,20 @@ mod tests {
     std::thread::sleep(std::time::Duration::from_millis(100));
     let hash2 = helper.content_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
-    assert_eq!(hash1.mtime, hash2.mtime);
+    assert_eq!(hash1.mtime, 0);
+    assert_eq!(hash2.mtime, 0);
 
     helper.hash_cache.clear();
     std::thread::sleep(std::time::Duration::from_millis(100));
     fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
     let hash3 = helper.content_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash3.hash);
-    assert!(hash1.mtime < hash3.mtime);
+    assert_eq!(hash3.mtime, 0);
 
     helper.hash_cache.clear();
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
     let hash4 = helper.content_hash(&ArcPath::from("/")).await.unwrap();
     assert_ne!(hash1.hash, hash4.hash);
-    assert!(hash1.mtime < hash4.mtime);
+    assert_eq!(hash4.mtime, 0);
   }
 }

@@ -208,6 +208,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.write("/file1.js".into(), "abc".as_bytes())
       .await
       .unwrap();
@@ -219,6 +220,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.write("/file1.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
@@ -230,6 +232,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
+    let helper = StrategyHelper::new(fs.clone());
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
       helper

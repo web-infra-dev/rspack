@@ -18,7 +18,7 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				compiler.hooks.done.tapPromise("AAA", async function () {
+				compiler.hooks.done.tapPromise("TestPlugin", async function () {
 					index++;
 					if (index === 1) {
 						await fs.writeFile(libAIndex, String(index));
