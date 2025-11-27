@@ -21,7 +21,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.done.tap("TestAssert", ()=>{
 					let outputPath = compiler.options.output.path;
-				 	const htmlContent = fs.readFileSync(path.join(outputPath,'index.html'), "utf-8");
+					const htmlContent = fs.readFileSync(path.join(outputPath,'index.html'), "utf-8");
 
 					expect(htmlContent.match(/runtime\.js/g)).toHaveLength(1);
 				})
