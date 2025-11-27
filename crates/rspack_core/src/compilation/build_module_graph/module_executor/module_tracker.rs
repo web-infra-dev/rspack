@@ -92,7 +92,7 @@ impl ModuleTracker {
           }
         }
         ModuleIssuer::Some(mid) => {
-          if let Some(count) = self.unfinished_module.get_mut(&mid) {
+          if let Some(count) = self.unfinished_module.get_mut(mid) {
             *count -= 1;
             if count == &0 {
               queue.push_back(*mid);
