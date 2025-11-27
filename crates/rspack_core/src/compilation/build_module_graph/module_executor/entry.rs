@@ -50,8 +50,13 @@ impl Task<ExecutorTaskContext> for EntryTask {
         ));
         let dep_id = *dep.id();
 
-        let mut mg =
-          TaskContext::get_module_graph_mut(&mut origin_context.artifact.module_graph_partial);
+        let mut mg = TaskContext::get_module_graph_mut(
+          &mut origin_context
+            .artifact
+            .as_mut()
+            .expect("should have artifact")
+            .module_graph_partial,
+        );
         mg.add_dependency(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
@@ -91,7 +96,11 @@ impl Task<ExecutorTaskContext> for EntryTask {
     executed_entry_deps.insert(dep_id);
 
     if tracker.is_running(&dep_id) {
-      let mg = origin_context.artifact.get_module_graph();
+      let mg = origin_context
+        .artifact
+        .as_ref()
+        .expect("should have artifact")
+        .get_module_graph();
       // the module in module executor need to check.
       if mg
         .module_graph_module_by_identifier(&meta.origin_module_identifier)

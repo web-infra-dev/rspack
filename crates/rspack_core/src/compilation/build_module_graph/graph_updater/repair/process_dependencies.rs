@@ -28,14 +28,11 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       from_unlazy,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
-    let module_graph =
-      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+    let artifact = context.artifact.as_mut().expect("should have artifact");
+    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     for dependency_id in dependencies {
-      context
-        .artifact
-        .affected_dependencies
-        .mark_as_add(&dependency_id);
+      artifact.affected_dependencies.mark_as_add(&dependency_id);
 
       let dependency = module_graph
         .dependency_by_id(&dependency_id)

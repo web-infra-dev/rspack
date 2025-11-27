@@ -206,13 +206,18 @@ impl JsCompilation {
     Ok(
       compilation
         .build_module_graph_artifact
-        .built_modules()
-        .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+        .as_ref()
+        .map(|artifact| {
+          artifact
+            .built_modules()
+            .filter_map(|module_id| {
+              compilation
+                .module_by_identifier(module_id)
+                .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
+            })
+            .collect::<Vec<_>>()
         })
-        .collect::<Vec<_>>(),
+        .unwrap_or_default(),
     )
   }
 

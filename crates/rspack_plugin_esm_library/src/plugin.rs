@@ -254,8 +254,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     );
   }
 
-  let mut module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let mut module_graph = Compilation::get_make_module_graph_mut(
+    compilation
+      .build_module_graph_artifact
+      .as_mut()
+      .expect("should have build_module_graph_artifact"),
+  );
   for m in entry_modules {
     let exports_info = module_graph
       .get_exports_info(&m)

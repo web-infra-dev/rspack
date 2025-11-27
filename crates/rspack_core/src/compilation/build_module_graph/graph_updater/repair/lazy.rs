@@ -18,15 +18,14 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
   }
 
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
-    let module_graph =
-      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+    let artifact = context.artifact.as_mut().expect("should have artifact");
+    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
     let ProcessUnlazyDependenciesTask {
       forwarded_ids,
       original_module_identifier,
     } = *self;
 
-    let lazy_dependencies = context
-      .artifact
+    let lazy_dependencies = artifact
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
       .expect("only module has lazy dependencies should run into ProcessUnlazyDependenciesTask");

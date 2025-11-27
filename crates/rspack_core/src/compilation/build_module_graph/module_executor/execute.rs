@@ -106,7 +106,11 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     let entry_dep_id = entries.get(&meta).expect("should have dep_id");
     // collect module info
-    let mg = origin_context.artifact.get_module_graph();
+    let artifact = origin_context
+      .artifact
+      .as_ref()
+      .expect("should have artifact");
+    let mg = artifact.get_module_graph();
     let Some(entry_module_identifier) =
       mg.module_identifier_by_dependency_id(entry_dep_id).copied()
     else {
@@ -122,8 +126,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
       return Ok(vec![]);
     };
-    let make_failed_module = &origin_context.artifact.make_failed_module;
-    let make_failed_dependencies = &origin_context.artifact.make_failed_dependencies;
+    let make_failed_module = &artifact.make_failed_module;
+    let make_failed_dependencies = &artifact.make_failed_dependencies;
     let mut queue = VecDeque::from(vec![entry_module_identifier]);
     let mut assets = CompilationAssets::default();
     let mut modules = IdentifierSet::default();

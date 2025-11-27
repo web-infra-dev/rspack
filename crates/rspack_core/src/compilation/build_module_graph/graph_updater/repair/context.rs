@@ -32,7 +32,7 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: Arc<RuntimeTemplate>,
 
-  pub artifact: BuildModuleGraphArtifact,
+  pub artifact: Option<BuildModuleGraphArtifact>,
 }
 
 impl TaskContext {
@@ -52,7 +52,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: compilation.runtime_template.clone_without_dojang(),
-      artifact,
+      artifact: Some(artifact),
     }
   }
 

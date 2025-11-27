@@ -9,7 +9,10 @@ pub struct DisableCache;
 
 #[async_trait::async_trait]
 impl Cache for DisableCache {
-  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    *make_artifact = Default::default();
+  async fn before_build_module_graph(
+    &mut self,
+    make_artifact: &mut Option<BuildModuleGraphArtifact>,
+  ) {
+    *make_artifact = Some(Default::default());
   }
 }

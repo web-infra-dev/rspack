@@ -188,7 +188,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       from_unlazy,
     } = *self;
 
-    let artifact = &mut context.artifact;
+    let artifact = context.artifact.as_mut().expect("should have artifact");
     if !factorize_info.is_success() {
       artifact
         .make_failed_dependencies

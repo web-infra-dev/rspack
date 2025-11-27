@@ -141,7 +141,13 @@ impl ModernModuleLibraryPlugin {
 
     // Reexport star from external module.
     // Only preserve star reexports for module graph entry, nested reexports are not supported.
-    for dep_id in &compilation.build_module_graph_artifact.entry_dependencies {
+    let entry_dependencies = compilation
+      .build_module_graph_artifact
+      .as_ref()
+      .expect("should have build_module_graph_artifact")
+      .entry_dependencies
+      .clone();
+    for dep_id in &entry_dependencies {
       let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };
@@ -230,8 +236,12 @@ impl ModernModuleLibraryPlugin {
       }
     }
 
-    let mut mg =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mut mg = Compilation::get_make_module_graph_mut(
+      compilation
+        .build_module_graph_artifact
+        .as_mut()
+        .expect("should have build_module_graph_artifact"),
+    );
     for dep in deps_to_replace {
       let dep_id = dep.id();
       external_connections.remove(dep_id);

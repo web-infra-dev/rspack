@@ -32,8 +32,16 @@ pub trait Cache: Debug + Send + Sync {
   }
   async fn after_compile(&mut self, _compilation: &Compilation) {}
 
-  async fn before_build_module_graph(&mut self, _make_artifact: &mut BuildModuleGraphArtifact) {}
-  async fn after_build_module_graph(&mut self, _make_artifact: &BuildModuleGraphArtifact) {}
+  async fn before_build_module_graph(
+    &mut self,
+    _make_artifact: &mut Option<BuildModuleGraphArtifact>,
+  ) {
+  }
+  async fn after_build_module_graph(
+    &mut self,
+    _make_artifact: Option<&BuildModuleGraphArtifact>,
+  ) {
+  }
 }
 
 pub fn new_cache(

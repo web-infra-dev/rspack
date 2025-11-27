@@ -189,20 +189,26 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
+  async fn before_build_module_graph(
+    &mut self,
+    make_artifact: &mut Option<BuildModuleGraphArtifact>,
+  ) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if matches!(
-      make_artifact.state,
-      BuildModuleGraphArtifactState::Uninitialized
-    ) {
+    let artifact = make_artifact.get_or_insert_with(Default::default);
+    if matches!(artifact.state, BuildModuleGraphArtifactState::Uninitialized) {
       match self.make_occasion.recovery().await {
-        Ok(artifact) => *make_artifact = artifact,
+        Ok(recovered_artifact) => *make_artifact = Some(recovered_artifact),
         Err(err) => self.warnings.push(err.to_string()),
       }
     }
   }
 
-  async fn after_build_module_graph(&mut self, make_artifact: &BuildModuleGraphArtifact) {
-    self.make_occasion.save(make_artifact);
+  async fn after_build_module_graph(
+    &mut self,
+    make_artifact: Option<&BuildModuleGraphArtifact>,
+  ) {
+    if let Some(artifact) = make_artifact {
+      self.make_occasion.save(artifact);
+    }
   }
 }

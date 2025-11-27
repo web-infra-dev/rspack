@@ -304,7 +304,7 @@ impl Compiler {
     self.compilation.finish_build_module_graph().await?;
     self
       .cache
-      .after_build_module_graph(&self.compilation.build_module_graph_artifact)
+      .after_build_module_graph(self.compilation.build_module_graph_artifact.as_ref())
       .await;
 
     logger.time_end(start);

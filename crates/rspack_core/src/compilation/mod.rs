@@ -298,7 +298,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: BuildModuleGraphArtifact,
+  pub build_module_graph_artifact: Option<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -425,7 +425,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: Default::default(),
+      build_module_graph_artifact: None,
       modified_files,
       removed_files,
       input_filesystem,
@@ -451,19 +451,28 @@ impl Compilation {
       &mut other.build_module_graph_artifact,
     );
   }
-  pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
+  pub fn swap_build_module_graph_artifact(
+    &mut self,
+    make_artifact: &mut Option<BuildModuleGraphArtifact>,
+  ) {
     std::mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
     if let Some(other_module_graph) = &self.seal_module_graph_partial {
       ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        self
+          .build_module_graph_artifact
+          .as_ref()
+          .map(|a| a.get_module_graph_partial()),
         Some(other_module_graph),
       ])
     } else {
       ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        self
+          .build_module_graph_artifact
+          .as_ref()
+          .map(|a| a.get_module_graph_partial()),
         None,
       ])
     }
@@ -477,11 +486,8 @@ impl Compilation {
       return module.as_ref();
     };
 
-    if let Some(module) = self
-      .build_module_graph_artifact
-      .get_module_graph_partial()
-      .modules
-      .get(identifier)
+    if let Some(artifact) = &self.build_module_graph_artifact
+      && let Some(module) = artifact.get_module_graph_partial().modules.get(identifier)
     {
       return module.as_ref();
     }
@@ -504,7 +510,10 @@ impl Compilation {
       .expect("should set seal_module_graph");
     ModuleGraph::new_mut(
       [
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
+        self
+          .build_module_graph_artifact
+          .as_ref()
+          .map(|a| a.get_module_graph_partial()),
         None,
       ],
       seal_module_graph_partial,
@@ -518,20 +527,18 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
     impl Iterator<Item = &ArcPath>,
   ) {
-    let all_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .files()
+    let artifact = self.build_module_graph_artifact.as_ref();
+    let all_files = artifact
+      .into_iter()
+      .flat_map(|a| a.file_dependencies.files())
       .chain(&self.file_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .added_files()
+    let added_files = artifact
+      .into_iter()
+      .flat_map(|a| a.file_dependencies.added_files())
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .removed_files();
+    let removed_files = artifact
+      .into_iter()
+      .flat_map(|a| a.file_dependencies.removed_files());
     (all_files, added_files, removed_files)
   }
 
@@ -542,20 +549,18 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
     impl Iterator<Item = &ArcPath>,
   ) {
-    let all_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .files()
+    let artifact = self.build_module_graph_artifact.as_ref();
+    let all_files = artifact
+      .into_iter()
+      .flat_map(|a| a.context_dependencies.files())
       .chain(&self.context_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .added_files()
+    let added_files = artifact
+      .into_iter()
+      .flat_map(|a| a.context_dependencies.added_files())
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .removed_files();
+    let removed_files = artifact
+      .into_iter()
+      .flat_map(|a| a.context_dependencies.removed_files());
     (all_files, added_files, removed_files)
   }
 
@@ -566,20 +571,18 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
     impl Iterator<Item = &ArcPath>,
   ) {
-    let all_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .files()
+    let artifact = self.build_module_graph_artifact.as_ref();
+    let all_files = artifact
+      .into_iter()
+      .flat_map(|a| a.missing_dependencies.files())
       .chain(&self.missing_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .added_files()
+    let added_files = artifact
+      .into_iter()
+      .flat_map(|a| a.missing_dependencies.added_files())
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .removed_files();
+    let removed_files = artifact
+      .into_iter()
+      .flat_map(|a| a.missing_dependencies.removed_files());
     (all_files, added_files, removed_files)
   }
 
@@ -590,20 +593,18 @@ impl Compilation {
     impl Iterator<Item = &ArcPath>,
     impl Iterator<Item = &ArcPath>,
   ) {
-    let all_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .files()
+    let artifact = self.build_module_graph_artifact.as_ref();
+    let all_files = artifact
+      .into_iter()
+      .flat_map(|a| a.build_dependencies.files())
       .chain(&self.build_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .added_files()
+    let added_files = artifact
+      .into_iter()
+      .flat_map(|a| a.build_dependencies.added_files())
       .chain(&self.file_dependencies);
-    let removed_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .removed_files();
+    let removed_files = artifact
+      .into_iter()
+      .flat_map(|a| a.build_dependencies.removed_files());
     (all_files, added_files, removed_files)
   }
 
@@ -653,8 +654,13 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name = options.name.clone();
-    Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
-      .add_dependency(entry);
+    Compilation::get_make_module_graph_mut(
+      self
+        .build_module_graph_artifact
+        .as_mut()
+        .expect("should have build_module_graph_artifact"),
+    )
+    .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -687,21 +693,23 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = Some(
+      update_module_graph(
+        self,
+        make_artifact.expect("should have build_module_graph_artifact"),
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
 
     Ok(())
   }
@@ -715,8 +723,13 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
-        .add_dependency(entry);
+      Compilation::get_make_module_graph_mut(
+        self
+          .build_module_graph_artifact
+          .as_mut()
+          .expect("should have build_module_graph_artifact"),
+      )
+      .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -735,21 +748,23 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = Some(
+      update_module_graph(
+        self,
+        make_artifact.expect("should have build_module_graph_artifact"),
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
 
     Ok(())
   }
@@ -1046,8 +1061,11 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
+    let artifact = self
+      .build_module_graph_artifact
+      .take()
+      .unwrap_or_default();
+    self.build_module_graph_artifact = Some(build_module_graph(self, artifact).await?);
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1059,17 +1077,22 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let artifact = self
+      .build_module_graph_artifact
+      .take()
+      .expect("should have build_module_graph_artifact");
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      artifact,
-      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
+    self.build_module_graph_artifact = Some(
+      update_module_graph(
+        self,
+        artifact,
+        vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+      )
+      .await?,
+    );
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1464,8 +1487,12 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let make_artifact = self
+      .build_module_graph_artifact
+      .take()
+      .expect("should have build_module_graph_artifact");
+    self.build_module_graph_artifact =
+      Some(finish_build_module_graph(self, make_artifact).await?);
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1480,33 +1507,33 @@ impl Compilation {
   pub async fn collect_build_module_graph_effects(&mut self) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     if let Some(mut mutations) = self.incremental.mutations_write() {
+      let artifact = self
+        .build_module_graph_artifact
+        .as_ref()
+        .expect("should have build_module_graph_artifact");
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        artifact
           .affected_dependencies
           .updated()
           .iter()
           .map(|&dependency| Mutation::DependencyUpdate { dependency }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        artifact
           .affected_modules
           .removed()
           .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        artifact
           .affected_modules
           .updated()
           .iter()
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        artifact
           .affected_modules
           .added()
           .iter()
@@ -1540,7 +1567,11 @@ impl Compilation {
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
-    let diagnostics = self.build_module_graph_artifact.diagnostics();
+    let diagnostics = self
+      .build_module_graph_artifact
+      .as_ref()
+      .expect("should have build_module_graph_artifact")
+      .diagnostics();
     self.extend_diagnostics(diagnostics);
     Ok(())
   }

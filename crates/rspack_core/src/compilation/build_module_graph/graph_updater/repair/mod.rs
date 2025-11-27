@@ -69,5 +69,5 @@ pub async fn repair(
 
   let mut ctx = TaskContext::new(compilation, artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
-  Ok(ctx.artifact)
+  Ok(ctx.artifact.expect("should have artifact"))
 }

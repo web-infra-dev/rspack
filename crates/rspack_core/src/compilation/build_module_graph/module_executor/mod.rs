@@ -96,12 +96,14 @@ impl ModuleExecutor {
     let Ok(ctx) = stop_receiver.expect("should have receiver").await else {
       panic!("receive make artifact failed");
     };
-    self.make_artifact = ctx.origin_context.artifact;
+    self.make_artifact = ctx.origin_context.artifact.expect("should have artifact");
     self.entries = ctx.entries;
 
     // clean removed entries
     let removed_module = compilation
       .build_module_graph_artifact
+      .as_ref()
+      .expect("should have build_module_graph_artifact")
       .revoked_modules()
       .chain(self.make_artifact.revoked_modules())
       .collect::<HashSet<_>>();
@@ -119,6 +121,8 @@ impl ModuleExecutor {
 
     let mut mg = compilation
       .build_module_graph_artifact
+      .as_mut()
+      .expect("should have build_module_graph_artifact")
       .get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {

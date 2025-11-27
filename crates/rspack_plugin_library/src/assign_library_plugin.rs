@@ -468,8 +468,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mut module_graph = Compilation::get_make_module_graph_mut(
+      compilation
+        .build_module_graph_artifact
+        .as_mut()
+        .expect("should have build_module_graph_artifact"),
+    );
     if let Some(export) = export {
       let export_info = module_graph
         .get_exports_info(&module_identifier)

@@ -60,7 +60,11 @@ impl ModuleTracker {
   fn finish_module(&mut self, context: &mut TaskContext, mid: ModuleIdentifier) -> Vec<BoxTask> {
     let mut queue = VecDeque::from(vec![mid]);
     let mut ready_tasks = vec![];
-    let module_graph = context.artifact.get_module_graph();
+    let module_graph = context
+      .artifact
+      .as_ref()
+      .expect("should have artifact")
+      .get_module_graph();
     while let Some(module_identifier) = queue.pop_front() {
       tracing::debug!("finish build module {:?}", module_identifier);
       let count = self.unfinished_module.remove(&module_identifier);
@@ -88,7 +92,7 @@ impl ModuleTracker {
           }
         }
         ModuleIssuer::Some(mid) => {
-          if let Some(count) = self.unfinished_module.get_mut(mid) {
+          if let Some(count) = self.unfinished_module.get_mut(&mid) {
             *count -= 1;
             if count == &0 {
               queue.push_back(*mid);

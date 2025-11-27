@@ -121,7 +121,7 @@ impl Task<TaskContext> for BuildResultTask {
 
     let build_info = module.build_info();
 
-    let artifact = &mut context.artifact;
+    let artifact = context.artifact.as_mut().expect("should have artifact");
     let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
     if !module.diagnostics().is_empty() {
@@ -211,8 +211,8 @@ impl Task<TaskContext> for BuildResultTask {
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
 
-      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
-        .artifact
+      let artifact = context.artifact.as_mut().expect("should have artifact");
+      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = artifact
         .module_to_lazy_make
         .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
       {
@@ -227,8 +227,8 @@ impl Task<TaskContext> for BuildResultTask {
 
       all_dependencies
     } else {
-      context
-        .artifact
+      let artifact = context.artifact.as_mut().expect("should have artifact");
+      artifact
         .module_to_lazy_make
         .update_module_lazy_dependencies(module_identifier, None);
       all_dependencies

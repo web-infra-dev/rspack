@@ -784,8 +784,9 @@ impl Stats<'_> {
       self
         .compilation
         .build_module_graph_artifact
-        .built_modules()
-        .contains(&identifier)
+        .as_ref()
+        .map(|artifact| artifact.built_modules().contains(&identifier))
+        .unwrap_or_default()
     };
 
     let code_generated = self
