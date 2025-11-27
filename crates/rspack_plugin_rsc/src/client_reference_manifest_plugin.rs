@@ -58,7 +58,7 @@ impl ClientReferenceManifestPlugin {
         cross_origin: None,
       },
       ssr_module_mapping: Default::default(),
-      entry_css_files: Default::default(),
+      entry_css_files: plugin_state.entry_css_files.clone(),
       entry_js_files: Default::default(),
     };
 

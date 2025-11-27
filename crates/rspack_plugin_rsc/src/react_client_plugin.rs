@@ -1,9 +1,9 @@
 use derive_more::Debug;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
+  Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
   CompilerMake, CrossOriginLoading, Dependency, EntryDependency, Logger, Module, ModuleGraph,
-  ModuleId, ModuleIdentifier, Plugin,
+  ModuleId, ModuleIdentifier, ModuleType, Plugin, chunk_graph_chunk::ChunkId,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -11,6 +11,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   client_reference_manifest::{CrossOriginMode, ManifestExport},
+  constants::REGEX_CSS,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   utils::GetServerCompilerId,
 };
@@ -47,54 +48,65 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
 fn record_module(
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
+  client_reference_modules: &FxHashSet<ModuleIdentifier>,
+  chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
   required_chunks: &Vec<String>,
   plugin_state: &mut PluginState,
 ) {
+  println!("record_module: {:#?}", module_identifier);
+  if !client_reference_modules.contains(module_identifier) {
+    return;
+  }
   let Some(module) = compilation.module_by_identifier(module_identifier) else {
     return;
   };
   let Some(normal_module) = module.as_normal_module() else {
     return;
   };
-  let Some(rsc) = normal_module.build_info().rsc.as_ref() else {
+  if REGEX_CSS.is_match(&normal_module.request()) {
+    let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+      return;
+    };
+    let css_files = plugin_state
+      .entry_css_files
+      .entry(
+        "/Users/bytedance/Documents/github/webinfra_webinfra/rspack-rsc-examples/src/Todos.tsx"
+          .to_string(),
+      )
+      .or_default();
+    css_files.extend(
+      chunk
+        .files()
+        .iter()
+        .filter(|file| file.ends_with(".css"))
+        .cloned(),
+    );
     return;
-  };
-  match rsc.module_type {
-    rspack_core::RSCModuleType::Server => todo!(),
-    rspack_core::RSCModuleType::Client => {
-      let resource = if normal_module.module_type().as_str() == "css/mini-extract" {
-        let identifier = normal_module.identifier();
-        if let Some(pos) = identifier.rfind('!') {
-          identifier[pos + 1..].to_string()
-        } else {
-          identifier.to_string()
-        }
-      } else {
-        normal_module
-          .resource_resolved_data()
-          .resource()
-          .to_string()
-      };
-      if resource.is_empty() {
-        return;
-      }
-
-      let is_async = ModuleGraph::is_async(compilation, module_identifier);
-      plugin_state.client_modules.insert(
-        resource,
-        ManifestExport {
-          id: module_id.to_string(),
-          name: "*".to_string(),
-          chunks: required_chunks.clone(),
-          r#async: Some(is_async),
-        },
-      );
-    }
   }
+
+  let resource = normal_module
+    .resource_resolved_data()
+    .resource()
+    .to_string();
+  if resource.is_empty() {
+    return;
+  }
+
+  let is_async = ModuleGraph::is_async(compilation, module_identifier);
+  plugin_state.client_modules.insert(
+    resource,
+    ManifestExport {
+      id: module_id.to_string(),
+      name: "*".to_string(),
+      chunks: required_chunks.clone(),
+      r#async: Some(is_async),
+    },
+  );
 }
 
 fn record_chunk_group(
+  client_reference_modules: &FxHashSet<ModuleIdentifier>,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
   required_chunks: &mut Vec<String>,
@@ -107,6 +119,11 @@ fn record_chunk_group(
     return;
   }
   checked_chunk_groups.insert(chunk_group.ukey);
+
+  println!(
+    "css_files before: {:#?}",
+    chunk_group.get_files(&compilation.chunk_by_ukey),
+  );
 
   // Only apply following logic to client module requests from client entry,
   // or if the module is marked as client module. That's because other
@@ -138,6 +155,8 @@ fn record_chunk_group(
           record_module(
             module_id,
             &inner_module.id,
+            client_reference_modules,
+            chunk_ukey,
             compilation,
             required_chunks,
             plugin_state,
@@ -147,6 +166,8 @@ fn record_chunk_group(
         record_module(
           module_id,
           &module_identifier,
+          client_reference_modules,
+          chunk_ukey,
           compilation,
           required_chunks,
           plugin_state,
@@ -164,6 +185,7 @@ fn record_chunk_group(
     let start_len = required_chunks.len();
     required_chunks.extend(child_required_chunks);
     record_chunk_group(
+      client_reference_modules,
       child,
       compilation,
       required_chunks,
@@ -197,6 +219,43 @@ impl ReactClientPlugin {
       }
       _ => None,
     };
+
+    let mut client_reference_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let module_graph = compilation.get_module_graph();
+    for (entry_name, entry_data) in &compilation.entries {
+      for include_dependencies in &entry_data.include_dependencies {
+        let Some(module_identifier) =
+          module_graph.module_identifier_by_dependency_id(include_dependencies)
+        else {
+          continue;
+        };
+        let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+          continue;
+        };
+        let Some(normal_module) = module.as_normal_module() else {
+          continue;
+        };
+        if !normal_module
+          .user_request()
+          .starts_with("builtin:client-entry-loader?")
+        {
+          continue;
+        }
+        for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
+          let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+            continue;
+          };
+          let Some(module) = module_graph.module_by_identifier(&connection.module_identifier())
+          else {
+            continue;
+          };
+          let Some(normal_module) = module.as_normal_module() else {
+            continue;
+          };
+          client_reference_modules.insert(*connection.module_identifier());
+        }
+      }
+    }
 
     for (entry_name, entrypoint_ukey) in &compilation.entrypoints {
       let css_files = plugin_state
@@ -235,6 +294,7 @@ impl ReactClientPlugin {
       let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
       let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
       record_chunk_group(
+        &client_reference_modules,
         entrypoint,
         compilation,
         &mut required_chunks,

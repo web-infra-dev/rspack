@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize)]
@@ -33,15 +33,6 @@ pub struct ModuleLoading {
   pub cross_origin: Option<CrossOriginMode>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "inlined")]
-pub enum CssResource {
-  #[serde(rename = "true")]
-  Inlined { path: String, content: String },
-  #[serde(rename = "false")]
-  Uninlined { path: String },
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct ClientReferenceManifest {
   #[serde(rename = "clientModules")]
@@ -51,7 +42,7 @@ pub struct ClientReferenceManifest {
   #[serde(rename = "ssrModuleMapping")]
   pub ssr_module_mapping: FxHashMap<String, ManifestNode>,
   #[serde(rename = "entryCSSFiles")]
-  pub entry_css_files: FxHashMap<String, Vec<CssResource>>,
+  pub entry_css_files: FxHashMap<String, FxHashSet<String>>,
   #[serde(rename = "entryJSFiles")]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub entry_js_files: Option<FxHashMap<String, Vec<String>>>,

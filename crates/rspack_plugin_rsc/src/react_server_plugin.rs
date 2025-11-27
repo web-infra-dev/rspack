@@ -704,6 +704,10 @@ impl ReactServerPlugin {
     let client_browser_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       for (request, ids) in &modules {
+        serializer.append_pair(
+          "name",
+          "/Users/bytedance/Documents/github/webinfra_webinfra/rspack-rsc-examples/src/Todos.tsx",
+        );
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": ids
