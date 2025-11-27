@@ -157,10 +157,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         && computed.expr.is_lit()
       {
         // Check for computed properties like import.meta["dirname"]
-        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str()) {
-          if str_lit.value == "dirname" || str_lit.value == "filename" {
-            return None;
-          }
+        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
+          && (str_lit.value == "dirname" || str_lit.value == "filename")
+        {
+          return None;
         }
         return Some(eval::evaluate_to_undefined(
           member.span().real_lo(),

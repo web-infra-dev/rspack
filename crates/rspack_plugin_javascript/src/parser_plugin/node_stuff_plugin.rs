@@ -253,9 +253,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       return None;
     }
 
-    let Some(node_option) = parser.compiler_options.node.as_ref() else {
-      return None;
-    };
+    let node_option = parser.compiler_options.node.as_ref()?;
     if for_name == GLOBAL
       && matches!(
         node_option.global,
