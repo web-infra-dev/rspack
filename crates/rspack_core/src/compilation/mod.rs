@@ -1048,7 +1048,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?.into();
+    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
 
     self.in_finish_make.store(true, Ordering::Release);
 
