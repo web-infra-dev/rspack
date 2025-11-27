@@ -1,11 +1,11 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BuildMetaExportsType, Compilation, CompilationFinishModules, DependenciesBlock, DependencyId,
-  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportSpecExports, ExportsInfo, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, Logger,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
+  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -184,7 +184,11 @@ pub struct DefaultExportInfo<'a> {
 pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)

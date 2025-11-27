@@ -718,7 +718,8 @@ impl ESMExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
-            let is_async = ModuleGraph::is_async(compilation, &module_identifier);
+            let is_async =
+              ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier);
             ctxt
               .init_fragments
               .push(Box::new(ConditionalInitFragment::new(
@@ -806,7 +807,8 @@ impl ESMExportImportedSpecifierDependency {
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async = ModuleGraph::is_async(compilation, &module.identifier());
+        let is_async =
+          ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(
