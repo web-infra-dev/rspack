@@ -438,7 +438,7 @@ type Environment = {
 
 `output.environment` 的默认值由 [target](/config/target) 自动推断。
 
-Rspack 会基于 `target 识别目标环境支持的语言能力，例如：
+Rspack 会基于 `target` 识别目标环境支持的语言能力，例如：
 
 - 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 runtime 代码
 - 若 `target` 指向特定 Node 版本，Rspack 会根据该版本的语法能力推断对应字段
