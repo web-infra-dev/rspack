@@ -10,9 +10,9 @@
 - Bundle: runtime~main.js
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 687
+- Update: main.LAST_HASH.hot-update.js, size: 572
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 19005
-- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 503
+- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 376
 
 ## Manifest
 
@@ -38,23 +38,19 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./index.js": 
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-(function (module, __webpack_exports__, __webpack_require__) {
+"./index.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var vendor__rspack_import_0 = __webpack_require__(/*! vendor */ "./node_modules/vendor.js");
+/* import */ var vendor__rspack_import_0 = __webpack_require__("./node_modules/vendor.js");
 
 module.hot.data.ok = true;
-module.hot.data.loadChunk = () => __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
+module.hot.data.loadChunk = () => __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 module.hot.data.test = () => {
 	expect(vendor__rspack_import_0["default"]).toBe(2);
 };
 module.hot.data.hash = __webpack_require__.h();
 
 
-}),
+},
 
 });
 ```
@@ -739,11 +735,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.pus
 ```js
 "use strict";
 self["webpackHotUpdate"]("vendors-node_modules_vendor_js", {
-"./node_modules/vendor.js": 
-/*!********************************!*\
-  !*** ./node_modules/vendor.js ***!
-  \********************************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./node_modules/vendor.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -751,7 +743,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __rspack_default_export = (2);
 
 
-}),
+},
 
 });
 ```

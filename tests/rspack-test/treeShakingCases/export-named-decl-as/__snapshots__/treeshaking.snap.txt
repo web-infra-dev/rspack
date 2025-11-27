@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./src/answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./src/answer.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   formatNumber: () => (/* reexport safe */ _plugin_formatNumber__rspack_import_0["default"])
@@ -11,15 +11,15 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 
-}),
-"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./src/index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _answer__rspack_import_0 = __webpack_require__("./src/answer.js");
 
 console.log(_answer__rspack_import_0);
 
 
-}),
-"./src/plugin/formatNumber.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./src/plugin/formatNumber.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (formatNumber_default)
 });
@@ -31,7 +31,7 @@ var formatNumber_default = plugin;
 
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

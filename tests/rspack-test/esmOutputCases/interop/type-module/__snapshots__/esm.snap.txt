@@ -1,25 +1,25 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./cjs-unknown.cjs": 
+"./cjs-unknown.cjs"
 /*!*************************!*\
   !*** ./cjs-unknown.cjs ***!
   \*************************/
-(function (__unused_webpack_module, exports) {
+(__unused_webpack_module, exports) {
 const exportSymbol = () => 'bar'
 
 exports[exportSymbol()] = () => 'bar'
 
-}),
-"./cjs.cjs": 
+},
+"./cjs.cjs"
 /*!*****************!*\
   !*** ./cjs.cjs ***!
   \*****************/
-(function (__unused_webpack_module, exports) {
+(__unused_webpack_module, exports) {
 exports.foo = () => 'foo'
 
 
-}),
+},
 });
 // ./index.js
 

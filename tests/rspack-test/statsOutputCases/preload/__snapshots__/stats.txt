@@ -1,10 +1,10 @@
 asset main.js xx KiB [emitted] (name: main)
-asset preloaded.js 551 bytes [emitted] (name: preloaded)
-asset inner2.js 126 bytes [emitted] (name: inner2)
-asset inner.js 100 bytes [emitted] (name: inner)
-asset normal.js 100 bytes [emitted] (name: normal)
-asset preloaded3.js 100 bytes [emitted] (name: preloaded3)
-asset preloaded2.js 99 bytes [emitted] (name: preloaded2)
+asset preloaded.js 538 bytes [emitted] (name: preloaded)
+asset inner2.js 100 bytes [emitted] (name: inner2)
+asset inner.js 87 bytes [emitted] (name: inner)
+asset normal.js 87 bytes [emitted] (name: normal)
+asset preloaded3.js 87 bytes [emitted] (name: preloaded3)
+asset preloaded2.js 86 bytes [emitted] (name: preloaded2)
 Entrypoint main xx KiB = main.js
   preload: preloaded.js {70} (name: preloaded), preloaded3.js {101} (name: preloaded3), preloaded2.js {206} (name: preloaded2)
 chunk (runtime: main) preloaded3.js (preloaded3) 1 bytes [rendered]

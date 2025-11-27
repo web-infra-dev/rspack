@@ -3,7 +3,7 @@ import { value } from "./a";
 
 it("should not change the module id for the updated module", async () => {
   const content = await fs.readFile(__filename, 'utf-8');
-  expect(/"\.\/a\.js": \(.*\) {/.test(content)).toBe(true);
+  expect(/"\.\/a\.js"\(.*\) {/.test(content)).toBe(true);
   expect(value).toBe(WATCH_STEP);
 })
 

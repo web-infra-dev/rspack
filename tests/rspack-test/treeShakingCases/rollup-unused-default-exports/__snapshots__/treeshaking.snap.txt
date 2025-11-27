@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./foo.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   foo: () => (foo)
 });
@@ -15,14 +15,14 @@ function mutate(obj) {
 /* unused export default */ var __rspack_default_export = (mutate(foo));
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 
 assert.equal(_foo__rspack_import_0.foo.value, 2);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

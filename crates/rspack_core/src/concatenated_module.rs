@@ -1415,7 +1415,9 @@ impl Module for ConcatenatedModule {
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-          exports_argument,
+          compilation
+            .runtime_template
+            .render_exports_argument(exports_argument),
           definitions.join(",")
         )));
       }

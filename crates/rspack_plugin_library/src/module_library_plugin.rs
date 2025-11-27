@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, UsedNameItem,
-  property_access,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeVariable,
+  UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };
@@ -71,6 +71,9 @@ async fn render_startup(
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
   let mut source = ConcatSource::default();
   let is_async = ModuleGraph::is_async(compilation, module);
   let module_graph = compilation.get_module_graph();
@@ -78,9 +81,9 @@ async fn render_startup(
   // export { local as exported }
   let mut exports: Vec<(String, Option<String>)> = vec![];
   if is_async {
-    source.add(RawStringSource::from(
-      "__webpack_exports__ = await __webpack_exports__;\n",
-    ));
+    source.add(RawStringSource::from(format!(
+      "{exports_name} = await {exports_name};\n"
+    )));
   }
   let exports_info =
     module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
@@ -102,7 +105,7 @@ async fn render_startup(
     let used_name = export_info
       .get_used_name(Some(info_name), Some(chunk.runtime()))
       .expect("name can't be empty");
-    let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+    let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
     if info_name == "default"
       && matches!(
@@ -111,14 +114,14 @@ async fn render_startup(
       )
     {
       source.add(RawStringSource::from(format!(
-        "var {var_name} = __webpack_exports__;\n",
+        "var {var_name} = {exports_name};\n",
       )));
     } else {
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
         match used_name {
           UsedNameItem::Str(used_name) =>
-            format!("__webpack_exports__{}", property_access(vec![used_name], 0)),
+            format!("{exports_name}{}", property_access(vec![used_name], 0)),
           UsedNameItem::Inlined(inlined) => inlined.render(),
         }
       )));

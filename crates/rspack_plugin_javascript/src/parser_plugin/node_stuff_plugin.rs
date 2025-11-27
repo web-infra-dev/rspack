@@ -5,8 +5,12 @@ use rspack_core::{
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
 
-use super::JavascriptParserPlugin;
-use crate::{dependency::ExternalModuleDependency, utils::eval, visitors::JavascriptParser};
+use crate::{
+  JavascriptParserPlugin,
+  dependency::ExternalModuleDependency,
+  utils::eval,
+  visitors::{DestructuringAssignmentProperty, JavascriptParser},
+};
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -211,5 +215,14 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     } else {
       None
     }
+  }
+
+  fn import_meta_property_in_destructuring(
+    &self,
+    _parser: &mut JavascriptParser,
+    _property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
+    // TODO: implement import.meta.filename/dirname in destructuring
+    None
   }
 }

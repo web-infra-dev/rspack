@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1200
+- Update: main.LAST_HASH.hot-update.js, size: 980
 
 ## Manifest
 
@@ -33,28 +33,20 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./entry.js": 
-/*!******************!*\
-  !*** ./entry.js ***!
-  \******************/
-(function (module, __webpack_exports__, __webpack_require__) {
+"./entry.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* import */ var _index_module_css__rspack_import_0 = __webpack_require__(/*! ./index.module.css */ "./index.module.css");
+/* import */ var _index_module_css__rspack_import_0 = __webpack_require__("./index.module.css");
 
 module.hot.accept();
 // modify
 /* export default */ const __rspack_default_export = (_index_module_css__rspack_import_0["default"]);
 
 
-}),
-"./index.module.css": 
-/*!**************************!*\
-  !*** ./index.module.css ***!
-  \**************************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./index.module.css"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -62,7 +54,7 @@ __webpack_require__.d(__webpack_exports__, {
 // extracted by css-extract-rspack-plugin
 /* export default */ const __rspack_default_export = ({"bar":"gVlquue4Gts5AqVo"});
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

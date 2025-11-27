@@ -44,7 +44,7 @@ Add [deprecated](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/scrip
 
 ## output.chunkFilename
 
-- **Type:** `string = '[id].js' | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **Default:** Determined by [`output.filename`](/config/output#outputfilename) when it is not a function, otherwise `'[id].js'`.
 
 This option determines the name of non-initial chunk files. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
@@ -55,19 +55,20 @@ By default `[id].js` is used or a value inferred from [`output.filename`](/confi
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
     chunkFilename: '[id].js',
   },
 };
 ```
 
+:::tip
+See [Filename placeholders](/config/filename-placeholders) for more information.
+:::
+
 Usage as a function:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     chunkFilename: pathData => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
@@ -506,6 +507,10 @@ export default {
 };
 ```
 
+:::tip
+See [Filename placeholders](/config/filename-placeholders) for more information.
+:::
+
 Using the function to return the filename:
 
 ```js title="rspack.config.mjs"
@@ -522,111 +527,6 @@ export default {
 Note this option is called filename but you are still allowed to use something like `'js/[name]/bundle.js'` to create a folder structure.
 
 Note this option does not affect output files for on-demand-loaded chunks. It only affects output files that are initially loaded. For on-demand-loaded chunk files, the [`output.chunkFilename`](#outputchunkfilename) option is used. Files created by loaders also aren't affected. In this case, you would have to try the specific loader's available options.
-
-## Template string
-
-The template string below can be used to replace the corresponding file name. Different contexts correspond to different replaceable content, e.g. [output.assetModuleFilename](/config/output#outputassetmodulefilename) supports the use of [File Context](/config/output#file-context) and [Module Context](/config/output#module-context).
-
-### Compilation context
-
-Content that can be replaced at the compilation level.
-
-| Template     | Description              |
-| ------------ | ------------------------ |
-| `[fullhash]` | full hash of compilation |
-
-### Chunk context
-
-Content that can be replaced at the chunk level.
-
-| template        | description                                                                                                                                                                                                                               |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `[id]`          | The current chunk id                                                                                                                                                                                                                      |
-| `[name]`        | Use name when chunk name exists, otherwise use chunk id                                                                                                                                                                                   |
-| `[chunkhash]`   | The hash value of the chunk, computed from all elements of type in the current chunk                                                                                                                                                      |
-| `[contenthash]` | The hash value of the chunk, computed from the elements that contain only the content of that type. For example, if a module of type JavaScript is generated, only the hash of all JavaScript-typed modules in the current chunk is used. |
-
-### Module context
-
-Content that can be replaced at the module level.
-
-| Template        | Description            |
-| --------------- | ---------------------- |
-| `[id]`          | The id of the module   |
-| `[hash]`        | The hash of the module |
-| `[contenthash]` | hash of module content |
-
-### File context
-
-Content that can be replaced at the file level.
-
-| Template     | Description                                                                       |
-| ------------ | --------------------------------------------------------------------------------- |
-| `[file]`     | Filename and path, without query or fragment                                      |
-| `[query]`    | Query with leading `?`                                                            |
-| `[fragment]` | Fragment with leading `#`                                                         |
-| `[base]`     | Only filename (including extensions), without path                                |
-| `[filebase]` | Same, but deprecated                                                              |
-| `[path]`     | Only path, without filename                                                       |
-| `[name]`     | Only filename without extension or path                                           |
-| `[ext]`      | Extension with leading `.` (not available for [output.filename](#outputfilename)) |
-
-Substitutions available on URL-level:
-
-| Template | Description |
-| -------- | ----------- |
-| `[url]`  | URL         |
-
-:::tip
-
-`[file]` equals `[path][base]`. `[base]` equals `[name][ext]`. The full path is `[path][name][ext][query][fragment]` or `[path][base][query][fragment]` or `[file][query][fragment]`.
-
-:::
-
-The length of hashes (`[hash]`, `[contenthash]` or `[chunkhash]`) can be specified using `[hash:12]` (defaults to 16), or use `[hash:base64:8]` to specify both the digest (currently only base64 is supported) and length. Alternatively, specify [`output.hashDigestLength`](#outputhashdigestlength) to configure the length globally.
-
-It is possible to filter out placeholder replacement when you want to use one of the placeholders in the actual file name. For example, to output a file `[name].js`, you have to escape the `[name]` placeholder by adding backslashes between the brackets. So that `[\name\]` generates `[name]` instead of getting replaced with the `name` of the asset.
-
-Example: `[\id\]` generates `[id]` instead of getting replaced with the `id`.
-
-If using a function for this option, the function will be passed an object containing data for the substitutions in the table above.
-Substitutions will be applied to the returned string too.
-The passed object will have this type: (properties available depending on context)
-
-```ts
-type PathData = {
-  hash: string;
-  hashWithLength: (number) => string;
-  chunk: Chunk | ChunkPathData;
-  module: Module | ModulePathData;
-  contentHashType: string;
-  contentHash: string;
-  contentHashWithLength: (number) => string;
-  filename: string;
-  url: string;
-  runtime: string | SortableSet<string>;
-  chunkGraph: ChunkGraph;
-};
-type ChunkPathData = {
-  id: string | number;
-  name: string;
-  hash: string;
-  hashWithLength: (number) => string;
-  contentHash: Record<string, string>;
-  contentHashWithLength: Record<string, (number) => string>;
-};
-type ModulePathData = {
-  id: string | number;
-  hash: string;
-  hashWithLength: (number) => string;
-};
-```
-
-:::warning
-When developing locally, it's recommended to avoid using hash values in filenames.
-
-This is because entry files and chunks split by [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) are loaded via `<script>` tags in HTML files. If filenames contain hash values, HMR will not work as HTML files cannot be dynamically loaded.
-:::
 
 ## output.globalObject
 
@@ -663,7 +563,15 @@ The encoding to use when generating the hash. Using `'base64'` for filenames mig
 - **Type:** `number`
 - **Default:** `16`
 
-The prefix length of the hash digest to use.
+The prefix length of the hash digest to use, see [Hash length](/config/filename-placeholders#hash-length) for more details.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    hashDigestLength: 8,
+  },
+};
+```
 
 ## output.hashFunction
 
@@ -674,7 +582,6 @@ The hashing algorithm to use.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     hashFunction: 'xxhash64',
   },
@@ -703,7 +610,6 @@ The only placeholders allowed here are `[id]` and `[fullhash]`, the default bein
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     hotUpdateChunkFilename: '[id].[fullhash].hot-update.js',
   },
@@ -745,7 +651,6 @@ Tells Rspack to add [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIF
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     iife: true,
   },
@@ -1638,25 +1543,34 @@ Note that `[fullhash]` in this parameter will be replaced with a hash of the com
 ## output.pathinfo
 
 - **Type:** `boolean | 'verbose'`
-- **Default:** `true`
+- **Default:** `false`
 
-Tells Rspack to include comments in bundles with information about the contained modules. This option defaults to `true` in `development` and `false` in `production` [mode](/config/mode) respectively. `'verbose'` shows more information like exports, runtime requirements and bailouts.
+Controls whether Rspack adds module-related comments to the generated bundle. These comments are useful for debugging, inspecting build output, and understanding tree-shaking behavior.
 
-:::warning
-While the data these comments can provide is useful during development when reading the generated code, it **should not** be used in production.
-:::
+- `true`: Enables basic comments, including module path information.
+- `false`: Disables all comments, which is the default behavior.
+- `'verbose'`: Outputs detailed comments, such as module exports, runtime details, tree-shaking information, and bailout reasons. This mode is helpful when diagnosing build issues or performing in-depth bundle analysis.
+
+For example, enabling `pathinfo`:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     pathinfo: true,
   },
 };
 ```
 
-:::tip
-It also adds some info about tree shaking to the generated bundle.
+The generated bundle will contain comments like:
+
+```js
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+```
+
+:::warning
+`pathinfo` is primarily intended for development and debugging. These comments increase bundle size and may expose details about your source structure. Avoid using it in production.
 :::
 
 ## output.publicPath
@@ -1703,7 +1617,7 @@ export default {
 
 Configure how source maps are named. Only takes effect when [`devtool`](/config/devtool) is set to `'source-map'`, which writes an output file.
 
-The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output.filename`](#outputfilename) can be used. In addition to those, you can use substitutions listed under Filename-level in [Template strings](#template-strings).
+The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output.filename`](#outputfilename) can be used. In addition to those, you can use substitutions listed under Filename-level in [Filename placeholders](/config/filename-placeholders).
 
 ## output.strictModuleErrorHandling
 
@@ -1824,10 +1738,14 @@ Specifies the filename of WebAssembly modules. It should be provided as a relati
 export default {
   //...
   output: {
-    webassemblyModuleFilename: '[id].[hash].wasm',
+    webassemblyModuleFilename: '[contenthash:8].wasm',
   },
 };
 ```
+
+:::tip
+See [Filename placeholders](/config/filename-placeholders) for more information.
+:::
 
 ## output.workerChunkLoading
 

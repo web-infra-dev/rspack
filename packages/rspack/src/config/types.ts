@@ -391,6 +391,9 @@ export type DevtoolFallbackModuleFilenameTemplate =
 
 /** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
 export type Environment = {
+	/** The environment supports { fn() {} } */
+	methodShorthand?: boolean;
+
 	/** The environment supports arrow functions ('() => { ... }'). */
 	arrowFunction?: boolean;
 
@@ -445,8 +448,15 @@ export type Output = {
 	path?: Path;
 
 	/**
-	 * Tells Rspack to include comments in bundles with information about the contained modules.
-	 * @default true
+	 * Controls whether Rspack adds module-related comments to the generated bundle.
+	 * These comments are useful for debugging, inspecting build output, and understanding
+	 * tree-shaking behavior.
+	 * - `true`: Enables basic comments, including module path information.
+	 * - `false`: Disables all comments, which is the default behavior.
+	 * - `'verbose'`: Outputs detailed comments, such as module exports, runtime details,
+	 * tree-shaking information, and bailout reasons. This mode is helpful when diagnosing
+	 * build issues or performing in-depth bundle analysis.
+	 * @default false
 	 */
 	pathinfo?: Pathinfo;
 

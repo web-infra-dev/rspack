@@ -1,10 +1,10 @@
 asset main.js xx KiB {889} [emitted] (name: main)
-asset prefetched.js 552 bytes {730} [emitted] (name: prefetched)
-asset inner2.js 126 bytes {750} [emitted] (name: inner2)
-asset inner.js 100 bytes {222} [emitted] (name: inner)
-asset normal.js 100 bytes {667} [emitted] (name: normal)
-asset prefetched2.js 100 bytes {786} [emitted] (name: prefetched2)
-asset prefetched3.js 100 bytes {329} [emitted] (name: prefetched3)
+asset prefetched.js 539 bytes {730} [emitted] (name: prefetched)
+asset inner2.js 100 bytes {750} [emitted] (name: inner2)
+asset inner.js 87 bytes {222} [emitted] (name: inner)
+asset normal.js 87 bytes {667} [emitted] (name: normal)
+asset prefetched2.js 87 bytes {786} [emitted] (name: prefetched2)
+asset prefetched3.js 87 bytes {329} [emitted] (name: prefetched3)
 Entrypoint main xx KiB = main.js
   prefetch: prefetched.js {730} (name: prefetched), prefetched3.js {329} (name: prefetched3), prefetched2.js {786} (name: prefetched2)
 chunk {222} (runtime: main) inner.js (inner) 1 bytes <{730}> [rendered]

@@ -6,7 +6,7 @@ use rspack_core::{
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
   LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
-  UsedNameItem,
+  RuntimeVariable, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -320,8 +320,12 @@ async fn render_startup(
       }
     }
 
+    let exports_name = compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::Exports);
+
     for (final_name, info_name) in exports_with_property_access.iter() {
-      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+      let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {final_name};\n"
@@ -331,7 +335,7 @@ async fn render_startup(
     }
 
     for (inlined, info_name) in exports_with_inlined.iter() {
-      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+      let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",

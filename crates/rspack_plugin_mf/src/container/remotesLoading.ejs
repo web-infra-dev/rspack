@@ -1,9 +1,9 @@
-__webpack_require__.f.remotes = function (chunkId, promises) {
-	var chunkMapping = __webpack_require__.remotesLoadingData.chunkMapping;
-	var moduleIdToRemoteDataMapping = __webpack_require__.remotesLoadingData.moduleIdToRemoteDataMapping;
-	if (__webpack_require__.o(chunkMapping, chunkId)) {
+<%- ENSURE_CHUNK_HANDLERS %>.remotes = function (chunkId, promises) {
+	var chunkMapping = <%- REQUIRE %>.remotesLoadingData.chunkMapping;
+	var moduleIdToRemoteDataMapping = <%- REQUIRE %>.remotesLoadingData.moduleIdToRemoteDataMapping;
+	if (<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {
 		chunkMapping[chunkId].forEach(function (id) {
-			var getScope = __webpack_require__.R;
+			var getScope = <%- CURRENT_REMOTE_GET_SCOPE %>;
 			if (!getScope) getScope = [];
 			var data = moduleIdToRemoteDataMapping[id];
 			if (getScope.indexOf(data) >= 0) return;
@@ -14,7 +14,7 @@ __webpack_require__.f.remotes = function (chunkId, promises) {
 				if (typeof error.message === "string")
 					error.message +=
 						'\nwhile loading "' + data.name + '" from ' + data.externalModuleId;
-				__webpack_require__.m[id] = function () {
+				<%- MODULE_FACTORIES %>[id] = function () {
 					throw error;
 				};
 				data.p = 0;
@@ -36,18 +36,18 @@ __webpack_require__.f.remotes = function (chunkId, promises) {
 				}
 			};
 			var onExternal = function (external, _, first) {
-				return external ? handleFunction(__webpack_require__.I, data.shareScope, 0, external, onInitialized, first) : onError();
+				return external ? handleFunction(<%- INITIALIZE_SHARING %>, data.shareScope, 0, external, onInitialized, first) : onError();
 			};
 			var onInitialized = function (_, external, first) {
 				return handleFunction(external.get, data.name, getScope, 0, onFactory, first);
 			};
 			var onFactory = function (factory) {
 				data.p = 1;
-				__webpack_require__.m[id] = function (module) {
+				<%- MODULE_FACTORIES %>[id] = function (module) {
 					module.exports = factory();
 				};
 			};
-			handleFunction(__webpack_require__, data.externalModuleId, 0, 0, onExternal, 1);
+			handleFunction(<%- REQUIRE %>, data.externalModuleId, 0, 0, onExternal, 1);
 		});
 	}
 };

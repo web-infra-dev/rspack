@@ -177,10 +177,17 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      exports_argument.to_string()
+      compilation
+        .runtime_template
+        .render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{module_argument}.exports")
+      format!(
+        "{}.exports",
+        compilation
+          .runtime_template
+          .render_module_argument(module_argument)
+      )
     } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()

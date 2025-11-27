@@ -37,6 +37,13 @@ impl RuntimeModule for RemoteRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("./remotesLoading.ejs").to_string(),
+    )]
+  }
+
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
@@ -100,7 +107,9 @@ impl RuntimeModule for RemoteRuntimeModule {
           .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
       )
     } else {
-      include_str!("./remotesLoading.js").to_string()
+      compilation
+        .runtime_template
+        .render(self.id.as_str(), None)?
     };
     Ok(format!(
       r#"

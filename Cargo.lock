@@ -4452,7 +4452,6 @@ dependencies = [
  "either",
  "fast-glob",
  "indexmap",
- "indoc",
  "itertools 0.14.0",
  "linked_hash_set",
  "num-bigint",

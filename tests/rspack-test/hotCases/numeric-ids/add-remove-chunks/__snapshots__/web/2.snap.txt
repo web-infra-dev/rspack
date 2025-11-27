@@ -8,8 +8,8 @@
 - Bundle: 1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 50
-- Update: 10.LAST_HASH.hot-update.js, size: 350
-- Update: main.LAST_HASH.hot-update.js, size: 692
+- Update: 10.LAST_HASH.hot-update.js, size: 268
+- Update: main.LAST_HASH.hot-update.js, size: 588
 
 ## Manifest
 
@@ -35,11 +35,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("10", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -47,7 +43,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 3;
 
 
-}),
+},
 
 });
 ```
@@ -66,19 +62,15 @@ var value = 3;
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./module.js": 
-/*!*******************!*\
-  !*** ./module.js ***!
-  \*******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/*! import() | 1e1 */ "1e1").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js")));
+/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() | 1e1 */ "1e1").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")));
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

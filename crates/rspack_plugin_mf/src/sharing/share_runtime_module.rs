@@ -29,6 +29,13 @@ impl RuntimeModule for ShareRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("./initializeSharing.ejs").to_string(),
+    )]
+  }
+
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
@@ -111,7 +118,9 @@ impl RuntimeModule for ShareRuntimeModule {
           .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
       )
     } else {
-      include_str!("./initializeSharing.js").to_string()
+      compilation
+        .runtime_template
+        .render(self.id.as_str(), None)?
     };
     Ok(format!(
       r#"

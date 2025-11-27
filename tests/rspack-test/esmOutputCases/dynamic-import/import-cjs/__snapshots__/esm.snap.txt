@@ -1,15 +1,15 @@
 ```mjs title=dynamic_js.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./dynamic.js": 
+"./dynamic.js"
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(function (__unused_webpack_module, exports) {
+(__unused_webpack_module, exports) {
 exports.value = 42
 
 
-}),
+},
 });
 
 ```
