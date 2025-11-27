@@ -11,7 +11,7 @@ module.exports = {
 	output: {
 		filename: "[name].js",
 	},
-	optimization:{
+	optimization: {
 		runtimeChunk: 'single'
 	},
 	plugins: [new rspack.HtmlRspackPlugin({
@@ -19,9 +19,7 @@ module.exports = {
 		}),
 		{
 			apply(compiler) {
-				compiler.hooks.done.tap("TestAssert", (a)=>{
-					const fs = require("fs");
-					const path = require("path");
+				compiler.hooks.done.tap("TestAssert", ()=>{
 					let outputPath = compiler.options.output.path;
 				 	const htmlContent = fs.readFileSync(path.join(outputPath,'index.html'), "utf-8");
 
