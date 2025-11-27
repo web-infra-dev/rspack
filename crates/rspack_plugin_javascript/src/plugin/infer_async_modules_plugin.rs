@@ -127,7 +127,7 @@ fn set_sync_modules(
           .collect::<Vec<_>>()
       })
       .iter()
-      .any(|out| ModuleGraph::is_async(&async_modules_artifact, out))
+      .any(|out| ModuleGraph::is_async(async_modules_artifact, out))
     {
       // We can't safely reset is_async to false if there are any outgoing module is async
       continue;

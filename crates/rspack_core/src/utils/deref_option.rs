@@ -1,4 +1,7 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+  fmt::Debug,
+  ops::{Deref, DerefMut},
+};
 
 #[derive(Debug, Default)]
 pub struct DerefOption<T>(Option<T>);
@@ -13,20 +16,38 @@ impl<T> DerefOption<T> {
     Self(Some(value))
   }
   pub fn take(&mut self) -> T {
-    self.0.take().unwrap()
+    self
+      .0
+      .take()
+      .unwrap_or_else(|| panic!("should set in compilation first"))
   }
   pub fn swap(&mut self, other: &mut T) {
-    std::mem::swap(self.0.as_mut().unwrap(), other);
+    std::mem::swap(
+      self
+        .0
+        .as_mut()
+        .unwrap_or_else(|| panic!("should set in compilation first")),
+      other,
+    );
   }
 }
 impl<T> Deref for DerefOption<T> {
   type Target = T;
   fn deref(&self) -> &Self::Target {
-    self.0.as_ref().unwrap()
+    self
+      .0
+      .as_ref()
+      .unwrap_or_else(|| panic!("should set in compilation first"))
   }
 }
-impl<T> DerefMut for DerefOption<T> {
+impl<T> DerefMut for DerefOption<T>
+where
+  T: Debug,
+{
   fn deref_mut(&mut self) -> &mut Self::Target {
-    self.0.as_mut().unwrap()
+    self
+      .0
+      .as_mut()
+      .unwrap_or_else(|| panic!("should set in compilation first"))
   }
 }
