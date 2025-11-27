@@ -248,7 +248,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           } else {
             format!(
               r#"/* export default */ {}{} = "#,
-              module.get_exports_argument(),
+              compilation
+                .runtime_template
+                .render_exports_argument(module.get_exports_argument()),
               property_access(used, 0)
             )
           }

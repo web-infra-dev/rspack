@@ -275,16 +275,15 @@ impl Default for RuntimeGlobals {
 
 pub fn runtime_globals_to_string(
   runtime_globals: &RuntimeGlobals,
-  _compiler_options: &CompilerOptions,
+  compiler_options: &CompilerOptions,
 ) -> String {
-  // TODO: use compiler options to get scope name
-  let scope_name = "__webpack_require__";
+  let scope_name = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
   match *runtime_globals {
     RuntimeGlobals::REQUIRE_SCOPE => format!("{scope_name}.*"),
     RuntimeGlobals::MODULE => "module".to_string(),
     RuntimeGlobals::MODULE_ID => "module.id".to_string(),
     RuntimeGlobals::MODULE_LOADED => "module.loaded".to_string(),
-    RuntimeGlobals::REQUIRE => scope_name.to_string(),
+    RuntimeGlobals::REQUIRE => scope_name,
     RuntimeGlobals::MODULE_CACHE => format!("{scope_name}.c"),
     RuntimeGlobals::ENSURE_CHUNK => format!("{scope_name}.e"),
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => format!("{scope_name}.f"),
@@ -295,7 +294,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::HAS_OWN_PROPERTY => format!("{scope_name}.o"),
     RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY => format!("{scope_name}.m (add only)"),
     RuntimeGlobals::ON_CHUNKS_LOADED => format!("{scope_name}.O"),
-    RuntimeGlobals::CHUNK_CALLBACK => "webpackChunk".to_string(),
+    RuntimeGlobals::CHUNK_CALLBACK => "global chunk callback".to_string(),
     RuntimeGlobals::MODULE_FACTORIES => format!("{scope_name}.m"),
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => format!("{scope_name}.i"),
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => format!("{scope_name}.hmrM"),
@@ -329,7 +328,9 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
-    RuntimeGlobals::EXPORTS => "__webpack_exports__".to_string(),
+    RuntimeGlobals::EXPORTS => {
+      runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
+    }
     RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => format!("{scope_name}.n"),
     RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => format!("{scope_name}.t"),
     RuntimeGlobals::ESM_MODULE_DECORATOR => format!("{scope_name}.hmd"),
@@ -355,6 +356,35 @@ pub fn runtime_globals_to_string(
 
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
     _ => unreachable!(),
+  }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum RuntimeVariable {
+  Require,
+  Modules,
+  ModuleCache,
+  Module,
+  Exports,
+  EsmChunkIds,
+  EsmChunkId,
+  EsmRuntime,
+}
+
+pub fn runtime_variable_to_string(
+  runtime_variable: &RuntimeVariable,
+  _compiler_options: &CompilerOptions,
+) -> String {
+  // TODO: use compiler options to get runtime variable names
+  match *runtime_variable {
+    RuntimeVariable::Require => "__webpack_require__".to_string(),
+    RuntimeVariable::Modules => "__webpack_modules__".to_string(),
+    RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),
+    RuntimeVariable::Exports => "__webpack_exports__".to_string(),
+    RuntimeVariable::Module => "__webpack_module__".to_string(),
+    RuntimeVariable::EsmChunkIds => "__webpack_ids__".to_string(),
+    RuntimeVariable::EsmChunkId => "__webpack_id__".to_string(),
+    RuntimeVariable::EsmRuntime => "__webpack_runtime__".to_string(),
   }
 }
 

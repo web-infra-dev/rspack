@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeGlobals, SourceType, get_js_chunk_filename_template, get_module_directives,
-  get_module_hashbang, get_undo_path, render_init_fragments,
+  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
+  get_module_directives, get_module_hashbang, get_undo_path, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -235,9 +235,12 @@ impl EsmLibraryPlugin {
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
       if tree_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
-        runtime_source.add(RawStringSource::from_static(
-          "\nvar __webpack_modules__ = {};\n",
-        ));
+        runtime_source.add(RawStringSource::from(format!(
+          "\nvar {} = {{}};\n",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules)
+        )));
       }
       let runtimes =
         Self::render_runtime(chunk_ukey, compilation, *tree_runtime_requirements).await?;
@@ -685,9 +688,12 @@ impl EsmLibraryPlugin {
     let mut source = ConcatSource::default();
 
     if use_require || module_cache {
-      source.add(RawStringSource::from_static(
-        "// The module cache\nvar __webpack_module_cache__ = {};\n",
-      ));
+      source.add(RawStringSource::from(format!(
+        "// The module cache\nvar {} = {{}};\n",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )));
     }
 
     if use_require {
@@ -712,19 +718,25 @@ impl EsmLibraryPlugin {
 
     if module_factories {
       source.add(RawStringSource::from(format!(
-        "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
-        compilation
+        "// expose the modules object ({modules})\n{module_factories} = {modules};\n",
+        module_factories = compilation
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+          .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        modules = compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::Modules),
       )));
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       source.add(RawStringSource::from(format!(
-        "// expose the module cache\n{} = __webpack_module_cache__;\n",
+        "// expose the module cache\n{} = {};\n",
         compilation
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE)
+          .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache),
       )));
     }
 

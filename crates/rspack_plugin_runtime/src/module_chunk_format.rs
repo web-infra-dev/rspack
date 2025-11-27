@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, RuntimeVariable, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -131,14 +131,23 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_id__ = {chunk_id_json_string} ;\n",
+    "export const {} = {chunk_id_json_string} ;\n",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::EsmChunkId)
   )));
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = [{chunk_id_json_string}];\n",
+    "export const {} = [{chunk_id_json_string}];\n",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::EsmChunkIds)
   )));
-  sources.add(RawStringSource::from_static(
-    "export const __webpack_modules__ = ",
-  ));
+  sources.add(RawStringSource::from(format!(
+    "export const {} = ",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::Modules),
+  )));
   sources.add(render_source.source.clone());
   sources.add(RawStringSource::from_static(";\n"));
 
@@ -146,9 +155,12 @@ async fn render_chunk(
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawStringSource::from_static(
-      "export const __webpack_runtime__ = ",
-    ));
+    sources.add(RawStringSource::from(format!(
+      "export const {} = ",
+      compilation
+        .runtime_template
+        .render_runtime_variable(&RuntimeVariable::EsmRuntime)
+    )));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
@@ -250,9 +262,14 @@ async fn render_chunk(
       startup_source.push(format!(
         "{}__webpack_exec__({module_id_expr});",
         if i + 1 == entries.len() {
-          "var __webpack_exports__ = "
+          format!(
+            "var {} = ",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::Exports)
+          )
         } else {
-          ""
+          "".to_string()
         }
       ));
     }

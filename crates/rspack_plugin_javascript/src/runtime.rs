@@ -190,18 +190,22 @@ pub async fn render_module(
 
       let mut args = Vec::new();
       if need_module || need_exports || need_require {
-        let module_argument = module.get_module_argument();
+        let module_argument = compilation
+          .runtime_template
+          .render_module_argument(module.get_module_argument());
         args.push(if need_module {
-          module_argument.to_string()
+          module_argument
         } else {
           format!("__unused_webpack_{module_argument}")
         });
       }
 
       if need_exports || need_require {
-        let exports_argument = module.get_exports_argument();
+        let exports_argument = compilation
+          .runtime_template
+          .render_exports_argument(module.get_exports_argument());
         args.push(if need_exports {
-          exports_argument.to_string()
+          exports_argument
         } else {
           format!("__unused_webpack_{exports_argument}")
         });
