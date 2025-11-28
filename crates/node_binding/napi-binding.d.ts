@@ -1124,6 +1124,11 @@ export interface JsRsdoctorExportInfo {
   sideEffects: Array<number>
 }
 
+export interface JsRsdoctorJsonModuleSize {
+  identifier: string
+  size: number
+}
+
 export interface JsRsdoctorModule {
   ukey: number
   identifier: string
@@ -1172,6 +1177,7 @@ export interface JsRsdoctorModuleOriginalSource {
 
 export interface JsRsdoctorModuleSourcesPatch {
   moduleOriginalSources: Array<JsRsdoctorModuleOriginalSource>
+  jsonModuleSizes: Array<JsRsdoctorJsonModuleSize>
 }
 
 export interface JsRsdoctorSideEffect {
