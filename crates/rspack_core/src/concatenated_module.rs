@@ -223,12 +223,6 @@ impl ConcatenatedModuleInfo {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
-    if let Some(name) = &self.namespace_export_symbol
-      && name == atom
-    {
-      return Some(name);
-    }
-
     if let Some(name) = &self.namespace_object_name
       && name == atom
     {
