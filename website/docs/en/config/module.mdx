@@ -2678,7 +2678,6 @@ export default {
 };
 ```
 
-
 When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves loader order while maximizing parallel efficiency.
 
 :::tip
