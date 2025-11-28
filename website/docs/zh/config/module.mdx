@@ -2675,7 +2675,7 @@ export default {
 };
 ```
 
-当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin: loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
+当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
 
 :::tip
 
