@@ -29,8 +29,8 @@ importers:
         specifier: workspace:*
         version: link:packages/rspack-cli
       '@rstest/core':
-        specifier: ^0.6.6
-        version: 0.6.6(jsdom@26.1.0)
+        specifier: ^0.6.8
+        version: 0.6.8(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -681,8 +681,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: ^0.6.6
-        version: 0.6.6(jsdom@26.1.0)
+        specifier: ^0.6.8
+        version: 0.6.8(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.17
         version: 0.5.17
@@ -3283,8 +3283,8 @@ packages:
   '@rstack-dev/doc-ui@1.12.0':
     resolution: {integrity: sha512-YYnJ/8oCUuNMLxBXVFydmEfNOmELR7/Ee8Xcwh4Vt+sGhddf7GFFWFHD9c3fVy/IjdLL+rEIAj1i5nGQxsjwOA==}
 
-  '@rstest/core@0.6.6':
-    resolution: {integrity: sha512-dY7V+E1woLXxMF20lH6zq+aDViOEJ/0TfB6tfbwamLcfpVrYGK8aYLYe+Te0k4RsqR3Jhmwsd++JKx2fvrex4w==}
+  '@rstest/core@0.6.8':
+    resolution: {integrity: sha512-rWn3HzcOx1QY/F+Qu/5HpLM9k0f2I0Svvi08vGGB8p9TN9u2wD2/AY+Rh9ao+90wxX5GiN2RVlI//4G7lHYJBg==}
     engines: {node: '>=18.12.0'}
     hasBin: true
     peerDependencies:
@@ -10792,7 +10792,7 @@ snapshots:
       - react
       - react-dom
 
-  '@rstest/core@0.6.6(jsdom@26.1.0)':
+  '@rstest/core@0.6.8(jsdom@26.1.0)':
     dependencies:
       '@rsbuild/core': 1.6.0-beta.1
       '@types/chai': 5.2.3
