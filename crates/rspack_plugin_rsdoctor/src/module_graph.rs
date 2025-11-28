@@ -1,20 +1,57 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact,
+  ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
+use rspack_plugin_json::create_object_for_exports_info;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleId,
-  RsdoctorModuleOriginalSource,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
+  RsdoctorModuleId, RsdoctorModuleOriginalSource,
 };
+
+pub fn collect_json_module_sizes(
+  modules: &IdentifierMap<&BoxModule>,
+  module_graph: &ModuleGraph,
+) -> RsdoctorJsonModuleSizes {
+  let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();
+
+  for (module_id, module) in modules.iter() {
+    if module.module_type() != &ModuleType::Json {
+      continue;
+    }
+
+    if let Some(json_data) = module.build_info().json_data.as_ref() {
+      let exports_info =
+        module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+
+      let final_json = match json_data {
+        json::JsonValue::Object(_) | json::JsonValue::Array(_)
+          if matches!(
+            exports_info.other_exports_info().get_used(None),
+            UsageState::Unused
+          ) =>
+        {
+          create_object_for_exports_info(json_data.clone(), &exports_info, None, module_graph)
+        }
+        _ => json_data.clone(),
+      };
+
+      let json_str = json::stringify(final_json);
+      let size = "module.exports = ".len() + json_str.len();
+      json_sizes.insert(module_id.to_string(), size as i32);
+    }
+  }
+
+  json_sizes
+}
 
 pub fn collect_modules(
   modules: &IdentifierMap<&BoxModule>,
@@ -54,6 +91,7 @@ pub fn collect_modules(
             .collect::<HashSet<_>>()
         })
         .unwrap_or_default();
+
       (
         module_id.to_owned(),
         RsdoctorModule {
@@ -139,8 +177,8 @@ pub fn collect_module_original_sources(
       } else {
         module.as_normal_module()?
       };
-      let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource().to_owned();
+      let module_ukey = module_ukeys.get(module_id)?;
       let object_pool = tls.get_or(ObjectPool::default);
       let source = module
         .source()
@@ -164,6 +202,24 @@ pub fn collect_module_original_sources(
             source: content,
           })
         })?;
+
+      let mut source = source;
+
+      let (map, result_map) = compilation.code_generation_results.inner();
+      let module_identifier = module.identifier();
+      let code_gen_key = if map.contains_key(&module_identifier) {
+        &module_identifier
+      } else {
+        module_id
+      };
+
+      if let Some(entry) = map.get(code_gen_key)
+        && let Some(id) = entry.values().next()
+        && let Some(res) = result_map.get(id)
+      {
+        source.size = res.inner().values().map(|s| s.size() as i32).sum();
+      }
+
       Some(source)
     })
     .collect::<Vec<_>>()

@@ -30,8 +30,8 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
-    collect_module_original_sources, collect_modules,
+    collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
+    collect_module_ids, collect_module_original_sources, collect_modules,
   },
 };
 
@@ -61,6 +61,10 @@ static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, Mo
 static ENTRYPOINT_UKEY_MAP: LazyLock<
   FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
+
+#[cfg_attr(allocative, allocative::root)]
+static JSON_MODULE_SIZE_MAP: LazyLock<FxDashMap<CompilationId, crate::RsdoctorJsonModuleSizes>> =
+  LazyLock::new(FxDashMap::default);
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum RsdoctorPluginModuleGraphFeature {
@@ -256,6 +260,23 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   Ok(None)
 }
 
+#[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = -1)]
+async fn pre_optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
+    return Ok(None);
+  }
+
+  let module_graph = compilation.get_module_graph();
+  let modules = module_graph.modules();
+
+  // collect JSON module's size（including: tree shaking）
+  let json_sizes = collect_json_module_sizes(&modules, module_graph);
+
+  JSON_MODULE_SIZE_MAP.insert(compilation.id(), json_sizes);
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 9999)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph) {
@@ -439,12 +460,18 @@ async fn after_code_generation(
     compilation,
   );
 
+  let json_module_sizes = JSON_MODULE_SIZE_MAP
+    .get(&compilation.id())
+    .map(|map| map.clone())
+    .unwrap_or_default();
+
   tokio::spawn(async move {
     match hooks
       .borrow()
       .module_sources
       .call(&mut RsdoctorModuleSourcesPatch {
         module_original_sources: rsd_module_original_sources,
+        json_module_sizes,
       })
       .await
     {
@@ -452,6 +479,7 @@ async fn after_code_generation(
       Err(e) => panic!("rsdoctor send module sources failed: {e}"),
     };
   });
+
   Ok(())
 }
 
@@ -466,17 +494,24 @@ async fn after_process_assets(
   }
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
-
+  let assets = compilation.assets();
   let chunk_by_ukey = &compilation.chunk_by_ukey;
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-  let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
-  let rsd_chunk_assets = collect_chunk_assets(chunk_by_ukey, &rsd_assets);
-  let rsd_entrypoint_assets = collect_entrypoint_assets(
+
+  // 1. collect assets
+  let rsd_assets = collect_assets(assets, chunk_by_ukey);
+
+  // 2. collect chunk assets
+  let chunk_assets = collect_chunk_assets(chunk_by_ukey, &rsd_assets);
+
+  // 3. collect entrypoint assets
+  let entrypoint_ukey_map = ENTRYPOINT_UKEY_MAP
+    .get(&compilation.id())
+    .expect("should have entrypoint ukey map");
+  let entrypoint_assets = collect_entrypoint_assets(
     &compilation.entrypoints,
     &rsd_assets,
-    &ENTRYPOINT_UKEY_MAP
-      .get(&compilation.id())
-      .expect("should have entrypoint ukey map"),
+    &entrypoint_ukey_map,
     chunk_group_by_ukey,
     chunk_by_ukey,
   );
@@ -487,8 +522,8 @@ async fn after_process_assets(
       .assets
       .call(&mut RsdoctorAssetPatch {
         assets: rsd_assets.into_values().collect::<Vec<_>>(),
-        chunk_assets: rsd_chunk_assets,
-        entrypoint_assets: rsd_entrypoint_assets,
+        chunk_assets,
+        entrypoint_assets,
       })
       .await
     {
@@ -507,6 +542,12 @@ impl Plugin for RsdoctorPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    // Collect the size of the JSON module before concatenation
+    ctx
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(pre_optimize_chunk_modules::new(self));
+    // Collect module information after concatenation
     ctx
       .compilation_hooks
       .optimize_chunk_modules
