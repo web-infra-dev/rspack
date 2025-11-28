@@ -882,6 +882,15 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
+	/**
+	 * Controls whether a given loader should run in worker threads for parallel execution. Loaders marked
+	 * with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving
+	 * overall build performance.
+	 * - When set to `true`, the loader runs in a worker. Rspack automatically selects an appropriate number of
+	 * worker threads.
+	 * - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
+	 * - When set to `false` or omitted, the loader runs on the main thread.
+	 */
 	parallel?: boolean | { maxWorkers?: number };
 
 	options?: RuleSetLoaderOptions;
