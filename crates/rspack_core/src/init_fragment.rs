@@ -498,6 +498,10 @@ impl ConditionalInitFragment {
     }
   }
 
+  pub fn content(&self) -> &str {
+    &self.content
+  }
+
   pub fn merge(
     one: Box<ConditionalInitFragment>,
     other: Box<ConditionalInitFragment>,
