@@ -80,7 +80,12 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
       if parser.is_esm {
-        if parser.compiler_options.output.environment.supports_document() {
+        if parser
+          .compiler_options
+          .output
+          .environment
+          .supports_document()
+        {
           None
         } else {
           Some(eval::evaluate_to_string(
@@ -180,7 +185,18 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         let mut content = vec![];
         for prop in referenced_properties_in_destructuring.iter() {
           if prop.id == "url" {
-            content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
+            if parser.is_esm
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .supports_document()
+            {
+              // Preserve import.meta.url for web targets in ES modules using a getter
+              content.push(r#"get url() { return import.meta.url; }"#.to_string())
+            } else {
+              content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
+            }
           } else if prop.id == "webpack" {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else {
@@ -238,7 +254,12 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         // import.meta.url is only available in ES modules
         return None;
       }
-      if parser.compiler_options.output.environment.supports_document() {
+      if parser
+        .compiler_options
+        .output
+        .environment
+        .supports_document()
+      {
         Some(true)
       } else {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
