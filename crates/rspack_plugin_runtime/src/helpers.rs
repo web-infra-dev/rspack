@@ -229,6 +229,7 @@ pub fn generate_entry_startup(
   }
 
   let mut source = String::default();
+
   source.push_str(&format!(
     "var __webpack_exec__ = function(moduleId) {{ return {}({} = moduleId) }}\n",
     compilation

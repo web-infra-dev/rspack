@@ -16,6 +16,7 @@ use rspack_error::Result;
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
+  pub async_startup: bool,
 }
 
 #[impl_runtime_module]
@@ -74,7 +75,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut runtime_requirements = RuntimeGlobals::default();
-    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
+    let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
 
     for dep_id in federation_runtime_modules {
       let module_str = compilation.runtime_template.module_raw(
@@ -88,32 +89,82 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
-    // Remove trailing newline
-    if !module_executions.is_empty() {
-      module_executions.pop();
+
+    if self.options.async_startup {
+      // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
+      // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
+      let startup = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP);
+      let startup_entry = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT);
+
+      let mut code = String::with_capacity(256 + module_executions.len());
+
+      // Expose on __webpack_require__ so it's accessible outside the IIFE wrapper
+      code.push_str("var __webpack_require__mf_has_run = false;\n");
+      code.push_str(
+        "__webpack_require__.mf_startup_once = function __webpack_require__mf_startup_once() {\n",
+      );
+      code.push_str("\tif (__webpack_require__mf_has_run) return;\n");
+      code.push_str("\t__webpack_require__mf_has_run = true;\n");
+      code.push_str(&module_executions);
+      code.push_str("};\n");
+      // Create local alias with 'var' (function scoped) that will be visible outside this IIFE
+      // due to how rspack concatenates runtime modules in the bundle scope
+      code.push_str(
+        "var __webpack_require__mf_startup_once = __webpack_require__.mf_startup_once;\n",
+      );
+
+      code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
+      code.push_str("\tvar fn = typeof prev === 'function' ? prev : function(){};\n");
+      code.push_str("\treturn function() {\n");
+      code.push_str("\t\t__webpack_require__.mf_startup_once();\n");
+      code.push_str("\t\treturn fn.apply(this, arguments);\n");
+      code.push_str("\t};\n");
+      code.push_str("}\n");
+
+      // Make STARTUP_ENTRYPOINT tolerant to zero-arg calls (runtimeChunk: 'single' startup path)
+      code.push_str("var __webpack_require__startup = __webpack_require__.X;\n");
+      code.push_str("function __webpack_require__startup_guard(result, chunkIds, fn) {\n");
+      code.push_str(
+        "\tif (chunkIds === undefined && result === undefined) return Promise.resolve();\n",
+      );
+      code.push_str("\tif (chunkIds === undefined) chunkIds = [];\n");
+      code.push_str("\treturn __webpack_require__startup.call(this, result, chunkIds, fn);\n");
+      code.push_str("}\n");
+      code.push_str("__webpack_require__.X = __webpack_require__startup_guard;\n");
+
+      code.push_str(&format!(
+        "{startup} = __webpack_require__mf_wrapStartup({startup});\n"
+      ));
+      code.push_str(&format!(
+        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});\n"
+      ));
+
+      Ok(code)
+    } else {
+      // Sync startup: keep the legacy prevStartup wrapper for minimal surface area.
+      let startup = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP);
+      let mut code = String::with_capacity(128 + module_executions.len());
+      code.push_str(&format!("var prevStartup = {startup};\n"));
+      code.push_str("var hasRun = false;\n");
+      code.push_str(&format!("{startup} = function() {{\n"));
+      code.push_str("\tif (!hasRun) {\n");
+      code.push_str("\t\thasRun = true;\n");
+      code.push_str(&module_executions);
+      code.push_str("\t}\n");
+      code.push_str("\tif (typeof prevStartup === 'function') {\n");
+      code.push_str("\t\treturn prevStartup();\n");
+      code.push_str("\t} else {\n");
+      code.push_str("\t\tconsole.warn('[MF] Invalid prevStartup');\n");
+      code.push_str("\t}\n");
+      code.push_str("};\n");
+      Ok(code)
     }
-
-    // Generate prevStartup wrapper pattern with defensive checks
-    let startup = compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::STARTUP);
-    let result = format!(
-      r#"var prevStartup = {startup};
-var hasRun = false;
-{startup} = function() {{
-	if (!hasRun) {{
-		hasRun = true;
-{module_executions}
-	}}
-	if (typeof prevStartup === 'function') {{
-		return prevStartup();
-	}} else {{
-		console.warn('[MF] Invalid prevStartup');
-	}}
-}};"#
-    );
-
-    Ok(result)
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
@@ -122,5 +173,10 @@ var hasRun = false;
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger // Run after RemoteRuntimeModule and StartupChunkDependenciesRuntimeModule
+  }
+
+  fn should_isolate(&self) -> bool {
+    // Only break isolation when async startup needs globals exposed.
+    !self.options.async_startup
   }
 }

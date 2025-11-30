@@ -2469,8 +2469,13 @@ export interface RawModuleFederationManifestPluginOptions {
   buildInfo?: RawStatsBuildInfo
 }
 
+export interface RawModuleFederationRuntimeExperimentsOptions {
+  asyncStartup?: boolean
+}
+
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
+  experiments?: RawModuleFederationRuntimeExperimentsOptions
 }
 
 export interface RawModuleFilenameTemplateFnCtx {
