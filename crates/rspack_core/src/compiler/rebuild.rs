@@ -8,7 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
+  ChunkGraph, ChunkKind, Compilation, Compiler, DerefOption, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
@@ -114,7 +114,7 @@ impl Compiler {
         .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
       {
         new_compilation.side_effects_optimize_artifact =
-          std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
+          DerefOption::new(self.compilation.side_effects_optimize_artifact.take());
       }
       if new_compilation
         .incremental
