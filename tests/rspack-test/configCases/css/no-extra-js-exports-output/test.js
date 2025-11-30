@@ -20,15 +20,13 @@ it("should work", () => {
 		stats.modules
 			.filter(module => module.moduleType === "css/auto")
 			.forEach(module => {
-				// DIFF: rspack generate js modules for size 42
-				// expect(module.sizes["javascript"] === 1).toBe(true);
-				expect(module.sizes["javascript"] === 42).toBe(true);
+				expect(module.sizes["javascript"]).toBe(['main.css', 'a1.css'].some(id => module.identifier.includes(id)) ? undefined : 42);
 			});
 	} else if (__STATS_I__ === 2) {
 		stats.modules
 			.filter(module => module.moduleType === "css/auto")
 			.forEach(module => {
-				expect(module.sizes["javascript"] === 1).toBe(false);
+				expect(module.sizes["javascript"]).toBe(module.identifier.includes('a1.module.css') ? undefined : 1);
 			});
 	}
 });

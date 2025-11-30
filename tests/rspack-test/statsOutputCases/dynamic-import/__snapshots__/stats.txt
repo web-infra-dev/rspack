@@ -1,3 +1,4 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
 asset common.js xx KiB [emitted] (name: common) (id hint: vendors)
 asset pages/home.js xx KiB [emitted] (name: pages/home)
 asset runtime.js xx KiB [emitted] (name: runtime)

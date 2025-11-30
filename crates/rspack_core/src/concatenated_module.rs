@@ -2181,6 +2181,17 @@ impl ConcatenatedModule {
         if !is_esm_dep_like(dep) {
           return None;
         }
+        let ref_module = mg
+          .module_by_identifier(connection.module_identifier())
+          .expect("should have module");
+
+        if ref_module
+          .source_types(mg)
+          .iter()
+          .all(|source_type| source_type == &SourceType::Css)
+        {
+          return None;
+        }
 
         if !(connection.resolved_original_module_identifier == Some(*module_id)
           && connection.is_target_active(mg, self.runtime.as_ref(), mg_cache))

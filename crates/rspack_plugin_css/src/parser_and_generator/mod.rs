@@ -45,7 +45,9 @@ static REGEX_IS_MODULES: LazyLock<Regex> =
 static REGEX_IS_COMMENTS: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("Invalid regex"));
 
-pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
+
+pub(crate) static CSS_MODULE_AND_JS_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::Css, SourceType::JavaScript];
 
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
@@ -89,11 +91,27 @@ pub struct CssParserAndGenerator {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
-  fn source_types(&self, _module: &dyn Module, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     if self.exports_only {
-      CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
-    } else {
+      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+    }
+
+    let no_need_js = module_graph
+      .get_incoming_connections(&module.identifier())
+      .all(|conn| {
+        let dep = module_graph
+          .dependency_by_id(&conn.dependency_id)
+          .expect("if have dependency id, certainly has dependency value");
+        matches!(
+          dep.dependency_type(),
+          DependencyType::CssImport | DependencyType::EsmImport
+        )
+      });
+
+    if no_need_js {
       CSS_MODULE_SOURCE_TYPE_LIST
+    } else {
+      CSS_MODULE_AND_JS_SOURCE_TYPE_LIST
     }
   }
 
