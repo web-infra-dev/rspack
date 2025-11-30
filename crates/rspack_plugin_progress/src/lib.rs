@@ -19,7 +19,7 @@ use rspack_core::{
   CompilationOptimizeModules, CompilationOptimizeTree, CompilationParams, CompilationProcessAssets,
   CompilationSeal, CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation,
   CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
-  ModuleIdentifier, Plugin,
+  ModuleIdentifier, Plugin, SideEffectsOptimizeArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -437,7 +437,11 @@ async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
-async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  _compilation: &mut Compilation,
+  _side_effect_optimize_artifacts: &mut SideEffectsOptimizeArtifact,
+) -> Result<Option<bool>> {
   self.sealing_hooks_report("dependencies", 2).await?;
   Ok(None)
 }

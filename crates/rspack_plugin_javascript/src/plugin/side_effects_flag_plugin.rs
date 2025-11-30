@@ -8,6 +8,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
@@ -147,18 +148,22 @@ async fn nmf_module(
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let mut side_effects_optimize_artifact = if compilation
-    .incremental
-    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-  {
-    std::mem::take(&mut compilation.side_effects_optimize_artifact)
-  } else {
-    Default::default()
-  };
+  // let mut side_effects_optimize_artifact = if compilation
+  //   .incremental
+  //   .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
+  // {
+  //   std::mem::take(&mut compilation.side_effects_optimize_artifact2)
+  // } else {
+  //   Default::default()
+  // };
   let module_graph = compilation.get_module_graph();
 
   let all_modules = module_graph.modules();
@@ -300,7 +305,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   }
   logger.time_end(inner_start);
 
-  compilation.side_effects_optimize_artifact = side_effects_optimize_artifact;
+  // FIXME: can remove write back here
 
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));

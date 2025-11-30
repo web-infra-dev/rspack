@@ -5,9 +5,9 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Experiments, ModuleGraphPartial, Optimization, build_chunk_graph,
-  fast_set,
-  incremental::{Incremental, IncrementalOptions},
+  Compilation, Compiler, DerefOption, Experiments, ModuleGraphPartial, Optimization,
+  build_chunk_graph, fast_set,
+  incremental::{Incremental, IncrementalOptions, IncrementalPasses},
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
@@ -177,16 +177,34 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     compiler.compilation.build_module_graph().await.unwrap();
     compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
+    let mut side_effects_optimize_artifact =
+      compiler.compilation.side_effects_optimize_artifact.take();
+    let mut side_effects_optimize_artifact = if compiler
+      .compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
+    {
+      side_effects_optimize_artifact
+    } else {
+      Default::default()
+    };
+
     while matches!(
       compiler
         .plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(&mut compiler.compilation)
+        .call(
+          &mut compiler.compilation,
+          &mut side_effects_optimize_artifact
+        )
         .await
         .unwrap(),
       Some(true)
     ) {}
+
+    compiler.compilation.side_effects_optimize_artifact =
+      DerefOption::new(side_effects_optimize_artifact);
 
     compiler
       .compilation

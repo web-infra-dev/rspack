@@ -6,8 +6,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, get_entry_runtime,
-  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -477,7 +478,11 @@ impl FlagDependencyUsagePlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  _side_effect_optimize_artifact : &mut SideEffectsOptimizeArtifact,
+) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "FlagDependencyUsagePlugin (optimization.usedExports = true)",

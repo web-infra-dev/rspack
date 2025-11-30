@@ -78,7 +78,7 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -251,7 +251,8 @@ pub struct Compilation {
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
-  pub side_effects_optimize_artifact: SideEffectsOptimizeArtifact,
+  // pub side_effects_optimize_artifact2: SideEffectsOptimizeArtifact,
+  pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: ModuleIdsArtifact,
   // artifact for chunk_ids
@@ -391,7 +392,8 @@ impl Compilation {
       dependencies_diagnostics_artifact: DerefOption::new(
         DependenciesDiagnosticsArtifact::default(),
       ),
-      side_effects_optimize_artifact: Default::default(),
+      // side_effects_optimize_artifact2: Default::default(),
+      side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       chunk_ids_artifact: Default::default(),
       code_generation_results: Default::default(),
@@ -1650,11 +1652,13 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self)
+        .call(self, &mut side_effects_optimize_artifact)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
