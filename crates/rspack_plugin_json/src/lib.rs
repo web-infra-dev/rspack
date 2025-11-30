@@ -17,7 +17,7 @@ use rspack_core::{
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
   UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::itoa;
@@ -42,6 +42,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
+    // dbg!(&module.build_info().json_data.as_ref());
     module
       .build_info()
       .json_data
@@ -229,7 +230,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             .insert(RuntimeGlobals::MODULE);
           format!(r#"module.exports = {json_expr}"#)
         };
-        Ok(RawStringSource::from(content).boxed())
+        if module.get_source_map_kind().enabled() {
+          Ok(OriginalSource::new(content, module.identifier().as_str()).boxed())
+        } else {
+          Ok(RawStringSource::from(content).boxed())
+        }
       }
       _ => panic!(
         "Unsupported source type: {:?}",
