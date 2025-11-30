@@ -79,14 +79,18 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
-      if parser.compiler_options.output.environment.supports_document() {
-        None
+      if parser.is_esm {
+        if parser.compiler_options.output.environment.supports_document() {
+          None
+        } else {
+          Some(eval::evaluate_to_string(
+            self.import_meta_url(parser),
+            start,
+            end,
+          ))
+        }
       } else {
-        Some(eval::evaluate_to_string(
-          self.import_meta_url(parser),
-          start,
-          end,
-        ))
+        None
       }
     } else {
       None
@@ -230,6 +234,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
+      if !parser.is_esm {
+        // import.meta.url is only available in ES modules
+        return None;
+      }
       if parser.compiler_options.output.environment.supports_document() {
         Some(true)
       } else {
