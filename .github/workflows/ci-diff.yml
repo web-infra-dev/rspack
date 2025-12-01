@@ -74,7 +74,7 @@ jobs:
 
       - name: Build cases
         working-directory: ../build-tools-performance
-        run: RSDOCTOR=true pnpm run build:cases
+        run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
         uses: web-infra-dev/rsdoctor-action@44c54ca962bc7517abaa30a9509c7a9ea7af5dc1
