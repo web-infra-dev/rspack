@@ -61,7 +61,7 @@ jobs:
       - name: Clone build-tools-performance
         run: |
           cd ..
-          git clone -b chore/add-rsdoctor-plugins https://github.com/rspack-contrib/build-tools-performance.git
+          git clone https://github.com/rspack-contrib/build-tools-performance.git
 
       - name: Link packages and install dependencies
         working-directory: ../build-tools-performance
