@@ -315,7 +315,6 @@ jobs:
         with:
           repository: rspack-contrib/rstack-ecosystem-ci
           ref: main
-          path: ecosystem-ci-repo
           fetch-depth: 1
           token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
 
@@ -339,7 +338,7 @@ jobs:
           SOURCE_REPO: ${{ github.repository }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          node "$GITHUB_WORKSPACE/ecosystem-ci-repo/scripts/update-ecosystem-history.mjs"
+          node scripts/update-ecosystem-history.mjs
 
       - name: Publish History
         if: ${{ success() }}
