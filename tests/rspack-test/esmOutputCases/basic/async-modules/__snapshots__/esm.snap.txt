@@ -6,14 +6,14 @@ __webpack_require__.add({
   !*** ./index.js ***!
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.d(__webpack_exports__, {
   q: () => (demo)
 });
 /* import */ var _lib_defer_js__rspack_import_0 = __webpack_require__(/*! ./lib-defer.js */ "./lib-defer.js");
 /* import */ var _lib_js__rspack_import_1 = __webpack_require__(/*! ./lib.js */ "./lib.js");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_lib_js__rspack_import_1, _lib_defer_js__rspack_import_0]);
-([_lib_js__rspack_import_1, _lib_defer_js__rspack_import_0] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__); // this is a defer module
+var __rspack_async_deps = __rspack_load_async_deps([_lib_js__rspack_import_1, _lib_defer_js__rspack_import_0]);
+([_lib_js__rspack_import_1, _lib_defer_js__rspack_import_0] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps); // this is a defer module
  // this has tla
 
 it('should has correct exec order and export value', async () => {
@@ -24,8 +24,8 @@ it('should has correct exec order and export value', async () => {
 const demo = _lib_js__rspack_import_1/* .lib */.c + _lib_defer_js__rspack_import_0.v
 
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } });
 
 },
 "./lib-defer.js"
@@ -33,7 +33,7 @@ __webpack_async_result__();
   !*** ./lib-defer.js ***!
   \**********************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.d(__webpack_exports__, {
   v: () => (v)
 });
@@ -41,8 +41,8 @@ const v = await (() => 42)()
 
 
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } }, 1);
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } }, 1);
 
 },
 "./lib.js"
@@ -50,7 +50,7 @@ __webpack_async_result__();
   !*** ./lib.js ***!
   \****************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.d(__webpack_exports__, {
   c: () => (lib)
 });
@@ -58,8 +58,8 @@ await 42
 const lib = 42
 
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } }, 1);
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } }, 1);
 
 },
 });
@@ -103,11 +103,11 @@ __webpack_require__.add = function registerModules(modules) { Object.assign(__we
 // webpack/runtime/async_module
 (() => {
 var hasSymbol = typeof Symbol === "function";
-var webpackQueues = hasSymbol ? Symbol("webpack queues") : "__webpack_queues__";
-var webpackExports = __webpack_require__.aE = hasSymbol ? Symbol("webpack exports") : "__webpack_exports__";
-var webpackError = hasSymbol ? Symbol("webpack error") : "__webpack_error__";
-var webpackDone = hasSymbol ? Symbol("webpack done") : "__webpack_done__";
-var webpackDefer = __webpack_require__.zS = hasSymbol ? Symbol("webpack defer") : "__webpack_defer__";
+var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
+var rspackExports = __webpack_require__.aE = hasSymbol ? Symbol("rspack exports") : "__webpack_exports__";
+var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
+var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
+var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
 var resolveQueue = (queue) => {
   if (queue && queue.d < 1) {
     queue.d = 1;
@@ -118,11 +118,11 @@ var resolveQueue = (queue) => {
 var wrapDeps = (deps) => {
 	return deps.map((dep) => {
 		if (dep !== null && typeof dep === "object") {
-			if(!dep[webpackQueues] && dep[webpackDefer]) {
-				var asyncDeps = dep[webpackDefer];
+			if(!dep[rspackQueues] && dep[rspackDefer]) {
+				var asyncDeps = dep[rspackDefer];
 				var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 					var cache = __webpack_module_cache__[id];
-					return !cache || cache[webpackDone] === false;
+					return !cache || cache[rspackDone] === false;
 				});
 				if (hasUnresolvedAsyncSubgraph) {
 					var d = dep;
@@ -133,26 +133,26 @@ var wrapDeps = (deps) => {
 					};
 				} else return dep;
 			}
-			if (dep[webpackQueues]) return dep;
+			if (dep[rspackQueues]) return dep;
 			if (dep.then) {
 				var queue = [];
 				queue.d = 0;
 				dep.then((r) => {
-					obj[webpackExports] = r;
+					obj[rspackExports] = r;
 					resolveQueue(queue);
 				},(e) => {
-					obj[webpackError] = e;
+					obj[rspackError] = e;
 					resolveQueue(queue);
 				});
 				var obj = {};
-				obj[webpackDefer] = false;
-				obj[webpackQueues] = (fn) => (fn(queue));
+				obj[rspackDefer] = false;
+				obj[rspackQueues] = (fn) => (fn(queue));
 				return obj;
 			}
 		}
 		var ret = {};
-		ret[webpackQueues] = () => {};
-		ret[webpackExports] = dep;
+		ret[rspackQueues] = () => {};
+		ret[rspackExports] = dep;
 		return ret;
 	});
 };
@@ -168,28 +168,28 @@ __webpack_require__.a = (module, body, hasAwait) => {
 		reject = rej;
 		outerResolve = resolve;
 	});
-	promise[webpackExports] = exports;
-	promise[webpackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	promise[rspackExports] = exports;
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
 	module.exports = promise;
 	var handle = (deps) => {
 		currentDeps = wrapDeps(deps);
 		var fn;
 		var getResult = () => {
 			return currentDeps.map((d) => {
-				if(d[webpackDefer]) return d;
-				if (d[webpackError]) throw d[webpackError];
-				return d[webpackExports];
+				if(d[rspackDefer]) return d;
+				if (d[rspackError]) throw d[rspackError];
+				return d[rspackExports];
 			});
 		}
 		var promise = new Promise((resolve) => {
 			fn = () => (resolve(getResult));
 			fn.r = 0;
 			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
-			currentDeps.map((dep) => (dep[webpackDefer] || dep[webpackQueues](fnQueue)));
+			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
 		});
 		return fn.r ? promise : getResult();
 	};
-	var done = (err) => ((err ? reject(promise[webpackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[webpackDone] = true);
+	var done = (err) => ((err ? reject(promise[rspackError] = err) : outerResolve(exports)), resolveQueue(queue), promise[rspackDone] = true);
 	body(handle, done);
 	queue && queue.d < 0 && (queue.d = 0);
 };
