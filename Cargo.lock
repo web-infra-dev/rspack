@@ -3797,10 +3797,6 @@ dependencies = [
  "rspack_collections",
  "rspack_dojang",
  "rspack_error",
- "rspack_experimental_swc_ecma_ast",
- "rspack_experimental_swc_ecma_parser",
- "rspack_experimental_swc_ecma_semantic",
- "rspack_experimental_swc_ecma_visit",
  "rspack_fs",
  "rspack_futures",
  "rspack_hash",
@@ -3824,6 +3820,10 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_parser",
+ "swc_experimental_ecma_semantic",
+ "swc_experimental_ecma_visit",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -3857,65 +3857,6 @@ dependencies = [
  "termcolor",
  "textwrap",
  "unicode-width 0.2.2",
-]
-
-[[package]]
-name = "rspack_experimental_swc_ast_macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.95",
-]
-
-[[package]]
-name = "rspack_experimental_swc_ecma_ast"
-version = "0.1.0"
-dependencies = [
- "num-bigint",
- "oxc_index",
- "rspack_experimental_swc_ast_macros",
- "swc_atoms",
- "swc_common",
- "unicode-id-start",
-]
-
-[[package]]
-name = "rspack_experimental_swc_ecma_parser"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.9.1",
- "either",
- "num-bigint",
- "rspack_experimental_swc_ecma_ast",
- "rustc-hash",
- "seq-macro",
- "smartstring",
- "stacker",
- "swc_atoms",
- "swc_common",
- "tracing",
-]
-
-[[package]]
-name = "rspack_experimental_swc_ecma_semantic"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.9.1",
- "oxc_index",
- "rspack_experimental_swc_ecma_ast",
- "rspack_experimental_swc_ecma_visit",
- "rustc-hash",
- "swc_atoms",
- "swc_common",
-]
-
-[[package]]
-name = "rspack_experimental_swc_ecma_visit"
-version = "0.1.0"
-dependencies = [
- "rspack_experimental_swc_ecma_ast",
- "swc_common",
 ]
 
 [[package]]
@@ -6512,6 +6453,65 @@ dependencies = [
  "once_cell",
  "serde",
  "swc_common",
+]
+
+[[package]]
+name = "swc_experimental_ast_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.95",
+]
+
+[[package]]
+name = "swc_experimental_ecma_ast"
+version = "0.1.0"
+dependencies = [
+ "num-bigint",
+ "oxc_index",
+ "swc_atoms",
+ "swc_common",
+ "swc_experimental_ast_macros",
+ "unicode-id-start",
+]
+
+[[package]]
+name = "swc_experimental_ecma_parser"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.9.1",
+ "either",
+ "num-bigint",
+ "oxc_index",
+ "rustc-hash",
+ "seq-macro",
+ "smartstring",
+ "stacker",
+ "swc_atoms",
+ "swc_common",
+ "swc_experimental_ecma_ast",
+ "tracing",
+]
+
+[[package]]
+name = "swc_experimental_ecma_semantic"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.9.1",
+ "oxc_index",
+ "rustc-hash",
+ "swc_common",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_visit",
+]
+
+[[package]]
+name = "swc_experimental_ecma_visit"
+version = "0.1.0"
+dependencies = [
+ "swc_common",
+ "swc_experimental_ecma_ast",
 ]
 
 [[package]]
