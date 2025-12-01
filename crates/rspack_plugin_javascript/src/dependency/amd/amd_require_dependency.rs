@@ -168,17 +168,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
-      source.insert(
-        array_range.start,
-        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
-        None,
-      );
+      source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
       source.replace(array_range.end, function_range.start, "; (", None);
 
       source.insert(
         function_range.end,
-        ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
+        ").apply(null, __rspack_amd_require_deps);",
         None,
       );
 
@@ -219,17 +215,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
-      source.insert(
-        array_range.start,
-        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
-        None,
-      );
+      source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
       source.replace(array_range.end, function_range.start, "; (", None);
 
       source.insert(
         function_range.end,
-        ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
+        ").apply(null, __rspack_amd_require_deps);",
         None,
       );
 

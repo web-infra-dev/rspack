@@ -1,6 +1,6 @@
 pub const RESERVED_NAMES: [&str; 188] = [
   "__rspack_default_export",
-  "__WEBPACK_NAMESPACE_OBJECT__",
+  "__rspack_ns_object",
   "abstract",
   "arguments",
   "async",
