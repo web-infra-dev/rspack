@@ -210,10 +210,12 @@ impl GraphicalReportHandler {
       Some(Severity::Warning) => (self.theme.styles.warning, &self.theme.characters.warning),
       Some(Severity::Advice) => (self.theme.styles.advice, &self.theme.characters.advice),
     };
-    let gutter_style = Style::new().dimmed();
 
     let initial_indent = format!("  {} ", severity_icon.style(severity_style));
-    let rest_indent = format!("  {} ", self.theme.characters.vbar.style(gutter_style));
+    let rest_indent = format!(
+      "  {} ",
+      self.theme.characters.vbar.style(self.theme.styles.linum)
+    );
     let width = self.termwidth.saturating_sub(2);
     let opts = textwrap::Options::new(width)
       .initial_indent(&initial_indent)
@@ -242,7 +244,7 @@ impl GraphicalReportHandler {
           "  {}{}{} ",
           char, self.theme.characters.hbar, self.theme.characters.rarrow
         )
-        .style(gutter_style)
+        .style(self.theme.styles.linum)
         .to_string();
         let rest_indent = format!(
           "  {}   ",
@@ -252,7 +254,7 @@ impl GraphicalReportHandler {
             self.theme.characters.vbar
           }
         )
-        .style(gutter_style)
+        .style(self.theme.styles.linum)
         .to_string();
         let opts = textwrap::Options::new(width)
           .initial_indent(&initial_indent)
