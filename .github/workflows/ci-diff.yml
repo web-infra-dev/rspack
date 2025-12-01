@@ -50,7 +50,7 @@ jobs:
         timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
