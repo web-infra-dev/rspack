@@ -80,5 +80,5 @@ jobs:
         uses: web-infra-dev/rsdoctor-action@44c54ca962bc7517abaa30a9509c7a9ea7af5dc1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          file_path: "../build-tools-performance/dist/rsdoctor-data.json"
+          file_path: "**/*/dist/rsdoctor-data.json"
           target_branch: "main"
