@@ -150,17 +150,26 @@ impl SwcLoader {
             .react_server_components
           {
             let module = &loader_context.context.module;
-            let is_react_server_layer = module
-              .get_layer()
-              .is_some_and(|layer| layer == "react-server-components");
-            let build_info = loader_context.context.module.build_info_mut();
-            Box::new(transforms::server_components(
-              filename,
-              transforms::Config::WithOptions(transforms::Options {
-                is_react_server_layer,
-              }),
-              &mut build_info.rsc,
-            )) as Box<dyn swc_core::ecma::ast::Pass>
+
+            // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
+            if loader_context
+              .resource_query()
+              .is_some_and(|q| q.contains("skip-rsc-transform"))
+            {
+              Box::new(noop_pass()) as Box<dyn swc_core::ecma::ast::Pass>
+            } else {
+              let is_react_server_layer = module
+                .get_layer()
+                .is_some_and(|layer| layer == "react-server-components");
+              let build_info = loader_context.context.module.build_info_mut();
+              Box::new(transforms::server_components(
+                filename,
+                transforms::Config::WithOptions(transforms::Options {
+                  is_react_server_layer,
+                }),
+                &mut build_info.rsc,
+              )) as Box<dyn swc_core::ecma::ast::Pass>
+            }
           } else {
             Box::new(noop_pass()) as Box<dyn swc_core::ecma::ast::Pass>
           },
@@ -181,8 +190,63 @@ impl SwcLoader {
         .collect::<Vec<_>>()
         .join(", ");
 
-      // TODO 生成代码需要区分 ESM 和 CJS
+      if rsc.module_type == RSCModuleType::ServerEntry {
+        if rsc
+          .client_refs
+          .iter()
+          .any(|client_ref| client_ref.as_str() == Some("*"))
+        {
+          // TODO: remove panic
+          panic!(
+            r#"It's currently unsupported to use "export *" in a server entry. Please use named exports instead."#
+          );
+        }
+
+        let mut esm_source = r#"import { createResourcesProxy } from "@rspack/rsc-runtime";
+"#
+        .to_string();
+
+        for client_ref in &rsc.client_refs {
+          match client_ref.as_str() {
+            Some("default") => {
+              // 增加 skip-rsc-transform 查询参数，避免代理模块中导入 server entry 模块，被重复生成为代理代码
+              esm_source.push_str(&format!(
+                r#"import _default from "{}?skip-rsc-transform";
+export default createResourcesProxy(
+_default,
+"{}",
+)
+"#,
+                loader_context.resource(),
+                loader_context.resource()
+              ));
+            }
+            Some(ident) => {
+              esm_source.push_str(&format!(
+                r#"import {{ {} as _original_{} }} from "{}?skip-rsc-transform";
+export const {} = createResourcesProxy(
+_original_{},
+"{}",
+)
+"#,
+                ident,
+                ident,
+                loader_context.resource(),
+                ident,
+                ident,
+                loader_context.resource(),
+              ));
+            }
+            _ => {}
+          }
+        }
+
+        loader_context.finish_with(esm_source);
+        return Ok(());
+      }
+
       if rsc.module_type == RSCModuleType::Client {
+        // TODO 生成代码需要区分 ESM 和 CJS
         let mut esm_source = format!(
           r#"import {{ registerClientReference }} from "react-server-dom-webpack/server"
 "#,
@@ -193,6 +257,7 @@ impl SwcLoader {
           .iter()
           .any(|client_ref| client_ref.as_str() == Some("*"))
         {
+          // TODO: remove panic
           panic!(
             r#"It's currently unsupported to use "export *" in a client boundary. Please use named exports instead."#
           );

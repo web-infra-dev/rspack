@@ -43,6 +43,7 @@ pub struct Options {
 }
 
 struct DirectiveImportCollection {
+  pub is_server_entry: bool,
   pub is_client_entry: bool,
   pub is_action_file: bool,
   pub imports: Vec<ModuleImports>,
@@ -87,6 +88,7 @@ impl VisitMut for ReactServerComponents<'_> {
 
     let directive_import_collection = self.directive_import_collection.as_ref().unwrap();
 
+    let is_server_entry = directive_import_collection.is_server_entry;
     let is_client_entry = directive_import_collection.is_client_entry;
 
     self.remove_top_level_directive(module);
@@ -96,6 +98,9 @@ impl VisitMut for ReactServerComponents<'_> {
     if self.is_react_server_layer {
       if is_client_entry {
         self.set_client_metadata(is_cjs);
+        return;
+      } else if is_server_entry {
+        self.set_server_entry_metadata();
         return;
       }
     } else if is_client_entry {
@@ -120,6 +125,21 @@ impl ReactServerComponents<'_> {
         }
       }
       true
+    });
+  }
+
+  fn set_server_entry_metadata(&mut self) {
+    let export_names = &self
+      .directive_import_collection
+      .as_ref()
+      .expect("directive_import_collection must be set")
+      .export_names;
+
+    *self.rsc_meta = Some(RSCMeta {
+      module_type: RSCModuleType::ServerEntry,
+      client_refs: export_names.to_vec(), // TODO: 暂时使用 client_refs
+      client_entry_type: None,
+      action_ids: None,
     });
   }
 
@@ -179,6 +199,7 @@ fn report_error(error_kind: RSCErrorKind) {
 fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportCollection {
   let mut imports: Vec<ModuleImports> = vec![];
   let mut finished_directives = false;
+  let mut is_server_entry = false;
   let mut is_client_entry = false;
   let mut is_action_file = false;
 
@@ -196,7 +217,10 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
           Some(expr_stmt) => {
             match &*expr_stmt.expr {
               Expr::Lit(Lit::Str(Str { value, .. })) => {
-                if &**value == "use client" {
+                if &**value == "use server-entry" {
+                  is_server_entry = true;
+                  // TODO: handle error case when both directives are present
+                } else if &**value == "use client" {
                   if !finished_directives {
                     is_client_entry = true;
 
@@ -336,6 +360,7 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
   });
 
   DirectiveImportCollection {
+    is_server_entry,
     is_client_entry,
     is_action_file,
     imports,
