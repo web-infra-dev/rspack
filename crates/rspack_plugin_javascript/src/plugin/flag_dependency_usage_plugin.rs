@@ -481,7 +481,7 @@ impl FlagDependencyUsagePlugin {
 async fn optimize_dependencies(
   &self,
   compilation: &mut Compilation,
-  _side_effect_optimize_artifact : &mut SideEffectsOptimizeArtifact,
+  _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
 ) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
