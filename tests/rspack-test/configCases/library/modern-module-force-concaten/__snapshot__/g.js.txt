@@ -1,9 +1,9 @@
 var __webpack_modules__ = ({
-547: (function (module) {
+547(module) {
 module.exports = 'foo'
 
 
-}),
+},
 
 });
 // The module cache

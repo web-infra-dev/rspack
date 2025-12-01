@@ -26,7 +26,7 @@ impl LocalModule {
   }
 
   pub fn variable_name(&self) -> String {
-    format!("__WEBPACK_LOCAL_MODULE_{}__", self.idx)
+    format!("__rspack_amd_local_{}", self.idx)
   }
 
   pub fn is_used(&self) -> bool {

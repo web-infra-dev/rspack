@@ -394,41 +394,71 @@ export default {
 
 ## output.environment
 
-Tell Rspack what kind of ES-features may be used in the generated runtime-code.
+- **Type:**
+
+```ts
+type Environment = {
+  /** The environment supports arrow functions ('() => { ... }'). */
+  arrowFunction?: boolean;
+  /** The environment supports async function and await ('async function () { await ... }'). */
+  asyncFunction?: boolean;
+  /** The environment supports BigInt as literal (123n). */
+  bigIntLiteral?: boolean;
+  /** The environment supports const and let for variable declarations. */
+  const?: boolean;
+  /** The environment supports destructuring ('{ a, b } = obj'). */
+  destructuring?: boolean;
+  /** The environment supports 'document' variable. */
+  document?: boolean;
+  /** The environment supports an async import() function to import EcmaScript modules. */
+  dynamicImport?: boolean;
+  /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
+  dynamicImportInWorker?: boolean;
+  /** The environment supports 'for of' iteration ('for (const x of array) { ... }'). */
+  forOf?: boolean;
+  /** The environment supports 'globalThis'. */
+  globalThis?: boolean;
+  /** The environment supports { fn() {} } */
+  methodShorthand?: boolean;
+  /** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
+  module?: boolean;
+  /**
+   * Determines if the node: prefix is generated for core module imports in environments that support it.
+   * This is only applicable to Webpack runtime code.
+   * */
+  nodePrefixForCoreModules?: boolean;
+  /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
+  optionalChaining?: boolean;
+  /** The environment supports template literals. */
+  templateLiteral?: boolean;
+};
+```
+
+`output.environment` specifies which ECMAScript language features and host environment capabilities Rspack is allowed to use when generating its runtime code.
+
+This setting affects only code emitted by Rspack itself, such as runtime helpers. It does not downgrade your application source code.
+
+### Default behavior
+
+By default, `output.environment` is automatically inferred from your [target](/config/target) configuration.
+
+Rspack evaluates `target` to determine which features your target environment supports. For example:
+
+- If the target browsers support arrow functions, Rspack will use arrow functions in the runtime to produce more compact output.
+- If `target` specifies a particular Node.js version, Rspack will infer the supported syntax from that version’s capabilities.
+
+In general, you do not need to configure this option manually. You would override it only when you want to explicitly enforce or restrict specific features. Manual configuration replaces the inferred values and gives you direct control over the syntax used in the generated runtime.
+
+### Example
+
+Suppose `target` is set to `['web', 'es2018']`. In this case, Rspack will infer that `const` is supported and enable it by default. You can disable it by setting `output.environment.const: false`. Rspack will then emit runtime code that uses `var` declarations instead.
 
 ```js title="rspack.config.mjs"
 export default {
+  target: ['web', 'es2018'],
   output: {
     environment: {
-      // The environment supports arrow functions ('() => { ... }').
-      arrowFunction: true,
-      // The environment supports async function and await ('async function () { await ... }').
-      asyncFunction: true,
-      // The environment supports BigInt as literal (123n).
-      bigIntLiteral: false,
-      // The environment supports const and let for variable declarations.
-      const: true,
-      // The environment supports destructuring ('{ a, b } = obj').
-      destructuring: true,
-      // The environment supports 'document' variable.
-      document: true,
-      // The environment supports an async import() function to import ECMAScript modules.
-      dynamicImport: false,
-      // The environment supports an async import() when creating a worker, only for web targets at the moment.
-      dynamicImportInWorker: false,
-      // The environment supports 'for of' iteration ('for (const x of array) { ... }').
-      forOf: true,
-      // The environment supports 'globalThis'.
-      globalThis: true,
-      // The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...').
-      module: false,
-      // Determines if the node: prefix is generated for core module imports in environments that support it.
-      // This is only applicable to webpack runtime code.
-      nodePrefixForCoreModules: false,
-      // The environment supports optional chaining ('obj?.a' or 'obj?.()').
-      optionalChaining: true,
-      // The environment supports template literals.
-      templateLiteral: true,
+      const: false,
     },
   },
 };
@@ -1543,25 +1573,34 @@ Note that `[fullhash]` in this parameter will be replaced with a hash of the com
 ## output.pathinfo
 
 - **Type:** `boolean | 'verbose'`
-- **Default:** `true`
+- **Default:** `false`
 
-Tells Rspack to include comments in bundles with information about the contained modules. This option defaults to `true` in `development` and `false` in `production` [mode](/config/mode) respectively. `'verbose'` shows more information like exports, runtime requirements and bailouts.
+Controls whether Rspack adds module-related comments to the generated bundle. These comments are useful for debugging, inspecting build output, and understanding tree-shaking behavior.
 
-:::warning
-While the data these comments can provide is useful during development when reading the generated code, it **should not** be used in production.
-:::
+- `true`: Enables basic comments, including module path information.
+- `false`: Disables all comments, which is the default behavior.
+- `'verbose'`: Outputs detailed comments, such as module exports, runtime details, tree-shaking information, and bailout reasons. This mode is helpful when diagnosing build issues or performing in-depth bundle analysis.
+
+For example, enabling `pathinfo`:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     pathinfo: true,
   },
 };
 ```
 
-:::tip
-It also adds some info about tree shaking to the generated bundle.
+The generated bundle will contain comments like:
+
+```js
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+```
+
+:::warning
+`pathinfo` is primarily intended for development and debugging. These comments increase bundle size and may expose details about your source structure. Avoid using it in production.
 :::
 
 ## output.publicPath

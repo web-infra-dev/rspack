@@ -1,11 +1,11 @@
 asset main.js xx KiB {889} [emitted] (name: main)
-asset cir2 from cir1.js 351 bytes {497} [emitted] (name: cir2 from cir1)
-asset cir1.js 325 bytes {481} [emitted] (name: cir1)
-asset cir2.js 325 bytes {928} [emitted] (name: cir2)
-asset chunk.js 177 bytes {411} [emitted] (name: chunk)
-asset abd.js 151 bytes {504} [emitted] (name: abd)
-asset ab.js 125 bytes {123} [emitted] (name: ab)
-asset ac in ab.js 125 bytes {406} [emitted] (name: ac in ab)
+asset cir2 from cir1.js 325 bytes {497} [emitted] (name: cir2 from cir1)
+asset cir1.js 312 bytes {481} [emitted] (name: cir1)
+asset cir2.js 312 bytes {928} [emitted] (name: cir2)
+asset chunk.js 125 bytes {411} [emitted] (name: chunk)
+asset abd.js 112 bytes {504} [emitted] (name: abd)
+asset ab.js 99 bytes {123} [emitted] (name: ab)
+asset ac in ab.js 99 bytes {406} [emitted] (name: ac in ab)
 chunk {123} (runtime: main) ab.js (ab) 2 bytes <{889}> [rendered]
   > [237] ./index.js 1:0-6:8
   ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
@@ -34,7 +34,7 @@ chunk {504} (runtime: main) abd.js (abd) 3 bytes <{889}> [rendered]
   ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
   ./modules/b.js [618] 1 bytes {123} {411} {504} [built] [code generated]
   ./modules/d.js [503] 1 bytes {411} {504} [built] [code generated]
-chunk {889} (runtime: main) main.js (main) 524 bytes (javascript) 7 KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
+chunk {889} (runtime: main) main.js (main) 524 bytes (javascript) xx KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
   > ./index main
   ./index.js [237] 523 bytes {889} [built] [code generated]
   ./modules/f.js [633] 1 bytes {889} [dependent] [built] [code generated]

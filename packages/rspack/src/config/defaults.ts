@@ -650,6 +650,8 @@ const applyOutputDefaults = (
 	F(environment, "globalThis", () => tp?.globalThis);
 	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
 	F(environment, "const", () => tp && optimistic(tp.const));
+	// IGNORE(output.environment.methodShorthand): will align method shorthand optimization for webpack soon
+	F(environment, "methodShorthand", () => tp && optimistic(tp.methodShorthand));
 	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
 	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
 	F(environment, "forOf", () => tp && optimistic(tp.forOf));
@@ -723,7 +725,8 @@ const applyOutputDefaults = (
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
-	F(output, "pathinfo", () => development);
+	// IGNORE(output.pathinfo): Rspack disabled pathinfo by default
+	F(output, "pathinfo", () => false);
 	D(
 		output,
 		"publicPath",

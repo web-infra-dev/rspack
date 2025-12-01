@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModuleStage, RuntimeVariable, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -209,9 +209,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let raw_source = compilation.runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
-          "_ids": "__webpack_ids__",
-          "_modules": "__webpack_modules__",
-          "_runtime": "__webpack_runtime__",
+          "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
@@ -368,9 +366,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({
-            "_ids": "__webpack_ids__",
-            "_modules": "__webpack_modules__",
-            "_runtime": "__webpack_runtime__",
+            "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
             "_import_function_name": import_function_name,
           })),
         )?

@@ -166,15 +166,6 @@ pub enum ModuleArgument {
   RspackModule,
 }
 
-impl Display for ModuleArgument {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ModuleArgument::Module => write!(f, "module"),
-      ModuleArgument::RspackModule => write!(f, "__webpack_module__"),
-    }
-  }
-}
-
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -182,15 +173,6 @@ pub enum ExportsArgument {
   #[default]
   Exports,
   RspackExports,
-}
-
-impl Display for ExportsArgument {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ExportsArgument::Exports => write!(f, "exports"),
-      ExportsArgument::RspackExports => write!(f, "__webpack_exports__"),
-    }
-  }
 }
 
 #[cacheable]

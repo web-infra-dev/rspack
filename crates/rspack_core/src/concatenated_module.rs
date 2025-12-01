@@ -223,12 +223,6 @@ impl ConcatenatedModuleInfo {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
     }
 
-    if let Some(name) = &self.namespace_export_symbol
-      && name == atom
-    {
-      return Some(name);
-    }
-
     if let Some(name) = &self.namespace_object_name
       && name == atom
     {
@@ -1415,7 +1409,9 @@ impl Module for ConcatenatedModule {
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-          exports_argument,
+          compilation
+            .runtime_template
+            .render_exports_argument(exports_argument),
           definitions.join(",")
         )));
       }
@@ -2183,6 +2179,17 @@ impl ConcatenatedModule {
           .dependency_by_id(&connection.dependency_id)
           .expect("should have dependency");
         if !is_esm_dep_like(dep) {
+          return None;
+        }
+        let ref_module = mg
+          .module_by_identifier(connection.module_identifier())
+          .expect("should have module");
+
+        if ref_module
+          .source_types(mg)
+          .iter()
+          .all(|source_type| source_type == &SourceType::Css)
+        {
           return None;
         }
 

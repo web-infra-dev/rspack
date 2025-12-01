@@ -68,7 +68,7 @@ fn then_expr(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
@@ -245,7 +245,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       }) {
       // we only extract the named exports
       // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
+      // const { a, b } = await import('./refChunk').then(mod => ({ a: __rspack_module_dynamic_ref0_a, b: __rspack_module_dynamic_ref0_b }));
       let ref_exports = ref_exports
         .iter()
         .flat_map(|ref_exports| match ref_exports {

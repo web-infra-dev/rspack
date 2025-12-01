@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -178,9 +178,12 @@ async fn render_chunk(
           .await?;
         source.add(render_source.source);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-          source.add(RawStringSource::from_static(
-            "return __webpack_exports__;\n",
-          ));
+          source.add(RawStringSource::from(format!(
+            "return {};\n",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::Exports)
+          )));
         }
       }
       source.add(RawStringSource::from_static("\n}\n"));

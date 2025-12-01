@@ -2173,6 +2173,7 @@ impl EsmLibraryPlugin {
     if export_name.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
+          info.set_interop_namespace_object2_used(true);
           let symbol = match info {
             ModuleInfo::External(info) => {
               let required_info = Self::add_require(

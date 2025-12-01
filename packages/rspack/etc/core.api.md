@@ -2221,6 +2221,7 @@ export type Environment = {
     dynamicImportInWorker?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
+    methodShorthand?: boolean;
     module?: boolean;
     nodePrefixForCoreModules?: boolean;
     optionalChaining?: boolean;
@@ -4509,7 +4510,9 @@ class LoaderObject {
     // (undocumented)
     options?: string | object;
     // (undocumented)
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     // (undocumented)
     path: string;
     // (undocumented)
@@ -7056,7 +7059,9 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 export type RuleSetLoaderWithOptions = {
     ident?: string;
     loader: RuleSetLoader;
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     options?: RuleSetLoaderOptions;
 };
 

@@ -77,16 +77,18 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
 
     runtime_requirements.insert(RuntimeGlobals::MODULE);
 
-    let module_argument = compilation
-      .get_module_graph()
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_module_argument();
+    let module_argument = compilation.runtime_template.render_module_argument(
+      compilation
+        .get_module_graph()
+        .module_by_identifier(&module.identifier())
+        .expect("should have mgm")
+        .get_module_argument(),
+    );
 
     let content = if let Some(id) = &dep.id {
       format!("{module_argument}.{id}")
     } else {
-      format!("{module_argument}")
+      module_argument
     };
 
     source.replace(dep.range.start, dep.range.end, content.as_str(), None);

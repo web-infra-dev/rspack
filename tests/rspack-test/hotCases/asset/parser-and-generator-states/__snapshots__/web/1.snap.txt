@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 2825
+- Update: main.LAST_HASH.hot-update.js, size: 2640
 
 ## Manifest
 
@@ -34,29 +34,21 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* import */ var _logo_svg__rspack_import_0 = __webpack_require__(/*! ./logo.svg */ "./logo.svg");
+/* import */ var _logo_svg__rspack_import_0 = __webpack_require__("./logo.svg");
 
 
 /* export default */ const __rspack_default_export = ((typeof _logo_svg__rspack_import_0) + ' result');
 
-}),
-"./logo.svg": 
-/*!******************!*\
-  !*** ./logo.svg ***!
-  \******************/
-(function (module) {
+},
+"./logo.svg"(module) {
 module.exports = "data:image/svg+xml;base64,Cjxzdmcgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgNDAgNDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgICA8ZyBjbGlwLXBhdGg9InVybCgjY2xpcDApIj4KICAgICAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIKICAgICAgICAgICAgZD0iTTUuMzc3NTQgMTYuOTc5NUwxMi43NDk4IDkuNDMwMjdDMTQuNzE2MyA3LjQxNjYzIDE3Ljk0MjggNy4zNzgzNyAxOS45NTY0IDkuMzQ0ODJDMTkuOTg1MiA5LjM3Mjk3IDIwLjAxMzcgOS40MDE0NSAyMC4wNDE4IDkuNDMwMjdMMjAuMTIyMSA5LjUxMjQzQzIyLjEwNDkgMTEuNTQyOSAyMi4xMDQ5IDE0Ljc4NDcgMjAuMTIyMSAxNi44MTUyTDEyLjc0OTggMjQuMzY0NEMxMC43ODM0IDI2LjM3OCA3LjU1Njg2IDI2LjQxNjMgNS41NDMyMiAyNC40NDk4QzUuNTE0NCAyNC40MjE3IDUuNDg1OTIgMjQuMzkzMiA1LjQ1Nzc3IDI0LjM2NDRMNS4zNzc1NCAyNC4yODIyQzMuMzk0NjggMjIuMjUxOCAzLjM5NDY4IDE5LjAwOTkgNS4zNzc1NCAxNi45Nzk1WiIKICAgICAgICAgICAgZmlsbD0iIzEyRDJBQyIgLz4KICAgICAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIKICAgICAgICAgICAgZD0iTTIwLjA0NzkgOS40MzAzNEwyNy4zMzk5IDE2Ljg5NzRDMjkuMzY3NCAxOC45NzM1IDI5LjM2NzQgMjIuMjg4MyAyNy4zMzk5IDI0LjM2NDRDMjUuMzczNSAyNi4zNzgxIDIyLjE0NyAyNi40MTYzIDIwLjEzMzMgMjQuNDQ5OUMyMC4xMDQ1IDI0LjQyMTcgMjAuMDc2IDI0LjM5MzMgMjAuMDQ3OSAyNC4zNjQ0TDEyLjc1NTggMTYuODk3NEMxMC43Mjg0IDE0LjgyMTMgMTAuNzI4NCAxMS41MDY1IDEyLjc1NTggOS40MzAzNEMxNC43MjIzIDcuNDE2NyAxNy45NDg4IDcuMzc4NDQgMTkuOTYyNCA5LjM0NDg5QzE5Ljk5MTIgOS4zNzMwNCAyMC4wMTk3IDkuNDAxNTIgMjAuMDQ3OSA5LjQzMDM0WiIKICAgICAgICAgICAgZmlsbD0iIzMwN0FGMiIgLz4KICAgICAgICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIKICAgICAgICAgICAgZD0iTTIwLjEzMjEgOS41MjE2M0wyMy42ODUxIDEzLjE1OTlMMTYuMzkzMSAyMC42MjdMOS4xMDEwMyAxMy4xNTk5TDEyLjY1NDEgOS41MjE2M0MxNC42NzA3IDcuNDU2NjQgMTcuOTc5NCA3LjQxNzQgMjAuMDQ0NCA5LjQzNEMyMC4wNzQgOS40NjI4NiAyMC4xMDMyIDkuNDkyMDcgMjAuMTMyMSA5LjUyMTYzWiIKICAgICAgICAgICAgZmlsbD0iIzAwNTdGRSIgLz4KICAgIDwvZz4KICAgIDxkZWZzPgogICAgICAgIDxjbGlwUGF0aCBpZD0iY2xpcDAiPgogICAgICAgICAgICA8cmVjdCB3aWR0aD0iMjYiIGhlaWdodD0iMTkiIGZpbGw9IndoaXRlIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzLjUgNykiIC8+CiAgICAgICAgPC9jbGlwUGF0aD4KICAgIDwvZGVmcz4KPC9zdmc+";
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

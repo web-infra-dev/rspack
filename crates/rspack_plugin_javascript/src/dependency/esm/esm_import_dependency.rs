@@ -9,7 +9,7 @@ use rspack_core::{
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
+  SharedSourceMap, SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
   filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -230,7 +230,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
-  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(compilation, &target_module.identifier()));
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
@@ -697,11 +697,23 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    if let Some(scope) = concatenation_scope {
-      let module = module_graph.get_module_by_dependency_id(&dep.id);
-      if module.is_some_and(|m| scope.is_module_in_scope(&m.identifier())) {
+
+    let module = module_graph.get_module_by_dependency_id(&dep.id);
+
+    if let Some(module) = module {
+      let source_types = module.source_types(&module_graph);
+      if source_types
+        .iter()
+        .all(|source_type| matches!(source_type, SourceType::Css))
+      {
         return;
       }
+    }
+
+    if let Some(scope) = concatenation_scope
+      && module.is_some_and(|m| scope.is_module_in_scope(&m.identifier()))
+    {
+      return;
     }
     esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
   }

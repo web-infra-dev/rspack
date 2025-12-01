@@ -22,7 +22,6 @@ pub mod url_plugin;
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
-use indoc::indoc;
 pub use inline_exports_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
@@ -30,7 +29,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, RuntimeVariable, SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -145,10 +144,14 @@ impl JsPlugin {
     let mut sources: Vec<Cow<str>> = Vec::new();
 
     sources.push(
-      indoc! {r#"
-        // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {"#}
+      format!(
+        r#"// Check if module is in cache
+var cachedModule = {}[moduleId];
+if (cachedModule !== undefined) {{"#,
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )
       .into(),
     );
 
@@ -157,11 +160,15 @@ impl JsPlugin {
     }
 
     sources.push(
-      indoc! {r#"
-        return cachedModule.exports;
-        }
-        // Create a new module (and put it into the cache)
-        var module = (__webpack_module_cache__[moduleId] = {"#}
+      format!(
+        r#"return cachedModule.exports;
+}}
+// Create a new module (and put it into the cache)
+var module = ({}[moduleId] = {{"#,
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )
       .into(),
     );
 
@@ -174,17 +181,17 @@ impl JsPlugin {
     }
 
     if need_module_defer {
-      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+      sources.push("exports: __rspack_deferred_exports[moduleId] || {}".into());
     } else {
       sources.push("exports: {}".into());
     }
     sources.push("});\n// Execute the module function".into());
 
-    let module_execution = if runtime_requirements
-      .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-    {
-      format!(r#"
-        var execOptions = {{ id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: {} }};
+    let module_execution =
+      if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+        format!(
+          r#"
+        var execOptions = {{ id: moduleId, module: module, factory: {}[moduleId], require: {} }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
         if (!execOptions.factory) {{
@@ -193,40 +200,54 @@ impl JsPlugin {
         }}
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
       "#,
-        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-      ).into()
-    } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-      format!(
-        "__webpack_modules__[moduleId].call(module.exports, module, module.exports, {});\n",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      )
-      .into()
-    } else {
-      format!(
-        "__webpack_modules__[moduleId](module, module.exports, {});\n",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      )
-      .into()
-    };
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        )
+        .into()
+      } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+        format!(
+          "{}[moduleId].call(module.exports, module, module.exports, {});\n",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        )
+        .into()
+      } else {
+        format!(
+          "{}[moduleId](module, module.exports, {});\n",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        )
+        .into()
+      };
 
     if strict_module_error_handling {
       sources.push("try {\n".into());
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
     }
 
@@ -279,7 +300,13 @@ impl JsPlugin {
     }
 
     if use_require || module_cache {
-      header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
+      header.push(
+        format!(
+          "// The module cache\nvar {} = {{}};\n",
+          runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
+        )
+        .into(),
+      );
     }
 
     if need_module_defer {
@@ -287,9 +314,7 @@ impl JsPlugin {
       // (see MakeDeferredNamespaceObjectRuntimeModule)
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
-      header.push(
-        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
-      );
+      header.push("// The deferred module cache\nvar __rspack_deferred_exports = {};\n".into());
     }
 
     if use_require {
@@ -316,8 +341,10 @@ impl JsPlugin {
     {
       header.push(
         format!(
-          "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+          "// expose the modules object ({modules})\n{module_factories} = {modules};\n",
+          modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          module_factories =
+            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         )
         .into(),
       );
@@ -326,8 +353,9 @@ impl JsPlugin {
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       header.push(
         format!(
-          "// expose the module cache\n{} = __webpack_module_cache__;\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE)
+          "// expose the module cache\n{} = {};\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+          runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         )
         .into(),
       );
@@ -501,7 +529,8 @@ impl JsPlugin {
             if require_scope_used {
               buf2.push(
                 format!(
-                  "__webpack_modules__[{module_id_expr}](0, {}, {});",
+                  "{}[{module_id_expr}](0, {}, {});",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
                   if should_exec {
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   } else {
@@ -516,7 +545,8 @@ impl JsPlugin {
             {
               buf2.push(
                 format!(
-                  "__webpack_modules__[{module_id_expr}](0, {});",
+                  "{}[{module_id_expr}](0, {});",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
                   if should_exec {
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   } else {
@@ -526,15 +556,23 @@ impl JsPlugin {
                 .into(),
               );
             } else {
-              buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
+              buf2.push(
+                format!(
+                  "{}[{module_id_expr}]();",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
+                )
+                .into(),
+              );
             }
           }
         }
         if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
           buf2.push(
             format!(
-              "__webpack_exports__ = {}(__webpack_exports__);",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
+              "{exports} = {on_chunks_loaded}({exports});",
+              exports = runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
+              on_chunks_loaded =
+                runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
             )
             .into(),
           );
@@ -589,7 +627,8 @@ impl JsPlugin {
       startup.push("// run startup".into());
       startup.push(
         format!(
-          "var __webpack_exports__ = {}();",
+          "var {} = {}();",
+          runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
           runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
         )
         .into(),
@@ -700,7 +739,10 @@ impl JsPlugin {
         } else {
           RawStringSource::from_static("{}").boxed()
         };
-      sources.add(RawStringSource::from_static("var __webpack_modules__ = ("));
+      sources.add(RawStringSource::from(format!(
+        "var {} = (",
+        runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
+      )));
       sources.add(chunk_modules_source);
       sources.add(RawStringSource::from_static(");\n"));
     }
@@ -790,7 +832,13 @@ impl JsPlugin {
         } else if has_chunk_modules_result && renamed_inline_modules.is_none() {
           Some("it needs to be isolated against other modules in the chunk.".into())
         } else if exports && !rspack_exports {
-          Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
+          Some(
+            format!(
+              "it uses a non-standard name for the exports ({}).",
+              runtime_template.render_exports_argument(exports_argument)
+            )
+            .into(),
+          )
         } else {
           hooks
             .embed_in_runtime_bailout
@@ -817,6 +865,7 @@ impl JsPlugin {
           footer = "\n";
         }
         if exports {
+          let exports_argument = runtime_template.render_exports_argument(exports_argument);
           if m_identifier != last_entry_module {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {{}};\n"
@@ -875,9 +924,12 @@ impl JsPlugin {
     if has_entry_modules
       && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
     {
-      sources.add(RawStringSource::from_static(
-        "return __webpack_exports__;\n",
-      ));
+      sources.add(RawStringSource::from(format!(
+        "return {};\n",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::Exports)
+      )));
     }
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));

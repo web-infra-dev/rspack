@@ -123,6 +123,7 @@ function getRawOutputEnvironment(
 ): RawEnvironment {
 	return {
 		const: Boolean(environment.const),
+		methodShorthand: Boolean(environment.methodShorthand),
 		arrowFunction: Boolean(environment.arrowFunction),
 		nodePrefixForCoreModules: Boolean(environment.nodePrefixForCoreModules),
 		asyncFunction: Boolean(environment.asyncFunction),

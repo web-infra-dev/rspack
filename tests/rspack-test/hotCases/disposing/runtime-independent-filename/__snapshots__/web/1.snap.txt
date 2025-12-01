@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Update: main.LAST_HASH.hot-update.js, size: 18493
+- Update: main.LAST_HASH.hot-update.js, size: 18387
 
 ## Manifest
 
@@ -27,11 +27,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./module.js": 
-/*!*******************!*\
-  !*** ./module.js ***!
-  \*******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -39,7 +35,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* export default */ const __rspack_default_export = (42);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -628,7 +624,7 @@ __webpack_require__.hmrM = () => {
 	);
 };
 // install a JSONP callback for chunk loading
-var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
+var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
@@ -656,8 +652,8 @@ var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
 };
 
 var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
-chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
+chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
+chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 
 })();
 

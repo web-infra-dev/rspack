@@ -5,8 +5,12 @@ use rspack_core::{
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
 
-use super::JavascriptParserPlugin;
-use crate::{dependency::ExternalModuleDependency, utils::eval, visitors::JavascriptParser};
+use crate::{
+  JavascriptParserPlugin,
+  dependency::ExternalModuleDependency,
+  utils::eval,
+  visitors::{DestructuringAssignmentProperty, JavascriptParser},
+};
 
 const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
@@ -35,23 +39,21 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              "__webpack_fileURLToPath__".to_string(),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
 
           let external_path_dep = ExternalModuleDependency::new(
             "path".to_string(),
-            vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+            vec![("dirname".to_string(), "__rspack_dirname".to_string())],
             None,
           );
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             DIR_NAME.into(),
-            "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
-              .to_string()
-              .into(),
+            "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_url_dep));
@@ -92,7 +94,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              "__webpack_fileURLToPath__".to_string(),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
@@ -100,9 +102,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             FILE_NAME.into(),
-            "__webpack_fileURLToPath__(import.meta.url)"
-              .to_string()
-              .into(),
+            "__rspack_fileURLToPath(import.meta.url)".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_dep));
@@ -211,5 +211,14 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     } else {
       None
     }
+  }
+
+  fn import_meta_property_in_destructuring(
+    &self,
+    _parser: &mut JavascriptParser,
+    _property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
+    // TODO: implement import.meta.filename/dirname in destructuring
+    None
   }
 }

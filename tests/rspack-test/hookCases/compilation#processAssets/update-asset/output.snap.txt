@@ -1,12 +1,12 @@
-```js title=main.c34b4be3af721682.js
+```js title=main.415fc23ec3091317.js
 // UPDATED
 (() => {
 var __webpack_modules__ = ({
-402: (function (module) {
+402(module) {
 module.exports = "This is hook"
 
 
-}),
+},
 
 });
 // The module cache

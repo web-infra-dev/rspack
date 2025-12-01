@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42465
+- Update: main.LAST_HASH.hot-update.js, size: 42293
 
 ## Manifest
 
@@ -37,24 +37,20 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./module.js": 
-/*!*******************!*\
-  !*** ./module.js ***!
-  \*******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (/* reexport default from dynamic */ common__rspack_import_0_default.a),
   getValue: () => (getValue)
 });
-/* import */ var common__rspack_import_0 = __webpack_require__(/*! common */ "webpack/sharing/consume/default/common/./common?1");
+/* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
 /* import */ var common__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(common__rspack_import_0);
 
 
-const getValue = () => __webpack_require__.e(/*! import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.t.bind(__webpack_require__, /*! common2 */ "webpack/sharing/consume/default/common2/./common?2", 23));
+const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.t.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2", 23));
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/compat_get_default_export
@@ -105,7 +101,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/consumes_loading
 (() => {
 
-__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__(/*! ./common?2 */ "./common.js?2"))))) }, "webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__(/*! ./common?1 */ "./common.js?1"))) }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
+__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))) }, "webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))) }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
 var splitAndConvert = function(str) {
   return str.split(".").map(function(item) {
     return +item == item ? +item : item;
@@ -1254,7 +1250,7 @@ __webpack_require__.hmrM = () => {
 	);
 };
 // install a JSONP callback for chunk loading
-var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
+var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
@@ -1282,8 +1278,8 @@ var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
 };
 
 var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
-chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
+chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
+chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 
 })();
 
