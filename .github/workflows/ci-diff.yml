@@ -50,7 +50,7 @@ jobs:
         timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
@@ -58,27 +58,27 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Clone rstack-examples
+      - name: Clone build-tools-performance
         run: |
           cd ..
-          git clone -b chore/add-rsdoctor-demo https://github.com/rspack-contrib/rstack-examples.git
+          git clone https://github.com/rspack-contrib/build-tools-performance.git
 
       - name: Link packages and install dependencies
-        working-directory: ../rstack-examples/rsdoctor/rspack
+        working-directory: ../build-tools-performance
         run: |
-          npm pkg set "devDependencies.@rspack/binding=link:../../../rspack/crates/node_binding"
-          npm pkg set "devDependencies.@rspack/core=link:../../../rspack/packages/rspack"
-          npm pkg set "devDependencies.@rspack/cli=link:../../../rspack/packages/rspack-cli"
+          npm pkg set "devDependencies.@rspack/binding=link:../rspack/crates/node_binding"
+          npm pkg set "devDependencies.@rspack/core=link:../rspack/packages/rspack"
+          npm pkg set "devDependencies.@rspack/cli=link:../rspack/packages/rspack-cli"
           # Use --no-frozen-lockfile to allow updating lockfile after modifying package.json
           pnpm install --no-frozen-lockfile
 
-      - name: Build demo project
-        working-directory: ../rstack-examples/rsdoctor/rspack
-        run: RSDOCTOR=true pnpm run build
+      - name: Build cases
+        working-directory: ../build-tools-performance
+        run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
         uses: web-infra-dev/rsdoctor-action@44c54ca962bc7517abaa30a9509c7a9ea7af5dc1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          file_path: "../rstack-examples/rsdoctor/rspack/dist/rsdoctor-data.json"
+          file_path: "../build-tools-performance/**/dist/rsdoctor-data.json"
           target_branch: "main"
