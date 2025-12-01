@@ -23,6 +23,7 @@ async function loopFile(
 }
 
 const PLUGIN_NAME = "HotUpdatePlugin";
+const MAX_UPDATE_INDEX = 100;
 
 export class HotUpdatePlugin {
 	private initialized = false;
@@ -107,8 +108,30 @@ export class HotUpdatePlugin {
 		}, 1);
 	}
 	async goNext() {
+		if (this.updateIndex > MAX_UPDATE_INDEX) {
+			throw new Error("NEXT_* has been called more than the maximum times");
+		}
 		this.updateIndex++;
 		await this.updateFiles();
+	}
+	async moveTempDir() {
+		// generate next temp dir path.
+		const nextTempDir =
+			this.tempDir.replace(/(___[0-9]+)?[//]*$/, "") + "___" + this.updateIndex;
+
+		// update this.files.
+		for (const key of Object.keys(this.files)) {
+			const nextKey = key.replace(this.tempDir, nextTempDir);
+			this.files[nextKey] = this.files[key];
+			delete this.files[key];
+		}
+
+		// move files.
+		rimrafSync(nextTempDir);
+		fs.renameSync(this.tempDir, nextTempDir);
+		this.tempDir = nextTempDir;
+
+		return this.tempDir;
 	}
 
 	apply(compiler: Compiler) {
