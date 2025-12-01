@@ -1652,7 +1652,15 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let mut side_effects_optimize_artifact = if self
+      .incremental
+      .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
+    {
+      side_effects_optimize_artifact
+    } else {
+      Default::default()
+    };
 
     while matches!(
       plugin_driver
@@ -1663,6 +1671,7 @@ impl Compilation {
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
+    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
 
     logger.time_end(start);
 
