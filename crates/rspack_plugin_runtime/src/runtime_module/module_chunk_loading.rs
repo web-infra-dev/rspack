@@ -209,9 +209,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let raw_source = compilation.runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
-          "_ids": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::EsmChunkIds),
           "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-          "_runtime": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::EsmRuntime),
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
@@ -368,9 +366,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({
-            "_ids": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::EsmChunkIds),
             "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
-            "_runtime": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::EsmRuntime),
             "_import_function_name": import_function_name,
           })),
         )?

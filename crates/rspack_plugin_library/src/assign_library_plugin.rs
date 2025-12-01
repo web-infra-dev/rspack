@@ -289,14 +289,12 @@ async fn render_startup(
     }
 
     let mut exports = exports_name.as_str();
-    let exports_assign_export = compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::ExportsAssignExport);
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
         "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = exports_assign_export.as_str();
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
       "for(var __rspack_i in {exports}) {{\n"
@@ -326,22 +324,18 @@ async fn render_startup(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
   } else if self.is_copy(&options) {
-    let exports_assign = compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::ExportsAssign);
+    let exports_assign = "__rspack_exports_target";
     source.add(RawStringSource::from(format!(
       "var {exports_assign} = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
     let mut exports = exports_name.as_str();
-    let exports_assign_export = compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::ExportsAssignExport);
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
         "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = exports_assign_export.as_str();
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
       "for(var __rspack_i in {exports}) {exports_assign}[__rspack_i] = {exports}[__rspack_i];\n"

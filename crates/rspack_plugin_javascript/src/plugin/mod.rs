@@ -181,15 +181,7 @@ var module = ({}[moduleId] = {{"#,
     }
 
     if need_module_defer {
-      sources.push(
-        format!(
-          "exports: {}[moduleId] || {{}}",
-          compilation
-            .runtime_template
-            .render_runtime_variable(&RuntimeVariable::DeferredExports)
-        )
-        .into(),
-      );
+      sources.push("exports: __rspack_deferred_exports[moduleId] || {}".into());
     } else {
       sources.push("exports: {}".into());
     }
@@ -248,30 +240,14 @@ var module = ({}[moduleId] = {{"#,
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
       if need_module_defer {
-        sources.push(
-          format!(
-            "delete {}[moduleId];",
-            compilation
-              .runtime_template
-              .render_runtime_variable(&RuntimeVariable::DeferredExports)
-          )
-          .into(),
-        );
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
       if need_module_defer {
-        sources.push(
-          format!(
-            "delete {}[moduleId];",
-            compilation
-              .runtime_template
-              .render_runtime_variable(&RuntimeVariable::DeferredExports)
-          )
-          .into(),
-        );
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
     }
 
@@ -338,13 +314,7 @@ var module = ({}[moduleId] = {{"#,
       // (see MakeDeferredNamespaceObjectRuntimeModule)
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
-      header.push(
-        format!(
-          "// The deferred module cache\nvar {} = {{}};\n",
-          runtime_template.render_runtime_variable(&RuntimeVariable::DeferredExports)
-        )
-        .into(),
-      );
+      header.push("// The deferred module cache\nvar __rspack_deferred_exports = {};\n".into());
     }
 
     if use_require {

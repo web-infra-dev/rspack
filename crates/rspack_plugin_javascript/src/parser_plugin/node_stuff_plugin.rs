@@ -1,6 +1,6 @@
 use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  RuntimeGlobals, RuntimeVariable, get_context, parse_resource,
+  RuntimeGlobals, get_context, parse_resource,
 };
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
@@ -39,37 +39,21 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeFileToUrlPath),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
 
           let external_path_dep = ExternalModuleDependency::new(
             "path".to_string(),
-            vec![(
-              "dirname".to_string(),
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeDirname),
-            )],
+            vec![("dirname".to_string(), "__rspack_dirname".to_string())],
             None,
           );
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             DIR_NAME.into(),
-            format!(
-              "{}({}(import.meta.url))",
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeDirname),
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeFileToUrlPath)
-            )
-            .into(),
+            "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_url_dep));
@@ -110,9 +94,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeFileToUrlPath),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
@@ -120,13 +102,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             FILE_NAME.into(),
-            format!(
-              "{}(import.meta.url)",
-              parser
-                .runtime_template
-                .render_runtime_variable(&RuntimeVariable::NodeFileToUrlPath)
-            )
-            .into(),
+            "__rspack_fileURLToPath(import.meta.url)".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_dep));

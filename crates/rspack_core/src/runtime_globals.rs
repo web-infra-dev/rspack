@@ -366,15 +366,7 @@ pub enum RuntimeVariable {
   ModuleCache,
   Module,
   Exports,
-  ExportsAssign,
-  ExportsAssignExport,
-  DeferredExports,
   StartupExec,
-  EsmChunkIds,
-  EsmChunkId,
-  EsmRuntime,
-  NodeDirname,
-  NodeFileToUrlPath,
 }
 
 pub fn runtime_variable_to_string(
@@ -388,15 +380,7 @@ pub fn runtime_variable_to_string(
     RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),
     RuntimeVariable::Exports => "__webpack_exports__".to_string(),
     RuntimeVariable::Module => "__webpack_module__".to_string(),
-    RuntimeVariable::ExportsAssign => "__webpack_export_target__".to_string(),
-    RuntimeVariable::ExportsAssignExport => "__webpack_exports_export__".to_string(),
-    RuntimeVariable::EsmChunkIds => "__webpack_ids__".to_string(),
-    RuntimeVariable::EsmChunkId => "__webpack_id__".to_string(),
-    RuntimeVariable::EsmRuntime => "__webpack_runtime__".to_string(),
-    RuntimeVariable::DeferredExports => "__webpack_module_deferred_exports__".to_string(),
     RuntimeVariable::StartupExec => "__webpack_exec__".to_string(),
-    RuntimeVariable::NodeDirname => "__webpack_dirname__".to_string(),
-    RuntimeVariable::NodeFileToUrlPath => "__webpack_fileURLToPath__".to_string(),
   }
 }
 
