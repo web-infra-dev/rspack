@@ -672,6 +672,7 @@ impl EsmLibraryPlugin {
       source: final_source,
     }))
   }
+
   pub async fn render_runtime(
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,

@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleIdentifier,
-  RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
+  ModuleIdentifier, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -182,11 +182,15 @@ impl ExternalInterop {
 
   pub fn render(&self, compilation: &Compilation) -> ConcatSource {
     let mut source = ConcatSource::default();
-
     let name = self.required_symbol.as_ref();
+
+    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
+
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
-        "const {name} = {}({});\n",
+        // this render only happens at top level scope of the chunk
+        "const {name} = {}{}({});\n",
+        if is_async { "await " } else { "" },
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE),
