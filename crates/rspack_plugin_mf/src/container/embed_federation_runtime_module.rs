@@ -101,28 +101,27 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let startup_entry = compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT);
+      let async_startup = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
 
       let mut code = String::with_capacity(256 + module_executions.len());
 
-      // Expose on __webpack_require__ so it's accessible outside the IIFE wrapper
+      // Expose once-guarded startup on __webpack_require__ so other runtime pieces can call it
       code.push_str("var __webpack_require__mf_has_run = false;\n");
-      code.push_str(
-        "__webpack_require__.mf_startup_once = function __webpack_require__mf_startup_once() {\n",
-      );
+      code.push_str("function __webpack_require__mfAsyncStartup() {\n");
       code.push_str("\tif (__webpack_require__mf_has_run) return;\n");
       code.push_str("\t__webpack_require__mf_has_run = true;\n");
       code.push_str(&module_executions);
-      code.push_str("};\n");
-      // Create local alias with 'var' (function scoped) that will be visible outside this IIFE
-      // due to how rspack concatenates runtime modules in the bundle scope
-      code.push_str(
-        "var __webpack_require__mf_startup_once = __webpack_require__.mf_startup_once;\n",
-      );
+      code.push_str("}\n");
+      code.push_str(&format!(
+        "{async_startup} = __webpack_require__mfAsyncStartup;\n"
+      ));
 
       code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
       code.push_str("\tvar fn = typeof prev === 'function' ? prev : function(){};\n");
       code.push_str("\treturn function() {\n");
-      code.push_str("\t\t__webpack_require__.mf_startup_once();\n");
+      code.push_str("\t\t__webpack_require__mfAsyncStartup();\n");
       code.push_str("\t\treturn fn.apply(this, arguments);\n");
       code.push_str("\t};\n");
       code.push_str("}\n");
@@ -178,7 +177,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   }
 
   fn should_isolate(&self) -> bool {
-    // Only break isolation when async startup needs globals exposed.
-    !self.options.experiments.async_startup
+    true
   }
 }

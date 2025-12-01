@@ -196,6 +196,10 @@ async fn render_startup(
     return Ok(());
   }
 
+  let async_startup_global = compilation
+    .runtime_template
+    .render_runtime_globals(&RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+
   // Ensure the synchronous startup global exists even in async startup mode so the
   // embedded federation runtime wrapper has a stable hook point.
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
@@ -213,9 +217,9 @@ async fn render_startup(
     // chunk ids so metadata gets registered before the entry executes.
     if self.experiments.async_startup {
       let mut with_startup = ConcatSource::default();
-      with_startup.add(RawStringSource::from(
-        "if (typeof __webpack_require__mf_startup_once === \"function\") { __webpack_require__mf_startup_once(); }\n",
-      ));
+      with_startup.add(RawStringSource::from(format!(
+        "if (typeof {async_startup_global} === \"function\") {{ {async_startup_global}(); }}\n",
+      )));
       // Populate handlers for every federation chunk id we know about.
       // This mirrors webpack's async startup Promise.all handler iteration.
       with_startup.add(RawStringSource::from(

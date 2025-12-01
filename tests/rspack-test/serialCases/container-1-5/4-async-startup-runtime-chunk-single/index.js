@@ -69,5 +69,5 @@ it("should wire async startup through the shared runtime chunk", () => {
 	expect(content).toContain("chunkIds === undefined && result === undefined");
 
 	// Ensure async federation runtime hook is present in the runtime chunk.
-	expect(content).toContain("__webpack_require__mf_startup_once");
+	expect(content).toContain("__webpack_require__.mfAsyncStartup");
 });
