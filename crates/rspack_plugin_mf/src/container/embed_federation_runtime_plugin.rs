@@ -23,6 +23,7 @@ use super::{
   },
   federation_modules_plugin::{AddFederationRuntimeDependencyHook, FederationModulesPlugin},
   federation_runtime_dependency::FederationRuntimeDependency,
+  module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions,
 };
 
 struct FederationRuntimeDependencyCollector {
@@ -44,13 +45,13 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
-  async_startup: bool,
+  experiments: ModuleFederationRuntimeExperimentsOptions,
   collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
-  pub fn new(async_startup: bool) -> Self {
-    Self::new_inner(async_startup, Arc::new(Mutex::new(FxHashSet::default())))
+  pub fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
+    Self::new_inner(experiments, Arc::new(Mutex::new(FxHashSet::default())))
   }
 }
 
@@ -81,7 +82,7 @@ async fn additional_chunk_runtime_requirements_tree(
   if is_enabled {
     // Add STARTUP (sync) so the runtime wrapper can always hook __webpack_require__.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
-    if self.async_startup {
+    if self.experiments.async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
@@ -124,7 +125,7 @@ async fn runtime_requirement_in_tree(
 
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
-      async_startup: self.async_startup,
+      experiments: self.experiments.clone(),
     };
 
     // Inject EmbedFederationRuntimeModule
@@ -210,7 +211,7 @@ async fn render_startup(
     // prepend a guard that triggers the embedded federation startup once and
     // then runs the remotes/consumes ensure handlers for all known federation
     // chunk ids so metadata gets registered before the entry executes.
-    if self.async_startup {
+    if self.experiments.async_startup {
       let mut with_startup = ConcatSource::default();
       with_startup.add(RawStringSource::from(
         "if (typeof __webpack_require__mf_startup_once === \"function\") { __webpack_require__mf_startup_once(); }\n",
@@ -218,7 +219,26 @@ async fn render_startup(
       // Populate handlers for every federation chunk id we know about.
       // This mirrors webpack's async startup Promise.all handler iteration.
       with_startup.add(RawStringSource::from(
-        "(function(){\n  var startupChunkIds = [];\n  if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) { startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping)); }\n  if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) { startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping)); }\n  if (!startupChunkIds.length) return;\n  var f = __webpack_require__.f || {};\n  var handlers = [f.consumes, f.remotes];\n  for (var i = 0; i < handlers.length; i++) {\n    var h = handlers[i];\n    if (typeof h !== \"function\") continue;\n    for (var j = 0; j < startupChunkIds.length; j++) { h(startupChunkIds[j], []); }\n  }\n})();\n",
+        r#"(function(){
+  var startupChunkIds = [];
+  if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {
+    startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping));
+  }
+  if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {
+    startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping));
+  }
+  if (!startupChunkIds.length) return;
+  var f = __webpack_require__.f || {};
+  var handlers = [f.consumes, f.remotes];
+  for (var i = 0; i < handlers.length; i++) {
+    var h = handlers[i];
+    if (typeof h !== "function") continue;
+    for (var j = 0; j < startupChunkIds.length; j++) {
+      h(startupChunkIds[j], []);
+    }
+  }
+})();
+"#,
       ));
       with_startup.add(render_source.source.clone());
       render_source.source = with_startup.boxed();
@@ -234,7 +254,7 @@ async fn render_startup(
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    let startup_global = if self.async_startup {
+    let startup_global = if self.experiments.async_startup {
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
@@ -273,6 +293,6 @@ impl Plugin for EmbedFederationRuntimePlugin {
 
 impl Default for EmbedFederationRuntimePlugin {
   fn default() -> Self {
-    Self::new(false)
+    Self::new(ModuleFederationRuntimeExperimentsOptions::default())
   }
 }

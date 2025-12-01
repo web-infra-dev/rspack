@@ -12,11 +12,13 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
+use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
+
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
   pub collected_dependency_ids: Vec<DependencyId>,
-  pub async_startup: bool,
+  pub experiments: ModuleFederationRuntimeExperimentsOptions,
 }
 
 #[impl_runtime_module]
@@ -90,7 +92,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push('\n');
     }
 
-    if self.options.async_startup {
+    if self.options.experiments.async_startup {
       // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
       // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
       let startup = compilation
@@ -177,6 +179,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
   fn should_isolate(&self) -> bool {
     // Only break isolation when async startup needs globals exposed.
-    !self.options.async_startup
+    !self.options.experiments.async_startup
   }
 }

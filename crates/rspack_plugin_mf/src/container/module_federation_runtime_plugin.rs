@@ -3,6 +3,7 @@
 //! Main orchestration plugin for Module Federation runtime functionality.
 //! Coordinates federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
 
+use rspack_cacheable::cacheable;
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilerFinishMake, EntryOptions, Plugin, RuntimeGlobals,
@@ -26,7 +27,8 @@ pub struct ModuleFederationRuntimePluginOptions {
   pub experiments: ModuleFederationRuntimeExperimentsOptions,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[cacheable]
+#[derive(Debug, Default, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleFederationRuntimeExperimentsOptions {
   #[serde(default)]
   pub async_startup: bool,
@@ -95,8 +97,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     // Apply supporting plugins
-    let async_startup = self.options.experiments.async_startup;
-    EmbedFederationRuntimePlugin::new(async_startup).apply(ctx)?;
+    EmbedFederationRuntimePlugin::new(self.options.experiments.clone()).apply(ctx)?;
     HoistContainerReferencesPlugin::default().apply(ctx)?;
 
     Ok(())
