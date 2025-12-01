@@ -66,9 +66,9 @@ jobs:
       - name: Link packages and install dependencies
         working-directory: ../build-tools-performance
         run: |
-          npm pkg set "devDependencies.@rspack/binding=link:../../../rspack/crates/node_binding"
-          npm pkg set "devDependencies.@rspack/core=link:../../../rspack/packages/rspack"
-          npm pkg set "devDependencies.@rspack/cli=link:../../../rspack/packages/rspack-cli"
+          npm pkg set "devDependencies.@rspack/binding=link:../../rspack/crates/node_binding"
+          npm pkg set "devDependencies.@rspack/core=link:../../rspack/packages/rspack"
+          npm pkg set "devDependencies.@rspack/cli=link:../../rspack/packages/rspack-cli"
           # Use --no-frozen-lockfile to allow updating lockfile after modifying package.json
           pnpm install --no-frozen-lockfile
 
