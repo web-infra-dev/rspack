@@ -251,7 +251,6 @@ pub struct Compilation {
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
-  // pub side_effects_optimize_artifact2: SideEffectsOptimizeArtifact,
   pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: ModuleIdsArtifact,
@@ -392,7 +391,6 @@ impl Compilation {
       dependencies_diagnostics_artifact: DerefOption::new(
         DependenciesDiagnosticsArtifact::default(),
       ),
-      // side_effects_optimize_artifact2: Default::default(),
       side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       chunk_ids_artifact: Default::default(),

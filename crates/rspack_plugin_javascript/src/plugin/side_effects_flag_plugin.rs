@@ -156,14 +156,6 @@ async fn optimize_dependencies(
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  // let mut side_effects_optimize_artifact = if compilation
-  //   .incremental
-  //   .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-  // {
-  //   std::mem::take(&mut compilation.side_effects_optimize_artifact2)
-  // } else {
-  //   Default::default()
-  // };
   let module_graph = compilation.get_module_graph();
 
   let all_modules = module_graph.modules();
