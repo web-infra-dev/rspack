@@ -57,6 +57,7 @@ pub struct CssExport {
   pub ident: String,
   pub from: Option<String>,
   pub id: Option<DependencyId>,
+  pub orig_name: String,
 }
 
 pub type CssExports = IndexMap<String, IndexSet<CssExport>>;
@@ -258,12 +259,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .expect("should have local_ident_name for module_type css/auto or css/module");
           let exports = self.exports.get_or_insert_default();
           let convention_names = export_locals_convention(&name, convention);
-          for name in convention_names.iter() {
+          for convention_name in convention_names.iter() {
             update_css_exports(
               exports,
-              name.to_owned(),
+              convention_name.to_owned(),
               CssExport {
                 ident: local_ident.clone(),
+                orig_name: name.clone().into_owned(),
                 from: None,
                 id: None,
               },
@@ -298,13 +300,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           let convention_names = export_locals_convention(&name, convention);
-          for name in convention_names.iter() {
+          for convention_name in convention_names.iter() {
             update_css_exports(
               exports,
-              name.to_owned(),
+              convention_name.to_owned(),
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
+                orig_name: name.clone().into_owned(),
                 id: None,
               },
             );
@@ -335,14 +338,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           let convention_names = export_locals_convention(&name, convention);
-          for name in convention_names.iter() {
+          for convention_name in convention_names.iter() {
             update_css_exports(
               exports,
-              name.to_owned(),
+              convention_name.to_owned(),
               CssExport {
                 ident: local_ident.clone(),
                 from: None,
                 id: None,
+                orig_name: name.clone().into_owned(),
               },
             );
           }
@@ -401,7 +405,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               let convention_names = export_locals_convention(&name, convention);
               let convention_local_class = export_locals_convention(local_class, convention);
 
-              for (name, local_class) in convention_names
+              for (convention_name, local_class) in convention_names
                 .into_iter()
                 .zip(convention_local_class.into_iter())
               {
@@ -418,7 +422,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
                     .get_mut(local_class.as_str())
                     .expect("composes local class must already added to exports")
                     .insert(CssExport {
-                      ident: name.to_string(),
+                      ident: convention_name.to_string(),
+                      orig_name: name.clone(),
                       from: from
                         .filter(|f| *f != "global")
                         .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
@@ -445,6 +450,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 ident: value.to_string(),
                 from: None,
                 id: None,
+                orig_name: prop.to_string(),
               },
             );
           }
@@ -747,28 +753,43 @@ fn get_unused_local_ident(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> CodeGenerationDataUnusedLocalIdent {
-  let exports_names = exports
-    .iter()
-    .map(|(name, _)| Atom::from(name.as_str()))
-    .collect::<Vec<_>>();
+  let exports_names = exports.iter().fold(
+    FxHashMap::<&str, FxHashSet<Atom>>::default(),
+    |mut map, (name, css_exports)| {
+      css_exports.iter().for_each(|css_export| {
+        if let Some(set) = map.get_mut(css_export.orig_name.as_str()) {
+          set.insert(Atom::from(name.to_string()));
+        } else {
+          map.insert(
+            &css_export.orig_name,
+            FxHashSet::from_iter([Atom::from(name.to_string())]),
+          );
+        }
+      });
+      map
+    },
+  );
+
   let exports_info =
     mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
       .iter()
-      .filter(|name| {
-        let export_info = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(name));
+      .filter(|(_, export_names)| {
+        export_names.iter().all(|export_name| {
+          let export_info = exports_info
+            .as_ref()
+            .map(|info| info.get_read_only_export_info(export_name));
 
-        if let Some(export_info) = export_info {
-          matches!(export_info.get_used(runtime), UsageState::Unused)
-        } else {
-          false
-        }
+          if let Some(export_info) = export_info {
+            matches!(export_info.get_used(runtime), UsageState::Unused)
+          } else {
+            false
+          }
+        })
       })
-      .filter_map(|export_name| local_names.get(export_name.as_str()).cloned())
+      .filter_map(|(css_name, _)| local_names.get(*css_name).cloned())
       .collect(),
   }
 }
