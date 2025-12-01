@@ -292,16 +292,16 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             "var __webpack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-"{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{
+"{}(module, async function (__rspack_load_async_deps, __rspack_async_done) {{
   try {{
 {imports_code}
-    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
-    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+    var __rspack_async_deps = __rspack_load_async_deps([{promises}]);
+    var [{promises}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;
     {imports_compat_code}await {instantiate_call};
 
-  __webpack_async_result__();
+  __rspack_async_done();
 
-  }} catch(e) {{ __webpack_async_result__(e); }}
+  }} catch(e) {{ __rspack_async_done(e); }}
 }}, 1);
 ",
             compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),

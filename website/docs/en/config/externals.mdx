@@ -743,7 +743,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 ```
 
 :::tip
-When loading code with HTML `<script>` tags, the Rspack runtime will try to find an existing `<script>` tag that matches the `src` attribute or has a specific `data-webpack` attribute. For chunk loading `data-webpack` attribute would have value of `'[output.uniqueName]:chunk-[chunkId]'` while external script has value of `'[output.uniqueName]:[global]'`.
+When loading code with HTML `<script>` tags, the Rspack runtime will try to find an existing `<script>` tag that matches the `src` attribute or has a specific `data-rspack` attribute. For chunk loading `data-rspack` attribute would have value of `'[output.uniqueName]:chunk-[chunkId]'` while external script has value of `'[output.uniqueName]:[global]'`.
 
 Options like `output.chunkLoadTimeout`, `output.crossOriginLoading` and `output.scriptType` will also have effect on the external scripts loaded this way.
 :::

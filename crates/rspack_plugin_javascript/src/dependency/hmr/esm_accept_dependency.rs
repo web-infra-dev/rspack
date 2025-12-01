@@ -137,12 +137,12 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
+        format!("function(__rspack_hmr_outdated) {{\n{content}(").as_str(),
         None,
       );
       source.insert(
         dep.range.end,
-        ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
+        ")(__rspack_hmr_outdated); }.bind(this)",
         None,
       );
     } else {

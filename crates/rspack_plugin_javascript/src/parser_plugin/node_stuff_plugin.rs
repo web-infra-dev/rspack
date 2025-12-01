@@ -39,23 +39,21 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              "__webpack_fileURLToPath__".to_string(),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
 
           let external_path_dep = ExternalModuleDependency::new(
             "path".to_string(),
-            vec![("dirname".to_string(), "__webpack_dirname__".to_string())],
+            vec![("dirname".to_string(), "__rspack_dirname".to_string())],
             None,
           );
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             DIR_NAME.into(),
-            "__webpack_dirname__(__webpack_fileURLToPath__(import.meta.url))"
-              .to_string()
-              .into(),
+            "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_url_dep));
@@ -96,7 +94,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
             "url".to_string(),
             vec![(
               "fileURLToPath".to_string(),
-              "__webpack_fileURLToPath__".to_string(),
+              "__rspack_fileURLToPath".to_string(),
             )],
             None,
           );
@@ -104,9 +102,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
             FILE_NAME.into(),
-            "__webpack_fileURLToPath__(import.meta.url)"
-              .to_string()
-              .into(),
+            "__rspack_fileURLToPath(import.meta.url)".into(),
           );
 
           parser.add_presentational_dependency(Box::new(external_dep));

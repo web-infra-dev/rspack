@@ -41,7 +41,6 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
       &self.id,
       Some(serde_json::json!({
         "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
-        "_deferred_exports": "__webpack_module_deferred_exports__",
         "_has_async": has_async,
       })),
     )?;
