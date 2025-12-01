@@ -58,6 +58,7 @@ impl JavaScriptCompiler {
     &self,
     source: S,
     filename: Option<Arc<FileName>>,
+    comments: Arc<SingleThreadedComments>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
@@ -70,7 +71,8 @@ impl JavaScriptCompiler {
     let fm = self
       .cm
       .new_source_file(filename.unwrap_or(Arc::new(FileName::Anon)), source.into());
-    let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
+    let javascript_transformer =
+      JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
   }
@@ -247,7 +249,7 @@ fn read_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, any
 struct JavaScriptTransformer<'a> {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
-  comments: SingleThreadedComments,
+  comments: Arc<SingleThreadedComments>,
   options: SwcOptions,
   javascript_compiler: &'a JavaScriptCompiler,
   helpers: Helpers,
@@ -260,6 +262,7 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn new(
     cm: Arc<SourceMap>,
     fm: Arc<SourceFile>,
+    comments: Arc<SingleThreadedComments>,
     compiler: &'a JavaScriptCompiler,
     mut options: SwcOptions,
   ) -> Result<Self> {
@@ -270,7 +273,6 @@ impl<'a> JavaScriptTransformer<'a> {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
-    let comments = SingleThreadedComments::default();
     let config = read_config(&options, &fm.name)?
       .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
 

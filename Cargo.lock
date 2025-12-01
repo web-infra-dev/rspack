@@ -3994,12 +3994,16 @@ name = "rspack_loader_swc"
 version = "0.6.3"
 dependencies = [
  "async-trait",
+ "base64",
  "either",
+ "hex",
+ "indoc",
  "once_cell",
  "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_loader_runner",
@@ -4010,6 +4014,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "sha2",
  "stacker",
  "sugar_path",
  "swc",
@@ -4017,6 +4022,7 @@ dependencies = [
  "swc_core",
  "tokio",
  "tracing",
+ "urlencoding",
 ]
 
 [[package]]

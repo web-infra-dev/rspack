@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 mod collect_ts_info;
 mod options;
 mod plugin;
@@ -23,11 +25,11 @@ use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
-  common::{FileName, SyntaxContext},
+  common::{FileName, SyntaxContext, comments::SingleThreadedComments},
   ecma::ast::noop_pass,
 };
 
-use crate::collect_ts_info::collect_typescript_info;
+use crate::{collect_ts_info::collect_typescript_info, transforms::ServerActionsConfig};
 
 #[cacheable]
 #[derive(Debug)]
@@ -110,6 +112,7 @@ impl SwcLoader {
 
     let javascript_compiler = JavaScriptCompiler::new();
     let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
+    let comments = Arc::new(SingleThreadedComments::default());
 
     let source = content.into_string_lossy();
     let is_typescript =
@@ -123,6 +126,7 @@ impl SwcLoader {
     } = javascript_compiler.transform(
       source,
       Some(filename.clone()),
+      comments.clone(),
       swc_options,
       Some(loader_context.context.source_map_kind),
       |program, unresolved_mark| {
@@ -143,35 +147,50 @@ impl SwcLoader {
         ));
       },
       |_| {
-        (
-          if self
-            .options_with_additional
-            .rspack_experiments
-            .react_server_components
-          {
-            let module = &loader_context.context.module;
+        let react_server_components = self
+          .options_with_additional
+          .rspack_experiments
+          .react_server_components;
 
+        let module = &loader_context.context.module;
+
+        let is_react_server_layer = module
+          .get_layer()
+          .is_some_and(|layer| layer == "react-server-components");
+
+        (
+          if react_server_components {
             // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
             if loader_context
               .resource_query()
               .is_some_and(|q| q.contains("skip-rsc-transform"))
             {
-              Box::new(noop_pass()) as Box<dyn swc_core::ecma::ast::Pass>
+              swc_core::common::pass::Either::Right(noop_pass())
             } else {
-              let is_react_server_layer = module
-                .get_layer()
-                .is_some_and(|layer| layer == "react-server-components");
               let build_info = loader_context.context.module.build_info_mut();
-              Box::new(transforms::server_components(
+              swc_core::common::pass::Either::Left(transforms::server_components(
                 filename,
                 transforms::Config::WithOptions(transforms::Options {
                   is_react_server_layer,
                 }),
                 &mut build_info.rsc,
-              )) as Box<dyn swc_core::ecma::ast::Pass>
+              ))
             }
           } else {
-            Box::new(noop_pass()) as Box<dyn swc_core::ecma::ast::Pass>
+            swc_core::common::pass::Either::Right(noop_pass())
+          },
+          if react_server_components {
+            swc_core::common::pass::Either::Left(transforms::server_actions(
+              resource_path.to_string(),
+              ServerActionsConfig {
+                is_react_server_layer,
+                is_development: true,
+                hash_salt: "".to_string(),
+              },
+              comments,
+            ))
+          } else {
+            swc_core::common::pass::Either::Right(noop_pass())
           },
           transformer::transform(&self.options_with_additional.rspack_experiments),
         )
@@ -183,13 +202,6 @@ impl SwcLoader {
       .get_layer()
       .is_some_and(|layer| layer == "react-server-components");
     if is_react_server_layer && let Some(rsc) = module.build_info().rsc.as_ref() {
-      let ids = rsc
-        .client_refs
-        .iter()
-        .filter_map(|export| export.as_str())
-        .collect::<Vec<_>>()
-        .join(", ");
-
       if rsc.module_type == RSCModuleType::ServerEntry {
         if rsc
           .client_refs
