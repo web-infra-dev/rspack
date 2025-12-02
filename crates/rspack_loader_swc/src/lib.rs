@@ -13,7 +13,7 @@ pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RSCModuleType, RunnerContext,
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RSCMeta, RSCModuleType, RunnerContext,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
@@ -29,7 +29,10 @@ use swc_core::{
   ecma::ast::noop_pass,
 };
 
-use crate::{collect_ts_info::collect_typescript_info, transforms::ServerActionsConfig};
+use crate::{
+  collect_ts_info::collect_typescript_info,
+  transforms::{ActionsMeta, ServerActionsConfig},
+};
 
 #[cacheable]
 #[derive(Debug)]
@@ -119,6 +122,8 @@ impl SwcLoader {
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
 
+    let mut actions_meta: Option<ActionsMeta> = None;
+
     let TransformOutput {
       code,
       mut map,
@@ -184,10 +189,11 @@ impl SwcLoader {
               resource_path.to_string(),
               ServerActionsConfig {
                 is_react_server_layer,
-                is_development: true,
+                is_development: false,
                 hash_salt: "".to_string(),
               },
               comments,
+              &mut actions_meta,
             ))
           } else {
             swc_core::common::pass::Either::Right(noop_pass())
@@ -196,6 +202,18 @@ impl SwcLoader {
         )
       },
     )?;
+
+    {
+      let module = &mut loader_context.context.module;
+      if let Some(actions_meta) = actions_meta {
+        module.build_info_mut().rsc = Some(RSCMeta {
+          module_type: RSCModuleType::Server,
+          client_refs: vec![],
+          client_entry_type: None,
+          action_ids: Some(actions_meta.action_ids),
+        })
+      }
+    }
 
     let module = &loader_context.context.module;
     let is_react_server_layer = module

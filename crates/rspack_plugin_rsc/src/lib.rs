@@ -11,6 +11,9 @@ mod utils;
 
 pub use client_compiler_handle::ClientCompilerHandle;
 pub use client_reference_manifest_plugin::ClientReferenceManifestPlugin;
-pub use loaders::client_entry_loader_plugin::ClientEntryLoaderPlugin;
+pub use loaders::{
+  action_entry_loader_plugin::ActionEntryLoaderPlugin,
+  client_entry_loader_plugin::ClientEntryLoaderPlugin,
+};
 pub use react_client_plugin::{ReactClientPlugin, ReactClientPluginOptions};
 pub use react_server_plugin::ReactServerPlugin;

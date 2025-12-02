@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifier;
 use rspack_core::RunnerContext;
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
 use simd_json::{
@@ -77,7 +77,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
     for (k, v) in loader_options {
       if k == "modules" {
         let mut bytes = v.to_string().into_bytes();
-        let borrowed_value = simd_json::to_borrowed_value(&mut bytes).unwrap();
+        let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
         match borrowed_value.try_as_array() {
           Ok(array) => {
             for item in array.iter() {

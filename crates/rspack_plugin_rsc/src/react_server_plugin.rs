@@ -15,9 +15,10 @@ use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
 };
+use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
-use swc_core::atoms::Wtf8Atom;
+use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
   ClientReferenceManifestPlugin,
@@ -32,7 +33,7 @@ use crate::{
 pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
 pub type CssImports = FxHashMap<String, FxHashSet<String>>;
 
-type ActionIdNamePair = (Arc<str>, Arc<str>);
+type ActionIdNamePair = (Atom, Atom);
 
 #[derive(Debug)]
 struct ClientEntry {
@@ -138,7 +139,7 @@ pub fn get_module_rsc_information(module: &dyn Module) -> Option<&RSCMeta> {
 }
 
 // Gives { id: name } record of actions from the build info.
-pub fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxHashMap<Arc<str>, Arc<str>>> {
+pub fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxIndexMap<Atom, Atom>> {
   let rsc = get_module_rsc_information(module)?;
   rsc.action_ids.as_ref()
 }
@@ -352,31 +353,28 @@ impl ReactServerPlugin {
         }
       }
 
-      // if !action_entry_imports.is_empty() {
-      //   if !action_maps_per_entry.contains_key(name) {
-      //     action_maps_per_entry.insert(name.to_string(), FxHashMap::default());
-      //   }
-      //   let entry = action_maps_per_entry.get_mut(name).unwrap();
-      //   for (key, value) in action_entry_imports {
-      //     entry.insert(key, value);
-      //   }
-      // }
+      if !action_entry_imports.is_empty() {
+        action_maps_per_entry
+          .entry(entry_name.to_string())
+          .or_default()
+          .extend(action_entry_imports);
+      }
     }
 
-    // for (name, action_entry_imports) in action_maps_per_entry {
-    //   self
-    //     .inject_action_entry(
-    //       compilation,
-    //       ActionEntry {
-    //         actions: action_entry_imports,
-    //         entry_name: name.clone(),
-    //         bundle_path: name,
-    //         from_client: false,
-    //         created_action_ids: &mut created_action_ids,
-    //       },
-    //     )
-    //     .map(|injected| add_action_entry_list.push(injected));
-    // }
+    for (name, action_entry_imports) in action_maps_per_entry {
+      // self
+      //   .inject_action_entry(
+      //     compilation,
+      //     ActionEntry {
+      //       actions: action_entry_imports,
+      //       entry_name: name.clone(),
+      //       bundle_path: name,
+      //       from_client: false,
+      //       created_action_ids: &mut created_action_ids,
+      //     },
+      //   )
+      //   .map(|injected| add_action_entry_list.push(injected));
+    }
 
     // Invalidate in development to trigger recompilation
     // if self.dev {
@@ -771,6 +769,95 @@ impl ReactServerPlugin {
       ssr_dependency_id,
     }
   }
+
+  // fn inject_action_entry(
+  //   &self,
+  //   compilation: &Compilation,
+  //   action_entry: ActionEntry,
+  //   plugin_state: &mut PluginState,
+  // ) -> Option<InjectedActionEntry> {
+  //   let ActionEntry {
+  //     actions,
+  //     entry_name,
+  //     bundle_path,
+  //     from_client,
+  //     created_action_ids,
+  //   } = action_entry;
+
+  //   if actions.is_empty() {
+  //     return None;
+  //   }
+
+  //   for (_, actions_from_module) in &actions {
+  //     for (id, _) in actions_from_module {
+  //       created_action_ids.insert(format!("{}@{}", entry_name, id));
+  //     }
+  //   }
+
+  //   let action_loader = format!(
+  //     "next-flight-action-entry-loader?{}!",
+  //     serde_json::to_string(&json!({
+  //         "actions": serde_json::to_string(&actions).unwrap(),
+  //         "__client_imported__": from_client,
+  //     }))
+  //     .unwrap()
+  //   );
+
+  //   let current_compiler_server_actions = plugin_state.server_actions;
+
+  //   for (_, actions_from_module) in &actions {
+  //     for (id, _) in actions_from_module {
+  //       if !current_compiler_server_actions.contains_key(id) {
+  //         current_compiler_server_actions.insert(
+  //           id.clone(),
+  //           Action {
+  //             workers: HashMap::default(),
+  //             layer: HashMap::default(),
+  //           },
+  //         );
+  //       }
+  //       let action = current_compiler_server_actions.get_mut(id).unwrap();
+  //       action.workers.insert(
+  //         bundle_path.to_string(),
+  //         ModuleInfo {
+  //           module_id: "".to_string(), // TODO: What's the meaning of this?
+  //           is_async: false,
+  //         },
+  //       );
+
+  //       action.layer.insert(
+  //         bundle_path.to_string(),
+  //         if from_client {
+  //           WEBPACK_LAYERS.action_browser.to_string()
+  //         } else {
+  //           WEBPACK_LAYERS.react_server_components.to_string()
+  //         },
+  //       );
+  //     }
+  //   }
+
+  //   // Inject the entry to the server compiler
+  //   let layer = if from_client {
+  //     WEBPACK_LAYERS.action_browser.to_string()
+  //   } else {
+  //     WEBPACK_LAYERS.react_server_components.to_string()
+  //   };
+  //   let action_entry_dep = EntryDependency::new(
+  //     action_loader,
+  //     compilation.options.context.clone(),
+  //     Some(layer.to_string()),
+  //     false,
+  //   );
+
+  //   Some((
+  //     Box::new(action_entry_dep),
+  //     EntryOptions {
+  //       name: Some(entry_name.to_string()),
+  //       layer: Some(layer),
+  //       ..Default::default()
+  //     },
+  //   ))
+  // }
 
   fn record_module(
     &self,

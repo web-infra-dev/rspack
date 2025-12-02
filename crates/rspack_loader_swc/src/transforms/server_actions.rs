@@ -25,6 +25,12 @@ use swc_core::{
   },
 };
 
+// TODO: 移动到 RSCMeta 中
+#[derive(Debug, Default)]
+pub struct ActionsMeta {
+  pub action_ids: FxIndexMap<Atom, Atom>,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Config {
@@ -99,10 +105,16 @@ enum ServerActionsErrorKind {
   },
 }
 
-pub fn server_actions<C: Comments>(file_name: String, config: Config, comments: C) -> impl Pass {
+pub fn server_actions<C: Comments>(
+  file_name: String,
+  config: Config,
+  comments: C,
+  actions_meta: &mut Option<ActionsMeta>,
+) -> impl Pass {
   visit_mut_pass(ServerActions {
     config,
     comments,
+    actions_meta,
     file_name,
     start_pos: BytePos(0),
     in_action_file: false,
@@ -139,34 +151,23 @@ pub fn server_actions<C: Comments>(file_name: String, config: Config, comments: 
   })
 }
 
-/// Serializes the Server References into a magic comment prefixed by
-/// `__next_internal_action_entry_do_not_use__`.
-fn generate_server_references_comment(
-  export_names_ordered_by_reference_id: &BTreeMap<&Atom, &ModuleExportName>,
-  entry_path_query: Option<(&str, &str)>,
-) -> String {
-  // Convert ModuleExportName to string for serialization
-  let export_map: BTreeMap<_, _> = export_names_ordered_by_reference_id
+fn set_server_metadata(
+  export_names_ordered_by_reference_id: &FxIndexMap<&Atom, &ModuleExportName>,
+  actions_meta: &mut Option<ActionsMeta>,
+) {
+  let actions_meta = actions_meta.get_or_insert_default();
+  actions_meta.action_ids = export_names_ordered_by_reference_id
     .iter()
-    .map(|(ref_id, export_name)| (*ref_id, export_name.atom()))
-    .collect();
-
-  format!(
-    " __next_internal_action_entry_do_not_use__ {} ",
-    if let Some(entry_path_query) = entry_path_query {
-      serde_json::to_string(&(&export_map, entry_path_query.0, entry_path_query.1))
-    } else {
-      serde_json::to_string(&export_map)
-    }
-    .unwrap()
-  )
+    .map(|(ref_id, export_name)| ((**ref_id).clone(), export_name.atom().into_owned()))
+    .collect::<FxIndexMap<_, _>>();
 }
 
-struct ServerActions<C: Comments> {
+struct ServerActions<'a, C: Comments> {
   #[allow(unused)]
   config: Config,
   file_name: String,
   comments: C,
+  actions_meta: &'a mut Option<ActionsMeta>,
 
   start_pos: BytePos,
   in_action_file: bool,
@@ -212,7 +213,7 @@ struct ServerActions<C: Comments> {
   local_ids_that_need_cache_runtime_wrapper_if_exported: FxHashSet<Id>,
 }
 
-impl<C: Comments> ServerActions<C> {
+impl<'a, C: Comments> ServerActions<'a, C> {
   fn generate_server_reference_id(
     &self,
     export_name: &ModuleExportName,
@@ -779,7 +780,7 @@ impl<C: Comments> ServerActions<C> {
   }
 }
 
-impl<C: Comments> VisitMut for ServerActions<C> {
+impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
   fn visit_mut_export_decl(&mut self, decl: &mut ExportDecl) {
     // For inline exports like `export function foo() {}` or `export const bar = ...`,
     // the export name is looked up from export_name_by_local_id and set as current_export_name
@@ -1292,7 +1293,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
     let should_track_exports = in_action_file;
 
     // Pre-pass: Collect a mapping from local identifiers to export names for all exports
-    // in server boundary files ('use server' or 'use cache'). This mapping is used to:
+    // in server boundary files ('use server'). This mapping is used to:
     // 1. Set current_export_name when visiting exported functions/variables during the main
     //    pass.
     // 2. Register any remaining exports in the post-pass that weren't handled by the visitor.
@@ -1521,7 +1522,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
         Some(stmt)
       };
 
-      if self.config.is_react_server_layer || !self.in_action_file {
+      if self.config.is_react_server_layer || !in_action_file {
         new.append(&mut self.hoisted_extra_items);
         if let Some(stmt) = new_stmt {
           new.push(stmt);
@@ -1588,7 +1589,7 @@ impl<C: Comments> VisitMut for ServerActions<C> {
 
     let mut client_layer_exports = FxIndexMap::default();
 
-    // If it's a "use server" or a "use cache" file, all exports need to be annotated.
+    // If it's a "use server" file, all exports need to be annotated.
     if should_track_exports {
       let server_reference_exports = self.server_reference_exports.take();
 
@@ -1708,56 +1709,56 @@ impl<C: Comments> VisitMut for ServerActions<C> {
       // But it's only needed for the server layer, because on the client
       // layer they're transformed into references already.
       // TODO: ensureServerEntryExports 应该放到哪里
-      // if self.has_action && self.config.is_react_server_layer {
-      //   new.append(&mut self.extra_items);
+      if self.has_action && self.config.is_react_server_layer {
+        new.append(&mut self.extra_items);
 
-      //   if !server_reference_exports.is_empty() {
-      //     let ensure_ident = private_ident!("ensureServerEntryExports");
-      //     new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-      //       span: DUMMY_SP,
-      //       specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-      //         span: DUMMY_SP,
-      //         local: ensure_ident.clone(),
-      //         imported: None,
-      //         is_type_only: false,
-      //       })],
-      //       src: Box::new(Str {
-      //         span: DUMMY_SP,
-      //         value: atom!("private-next-rsc-action-validate").into(),
-      //         raw: None,
-      //       }),
-      //       type_only: false,
-      //       with: None,
-      //       phase: Default::default(),
-      //     })));
-      //     new.push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-      //       span: DUMMY_SP,
-      //       expr: Box::new(Expr::Call(CallExpr {
-      //         span: DUMMY_SP,
-      //         callee: Callee::Expr(Box::new(Expr::Ident(ensure_ident))),
-      //         args: vec![ExprOrSpread {
-      //           spread: None,
-      //           expr: Box::new(Expr::Array(ArrayLit {
-      //             span: DUMMY_SP,
-      //             elems: server_reference_exports
-      //               .iter()
-      //               .map(|ServerReferenceExport { ident, .. }| {
-      //                 Some(ExprOrSpread {
-      //                   spread: None,
-      //                   expr: Box::new(Expr::Ident(ident.clone())),
-      //                 })
-      //               })
-      //               .collect(),
-      //           })),
-      //         }],
-      //         ..Default::default()
-      //       })),
-      //     })));
-      //   }
+        // if !server_reference_exports.is_empty() {
+        //   let ensure_ident = private_ident!("ensureServerEntryExports");
+        //   new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+        //     span: DUMMY_SP,
+        //     specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+        //       span: DUMMY_SP,
+        //       local: ensure_ident.clone(),
+        //       imported: None,
+        //       is_type_only: false,
+        //     })],
+        //     src: Box::new(Str {
+        //       span: DUMMY_SP,
+        //       value: atom!("private-next-rsc-action-validate").into(),
+        //       raw: None,
+        //     }),
+        //     type_only: false,
+        //     with: None,
+        //     phase: Default::default(),
+        //   })));
+        //   new.push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+        //     span: DUMMY_SP,
+        //     expr: Box::new(Expr::Call(CallExpr {
+        //       span: DUMMY_SP,
+        //       callee: Callee::Expr(Box::new(Expr::Ident(ensure_ident))),
+        //       args: vec![ExprOrSpread {
+        //         spread: None,
+        //         expr: Box::new(Expr::Array(ArrayLit {
+        //           span: DUMMY_SP,
+        //           elems: server_reference_exports
+        //             .iter()
+        //             .map(|ServerReferenceExport { ident, .. }| {
+        //               Some(ExprOrSpread {
+        //                 spread: None,
+        //                 expr: Box::new(Expr::Ident(ident.clone())),
+        //               })
+        //             })
+        //             .collect(),
+        //         })),
+        //       }],
+        //       ..Default::default()
+        //     })),
+        //   })));
+        // }
 
-      //   // Append annotations to the end of the file.
-      //   new.extend(self.annotations.drain(..).map(ModuleItem::Stmt));
-      // }
+        // Append annotations to the end of the file.
+        new.extend(self.annotations.drain(..).map(ModuleItem::Stmt));
+      }
     }
 
     if self.has_action && self.config.is_react_server_layer {
@@ -1820,35 +1821,18 @@ impl<C: Comments> VisitMut for ServerActions<C> {
     }
 
     if self.has_action {
-      // Flip the map and convert it to a BTreeMap for deterministic
+      // Flip the map and convert it to a FxIndexMap for deterministic
       // ordering in the server references comment.
       let export_names_ordered_by_reference_id = self
         .reference_ids_by_export_name
         .iter()
         .map(|(export_name, reference_id)| (reference_id, export_name))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<FxIndexMap<_, _>>();
 
       if self.config.is_react_server_layer {
-        // Prepend a special comment to the top of the file.
-        self.comments.add_leading(
-          self.start_pos,
-          Comment {
-            span: DUMMY_SP,
-            kind: CommentKind::Block,
-            text: generate_server_references_comment(&export_names_ordered_by_reference_id, None)
-              .into(),
-          },
-        );
+        set_server_metadata(&export_names_ordered_by_reference_id, self.actions_meta);
       } else {
-        self.comments.add_leading(
-          self.start_pos,
-          Comment {
-            span: DUMMY_SP,
-            kind: CommentKind::Block,
-            text: generate_server_references_comment(&export_names_ordered_by_reference_id, None)
-              .into(),
-          },
-        );
+        set_server_metadata(&export_names_ordered_by_reference_id, self.actions_meta);
         new.push(client_layer_import.unwrap());
         new.rotate_right(1);
         new.extend(

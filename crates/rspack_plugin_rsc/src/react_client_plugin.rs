@@ -54,7 +54,6 @@ fn record_module(
   required_chunks: &Vec<String>,
   plugin_state: &mut PluginState,
 ) {
-  println!("record_module: {:#?}", module_identifier);
   if !client_reference_modules.contains(module_identifier) {
     return;
   }

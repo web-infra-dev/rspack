@@ -47,3 +47,29 @@ pub struct ClientReferenceManifest {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub entry_js_files: Option<FxHashMap<String, Vec<String>>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerInfo {
+  #[serde(rename = "moduleId")]
+  pub module_id: String,
+  #[serde(rename = "async")]
+  pub r#async: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionInfo {
+  #[serde(rename = "exportedName")]
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub exported_name: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub filename: Option<String>,
+  pub workers: FxHashMap<String, WorkerInfo>,
+  // Record which layer the action is in (rsc or action-browser), in the specific entry.
+  pub layer: FxHashMap<String, String>,
+}
+
+pub type Actions = FxHashMap<String, ActionInfo>;
+
+pub struct ServerReferenceManifest {
+  actions: Actions,
+}

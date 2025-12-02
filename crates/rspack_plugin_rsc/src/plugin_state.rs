@@ -10,6 +10,7 @@ pub struct PluginState {
   pub injected_client_entries: FxHashMap<String, String>,
   pub client_modules: FxHashMap<String, ManifestExport>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
+  // pub server_actions:
   pub entry_css_files: FxHashMap<String, FxHashSet<String>>,
 }
 

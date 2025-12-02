@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -21,6 +21,7 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
+  fx_hash::FxIndexMap,
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -71,7 +72,8 @@ pub struct RSCMeta {
   #[cacheable(with=AsVec<AsPreset>)]
   pub client_refs: Vec<Wtf8Atom>,
   pub client_entry_type: Option<ClientEntryType>,
-  pub action_ids: Option<HashMap<Arc<str>, Arc<str>>>,
+  #[cacheable(with=AsOption<AsMap<AsPreset, AsPreset>>)]
+  pub action_ids: Option<FxIndexMap<Atom, Atom>>,
 }
 
 #[cacheable]

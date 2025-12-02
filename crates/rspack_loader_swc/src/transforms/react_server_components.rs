@@ -45,7 +45,6 @@ pub struct Options {
 struct DirectiveImportCollection {
   pub is_server_entry: bool,
   pub is_client_entry: bool,
-  pub is_action_file: bool,
   pub imports: Vec<ModuleImports>,
   pub export_names: Vec<Wtf8Atom>,
 }
@@ -362,7 +361,6 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
   DirectiveImportCollection {
     is_server_entry,
     is_client_entry,
-    is_action_file,
     imports,
     export_names,
   }
