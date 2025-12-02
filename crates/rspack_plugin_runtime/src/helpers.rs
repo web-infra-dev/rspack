@@ -229,7 +229,6 @@ pub fn generate_entry_startup(
   }
 
   let mut source = String::default();
-
   source.push_str(&format!(
     "var {} = function(moduleId) {{ return {}({} = moduleId) }}\n",
     compilation
