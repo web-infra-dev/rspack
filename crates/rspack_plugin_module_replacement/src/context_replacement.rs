@@ -93,7 +93,6 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
         let new_content_create_context_map = new_content_create_context_map.clone();
         Box::pin(async move {
           let deps = new_content_create_context_map
-            .clone()
             .iter()
             .map(|(key, value)| {
               let request = format!(
