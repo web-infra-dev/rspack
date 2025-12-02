@@ -186,8 +186,4 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger // Run after RemoteRuntimeModule and StartupChunkDependenciesRuntimeModule
   }
-
-  fn should_isolate(&self) -> bool {
-    true
-  }
 }
