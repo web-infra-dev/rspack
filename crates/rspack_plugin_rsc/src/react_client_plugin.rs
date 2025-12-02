@@ -10,9 +10,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 
 use crate::{
-  client_reference_manifest::{CrossOriginMode, ManifestExport},
   constants::REGEX_CSS,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  reference_manifest::{CrossOriginMode, ManifestExport},
   utils::GetServerCompilerId,
 };
 
@@ -118,11 +118,6 @@ fn record_chunk_group(
     return;
   }
   checked_chunk_groups.insert(chunk_group.ukey);
-
-  println!(
-    "css_files before: {:#?}",
-    chunk_group.get_files(&compilation.chunk_by_ukey),
-  );
 
   // Only apply following logic to client module requests from client entry,
   // or if the module is marked as client module. That's because other

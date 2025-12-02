@@ -3,14 +3,14 @@ use rspack_core::CompilerId;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::Mutex;
 
-use crate::client_reference_manifest::ManifestExport;
+use crate::reference_manifest::{ManifestExport, ServerReferenceManifest};
 
 #[derive(Debug, Default)]
 pub struct PluginState {
   pub injected_client_entries: FxHashMap<String, String>,
   pub client_modules: FxHashMap<String, ManifestExport>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
-  // pub server_actions:
+  pub server_actions: ServerReferenceManifest,
   pub entry_css_files: FxHashMap<String, FxHashSet<String>>,
 }
 

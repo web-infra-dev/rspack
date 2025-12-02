@@ -1,13 +1,15 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  BoxDependency, ClientEntryType, Compilation, CompilationProcessAssets, CompilerFinishMake,
-  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
-  ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType, Plugin,
-  PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
+  AssetInfo, BoxDependency, ChunkGraph, ClientEntryType, Compilation, CompilationAsset,
+  CompilationProcessAssets, CompilerFinishMake, Dependency, DependencyId, EntryDependency,
+  EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
+  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
+  RuntimeSpec,
+  rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -23,9 +25,10 @@ use swc_core::atoms::{Atom, Wtf8Atom};
 use crate::{
   ClientReferenceManifestPlugin,
   client_compiler_handle::ClientCompilerHandle,
-  client_reference_manifest::ManifestExport,
   constants::{LAYERS_NAMES, REGEX_CSS},
+  loaders::action_entry_loader::parse_action_entries,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  reference_manifest::ManifestExport,
   utils::{ChunkModules, EntryModules},
 };
 
@@ -54,6 +57,21 @@ struct InjectedClientEntry {
   runtime: Option<RuntimeSpec>,
   add_ssr_entry: (BoxDependency, EntryOptions),
   ssr_dependency_id: DependencyId,
+}
+
+struct ActionEntry {
+  actions: FxHashMap<String, Vec<ActionIdNamePair>>,
+  entry_name: String,
+  runtime: Option<RuntimeSpec>,
+  from_client: bool,
+  // created_action_ids: &'a mut FxHashSet<String>,
+}
+
+#[derive(Debug)]
+struct InjectedActionEntry {
+  // should_invalidate: bool,
+  pub runtime: Option<RuntimeSpec>,
+  pub add_entry: (BoxDependency, EntryOptions),
 }
 
 #[plugin]
@@ -88,6 +106,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let plugin_state = guard
     .entry(compilation.compiler_id())
     .or_insert(PluginState::default());
+
+  let start = logger.time("create action assets");
+  self.create_action_assets(compilation, plugin_state)?;
+  logger.time_end(start);
 
   let start = logger.time("traverse modules");
   self.traverse_modules(compilation, plugin_state);
@@ -270,8 +292,6 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
   has_client_directive || is_action_layer_entry || is_image
 }
 
-type InjectedActionEntry = (BoxDependency, EntryOptions);
-
 impl ReactServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
@@ -281,8 +301,13 @@ impl ReactServerPlugin {
 
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
 
-    let mut action_maps_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>> =
-      Default::default();
+    let mut action_maps_per_entry: FxHashMap<
+      String,
+      (
+        Option<RuntimeSpec>,
+        FxHashMap<String, Vec<ActionIdNamePair>>,
+      ),
+    > = Default::default();
 
     let mut created_action_ids: FxHashSet<String> = Default::default();
 
@@ -356,24 +381,25 @@ impl ReactServerPlugin {
       if !action_entry_imports.is_empty() {
         action_maps_per_entry
           .entry(entry_name.to_string())
-          .or_default()
+          .or_insert((runtime, Default::default()))
+          .1
           .extend(action_entry_imports);
       }
     }
 
-    for (name, action_entry_imports) in action_maps_per_entry {
-      // self
-      //   .inject_action_entry(
-      //     compilation,
-      //     ActionEntry {
-      //       actions: action_entry_imports,
-      //       entry_name: name.clone(),
-      //       bundle_path: name,
-      //       from_client: false,
-      //       created_action_ids: &mut created_action_ids,
-      //     },
-      //   )
-      //   .map(|injected| add_action_entry_list.push(injected));
+    for (name, (runtime, action_entry_imports)) in action_maps_per_entry {
+      self
+        .inject_action_entry(
+          compilation,
+          ActionEntry {
+            actions: action_entry_imports,
+            entry_name: name.clone(),
+            runtime,
+            from_client: false,
+          },
+          &mut created_action_ids,
+        )
+        .map(|injected| add_action_entry_list.push(injected));
     }
 
     // Invalidate in development to trigger recompilation
@@ -397,6 +423,11 @@ impl ReactServerPlugin {
     let runtimes = add_client_entry_and_ssr_modules_list
       .iter()
       .map(|injected| injected.runtime.clone())
+      .chain(
+        add_action_entry_list
+          .iter()
+          .map(|injected| injected.runtime.clone()),
+      )
       .collect::<Vec<_>>();
     let add_include_args: Vec<(BoxDependency, EntryOptions)> =
       add_client_entry_and_ssr_modules_list
@@ -404,7 +435,11 @@ impl ReactServerPlugin {
         .map(|add_client_entry_and_ssr_modules: InjectedClientEntry| {
           add_client_entry_and_ssr_modules.add_ssr_entry
         })
-        // .chain(add_action_entry_list.into_iter())
+        .chain(
+          add_action_entry_list
+            .into_iter()
+            .map(|add_action_entry| add_action_entry.add_entry),
+        )
         .collect();
     let included_dependencies: Vec<_> = add_include_args
       .iter()
@@ -770,94 +805,59 @@ impl ReactServerPlugin {
     }
   }
 
-  // fn inject_action_entry(
-  //   &self,
-  //   compilation: &Compilation,
-  //   action_entry: ActionEntry,
-  //   plugin_state: &mut PluginState,
-  // ) -> Option<InjectedActionEntry> {
-  //   let ActionEntry {
-  //     actions,
-  //     entry_name,
-  //     bundle_path,
-  //     from_client,
-  //     created_action_ids,
-  //   } = action_entry;
+  fn inject_action_entry(
+    &self,
+    compilation: &Compilation,
+    action_entry: ActionEntry,
+    created_action_ids: &mut FxHashSet<String>,
+  ) -> Option<InjectedActionEntry> {
+    let ActionEntry {
+      actions,
+      entry_name,
+      runtime,
+      from_client,
+    } = action_entry;
 
-  //   if actions.is_empty() {
-  //     return None;
-  //   }
+    if actions.is_empty() {
+      return None;
+    }
 
-  //   for (_, actions_from_module) in &actions {
-  //     for (id, _) in actions_from_module {
-  //       created_action_ids.insert(format!("{}@{}", entry_name, id));
-  //     }
-  //   }
+    for (_, actions_from_module) in &actions {
+      for (id, _) in actions_from_module {
+        created_action_ids.insert(format!("{}@{}", entry_name, id));
+      }
+    }
 
-  //   let action_loader = format!(
-  //     "next-flight-action-entry-loader?{}!",
-  //     serde_json::to_string(&json!({
-  //         "actions": serde_json::to_string(&actions).unwrap(),
-  //         "__client_imported__": from_client,
-  //     }))
-  //     .unwrap()
-  //   );
+    let mut serializer = form_urlencoded::Serializer::new(String::new());
+    serializer.append_pair("actions", &serde_json::to_string(&actions).unwrap());
+    serializer.append_pair("fromClient", &from_client.to_string());
+    let action_loader = format!("builtin:action-entry-loader?{}!", serializer.finish());
 
-  //   let current_compiler_server_actions = plugin_state.server_actions;
+    // Inject the entry to the server compiler
+    let layer = if from_client {
+      LAYERS_NAMES.action_browser.to_string()
+    } else {
+      LAYERS_NAMES.react_server_components.to_string()
+    };
+    let action_entry_dep = EntryDependency::new(
+      action_loader,
+      compilation.options.context.clone(),
+      Some(layer.to_string()),
+      false,
+    );
 
-  //   for (_, actions_from_module) in &actions {
-  //     for (id, _) in actions_from_module {
-  //       if !current_compiler_server_actions.contains_key(id) {
-  //         current_compiler_server_actions.insert(
-  //           id.clone(),
-  //           Action {
-  //             workers: HashMap::default(),
-  //             layer: HashMap::default(),
-  //           },
-  //         );
-  //       }
-  //       let action = current_compiler_server_actions.get_mut(id).unwrap();
-  //       action.workers.insert(
-  //         bundle_path.to_string(),
-  //         ModuleInfo {
-  //           module_id: "".to_string(), // TODO: What's the meaning of this?
-  //           is_async: false,
-  //         },
-  //       );
-
-  //       action.layer.insert(
-  //         bundle_path.to_string(),
-  //         if from_client {
-  //           WEBPACK_LAYERS.action_browser.to_string()
-  //         } else {
-  //           WEBPACK_LAYERS.react_server_components.to_string()
-  //         },
-  //       );
-  //     }
-  //   }
-
-  //   // Inject the entry to the server compiler
-  //   let layer = if from_client {
-  //     WEBPACK_LAYERS.action_browser.to_string()
-  //   } else {
-  //     WEBPACK_LAYERS.react_server_components.to_string()
-  //   };
-  //   let action_entry_dep = EntryDependency::new(
-  //     action_loader,
-  //     compilation.options.context.clone(),
-  //     Some(layer.to_string()),
-  //     false,
-  //   );
-
-  //   Some((
-  //     Box::new(action_entry_dep),
-  //     EntryOptions {
-  //       name: Some(entry_name.to_string()),
-  //       layer: Some(layer),
-  //       ..Default::default()
-  //     },
-  //   ))
-  // }
+    Some(InjectedActionEntry {
+      runtime,
+      add_entry: (
+        Box::new(action_entry_dep),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          layer: Some(layer),
+          ..Default::default()
+        },
+      ),
+    })
+  }
 
   fn record_module(
     &self,
@@ -924,5 +924,78 @@ impl ReactServerPlugin {
         plugin_state,
       );
     }
+  }
+
+  fn create_action_assets(
+    &self,
+    compilation: &mut Compilation,
+    plugin_state: &mut PluginState,
+  ) -> Result<()> {
+    let server_actions = &mut plugin_state.server_actions;
+
+    // traverse modules
+    for chunk_group in compilation.chunk_group_by_ukey.values() {
+      for chunk_ukey in &chunk_group.chunks {
+        let chunk_modules = compilation
+          .chunk_graph
+          .get_chunk_modules_identifier(chunk_ukey);
+        for module_identifier in chunk_modules {
+          // Go through all action entries and record the module ID for each entry.
+          let module = compilation.module_by_identifier(module_identifier);
+          let Some(module) = module else {
+            continue;
+          };
+          let Some(module) = module.as_normal_module() else {
+            continue;
+          };
+          let request = module.request();
+          let Some(module_id) =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+          else {
+            continue;
+          };
+
+          if request.starts_with("builtin:action-entry-loader") {
+            let loader_query = request
+              .splitn(2, '?')
+              .nth(1)
+              .unwrap_or_default()
+              .rsplitn(2, '!')
+              .nth(1)
+              .unwrap_or_default();
+            let loader_options = form_urlencoded::parse(loader_query.as_bytes());
+            let mut individual_actions = vec![];
+            for (k, v) in loader_options {
+              if k == "actions" {
+                individual_actions = parse_action_entries(v.as_ref())?.unwrap_or_default();
+              }
+            }
+            for action in individual_actions {
+              server_actions.insert(
+                action.id.to_string(),
+                ManifestExport {
+                  id: module_id.to_string(),
+                  name: action.id.to_string(),
+                  chunks: vec![],
+                  r#async: Some(ModuleGraph::is_async(&compilation, module_identifier)),
+                },
+              );
+            }
+          }
+        }
+      }
+    }
+
+    let json = serde_json::to_string_pretty(&server_actions).unwrap();
+    let assets = compilation.assets_mut();
+    assets.insert(
+      "server-reference-manifest.json".to_string(),
+      CompilationAsset::new(
+        Some(RawStringSource::from(json).boxed()),
+        AssetInfo::default(),
+      ),
+    );
+
+    Ok(())
   }
 }

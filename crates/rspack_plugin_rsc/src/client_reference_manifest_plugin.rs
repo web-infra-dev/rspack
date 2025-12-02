@@ -27,10 +27,8 @@ use swc_core::{atoms::Wtf8Atom, common::plugin};
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
-  client_reference_manifest::{
-    ClientReferenceManifest, CrossOriginMode, ManifestExport, ModuleLoading,
-  },
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  reference_manifest::{ClientReferenceManifest, CrossOriginMode, ManifestExport, ModuleLoading},
   utils::{EntryModules, GetServerCompilerId},
 };
 
@@ -62,10 +60,6 @@ impl ClientReferenceManifestPlugin {
       entry_js_files: Default::default(),
     };
 
-    println!(
-      "plugin_state.ssr_modules before drain: {:#?}",
-      plugin_state.ssr_modules
-    );
     for (resource, client_manifest_export) in plugin_state.client_modules.drain() {
       if let Some(ssr_manifest_export) = plugin_state.ssr_modules.remove(&resource) {
         let mut v = FxHashMap::default();

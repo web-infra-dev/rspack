@@ -6,17 +6,13 @@ use rspack_core::RunnerContext;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Loader, LoaderContext};
 use serde::{Deserialize, Serialize};
-use simd_json::{
-  BorrowedValue,
-  base::{ValueAsArray, ValueAsObject, ValueAsScalar},
-  derived::ValueTryAsArray,
-};
+use simd_json::base::{ValueAsArray, ValueAsObject, ValueAsScalar};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ActionEntry {
-  id: String,
-  path: Arc<str>,
-  exported_name: String,
+  pub id: String,
+  pub path: Arc<str>,
+  pub exported_name: String,
 }
 
 pub const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:action-entry-loader";
@@ -43,17 +39,33 @@ impl ActionEntryLoader {
   }
 }
 
-fn parse_action_entries(object: &BorrowedValue) -> Option<Vec<ActionEntry>> {
-  let tuple = object.as_array()?;
-  let path: Arc<str> = Arc::from(tuple.get(0)?.as_str()?.to_string());
+pub fn parse_action_entries(v: &str) -> Result<Option<Vec<ActionEntry>>> {
   let mut action_entries = vec![];
-  for action_from_module in tuple.get(1)?.try_as_array().ok()? {
-    if let Some(object) = action_from_module.as_object() {
-      if let Some(id) = object.get("id")
-        && let Some(id) = id.as_str()
-        && let Some(exported_name) = object.get("exportedName")
-        && let Some(exported_name) = exported_name.as_str()
-      {
+
+  let mut bytes = v.to_string().into_bytes();
+  let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
+  if let Some(object) = borrowed_value.as_object() {
+    for (path, value) in object.iter() {
+      let Some(item) = value.as_array() else {
+        return Ok(None);
+      };
+      let path: Arc<str> = Arc::from(path.to_string());
+      for tuple in item {
+        let Some(tuple) = tuple.as_array() else {
+          return Ok(None);
+        };
+        let Some(item1) = tuple.get(0) else {
+          continue;
+        };
+        let Some(id) = item1.as_str() else {
+          continue;
+        };
+        let Some(item2) = tuple.get(1) else {
+          continue;
+        };
+        let Some(exported_name) = item2.as_str() else {
+          continue;
+        };
         action_entries.push(ActionEntry {
           id: id.to_string(),
           path: path.clone(),
@@ -62,7 +74,7 @@ fn parse_action_entries(object: &BorrowedValue) -> Option<Vec<ActionEntry>> {
       }
     }
   }
-  Some(action_entries)
+  Ok(Some(action_entries))
 }
 
 #[cacheable_dyn]
@@ -87,15 +99,7 @@ impl Loader<RunnerContext> for ActionEntryLoader {
     let mut individual_actions: Vec<ActionEntry> = vec![];
     for (k, v) in loader_options {
       if k == "actions" {
-        let mut bytes = v.to_string().into_bytes();
-        let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
-        if let Some(array) = borrowed_value.as_array() {
-          for item in array.iter() {
-            if let Some(entries) = parse_action_entries(item) {
-              individual_actions.extend(entries);
-            }
-          }
-        }
+        individual_actions = parse_action_entries(v.as_ref())?.unwrap_or_default();
       }
     }
 
