@@ -45,11 +45,11 @@ module.exports = {
 							  },
 							  Object {
 							    path: c_js.js,
-							    size: 222,
+							    size: 221,
 							  },
 							  Object {
 							    path: d_js.js,
-							    size: 222,
+							    size: 221,
 							  },
 							]
 						`);

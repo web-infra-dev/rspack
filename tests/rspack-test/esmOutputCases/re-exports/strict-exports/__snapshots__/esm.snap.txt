@@ -19,7 +19,7 @@ __webpack_require__.add({
 /*!****************!*\
   !*** ./cjs.js ***!
   \****************/
-(__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.foo = () => 42
 
 

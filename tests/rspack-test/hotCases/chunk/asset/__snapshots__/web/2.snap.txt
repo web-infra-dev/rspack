@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 449
+- Update: main.LAST_HASH.hot-update.js, size: 447
 
 ## Manifest
 
@@ -32,13 +32,13 @@
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("main", {
-"./file.js"(module, __unused_webpack_exports, __webpack_require__) {
+"./file.js"(module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__("./raw.png")
 module.exports = 3;
 
 
 },
-"./raw.png"(module, __unused_webpack_exports, __webpack_require__) {
+"./raw.png"(module, __unused_rspack_exports, __webpack_require__) {
 "use strict";
 module.exports = __webpack_require__.p + "98396dbfd5c74c34.png";
 

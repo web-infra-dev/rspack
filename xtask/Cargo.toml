@@ -12,11 +12,11 @@ repository.workspace    = true
 version                 = "0.1.0"
 
 [dependencies]
-clap = { workspace= true, features=["color", "error-context", "help", "std", "suggestions", "usage", "derive"] }
-anyhow = { workspace = true }
-toml = { workspace = true }
-cargo_toml= { workspace= true}
-serde_json = { workspace = true}
+anyhow     = { workspace = true }
+cargo_toml = { workspace = true }
+clap       = { workspace = true, features = ["color", "error-context", "help", "std", "suggestions", "usage", "derive"] }
+serde_json = { workspace = true }
+toml       = { workspace = true }
 
 [lints]
 workspace = true

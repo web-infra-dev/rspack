@@ -47,7 +47,7 @@ it('should compile and import success', async () => {
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   K: () => (named)
 });
@@ -63,7 +63,7 @@ const namedUnused = 42
 /*!*****************!*\
   !*** ./lib2.js ***!
   \*****************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   i: () => (starExports)
 });

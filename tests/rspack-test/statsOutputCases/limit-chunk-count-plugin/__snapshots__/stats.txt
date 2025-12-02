@@ -7,7 +7,7 @@
 
 2 chunks:
   asset bundle2.js xx KiB [emitted] (name: main)
-  asset 907.bundle2.js 455 bytes [emitted] (name: c)
+  asset 907.bundle2.js 453 bytes [emitted] (name: c)
   chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
@@ -18,7 +18,7 @@
 
 3 chunks:
   asset bundle3.js xx KiB [emitted] (name: main)
-  asset 907.bundle3.js 373 bytes [emitted] (name: c)
+  asset 907.bundle3.js 371 bytes [emitted] (name: c)
   asset 719.bundle3.js 156 bytes [emitted]
   chunk (runtime: main) 719.bundle3.js 44 bytes <{907}> [rendered]
     ./d.js 22 bytes [built] [code generated]
@@ -32,7 +32,7 @@
 
 4 chunks:
   asset bundle4.js xx KiB [emitted] (name: main)
-  asset 907.bundle4.js 373 bytes [emitted] (name: c)
+  asset 907.bundle4.js 371 bytes [emitted] (name: c)
   asset 266.bundle4.js 115 bytes [emitted]
   asset 327.bundle4.js 115 bytes [emitted]
   chunk (runtime: main) 266.bundle4.js 22 bytes <{907}> [rendered]

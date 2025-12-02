@@ -413,7 +413,7 @@ pub fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> St
   }
 
   format!(
-    "var __webpack_exports_default__ = {{ {} }};\nexport default __webpack_exports_default__;\n",
+    "var __rspack_exports_default = {{ {} }};\nexport default __rspack_exports_default;\n",
     exports
       .iter()
       .map(|(local, exported)| {

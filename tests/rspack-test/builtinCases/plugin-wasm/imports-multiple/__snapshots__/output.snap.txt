@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js"(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 (async function () {
 	return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function (mod) {
 		if (mod.result !== 42) throw new Error("panic");
@@ -61,7 +61,7 @@ __rspack_async_done();
 
 },
 "./wasm.wasm"(module, exports, __webpack_require__) {
-var __webpack_instantiate__ = function ([rspack_import_0, rspack_import_1]) {
+var __rspack_instantiate__ = function ([rspack_import_0, rspack_import_1]) {
 return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
 "./module": {
 "getNumber": rspack_import_0.getNumber

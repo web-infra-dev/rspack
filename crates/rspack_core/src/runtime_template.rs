@@ -1245,7 +1245,7 @@ impl RuntimeTemplate {
 
   pub fn throw_missing_module_error_function(&self, request: &str) -> String {
     format!(
-      "function webpackMissingModule() {{ {} }}",
+      "function __rspack_missing_module() {{ {} }}",
       self.throw_missing_module_error_block(request)
     )
   }

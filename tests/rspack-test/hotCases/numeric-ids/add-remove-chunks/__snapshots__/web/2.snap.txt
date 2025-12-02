@@ -8,8 +8,8 @@
 - Bundle: 1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 50
-- Update: 10.LAST_HASH.hot-update.js, size: 268
-- Update: main.LAST_HASH.hot-update.js, size: 588
+- Update: 10.LAST_HASH.hot-update.js, size: 267
+- Update: main.LAST_HASH.hot-update.js, size: 587
 
 ## Manifest
 
@@ -35,7 +35,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("10", {
-"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -62,7 +62,7 @@ var value = 3;
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./module.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

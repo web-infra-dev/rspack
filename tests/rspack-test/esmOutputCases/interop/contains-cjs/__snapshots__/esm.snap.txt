@@ -5,7 +5,7 @@ __webpack_require__.add({
 /*!*****************!*\
   !*** ./foo.cjs ***!
   \*****************/
-(__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.foo = 42
 
 
@@ -14,7 +14,7 @@ exports.foo = 42
 /*!**********************!*\
   !*** ./from-esm.cjs ***!
   \**********************/
-(__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 var __webpack_unused_export__;
 __webpack_unused_export__ = true
 exports["default"] = 'esm'
