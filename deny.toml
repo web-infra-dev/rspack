@@ -247,6 +247,7 @@ skip = [
     { crate = "wasmparser", reason = "external dependency"},
     { crate = "windows_i686_gnullvm", reason = "external dependency"},
     { crate = "hermit-abi", reason = "external dependency"},
+    { crate = "supports-color", reason = "external dependency"},
 
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "linux-raw-sys", reason = "external dependency"},
