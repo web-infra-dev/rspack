@@ -109,10 +109,16 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
       // Expose once-guarded startup on __webpack_require__ so other runtime pieces can call it
       code.push_str("var __webpack_require__mf_has_run = false;\n");
+      code.push_str("var __webpack_require__mf_startup_result;\n");
       code.push_str("function __webpack_require__mfAsyncStartup() {\n");
-      code.push_str("\tif (__webpack_require__mf_has_run) return;\n");
+      code.push_str(
+        "\tif (__webpack_require__mf_has_run) return __webpack_require__mf_startup_result;\n",
+      );
       code.push_str("\t__webpack_require__mf_has_run = true;\n");
-      code.push_str(&module_executions);
+      code.push_str("\t__webpack_require__mf_startup_result = (function(){\n");
+      code.push_str(&module_executions.replace('\n', "\\n"));
+      code.push_str("\t})();\n");
+      code.push_str("\treturn __webpack_require__mf_startup_result;\n");
       code.push_str("}\n");
       code.push_str(&format!(
         "{async_startup} = __webpack_require__mfAsyncStartup;\n"
@@ -121,7 +127,10 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
       code.push_str("\tvar fn = typeof prev === 'function' ? prev : function(){};\n");
       code.push_str("\treturn function() {\n");
-      code.push_str("\t\t__webpack_require__mfAsyncStartup();\n");
+      code.push_str("\t\tvar res = __webpack_require__mfAsyncStartup();\n");
+      code.push_str("\t\tif (res && typeof res.then === \"function\") {\n");
+      code.push_str("\t\t\treturn res.then(() => fn.apply(this, arguments));\n");
+      code.push_str("\t\t}\n");
       code.push_str("\t\treturn fn.apply(this, arguments);\n");
       code.push_str("\t};\n");
       code.push_str("}\n");

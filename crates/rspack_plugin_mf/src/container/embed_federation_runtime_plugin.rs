@@ -212,38 +212,44 @@ async fn render_startup(
   if has_runtime && has_entry_modules {
     // For async startup, make sure the federation runtime is installed before
     // any chunk ensure handlers run. We can't change the templates here, so
-    // prepend a guard that triggers the embedded federation startup once and
-    // then runs the remotes/consumes ensure handlers for all known federation
-    // chunk ids so metadata gets registered before the entry executes.
+    // prepend a guard that triggers the embedded federation startup once,
+    // collects ensure-handler promises for all known federation chunk ids,
+    // and returns a Promise so the caller can await remote loading before the
+    // entry executes (mirrors webpack async startup behaviour).
     if self.experiments.async_startup {
       let mut with_startup = ConcatSource::default();
       with_startup.add(RawStringSource::from(format!(
-        "if (typeof {async_startup_global} === \"function\") {{ {async_startup_global}(); }}\n",
-      )));
-      // Populate handlers for every federation chunk id we know about.
-      // This mirrors webpack's async startup Promise.all handler iteration.
-      with_startup.add(RawStringSource::from(
-        r#"(function(){
-  var startupChunkIds = [];
-  if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {
-    startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping));
-  }
-  if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {
-    startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping));
-  }
-  if (!startupChunkIds.length) return;
-  var f = __webpack_require__.f || {};
-  var handlers = [f.consumes, f.remotes];
-  for (var i = 0; i < handlers.length; i++) {
-    var h = handlers[i];
-    if (typeof h !== "function") continue;
-    for (var j = 0; j < startupChunkIds.length; j++) {
-      h(startupChunkIds[j], []);
-    }
-  }
-})();
+        r#"(function() {{
+  var originalMfAsyncStartup = typeof {async_startup_global} === "function" ? {async_startup_global} : null;
+  {async_startup_global} = function() {{
+    var base = originalMfAsyncStartup && originalMfAsyncStartup();
+    var promises = base && typeof base.then === "function" ? [base] : [];
+
+    var startupChunkIds = [];
+    if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {{
+      startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping));
+    }}
+    if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {{
+      startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping));
+    }}
+    if (!startupChunkIds.length) return base;
+
+    var f = __webpack_require__.f || {{}};
+    var handlers = [f.consumes, f.remotes];
+    for (var i = 0; i < handlers.length; i++) {{
+      var h = handlers[i];
+      if (typeof h !== "function") continue;
+      for (var j = 0; j < startupChunkIds.length; j++) {{
+        h(startupChunkIds[j], promises);
+      }}
+    }}
+
+    if (promises.length) return Promise.all(promises);
+    return base;
+  }};
+}})();
 "#,
-      ));
+      )));
       with_startup.add(render_source.source.clone());
       render_source.source = with_startup.boxed();
     }
