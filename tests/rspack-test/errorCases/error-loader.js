@@ -148,21 +148,21 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleBuildError",
-			      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/no-return-loader.js) didn't return a Buffer or String      ",
-			      "moduleId": "./no-return-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/no-return-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./no-return-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleBuildError",
+				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/no-return-loader.js) didn't return a Buffer or String      ",
+				      "moduleId": "./no-return-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/no-return-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./no-return-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{
@@ -196,21 +196,21 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleBuildError",
-			      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/return-undefined-loader.js) didn't return a Buffer or String      ",
-			      "moduleId": "./return-undefined-loader.js!./entry-point.js",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/return-undefined-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
-			      "moduleName": "./return-undefined-loader.js!./entry-point.js",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleBuildError",
+				      "message": "  × Module build failed:  ╰─▶   × Final loader(<TEST_ROOT>/fixtures/errors/return-undefined-loader.js) didn't return a Buffer or String      ",
+				      "moduleId": "./return-undefined-loader.js!./entry-point.js",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/return-undefined-loader.js!<TEST_ROOT>/fixtures/errors/entry-point.js",
+				      "moduleName": "./return-undefined-loader.js!./entry-point.js",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{

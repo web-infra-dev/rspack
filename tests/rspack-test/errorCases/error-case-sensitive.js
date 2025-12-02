@@ -18,18 +18,18 @@ module.exports = isCaseInsensitiveFilesystem
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [],
-			  "warnings": Array [
-			    Object {
-			      "code": "Sensitive Modules Warn",
-			      "message": "  ⚠ There are multiple modules with names that only differ in casing.  │   - <TEST_ROOT>/fixtures/errors/FILE.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │   - <TEST_ROOT>/fixtures/errors/file.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │ ",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			}
-		`);
+				Object {
+				  "errors": Array [],
+				  "warnings": Array [
+				    Object {
+				      "code": "Sensitive Modules Warn",
+				      "message": "  ⚠ There are multiple modules with names that only differ in casing.  │   - <TEST_ROOT>/fixtures/errors/FILE.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │   - <TEST_ROOT>/fixtures/errors/file.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │ ",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				}
+			`);
 		}
 	}
 	: {

@@ -2,6 +2,8 @@ import path from 'node:path';
 import { defineConfig } from '@rstest/core';
 const root = path.resolve(__dirname, "../../");
 
+process.env.NO_COLOR = '1';
+
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-env",
 	"@rspack/test-tools/setup-expect",
