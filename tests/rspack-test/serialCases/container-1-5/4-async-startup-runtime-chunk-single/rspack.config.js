@@ -50,9 +50,11 @@ module.exports = [
 	// Host bundles under test (CJS + ESM)
 	{
 		...common,
+		target: "async-node",
 		output: {
 			filename: "[name].js",
-			uniqueName: "4-async-startup-runtime-chunk-single"
+			uniqueName: "4-async-startup-runtime-chunk-single",
+			chunkLoading: "async-node"
 		},
 		plugins: [
 			new ModuleFederationPlugin({

@@ -9,7 +9,8 @@ module.exports = {
 	target: "async-node",
 	output: {
 		filename: "[name].js",
-		uniqueName: "async-startup-multi-entry-node"
+		uniqueName: "async-startup-multi-entry-node",
+		chunkLoading: "async-node"
 	},
 	plugins: [
 		new ModuleFederationPlugin({

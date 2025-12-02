@@ -21,9 +21,11 @@ const commonMF = {
 module.exports = [
 	{
 		...common,
+		target: "async-node",
 		output: {
 			filename: "[name].js",
-			uniqueName: "2-async-startup-sync-imports"
+			uniqueName: "2-async-startup-sync-imports",
+			chunkLoading: "async-node"
 		},
 		plugins: [
 			new ModuleFederationPlugin({

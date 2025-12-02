@@ -13,16 +13,12 @@ use crate::runtime_module::{
 #[plugin]
 #[derive(Debug)]
 pub struct CommonJsChunkLoadingPlugin {
-  chunk_loading_type: ChunkLoadingType,
+  async_chunk_loading: bool,
 }
 
 impl CommonJsChunkLoadingPlugin {
-  pub fn new(chunk_loading_type: ChunkLoadingType) -> Self {
-    Self::new_inner(chunk_loading_type)
-  }
-
-  fn chunk_loading(&self) -> ChunkLoading {
-    ChunkLoading::Enable(self.chunk_loading_type.clone())
+  pub fn new(async_chunk_loading: bool) -> Self {
+    Self::new_inner(async_chunk_loading)
   }
 }
 
@@ -33,7 +29,11 @@ async fn additional_tree_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let chunk_loading_value = self.chunk_loading();
+  let chunk_loading_value = if self.async_chunk_loading {
+    ChunkLoading::Enable(ChunkLoadingType::AsyncNode)
+  } else {
+    ChunkLoading::Enable(ChunkLoadingType::Require)
+  };
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
   if is_enabled_for_chunk
     && compilation
@@ -54,7 +54,11 @@ async fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  let chunk_loading_value = self.chunk_loading();
+  let chunk_loading_value = if self.async_chunk_loading {
+    ChunkLoading::Enable(ChunkLoadingType::AsyncNode)
+  } else {
+    ChunkLoading::Enable(ChunkLoadingType::Require)
+  };
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
 
   let mut has_chunk_loading = false;
@@ -87,13 +91,9 @@ async fn runtime_requirements_in_tree(
   }
 
   if has_chunk_loading && is_enabled_for_chunk {
-    let mut needs_async_loading = matches!(self.chunk_loading_type, ChunkLoadingType::AsyncNode);
-    if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
-      needs_async_loading = true;
-    }
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    if needs_async_loading {
+    if self.async_chunk_loading {
       compilation.add_runtime_module(
         chunk_ukey,
         Box::<ReadFileChunkLoadingRuntimeModule>::default(),

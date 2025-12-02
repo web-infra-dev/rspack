@@ -47,7 +47,7 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
         StartupChunkDependenciesPlugin::new(ChunkLoading::Enable(ChunkLoadingType::Require), false)
           .boxed(),
       );
-      plugins.push(CommonJsChunkLoadingPlugin::new(ChunkLoadingType::Require).boxed())
+      plugins.push(CommonJsChunkLoadingPlugin::new(false).boxed())
     }
     ChunkLoadingType::AsyncNode => {
       plugins.push(
@@ -57,7 +57,7 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
         )
         .boxed(),
       );
-      plugins.push(CommonJsChunkLoadingPlugin::new(ChunkLoadingType::AsyncNode).boxed())
+      plugins.push(CommonJsChunkLoadingPlugin::new(true).boxed())
     }
     ChunkLoadingType::ImportScripts => {
       plugins.push(
