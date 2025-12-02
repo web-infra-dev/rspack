@@ -4584,7 +4584,6 @@ version = "0.6.5"
 dependencies = [
  "async-trait",
  "camino",
- "cow-utils",
  "hashlink",
  "itertools 0.14.0",
  "regex",
