@@ -236,14 +236,14 @@ async fn render_chunk(
         let mut index_buffer = itoa::Buffer::new();
         let index_str = index_buffer.format(index);
         startup_source.push(format!(
-          "import * as __webpack_chunk_${}__ from '{}';",
+          "import * as __rspack_chunk_{} from '{}';",
           index_str,
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
         let mut index_buffer2 = itoa::Buffer::new();
         let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
-          "{}(__webpack_chunk_${}__);",
+          "{}(__rspack_chunk_{});",
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
@@ -331,7 +331,7 @@ async fn render_startup(
 
       let dependant_chunk = compilation.chunk_by_ukey.expect_get(&ck);
 
-      let named_import = format!("__webpack_imports__{}", index);
+      let named_import = format!("__rspack_imports_{}", index);
 
       let dependant_chunk_name = get_chunk_output_name(dependant_chunk, compilation).await?;
 

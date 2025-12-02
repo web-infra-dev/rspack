@@ -8,7 +8,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _style_module_css__rspack_import_0 = __webpack_require__("./style.module.css");
 
@@ -17,7 +17,7 @@ console.log(_style_module_css__rspack_import_0);
 
 
 },
-"./style.module.css"(module, __unused_webpack_exports, __webpack_require__) {
+"./style.module.css"(module, __unused_rspack_exports, __webpack_require__) {
 var exports = {
   "foo": "./_style.module_./_foo--/__d8ad836b5119c8e8<d8a",
 };

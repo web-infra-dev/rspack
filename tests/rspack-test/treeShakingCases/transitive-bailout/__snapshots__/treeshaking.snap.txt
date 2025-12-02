@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./a.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a),
@@ -11,7 +11,7 @@ const b = 3;
 
 
 },
-"./answer.js"(__unused_webpack_module, exports, __webpack_require__) {
+"./answer.js"(__unused_rspack_module, exports, __webpack_require__) {
 const res = __webpack_require__("./lib.js");
 exports.test = function () {
 	res;
@@ -19,7 +19,7 @@ exports.test = function () {
 
 
 },
-"./index.js"(__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
 "use strict";
 /* import */ var _answer__rspack_import_0 = __webpack_require__("./answer.js");
 
@@ -27,7 +27,7 @@ _answer__rspack_import_0.test;
 
 
 },
-"./lib.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {

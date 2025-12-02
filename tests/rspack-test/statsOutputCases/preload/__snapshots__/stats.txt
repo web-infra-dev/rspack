@@ -1,5 +1,5 @@
 asset main.js xx KiB [emitted] (name: main)
-asset preloaded.js 538 bytes [emitted] (name: preloaded)
+asset preloaded.js 536 bytes [emitted] (name: preloaded)
 asset inner2.js 100 bytes [emitted] (name: inner2)
 asset inner.js 87 bytes [emitted] (name: inner)
 asset normal.js 87 bytes [emitted] (name: normal)

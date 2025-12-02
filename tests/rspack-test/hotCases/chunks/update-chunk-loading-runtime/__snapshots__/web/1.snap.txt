@@ -12,7 +12,7 @@
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 572
 - Update: runtime~main.LAST_HASH.hot-update.js, size: 18987
-- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 376
+- Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 375
 
 ## Manifest
 
@@ -735,7 +735,7 @@ chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind
 ```js
 "use strict";
 self["webpackHotUpdate"]("vendors-node_modules_vendor_js", {
-"./node_modules/vendor.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./node_modules/vendor.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

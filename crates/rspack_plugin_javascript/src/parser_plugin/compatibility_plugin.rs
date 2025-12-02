@@ -14,7 +14,7 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
+pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
 
 #[derive(Debug, Clone)]
 pub struct NestedRequireData {
@@ -121,7 +121,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{}_{}__", start_str, end_str)
         },
         parser.in_short_hand,
         start,
@@ -136,7 +136,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
-        "__nested_webpack_exports__".to_string(),
+        "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
@@ -161,7 +161,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
-        "__nested_webpack_exports__".to_string(),
+        "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
@@ -182,7 +182,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{}_{}__", start_str, end_str)
         },
         parser.in_short_hand,
         start,
@@ -210,7 +210,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
-          format!("__nested_webpack_require_{}__", lo_str)
+          format!("__nested_rspack_require_{}__", lo_str)
         },
         parser.in_short_hand,
         ident.span().real_lo(),

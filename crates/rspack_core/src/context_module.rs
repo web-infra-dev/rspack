@@ -542,7 +542,7 @@ impl ContextModule {
     );
     let async_context = if has_no_chunk {
       formatdoc! {r#"
-        function webpackAsyncContext(req) {{
+        function __rspack_async_context(req) {{
           return Promise.resolve().then(function() {{
             if(!{}(map, req)) {{
               var e = new Error("Cannot find module '" + req + "'");
@@ -564,7 +564,7 @@ impl ContextModule {
       }
     } else {
       formatdoc! {r#"
-        function webpackAsyncContext(req) {{
+        function __rspack_async_context(req) {{
           if(!{}(map, req)) {{
             return Promise.resolve().then(function() {{
               var e = new Error("Cannot find module '" + req + "'");
@@ -585,9 +585,9 @@ impl ContextModule {
     formatdoc! {r#"
       var map = {map};
       {async_context}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
@@ -632,10 +632,10 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then({then_function});
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then({then_function});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         return {promise}.then(function() {{
           if(!{has_own_property}(map, req)) {{
             var e = new Error("Cannot find module '" + req + "'");
@@ -645,10 +645,10 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
@@ -672,8 +672,8 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then(function(id) {{
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then(function(id) {{
           if(!{module_factories}[id]) {{
             var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
             e.code = 'MODULE_NOT_FOUND';
@@ -682,7 +682,7 @@ impl ContextModule {
           {return_module_object}
         }});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -694,10 +694,10 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
@@ -722,8 +722,8 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackContext(req) {{
-        var id = webpackContextResolve(req);
+      function __rspack_context(req) {{
+        var id = __rspack_context_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -731,7 +731,7 @@ impl ContextModule {
         }}
         {return_module_object}
       }}
-      function webpackContextResolve(req) {{
+      function __rspack_context_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -739,10 +739,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      webpackContext.keys = {keys};
-      webpackContext.resolve = webpackContextResolve;
-      webpackContext.id = {id};
-      module.exports = webpackContext;
+      __rspack_context.keys = {keys};
+      __rspack_context.resolve = __rspack_context_resolve;
+      __rspack_context.id = {id};
+      module.exports = __rspack_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
@@ -777,10 +777,10 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then({then_function});
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then({then_function});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -792,10 +792,10 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
@@ -819,11 +819,11 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackContext(req) {{
-        var id = webpackContextResolve(req);
+      function __rspack_context(req) {{
+        var id = __rspack_context_resolve(req);
         {return_module_object}
       }}
-      function webpackContextResolve(req) {{
+      function __rspack_context_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -831,12 +831,12 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      webpackContext.keys = function webpackContextKeys() {{
+      __rspack_context.keys = function webpackContextKeys() {{
         return Object.keys(map);
       }};
-      webpackContext.resolve = webpackContextResolve;
-      module.exports = webpackContext;
-      webpackContext.id = {id};
+      __rspack_context.resolve = __rspack_context_resolve;
+      module.exports = __rspack_context;
+      __rspack_context.id = {id};
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),

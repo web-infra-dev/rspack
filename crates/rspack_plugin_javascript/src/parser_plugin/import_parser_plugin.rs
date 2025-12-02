@@ -288,7 +288,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         .map(|name| vec![Atom::from(name.as_str())])
         .collect::<Vec<_>>()
     });
-    let has_webpack_exports_comment = exports.is_some();
+    let has_exports_magic_comment = exports.is_some();
 
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
@@ -309,7 +309,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let is_statical = referenced_in_destructuring.is_some()
       || referenced_in_member.is_some()
       || referenced_fulfilled_ns_obj.is_some();
-    if is_statical && has_webpack_exports_comment {
+    if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),

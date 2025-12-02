@@ -55,7 +55,7 @@ console.log("123");
 
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js"(__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() | normal */ "normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
 __webpack_require__.e(/* import() | with.dot */ "with.dot").then(__webpack_require__.t.bind(__webpack_require__, "./with_dot.js", 23));
 __webpack_require__.e(/* import() | ./sub/fold */ "./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, "./sub_fold.js", 23));
