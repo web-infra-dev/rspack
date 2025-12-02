@@ -4,7 +4,6 @@ const { ModuleFederationPlugin } = container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	entry: './index.js',
 	optimization:{
 		minimize: false,
 		chunkIds:'named',
@@ -12,9 +11,6 @@ module.exports = {
 	},
 	output: {
 		chunkFilename: "[id].js"
-	},
-	entry: {
-		main: "./index.js"
 	},
 	plugins: [
 		new ModuleFederationPlugin({

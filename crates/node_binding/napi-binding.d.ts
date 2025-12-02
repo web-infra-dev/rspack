@@ -546,7 +546,7 @@ export declare enum BuiltinPluginName {
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   CollectSharedEntryPlugin = 'CollectSharedEntryPlugin',
-  ShareContainerPlugin = 'ShareContainerPlugin',
+  SharedContainerPlugin = 'SharedContainerPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
@@ -2834,7 +2834,7 @@ export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
 }
 
-export interface RawShareContainerPluginOptions {
+export interface RawSharedContainerPluginOptions {
   name: string
   request: string
   version: string

@@ -20,7 +20,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
   consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
-  share_container_entry_module::ShareContainerEntryModule,
+  shared_container_entry_module::SharedContainerEntryModule,
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
 use crate::manifest::StatsRoot;
@@ -194,7 +194,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
           rspack_core::ModuleType::ShareContainerShared => {
             let share_container_entry_module = module
               .as_any()
-              .downcast_ref::<ShareContainerEntryModule>()?;
+              .downcast_ref::<SharedContainerEntryModule>()?;
             // Use the identifier to extract the share key
             // The identifier is in format "share container entry {name}@{version}"
             let identifier = share_container_entry_module.identifier().to_string();

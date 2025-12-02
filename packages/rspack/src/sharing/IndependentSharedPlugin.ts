@@ -13,9 +13,9 @@ import {
 } from "./CollectSharedEntryPlugin";
 import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
 import {
-	ShareContainerPlugin,
-	type ShareContainerPluginOptions
-} from "./ShareContainerPlugin";
+	SharedContainerPlugin,
+	type SharedContainerPluginOptions
+} from "./SharedContainerPlugin";
 import { SharedUsedExportsOptimizerPlugin } from "./SharedUsedExportsOptimizerPlugin";
 import type { Shared, SharedConfig } from "./SharePlugin";
 import { encodeName, isRequiredVersion } from "./utils";
@@ -295,7 +295,7 @@ export class IndependentSharedPlugin {
 		parentCompiler: Compiler,
 		parentOutputDir: string,
 		extraOptions?: {
-			currentShare: Omit<ShareContainerPluginOptions, "mfName">;
+			currentShare: Omit<SharedContainerPluginOptions, "mfName">;
 			shareRequestsMap: ShareRequestsMap;
 		}
 	) {
@@ -316,14 +316,14 @@ export class IndependentSharedPlugin {
 
 		const finalPlugins = [];
 		const rspack = parentCompiler.rspack;
-		let extraPlugin: CollectSharedEntryPlugin | ShareContainerPlugin;
+		let extraPlugin: CollectSharedEntryPlugin | SharedContainerPlugin;
 		if (!extraOptions) {
 			extraPlugin = new CollectSharedEntryPlugin({
 				sharedOptions,
 				shareScope: "default"
 			});
 		} else {
-			extraPlugin = new ShareContainerPlugin({
+			extraPlugin = new SharedContainerPlugin({
 				mfName,
 				library,
 				...extraOptions.currentShare

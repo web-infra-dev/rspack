@@ -7,7 +7,7 @@ use rspack_plugin_mf::{
   ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimePluginOptions, OptimizeSharedConfig, ProvideOptions, ProvideVersion,
-  RemoteAliasTarget, RemoteOptions, ShareContainerEntryOptions, ShareContainerPluginOptions,
+  RemoteAliasTarget, RemoteOptions, ShareContainerEntryOptions, SharedContainerPluginOptions,
   SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
 };
 
@@ -160,7 +160,7 @@ impl From<RawCollectShareEntryPluginOptions> for CollectSharedEntryPluginOptions
 
 #[derive(Debug)]
 #[napi(object)]
-pub struct RawShareContainerPluginOptions {
+pub struct RawSharedContainerPluginOptions {
   pub name: String,
   pub request: String,
   pub version: String,
@@ -168,9 +168,9 @@ pub struct RawShareContainerPluginOptions {
   pub library: JsLibraryOptions,
 }
 
-impl From<RawShareContainerPluginOptions> for ShareContainerPluginOptions {
-  fn from(value: RawShareContainerPluginOptions) -> Self {
-    ShareContainerPluginOptions {
+impl From<RawSharedContainerPluginOptions> for SharedContainerPluginOptions {
+  fn from(value: RawSharedContainerPluginOptions) -> Self {
+    SharedContainerPluginOptions {
       name: value.name,
       request: value.request,
       version: value.version,

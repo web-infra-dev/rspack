@@ -38,19 +38,18 @@ export class TreeShakeSharedPlugin {
 			return;
 		}
 
-		if (!reshake) {
-			new SharedUsedExportsOptimizerPlugin(
-				sharedOptions,
-				mfConfig.injectUsedExports,
-				mfConfig.manifest
-			).apply(compiler);
-		}
-
 		if (
 			sharedOptions.some(
 				([_, config]) => config.treeshake && config.import !== false
 			)
 		) {
+			if (!reshake) {
+				new SharedUsedExportsOptimizerPlugin(
+					sharedOptions,
+					mfConfig.injectUsedExports,
+					mfConfig.manifest
+				).apply(compiler);
+			}
 			this._independentSharePlugin = new IndependentSharedPlugin({
 				name: name,
 				shared: shared,

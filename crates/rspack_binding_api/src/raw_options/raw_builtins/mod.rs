@@ -81,7 +81,7 @@ use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
   CollectSharedEntryPlugin, ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin,
   ModuleFederationManifestPlugin, ModuleFederationRuntimePlugin, ProvideSharedPlugin,
-  ShareContainerPlugin, ShareRuntimePlugin, SharedUsedExportsOptimizerPlugin,
+  ShareRuntimePlugin, SharedContainerPlugin, SharedUsedExportsOptimizerPlugin,
 };
 use rspack_plugin_module_info_header::ModuleInfoHeaderPlugin;
 use rspack_plugin_module_replacement::{ContextReplacementPlugin, NormalModuleReplacementPlugin};
@@ -122,7 +122,7 @@ use self::{
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::{
     RawConsumeSharedPluginOptions, RawContainerPluginOptions, RawContainerReferencePluginOptions,
-    RawShareContainerPluginOptions,
+    RawSharedContainerPluginOptions,
   },
   raw_normal_replacement::RawNormalModuleReplacementPluginOptions,
   raw_runtime_chunk::RawRuntimeChunkOptions,
@@ -178,7 +178,7 @@ pub enum BuiltinPluginName {
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
   CollectSharedEntryPlugin,
-  ShareContainerPlugin,
+  SharedContainerPlugin,
   ModuleFederationRuntimePlugin,
   ModuleFederationManifestPlugin,
   NamedModuleIdsPlugin,
@@ -512,11 +512,11 @@ impl<'a> BuiltinPlugin<'a> {
           .into();
         plugins.push(CollectSharedEntryPlugin::new(options).boxed())
       }
-      BuiltinPluginName::ShareContainerPlugin => {
-        let options = downcast_into::<RawShareContainerPluginOptions>(self.options)
+      BuiltinPluginName::SharedContainerPlugin => {
+        let options = downcast_into::<RawSharedContainerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into();
-        plugins.push(ShareContainerPlugin::new(options).boxed())
+        plugins.push(SharedContainerPlugin::new(options).boxed())
       }
       BuiltinPluginName::ConsumeSharedPlugin => plugins.push(
         ConsumeSharedPlugin::new(
