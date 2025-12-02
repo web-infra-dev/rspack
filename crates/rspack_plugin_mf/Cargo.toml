@@ -36,5 +36,5 @@ tracing     = { workspace = true }
 ignored = ["tracing", "rspack_hash"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

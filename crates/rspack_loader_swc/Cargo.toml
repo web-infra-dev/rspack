@@ -46,5 +46,5 @@ tracing                        = { workspace = true }
 stacker = { workspace = true }
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"
