@@ -2,7 +2,11 @@ name: CI Diff
 
 on:
   pull_request:
-    types: [opened, synchronize, closed]
+    types: [opened, synchronize, reopened]
+
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -77,7 +81,7 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@44c54ca962bc7517abaa30a9509c7a9ea7af5dc1
+        uses: web-infra-dev/rsdoctor-action@a92db9e3ee802d42a74c130a9a144f053d2f13cc
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: "../build-tools-performance/**/dist/rsdoctor-data.json"
