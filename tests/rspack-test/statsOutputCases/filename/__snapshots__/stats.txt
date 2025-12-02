@@ -1,5 +1,5 @@
 asset 889.xxxx.js xx KiB [emitted] (name: main)
-asset 769.xxxx.js 307 bytes [emitted]
+asset 769.xxxx.js 306 bytes [emitted]
 runtime modules xx KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]

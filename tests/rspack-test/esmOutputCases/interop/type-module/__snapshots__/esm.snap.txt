@@ -5,7 +5,7 @@ __webpack_require__.add({
 /*!*************************!*\
   !*** ./cjs-unknown.cjs ***!
   \*************************/
-(__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 const exportSymbol = () => 'bar'
 
 exports[exportSymbol()] = () => 'bar'
@@ -15,7 +15,7 @@ exports[exportSymbol()] = () => 'bar'
 /*!*****************!*\
   !*** ./cjs.cjs ***!
   \*****************/
-(__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.foo = () => 'foo'
 
 

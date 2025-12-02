@@ -289,7 +289,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
-            "var __webpack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
+            "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
 "{}(module, async function (__rspack_load_async_deps, __rspack_async_done) {{

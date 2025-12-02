@@ -5,7 +5,7 @@ __webpack_require__.add({
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, __unused_webpack___webpack_exports__, __webpack_require__) {
+(module, __unused_rspack___webpack_exports__, __webpack_require__) {
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

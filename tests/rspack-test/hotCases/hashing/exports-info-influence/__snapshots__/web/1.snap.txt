@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1254
+- Update: main.LAST_HASH.hot-update.js, size: 1253
 
 ## Manifest
 
@@ -33,7 +33,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./referencer.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./referencer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

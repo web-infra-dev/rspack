@@ -31,7 +31,7 @@ impl ProvideParserPlugin {
     if let Some(requests) = self.provide.get(name) {
       let name_identifier = if name.contains(SOURCE_DOT) {
         format!(
-          "__webpack_provide_{}",
+          "__rspack_provide_{}",
           name.cow_replace(SOURCE_DOT, MODULE_DOT)
         )
       } else {

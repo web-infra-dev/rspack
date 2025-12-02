@@ -5,7 +5,7 @@ var __webpack_modules__ = ({
 module.exports = __rspack_createRequire_require("path");
 
 },
-227(module, __unused_webpack_exports, __webpack_require__) {
+227(module, __unused_rspack_exports, __webpack_require__) {
 const path = __webpack_require__(928)
 
 module.exports = path.sep
