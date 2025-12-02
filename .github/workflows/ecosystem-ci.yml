@@ -328,7 +328,7 @@ jobs:
         env:
           SUMMARY_MARKDOWN: ${{ needs.comment-compare-results.outputs.summary }}
           RESULTS_JSON: ${{ needs.comment-compare-results.outputs.results }}
-          WORKFLOW_FILE: ecosystem-ci-rstack.yml
+          WORKFLOW_FILE: ecosystem-ci.yml
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
           HISTORY_REPOSITORY: rspack-contrib/rstack-ecosystem-ci
