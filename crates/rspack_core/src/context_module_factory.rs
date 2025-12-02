@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -122,34 +123,36 @@ impl ContextModuleFactory {
     plugin_driver: SharedPluginDriver,
   ) -> Self {
     let resolve_dependencies: ResolveContextModuleDependencies = Arc::new(move |options| {
-      tracing::trace!("resolving context module path {}", options.resource);
+      let resolver_factory = resolver_factory.clone();
+      Box::pin(async move {
+        tracing::trace!("resolving context module path {}", options.resource);
+        let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
+          resolve_options: options
+            .resolve_options
+            .clone()
+            .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+          resolve_to_context: false,
+          dependency_category: options.context_options.category,
+        });
+        let mut context_element_dependencies = vec![];
+        visit_dirs(
+          options.resource.as_str(),
+          &options.resource,
+          &mut context_element_dependencies,
+          &options,
+          &resolver.options(),
+          resolver.inner_fs(),
+        )
+        .await?;
+        context_element_dependencies.sort_by_cached_key(|d| d.user_request.clone());
 
-      let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-        resolve_options: options
-          .resolve_options
-          .clone()
-          .map(|r| Box::new(Arc::unwrap_or_clone(r))),
-        resolve_to_context: false,
-        dependency_category: options.context_options.category,
-      });
+        tracing::trace!(
+          "resolving dependencies for {:?}",
+          context_element_dependencies
+        );
 
-      let mut context_element_dependencies = vec![];
-      visit_dirs(
-        options.resource.as_str(),
-        &options.resource,
-        &mut context_element_dependencies,
-        &options,
-        &resolver.options(),
-        resolver.inner_fs(),
-      )?;
-      context_element_dependencies.sort_by_cached_key(|d| d.user_request.clone());
-
-      tracing::trace!(
-        "resolving dependencies for {:?}",
-        context_element_dependencies
-      );
-
-      Ok(context_element_dependencies)
+        Ok(context_element_dependencies)
+      })
     });
 
     Self {
@@ -400,7 +403,8 @@ impl ContextModuleFactory {
   }
 }
 
-fn visit_dirs(
+#[async_recursion]
+async fn visit_dirs(
   ctx: &str,
   dir: &Utf8Path,
   dependencies: &mut Vec<ContextElementDependency>,
@@ -409,7 +413,8 @@ fn visit_dirs(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if !fs
-    .metadata_sync(dir)
+    .metadata(dir)
+    .await
     .map(|m| m.is_directory)
     .unwrap_or(false)
   {
@@ -417,7 +422,7 @@ fn visit_dirs(
   }
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  for filename in fs.read_dir_sync(dir)? {
+  for filename in fs.read_dir(dir).await? {
     let path = dir.join(&filename);
     let path_str = path.as_str();
 
@@ -429,7 +434,8 @@ fn visit_dirs(
     }
 
     if fs
-      .metadata_sync(&path)
+      .metadata(&path)
+      .await
       .map(|m| m.is_directory)
       .unwrap_or(false)
     {
@@ -441,7 +447,8 @@ fn visit_dirs(
           options,
           resolve_options,
           fs.clone(),
-        )?;
+        )
+        .await?;
       }
     } else if filename.starts_with('.') {
       // ignore hidden files

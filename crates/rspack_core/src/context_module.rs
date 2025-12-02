@@ -2,6 +2,7 @@ use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
@@ -160,8 +161,11 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
-pub type ResolveContextModuleDependencies =
-  Arc<dyn Fn(ContextModuleOptions) -> Result<Vec<ContextElementDependency>> + Send + Sync>;
+pub type ResolveContextModuleDependencies = Arc<
+  dyn Fn(ContextModuleOptions) -> BoxFuture<'static, Result<Vec<ContextElementDependency>>>
+    + Send
+    + Sync,
+>;
 
 #[impl_source_map_config]
 #[cacheable]
@@ -958,7 +962,7 @@ impl Module for ContextModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolve_dependencies = &self.resolve_dependencies;
-    let context_element_dependencies = resolve_dependencies(self.options.clone())?;
+    let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
     let mut dependencies: Vec<BoxDependency> = vec![];
     let mut blocks = vec![];
