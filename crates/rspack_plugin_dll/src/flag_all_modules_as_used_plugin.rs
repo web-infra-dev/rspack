@@ -42,7 +42,7 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
 async fn optimize_dependencies(
   &self,
   compilation: &mut Compilation,
-  _side_effect_optimize_artifacts: &mut SideEffectsOptimizeArtifact,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let entries = &compilation.entries;
