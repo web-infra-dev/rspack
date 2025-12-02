@@ -30,30 +30,30 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{
@@ -75,30 +75,30 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{
@@ -117,30 +117,30 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         File was processed with these loaders:         * <TEST_ROOT>/fixtures/errors/identity-loader.js         * <TEST_ROOT>/fixtures/errors/add-comment-loader.js        You may need an additional loader to handle the result of these loaders.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/identity-loader.js!<TEST_ROOT>/fixtures/errors/add-comment-loader.js!<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{
@@ -155,30 +155,30 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         You may need an appropriate loader to handle this file type.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         You may need an appropriate loader to handle this file type.",
-			      "moduleId": "./abc.html",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/abc.html",
-			      "moduleName": "./abc.html",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>         ╭─[1:10]       1 │ <!DOCTYPE html>         ·           ────       2 │ <html>       3 │     <body>         ╰────        help:         You may need an appropriate loader to handle this file type.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Expression expected         ╭─[1:0]       1 │ <!DOCTYPE html>         · ─       2 │ <html>       3 │     <body>         ╰────        help:         You may need an appropriate loader to handle this file type.",
+				      "moduleId": "./abc.html",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/abc.html",
+				      "moduleName": "./abc.html",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	},
 	{
@@ -193,21 +193,21 @@ module.exports = [
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "ModuleParseError",
-			      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Unexpected character '/0'         ╭─[1:0]       1 │              · ▲       2 │  �  PGPOS�       3 │ ��  \`X  :XGSUB!?-�  ��  �OS/2k��  X   \`cmap)9�8  $  �gasp  !  \`H   glyf��H    �  PheadNE   �   6hhea�C     $hmtx}�*   �  lloca�d��  �  8maxp7�  8    name P<�  Z  �post#_�s  [�  {    N��O�_<� �    �Vn/    �њU�P���               ��  ��P�P�                   �          ╰────        help:         You may need an appropriate loader to handle this file type.",
-			      "moduleId": "../font.ttf",
-			      "moduleIdentifier": "<TEST_ROOT>/fixtures/font.ttf",
-			      "moduleName": "../font.ttf",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+				Object {
+				  "errors": Array [
+				    Object {
+				      "code": "ModuleParseError",
+				      "message": "  × Module parse failed:  ╰─▶   × JavaScript parse error: Unexpected character '/0'         ╭─[1:0]       1 │              · ▲       2 │  �  PGPOS�       3 │ ��  \`X  :XGSUB!?-�  ��  �OS/2k��  X   \`cmap)9�8  $  �gasp  !  \`H   glyf��H    �  PheadNE   �   6hhea�C     $hmtx}�*   �  lloca�d��  �  8maxp7�  8    name P<�  Z  �post#_�s  [�  {    N��O�_<� �    �Vn/    �њU�P���               ��  ��P�P�                   �          ╰────        help:         You may need an appropriate loader to handle this file type.",
+				      "moduleId": "../font.ttf",
+				      "moduleIdentifier": "<TEST_ROOT>/fixtures/font.ttf",
+				      "moduleName": "../font.ttf",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				  "warnings": Array [],
+				}
+			`);
 		}
 	}
 ];
