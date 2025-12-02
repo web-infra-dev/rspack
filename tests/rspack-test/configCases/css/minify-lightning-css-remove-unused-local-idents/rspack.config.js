@@ -11,7 +11,8 @@ const common = {
 		generator: {
 			"css/auto": {
 				localIdentName: "[path][name]-[local]",
-				exportsOnly: false
+				exportsOnly: false,
+				exportsConvention: 'camel-case',
 			}
 		}
 	},
@@ -44,7 +45,8 @@ module.exports = [
 			generator: {
 				"css/auto": {
 					localIdentName: "[path][name]-[local]",
-					exportsOnly: true
+					exportsOnly: true,
+					exportsConvention: 'camel-case',
 				}
 			}
 		},

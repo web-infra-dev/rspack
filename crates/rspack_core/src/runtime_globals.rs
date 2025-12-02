@@ -366,9 +366,7 @@ pub enum RuntimeVariable {
   ModuleCache,
   Module,
   Exports,
-  EsmChunkIds,
-  EsmChunkId,
-  EsmRuntime,
+  StartupExec,
 }
 
 pub fn runtime_variable_to_string(
@@ -382,9 +380,7 @@ pub fn runtime_variable_to_string(
     RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),
     RuntimeVariable::Exports => "__webpack_exports__".to_string(),
     RuntimeVariable::Module => "__webpack_module__".to_string(),
-    RuntimeVariable::EsmChunkIds => "__webpack_ids__".to_string(),
-    RuntimeVariable::EsmChunkId => "__webpack_id__".to_string(),
-    RuntimeVariable::EsmRuntime => "__webpack_runtime__".to_string(),
+    RuntimeVariable::StartupExec => "__webpack_exec__".to_string(),
   }
 }
 

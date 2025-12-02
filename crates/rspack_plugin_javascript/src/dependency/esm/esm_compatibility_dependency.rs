@@ -83,7 +83,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
-          "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
+          "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
@@ -97,7 +97,14 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::unique(),
-        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if module.build_meta().has_top_level_await { ", 1" } else { "" })),
+        Some(format!(
+          "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{});",
+          if module.build_meta().has_top_level_await {
+            ", 1"
+          } else {
+            ""
+          }
+        )),
       )));
     }
   }

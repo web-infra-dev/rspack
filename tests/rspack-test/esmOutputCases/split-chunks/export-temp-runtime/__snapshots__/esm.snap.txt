@@ -19,9 +19,9 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var installedChunks = {"main": 0,};
       var installChunk = (data) => {
-    var __webpack_ids__ = data.__webpack_ids__;
+    var __rspack_esm_ids = data.__rspack_esm_ids;
     var __webpack_modules__ = data.__webpack_modules__;
-    var __webpack_runtime__ = data.__webpack_runtime__;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
     // add "modules" to the modules object,
     // then flag all "ids" as loaded and fire callback
     var moduleId, chunkId, i = 0;
@@ -30,13 +30,13 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
             __webpack_require__.m[moduleId] = __webpack_modules__[moduleId];
         }
     }
-    if (__webpack_runtime__) __webpack_runtime__(__webpack_require__);
-    for (; i < __webpack_ids__.length; i++) {
-        chunkId = __webpack_ids__[i];
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
+    for (; i < __rspack_esm_ids.length; i++) {
+        chunkId = __rspack_esm_ids[i];
         if (__webpack_require__.o(installedChunks, chunkId) && installedChunks[chunkId]) {
             installedChunks[chunkId][0]();
         }
-        installedChunks[__webpack_ids__[i]] = 0;
+        installedChunks[__rspack_esm_ids[i]] = 0;
     }
     
 };// no chunk on demand loading

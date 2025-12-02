@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42311
+- Update: main.LAST_HASH.hot-update.js, size: 42293
 
 ## Manifest
 
@@ -1250,7 +1250,7 @@ __webpack_require__.hmrM = () => {
 	);
 };
 // install a JSONP callback for chunk loading
-var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
+var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
@@ -1278,8 +1278,8 @@ var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
 };
 
 var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
-chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
+chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
+chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 
 })();
 

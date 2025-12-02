@@ -13,6 +13,8 @@ use miette::{
 use owo_colors::{OwoColorize, Style};
 use unicode_width::UnicodeWidthChar;
 
+use crate::colors::dim;
+
 /**
 A [`ReportHandler`] that displays a given [`Report`](crate::Report) in a
 quasi-graphical way, using terminal colors, unicode drawing characters, and
@@ -212,7 +214,7 @@ impl GraphicalReportHandler {
     };
 
     let initial_indent = format!("  {} ", severity_icon.style(severity_style));
-    let rest_indent = format!("  {} ", self.theme.characters.vbar.style(severity_style));
+    let rest_indent = format!("  {} ", dim(&self.theme.characters.vbar));
     let width = self.termwidth.saturating_sub(2);
     let opts = textwrap::Options::new(width)
       .initial_indent(&initial_indent)
@@ -237,21 +239,19 @@ impl GraphicalReportHandler {
         } else {
           self.theme.characters.lbot
         };
-        let initial_indent = format!(
+        let initial_indent = dim(&format!(
           "  {}{}{} ",
           char, self.theme.characters.hbar, self.theme.characters.rarrow
-        )
-        .style(severity_style)
+        ))
         .to_string();
-        let rest_indent = format!(
+        let rest_indent = dim(&format!(
           "  {}   ",
           if is_last {
             ' '
           } else {
             self.theme.characters.vbar
           }
-        )
-        .style(severity_style)
+        ))
         .to_string();
         let opts = textwrap::Options::new(width)
           .initial_indent(&initial_indent)

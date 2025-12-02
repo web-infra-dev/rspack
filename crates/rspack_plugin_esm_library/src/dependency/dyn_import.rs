@@ -245,7 +245,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       }) {
       // we only extract the named exports
       // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
+      // const { a, b } = await import('./refChunk').then(mod => ({ a: __rspack_module_dynamic_ref0_a, b: __rspack_module_dynamic_ref0_b }));
       let ref_exports = ref_exports
         .iter()
         .flat_map(|ref_exports| match ref_exports {

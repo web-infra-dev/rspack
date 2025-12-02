@@ -9,16 +9,16 @@ module.exports = {
 	},
 	async check(diagnostics) {
 		expect(diagnostics).toMatchInlineSnapshot(`
-		Object {
-		  "errors": Array [
-		    Object {
-		      "code": "GenericFailure",
-		      "message": "  × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
-		      "stack": "Error:   × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
-		    },
-		  ],
-		  "warnings": Array [],
-		}
-	`);
+			Object {
+			  "errors": Array [
+			    Object {
+			      "code": "GenericFailure",
+			      "message": "  × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
+			      "stack": "Error:   × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
+			    },
+			  ],
+			  "warnings": Array [],
+			}
+		`);
 	}
 };

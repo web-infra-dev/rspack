@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -28,8 +28,8 @@
     "format:rs": "cargo fmt --all",
     "format:js": "prettier . --write",
     "format-ci:js": "prettier . --check",
-    "format-ci:toml": "taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
-    "format:toml": "taplo format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
+    "format-ci:toml": "taplo format --check",
+    "format:toml": "taplo format",
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
     "lint:rs": "cargo clippy --workspace --all-targets",

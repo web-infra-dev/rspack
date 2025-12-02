@@ -289,24 +289,25 @@ async fn render_startup(
     }
 
     let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = {exports_name}{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) {{\n"
+      "for(var __rspack_i in {exports}) {{\n"
     )));
     let has_provided = !provided.is_empty();
     if has_provided {
       source.add(RawStringSource::from(format!(
-        "  if({}.indexOf(__webpack_i__) === -1) {{\n",
+        "  if({}.indexOf(__rspack_i) === -1) {{\n",
         serde_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
-      "{}  {export_target}[__webpack_i__] = {exports}[__webpack_i__];\n",
+      "{}  {export_target}[__rspack_i] = {exports}[__rspack_i];\n",
       match has_provided {
         true => "  ",
         false => "",
@@ -323,22 +324,24 @@ async fn render_startup(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
   } else if self.is_copy(&options) {
+    let exports_assign = "__rspack_exports_target";
     source.add(RawStringSource::from(format!(
-      "var __webpack_export_target__ = {};\n",
+      "var {exports_assign} = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
     let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = {exports_name}{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) __webpack_export_target__[__webpack_i__] = {exports}[__webpack_i__];\n"
+      "for(var __rspack_i in {exports}) {exports_assign}[__rspack_i] = {exports}[__rspack_i];\n"
     )));
     source.add(RawStringSource::from(format!(
-      "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
+      "if({exports}.__esModule) Object.defineProperty({exports_assign}, '__esModule', {{ value: true }});\n"
     )));
   } else {
     source.add(RawStringSource::from(format!(

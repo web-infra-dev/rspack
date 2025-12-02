@@ -181,7 +181,7 @@ var module = ({}[moduleId] = {{"#,
     }
 
     if need_module_defer {
-      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+      sources.push("exports: __rspack_deferred_exports[moduleId] || {}".into());
     } else {
       sources.push("exports: {}".into());
     }
@@ -240,14 +240,14 @@ var module = ({}[moduleId] = {{"#,
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
     }
 
@@ -314,9 +314,7 @@ var module = ({}[moduleId] = {{"#,
       // (see MakeDeferredNamespaceObjectRuntimeModule)
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
-      header.push(
-        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
-      );
+      header.push("// The deferred module cache\nvar __rspack_deferred_exports = {};\n".into());
     }
 
     if use_require {
