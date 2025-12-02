@@ -4,7 +4,6 @@
 //! execute before other modules. Generates a "prevStartup wrapper" pattern with defensive
 //! checks that intercepts and modifies the startup execution order.
 
-use cow_utils::CowUtils;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -117,8 +116,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       );
       code.push_str("\t__webpack_require__mf_has_run = true;\n");
       code.push_str("\t__webpack_require__mf_startup_result = (function(){\n");
-      let module_exec_escaped = module_executions.cow_replace("\n", "\\n");
-      code.push_str(module_exec_escaped.as_ref());
+      // Inline the federation runtime executions directly; keep newlines so the inserted code
+      // remains syntactically valid inside the startup function body.
+      code.push_str(&module_executions);
       code.push_str("\t})();\n");
       code.push_str("\treturn __webpack_require__mf_startup_result;\n");
       code.push_str("}\n");
