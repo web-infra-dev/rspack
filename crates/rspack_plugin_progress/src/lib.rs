@@ -440,7 +440,7 @@ async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
 async fn optimize_dependencies(
   &self,
   _compilation: &mut Compilation,
-  _side_effect_optimize_artifacts: &mut SideEffectsOptimizeArtifact,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   self.sealing_hooks_report("dependencies", 2).await?;
