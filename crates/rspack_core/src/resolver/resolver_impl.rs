@@ -403,15 +403,15 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
   if importer.is_none() {
     return rspack_error::error!(format!(
       "Module not found: Can't resolve {} in {}",
-      yellow(&format!("'{}'", request)),
-      cyan(&format!("'{}'", context)),
+      yellow(&format!("'{request}'")),
+      cyan(&format!("'{context}'")),
     ));
   }
 
   let message = format!(
     "Can't resolve {} in {}",
-    yellow(&format!("'{}'", request)),
-    cyan(&format!("'{}'", context))
+    yellow(&format!("'{request}'")),
+    cyan(&format!("'{context}'"))
   );
   let mut error = Error::from_string(
     None,
