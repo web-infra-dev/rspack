@@ -6,7 +6,7 @@ use owo_colors::{OwoColorize, Stream::Stdout};
 #[inline]
 pub fn dim<T>(text: &T) -> impl Display + '_
 where
-  T: Display + OwoColorize + ?Sized,
+  T: Display + OwoColorize,
 {
   text.if_supports_color(Stdout, |t| t.dimmed())
 }
@@ -15,7 +15,7 @@ where
 #[inline]
 pub fn red<T>(text: &T) -> impl Display + '_
 where
-  T: Display + OwoColorize + ?Sized,
+  T: Display + OwoColorize,
 {
   text.if_supports_color(Stdout, |t| t.red())
 }
@@ -24,7 +24,7 @@ where
 #[inline]
 pub fn yellow<T>(text: &T) -> impl Display + '_
 where
-  T: Display + OwoColorize + ?Sized,
+  T: Display + OwoColorize,
 {
   text.if_supports_color(Stdout, |t| t.yellow())
 }
@@ -33,7 +33,7 @@ where
 #[inline]
 pub fn cyan<T>(text: &T) -> impl Display + '_
 where
-  T: Display + OwoColorize + ?Sized,
+  T: Display + OwoColorize,
 {
   text.if_supports_color(Stdout, |t| t.cyan())
 }
