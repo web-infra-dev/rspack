@@ -4,7 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{Error, Severity};
+use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
@@ -402,11 +402,17 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
   let importer = args.importer;
   if importer.is_none() {
     return rspack_error::error!(format!(
-      "Module not found: Can't resolve '{request}' in '{context}'"
+      "Module not found: Can't resolve {} in {}",
+      yellow(&format!("'{}'", request)),
+      cyan(&format!("'{}'", context)),
     ));
   }
 
-  let message = format!("Can't resolve '{request}' in '{context}'");
+  let message = format!(
+    "Can't resolve {} in {}",
+    yellow(&format!("'{}'", request)),
+    cyan(&format!("'{}'", context))
+  );
   let mut error = Error::from_string(
     None,
     args

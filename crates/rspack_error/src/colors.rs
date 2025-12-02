@@ -1,10 +1,39 @@
-use owo_colors::{OwoColorize, Stream};
+use std::fmt::Display;
+
+use owo_colors::{OwoColorize, Stream::Stdout};
 
 /**
  * Dim the text if the stream supports color.
  */
-pub fn dim(text: impl std::fmt::Display) -> String {
-  text
-    .if_supports_color(Stream::Stdout, |text| text.dimmed())
-    .to_string()
+
+#[inline]
+pub fn dim<T>(text: &T) -> impl Display + '_
+where
+  T: Display + OwoColorize + ?Sized,
+{
+  text.if_supports_color(Stdout, |t| t.dimmed())
+}
+
+#[inline]
+pub fn red<T>(text: &T) -> impl Display + '_
+where
+  T: Display + OwoColorize + ?Sized,
+{
+  text.if_supports_color(Stdout, |t| t.red())
+}
+
+#[inline]
+pub fn yellow<T>(text: &T) -> impl Display + '_
+where
+  T: Display + OwoColorize + ?Sized,
+{
+  text.if_supports_color(Stdout, |t| t.yellow())
+}
+
+#[inline]
+pub fn cyan<T>(text: &T) -> impl Display + '_
+where
+  T: Display + OwoColorize + ?Sized,
+{
+  text.if_supports_color(Stdout, |t| t.cyan())
 }

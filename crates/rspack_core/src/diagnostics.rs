@@ -48,7 +48,7 @@ impl From<ModuleBuildError> for Error {
     let source = value.error;
 
     let message = if let Some(from) = value.from {
-      format!("Module build failed {}:", dim(format!("(from {from})")))
+      format!("Module build failed {}:", dim(&format!("(from {from})")))
     } else {
       "Module build failed:".to_string()
     };

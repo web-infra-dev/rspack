@@ -10,7 +10,7 @@ mod macros;
 
 pub use self::{
   batch_error::BatchErrors,
-  colors::dim,
+  colors::{cyan, dim, red, yellow},
   convert::{
     AnyhowResultToRspackResultExt, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt,
   },

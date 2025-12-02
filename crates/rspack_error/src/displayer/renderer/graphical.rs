@@ -214,7 +214,7 @@ impl GraphicalReportHandler {
     };
 
     let initial_indent = format!("  {} ", severity_icon.style(severity_style));
-    let rest_indent = format!("  {} ", dim(self.theme.characters.vbar));
+    let rest_indent = format!("  {} ", dim(&self.theme.characters.vbar));
     let width = self.termwidth.saturating_sub(2);
     let opts = textwrap::Options::new(width)
       .initial_indent(&initial_indent)
@@ -239,12 +239,12 @@ impl GraphicalReportHandler {
         } else {
           self.theme.characters.lbot
         };
-        let initial_indent = dim(format!(
+        let initial_indent = dim(&format!(
           "  {}{}{} ",
           char, self.theme.characters.hbar, self.theme.characters.rarrow
         ))
         .to_string();
-        let rest_indent = dim(format!(
+        let rest_indent = dim(&format!(
           "  {}   ",
           if is_last {
             ' '
