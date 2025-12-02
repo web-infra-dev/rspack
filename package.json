@@ -60,7 +60,7 @@
     "pnpm": "10.20.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.7",
+    "@biomejs/biome": "^2.3.8",
     "@microsoft/api-extractor": "7.55.1",
     "@microsoft/api-extractor-model": "7.32.1",
     "@rslint/core": "0.1.13",
