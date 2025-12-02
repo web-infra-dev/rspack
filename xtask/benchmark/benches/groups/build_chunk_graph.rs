@@ -9,6 +9,7 @@ use rspack_core::{
   build_chunk_graph, fast_set,
   incremental::{Incremental, IncrementalOptions, IncrementalPasses},
 };
+use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use tokio::runtime::Builder;
@@ -187,6 +188,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     } else {
       Default::default()
     };
+    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     while matches!(
       compiler
@@ -195,7 +197,8 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
         .optimize_dependencies
         .call(
           &mut compiler.compilation,
-          &mut side_effects_optimize_artifact
+          &mut side_effects_optimize_artifact,
+          &mut diagnostics
         )
         .await
         .unwrap(),
@@ -204,6 +207,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
 
     compiler.compilation.side_effects_optimize_artifact =
       DerefOption::new(side_effects_optimize_artifact);
+    compiler.compilation.extend_diagnostics(diagnostics);
 
     compiler
       .compilation

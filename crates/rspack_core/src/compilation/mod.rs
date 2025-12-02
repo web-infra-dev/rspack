@@ -78,7 +78,7 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -1659,17 +1659,19 @@ impl Compilation {
     } else {
       Default::default()
     };
+    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self, &mut side_effects_optimize_artifact)
+        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
     self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
+    self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
 

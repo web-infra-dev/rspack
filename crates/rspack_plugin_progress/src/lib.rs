@@ -21,7 +21,7 @@ use rspack_core::{
   CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
   ModuleIdentifier, Plugin, SideEffectsOptimizeArtifact,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use tokio::sync::Mutex;
 
@@ -441,6 +441,7 @@ async fn optimize_dependencies(
   &self,
   _compilation: &mut Compilation,
   _side_effect_optimize_artifacts: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   self.sealing_hooks_report("dependencies", 2).await?;
   Ok(None)

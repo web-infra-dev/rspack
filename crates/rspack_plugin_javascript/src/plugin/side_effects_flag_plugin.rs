@@ -11,7 +11,7 @@ use rspack_core::{
   SideEffectsOptimizeArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
@@ -152,6 +152,7 @@ async fn optimize_dependencies(
   &self,
   compilation: &mut Compilation,
   side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");

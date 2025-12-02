@@ -5,7 +5,7 @@ use rspack_core::{
   Plugin, PrefetchExportsInfoMode, SideEffectsOptimizeArtifact, UsageState, UsedNameItem,
   incremental::IncrementalPasses,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -23,15 +23,14 @@ async fn optimize_dependencies(
   &self,
   compilation: &mut Compilation,
   _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "InlineExportsPlugin (optimization.inlineExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
+    diagnostics.extend(diagnostic);
     compilation.cgm_hash_artifact.clear();
   }
 

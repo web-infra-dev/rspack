@@ -3,7 +3,7 @@ use rspack_core::{
   BoxModule, Compilation, CompilationBuildModule, CompilationId, CompilationOptimizeDependencies,
   CompilerId, FactoryMeta, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact, get_entry_runtime,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
@@ -43,6 +43,7 @@ async fn optimize_dependencies(
   &self,
   compilation: &mut Compilation,
   _side_effect_optimize_artifacts: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let entries = &compilation.entries;
 

@@ -15,6 +15,7 @@ default  = []
 criterion2   = { workspace = true }
 rspack       = { workspace = true, features = ["full"] }
 rspack_core  = { workspace = true }
+rspack_error  = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_tasks = { workspace = true }
