@@ -184,3 +184,7 @@ trace.json
 
 # Claude
 CLAUDE.local.md
+
+# Demo projects cloned during CI
+rspack-diff-minimal/
+rstack-examples/

@@ -10,8 +10,8 @@
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 71
-- Update: main.LAST_HASH.hot-update.js, size: 578
-- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1501
+- Update: main.LAST_HASH.hot-update.js, size: 471
+- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
 
 ## Manifest
 
@@ -37,19 +37,15 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./generation.js": 
-/*!***********************!*\
-  !*** ./generation.js ***!
-  \***********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./generation.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* export default */ const __rspack_default_export = (3);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -74,14 +70,10 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("modules_module_js_lazy-compilation-proxy", {
-"./modules/module.js!lazy-compilation-proxy": 
-/*!*********************************************************************************************************************************!*\
-  !*** lazy-compilation-proxy|../../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./module.js ***!
-  \*********************************************************************************************************************************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+"./modules/module.js!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2Flazy-compilation-using-");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js";
-        module.exports = __webpack_require__.e(/*! import() */ "modules_module_js").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/module.js */ "./modules/module.js"));
+        module.exports = __webpack_require__.e(/* import() */ "modules_module_js").then(__webpack_require__.bind(__webpack_require__, "./modules/module.js"));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./modules/module.js", function() { module.hot.invalidate(); });
@@ -91,7 +83,7 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
         }
         
 
-}),
+},
 
 });
 ```

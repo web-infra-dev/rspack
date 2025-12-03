@@ -8,7 +8,7 @@ use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module, module_raw,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 
@@ -77,7 +77,13 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
 
     for dep_id in federation_runtime_modules {
-      let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
+      let module_str = compilation.runtime_template.module_raw(
+        compilation,
+        &mut runtime_requirements,
+        &dep_id,
+        "",
+        false,
+      );
       module_executions.push_str("\t\t");
       module_executions.push_str(&module_str);
       module_executions.push('\n');
@@ -88,7 +94,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
-    let startup = RuntimeGlobals::STARTUP.name();
+    let startup = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP);
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;

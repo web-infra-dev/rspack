@@ -10,7 +10,7 @@
 - Bundle: moduleB_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 64
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1450
+- Update: moduleA_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1016
 
 ## Manifest
 
@@ -58,14 +58,10 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 self["webpackHotUpdate"]("moduleA_js_lazy-compilation-proxy", {
-"./moduleA.js!lazy-compilation-proxy": 
-/*!*******************************************************************************************************************************!*\
-  !*** lazy-compilation-proxy|../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleA.js ***!
-  \*******************************************************************************************************************************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+"./moduleA.js!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2Flazy-compilation-using-");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/module-test/moduleA.js";
-        module.exports = __webpack_require__.e(/*! import() */ "moduleA_js").then(__webpack_require__.bind(__webpack_require__, /*! ./moduleA.js */ "./moduleA.js"));
+        module.exports = __webpack_require__.e(/* import() */ "moduleA_js").then(__webpack_require__.bind(__webpack_require__, "./moduleA.js"));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./moduleA.js", function() { module.hot.invalidate(); });
@@ -75,7 +71,7 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
         }
         
 
-}),
+},
 
 });
 ```

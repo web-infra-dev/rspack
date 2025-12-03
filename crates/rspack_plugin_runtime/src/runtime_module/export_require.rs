@@ -3,8 +3,6 @@ use std::sync::LazyLock;
 use rspack_collections::Identifier;
 use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
 
-const EXPORT_TEMP_NAME: &str = "__webpack_require_temp__";
-
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: LazyLock<Identifier> =
   LazyLock::new(|| Identifier::from("webpack/runtime/export_webpack_require"));
 
@@ -26,11 +24,13 @@ impl RuntimeModule for ExportRequireRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let require_name = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let export_temp_name = format!("{require_name}temp");
     Ok(format!(
-      "var {EXPORT_TEMP_NAME} = {};\nexport {{ {EXPORT_TEMP_NAME} as {} }};\n",
-      RuntimeGlobals::REQUIRE,
-      RuntimeGlobals::REQUIRE
+      "var {export_temp_name} = {require_name};\nexport {{ {export_temp_name} as {require_name} }};\n",
     ))
   }
 

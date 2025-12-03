@@ -1517,6 +1517,8 @@ export interface KnownAssetInfo {
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
+  /** the asset type */
+  assetType?: string
 }
 
 export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
@@ -2084,6 +2086,7 @@ export interface RawEntryDynamicResult {
 
 export interface RawEnvironment {
   const?: boolean
+  methodShorthand?: boolean
   arrowFunction?: boolean
   nodePrefixForCoreModules?: boolean
   asyncFunction?: boolean

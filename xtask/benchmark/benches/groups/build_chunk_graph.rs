@@ -5,7 +5,8 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Experiments, Optimization, build_chunk_graph, fast_set,
+  Compilation, Compiler, Experiments, ModuleGraphPartial, Optimization, build_chunk_graph,
+  fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -174,6 +175,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .await
       .unwrap();
     compiler.compilation.build_module_graph().await.unwrap();
+    compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
     while matches!(
       compiler
@@ -194,6 +196,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());
+  compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
   c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
@@ -226,4 +229,5 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.async_entrypoints = Default::default();
   compilation.named_chunk_groups = Default::default();
   compilation.named_chunks = Default::default();
+  compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 }

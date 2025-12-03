@@ -13,6 +13,6 @@ it("should not inline enums for cjs", () => {
 it("should keep the module for cjs", () => {
   const noInlinedModuleIds = ["../basic/enum.ts"];
   noInlinedModuleIds.forEach(m => {
-    expect(generated.includes(`"${m}": (function`)).toBe(true);
+    expect(generated.includes(`"${m}"(`)).toBe(true);
   })
 })

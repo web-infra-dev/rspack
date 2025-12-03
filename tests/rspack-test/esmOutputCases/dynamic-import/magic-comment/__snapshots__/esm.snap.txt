@@ -1,17 +1,17 @@
 ```mjs title=main.mjs
-import {fileURLToPath as __webpack_fileURLToPath__} from "node:url";
-import {dirname as __webpack_dirname__} from "node:path";
-import { createRequire as __rspack_external_createRequire } from "node:module";
-const __rspack_external_createRequire_require = __rspack_external_createRequire(import.meta.url);
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 import { __webpack_require__ } from "./runtime.mjs";
 // node:fs
-const external_node_fs_namespaceObject = __rspack_external_createRequire_require("node:fs");
+const external_node_fs_namespaceObject = __rspack_createRequire_require("node:fs");
 
 var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
-const external_node_path_namespaceObject = __rspack_external_createRequire_require("node:path");
+const external_node_path_namespaceObject = __rspack_createRequire_require("node:path");
 
 var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
-var index_dirname = __webpack_dirname__(__webpack_fileURLToPath__(import.meta.url));
+var index_dirname = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 
 
 

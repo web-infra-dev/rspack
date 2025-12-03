@@ -2,6 +2,7 @@ use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
@@ -32,8 +33,8 @@ use crate::{
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
   GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId,
   ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, block_promise, contextify, get_exports_type_with_strict,
-  impl_module_meta_info, module_update_hash, returning_function, to_path,
+  RuntimeSpec, RuntimeTemplate, SourceType, contextify, get_exports_type_with_strict,
+  impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -160,8 +161,11 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
-pub type ResolveContextModuleDependencies =
-  Arc<dyn Fn(ContextModuleOptions) -> Result<Vec<ContextElementDependency>> + Send + Sync>;
+pub type ResolveContextModuleDependencies = Arc<
+  dyn Fn(ContextModuleOptions) -> BoxFuture<'static, Result<Vec<ContextElementDependency>>>
+    + Send
+    + Sync,
+>;
 
 #[impl_source_map_config]
 #[cacheable]
@@ -283,25 +287,34 @@ impl ContextModule {
     fake_map: &FakeMapValue,
     async_module: bool,
     fake_map_data_expr: &str,
+    runtime_template: &RuntimeTemplate,
   ) -> String {
     if let FakeMapValue::Bit(bit) = fake_map {
-      return self.get_return(bit, async_module);
+      return self.get_return(bit, async_module, runtime_template);
     }
     format!(
       "return {}(id, {}{});",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       fake_map_data_expr,
       if async_module { " | 16" } else { "" },
     )
   }
 
-  fn get_return(&self, fake_map_bit: &FakeNamespaceObjectMode, async_module: bool) -> String {
+  fn get_return(
+    &self,
+    fake_map_bit: &FakeNamespaceObjectMode,
+    async_module: bool,
+    runtime_template: &RuntimeTemplate,
+  ) -> String {
     if *fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
-      return format!("return {}(id);", RuntimeGlobals::REQUIRE);
+      return format!(
+        "return {}(id);",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
     }
     format!(
       "return {}(id, {}{});",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       fake_map_bit,
       if async_module { " | 16" } else { "" },
     )
@@ -350,7 +363,7 @@ impl ContextModule {
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
       "#,
-      keys = returning_function(&compilation.options.output.environment, "[]", ""),
+      keys = compilation.runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -367,7 +380,7 @@ impl ContextModule {
       webpackEmptyContext.id = {id};
       module.exports = webpackEmptyContext;
       "#,
-      keys = returning_function(&compilation.options.output.environment, "[]", ""),
+      keys = compilation.runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -510,14 +523,18 @@ impl ContextModule {
     } else if has_multiple_or_no_chunks {
       format!(
         "Promise.all(ids.slice({chunks_start_position}).map({}))",
-        RuntimeGlobals::ENSURE_CHUNK
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
       )
     } else {
       let mut chunks_start_position_buffer = itoa::Buffer::new();
       let chunks_start_position_str = chunks_start_position_buffer.format(chunks_start_position);
       format!(
         "{}(ids[{}])",
-        RuntimeGlobals::ENSURE_CHUNK,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
         chunks_start_position_str
       )
     };
@@ -525,10 +542,11 @@ impl ContextModule {
       &fake_map,
       true,
       if short_mode { "invalid" } else { "ids[1]" },
+      &compilation.runtime_template,
     );
     let async_context = if has_no_chunk {
       formatdoc! {r#"
-        function webpackAsyncContext(req) {{
+        function __rspack_async_context(req) {{
           return Promise.resolve().then(function() {{
             if(!{}(map, req)) {{
               var e = new Error("Cannot find module '" + req + "'");
@@ -541,7 +559,7 @@ impl ContextModule {
           }});
         }}
         "#,
-        RuntimeGlobals::HAS_OWN_PROPERTY,
+        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         if short_mode {
           "var id = map[req];"
         } else {
@@ -550,7 +568,7 @@ impl ContextModule {
       }
     } else {
       formatdoc! {r#"
-        function webpackAsyncContext(req) {{
+        function __rspack_async_context(req) {{
           if(!{}(map, req)) {{
             return Promise.resolve().then(function() {{
               var e = new Error("Cannot find module '" + req + "'");
@@ -565,18 +583,18 @@ impl ContextModule {
           }});
         }}
         "#,
-        RuntimeGlobals::HAS_OWN_PROPERTY,
+        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       }
     };
     formatdoc! {r#"
       var map = {map};
       {async_context}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -590,7 +608,7 @@ impl ContextModule {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
     let dependencies = block.get_dependencies();
-    let promise = block_promise(
+    let promise = compilation.runtime_template.block_promise(
       Some(block_id),
       &mut code_gen_result.runtime_requirements,
       compilation,
@@ -607,19 +625,21 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]"),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", &compilation.runtime_template),
       }
     } else {
-      RuntimeGlobals::REQUIRE.name().to_string()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     };
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then({then_function});
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then({then_function});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         return {promise}.then(function() {{
           if(!{has_own_property}(map, req)) {{
             var e = new Error("Cannot find module '" + req + "'");
@@ -629,15 +649,15 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -646,13 +666,18 @@ impl ContextModule {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
+    let return_module_object = self.get_return_module_object_source(
+      &fake_map,
+      true,
+      "fakeMap[id]",
+      &compilation.runtime_template,
+    );
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then(function(id) {{
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then(function(id) {{
           if(!{module_factories}[id]) {{
             var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
             e.code = 'MODULE_NOT_FOUND';
@@ -661,7 +686,7 @@ impl ContextModule {
           {return_module_object}
         }});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -673,16 +698,16 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = RuntimeGlobals::MODULE_FACTORIES,
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -691,13 +716,18 @@ impl ContextModule {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(&fake_map, true, "fakeMap[id]");
+    let return_module_object = self.get_return_module_object_source(
+      &fake_map,
+      true,
+      "fakeMap[id]",
+      &compilation.runtime_template,
+    );
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackContext(req) {{
-        var id = webpackContextResolve(req);
+      function __rspack_context(req) {{
+        var id = __rspack_context_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -705,7 +735,7 @@ impl ContextModule {
         }}
         {return_module_object}
       }}
-      function webpackContextResolve(req) {{
+      function __rspack_context_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -713,16 +743,16 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      webpackContext.keys = {keys};
-      webpackContext.resolve = webpackContextResolve;
-      webpackContext.id = {id};
-      module.exports = webpackContext;
+      __rspack_context.keys = {keys};
+      __rspack_context.resolve = __rspack_context_resolve;
+      __rspack_context.id = {id};
+      module.exports = __rspack_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = RuntimeGlobals::MODULE_FACTORIES,
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -740,19 +770,21 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]"),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", &compilation.runtime_template),
       }
     } else {
-      RuntimeGlobals::REQUIRE.name().to_string()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     };
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackAsyncContext(req) {{
-        return webpackAsyncContextResolve(req).then({then_function});
+      function __rspack_async_context(req) {{
+        return __rspack_async_context_resolve(req).then({then_function});
       }}
-      function webpackAsyncContextResolve(req) {{
+      function __rspack_async_context_resolve(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -764,15 +796,15 @@ impl ContextModule {
           return map[req];
         }})
       }}
-      webpackAsyncContext.keys = {keys};
-      webpackAsyncContext.resolve = webpackAsyncContextResolve;
-      webpackAsyncContext.id = {id};
-      module.exports = webpackAsyncContext;
+      __rspack_async_context.keys = {keys};
+      __rspack_async_context.resolve = __rspack_async_context_resolve;
+      __rspack_async_context.id = {id};
+      module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
+      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -781,17 +813,21 @@ impl ContextModule {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object =
-      self.get_return_module_object_source(&fake_map, false, "fakeMap[id]");
+    let return_module_object = self.get_return_module_object_source(
+      &fake_map,
+      false,
+      "fakeMap[id]",
+      &compilation.runtime_template,
+    );
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
 
-      function webpackContext(req) {{
-        var id = webpackContextResolve(req);
+      function __rspack_context(req) {{
+        var id = __rspack_context_resolve(req);
         {return_module_object}
       }}
-      function webpackContextResolve(req) {{
+      function __rspack_context_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -799,16 +835,16 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      webpackContext.keys = function webpackContextKeys() {{
+      __rspack_context.keys = function webpackContextKeys() {{
         return Object.keys(map);
       }};
-      webpackContext.resolve = webpackContextResolve;
-      module.exports = webpackContext;
-      webpackContext.id = {id};
+      __rspack_context.resolve = __rspack_context_resolve;
+      module.exports = __rspack_context;
+      __rspack_context.id = {id};
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
+      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -926,7 +962,7 @@ impl Module for ContextModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolve_dependencies = &self.resolve_dependencies;
-    let context_element_dependencies = resolve_dependencies(self.options.clone())?;
+    let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
     let mut dependencies: Vec<BoxDependency> = vec![];
     let mut blocks = vec![];

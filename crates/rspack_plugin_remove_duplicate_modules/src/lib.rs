@@ -45,7 +45,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
     // split chunks from original chunks and create new chunk
     let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-    if let Some(mutations) = compilation.incremental.mutations_write() {
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
       });
@@ -65,7 +65,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       };
       entry_modules.extend(compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey));
       origin.split(new_chunk, &mut compilation.chunk_group_by_ukey);
-      if let Some(mutations) = compilation.incremental.mutations_write() {
+      if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
           from: *chunk_ukey,
           to: new_chunk_ukey,

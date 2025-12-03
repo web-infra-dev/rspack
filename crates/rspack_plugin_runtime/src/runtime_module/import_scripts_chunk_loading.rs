@@ -53,7 +53,13 @@ impl ImportScriptsChunkLoadingRuntimeModule {
         .expect("should able to be serde_json::to_string")
       )
     };
-    Ok(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri))
+    Ok(format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    ))
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -63,6 +69,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       TemplateId::Raw => base_id.to_string(),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -71,6 +78,7 @@ enum TemplateId {
   Raw,
   WithHmr,
   WithHmrManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -92,6 +100,10 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithHmrManifest),
         include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -125,7 +137,12 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     // object to store loaded chunks
     // "1" means "already loaded"
     if with_hmr {
-      let state_expression = format!("{}_importScripts", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+      let state_expression = format!(
+        "{}_importScripts",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      );
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
@@ -163,9 +180,13 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         "_global_object": &compilation.options.output.global_object.as_str(),
         "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
       })))?;
-
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("importScripts"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "importScripts",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {

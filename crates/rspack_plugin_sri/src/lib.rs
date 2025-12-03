@@ -27,7 +27,7 @@ use rspack_plugin_runtime::RuntimePlugin;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
-use runtime::{create_script, handle_runtime, link_preload};
+use runtime::{create_link, create_script, handle_runtime, link_preload};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
@@ -44,11 +44,15 @@ static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, Arc<SRICompila
 #[derive(Debug)]
 pub struct SubresourceIntegrityPlugin {
   pub options: SubresourceIntegrityPluginOptions,
+  pub validate_error: Option<rspack_error::Error>,
 }
 
 impl SubresourceIntegrityPlugin {
-  pub fn new(options: SubresourceIntegrityPluginOptions) -> Self {
-    Self::new_inner(options)
+  pub fn new(
+    options: SubresourceIntegrityPluginOptions,
+    validate_error: Option<rspack_error::Error>,
+  ) -> Self {
+    Self::new_inner(options, validate_error)
   }
 
   pub fn get_compilation_sri_context(id: CompilationId) -> Arc<SRICompilationContext> {
@@ -93,6 +97,23 @@ async fn warn_non_web(
 }
 
 #[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
+async fn validate_error(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.push_diagnostic(Diagnostic::error(
+    "SubresourceIntegrity".to_string(),
+    self
+      .validate_error
+      .as_ref()
+      .expect("should have validate error")
+      .to_string(),
+  ));
+  Ok(())
+}
+
+#[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
 async fn handle_compilation(
   &self,
   compilation: &mut Compilation,
@@ -102,6 +123,7 @@ async fn handle_compilation(
     fs: compilation.output_filesystem.clone(),
     output_path: compilation.options.output.path.clone(),
     cross_origin_loading: compilation.options.output.cross_origin_loading.clone(),
+    runtime_template: compilation.runtime_template.clone_without_dojang(),
   };
   SubresourceIntegrityPlugin::set_compilation_sri_context(compilation.id(), ctx);
 
@@ -130,6 +152,7 @@ async fn handle_compilation(
     runtime_plugin_hooks
       .create_script
       .tap(create_script::new(self));
+    runtime_plugin_hooks.create_link.tap(create_link::new(self));
     runtime_plugin_hooks
       .link_preload
       .tap(link_preload::new(self));
@@ -155,6 +178,14 @@ impl Plugin for SubresourceIntegrityPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    if self.validate_error.is_some() {
+      ctx
+        .compiler_hooks
+        .this_compilation
+        .tap(validate_error::new(self));
+      return Ok(());
+    }
+
     if let ChunkLoading::Enable(chunk_loading) = &ctx.compiler_options.output.chunk_loading
       && matches!(
         chunk_loading,

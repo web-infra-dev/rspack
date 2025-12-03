@@ -1,8 +1,5 @@
 Array [
-  /*!***************************!*\
-  !*** ./style.modules.css ***!
-  \***************************/
-._style_modules_css-class {
+  ._style_modules_css-class {
 	color: red;
 }
 

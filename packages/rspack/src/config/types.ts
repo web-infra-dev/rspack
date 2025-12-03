@@ -421,6 +421,9 @@ export type Environment = {
 	/** The environment supports 'globalThis'. */
 	globalThis?: boolean;
 
+	/** The environment supports { fn() {} } */
+	methodShorthand?: boolean;
+
 	/** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
 	module?: boolean;
 
@@ -445,8 +448,15 @@ export type Output = {
 	path?: Path;
 
 	/**
-	 * Tells Rspack to include comments in bundles with information about the contained modules.
-	 * @default true
+	 * Controls whether Rspack adds module-related comments to the generated bundle.
+	 * These comments are useful for debugging, inspecting build output, and understanding
+	 * tree-shaking behavior.
+	 * - `true`: Enables basic comments, including module path information.
+	 * - `false`: Disables all comments, which is the default behavior.
+	 * - `'verbose'`: Outputs detailed comments, such as module exports, runtime details,
+	 * tree-shaking information, and bailout reasons. This mode is helpful when diagnosing
+	 * build issues or performing in-depth bundle analysis.
+	 * @default false
 	 */
 	pathinfo?: Pathinfo;
 
@@ -872,7 +882,16 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
-	parallel?: boolean;
+	/**
+	 * Controls whether a given loader should run in worker threads for parallel execution. Loaders marked
+	 * with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving
+	 * overall build performance.
+	 * - When set to `true`, the loader runs in a worker. Rspack automatically selects an appropriate number of
+	 * worker threads.
+	 * - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
+	 * - When set to `false` or omitted, the loader runs on the main thread.
+	 */
+	parallel?: boolean | { maxWorkers?: number };
 
 	options?: RuleSetLoaderOptions;
 };

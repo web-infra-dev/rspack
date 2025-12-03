@@ -36,7 +36,13 @@ impl JsonpChunkLoadingRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -52,6 +58,7 @@ impl JsonpChunkLoadingRuntimeModule {
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
       TemplateId::WithCallback => format!("{base_id}_with_callback"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -67,6 +74,7 @@ enum TemplateId {
   WithHmrManifest,
   WithOnChunkLoad,
   WithCallback,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -112,6 +120,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithCallback),
         include_str!("runtime/jsonp_chunk_loading_with_callback.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -175,7 +187,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_jsonp", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_jsonp",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -206,7 +223,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
         if with_fetch_priority {
           ", fetchPriority"
         } else {
@@ -293,7 +312,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })))?;
 
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("jsonp"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "jsonp",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {

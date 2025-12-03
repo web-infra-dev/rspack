@@ -8,10 +8,8 @@ use rspack_core::{
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
   RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_raw,
-  module_update_hash,
+  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
-  throw_missing_module_error_block,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -143,7 +141,7 @@ impl Module for DelegatedModule {
       Some(_) => {
         let mut s = format!(
           "module.exports = ({})",
-          module_raw(
+          compilation.runtime_template.module_raw(
             compilation,
             &mut code_generation_result.runtime_requirements,
             &dep,
@@ -173,7 +171,9 @@ impl Module for DelegatedModule {
 
         s
       }
-      None => throw_missing_module_error_block(&self.source_request),
+      None => compilation
+        .runtime_template
+        .throw_missing_module_error_block(&self.source_request),
     };
 
     let source_map = self.get_source_map_kind();

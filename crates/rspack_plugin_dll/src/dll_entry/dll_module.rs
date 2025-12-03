@@ -98,7 +98,7 @@ impl Module for DllModule {
 
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
     _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
@@ -114,7 +114,9 @@ impl Module for DllModule {
     code_generation_result =
       code_generation_result.with_javascript(Arc::new(RawStringSource::from(format!(
         "module.exports = {}",
-        RuntimeGlobals::REQUIRE.name()
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ))));
 
     Ok(code_generation_result)

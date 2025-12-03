@@ -6,7 +6,6 @@ use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
-  module_raw,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -87,14 +86,17 @@ impl AMDRequireArrayDependency {
           .dependency_by_id(dep_id)
           .and_then(|dep| dep.downcast_ref::<AMDRequireItemDependency>())
           .expect("should have AMDRequireItemDependency");
-        module_raw(
-          code_generatable_context.compilation,
-          code_generatable_context.runtime_requirements,
-          dep_id,
-          dep.request(),
-          dep.weak(),
-        )
-        .into()
+        code_generatable_context
+          .compilation
+          .runtime_template
+          .module_raw(
+            code_generatable_context.compilation,
+            code_generatable_context.runtime_requirements,
+            dep_id,
+            dep.request(),
+            dep.weak(),
+          )
+          .into()
       }
     }
   }

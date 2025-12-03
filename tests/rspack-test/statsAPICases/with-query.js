@@ -43,7 +43,7 @@ module.exports = {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 337,
+			      size: 310,
 			      type: asset,
 			    },
 			  ],
@@ -63,7 +63,7 @@ module.exports = {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: 9bea9c1d738ecf47,
+			      hash: b39cdaa83f58eaea,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -411,10 +411,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 337,
+			          size: 310,
 			        },
 			      ],
-			      assetsSize: 337,
+			      assetsSize: 310,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -432,7 +432,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: e9467d49726ee933,
+			  hash: 8e39fb77b87864c3,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -750,10 +750,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 337,
+			          size: 310,
 			        },
 			      ],
-			      assetsSize: 337,
+			      assetsSize: 310,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},

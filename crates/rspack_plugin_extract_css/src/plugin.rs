@@ -11,9 +11,10 @@ use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals, SourceType, get_undo_path,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
+  ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -537,7 +538,12 @@ async fn runtime_requirement_in_tree(
         "css",
         "mini-css",
         SOURCE_TYPE[0],
-        "__webpack_require__.miniCssF".into(),
+        format!(
+          "{}.miniCssF",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        ),
         move |runtime_requirements| {
           runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
         },
@@ -643,7 +649,8 @@ async fn render_manifest(
     &self.options.chunk_filename
   };
 
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info =
+    AssetInfo::default().with_asset_type(ManifestAssetType::Custom("extract-css".into()));
   let filename = compilation
     .get_path_with_info(
       filename_template,

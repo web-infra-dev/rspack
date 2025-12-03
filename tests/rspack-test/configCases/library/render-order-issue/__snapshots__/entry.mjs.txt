@@ -1,11 +1,7 @@
 import * as __rspack_external_externals1 from "externals1";
 import * as __rspack_external_externals0 from "externals0";
 var __webpack_modules__ = ({
-"./bar.js": 
-/*!****************************!*\
-  !*** ./bar.js + 1 modules ***!
-  \****************************/
-(function () {
+"./bar.js"() {
 
 ;// CONCATENATED MODULE: external "externals0"
 
@@ -13,39 +9,23 @@ var __webpack_modules__ = ({
 
 __rspack_external_externals0.v;
 
-}),
-"./entry.js": 
-/*!******************!*\
-  !*** ./entry.js ***!
-  \******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports.entry1 = __webpack_require__(/*! ./entry1.js */ "./entry1.js")
-module.exports.entry2 = __webpack_require__(/*! ./entry2.js */ "./entry2.js")
+},
+"./entry.js"(module, __unused_rspack_exports, __webpack_require__) {
+module.exports.entry1 = __webpack_require__("./entry1.js")
+module.exports.entry2 = __webpack_require__("./entry2.js")
 
-}),
-"./entry1.js": 
-/*!*******************!*\
-  !*** ./entry1.js ***!
-  \*******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
+},
+"./entry1.js"(module, __unused_rspack_exports, __webpack_require__) {
+module.exports = __webpack_require__("./foo.js")
 module.exports.name = "entry1"
 
-}),
-"./entry2.js": 
-/*!*******************!*\
-  !*** ./entry2.js ***!
-  \*******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports = __webpack_require__(/*! ./bar */ "./bar.js")
+},
+"./entry2.js"(module, __unused_rspack_exports, __webpack_require__) {
+module.exports = __webpack_require__("./bar.js")
 module.exports.name = "entry2"
 
-}),
-"./foo.js": 
-/*!****************************!*\
-  !*** ./foo.js + 1 modules ***!
-  \****************************/
-(function () {
+},
+"./foo.js"() {
 
 ;// CONCATENATED MODULE: external "externals1"
 
@@ -53,7 +33,7 @@ module.exports.name = "entry2"
 
 __rspack_external_externals1.v;
 
-}),
+},
 
 });
 // The module cache
@@ -87,5 +67,5 @@ var __webpack_exports__entry1 = __webpack_exports__.entry1;
 var __webpack_exports__entry2 = __webpack_exports__.entry2;
 export { __webpack_exports__entry1 as entry1, __webpack_exports__entry2 as entry2 };
 
-var __webpack_exports_default__ = { entry1: __webpack_exports__entry1, entry2: __webpack_exports__entry2 };
-export default __webpack_exports_default__;
+var __rspack_exports_default = { entry1: __webpack_exports__entry1, entry2: __webpack_exports__entry2 };
+export default __rspack_exports_default;

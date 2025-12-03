@@ -133,7 +133,7 @@ async fn render(
   let external_arguments = external_module_names(&modules, compilation);
 
   // The name of the variable provided by System for exporting
-  let dynamic_export = "__WEBPACK_DYNAMIC_EXPORT__";
+  let dynamic_export = "__rspack_dynamic_export";
   let external_var_declarations = external_arguments
     .iter()
     .map(|name| format!("var {name} = {{}};\n"))

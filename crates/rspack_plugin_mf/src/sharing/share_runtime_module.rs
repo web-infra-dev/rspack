@@ -29,6 +29,13 @@ impl RuntimeModule for ShareRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("./initializeSharing.ejs").to_string(),
+    )]
+  }
+
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk_ukey = self
       .chunk
@@ -104,17 +111,29 @@ impl RuntimeModule for ShareRuntimeModule {
       .collect::<Vec<_>>()
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
-      "__webpack_require__.I = __webpack_require__.I || function() { throw new Error(\"should have __webpack_require__.I\") }"
+      format!(
+        "{initialize_sharing} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
+        initialize_sharing = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
+      )
     } else {
-      include_str!("./initializeSharing.js")
+      compilation
+        .runtime_template
+        .render(self.id.as_str(), None)?
     };
     Ok(format!(
       r#"
 {share_scope_map} = {{}};
-__webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
-      share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
+      require_name = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      share_scope_map = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,

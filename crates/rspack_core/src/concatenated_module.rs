@@ -50,13 +50,11 @@ use crate::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, define_es_module_flag_statement,
-  escape_identifier, filter_runtime, get_property_accessed_deferred_module, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
-  returning_function, runtime_condition_expression, subtract_runtime_condition,
-  to_identifier_with_escaped, to_normal_comment,
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -223,12 +221,6 @@ impl ConcatenatedModuleInfo {
 
     if atom.as_str() == "default" {
       return self.internal_names.get(&*DEFAULT_EXPORT_ATOM);
-    }
-
-    if let Some(name) = &self.namespace_export_symbol
-      && name == atom
-    {
-      return Some(name);
     }
 
     if let Some(name) = &self.namespace_object_name
@@ -692,6 +684,16 @@ impl Module for ConcatenatedModule {
       .iter()
       .map(|item| Some(&item.id))
       .collect::<HashSet<_>>();
+
+    let root_module = module_graph
+      .module_by_identifier(&self.root_module_ctxt.id)
+      .expect("should have root module");
+
+    // populate root collected_typescript_info
+    if let Some(collected_typescript_info) = &root_module.build_info().collected_typescript_info {
+      self.build_info.collected_typescript_info = Some(collected_typescript_info.clone());
+    }
+
     for m in self.modules.iter() {
       let module = module_graph
         .module_by_identifier(&m.id)
@@ -1369,7 +1371,7 @@ impl Module for ConcatenatedModule {
         definitions.push(format!(
           "\n  {}: {}",
           property_name(key).expect("should convert to property_name"),
-          returning_function(&compilation.options.output.environment, value, "")
+          compilation.runtime_template.returning_function(value, "")
         ));
       }
 
@@ -1391,17 +1393,25 @@ impl Module for ConcatenatedModule {
 
         if should_add_esm_flag {
           result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawStringSource::from(define_es_module_flag_statement(
-            self.get_exports_argument(),
-            &mut runtime_requirements,
-          )));
+          result.add(RawStringSource::from(
+            compilation
+              .runtime_template
+              .define_es_module_flag_statement(
+                self.get_exports_argument(),
+                &mut runtime_requirements,
+              ),
+          ));
         }
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
         result.add(RawStringSource::from(format!(
           "{}({}, {{{}\n}});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          exports_argument,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+          compilation
+            .runtime_template
+            .render_exports_argument(exports_argument),
           definitions.join(",")
         )));
       }
@@ -1491,11 +1501,9 @@ impl Module for ConcatenatedModule {
             ns_obj.push(format!(
               "\n  {}: {}",
               property_name(&used_name).expect("should have property_name"),
-              returning_function(
-                &compilation.options.output.environment,
-                &final_name.name,
-                ""
-              )
+              compilation
+                .runtime_template
+                .returning_function(&final_name.name, "")
             ));
           }
         }
@@ -1504,7 +1512,9 @@ impl Module for ConcatenatedModule {
         let define_getters = if !ns_obj.is_empty() {
           format!(
             "{}({}, {{ {} }});\n",
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
             name,
             ns_obj.join(",")
           )
@@ -1522,7 +1532,9 @@ impl Module for ConcatenatedModule {
             "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
             module_readable_identifier,
             name,
-            RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
             name,
             define_getters
           ),
@@ -1561,15 +1573,17 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
-        let loader = get_property_accessed_deferred_module(
-          module.get_exports_type(
-            &module_graph,
-            &compilation.module_graph_cache_artifact,
-            root_module.build_meta().strict_esm_module,
-          ),
-          &module_id,
-          Default::default(),
-        );
+        let loader = compilation
+          .runtime_template
+          .get_property_accessed_deferred_module(
+            module.get_exports_type(
+              &module_graph,
+              &compilation.module_graph_cache_artifact,
+              root_module.build_meta().strict_esm_module,
+            ),
+            &module_id,
+            Default::default(),
+          );
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         result.add(RawStringSource::from(format!(
           "\n// DEFERRED EXTERNAL MODULE: {module_readable_identifier}\nvar {} = {loader};",
@@ -1593,7 +1607,9 @@ impl Module for ConcatenatedModule {
               .deferred_namespace_object_name
               .as_ref()
               .expect("should have deferred_namespace_object_name"),
-            RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
             module_id,
             render_make_deferred_namespace_mode_from_exports_type(module.get_exports_type(
               &module_graph,
@@ -1645,7 +1661,7 @@ impl Module for ConcatenatedModule {
 
             runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-            let condition = runtime_condition_expression(
+            let condition = compilation.runtime_template.runtime_condition_expression(
               &compilation.chunk_graph,
               Some(&reference_info.runtime_condition),
               runtime,
@@ -1660,7 +1676,9 @@ impl Module for ConcatenatedModule {
             result.add(RawStringSource::from(format!(
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
-              RuntimeGlobals::REQUIRE,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
               serde_json::to_string(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
@@ -1699,7 +1717,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
         )));
       }
@@ -1711,7 +1731,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_namespace_object2_name()
             .expect("should have interop_namespace_object2_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
         )));
       }
@@ -1723,7 +1745,9 @@ impl Module for ConcatenatedModule {
           info
             .get_interop_default_access_name()
             .expect("should have interop_default_access_name"),
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name.expect("should have name")
         )));
       }
@@ -2155,6 +2179,17 @@ impl ConcatenatedModule {
           .dependency_by_id(&connection.dependency_id)
           .expect("should have dependency");
         if !is_esm_dep_like(dep) {
+          return None;
+        }
+        let ref_module = mg
+          .module_by_identifier(connection.module_identifier())
+          .expect("should have module");
+
+        if ref_module
+          .source_types(mg)
+          .iter()
+          .all(|source_type| source_type == &SourceType::Css)
+        {
           return None;
         }
 

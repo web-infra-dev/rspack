@@ -77,7 +77,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for request in array.iter() {
         if request == "require" {
           deps.push(AMDRequireArrayItem::String(
-            RuntimeGlobals::REQUIRE.name().into(),
+            parser
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           ));
         } else if request == "exports" || request == "module" {
           deps.push(AMDRequireArrayItem::String(request.into()));
@@ -126,7 +128,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
       if param_str == "require" {
         let dep = Box::new(ConstDependency::new(
           range.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
+          parser
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            .into(),
           Some(RuntimeGlobals::REQUIRE),
         ));
         parser.add_presentational_dependency(dep);

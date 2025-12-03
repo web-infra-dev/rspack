@@ -131,6 +131,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_layer,
       resource_data,
       compiler_options,
+      runtime_template,
       factory_meta,
       build_info,
       build_meta,
@@ -259,6 +260,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         parse_meta,
+        runtime_template,
       )
     }) {
       Ok(result) => result,

@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./child/child/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./child/child/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -9,8 +9,8 @@ __webpack_require__.d(__webpack_exports__, {
 const value = "dynamic";
 
 
-}),
-"./child/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./child/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -19,19 +19,19 @@ __webpack_require__.d(__webpack_exports__, {
 const value = "dynamic";
 
 
-}),
-"./child sync recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./child sync recursive ^\\.\\/.*\\.js$"(module, __unused_rspack_exports, __webpack_require__) {
 var map = {
   "./child/index.js": "./child/child/index.js",
   "./index.js": "./child/index.js"
 };
 
 
-function webpackContext(req) {
-  var id = webpackContextResolve(req);
+function __rspack_context(req) {
+  var id = __rspack_context_resolve(req);
   return __webpack_require__(id);
 }
-function webpackContextResolve(req) {
+function __rspack_context_resolve(req) {
   if(!__webpack_require__.o(map, req)) {
     var e = new Error("Cannot find module '" + req + "'");
     e.code = 'MODULE_NOT_FOUND';
@@ -39,21 +39,21 @@ function webpackContextResolve(req) {
   }
   return map[req];
 }
-webpackContext.keys = function webpackContextKeys() {
+__rspack_context.keys = function webpackContextKeys() {
   return Object.keys(map);
 };
-webpackContext.resolve = webpackContextResolve;
-module.exports = webpackContext;
-webpackContext.id = "./child sync recursive ^\\.\\/.*\\.js$";
+__rspack_context.resolve = __rspack_context_resolve;
+module.exports = __rspack_context;
+__rspack_context.id = "./child sync recursive ^\\.\\/.*\\.js$";
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+},
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 let a = "index";
 __webpack_require__("./child sync recursive ^\\.\\/.*\\.js$")(`./${a}.js`);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

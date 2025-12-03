@@ -3,7 +3,7 @@ use std::{borrow::Cow, ptr::NonNull};
 use rspack_collections::Identifier;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, basic_function, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
@@ -190,8 +190,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
 
-      let load_css_chunk_data = basic_function(
-        environment,
+      let load_css_chunk_data = compilation.runtime_template.basic_function(
         "target, chunkId",
         &format!(
           r#"{}
@@ -200,7 +199,9 @@ installedChunks[chunkId] = 0;
           with_hmr
             .then_some(format!(
               "var moduleIds = [];\nif(target == {})",
-              RuntimeGlobals::MODULE_FACTORIES
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -218,7 +219,9 @@ installedChunks[chunkId] = 0;
             .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
             .collect::<Vec<_>>()
             .join(","),
-          RuntimeGlobals::MODULE_FACTORIES
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
         Cow::Owned(
@@ -228,7 +231,9 @@ installedChunks[chunkId] = 0;
               let id = serde_json::to_string(id).expect("should ok to convert to string");
               format!(
                 "loadCssChunkData({}, 0, {});",
-                RuntimeGlobals::MODULE_FACTORIES,
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
                 id
               )
             })

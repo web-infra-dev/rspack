@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, RuntimeVariable, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -131,14 +131,17 @@ async fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_id__ = {chunk_id_json_string} ;\n",
+    "export const __rspack_esm_id = {chunk_id_json_string};\n",
   )));
   sources.add(RawStringSource::from(format!(
-    "export const __webpack_ids__ = [{chunk_id_json_string}];\n",
+    "export const __rspack_esm_ids = [{chunk_id_json_string}];\n",
   )));
-  sources.add(RawStringSource::from_static(
-    "export const __webpack_modules__ = ",
-  ));
+  sources.add(RawStringSource::from(format!(
+    "export const {} = ",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::Modules),
+  )));
   sources.add(render_source.source.clone());
   sources.add(RawStringSource::from_static(";\n"));
 
@@ -147,7 +150,7 @@ async fn render_chunk(
     .has_chunk_runtime_modules(chunk_ukey)
   {
     sources.add(RawStringSource::from_static(
-      "export const __webpack_runtime__ = ",
+      "export const __rspack_esm_runtime = ",
     ));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
@@ -161,7 +164,10 @@ async fn render_chunk(
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
-      "import {{ __webpack_require__ }} from '{}';\n",
+      "import {{ {} }} from '{}';\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -177,8 +183,16 @@ async fn render_chunk(
     let mut startup_source = vec![];
 
     startup_source.push(format!(
-      "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
-      RuntimeGlobals::ENTRY_MODULE_ID
+      "var {} = function(moduleId) {{ return {}({} = moduleId); }}",
+      compilation
+        .runtime_template
+        .render_runtime_variable(&RuntimeVariable::StartupExec),
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
     ));
 
     let module_graph = compilation.get_module_graph();
@@ -222,15 +236,17 @@ async fn render_chunk(
         let mut index_buffer = itoa::Buffer::new();
         let index_str = index_buffer.format(index);
         startup_source.push(format!(
-          "import * as __webpack_chunk_${}__ from '{}';",
+          "import * as __rspack_chunk_{} from '{}';",
           index_str,
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
         let mut index_buffer2 = itoa::Buffer::new();
         let index_str2 = index_buffer2.format(index);
         startup_source.push(format!(
-          "{}(__webpack_chunk_${}__);",
-          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+          "{}(__rspack_chunk_{});",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
           index_str2
         ));
       }
@@ -238,12 +254,20 @@ async fn render_chunk(
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
 
       startup_source.push(format!(
-        "{}__webpack_exec__({module_id_expr});",
+        "{}{}({module_id_expr});",
         if i + 1 == entries.len() {
-          "var __webpack_exports__ = "
+          format!(
+            "var {} = ",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::Exports)
+          )
         } else {
-          ""
-        }
+          "".to_string()
+        },
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::StartupExec),
       ));
     }
 
@@ -307,7 +331,7 @@ async fn render_startup(
 
       let dependant_chunk = compilation.chunk_by_ukey.expect_get(&ck);
 
-      let named_import = format!("__webpack_imports__{}", index);
+      let named_import = format!("__rspack_imports_{}", index);
 
       let dependant_chunk_name = get_chunk_output_name(dependant_chunk, compilation).await?;
 
@@ -319,7 +343,9 @@ async fn render_startup(
       )));
       dependent_load.add(RawStringSource::from(format!(
         "{}({});\n",
-        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
         named_import
       )));
     }

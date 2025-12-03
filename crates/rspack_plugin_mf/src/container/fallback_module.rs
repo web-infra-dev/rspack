@@ -182,7 +182,9 @@ var handleError = function(e) {{
 module.exports = loop();
 "#,
       ids = json_stringify(&ids),
-      require = RuntimeGlobals::REQUIRE,
+      require = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
     );
     codegen = codegen.with_javascript(RawStringSource::from(code).boxed());
     Ok(codegen)

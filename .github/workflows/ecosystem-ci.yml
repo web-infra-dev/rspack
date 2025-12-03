@@ -19,8 +19,10 @@ on:
           - rsbuild
           - rslib
           - rstest
+          - rsdoctor
           - examples
           - devserver
+          - nuxt
           - plugin
           - lynx-stack
       suiteRef:
@@ -110,7 +112,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           result-encoding: string
           script: |
-            const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`;
+            const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`
             let suites = [
               "modernjs",
               // "nx",
@@ -180,8 +182,8 @@ jobs:
 
           RSPACK_DIR=$(pwd)
           cd ..
-          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-ci.git
-          cd rspack-ecosystem-ci
+          git clone --single-branch --depth 1 https://github.com/rspack-contrib/rstack-ecosystem-ci.git
+          cd rstack-ecosystem-ci
           pnpm i --frozen-lockfile
 
           pnpm verdaccio --config verdaccio.yaml&
@@ -214,11 +216,11 @@ jobs:
           CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites --stack rspack --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
-            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
+            NPM_CONFIG_REGISTRY=http://localhost:4873 pnpm tsx ecosystem-ci.ts run-suites --stack rspack "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE"
           fi
           echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
@@ -232,6 +234,9 @@ jobs:
     if: github.repository == 'web-infra-dev/rspack' && !cancelled()
     runs-on: ubuntu-latest
     needs: [create-comment, eco-ci]
+    outputs:
+      summary: ${{ steps.build-summary.outputs.summary }}
+      results: ${{ steps.build-summary.outputs.results }}
     steps:
       - name: Download Result
         uses: actions/download-artifact@v4
@@ -239,7 +244,8 @@ jobs:
           path: results
           pattern: eco-ci-result-*
           merge-multiple: true
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      - id: build-summary
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -276,6 +282,13 @@ jobs:
             ${result.map(r => `| [${r.suite}](${r.link}) | ${conclusionEmoji[r.conclusion]} ${r.conclusion} |`).join("\n")}
             ` : ` 📝 Ecosystem CI failed: ${urlLink}`
 
+            core.setOutput('summary', body.trim());
+            core.setOutput('results', JSON.stringify({
+              workflowUrl: url,
+              workflowRunId: String(context.runId),
+              suites: result,
+            }));
+
             if (context.eventName === 'workflow_dispatch') {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -291,3 +304,51 @@ jobs:
                 body,
               });
             }
+
+  publish-ecosystem-history:
+    if: github.repository == 'web-infra-dev/rspack' && github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
+    needs: [eco-ci, comment-compare-results]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ecosystem-ci repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          repository: rspack-contrib/rstack-ecosystem-ci
+          ref: main
+          fetch-depth: 1
+          token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Update Ecosystem History
+        env:
+          SUMMARY_MARKDOWN: ${{ needs.comment-compare-results.outputs.summary }}
+          RESULTS_JSON: ${{ needs.comment-compare-results.outputs.results }}
+          WORKFLOW_FILE: ecosystem-ci.yml
+          WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          HISTORY_REPOSITORY: rspack-contrib/rstack-ecosystem-ci
+          OUTPUT_DIR: data-artifacts
+          GITHUB_TOKEN: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
+          STACK: rspack
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          node scripts/update-ecosystem-history.mjs
+
+      - name: Publish History
+        if: ${{ success() }}
+        uses: JamesIves/github-pages-deploy-action@v4.7.4
+        with:
+          branch: data
+          folder: data-artifacts
+          clean: false
+          target-folder: .
+          token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
+          repository-name: rspack-contrib/rstack-ecosystem-ci
+          git-config-name: github-actions[bot]
+          git-config-email: github-actions[bot]@users.noreply.github.com

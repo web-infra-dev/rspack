@@ -19,10 +19,12 @@ impl RuntimeModule for AmdDefineRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = function () {{ throw new Error('define cannot be used indirect'); }}",
-      RuntimeGlobals::AMD_DEFINE.name()
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::AMD_DEFINE),
     ))
   }
 }

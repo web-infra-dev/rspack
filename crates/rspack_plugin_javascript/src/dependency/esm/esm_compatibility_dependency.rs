@@ -64,8 +64,12 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({});\n",
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-          module.get_exports_argument()
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          compilation
+            .runtime_template
+            .render_exports_argument(module.get_exports_argument()),
         ),
         InitFragmentStage::StageESMExports,
         0,
@@ -74,22 +78,33 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       )));
     }
 
-    if ModuleGraph::is_async(compilation, &module.identifier()) {
+    if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
-          "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
-          RuntimeGlobals::ASYNC_MODULE,
-          module_graph
-            .module_by_identifier(&module.identifier())
-            .expect("should have mgm")
-            .get_module_argument()
+          "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+          compilation.runtime_template.render_module_argument(
+            module_graph
+              .module_by_identifier(&module.identifier())
+              .expect("should have mgm")
+              .get_module_argument()
+          ),
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::unique(),
-        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if module.build_meta().has_top_level_await { ", 1" } else { "" })),
+        Some(format!(
+          "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{});",
+          if module.build_meta().has_top_level_await {
+            ", 1"
+          } else {
+            ""
+          }
+        )),
       )));
     }
   }

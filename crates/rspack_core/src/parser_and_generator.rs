@@ -18,7 +18,7 @@ use crate::{
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
   ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  RuntimeSpec, RuntimeTemplate, SourceType,
 };
 
 #[derive(Debug)]
@@ -41,6 +41,7 @@ pub struct ParseContext<'a> {
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
+  pub runtime_template: &'a RuntimeTemplate,
 }
 
 #[cacheable]

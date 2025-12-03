@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, ImportPhase, RuntimeCondition, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, import_statement, runtime_condition_expression,
+  TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -94,7 +94,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       }
 
       let condition = {
-        runtime_condition_expression(
+        compilation.runtime_template.runtime_condition_expression(
           &compilation.chunk_graph,
           Some(&runtime_condition),
           *runtime,
@@ -113,7 +113,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         *runtime,
       );
-      let stmts = import_statement(
+      let stmts = compilation.runtime_template.import_statement(
         *module,
         compilation,
         runtime_requirements,
@@ -137,12 +137,12 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
+        format!("function(__rspack_hmr_outdated) {{\n{content}(").as_str(),
         None,
       );
       source.insert(
         dep.range.end,
-        ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
+        ")(__rspack_hmr_outdated); }.bind(this)",
         None,
       );
     } else {

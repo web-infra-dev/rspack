@@ -52,15 +52,6 @@ const commonLibConfig: LibConfig = {
 				}
 			}
 		}
-	},
-	tools: {
-		bundlerChain: (chain, { CHAIN_ID }) => {
-			// remove the entry loader in Rslib to avoid
-			// "Cannot access 'Compiler' before initialization" error caused by circular dependency
-			chain.module
-				.rule(`Rslib:${CHAIN_ID.RULE.JS}-entry-loader`)
-				.uses.delete("rsbuild:lib-entry-module");
-		}
 	}
 };
 

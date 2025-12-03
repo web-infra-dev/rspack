@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1083
+- Update: main.LAST_HASH.hot-update.js, size: 883
 
 ## Manifest
 
@@ -33,37 +33,29 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./inner.js": 
-/*!******************!*\
-  !*** ./inner.js ***!
-  \******************/
-(function (module, __webpack_exports__, __webpack_require__) {
+"./inner.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 module.hot.accept();
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = ("-inner");
+/* export default */ const __rspack_default_export = ("-inner");
 
 
-}),
-"./module.js": 
-/*!*******************!*\
-  !*** ./module.js ***!
-  \*******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* import */var _inner__rspack_import_0 = __webpack_require__(/*! ./inner */ "./inner.js");
+/* import */ var _inner__rspack_import_0 = __webpack_require__("./inner.js");
 
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = ("ok3" + _inner__rspack_import_0["default"]);
+/* export default */ const __rspack_default_export = ("ok3" + _inner__rspack_import_0["default"]);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

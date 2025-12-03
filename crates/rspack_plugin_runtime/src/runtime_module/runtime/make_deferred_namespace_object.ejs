@@ -36,7 +36,7 @@
       ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 6);
     }
   };
-  var ns = <%- _deferred_exports %>[moduleId] || (<%- _deferred_exports %>[moduleId] = { __proto__: null });
+  var ns = __rspack_deferred_exports[moduleId] || (__rspack_deferred_exports[moduleId] = { __proto__: null });
   var handler = {
     __proto__: null,
     get: <%- basicFunction("_, name") %> {

@@ -69,6 +69,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'EvalSourceMapDevToolPlugin',
+    url: '/plugins/webpack/eval-source-map-dev-tool-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -125,8 +126,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     url: '/plugins/webpack/progress-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
-      zh: '仅支持 `profile` 选项',
-      en: 'Only `profile` option supported',
+      zh: '仅支持部分选项',
+      en: 'Only partial options supported',
     },
   },
   {
@@ -167,8 +168,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     url: '/plugins/webpack/entry-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
-      en: '`layer` and `wasmLoading` options are not supported',
-      zh: '不支持 `layer`、`wasmLoading` 选项',
+      en: '`wasmLoading` option is not supported',
+      zh: '不支持 `wasmLoading` 选项',
     },
   },
   {
@@ -293,7 +294,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'ContextReplacementPlugin',
-    status: SupportStatus.NotSupported,
+    url: '/plugins/webpack/context-replacement-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'DelegatedPlugin',
@@ -324,8 +326,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     name: 'DynamicEntryPlugin',
     status: SupportStatus.PartiallySupported,
     notes: {
-      en: '`layer` and `wasmLoading` options are not supported',
-      zh: '不支持 `layer`、`wasmLoading` 选项',
+      en: '`wasmLoading` option is not supported',
+      zh: '不支持 `wasmLoading` 选项',
     },
   },
   {
@@ -368,7 +370,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'HttpUriPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'JavascriptModulesPlugin',
@@ -432,6 +434,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'RuntimeChunkPlugin',
+    url: '/plugins/webpack/runtime-chunk-plugin',
     status: SupportStatus.FullySupported,
   },
   {
@@ -441,6 +444,11 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'SyncModuleIdsPlugin',
     status: SupportStatus.NotSupported,
+  },
+  {
+    name: 'WarnCaseSensitiveModulesPlugin',
+    url: '/plugins/webpack/warn-case-sensitive-modules-plugin',
+    status: SupportStatus.FullySupported,
   },
 ].sort((a, b) => {
   return (

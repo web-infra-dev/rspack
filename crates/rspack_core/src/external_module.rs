@@ -19,7 +19,7 @@ use crate::{
   StaticExportsSpec, UsedExports, extract_url_and_global, impl_module_meta_info,
   module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block, to_identifier,
+  to_identifier,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -361,7 +361,7 @@ impl ExternalModule {
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import {{ createRequire as __rspack_external_createRequire }} from \"{}\";\n{} __rspack_external_createRequire_require = __rspack_external_createRequire({}.url);\n",
+                "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
                 if need_prefix { "node:module" } else { "module" },
                 if compilation.options.output.environment.supports_const() {
                   "const"
@@ -386,7 +386,7 @@ impl ExternalModule {
             ("undefined".to_string(), String::new())
           };
           format!(
-            "{} = __rspack_external_createRequire_require({}){};",
+            "{} = __rspack_createRequire_require({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             request,
             specifiers
@@ -408,7 +408,9 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&self.user_request)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&self.user_request)
           )
         } else {
           String::new()
@@ -437,7 +439,9 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&get_request_string(request))
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&get_request_string(request))
           )
         } else {
           String::new()
@@ -698,18 +702,18 @@ impl ExternalModule {
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
           r#"
-var __webpack_error__ = new Error();
+var __rspack_error = new Error();
 {export} = new Promise(function(resolve, reject) {{
 if(typeof {global} !== "undefined") return resolve();
 {load_script}({url_str}, function(event) {{
   if(typeof {global} !== "undefined") return resolve();
   var errorType = event && (event.type === 'load' ? 'missing' : event.type);
   var realSrc = event && event.target && event.target.src;
-  __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
-  __webpack_error__.name = 'ScriptExternalLoadError';
-  __webpack_error__.type = errorType;
-  __webpack_error__.request = realSrc;
-  reject(__webpack_error__);
+  __rspack_error.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
+  __rspack_error.name = 'ScriptExternalLoadError';
+  __rspack_error.type = errorType;
+  __rspack_error.request = realSrc;
+  reject(__rspack_error);
 }}, {global_str});
 }}).then(function() {{ return {global}; }});
 "#,
@@ -717,7 +721,9 @@ if(typeof {global} !== "undefined") return resolve();
           global = url_and_global.global,
           global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
           url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
-          load_script = RuntimeGlobals::LOAD_SCRIPT.name()
+          load_script = compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
       _ => {
@@ -730,7 +736,9 @@ if(typeof {global} !== "undefined") return resolve();
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
-            throw_missing_module_error_block(&external_variable)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&external_variable)
           )
         } else {
           String::new()

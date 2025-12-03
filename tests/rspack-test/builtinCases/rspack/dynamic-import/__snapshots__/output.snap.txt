@@ -1,7 +1,7 @@
 ```js title=child_a_js.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["child_a_js"], {
-"./child/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./child/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
@@ -9,7 +9,7 @@ __webpack_require__.d(__webpack_exports__, {
 const a = "a";
 
 
-}),
+},
 
 }]);
 ```
@@ -17,7 +17,7 @@ const a = "a";
 ```js title=child_b_js.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["child_b_js"], {
-"./child/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./child/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   b: () => (b)
@@ -25,14 +25,14 @@ __webpack_require__.d(__webpack_exports__, {
 const b = "b";
 
 
-}),
+},
 
 }]);
 ```
 
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a"(module, __unused_rspack_exports, __webpack_require__) {
 var map = {
   "./a.js": [
     "./child/a.js",
@@ -43,7 +43,7 @@ var map = {
     "child_b_js"
   ]
 };
-function webpackAsyncContext(req) {
+function __rspack_async_context(req) {
   if(!__webpack_require__.o(map, req)) {
     return Promise.resolve().then(function() {
       var e = new Error("Cannot find module '" + req + "'");
@@ -58,13 +58,13 @@ function webpackAsyncContext(req) {
   });
 }
 
-webpackAsyncContext.keys = () => (Object.keys(map));
-webpackAsyncContext.id = "./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a";
-module.exports = webpackAsyncContext;
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a";
+module.exports = __rspack_async_context;
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+},
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 const request = "a";
 __webpack_require__.e(/* import() */ "child_a_js").then(__webpack_require__.bind(__webpack_require__, "./child/a.js")).then(({ a }) => console.log("Literal", a));
 __webpack_require__.e(/* import() */ "child_b_js").then(__webpack_require__.bind(__webpack_require__, "./child/b.js")).then(({ b }) => console.log("Template Literal", b));
@@ -81,7 +81,7 @@ __webpack_require__("./child lazy recursive ^\\.\\/.*\\.js$ referencedExports: a
 	console.log("context_module_concat", a)
 );
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

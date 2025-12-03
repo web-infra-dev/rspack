@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeGlobals, SourceType, get_js_chunk_filename_template,
+  RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -230,41 +230,66 @@ pub fn generate_entry_startup(
 
   let mut source = String::default();
   source.push_str(&format!(
-    "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
-    RuntimeGlobals::ENTRY_MODULE_ID
+    "var {} = function(moduleId) {{ return {}({} = moduleId) }}\n",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::StartupExec),
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
   ));
+
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
 
   let module_ids_code = &module_id_exprs
     .iter()
-    .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
+    .map(|module_id_expr| {
+      format!(
+        "{}({module_id_expr})",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::StartupExec)
+      )
+    })
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {
     if !module_ids_code.is_empty() {
-      source.push_str("var __webpack_exports__ = (");
+      source.push_str(&format!("var {exports_name} = ("));
       source.push_str(module_ids_code);
       source.push_str(");\n");
     }
   } else {
     if !passive {
-      source.push_str("var __webpack_exports__ = ");
+      source.push_str(&format!("var {exports_name} = "));
     }
     source.push_str(&format!(
       "{}(0, {}, function() {{
         return {};
       }});\n",
       if passive {
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       } else {
-        RuntimeGlobals::STARTUP_ENTRYPOINT
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
       },
       stringify_chunks_to_array(&chunks_ids),
       module_ids_code
     ));
     if passive {
       source.push_str(&format!(
-        "var __webpack_exports__ = {}();\n",
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        "var {exports_name} = {}();\n",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     }
   }

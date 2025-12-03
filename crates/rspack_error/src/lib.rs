@@ -1,4 +1,5 @@
 mod batch_error;
+mod colors;
 mod convert;
 mod diagnosable;
 mod diagnostic;
@@ -9,6 +10,7 @@ mod macros;
 
 pub use self::{
   batch_error::BatchErrors,
+  colors::{cyan, dim, red, yellow},
   convert::{
     AnyhowResultToRspackResultExt, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt,
   },

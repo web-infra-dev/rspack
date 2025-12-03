@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModuleStage, RuntimeVariable, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -50,7 +50,13 @@ impl ModuleChunkLoadingRuntimeModule {
           compilation.options.output.import_meta_name
         )
       });
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template(&self, template_id: TemplateId) -> String {
@@ -63,6 +69,7 @@ impl ModuleChunkLoadingRuntimeModule {
       TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id),
       TemplateId::WithHMR => format!("{}_with_hmr", self.id),
       TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
+      TemplateId::HmrRuntime => format!("{}_hmr_runtime", self.id),
     }
   }
 }
@@ -76,6 +83,7 @@ enum TemplateId {
   WithPreloadLink,
   WithHMR,
   WithHMRManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -117,6 +125,10 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       (
         self.template(TemplateId::WithHMRManifest),
         include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -180,7 +192,12 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_module",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -192,9 +209,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let raw_source = compilation.runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
-          "_ids": "__webpack_ids__",
-          "_modules": "__webpack_modules__",
-          "_runtime": "__webpack_runtime__",
+          "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
@@ -229,7 +244,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     } else {
       source.push_str("// no chunk on demand loading\n");
@@ -312,7 +329,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         r#"
         {} = installChunk;
         "#,
-        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
     } else {
       source.push_str("// no external install chunk\n");
@@ -325,7 +344,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             return installedChunks[chunkId] === 0;
         }}
         "#,
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     } else {
       source.push_str("// no on chunks loaded\n");
@@ -337,13 +358,15 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
  {}
  {}
       "#,
-        generate_javascript_hmr_runtime("module"),
+        generate_javascript_hmr_runtime(
+          &self.template(TemplateId::HmrRuntime),
+          "module",
+          &compilation.runtime_template
+        )?,
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({
-            "_ids": "__webpack_ids__",
-            "_modules": "__webpack_modules__",
-            "_runtime": "__webpack_runtime__",
+            "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
             "_import_function_name": import_function_name,
           })),
         )?

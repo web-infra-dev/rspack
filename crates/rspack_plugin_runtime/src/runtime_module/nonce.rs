@@ -19,7 +19,12 @@ impl RuntimeModule for NonceRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    Ok(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE))
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = undefined;",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+    ))
   }
 }
