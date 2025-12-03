@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6704
+- Update: main.hot-update.js, size: 6692
 
 ## Manifest
 
@@ -151,10 +151,10 @@ function cssReload(moduleId, options) {
         }, 50);
     };
 }
-for(var __webpack_i__ in exports.cssReload = __nested_rspack_exports__.cssReload, exports.normalizeUrl = __nested_rspack_exports__.normalizeUrl, __nested_rspack_exports__)-1 === [
+for(var __rspack_i in exports.cssReload = __nested_rspack_exports__.cssReload, exports.normalizeUrl = __nested_rspack_exports__.normalizeUrl, __nested_rspack_exports__)-1 === [
     "cssReload",
     "normalizeUrl"
-].indexOf(__webpack_i__) && (exports[__webpack_i__] = __nested_rspack_exports__[__webpack_i__]);
+].indexOf(__rspack_i) && (exports[__rspack_i] = __nested_rspack_exports__[__rspack_i]);
 Object.defineProperty(exports, "__esModule", ({
     value: !0
 }));
