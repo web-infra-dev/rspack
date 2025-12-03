@@ -178,16 +178,8 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     compiler.compilation.build_module_graph().await.unwrap();
     compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
-    let side_effects_optimize_artifact = compiler.compilation.side_effects_optimize_artifact.take();
-    let mut side_effects_optimize_artifact = if compiler
-      .compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-    {
-      side_effects_optimize_artifact
-    } else {
-      Default::default()
-    };
+    let mut side_effects_optimize_artifact =
+      compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
 
     while matches!(
