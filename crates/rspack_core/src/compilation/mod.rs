@@ -78,7 +78,7 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -251,35 +251,35 @@ pub struct Compilation {
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
-  pub side_effects_optimize_artifact: SideEffectsOptimizeArtifact,
+  pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
-  pub module_ids_artifact: ModuleIdsArtifact,
+  pub module_ids_artifact: DerefOption<ModuleIdsArtifact>,
   // artifact for chunk_ids
-  pub chunk_ids_artifact: ChunkIdsArtifact,
+  pub chunk_ids_artifact: DerefOption<ChunkIdsArtifact>,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
-  pub cgm_hash_artifact: CgmHashArtifact,
+  pub cgm_hash_artifact: DerefOption<CgmHashArtifact>,
   // artifact for process_modules_runtime_requirements
-  pub cgm_runtime_requirements_artifact: CgmRuntimeRequirementsArtifact,
+  pub cgm_runtime_requirements_artifact: DerefOption<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
-  pub cgc_runtime_requirements_artifact: CgcRuntimeRequirementsArtifact,
+  pub cgc_runtime_requirements_artifact: DerefOption<CgcRuntimeRequirementsArtifact>,
   // artifact for create_hash
-  pub chunk_hashes_artifact: ChunkHashesArtifact,
+  pub chunk_hashes_artifact: DerefOption<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
-  pub chunk_render_artifact: ChunkRenderArtifact,
+  pub chunk_render_artifact: DerefOption<ChunkRenderArtifact>,
   // artifact for caching get_mode
-  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  pub module_graph_cache_artifact: DerefOption<ModuleGraphCacheArtifact>,
   // artifact for caching module static info
-  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+  pub module_static_cache_artifact: DerefOption<ModuleStaticCacheArtifact>,
   // artifact for chunk render cache
-  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
-  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  pub chunk_render_cache_artifact: DerefOption<ChunkRenderCacheArtifact>,
+  pub imported_by_defer_modules_artifact: DerefOption<ImportedByDeferModulesArtifact>,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
-  pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
+  pub build_chunk_graph_artifact: DerefOption<BuildChunkGraphArtifact>,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -299,7 +299,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: BuildModuleGraphArtifact,
+  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -391,7 +391,7 @@ impl Compilation {
       dependencies_diagnostics_artifact: DerefOption::new(
         DependenciesDiagnosticsArtifact::default(),
       ),
-      side_effects_optimize_artifact: Default::default(),
+      side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       chunk_ids_artifact: Default::default(),
       code_generation_results: Default::default(),
@@ -1650,15 +1650,19 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let mut diagnostics: Vec<Diagnostic> = vec![];
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self)
+        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
+    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
+    self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
 
