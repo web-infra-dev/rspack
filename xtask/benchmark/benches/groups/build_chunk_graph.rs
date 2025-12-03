@@ -7,7 +7,7 @@ use rspack_benchmark::Criterion;
 use rspack_core::{
   Compilation, Compiler, DerefOption, Experiments, ModuleGraphPartial, Optimization,
   build_chunk_graph, fast_set,
-  incremental::{Incremental, IncrementalOptions, IncrementalPasses},
+  incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};

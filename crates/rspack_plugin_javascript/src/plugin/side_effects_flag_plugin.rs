@@ -298,7 +298,6 @@ async fn optimize_dependencies(
   }
   logger.time_end(inner_start);
 
-
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));
   Ok(None)
