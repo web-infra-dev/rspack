@@ -2,7 +2,9 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -13,9 +15,12 @@ pub struct StartupChunkDependenciesRuntimeModule {
 }
 
 impl StartupChunkDependenciesRuntimeModule {
-  pub fn new(async_chunk_loading: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/startup_chunk_dependencies"),
+      Identifier::from(format!(
+        "{}startup_chunk_dependencies",
+        runtime_template.runtime_module_prefix()
+      )),
       async_chunk_loading,
       None,
     )

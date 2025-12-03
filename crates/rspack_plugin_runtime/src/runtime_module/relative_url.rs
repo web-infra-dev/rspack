@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,9 +7,12 @@ pub struct RelativeUrlRuntimeModule {
   id: Identifier,
 }
 
-impl Default for RelativeUrlRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/relative_url"))
+impl RelativeUrlRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}relative_url",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

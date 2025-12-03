@@ -1,7 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, impl_runtime_module,
+  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::{
@@ -20,10 +20,13 @@ pub struct ReadFileChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for ReadFileChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl ReadFileChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/readfile_chunk_loading"),
+      Identifier::from(format!(
+        "{}readfile_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }

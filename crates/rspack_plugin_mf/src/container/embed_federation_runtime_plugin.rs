@@ -120,7 +120,10 @@ async fn runtime_requirement_in_tree(
     // Inject EmbedFederationRuntimeModule
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(EmbedFederationRuntimeModule::new(emro)),
+      Box::new(EmbedFederationRuntimeModule::new(
+        &compilation.runtime_template,
+        emro,
+      )),
     )?;
   }
 

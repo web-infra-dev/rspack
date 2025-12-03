@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -11,13 +13,15 @@ pub struct ChunkPrefetchPreloadFunctionRuntimeModule {
 
 impl ChunkPrefetchPreloadFunctionRuntimeModule {
   pub fn new(
+    runtime_template: &RuntimeTemplate,
     child_type: &str,
     runtime_function: RuntimeGlobals,
     runtime_handlers: RuntimeGlobals,
   ) -> Self {
     Self::with_default(
       Identifier::from(format!(
-        "webpack/runtime/chunk_prefetch_function/{child_type}"
+        "{}chunk_prefetch_function/{child_type}",
+        runtime_template.runtime_module_prefix()
       )),
       runtime_function,
       runtime_handlers,

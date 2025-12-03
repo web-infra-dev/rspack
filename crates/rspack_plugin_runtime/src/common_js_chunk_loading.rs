@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
-  RuntimeGlobals,
+  RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -96,12 +96,12 @@ async fn runtime_requirements_in_tree(
     if self.async_chunk_loading {
       compilation.add_runtime_module(
         chunk_ukey,
-        Box::<ReadFileChunkLoadingRuntimeModule>::default(),
+        ReadFileChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
       )?;
     } else {
       compilation.add_runtime_module(
         chunk_ukey,
-        Box::<RequireChunkLoadingRuntimeModule>::default(),
+        RequireChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
       )?;
     }
   }

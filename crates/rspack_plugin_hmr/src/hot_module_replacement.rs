@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 use rspack_util::test::is_hot_test;
 
 #[impl_runtime_module]
@@ -8,9 +8,12 @@ pub struct HotModuleReplacementRuntimeModule {
   id: Identifier,
 }
 
-impl Default for HotModuleReplacementRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/hot_module_replacement"))
+impl HotModuleReplacementRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}hot_module_replacement",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

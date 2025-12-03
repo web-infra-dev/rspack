@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, RuntimeGlobals,
+  Plugin, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -55,8 +55,10 @@ async fn runtime_requirements_in_tree(
     if has_jsonp_chunk_loading && is_enabled_for_chunk {
       runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      compilation
-        .add_runtime_module(chunk_ukey, Box::<JsonpChunkLoadingRuntimeModule>::default())?;
+      compilation.add_runtime_module(
+        chunk_ukey,
+        JsonpChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
+      )?;
     }
   }
   Ok(None)

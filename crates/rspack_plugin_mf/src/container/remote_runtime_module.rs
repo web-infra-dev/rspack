@@ -1,7 +1,7 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -18,9 +18,12 @@ pub struct RemoteRuntimeModule {
 }
 
 impl RemoteRuntimeModule {
-  pub fn new(enhanced: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/remotes_loading"),
+      Identifier::from(format!(
+        "{}remotes_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       enhanced,
     )

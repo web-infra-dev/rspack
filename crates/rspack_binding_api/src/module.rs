@@ -3,7 +3,7 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
@@ -765,7 +765,7 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
-      name: value.name,
+      id: Identifier::from(value.name),
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,

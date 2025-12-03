@@ -1,6 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 
 // TODO workaround for get_chunk_update_filename
@@ -11,10 +12,13 @@ pub struct GetChunkUpdateFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for GetChunkUpdateFilenameRuntimeModule {
-  fn default() -> Self {
+impl GetChunkUpdateFilenameRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/get_chunk_update_filename"),
+      Identifier::from(format!(
+        "{}get_chunk_update_filename",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }

@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 
@@ -17,9 +17,12 @@ pub struct ConsumeSharedRuntimeModule {
 }
 
 impl ConsumeSharedRuntimeModule {
-  pub fn new(enhanced: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/consumes_loading"),
+      Identifier::from(format!(
+        "{}consumes_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       enhanced,
     )

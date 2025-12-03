@@ -1,6 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeVariable, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, RuntimeVariable,
+  impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -13,9 +14,12 @@ pub struct MakeDeferredNamespaceObjectRuntimeModule {
 }
 
 impl MakeDeferredNamespaceObjectRuntimeModule {
-  pub fn new(chunk_ukey: ChunkUkey) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, chunk_ukey: ChunkUkey) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/make_deferred_namespace_object"),
+      Identifier::from(format!(
+        "{}make_deferred_namespace_object",
+        runtime_template.runtime_module_prefix()
+      )),
       chunk_ukey,
     )
   }

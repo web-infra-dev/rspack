@@ -11,9 +11,15 @@ pub struct AutoPublicPathRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for AutoPublicPathRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
+impl AutoPublicPathRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}auto_public_path",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 

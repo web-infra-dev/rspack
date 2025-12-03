@@ -1,6 +1,8 @@
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -11,9 +13,15 @@ pub struct ChunkPrefetchStartupRuntimeModule {
 }
 
 impl ChunkPrefetchStartupRuntimeModule {
-  pub fn new(startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/chunk_prefetch_startup"),
+      Identifier::from(format!(
+        "{}chunk_prefetch_startup",
+        runtime_template.runtime_module_prefix()
+      )),
       startup_chunks,
       None,
     )

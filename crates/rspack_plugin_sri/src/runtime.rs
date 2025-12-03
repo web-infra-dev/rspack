@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
+  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeTemplate, SourceType,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
@@ -38,9 +38,16 @@ struct SRIHashVariableRuntimeModule {
 }
 
 impl SRIHashVariableRuntimeModule {
-  pub fn new(chunk: ChunkUkey, hash_funcs: Vec<SubresourceIntegrityHashFunction>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    chunk: ChunkUkey,
+    hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("rspack/runtime/sri_hash_variable"),
+      Identifier::from(format!(
+        "{}sri_hash_variable",
+        runtime_template.runtime_module_prefix()
+      )),
       chunk,
       hash_funcs,
     )
@@ -253,7 +260,12 @@ pub async fn handle_runtime(
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   compilation.add_runtime_module(
     chunk_ukey,
-    SRIHashVariableRuntimeModule::new(*chunk_ukey, self.options.hash_func_names.clone()).boxed(),
+    SRIHashVariableRuntimeModule::new(
+      &compilation.runtime_template,
+      *chunk_ukey,
+      self.options.hash_func_names.clone(),
+    )
+    .boxed(),
   )?;
   Ok(())
 }
