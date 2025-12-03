@@ -52,7 +52,7 @@
     "enhanced-resolve": "5.18.3",
     "glob-to-regexp": "^0.4.1",
     "memfs": "4.48.1",
-    "prebundle": "^1.5.0",
+    "prebundle": "^1.6.0",
     "tinypool": "^1.1.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
