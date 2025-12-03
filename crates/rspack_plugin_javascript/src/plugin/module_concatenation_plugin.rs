@@ -5,10 +5,10 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, DependencyType,
-  ExportProvided, ExportsInfoGetter, ExtendedReferencedExport, ImportedByDeferModulesArtifact,
-  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  DerefOption, ExportProvided, ExportsInfoGetter, ExtendedReferencedExport,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -840,7 +840,7 @@ impl ModuleConcatenationPlugin {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
 
     if compilation.options.experiments.defer_import {
-      let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
+      let mut artifact = ImportedByDeferModulesArtifact::default();
       let module_graph = compilation.get_module_graph();
       for dep in module_graph.dependencies().values() {
         if dep.get_phase().is_defer()
@@ -850,10 +850,10 @@ impl ModuleConcatenationPlugin {
           )
           && let Some(module) = module_graph.module_identifier_by_dependency_id(dep.id())
         {
-          imported_by_defer_modules_artifact.insert(*module);
+          artifact.insert(*module);
         }
       }
-      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact;
+      compilation.imported_by_defer_modules_artifact = DerefOption::new(artifact);
     }
 
     let mut relevant_modules = vec![];

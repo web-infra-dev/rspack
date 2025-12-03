@@ -8,9 +8,10 @@ use rspack_core::{
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
@@ -155,7 +156,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .incremental
     .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
   {
-    std::mem::take(&mut compilation.side_effects_optimize_artifact)
+    compilation.side_effects_optimize_artifact.take()
   } else {
     Default::default()
   };
@@ -300,7 +301,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   }
   logger.time_end(inner_start);
 
-  compilation.side_effects_optimize_artifact = side_effects_optimize_artifact;
+  compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
 
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));
