@@ -12,7 +12,7 @@ pub struct SystemContextRuntimeModule {
 impl SystemContextRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(Identifier::from(format!(
-      "{}start_entry_point",
+      "{}system_context",
       runtime_template.runtime_module_prefix()
     )))
   }
