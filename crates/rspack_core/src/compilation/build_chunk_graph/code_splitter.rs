@@ -2047,14 +2047,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let mut connection_map =
           IndexMap::<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>::default();
 
-        for dep_id in mg.get_outgoing_deps_in_order(module) {
-          let dep = mg.dependency_by_id(dep_id).expect("should have dep");
-          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
-            continue;
-          }
-          if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
-            continue;
-          }
+        let mut deps = mg
+          .get_outgoing_deps_in_order(module)
+          .filter_map(|dep_id| mg.dependency_by_id(dep_id))
+          .filter(|dep| {
+            dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
+          })
+          .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
+          .collect::<Vec<_>>();
+        deps.sort_by_key(|a| a.source_order());
+
+        for dep in deps {
+          let dep_id = dep.id();
+
           // Dependency created but no module is available.
           // This could happen when module factorization is failed, but `options.bail` set to `false`
           let Some(module_identifier) = mg.module_identifier_by_dependency_id(dep_id) else {
@@ -2065,6 +2070,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           } else {
             (*module).into()
           };
+
           connection_map
             .entry((block_id, *module_identifier))
             .and_modify(|e| e.push(*dep_id))
