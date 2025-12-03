@@ -207,7 +207,7 @@ pub async fn render_module(
         args.push(if need_module {
           module_argument
         } else {
-          format!("__unused_webpack_{module_argument}")
+          format!("__unused_rspack_{module_argument}")
         });
       }
 
@@ -218,7 +218,7 @@ pub async fn render_module(
         args.push(if need_exports {
           exports_argument
         } else {
-          format!("__unused_webpack_{exports_argument}")
+          format!("__unused_rspack_{exports_argument}")
         });
       }
       if need_require {

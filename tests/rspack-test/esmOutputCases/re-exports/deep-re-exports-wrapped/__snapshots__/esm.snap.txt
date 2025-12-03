@@ -5,7 +5,7 @@ __webpack_require__.add({
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   BI: () => (/* reexport safe */ _lib2__rspack_import_0.B),
   cR: () => (lib),
@@ -24,7 +24,7 @@ eval('')
 /*!*****************!*\
   !*** ./lib2.js ***!
   \*****************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   B: () => (/* reexport safe */ _lib3__rspack_import_0.B),
   u: () => (lib2)
@@ -40,7 +40,7 @@ const lib2 = 42
 /*!*****************!*\
   !*** ./lib3.js ***!
   \*****************/
-(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   B: () => (lib3)
 });

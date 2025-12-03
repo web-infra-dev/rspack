@@ -9,8 +9,8 @@
 - Bundle: chunk_js.CURRENT_HASH.js
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 341
-- Update: main.LAST_HASH.hot-update.js, size: 466
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 340
+- Update: main.LAST_HASH.hot-update.js, size: 465
 
 ## Manifest
 
@@ -36,7 +36,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("chunk_js", {
-"./inner.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./inner.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
@@ -63,7 +63,7 @@ __webpack_require__.d(__webpack_exports__, {
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./file.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)

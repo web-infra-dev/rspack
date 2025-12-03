@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./a.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _b__rspack_import_0 = __webpack_require__("./b.js");
@@ -15,7 +15,7 @@ console.log("b");
 
 
 },
-"./index.js"(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _a__rspack_import_0 = __webpack_require__("./a.js");

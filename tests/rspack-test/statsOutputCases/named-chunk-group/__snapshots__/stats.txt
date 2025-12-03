@@ -1,2 +1,2 @@
 Entrypoint main xx KiB = main.js
-Chunk Group cimanyd 306 bytes = cimanyd.js
+Chunk Group cimanyd 305 bytes = cimanyd.js

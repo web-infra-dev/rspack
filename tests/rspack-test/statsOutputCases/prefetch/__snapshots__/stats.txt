@@ -1,5 +1,5 @@
 asset main.js xx KiB {889} [emitted] (name: main)
-asset prefetched.js 539 bytes {730} [emitted] (name: prefetched)
+asset prefetched.js 537 bytes {730} [emitted] (name: prefetched)
 asset inner2.js 100 bytes {750} [emitted] (name: inner2)
 asset inner.js 87 bytes {222} [emitted] (name: inner)
 asset normal.js 87 bytes {667} [emitted] (name: normal)

@@ -1,4 +1,4 @@
-assets by status 328 bytes [cached] 1 asset
+assets by status 334 bytes [cached] 1 asset
 ./index.js 51 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-34
