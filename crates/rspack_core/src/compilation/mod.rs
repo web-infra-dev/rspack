@@ -4,7 +4,6 @@ use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
   hash::{BuildHasherDefault, Hash},
-  mem,
   sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
@@ -78,7 +77,7 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -408,11 +407,12 @@ impl Compilation {
           CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
         },
-      )),
+      ))
+      .into(),
       build_time_executed_modules: Default::default(),
       old_cache,
       incremental,
-      build_chunk_graph_artifact: Default::default(),
+      build_chunk_graph_artifact: DerefOption::new(Default::default()),
 
       hash: None,
 
@@ -428,7 +428,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: BuildModuleGraphArtifact::default(),
+      build_module_graph_artifact: BuildModuleGraphArtifact::default().into(),
       modified_files,
       removed_files,
       input_filesystem,
@@ -455,7 +455,7 @@ impl Compilation {
     );
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    mem::swap(&mut self.build_module_graph_artifact, make_artifact);
+    self.build_module_graph_artifact.swap(make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
@@ -690,7 +690,7 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -704,7 +704,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
     Ok(())
   }
 
@@ -737,7 +738,7 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -751,7 +752,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
     Ok(())
   }
 
@@ -1047,8 +1049,8 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
+    let artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = build_module_graph(self, artifact).await?.into();
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1060,7 +1062,7 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let artifact = self.build_module_graph_artifact.take();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
@@ -1070,7 +1072,8 @@ impl Compilation {
       artifact,
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
-    .await?;
+    .await?
+    .into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1465,8 +1468,8 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?.into();
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1650,19 +1653,15 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
-    let mut diagnostics: Vec<Diagnostic> = vec![];
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
+        .call(self)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
-    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
-    self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
 
