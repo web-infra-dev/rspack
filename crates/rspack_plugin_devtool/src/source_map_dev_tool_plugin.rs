@@ -22,7 +22,10 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::{
+  asset_condition::AssetConditions, base64, identifier::make_paths_absolute, node_path::NodePath,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use thread_local::ThreadLocal;
@@ -423,147 +426,157 @@ impl SourceMapDevToolPlugin {
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
+    output_path: &Utf8Path,
     tasks: &mut [SourceMapTask],
   ) -> Result<()> {
     let output_options = &compilation.options.output;
 
-    let mut reference_to_source_name_mapping: HashMap<SourceReference, (String, Option<Arc<str>>)> =
-      match &self.module_filename_template {
-        ModuleFilenameTemplate::String(template) => {
-          rspack_futures::scope::<_, Result<_>>(|token| {
-            tasks
-              .iter()
-              .flat_map(
-                |SourceMapTask {
-                   asset_filename,
-                   source_references,
-                   source_map_filename,
-                   ..
-                 }| {
-                  source_references.iter().map(move |source_reference| {
-                    (
-                      asset_filename.clone(),
-                      source_reference.clone(),
-                      source_map_filename.clone(),
-                    )
-                  })
-                },
-              )
-              .for_each(|(asset_filename, source_reference, source_map_filename)| {
-                let s = unsafe {
-                  token.used((
-                    self.namespace.as_str(),
-                    &compilation,
-                    asset_filename,
-                    source_reference,
-                    file_to_chunk,
-                    template,
-                    source_map_filename,
-                  ))
-                };
-                s.spawn(
-                  |(
-                    namespace,
-                    compilation,
-                    asset_filename,
-                    source_reference,
-                    file_to_chunk,
-                    template,
-                    source_map_filename,
-                  )| async move {
-                    if let SourceReference::Source(source_name) = &source_reference
-                      && SCHEMA_SOURCE_REGEXP.is_match(source_name.as_ref())
-                    {
-                      return Ok((
-                        source_reference.clone(),
-                        (source_name.to_string(), source_map_filename),
-                      ));
-                    }
-
-                    let chunk = file_to_chunk.get(asset_filename.as_ref());
-                    let path_data =
-                      PathData::default()
-                        .chunk_id_optional(chunk.and_then(|c| {
-                          c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())
-                        }))
-                        .chunk_name_optional(chunk.and_then(|c| c.name()))
-                        .chunk_hash_optional(chunk.and_then(|c| {
-                          c.rendered_hash(
-                            &compilation.chunk_hashes_artifact,
-                            compilation.options.output.hash_digest_length,
-                          )
-                        }));
-
-                    let filename = Filename::from(namespace);
-                    let namespace = compilation.get_path(&filename, path_data).await?;
-
-                    let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-                      &source_reference,
-                      compilation,
-                      template,
-                      &compilation.options.output,
-                      &namespace,
-                      source_map_filename.as_deref(),
-                    );
-                    Ok((source_reference.clone(), (source_name, source_map_filename)))
-                  },
-                );
+    let mut reference_to_source_name_mapping: HashMap<
+      SourceReference,
+      (String, Option<Utf8PathBuf>),
+    > = match &self.module_filename_template {
+      ModuleFilenameTemplate::String(template) => rspack_futures::scope::<_, Result<_>>(|token| {
+        tasks
+          .iter()
+          .flat_map(
+            |SourceMapTask {
+               asset_filename,
+               source_references,
+               source_map_filename,
+               ..
+             }| {
+              source_references.iter().map(move |source_reference| {
+                (
+                  asset_filename.clone(),
+                  source_reference.clone(),
+                  source_map_filename.clone(),
+                )
               })
+            },
+          )
+          .for_each(|(asset_filename, source_reference, source_map_filename)| {
+            let s = unsafe {
+              token.used((
+                self.namespace.as_str(),
+                output_path,
+                &compilation,
+                asset_filename,
+                source_reference,
+                file_to_chunk,
+                template,
+                source_map_filename,
+              ))
+            };
+            s.spawn(
+              |(
+                namespace,
+                output_path,
+                compilation,
+                asset_filename,
+                source_reference,
+                file_to_chunk,
+                template,
+                source_map_filename,
+              )| async move {
+                let source_map_path = source_map_filename
+                  .as_deref()
+                  .map(|filename| output_path.node_join(filename));
+
+                if let SourceReference::Source(source_name) = &source_reference
+                  && SCHEMA_SOURCE_REGEXP.is_match(source_name.as_ref())
+                {
+                  return Ok((
+                    source_reference.clone(),
+                    (source_name.to_string(), source_map_path),
+                  ));
+                }
+
+                let chunk = file_to_chunk.get(asset_filename.as_ref());
+                let path_data = PathData::default()
+                  .chunk_id_optional(
+                    chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+                  )
+                  .chunk_name_optional(chunk.and_then(|c| c.name()))
+                  .chunk_hash_optional(chunk.and_then(|c| {
+                    c.rendered_hash(
+                      &compilation.chunk_hashes_artifact,
+                      compilation.options.output.hash_digest_length,
+                    )
+                  }));
+
+                let filename = Filename::from(namespace);
+                let namespace = compilation.get_path(&filename, path_data).await?;
+
+                let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
+                  &source_reference,
+                  compilation,
+                  template,
+                  &compilation.options.output,
+                  &namespace,
+                  source_map_path.as_ref().map(|p| p.as_path()),
+                );
+                Ok((source_reference.clone(), (source_name, source_map_path)))
+              },
+            );
           })
+      })
+      .await
+      .into_iter()
+      .map(|r| r.to_rspack_result().flatten())
+      .collect::<Result<HashMap<_, _>>>()?,
+      ModuleFilenameTemplate::Fn(f) => {
+        // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
+        let futures = tasks
+          .iter()
+          .flat_map(
+            |SourceMapTask {
+               source_references,
+               source_map_filename,
+               ..
+             }| {
+              source_references
+                .iter()
+                .map(move |source_reference| (source_reference, source_map_filename))
+            },
+          )
+          .map(|(source_reference, source_map_filename)| async move {
+            let source_map_path = source_map_filename
+              .as_deref()
+              .map(|filename| output_path.node_join(filename));
+
+            if let SourceReference::Source(source_name) = source_reference
+              && SCHEMA_SOURCE_REGEXP.is_match(source_name)
+            {
+              return Ok((
+                source_reference.clone(),
+                (source_name.to_string(), source_map_path),
+              ));
+            }
+
+            let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
+              source_reference,
+              compilation,
+              f,
+              output_options,
+              &self.namespace,
+              source_map_path.as_ref().map(|p| p.as_path()),
+            )
+            .await?;
+            Ok((
+              source_reference.clone(),
+              (source_name, source_map_path.clone()),
+            ))
+          })
+          .collect::<Vec<_>>();
+        join_all(futures)
           .await
           .into_iter()
-          .map(|r| r.to_rspack_result().flatten())
           .collect::<Result<HashMap<_, _>>>()?
-        }
-        ModuleFilenameTemplate::Fn(f) => {
-          // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
-          let futures = tasks
-            .iter()
-            .flat_map(
-              |SourceMapTask {
-                 source_references,
-                 source_map_filename,
-                 ..
-               }| {
-                source_references
-                  .iter()
-                  .map(move |source_reference| (source_reference, source_map_filename))
-              },
-            )
-            .map(|(source_reference, source_map_filename)| async move {
-              if let SourceReference::Source(source_name) = source_reference
-                && SCHEMA_SOURCE_REGEXP.is_match(source_name)
-              {
-                return Ok((
-                  source_reference.clone(),
-                  (source_name.to_string(), source_map_filename.clone()),
-                ));
-              }
-
-              let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-                source_reference,
-                compilation,
-                f,
-                output_options,
-                &self.namespace,
-                source_map_filename.as_deref(),
-              )
-              .await?;
-              Ok((
-                source_reference.clone(),
-                (source_name, source_map_filename.clone()),
-              ))
-            })
-            .collect::<Vec<_>>();
-          join_all(futures)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<_, _>>>()?
-        }
-      };
+      }
+    };
 
     let mut used_names_set = HashSet::<&String>::default();
-    for (source_reference, (source_name, source_map_filename)) in reference_to_source_name_mapping
+    for (source_reference, (source_name, source_map_path)) in reference_to_source_name_mapping
       .iter_mut()
       .sorted_by(|(key_a, _), (key_b, _)| {
         let ident_a = match key_a {
@@ -592,7 +605,7 @@ impl SourceMapDevToolPlugin {
             s,
             output_options,
             self.namespace.as_str(),
-            source_map_filename.as_deref(),
+            source_map_path.as_ref().map(|p| p.as_path()),
           )
         }
         ModuleFilenameTemplate::Fn(f) => {
@@ -602,7 +615,7 @@ impl SourceMapDevToolPlugin {
             f,
             output_options,
             self.namespace.as_str(),
-            source_map_filename.as_deref(),
+            source_map_path.as_ref().map(|p| p.as_path()),
           )
           .await?
         }
@@ -677,6 +690,7 @@ impl SourceMapDevToolPlugin {
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
+    output_path: &Utf8Path,
     compilation_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let mut tasks = self
@@ -684,7 +698,7 @@ impl SourceMapDevToolPlugin {
       .await?;
 
     self
-      .finalize_source_maps(compilation, file_to_chunk, &mut tasks)
+      .finalize_source_maps(compilation, file_to_chunk, output_path, &mut tasks)
       .await?;
 
     let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
@@ -830,6 +844,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
+  // When computing [relative-resource-path], we need the absolute path of the emitted source map file.
+  // Use the output path to resolve the source map location against the asset directory.
+  let output_path = Utf8PathBuf::from(
+    compilation
+      .get_path(
+        &Filename::from(&compilation.options.output.path),
+        Default::default(),
+      )
+      .await?,
+  );
+
   let start = logger.time("collect source maps");
   let compilation_assets = compilation
     .assets()
@@ -838,7 +863,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mapped_asstes = self
     .mapped_assets_cache
     .use_cache(compilation_assets, |assets| {
-      self.map_assets(compilation, &file_to_chunk, assets)
+      self.map_assets(compilation, &file_to_chunk, &output_path, assets)
     })
     .await?;
   logger.time_end(start);

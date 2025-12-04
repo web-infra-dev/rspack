@@ -6,6 +6,7 @@ use std::{
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
@@ -41,21 +42,29 @@ pub struct ModuleFilenameHelpers;
 
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
-  source_map_filename: Option<&str>,
+  source_map_path: Option<&Utf8Path>,
 ) -> Option<String> {
   if absolute_resource_path.starts_with("webpack") {
     // Webpack runtime modules are virtual; keep the "absolute" path as the final value.
     return Some(absolute_resource_path.to_string());
   }
 
-  // During the inline source map stage, the asset filename may not be available yet.
-  // In that case we cannot compute a relative path and must return None.
-  source_map_filename.map(|sm_filename| {
+  let Some(source_map_path) = source_map_path else {
+    // During the inline source map stage, the asset filename may not be available yet.
+    // In that case we cannot compute a relative path and must return None.
+    return None;
+  };
+
+  let Some(parent) = source_map_path.parent() else {
+    return Some(absolute_resource_path.to_string());
+  };
+
+  Some(
     Path::new(absolute_resource_path)
-      .relative(sm_filename)
+      .relative(parent)
       .to_string_lossy()
-      .to_string()
-  })
+      .to_string(),
+  )
 }
 
 impl ModuleFilenameHelpers {
@@ -64,7 +73,7 @@ impl ModuleFilenameHelpers {
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: Option<&str>,
+    source_map_path: Option<&Utf8Path>,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
@@ -91,7 +100,7 @@ impl ModuleFilenameHelpers {
           .unwrap_or("")
           .to_string();
         let relative_resource_path =
-          resolve_relative_resource_path(&absolute_resource_path, source_map_filename);
+          resolve_relative_resource_path(&absolute_resource_path, source_map_path);
 
         let hash = get_hash(&identifier, output_options);
 
@@ -153,7 +162,7 @@ impl ModuleFilenameHelpers {
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
         let relative_resource_path =
-          resolve_relative_resource_path(&absolute_resource_path, source_map_filename);
+          resolve_relative_resource_path(&absolute_resource_path, source_map_path);
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -179,14 +188,14 @@ impl ModuleFilenameHelpers {
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: Option<&str>,
+    source_map_path: Option<&Utf8Path>,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
-      source_map_filename,
+      source_map_path,
     );
 
     module_filename_template(ctx).await
@@ -198,14 +207,14 @@ impl ModuleFilenameHelpers {
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: Option<&str>,
+    source_map_path: Option<&Utf8Path>,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
-      source_map_filename,
+      source_map_path,
     );
 
     template_replace(module_filename_template, &ctx)
