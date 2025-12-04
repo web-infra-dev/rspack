@@ -123,15 +123,19 @@
 			matchManagers: ["github-actions"],
 			excludePackageNames: [
 				"actions/upload-artifact",
-				"actions/download-artifact"
+				"actions/download-artifact",
+				"lynx-infra/download-artifact",
+				"lynx-infra/upload-artifact",
 			]
 		},
 		{
-			groupName: "ignored github-actions upload-download-actions",
+			groupName: "ignored github-actions",
 			matchManagers: ["github-actions"],
 			matchPackageNames: [
 				"actions/upload-artifact",
-				"actions/download-artifact"
+				"actions/download-artifact",
+				"lynx-infra/download-artifact",
+				"lynx-infra/upload-artifact"
 			],
 			enabled: false
 		}
