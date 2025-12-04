@@ -1,4 +1,3 @@
-import { RuntimeGlobals } from ".";
 import type { Compiler } from "./Compiler";
 
 export default class ExecuteModulePlugin {
@@ -19,7 +18,7 @@ export default class ExecuteModulePlugin {
 
 					try {
 						const fn = vm.runInThisContext(
-							`(function(module, __webpack_module__, __webpack_exports__, exports, ${RuntimeGlobals.require}) {\n${code}\n})`,
+							`(function(module, __webpack_module__, __webpack_exports__, exports, ${compiler.rspack.RuntimeGlobals.require}) {\n${code}\n})`,
 							{
 								filename: moduleObject.id
 							}

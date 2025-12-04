@@ -328,7 +328,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.name().to_string();
+    let base_id = self.id.to_string();
 
     match id {
       TemplateId::Raw => base_id,

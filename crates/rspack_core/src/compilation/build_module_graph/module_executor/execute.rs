@@ -381,7 +381,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         let identifier = runtime_module.identifier();
         ExecutedRuntimeModule {
           identifier,
-          name: runtime_module.name().to_string(),
+          name: runtime_module
+            .readable_identifier(&compilation.options.context)
+            .into(),
           name_for_condition: runtime_module.name_for_condition().map(|n| n.to_string()),
           module_type: *runtime_module.module_type(),
           cacheable: !(runtime_module.full_hash() || runtime_module.dependent_hash()),

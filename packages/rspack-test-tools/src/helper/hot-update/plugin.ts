@@ -160,7 +160,7 @@ export class HotUpdatePlugin {
 			compilation.hooks.additionalTreeRuntimeRequirements.tap(
 				PLUGIN_NAME,
 				(_chunk: any, set: any) => {
-					set.add(compiler.webpack.RuntimeGlobals.moduleCache);
+					set.add(compiler.rspack.RuntimeGlobals.moduleCache);
 				}
 			);
 			compilation.hooks.runtimeModule.tap(
