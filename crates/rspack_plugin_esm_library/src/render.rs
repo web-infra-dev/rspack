@@ -254,7 +254,7 @@ impl EsmLibraryPlugin {
       if !compilation
         .chunk_graph
         .get_chunk_runtime_modules_iterable(chunk_ukey)
-        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID.as_str()))
+        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
         && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
       {
         export_specifiers.insert(Cow::Owned(

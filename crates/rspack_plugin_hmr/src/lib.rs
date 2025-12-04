@@ -459,7 +459,7 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
   compilation.add_runtime_module(
     chunk_ukey,
-    HotModuleReplacementRuntimeModule::default().boxed(),
+    HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed(),
   )?;
 
   Ok(())

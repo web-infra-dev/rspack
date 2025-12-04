@@ -13,7 +13,7 @@ use rspack_core::{
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
   Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModuleExt, SelfModuleFactory, SourceType,
   get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -332,7 +332,10 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
+    compilation.add_runtime_module(
+      chunk_ukey,
+      CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
+    )?;
   }
 
   Ok(None)

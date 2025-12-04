@@ -188,6 +188,7 @@ impl ReadableFileSystem for NodeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    #[allow(clippy::disallowed_methods)]
     block_on(self.read(path))
   }
 
@@ -210,6 +211,7 @@ impl ReadableFileSystem for NodeFileSystem {
 
   #[instrument(skip(self), level = "debug")]
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    #[allow(clippy::disallowed_methods)]
     block_on(self.metadata(path))
   }
 
@@ -265,6 +267,7 @@ impl ReadableFileSystem for NodeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    #[allow(clippy::disallowed_methods)]
     block_on(ReadableFileSystem::read_dir(self, dir))
   }
   #[instrument(skip(self), level = "debug")]

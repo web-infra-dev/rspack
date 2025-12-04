@@ -1,14 +1,20 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeVariable, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeModule, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct AsyncRuntimeModule {
   id: Identifier,
 }
-impl Default for AsyncRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/async_module"))
+
+impl AsyncRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}async_module",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

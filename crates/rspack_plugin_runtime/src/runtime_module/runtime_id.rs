@@ -1,6 +1,8 @@
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -9,9 +11,15 @@ pub struct RuntimeIdRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for RuntimeIdRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/runtime_id"), None)
+impl RuntimeIdRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}runtime_id",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 

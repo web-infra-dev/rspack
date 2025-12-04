@@ -2,7 +2,8 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 
@@ -18,8 +19,15 @@ pub struct ShareRuntimeModule {
 }
 
 impl ShareRuntimeModule {
-  pub fn new(enhanced: bool) -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/sharing"), None, enhanced)
+  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}sharing",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+      enhanced,
+    )
   }
 }
 

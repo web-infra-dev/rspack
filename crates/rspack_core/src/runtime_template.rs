@@ -231,6 +231,10 @@ impl RuntimeTemplate {
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
     runtime_variable_to_string(runtime_variable, &self.compiler_options)
   }
+
+  pub fn runtime_module_prefix(&self) -> &'static str {
+    "webpack/runtime/"
+  }
 }
 
 fn to_string(val: &Operand, runtime_globals: &Map<String, Value>) -> String {

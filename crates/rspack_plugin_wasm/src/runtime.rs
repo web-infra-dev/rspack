@@ -17,12 +17,16 @@ pub struct AsyncWasmLoadingRuntimeModule {
 
 impl AsyncWasmLoadingRuntimeModule {
   pub fn new(
+    runtime_template: &RuntimeTemplate,
     generate_load_binary_code: String,
     supports_streaming: bool,
     chunk: ChunkUkey,
   ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/async_wasm_loading"),
+      Identifier::from(format!(
+        "{}async_wasm_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       generate_load_binary_code,
       supports_streaming,
       chunk,

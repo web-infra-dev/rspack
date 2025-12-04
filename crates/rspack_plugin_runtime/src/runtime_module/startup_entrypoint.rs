@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -9,9 +9,12 @@ pub struct StartupEntrypointRuntimeModule {
 }
 
 impl StartupEntrypointRuntimeModule {
-  pub fn new(async_chunk_loading: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/startup_entrypoint"),
+      Identifier::from(format!(
+        "{}startup_entrypoint",
+        runtime_template.runtime_module_prefix()
+      )),
       async_chunk_loading,
     )
   }

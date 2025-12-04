@@ -121,10 +121,8 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       Self::add_placeholder_fragment(init_fragments, flag, request);
     }
 
-    // Step 2: Hoist @rstest/core import for rs.hoisted() to ensure it appears before the placeholder
-    if dep.method == MockMethod::Hoisted {
-      Self::hoist_rstest_core_import(init_fragments);
-    }
+    // Step 2: Hoist @rstest/core import to ensure it comes before all hoisted code
+    Self::hoist_rstest_core_import(init_fragments);
 
     // Step 3: Transform the source code
     Self::transform_source(source, dep, &require_name, mock_method, hoist_flag, request);

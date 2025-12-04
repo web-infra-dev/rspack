@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
-  impl_runtime_module,
+  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
+  SourceType, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,9 +14,17 @@ pub struct GetMainFilenameRuntimeModule {
 }
 
 impl GetMainFilenameRuntimeModule {
-  pub fn new(content_type: &'static str, global: RuntimeGlobals, filename: Filename) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    content_type: &'static str,
+    global: RuntimeGlobals,
+    filename: Filename,
+  ) -> Self {
     Self::with_default(
-      Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
+      Identifier::from(format!(
+        "{}get_main_filename/{content_type}",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       global,
       filename,
