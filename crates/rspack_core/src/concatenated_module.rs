@@ -3241,34 +3241,31 @@ impl NewConcatenatedModuleIdent {
 fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
   let mut ids = Vec::new();
   for (node_id, node) in ast.nodes() {
-    match node.kind {
-      NodeKind::Ident => {
-        // SAFETY: `node.kind == NodeKind::Ident`
-        let ident = unsafe { Ident::from_node_id_unchecked(node_id, ast) };
-        let parent_id = semantic.parent_node(node_id);
-        let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
-          NodeKind::BindingIdent => {
-            let parent_id = semantic.parent_node(parent_id);
-            (
-              ast.get_node(parent_id).kind == NodeKind::AssignPatProp,
-              false,
-            )
-          }
-          NodeKind::ClassExpr => {
-            // SAFETY: `parent.kind == NodeKind::ClassExpr`
-            let class_expr = unsafe { ClassExpr::from_node_id_unchecked(parent_id, ast) };
-            (false, class_expr.class(ast).super_class(ast).is_some())
-          }
-          NodeKind::ObjectLit => (true, false),
-          _ => (false, false),
-        };
-        ids.push(NewConcatenatedModuleIdent {
-          id: ident,
-          shorthand,
-          is_class_expr_with_ident,
-        });
-      }
-      _ => continue,
+    if node.kind == NodeKind::Ident {
+      // SAFETY: `node.kind == NodeKind::Ident`
+      let ident = unsafe { Ident::from_node_id_unchecked(node_id, ast) };
+      let parent_id = semantic.parent_node(node_id);
+      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
+        NodeKind::BindingIdent => {
+          let parent_id = semantic.parent_node(parent_id);
+          (
+            ast.get_node(parent_id).kind == NodeKind::AssignPatProp,
+            false,
+          )
+        }
+        NodeKind::ClassExpr => {
+          // SAFETY: `parent.kind == NodeKind::ClassExpr`
+          let class_expr = unsafe { ClassExpr::from_node_id_unchecked(parent_id, ast) };
+          (false, class_expr.class(ast).super_class(ast).is_some())
+        }
+        NodeKind::ObjectLit => (true, false),
+        _ => (false, false),
+      };
+      ids.push(NewConcatenatedModuleIdent {
+        id: ident,
+        shorthand,
+        is_class_expr_with_ident,
+      });
     }
   }
   ids
