@@ -31,6 +31,41 @@ use crate::{
 
 type ChunksKey = u64;
 
+/// Cache for module properties to avoid repeated lookups
+struct ModulePropertyCache {
+  names: IdentifierMap<Option<String>>,
+  layers: IdentifierMap<Option<String>>,
+}
+
+impl ModulePropertyCache {
+  fn new(modules: &[ModuleIdentifier], module_graph: &ModuleGraph) -> Self {
+    let (names, layers): (Vec<_>, Vec<_>) = modules
+      .par_iter()
+      .map(|mid| {
+        let module = module_graph
+          .module_by_identifier(mid)
+          .expect("should have module");
+        let name = module.name_for_condition().map(|s| s.to_string());
+        let layer = module.as_ref().get_layer().map(|s| s.to_string());
+        ((*mid, name), (*mid, layer))
+      })
+      .unzip();
+
+    Self {
+      names: names.into_iter().collect(),
+      layers: layers.into_iter().collect(),
+    }
+  }
+
+  fn get_name(&self, module: &ModuleIdentifier) -> Option<&str> {
+    self.names.get(module).and_then(|o| o.as_deref())
+  }
+
+  fn get_layer(&self, module: &ModuleIdentifier) -> Option<&str> {
+    self.layers.get(module).and_then(|o| o.as_deref())
+  }
+}
+
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
@@ -267,6 +302,15 @@ impl Combinator {
       used_exports_chunk_sets_by_count,
     );
   }
+
+  /// Merge results from another Combinator (used for parallel preparation)
+  pub(crate) fn merge_from(&mut self, other: Combinator) {
+    self
+      .used_exports_combinations
+      .extend(other.used_exports_combinations);
+    self.grouped_by_exports.extend(other.grouped_by_exports);
+    // combinations should not be merged as they are computed separately
+  }
 }
 
 impl SplitChunksPlugin {
@@ -305,36 +349,65 @@ impl SplitChunksPlugin {
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
   ) -> Result<ModuleGroupMap> {
-    let module_graph = compilation.get_module_graph();
-    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
-    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
-      all_modules.iter().for_each(|mid| {
-        let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks)) };
-        s.spawn(|(cache_groups, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks)| async move {
-          let belong_to_chunks = module_chunks.get(mid).expect("should have module chunks");
-          if belong_to_chunks.is_empty() {
-            return Ok(());
-          }
+    // Optimization 1: Pre-filter invalid modules to reduce processing overhead
+    let valid_modules: Vec<ModuleIdentifier> = all_modules
+      .par_iter()
+      .filter(|mid| {
+        let belong_to_chunks = module_chunks.get(mid).expect("should have module chunks");
+        if belong_to_chunks.is_empty() {
+          return false;
+        }
 
-          if let Some(removed_chunks) = removed_module_chunks.get(mid) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
-            return Ok(());
-          }
+        if let Some(removed_chunks) = removed_module_chunks.get(mid)
+          && belong_to_chunks.iter().all(|c| removed_chunks.contains(c))
+        {
+          return false;
+        }
+
+        true
+      })
+      .copied()
+      .collect();
+
+    if valid_modules.is_empty() {
+      return Ok(FxHashMap::default());
+    }
+
+    let module_graph = compilation.get_module_graph();
+
+    // Optimization 4: Build property cache to avoid repeated lookups
+    let property_cache = ModulePropertyCache::new(&valid_modules, &module_graph);
+
+    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
+
+    // Optimization 2: Batch process modules to reduce async task overhead
+    const BATCH_SIZE: usize = 256;
+    let module_batches: Vec<&[ModuleIdentifier]> = valid_modules.chunks(BATCH_SIZE).collect();
+
+    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
+      module_batches.into_iter().for_each(|batch| {
+        let s = unsafe { token.used((&cache_groups, batch, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, &property_cache)) };
+        s.spawn(|(cache_groups, batch, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, property_cache)| async move {
+          // Process each module in the batch
+          for mid in batch.iter() {
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
           let mut filtered = vec![];
+
+          // Optimization 4: Use cached module properties
+          let cached_name = property_cache.get_name(mid);
+          let cached_layer = property_cache.get_layer(mid);
 
           for cache_group in cache_groups.iter() {
             let mut is_match = true;
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
             is_match &= (cache_group.cache_group.r#type)(module);
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            is_match &= (cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
+            is_match &= (cache_group.cache_group.layer)(cached_layer.map(String::from)).await?;
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
             is_match &= match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => module
-                .name_for_condition().is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => module
-                .name_for_condition().is_some_and(|name| regexp.test(&name)),
+              CacheGroupTest::String(str) => cached_name.is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => cached_name.is_some_and(|name| regexp.test(name)),
               CacheGroupTest::Fn(f) => {
                 let ctx = CacheGroupTestFnCtx { compilation, module };
                 f(ctx).await?.unwrap_or_default()
@@ -451,6 +524,7 @@ impl SplitChunksPlugin {
               ).await?;
             }
           }
+          } // end of batch processing loop
           Ok(())
         });
       })

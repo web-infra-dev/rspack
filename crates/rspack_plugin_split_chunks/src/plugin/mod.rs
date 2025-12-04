@@ -89,25 +89,49 @@ impl SplitChunksPlugin {
     let mut combinator = module_group::Combinator::default();
     let module_graph = compilation.get_module_graph();
 
-    if self
+    // Optimization 3: Parallelize combinator preparation when both are needed
+    let needs_chunks = self
       .cache_groups
       .iter()
-      .any(|cache_group| !cache_group.used_exports)
-    {
-      combinator.prepare_group_by_chunks(&all_modules, &module_chunks);
-    }
+      .any(|cache_group| !cache_group.used_exports);
+    let needs_exports = self
+      .cache_groups
+      .iter()
+      .any(|cache_group| cache_group.used_exports);
 
-    if self
-      .cache_groups
-      .iter()
-      .any(|cache_group| cache_group.used_exports)
-    {
-      combinator.prepare_group_by_used_exports(
-        &all_modules,
-        &module_graph,
-        &compilation.chunk_by_ukey,
-        &module_chunks,
-      );
+    match (needs_chunks, needs_exports) {
+      (true, true) => {
+        // Both preparations needed - execute in parallel
+        let (_, exports_combinator) = rayon::join(
+          || combinator.prepare_group_by_chunks(&all_modules, &module_chunks),
+          || {
+            let mut exports_combinator = module_group::Combinator::default();
+            exports_combinator.prepare_group_by_used_exports(
+              &all_modules,
+              &module_graph,
+              &compilation.chunk_by_ukey,
+              &module_chunks,
+            );
+            exports_combinator
+          },
+        );
+        // Merge the exports combinator results
+        combinator.merge_from(exports_combinator);
+      }
+      (true, false) => {
+        combinator.prepare_group_by_chunks(&all_modules, &module_chunks);
+      }
+      (false, true) => {
+        combinator.prepare_group_by_used_exports(
+          &all_modules,
+          &module_graph,
+          &compilation.chunk_by_ukey,
+          &module_chunks,
+        );
+      }
+      (false, false) => {
+        // No preparation needed
+      }
     }
 
     logger.time_end(start);
