@@ -3844,7 +3844,6 @@ dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
- "swc_experimental_ecma_visit",
  "swc_node_comments",
  "tokio",
  "tracing",
