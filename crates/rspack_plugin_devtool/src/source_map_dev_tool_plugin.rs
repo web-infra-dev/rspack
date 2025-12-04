@@ -502,10 +502,8 @@ impl SourceMapDevToolPlugin {
                   template,
                   &compilation.options.output,
                   &namespace,
-                  source_map_filename
-                    .as_ref()
-                    .map(|filename| filename.as_str())
-                    .unwrap_or(""),
+                  asset_filename.as_ref(),
+                  source_map_filename.as_deref(),
                 );
                 Ok((source_reference.clone(), source_name))
               },
@@ -522,36 +520,37 @@ impl SourceMapDevToolPlugin {
           .iter()
           .flat_map(
             |SourceMapTask {
+               asset_filename,
                source_references,
                source_map_filename,
                ..
              }| {
-              source_references
-                .iter()
-                .map(move |source_reference| (source_reference, source_map_filename))
+              source_references.iter().map(move |source_reference| {
+                (source_reference, asset_filename, source_map_filename)
+              })
             },
           )
-          .map(|(source_reference, source_map_filename)| async move {
-            if let SourceReference::Source(source) = source_reference
-              && SCHEMA_SOURCE_REGEXP.is_match(source)
-            {
-              return Ok((source_reference.clone(), source.to_string()));
-            }
+          .map(
+            |(source_reference, asset_filename, source_map_filename)| async move {
+              if let SourceReference::Source(source) = source_reference
+                && SCHEMA_SOURCE_REGEXP.is_match(source)
+              {
+                return Ok((source_reference.clone(), source.to_string()));
+              }
 
-            let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-              source_reference,
-              compilation,
-              f,
-              output_options,
-              &self.namespace,
-              source_map_filename
-                .as_ref()
-                .map(|filename| filename.as_str())
-                .unwrap_or(""),
-            )
-            .await?;
-            Ok((source_reference.clone(), source_name))
-          })
+              let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
+                source_reference,
+                compilation,
+                f,
+                output_options,
+                &self.namespace,
+                asset_filename.as_ref(),
+                source_map_filename.as_deref(),
+              )
+              .await?;
+              Ok((source_reference.clone(), source_name))
+            },
+          )
           .collect::<Vec<_>>();
         join_all(futures)
           .await

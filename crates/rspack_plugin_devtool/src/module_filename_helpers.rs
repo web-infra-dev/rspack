@@ -39,13 +39,34 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 
 pub struct ModuleFilenameHelpers;
 
+fn resolve_relative_resource_path(
+  absolute_resource_path: &str,
+  asset_filename: &str,
+  source_map_filename: Option<&str>,
+) -> String {
+  if absolute_resource_path.starts_with("webpack") {
+    return absolute_resource_path.to_string();
+  }
+  match source_map_filename {
+    Some(sm_filename) => Path::new(absolute_resource_path)
+      .relative(sm_filename)
+      .to_string_lossy()
+      .to_string(),
+    None => Path::new(absolute_resource_path)
+      .relative(asset_filename)
+      .to_string_lossy()
+      .to_string(),
+  }
+}
+
 impl ModuleFilenameHelpers {
   fn create_module_filename_template_fn_ctx(
     source_reference: &SourceReference,
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: &str,
+    asset_filename: &str,
+    source_map_filename: Option<&str>,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
@@ -65,8 +86,17 @@ impl ModuleFilenameHelpers {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map(|s| s.to_string())
             .unwrap_or_default();
-        let absolute_resource_path = "".to_string();
-        let relative_resource_path = "".to_string();
+        let absolute_resource_path = module
+          .identifier()
+          .split('!')
+          .next_back()
+          .unwrap_or("")
+          .to_string();
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          asset_filename,
+          source_map_filename,
+        );
 
         let hash = get_hash(&identifier, output_options);
 
@@ -127,10 +157,11 @@ impl ModuleFilenameHelpers {
         };
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
-        let relative_resource_path = Path::new(&absolute_resource_path)
-          .relative(source_map_filename)
-          .to_string_lossy()
-          .to_string();
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          asset_filename,
+          source_map_filename,
+        );
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -156,13 +187,15 @@ impl ModuleFilenameHelpers {
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: &str,
+    asset_filename: &str,
+    source_map_filename: Option<&str>,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
+      asset_filename,
       source_map_filename,
     );
 
@@ -175,13 +208,15 @@ impl ModuleFilenameHelpers {
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
-    source_map_filename: &str,
+    asset_filename: &str,
+    source_map_filename: Option<&str>,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
+      asset_filename,
       source_map_filename,
     );
 

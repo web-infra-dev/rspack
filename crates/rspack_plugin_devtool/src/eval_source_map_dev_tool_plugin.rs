@@ -154,6 +154,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 output_options,
                 &namespace,
                 todo!(),
+                todo!(),
               )
             })
             .collect::<Vec<_>>(),
@@ -166,6 +167,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 f,
                 output_options,
                 &namespace,
+                todo!(),
                 todo!(),
               )
             });
