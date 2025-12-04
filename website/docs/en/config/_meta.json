@@ -1,5 +1,14 @@
 [
+  {
+    "type": "section-header",
+    "label": "Introduction"
+  },
   "index",
+  "filename-placeholders",
+  {
+    "type": "section-header",
+    "label": "Config options"
+  },
   "extends",
   "entry",
   "context",

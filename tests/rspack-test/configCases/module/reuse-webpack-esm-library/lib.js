@@ -1,4 +1,4 @@
-import * as __WEBPACK_EXTERNAL_MODULE_react__ from "react";
+import * as __rspack_external_react from "react";
 /******/ var __webpack_modules__ = ({
 
 	/***/ "react":
@@ -9,7 +9,7 @@ import * as __WEBPACK_EXTERNAL_MODULE_react__ from "react";
 
 		var x = y => { var x = {}; __webpack_require__.d(x, y); return x; }
 		var y = x => () => x
-		module.exports = __WEBPACK_EXTERNAL_MODULE_react__;
+		module.exports = __rspack_external_react;
 
 		/***/ })
 
@@ -80,10 +80,10 @@ var __webpack_exports__ = {};
 		/* harmony export */   useCall: () => (/* binding */ useCall),
 		/* harmony export */   withCallManager: () => (/* binding */ withCallManager)
 		/* harmony export */ });
-	/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "react");
+	/* harmony import */ var react__rspack_import_0__ = __webpack_require__(/*! react */ "react");
 
 	function withCallManager() {
-		return react__WEBPACK_IMPORTED_MODULE_0__.createElement(1);
+		return react__rspack_import_0__.createElement(1);
 	}
 	function useCall() {
 		return withCallManager();

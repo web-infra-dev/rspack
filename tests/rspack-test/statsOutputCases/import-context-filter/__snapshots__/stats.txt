@@ -1,7 +1,7 @@
 asset entry.js xx KiB [emitted] (name: entry)
-asset 870.js 401 bytes [emitted]
-asset 897.js 401 bytes [emitted]
-asset 985.js 399 bytes [emitted]
+asset 870.js 381 bytes [emitted]
+asset 897.js 381 bytes [emitted]
+asset 985.js 379 bytes [emitted]
 runtime modules xx KiB 11 modules
 cacheable modules 724 bytes
   modules by path ./templates/*.js 114 bytes

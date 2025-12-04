@@ -1,14 +1,20 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeModule, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct AsyncRuntimeModule {
   id: Identifier,
 }
-impl Default for AsyncRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/async_module"))
+
+impl AsyncRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}async_module",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -18,11 +24,7 @@ impl RuntimeModule for AsyncRuntimeModule {
     compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "queues": "__webpack_queues__",
-        "error": "__webpack_error__",
-        "done": "__webpack_done__",
-        "defer": "__webpack_defer__",
-        "module_cache": "__webpack_module_cache__",
+        "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
       })),
     )
   }

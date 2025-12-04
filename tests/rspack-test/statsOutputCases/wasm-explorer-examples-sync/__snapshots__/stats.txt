@@ -8,7 +8,7 @@ assets by path *.wasm xx KiB
 assets by path *.js xx KiB
   asset bundle.js xx KiB [emitted] (name: main)
   asset 549.bundle.js xx KiB [emitted]
-  asset 440.bundle.js 277 bytes [emitted] (id hint: vendors)
+  asset 440.bundle.js 263 bytes [emitted] (id hint: vendors)
 chunk (runtime: main) 440.bundle.js (id hint: vendors) 34 bytes [rendered] split chunk (cache group: defaultVendors)
   ./node_modules/env.js 34 bytes [built] [code generated]
 chunk (runtime: main) 28c603ffa1d25701.module.wasm, 448bdf8d3829b42d.module.wasm, 4d75fb9d421cb1ec.module.wasm, 4f244726a350135b.module.wasm, 549.bundle.js, 934e4a526f464eac.module.wasm, a0f3fcadb09a1a9b.module.wasm xx KiB (javascript) xx KiB (wasm) [rendered]

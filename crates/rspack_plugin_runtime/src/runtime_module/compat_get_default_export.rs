@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,11 +7,12 @@ pub struct CompatGetDefaultExportRuntimeModule {
   id: Identifier,
 }
 
-impl Default for CompatGetDefaultExportRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from(
-      "webpack/runtime/compat_get_default_export",
-    ))
+impl CompatGetDefaultExportRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}compat_get_default_export",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

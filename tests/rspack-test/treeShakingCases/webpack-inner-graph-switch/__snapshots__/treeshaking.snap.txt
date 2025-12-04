@@ -1,48 +1,48 @@
 ```js title=chunk_js.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["chunk_js"], {
-"./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./chunk.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 
 
 
-}),
+},
 
 }]);
 ```
 
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./import-module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./import-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
   test: () => (test)
 });
-/* import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./module.js");
+/* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
 
 
 function test() {
-	(0,_module__WEBPACK_IMPORTED_MODULE_0__["default"])({
+	(0,_module__rspack_import_0["default"])({
 		type: "inline"
 	});
 }
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+},
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", () => {
 	(__webpack_require__("./import-module.js")/* .test */.test)();
 	return Promise.all([Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./some-module.js")), __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"))]);
 });
 
 
-}),
-"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* import */var _some_module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./some-module.js");
+/* import */ var _some_module__rspack_import_0 = __webpack_require__("./some-module.js");
 
 
 function getType(obj) {
@@ -51,15 +51,15 @@ function getType(obj) {
 
 // Local functions
 function doSomethingWithBlock(obj) {
-	return _some_module__WEBPACK_IMPORTED_MODULE_0__.Block.doSomething(obj);
+	return _some_module__rspack_import_0.Block.doSomething(obj);
 }
 
 function doSomethingWithInline(obj) {
-	return _some_module__WEBPACK_IMPORTED_MODULE_0__.Inline.doSomething(obj);
+	return _some_module__rspack_import_0.Inline.doSomething(obj);
 }
 
 function doSomethingWithDocument(obj) {
-	return _some_module__WEBPACK_IMPORTED_MODULE_0__.Document.doSomething(obj);
+	return _some_module__rspack_import_0.Document.doSomething(obj);
 }
 
 // Exported functions
@@ -83,11 +83,11 @@ function useDocument(obj) {
 }
 
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (doSomething);
+/* export default */ const __rspack_default_export = (doSomething);
 
 
-}),
-"./some-module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./some-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -110,7 +110,7 @@ class Document {
 
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

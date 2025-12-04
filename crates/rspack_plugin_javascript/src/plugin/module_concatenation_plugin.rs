@@ -739,12 +739,13 @@ impl ModuleConcatenationPlugin {
           plugin_driver: compilation.plugin_driver.clone(),
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
+          runtime_template: compilation.runtime_template.clone_without_dojang(),
         },
         Some(compilation),
       )
       .await?;
     let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let root_mgm_exports = module_graph
       .module_graph_module_by_identifier(&root_module_id)
       .expect("should have mgm")
@@ -754,7 +755,7 @@ impl ModuleConcatenationPlugin {
     ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
     // integrate
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     for m in modules_set {
       if m == &root_module_id {
         continue;
@@ -772,7 +773,12 @@ impl ModuleConcatenationPlugin {
         let source_types =
           chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, &module_graph);
 
-        if source_types.len() == 1 {
+        if source_types.len() == 1
+          && !matches!(
+            source_types.iter().next().expect("has length"),
+            SourceType::Css
+          )
+        {
           chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
         } else {
           let new_source_types = source_types
@@ -883,7 +889,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if ModuleGraph::is_async(compilation, &module_id) {
+        if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -990,7 +996,7 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
       if can_be_root {
@@ -1219,7 +1225,7 @@ impl ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        let mut module_graph = compilation.get_module_graph_mut();
+        let mut module_graph = compilation.get_seal_module_graph_mut();
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
@@ -1378,7 +1384,7 @@ impl ModuleConcatenationPlugin {
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     module_graph.batch_set_connections_original_module(set_original_mid_tasks);
     module_graph.batch_set_connections_module(set_mid_tasks);
     module_graph.batch_add_connections(add_connection_tasks);
@@ -1534,6 +1540,7 @@ async fn create_concatenated_module(
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
         fs: compilation.input_filesystem.clone(),
+        runtime_template: compilation.runtime_template.clone_without_dojang(),
       },
       Some(compilation),
     )
@@ -1638,7 +1645,7 @@ fn add_concatenated_module(
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
   let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = compilation.get_seal_module_graph_mut();
 
   let root_mgm_exports = module_graph
     .module_graph_module_by_identifier(&root_module_id)
@@ -1649,7 +1656,7 @@ fn add_concatenated_module(
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
   // integrate
 
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph = compilation.get_seal_module_graph_mut();
 
   for m in modules_set.iter() {
     if *m == root_module_id {

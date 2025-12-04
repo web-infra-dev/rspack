@@ -1,17 +1,17 @@
-import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
-const __WEBPACK_EXTERNAL_createRequire_require = __WEBPACK_EXTERNAL_createRequire(import.meta.url);
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 var __webpack_modules__ = ({
-928: (function (module) {
-module.exports = __WEBPACK_EXTERNAL_createRequire_require("path");
+928(module) {
+module.exports = __rspack_createRequire_require("path");
 
-}),
-227: (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+227(module, __unused_rspack_exports, __webpack_require__) {
 const path = __webpack_require__(928)
 
 module.exports = path.sep
 
 
-}),
+},
 
 });
 // The module cache

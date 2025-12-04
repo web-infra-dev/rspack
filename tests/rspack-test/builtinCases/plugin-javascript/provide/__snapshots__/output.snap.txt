@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 /* provided dependency */ var process = __webpack_require__("./process.js");
 /* provided dependency */ var name = __webpack_require__("./name.js");
 // var process = {};
@@ -17,12 +17,12 @@ function a() {
 }
 
 
-}),
-"./name.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./name.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 const lib = {
 	get: () => {
@@ -30,11 +30,11 @@ const lib = {
 	}
 };
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (lib);
+/* export default */ const __rspack_default_export = (lib);
 
 
-}),
-"./process.js": (function (module) {
+},
+"./process.js"(module) {
 // shim for using process in browser
 var process = (module.exports = {});
 
@@ -228,7 +228,7 @@ process.umask = function () {
 };
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -1,4 +1,11 @@
-use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError, sync::LazyLock};
+use std::{
+  borrow::Cow,
+  fmt::{self, Debug},
+  hash::Hash,
+  str::FromStr,
+  string::ParseError,
+  sync::LazyLock,
+};
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
@@ -198,6 +205,15 @@ impl From<&str> for WasmLoadingType {
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),
+}
+
+impl fmt::Display for CrossOriginLoading {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      CrossOriginLoading::Disable => write!(f, ""),
+      CrossOriginLoading::Enable(value) => write!(f, "{value}"),
+    }
+  }
 }
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -503,6 +519,7 @@ pub struct LibraryCustomUmdObject {
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: Option<bool>,
+  pub method_shorthand: Option<bool>,
   pub arrow_function: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
   pub async_function: Option<bool>,
@@ -516,11 +533,16 @@ pub struct Environment {
   pub optional_chaining: Option<bool>,
   pub template_literal: Option<bool>,
   pub dynamic_import_in_worker: Option<bool>,
+  pub import_meta_dirname_and_filename: Option<bool>,
 }
 
 impl Environment {
   pub fn supports_const(&self) -> bool {
     self.r#const.unwrap_or_default()
+  }
+
+  pub fn supports_method_shorthand(&self) -> bool {
+    self.method_shorthand.unwrap_or_default()
   }
 
   pub fn supports_arrow_function(&self) -> bool {

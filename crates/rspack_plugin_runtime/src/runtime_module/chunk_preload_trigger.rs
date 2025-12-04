@@ -4,7 +4,8 @@ use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleStage, chunk_graph_chunk::ChunkId, impl_runtime_module,
+  Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkId,
+  impl_runtime_module,
 };
 use rustc_hash::FxHasher;
 
@@ -17,9 +18,15 @@ pub struct ChunkPreloadTriggerRuntimeModule {
 }
 
 impl ChunkPreloadTriggerRuntimeModule {
-  pub fn new(chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/chunk_preload_trigger"),
+      Identifier::from(format!(
+        "{}chunk_preload_trigger",
+        runtime_template.runtime_module_prefix()
+      )),
       chunk_map,
     )
   }
@@ -42,7 +49,7 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "CHUNK_MAP": &self.chunk_map,
+        "_chunk_map": &self.chunk_map,
       })),
     )?;
 

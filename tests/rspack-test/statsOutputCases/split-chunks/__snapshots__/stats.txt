@@ -56,9 +56,9 @@ default:
 
 all-chunks:
   Entrypoint main xx KiB = all-chunks/main.js
-  Entrypoint a xx KiB = all-chunks/773.js 331 bytes all-chunks/192.js 331 bytes all-chunks/266.js 331 bytes all-chunks/327.js 331 bytes all-chunks/a.js xx KiB
-  Entrypoint b xx KiB = all-chunks/773.js 331 bytes all-chunks/192.js 331 bytes all-chunks/266.js 331 bytes all-chunks/828.js 331 bytes all-chunks/b.js xx KiB
-  Entrypoint c xx KiB = all-chunks/773.js 331 bytes all-chunks/859.js 331 bytes all-chunks/266.js 331 bytes all-chunks/828.js 331 bytes all-chunks/c.js xx KiB
+  Entrypoint a xx KiB = all-chunks/773.js 311 bytes all-chunks/192.js 311 bytes all-chunks/266.js 311 bytes all-chunks/327.js 311 bytes all-chunks/a.js xx KiB
+  Entrypoint b xx KiB = all-chunks/773.js 311 bytes all-chunks/192.js 311 bytes all-chunks/266.js 311 bytes all-chunks/828.js 311 bytes all-chunks/b.js xx KiB
+  Entrypoint c xx KiB = all-chunks/773.js 311 bytes all-chunks/859.js 311 bytes all-chunks/266.js 311 bytes all-chunks/828.js 311 bytes all-chunks/c.js xx KiB
   chunk (runtime: a, main) all-chunks/async-g.js (async-g) 45 bytes <{192}> <{266}> <{327}> <{341}> <{724}> <{773}> ={828}= [rendered]
     > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
@@ -123,10 +123,10 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main 9 KiB = manual/main.js
-  Entrypoint a xx KiB = manual/vendors.js 817 bytes manual/a.js xx KiB
-  Entrypoint b xx KiB = manual/vendors.js 817 bytes manual/b.js xx KiB
-  Entrypoint c xx KiB = manual/vendors.js 817 bytes manual/c.js xx KiB
+  Entrypoint main xx KiB = manual/main.js
+  Entrypoint a xx KiB = manual/vendors.js 757 bytes manual/a.js xx KiB
+  Entrypoint b xx KiB = manual/vendors.js 757 bytes manual/b.js xx KiB
+  Entrypoint c xx KiB = manual/vendors.js 757 bytes manual/c.js xx KiB
   chunk (runtime: a, main) manual/async-g.js (async-g) 65 bytes <{341}> <{545}> <{724}> [rendered]
     > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module
@@ -190,9 +190,9 @@ manual:
 
 name-too-long:
   Entrypoint main xx KiB = name-too-long/main.js
-  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa xx KiB = name-too-long/773.js 331 bytes name-too-long/192.js 331 bytes name-too-long/266.js 331 bytes name-too-long/327.js 331 bytes name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js xx KiB
-  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb xx KiB = name-too-long/773.js 331 bytes name-too-long/192.js 331 bytes name-too-long/266.js 331 bytes name-too-long/828.js 331 bytes name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js xx KiB
-  Entrypoint cccccccccccccccccccccccccccccc xx KiB = name-too-long/773.js 331 bytes name-too-long/859.js 331 bytes name-too-long/266.js 331 bytes name-too-long/828.js 331 bytes name-too-long/cccccccccccccccccccccccccccccc.js xx KiB
+  Entrypoint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa xx KiB = name-too-long/773.js 311 bytes name-too-long/192.js 311 bytes name-too-long/266.js 311 bytes name-too-long/327.js 311 bytes name-too-long/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.js xx KiB
+  Entrypoint bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb xx KiB = name-too-long/773.js 311 bytes name-too-long/192.js 311 bytes name-too-long/266.js 311 bytes name-too-long/828.js 311 bytes name-too-long/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.js xx KiB
+  Entrypoint cccccccccccccccccccccccccccccc xx KiB = name-too-long/773.js 311 bytes name-too-long/859.js 311 bytes name-too-long/266.js 311 bytes name-too-long/828.js 311 bytes name-too-long/cccccccccccccccccccccccccccccc.js xx KiB
   chunk (runtime: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, main) name-too-long/async-g.js (async-g) 45 bytes <{192}> <{266}> <{327}> <{706}> <{724}> <{773}> ={828}= [rendered]
     > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
@@ -259,8 +259,8 @@ name-too-long:
 custom-chunks-filter:
   Entrypoint main xx KiB = custom-chunks-filter/main.js
   Entrypoint a xx KiB = custom-chunks-filter/a.js
-  Entrypoint b xx KiB = custom-chunks-filter/773.js 331 bytes custom-chunks-filter/192.js 331 bytes custom-chunks-filter/828.js 331 bytes custom-chunks-filter/266.js 331 bytes custom-chunks-filter/b.js xx KiB
-  Entrypoint c xx KiB = custom-chunks-filter/773.js 331 bytes custom-chunks-filter/859.js 331 bytes custom-chunks-filter/828.js 331 bytes custom-chunks-filter/266.js 331 bytes custom-chunks-filter/c.js xx KiB
+  Entrypoint b xx KiB = custom-chunks-filter/773.js 311 bytes custom-chunks-filter/192.js 311 bytes custom-chunks-filter/828.js 311 bytes custom-chunks-filter/266.js 311 bytes custom-chunks-filter/b.js xx KiB
+  Entrypoint c xx KiB = custom-chunks-filter/773.js 311 bytes custom-chunks-filter/859.js 311 bytes custom-chunks-filter/828.js 311 bytes custom-chunks-filter/266.js 311 bytes custom-chunks-filter/c.js xx KiB
   chunk (runtime: a, main) custom-chunks-filter/async-g.js (async-g) 45 bytes <{192}> <{266}> <{341}> <{724}> <{773}> ={828}= [rendered]
     > ./g ./a.js 6:0-47
     ./g.js 45 bytes [built] [code generated]
@@ -320,9 +320,9 @@ custom-chunks-filter:
 
 custom-chunks-filter-in-cache-groups:
   Entrypoint main xx KiB = custom-chunks-filter-in-cache-groups/main.js
-  Entrypoint a xx KiB = custom-chunks-filter-in-cache-groups/70.js 667 bytes custom-chunks-filter-in-cache-groups/a.js xx KiB
-  Entrypoint b xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/b.js xx KiB
-  Entrypoint c xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 817 bytes custom-chunks-filter-in-cache-groups/c.js xx KiB
+  Entrypoint a xx KiB = custom-chunks-filter-in-cache-groups/70.js 611 bytes custom-chunks-filter-in-cache-groups/a.js xx KiB
+  Entrypoint b xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 757 bytes custom-chunks-filter-in-cache-groups/b.js xx KiB
+  Entrypoint c xx KiB = custom-chunks-filter-in-cache-groups/vendors.js 757 bytes custom-chunks-filter-in-cache-groups/c.js xx KiB
   chunk (runtime: a, main) custom-chunks-filter-in-cache-groups/async-g.js (async-g) 65 bytes <{341}> <{545}> <{70}> <{724}> [rendered]
     > ./g ./a.js 6:0-47
     dependent modules 20 bytes [dependent] 1 module

@@ -8,7 +8,7 @@ use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module, module_raw,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::Result;
 
@@ -27,9 +27,15 @@ pub struct EmbedFederationRuntimeModule {
 }
 
 impl EmbedFederationRuntimeModule {
-  pub fn new(options: EmbedFederationRuntimeModuleOptions) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    options: EmbedFederationRuntimeModuleOptions,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/embed_federation_runtime"),
+      Identifier::from(format!(
+        "{}embed_federation_runtime",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       options,
     )
@@ -77,7 +83,13 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 50);
 
     for dep_id in federation_runtime_modules {
-      let module_str = module_raw(compilation, &mut runtime_requirements, &dep_id, "", false);
+      let module_str = compilation.runtime_template.module_raw(
+        compilation,
+        &mut runtime_requirements,
+        &dep_id,
+        "",
+        false,
+      );
       module_executions.push_str("\t\t");
       module_executions.push_str(&module_str);
       module_executions.push('\n');
@@ -88,7 +100,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     // Generate prevStartup wrapper pattern with defensive checks
-    let startup = RuntimeGlobals::STARTUP.name();
+    let startup = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP);
     let result = format!(
       r#"var prevStartup = {startup};
 var hasRun = false;

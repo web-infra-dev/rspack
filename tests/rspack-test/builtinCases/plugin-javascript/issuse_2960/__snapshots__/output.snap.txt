@@ -1,26 +1,26 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__("./resources sync recursive ^\\.\\/pre_.*\\.js$")(`./pre_${i + 1}.js`);
 
 
-}),
-"./resources/pre_a.js": (function () {
+},
+"./resources/pre_a.js"() {
 console.log("a");
 
 
-}),
-"./resources/pre_b.js": (function () {
+},
+"./resources/pre_b.js"() {
 console.log("a");
 
 
-}),
-"./resources/pre_c.js": (function () {
+},
+"./resources/pre_c.js"() {
 console.log("a");
 
 
-}),
-"./resources sync recursive ^\\.\\/pre_.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+},
+"./resources sync recursive ^\\.\\/pre_.*\\.js$"(module, __unused_rspack_exports, __webpack_require__) {
 var map = {
   "./pre_a.js": "./resources/pre_a.js",
   "./pre_b.js": "./resources/pre_b.js",
@@ -28,11 +28,11 @@ var map = {
 };
 
 
-function webpackContext(req) {
-  var id = webpackContextResolve(req);
+function __rspack_context(req) {
+  var id = __rspack_context_resolve(req);
   return __webpack_require__(id);
 }
-function webpackContextResolve(req) {
+function __rspack_context_resolve(req) {
   if(!__webpack_require__.o(map, req)) {
     var e = new Error("Cannot find module '" + req + "'");
     e.code = 'MODULE_NOT_FOUND';
@@ -40,15 +40,15 @@ function webpackContextResolve(req) {
   }
   return map[req];
 }
-webpackContext.keys = function webpackContextKeys() {
+__rspack_context.keys = function webpackContextKeys() {
   return Object.keys(map);
 };
-webpackContext.resolve = webpackContextResolve;
-module.exports = webpackContext;
-webpackContext.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
+__rspack_context.resolve = __rspack_context_resolve;
+module.exports = __rspack_context;
+__rspack_context.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

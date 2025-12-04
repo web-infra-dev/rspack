@@ -21,6 +21,6 @@ it("should export module library", function () {
 		),
 		"utf-8"
 	);
-	const createRequire = "__WEBPACK_EXTERNAL_createRequire_require";
+	const createRequire = "__rspack_createRequire_require";
 	expect(source).toContain(`${createRequire}("node:fs")`);
 });

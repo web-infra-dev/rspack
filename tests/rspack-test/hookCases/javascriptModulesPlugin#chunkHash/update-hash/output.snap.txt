@@ -1,11 +1,11 @@
 ```js title=main.js
 (() => {
 var __webpack_modules__ = ({
-402: (function (module) {
+402(module) {
 module.exports = "This is hook"
 
 
-}),
+},
 
 });
 // The module cache

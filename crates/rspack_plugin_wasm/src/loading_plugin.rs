@@ -32,7 +32,13 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       AsyncWasmLoadingRuntimeModule::new(
-        format!("fetch({} + $PATH)", RuntimeGlobals::PUBLIC_PATH),
+        &compilation.runtime_template,
+        format!(
+          "fetch({} + $PATH)",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+        ),
         true,
         *chunk_ukey,
       )
@@ -90,6 +96,7 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       AsyncWasmLoadingRuntimeModule::new(
+        &compilation.runtime_template,
         if import_enabled {
           include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
         } else {

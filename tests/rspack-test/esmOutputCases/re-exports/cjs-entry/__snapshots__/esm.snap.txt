@@ -1,36 +1,36 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.js": 
+"./bar.js"
 /*!****************!*\
   !*** ./bar.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.bar = 2
 
 
-}),
-"./foo.js": 
+},
+"./foo.js"
 /*!****************!*\
   !*** ./foo.js ***!
   \****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
   foo: () => (foo)
 });
-/* import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */ "./bar.js");
+/* import */ var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
 
-}),
-"./index.js": 
+},
+"./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_rspack_exports, __webpack_require__) {
 module.exports = __webpack_require__(/*! ./foo */ "./foo.js")
 
 it('should have correct output for entry re-exports', async () => {
@@ -42,7 +42,7 @@ it('should have correct output for entry re-exports', async () => {
 
 
 
-}),
+},
 });
 const index = __webpack_require__("./index.js");
 var __esModule = index.__esModule;

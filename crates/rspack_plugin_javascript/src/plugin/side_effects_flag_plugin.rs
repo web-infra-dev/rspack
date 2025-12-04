@@ -8,9 +8,10 @@ use rspack_core::{
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
@@ -147,18 +148,15 @@ async fn nmf_module(
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let mut side_effects_optimize_artifact = if compilation
-    .incremental
-    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-  {
-    std::mem::take(&mut compilation.side_effects_optimize_artifact)
-  } else {
-    Default::default()
-  };
   let module_graph = compilation.get_module_graph();
 
   let all_modules = module_graph.modules();
@@ -278,7 +276,8 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
+
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
@@ -298,8 +297,6 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       .collect();
   }
   logger.time_end(inner_start);
-
-  compilation.side_effects_optimize_artifact = side_effects_optimize_artifact;
 
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));

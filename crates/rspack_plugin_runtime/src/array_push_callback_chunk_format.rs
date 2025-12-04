@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -139,7 +139,9 @@ async fn render_chunk(
       source.add(RawStringSource::from_static(","));
       source.add(RawStringSource::from(format!(
         "function({}) {{\n",
-        RuntimeGlobals::REQUIRE
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
       if has_runtime_modules {
         source.add(render_runtime_modules(compilation, chunk_ukey).await?);
@@ -171,9 +173,12 @@ async fn render_chunk(
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-          source.add(RawStringSource::from_static(
-            "return __webpack_exports__;\n",
-          ));
+          source.add(RawStringSource::from(format!(
+            "return {};\n",
+            compilation
+              .runtime_template
+              .render_runtime_variable(&RuntimeVariable::Exports)
+          )));
         }
       }
       source.add(RawStringSource::from_static("\n}\n"));

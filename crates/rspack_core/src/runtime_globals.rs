@@ -1,7 +1,6 @@
-use std::fmt;
-
 use bitflags::bitflags;
-use swc_core::ecma::atoms::Atom;
+
+use crate::CompilerOptions;
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -110,56 +109,58 @@ bitflags! {
      */
     const HMR_DOWNLOAD_UPDATE_HANDLERS = 1 << 18;
 
+    const HMR_INVALIDATE_MODULE_HANDLERS = 1 << 19;
+
     /**
      * the filename of the HMR manifest
      */
-    const GET_UPDATE_MANIFEST_FILENAME = 1 << 19;
+    const GET_UPDATE_MANIFEST_FILENAME = 1 << 20;
 
     /**
      * the filename of the script part of the hot update chunk
      */
-    const GET_CHUNK_UPDATE_SCRIPT_FILENAME = 1 << 20;
+    const GET_CHUNK_UPDATE_SCRIPT_FILENAME = 1 << 21;
 
     /**
      * the filename of the css part of the hot update chunk
      */
-    const GET_CHUNK_UPDATE_CSS_FILENAME = 1 << 21;
+    const GET_CHUNK_UPDATE_CSS_FILENAME = 1 << 22;
 
     /**
      * object with all hmr module data for all modules
      */
-    const HMR_MODULE_DATA = 1 << 22;
+    const HMR_MODULE_DATA = 1 << 23;
 
     /**
      * the prefix for storing state of runtime modules when hmr is enabled
      */
-    const HMR_RUNTIME_STATE_PREFIX = 1 << 23;
+    const HMR_RUNTIME_STATE_PREFIX = 1 << 24;
 
     /**
      * method to install a chunk that was loaded somehow
      * Signature: ({ id, ids, modules, runtime }) => void
      */
-    const EXTERNAL_INSTALL_CHUNK = 1 << 24;
+    const EXTERNAL_INSTALL_CHUNK = 1 << 25;
 
     /**
      * the webpack hash
      */
-    const GET_FULL_HASH = 1 << 25;
+    const GET_FULL_HASH = 1 << 26;
 
     /**
      * the global object
      */
-    const GLOBAL = 1 << 26;
+    const GLOBAL = 1 << 27;
 
     /**
      * runtime need to return the exports of the last entry module
      */
-    const RETURN_EXPORTS_FROM_RUNTIME = 1 << 27;
+    const RETURN_EXPORTS_FROM_RUNTIME = 1 << 28;
 
     /**
      * instantiate a wasm instance from module exports object, id, hash and importsObject
      */
-    const INSTANTIATE_WASM = 1 << 28;
+    const INSTANTIATE_WASM = 1 << 29;
 
     /**
      * Creates an async module. The body function must be a async function.
@@ -173,103 +174,96 @@ bitflags! {
      * hasAwaitAfterDependencies?: boolean
      * ) => void
      */
-    const ASYNC_MODULE = 1 << 29;
+    const ASYNC_MODULE = 1 << 30;
 
     /**
      * the baseURI of current document
      */
-    const BASE_URI = 1 << 30;
+    const BASE_URI = 1 << 31;
 
-    const MODULE_LOADED = 1 << 31;
+    const MODULE_LOADED = 1 << 32;
 
-    const STARTUP_ENTRYPOINT = 1 << 32;
-    const STARTUP_CHUNK_DEPENDENCIES = 1 << 33;
+    const STARTUP_ENTRYPOINT = 1 << 33;
+    const STARTUP_CHUNK_DEPENDENCIES = 1 << 34;
 
-    const CREATE_SCRIPT_URL = 1 << 34;
+    const CREATE_SCRIPT_URL = 1 << 35;
 
-    const CREATE_SCRIPT = 1 << 35;
+    const CREATE_SCRIPT = 1 << 36;
 
-    const GET_TRUSTED_TYPES_POLICY = 1 << 36;
+    const GET_TRUSTED_TYPES_POLICY = 1 << 37;
 
-    const DEFINE_PROPERTY_GETTERS = 1 << 37;
+    const DEFINE_PROPERTY_GETTERS = 1 << 38;
 
-    const ENTRY_MODULE_ID = 1 << 38;
+    const ENTRY_MODULE_ID = 1 << 39;
 
-    const STARTUP_NO_DEFAULT = 1 << 39;
+    const STARTUP_NO_DEFAULT = 1 << 40;
 
-    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 40;
+    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 41;
 
-    const STARTUP = 1 << 41;
+    const STARTUP = 1 << 42;
 
-    const MAKE_NAMESPACE_OBJECT = 1 << 42;
+    const MAKE_NAMESPACE_OBJECT = 1 << 43;
 
-    const EXPORTS = 1 << 43;
+    const EXPORTS = 1 << 44;
 
-    const COMPAT_GET_DEFAULT_EXPORT = 1 << 44;
+    const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
 
-    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 45;
+    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
 
-    const NODE_MODULE_DECORATOR = 1 << 46;
+    const NODE_MODULE_DECORATOR = 1 << 47;
 
-    const ESM_MODULE_DECORATOR = 1 << 47;
+    const ESM_MODULE_DECORATOR = 1 << 48;
 
     /**
      * the System.register context object
      */
-    const SYSTEM_CONTEXT = 1 << 48;
+    const SYSTEM_CONTEXT = 1 << 49;
 
-    const THIS_AS_EXPORTS = 1 << 49;
+    const THIS_AS_EXPORTS = 1 << 50;
 
-    const CURRENT_REMOTE_GET_SCOPE = 1 << 50;
+    const CURRENT_REMOTE_GET_SCOPE = 1 << 51;
 
-    const SHARE_SCOPE_MAP = 1 << 51;
+    const SHARE_SCOPE_MAP = 1 << 52;
 
-    const INITIALIZE_SHARING = 1 << 52;
+    const INITIALIZE_SHARING = 1 << 53;
 
-    const SCRIPT_NONCE = 1 << 53;
+    const SCRIPT_NONCE = 1 << 54;
 
-    const RELATIVE_URL = 1 << 54;
+    const RELATIVE_URL = 1 << 55;
 
-    const CHUNK_NAME = 1 << 55;
+    const CHUNK_NAME = 1 << 56;
 
-    const RUNTIME_ID = 1 << 56;
+    const RUNTIME_ID = 1 << 57;
 
     // prefetch and preload
-    const PREFETCH_CHUNK = 1 << 57;
+    const PREFETCH_CHUNK = 1 << 58;
 
-    const PREFETCH_CHUNK_HANDLERS = 1 << 58;
+    const PREFETCH_CHUNK_HANDLERS = 1 << 59;
 
-    const PRELOAD_CHUNK = 1 << 59;
+    const PRELOAD_CHUNK = 1 << 60;
 
-    const PRELOAD_CHUNK_HANDLERS = 1 << 60;
+    const PRELOAD_CHUNK_HANDLERS = 1 << 61;
 
-    const UNCAUGHT_ERROR_HANDLER = 1 << 61;
-
-    // rspack only
-    const RSPACK_VERSION = 1 << 62;
-
-    const HAS_CSS_MODULES = 1 << 63;
+    const UNCAUGHT_ERROR_HANDLER = 1 << 62;
 
     // rspack only
-    const RSPACK_UNIQUE_ID = 1 << 64;
+    const RSPACK_VERSION = 1 << 63;
 
-    const HAS_FETCH_PRIORITY = 1 << 65;
+    const HAS_CSS_MODULES = 1 << 64;
+
+    // rspack only
+    const RSPACK_UNIQUE_ID = 1 << 65;
+
+    const HAS_FETCH_PRIORITY = 1 << 66;
 
     // amd module support
-    const AMD_DEFINE = 1 << 66;
-    const AMD_OPTIONS = 1 << 67;
+    const AMD_DEFINE = 1 << 67;
+    const AMD_OPTIONS = 1 << 68;
 
     // defer import support
-    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 68;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 69;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 70;
-  }
-}
-
-impl fmt::Display for RuntimeGlobals {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let name = self.name();
-    f.write_str(name)
+    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
   }
 }
 
@@ -279,91 +273,114 @@ impl Default for RuntimeGlobals {
   }
 }
 
-impl RuntimeGlobals {
-  pub const fn name(&self) -> &'static str {
-    use RuntimeGlobals as R;
-    match *self {
-      R::REQUIRE_SCOPE => "__webpack_require__.*",
-      R::MODULE => "module",
-      R::MODULE_ID => "module.id",
-      R::MODULE_LOADED => "module.loaded",
-      R::REQUIRE => "__webpack_require__",
-      R::MODULE_CACHE => "__webpack_require__.c",
-      R::ENSURE_CHUNK => "__webpack_require__.e",
-      R::ENSURE_CHUNK_HANDLERS => "__webpack_require__.f",
-      R::PUBLIC_PATH => "__webpack_require__.p",
-      R::GET_CHUNK_SCRIPT_FILENAME => "__webpack_require__.u",
-      R::GET_CHUNK_CSS_FILENAME => "__webpack_require__.k",
-      R::LOAD_SCRIPT => "__webpack_require__.l",
-      R::HAS_OWN_PROPERTY => "__webpack_require__.o",
-      R::MODULE_FACTORIES_ADD_ONLY => "__webpack_require__.m (add only)",
-      R::ON_CHUNKS_LOADED => "__webpack_require__.O",
-      R::CHUNK_CALLBACK => "webpackChunk",
-      R::MODULE_FACTORIES => "__webpack_require__.m",
-      R::INTERCEPT_MODULE_EXECUTION => "__webpack_require__.i",
-      R::HMR_DOWNLOAD_MANIFEST => "__webpack_require__.hmrM",
-      R::HMR_DOWNLOAD_UPDATE_HANDLERS => "__webpack_require__.hmrC",
-      R::GET_UPDATE_MANIFEST_FILENAME => "__webpack_require__.hmrF",
-      R::GET_CHUNK_UPDATE_SCRIPT_FILENAME => "__webpack_require__.hu",
-      R::GET_CHUNK_UPDATE_CSS_FILENAME => "__webpack_require__.hk",
-      R::HMR_MODULE_DATA => "__webpack_require__.hmrD",
-      R::HMR_RUNTIME_STATE_PREFIX => "__webpack_require__.hmrS",
-      R::AMD_DEFINE => "__webpack_require__.amdD",
-      R::AMD_OPTIONS => "__webpack_require__.amdO",
-      R::EXTERNAL_INSTALL_CHUNK => "__webpack_require__.C",
-      R::GET_FULL_HASH => "__webpack_require__.h",
-      R::GLOBAL => "__webpack_require__.g",
-      R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
-      R::INSTANTIATE_WASM => "__webpack_require__.v",
-      R::ASYNC_MODULE => "__webpack_require__.a",
-      R::ASYNC_MODULE_EXPORT_SYMBOL => "__webpack_require__.aE",
-      R::BASE_URI => "__webpack_require__.b",
-      R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
-      R::STARTUP_CHUNK_DEPENDENCIES => "__webpack_require__.x (chunk dependencies)",
-      R::CREATE_SCRIPT_URL => "__webpack_require__.tu",
-      R::CREATE_SCRIPT => "__webpack_require__.ts",
-      R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
-      R::DEFINE_PROPERTY_GETTERS => "__webpack_require__.d",
-      R::ENTRY_MODULE_ID => "__webpack_require__.s",
-      R::STARTUP_NO_DEFAULT => "__webpack_require__.x (no default handler)",
-      R::ENSURE_CHUNK_INCLUDE_ENTRIES => "__webpack_require__.f (include entries)",
-      R::STARTUP => "__webpack_require__.x",
-      R::MAKE_NAMESPACE_OBJECT => "__webpack_require__.r",
-      R::MAKE_DEFERRED_NAMESPACE_OBJECT => "__webpack_require__.z",
-      R::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => "__webpack_require__.zS",
-      R::EXPORTS => "__webpack_exports__",
-      R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
-      R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
-      R::ESM_MODULE_DECORATOR => "__webpack_require__.hmd",
-      R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
-      R::SYSTEM_CONTEXT => "__webpack_require__.y",
-      R::THIS_AS_EXPORTS => "top-level-this-exports",
-      R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
-      R::SHARE_SCOPE_MAP => "__webpack_require__.S",
-      R::INITIALIZE_SHARING => "__webpack_require__.I",
-      R::SCRIPT_NONCE => "__webpack_require__.nc",
-      R::RELATIVE_URL => "__webpack_require__.U",
-      R::CHUNK_NAME => "__webpack_require__.cn",
-      R::RUNTIME_ID => "__webpack_require__.j",
-      R::PREFETCH_CHUNK => "__webpack_require__.E",
-      R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
-      R::PRELOAD_CHUNK => "__webpack_require__.G",
-      R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
-      R::UNCAUGHT_ERROR_HANDLER => "__webpack_require__.oe",
-      // rspack only
-      R::RSPACK_VERSION => "__webpack_require__.rv",
-      R::RSPACK_UNIQUE_ID => "__webpack_require__.ruid",
-      R::HAS_CSS_MODULES => "has css modules",
-
-      R::HAS_FETCH_PRIORITY => "has fetch priority",
-      _ => unreachable!(),
+pub fn runtime_globals_to_string(
+  runtime_globals: &RuntimeGlobals,
+  compiler_options: &CompilerOptions,
+) -> String {
+  let scope_name = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
+  match *runtime_globals {
+    RuntimeGlobals::REQUIRE_SCOPE => format!("{scope_name}.*"),
+    RuntimeGlobals::MODULE => "module".to_string(),
+    RuntimeGlobals::MODULE_ID => "module.id".to_string(),
+    RuntimeGlobals::MODULE_LOADED => "module.loaded".to_string(),
+    RuntimeGlobals::REQUIRE => scope_name,
+    RuntimeGlobals::MODULE_CACHE => format!("{scope_name}.c"),
+    RuntimeGlobals::ENSURE_CHUNK => format!("{scope_name}.e"),
+    RuntimeGlobals::ENSURE_CHUNK_HANDLERS => format!("{scope_name}.f"),
+    RuntimeGlobals::PUBLIC_PATH => format!("{scope_name}.p"),
+    RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => format!("{scope_name}.u"),
+    RuntimeGlobals::GET_CHUNK_CSS_FILENAME => format!("{scope_name}.k"),
+    RuntimeGlobals::LOAD_SCRIPT => format!("{scope_name}.l"),
+    RuntimeGlobals::HAS_OWN_PROPERTY => format!("{scope_name}.o"),
+    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY => format!("{scope_name}.m (add only)"),
+    RuntimeGlobals::ON_CHUNKS_LOADED => format!("{scope_name}.O"),
+    RuntimeGlobals::CHUNK_CALLBACK => "global chunk callback".to_string(),
+    RuntimeGlobals::MODULE_FACTORIES => format!("{scope_name}.m"),
+    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => format!("{scope_name}.i"),
+    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => format!("{scope_name}.hmrM"),
+    RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => format!("{scope_name}.hmrC"),
+    RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => format!("{scope_name}.hmrI"),
+    RuntimeGlobals::HMR_MODULE_DATA => format!("{scope_name}.hmrD"),
+    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => format!("{scope_name}.hmrS"),
+    RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => format!("{scope_name}.hmrF"),
+    RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => format!("{scope_name}.hu"),
+    RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME => format!("{scope_name}.hk"),
+    RuntimeGlobals::AMD_DEFINE => format!("{scope_name}.amdD"),
+    RuntimeGlobals::AMD_OPTIONS => format!("{scope_name}.amdO"),
+    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK => format!("{scope_name}.C"),
+    RuntimeGlobals::GET_FULL_HASH => format!("{scope_name}.h"),
+    RuntimeGlobals::GLOBAL => format!("{scope_name}.g"),
+    RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime".to_string(),
+    RuntimeGlobals::INSTANTIATE_WASM => format!("{scope_name}.v"),
+    RuntimeGlobals::ASYNC_MODULE => format!("{scope_name}.a"),
+    RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL => format!("{scope_name}.aE"),
+    RuntimeGlobals::BASE_URI => format!("{scope_name}.b"),
+    RuntimeGlobals::STARTUP_ENTRYPOINT => format!("{scope_name}.X"),
+    RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES => format!("{scope_name}.x (chunk dependencies)"),
+    RuntimeGlobals::CREATE_SCRIPT_URL => format!("{scope_name}.tu"),
+    RuntimeGlobals::CREATE_SCRIPT => format!("{scope_name}.ts"),
+    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => format!("{scope_name}.tt"),
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS => format!("{scope_name}.d"),
+    RuntimeGlobals::ENTRY_MODULE_ID => format!("{scope_name}.s"),
+    RuntimeGlobals::STARTUP_NO_DEFAULT => format!("{scope_name}.x (no default handler)"),
+    RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => format!("{scope_name}.f (include entries)"),
+    RuntimeGlobals::STARTUP => format!("{scope_name}.x"),
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
+    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
+    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
+    RuntimeGlobals::EXPORTS => {
+      runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
     }
+    RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => format!("{scope_name}.n"),
+    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => format!("{scope_name}.t"),
+    RuntimeGlobals::ESM_MODULE_DECORATOR => format!("{scope_name}.hmd"),
+    RuntimeGlobals::NODE_MODULE_DECORATOR => format!("{scope_name}.nmd"),
+    RuntimeGlobals::SYSTEM_CONTEXT => format!("{scope_name}.y"),
+    RuntimeGlobals::THIS_AS_EXPORTS => "top-level-this-exports".to_string(),
+    RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE => format!("{scope_name}.R"),
+    RuntimeGlobals::SHARE_SCOPE_MAP => format!("{scope_name}.S"),
+    RuntimeGlobals::INITIALIZE_SHARING => format!("{scope_name}.I"),
+    RuntimeGlobals::SCRIPT_NONCE => format!("{scope_name}.nc"),
+    RuntimeGlobals::RELATIVE_URL => format!("{scope_name}.U"),
+    RuntimeGlobals::CHUNK_NAME => format!("{scope_name}.cn"),
+    RuntimeGlobals::RUNTIME_ID => format!("{scope_name}.j"),
+    RuntimeGlobals::PREFETCH_CHUNK => format!("{scope_name}.E"),
+    RuntimeGlobals::PREFETCH_CHUNK_HANDLERS => format!("{scope_name}.F"),
+    RuntimeGlobals::PRELOAD_CHUNK => format!("{scope_name}.G"),
+    RuntimeGlobals::PRELOAD_CHUNK_HANDLERS => format!("{scope_name}.H"),
+    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER => format!("{scope_name}.oe"),
+    // rspack only
+    RuntimeGlobals::RSPACK_VERSION => format!("{scope_name}.rv"),
+    RuntimeGlobals::RSPACK_UNIQUE_ID => format!("{scope_name}.ruid"),
+    RuntimeGlobals::HAS_CSS_MODULES => "has css modules".to_string(),
+
+    RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
+    _ => unreachable!(),
   }
 }
 
-impl From<RuntimeGlobals> for Atom {
-  fn from(value: RuntimeGlobals) -> Self {
-    value.name().into()
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub enum RuntimeVariable {
+  Require,
+  Modules,
+  ModuleCache,
+  Module,
+  Exports,
+  StartupExec,
+}
+
+pub fn runtime_variable_to_string(
+  runtime_variable: &RuntimeVariable,
+  _compiler_options: &CompilerOptions,
+) -> String {
+  // TODO: use compiler options to get runtime variable names
+  match *runtime_variable {
+    RuntimeVariable::Require => "__webpack_require__".to_string(),
+    RuntimeVariable::Modules => "__webpack_modules__".to_string(),
+    RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),
+    RuntimeVariable::Exports => "__webpack_exports__".to_string(),
+    RuntimeVariable::Module => "__webpack_module__".to_string(),
+    RuntimeVariable::StartupExec => "__webpack_exec__".to_string(),
   }
 }
 
@@ -378,20 +395,5 @@ mod test {
     assert_eq!(flags.len(), 2);
     assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
     assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-  }
-
-  #[test]
-  fn test_pretty_print() {
-    let flags = RuntimeGlobals::PUBLIC_PATH;
-    assert_eq!(format!("{flags}"), "__webpack_require__.p");
-    let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
-    assert_eq!(format!("{flags}"), "__webpack_require__.k");
-  }
-
-  #[test]
-  #[should_panic]
-  fn test_panic_when_print_multiple_flags() {
-    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
-    print!("{flags}");
   }
 }

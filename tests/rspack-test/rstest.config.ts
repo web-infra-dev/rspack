@@ -2,6 +2,8 @@ import path from 'node:path';
 import { defineConfig } from '@rstest/core';
 const root = path.resolve(__dirname, "../../");
 
+process.env.NO_COLOR = '1';
+
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-env",
 	"@rspack/test-tools/setup-expect",
@@ -34,7 +36,6 @@ const wasmConfig = process.env.WASM && defineConfig({
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
 	}
 });
-
 
 export default defineConfig({
 	setupFiles: setupFilesAfterEnv,
@@ -87,11 +88,18 @@ export default defineConfig({
 		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
 		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
 		__ROOT_PATH__: root,
+		DEFAULT_MAX_CONCURRENT: process.argv.includes("--maxConcurrency")
+				? process.argv[
+				process.argv.indexOf("--maxConcurrency") + 1
+				]
+				: undefined,
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
 	hideSkippedTests: true,
+	reporters: ['default'],
+	testTimeout: 300000,
 	...(wasmConfig || {}),
 });
 

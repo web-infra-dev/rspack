@@ -4,15 +4,15 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Code splitting
 
-Rspack supports code splitting, which allows splitting the code into other chunks. You have the full control about size and number of generated assets, which allow you to gain performance improvements in loading time.
+Rspack supports code splitting, letting you divide your code into separate chunks. You have full control over the size and number of generated assets to improve loading performance.
 
-Here we introduce a concept called Chunk, representing a resource that a browser needs to load.
+Here, a Chunk refers to a resource that a browser needs to load.
 
 ## Dynamic import
 
-Rspack use the [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) syntax that conforms to the ECMAScript proposal for dynamic imports.
+Rspack uses the [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) syntax that conforms to the ECMAScript proposal for dynamic imports.
 
-In `index.js`, we dynamically import two modules through `import()`, thereby separating into a new chunk.
+In `index.js`, we dynamically import two modules through `import()`, separating them into a new chunk.
 
 ```js title=index.js
 import('./foo.js');
@@ -29,19 +29,19 @@ import './shared.js';
 console.log('bar.js');
 ```
 
-Now we build this project, we get 3 chunks, `src_bar_js.js`, `src_foo_js.js` and `main.js`, if you see them, you will find `shared.js` exist in both `src_bar_js.js` and `src_foo_js.js`, we will remove duplicated modules in later chapters.
+Building this project produces three chunks: `src_bar_js.js`, `src_foo_js.js`, and `main.js`. Inspecting them shows that `shared.js` exists in both `src_bar_js.js` and `src_foo_js.js`. We will cover how to remove duplicated modules later.
 
 :::tip
 Refer to [Module methods - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) for the detailed dynamic import API, as well as how to use dynamic expressions and magic comments in dynamic import.
 :::
 
 :::info
-Though `shared.js` exist in 2 chunks, but it is executed only once, you don't have to worry about issue of multiple instance.
+Although `shared.js` exists in two chunks, it is executed only once, so you don't have to worry about multiple instances.
 :::
 
 ## Entry point
 
-This is the simplest and most intuitive way to split the code. However, this approach requires us to manually configure the Rspack. Let's start by looking at how to split multiple Chunks from multiple entry points.
+This is the simplest and most intuitive way to split the code, but it requires manual configuration. Let's start by looking at how to create multiple Chunks from multiple entry points.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -77,13 +77,13 @@ Entrypoint index = index.js
 [./src/shared.js] 24 bytes {another} {index}
 ```
 
-Similarly, if you examine them, you will find that they all include the repetitive `shared.js`.
+Similarly, examining the output shows that they all include the repeated `shared.js`.
 
 ## SplitChunksPlugin
 
-The code segmentation mentioned above is quite intuitive, but most modern browsers support concurrent network requests. If we divide each page of a SPA application into a single Chunk, and when users switch pages, they request a larger Chunk, this obviously does not make good use of the browser's ability to handle concurrent network requests. Therefore, we can break down the Chunk into smaller ones. When we need to request this Chunk, we change to request these smaller Chunks simultaneously, which will make the browser's requests more efficient.
+The splitting approach above is intuitive, but most modern browsers support concurrent network requests. If we split a single-page application into one chunk per page, the browser still has to fetch a large chunk when users switch pages, which wastes that concurrency. Instead, we can break the chunk into smaller ones and request those smaller chunks at the same time to use the browser's network capacity more effectively.
 
-Rspack defaults to splitting files in the `node_modules` directory and duplicate modules, extracting these modules from their original Chunk into a separate new Chunk. So why does `shared.js` still appear repeatedly in multiple Chunks in our example above? This is because the `shared.js` in our example is very small in size. If a very small module is split into a separate Chunk for the browser to load, it might actually slow down the loading process.
+Rspack defaults to splitting files in the `node_modules` directory and duplicate modules, extracting these modules from their original Chunk into a separate new Chunk. Why does `shared.js` still appear repeatedly in our example above? The `shared.js` file here is very small, and splitting such a small module into its own Chunk can actually slow down loading.
 
 We can configure the minimum split size to 0 to allow `shared.js` to be extracted on its own.
 
@@ -100,7 +100,7 @@ export default {
 };
 ```
 
-When rebuild, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the product that contains `shared.js`.
+After rebuilding, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the output that contains only `shared.js`.
 
 ### Force the splitting of certain modules
 
@@ -125,13 +125,13 @@ With the above configuration, all files that include the `some-lib` directory in
 
 However, separating `some-lib` into an independent Chunk can also have downsides. Suppose a Chunk only depends on a very small file within `some-lib`, but since all files of `some-lib` are split into a single Chunk, this Chunk has to rely on the entire `some-lib` Chunk, resulting in a larger load volume. Therefore, when using cacheGroups.\{cacheGroup\}.name, careful consideration is needed.
 
-Here is an example show the effect of the `name` configuration of cacheGroup.
+Here is an example showing the effect of the `name` configuration of cacheGroup.
 
 ![](https://assets.rspack.rs/rspack/assets/rspack-splitchunks-name-explain.png)
 
 ## Prefetching/Preloading modules
 
-Using these inline directives while declaring your imports allows Rspack to output “Resource Hint” which tells the browser that for:
+Adding these inline directives to your imports allows Rspack to output resource hints that tell the browser that:
 
 - **prefetch**: resource is probably needed for some navigation in the future
 - **preload**: resource will also be needed during the current navigation

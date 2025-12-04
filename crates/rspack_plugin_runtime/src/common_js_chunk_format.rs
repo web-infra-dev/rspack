@@ -136,7 +136,9 @@ async fn render_chunk(
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "// load runtime\nvar {} = require({});\n",
-      RuntimeGlobals::REQUIRE,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       json_stringify(&get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -146,7 +148,9 @@ async fn render_chunk(
     )));
     sources.add(RawStringSource::from(format!(
       "{}(exports)\n",
-      RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
     )));
 
     let entries = compilation

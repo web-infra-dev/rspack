@@ -272,7 +272,7 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 
 ### getPath
 
-基于模板生成路径字符串，模板规则见 [Template String](/config/output#template-string)。
+基于模板生成路径字符串，模板规则见 [文件名占位符](/config/filename-placeholders)。
 
 ```ts
 getPath(
@@ -310,7 +310,7 @@ console.log(path); // "some1-some2.js"
 
 ### getPathWithInfo
 
-基于模板生成路径字符串和资源信息，模板规则见 [Template String](/config/output#template-string)。
+基于模板生成路径字符串和资源信息，模板规则见 [文件名占位符](/config/filename-placeholders)。
 
 ```ts
 getPathWithInfo(

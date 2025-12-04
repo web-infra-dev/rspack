@@ -1,11 +1,11 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./index.js": 
+"./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(function (module, __unused_webpack___webpack_exports__, __webpack_require__) {
+(module, __unused_rspack___webpack_exports__, __webpack_require__) {
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -13,7 +13,7 @@ __webpack_require__.add({
 console.log.bind(module)
 
 
-}),
+},
 });
 const index = __webpack_require__("./index.js");
 

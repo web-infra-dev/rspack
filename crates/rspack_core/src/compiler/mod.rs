@@ -1,5 +1,8 @@
 mod rebuild;
-use std::sync::{Arc, atomic::AtomicU32};
+use std::{
+  mem,
+  sync::{Arc, atomic::AtomicU32},
+};
 
 use futures::future::join_all;
 use rspack_error::Result;
@@ -320,10 +323,19 @@ impl Compiler {
       wait_for_signal("seal compilation");
     }
     self.build_module_graph().await?;
-    self
+    let mut dependencies_diagnostics_artifact =
+      mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
+    let mut async_modules_artifact = mem::take(&mut self.compilation.async_modules_artifact);
+    let diagnostics = self
       .compilation
-      .collect_build_module_graph_effects()
+      .collect_build_module_graph_effects(
+        &mut dependencies_diagnostics_artifact,
+        &mut async_modules_artifact,
+      )
       .await?;
+    self.compilation.extend_diagnostics(diagnostics);
+    self.compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact;
+    self.compilation.async_modules_artifact = async_modules_artifact;
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 

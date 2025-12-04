@@ -11,7 +11,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  module_raw, property_access, to_normal_comment,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -473,10 +473,17 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
 
     let base = if dep.base.is_exports() {
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      exports_argument.to_string()
+      compilation
+        .runtime_template
+        .render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{module_argument}.exports")
+      format!(
+        "{}.exports",
+        compilation
+          .runtime_template
+          .render_module_argument(module_argument)
+      )
     } else if dep.base.is_this() {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
@@ -503,7 +510,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         UsedName::Normal(used_imported) => {
           format!(
             "{}{}{}",
-            module_raw(
+            compilation.runtime_template.module_raw(
               compilation,
               runtime_requirements,
               &dep.id,
@@ -517,7 +524,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
       }
     } else {
-      module_raw(
+      compilation.runtime_template.module_raw(
         compilation,
         runtime_requirements,
         &dep.id,

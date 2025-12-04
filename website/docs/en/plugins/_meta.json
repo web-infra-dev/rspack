@@ -1,13 +1,17 @@
 [
+  {
+    "type": "section-header",
+    "label": "Introduction"
+  },
   "index",
   {
-    "type": "dir",
-    "name": "webpack",
-    "label": "Webpack-aligned built-in plugins"
+    "type": "dir-section-header",
+    "name": "rspack",
+    "label": "Built-in plugins"
   },
   {
-    "type": "dir",
-    "name": "rspack",
-    "label": "Rspack-only built-in plugins"
+    "type": "dir-section-header",
+    "name": "webpack",
+    "label": "Built-in plugins (webpack-aligned)"
   }
 ]

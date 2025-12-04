@@ -1,23 +1,27 @@
 [
+  {
+    "type": "section-header",
+    "label": "Introduction"
+  },
   "index",
   "cli",
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "runtime-api",
     "label": "Runtime API"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "javascript-api",
     "label": "JavaScript API"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "loader-api",
     "label": "Loader API"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "plugin-api",
     "label": "Plugin API"
   }

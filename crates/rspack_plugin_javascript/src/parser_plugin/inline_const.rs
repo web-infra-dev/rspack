@@ -13,7 +13,10 @@ use crate::{
     BasicEvaluatedExpression, evaluate_to_boolean, evaluate_to_null, evaluate_to_number,
     evaluate_to_string, evaluate_to_undefined,
   },
-  visitors::{JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind},
+  visitors::{
+    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    scope_info::VariableInfoFlags,
+  },
 };
 
 pub const INLINABLE_CONST_TAG: &str = "inlinable const";
@@ -90,10 +93,11 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     {
       let evaluated = parser.evaluate_expression(init);
       if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
-        parser.tag_variable(
+        parser.tag_variable_with_flags(
           name.id.sym.clone(),
           INLINABLE_CONST_TAG,
           Some(InlinableConstData { value: inlinable }),
+          VariableInfoFlags::NORMAL,
         );
       }
     }

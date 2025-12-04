@@ -4,14 +4,14 @@ node_modules_cell_index_js-XXX0.bundle0.js
 
 exports.ids = ["node_modules_cell_index_js-_86ae0"];
 exports.modules = {
-"./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./node_modules/cell/index.js"(module, __unused_rspack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
 module.exports.cell = function(cell) {
     return tmpl(`<td>CELL</td>`, { CELL: cell })
 }
 
-}),
+},
 
 };
 ;
@@ -22,14 +22,14 @@ node_modules_cell_index_js-XXX1.bundle0.js
 
 exports.ids = ["node_modules_cell_index_js-_86ae1"];
 exports.modules = {
-"./node_modules/cell/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./node_modules/cell/index.js"(module, __unused_rspack_exports, __webpack_require__) {
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
 module.exports.cell = function(cell) {
     return tmpl(`<td>CELL</td>`, { CELL: cell })
 }
 
-}),
+},
 
 };
 ;
@@ -40,7 +40,7 @@ node_modules_row_index_js-XXX0.bundle0.js
 
 exports.ids = ["node_modules_row_index_js-_b8840"];
 exports.modules = {
-"./node_modules/row/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./node_modules/row/index.js"(module, __unused_rspack_exports, __webpack_require__) {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
@@ -48,7 +48,7 @@ module.exports.row = function(cells) {
     return tmpl(`<tr>CELLS</tr>`, { CELLS: cells.map(c => cell(c)).join('\n') })
 }
 
-}),
+},
 
 };
 ;
@@ -59,7 +59,7 @@ node_modules_row_index_js-XXX1.bundle0.js
 
 exports.ids = ["node_modules_row_index_js-_b8841"];
 exports.modules = {
-"./node_modules/row/index.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"./node_modules/row/index.js"(module, __unused_rspack_exports, __webpack_require__) {
 const { cell } = __webpack_require__("webpack/sharing/consume/default/cell/cell")
 const { tmpl } = __webpack_require__("webpack/sharing/consume/default/templater/templater")
 
@@ -67,7 +67,7 @@ module.exports.row = function(cells) {
     return tmpl(`<tr>CELLS</tr>`, { CELLS: cells.map(c => cell(c)).join('\n') })
 }
 
-}),
+},
 
 };
 ;

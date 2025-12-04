@@ -77,7 +77,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
       .collect::<Vec<_>>();
 
     let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-    if let Some(mutation) = compilation.incremental.mutations_write() {
+    if let Some(mut mutation) = compilation.incremental.mutations_write() {
       mutation.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
       });

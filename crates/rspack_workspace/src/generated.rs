@@ -6,10 +6,10 @@ pub const fn rspack_swc_core_version() -> &'static str {
 
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {
-  "1.6.3"
+  "1.6.6"
 }
 
 /// The version of the Rust workspace in the root `Cargo.toml` of the repository.
 pub const fn rspack_workspace_version() -> &'static str {
-  "0.6.3"
+  "0.6.6"
 }

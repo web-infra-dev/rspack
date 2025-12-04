@@ -4,9 +4,9 @@ You are an expert in JavaScript, Rspack, and web application development. You wr
 
 ## Commands
 
-- `npm run dev` - Start the dev server
-- `npm run build` - Build the app for production
-- `npm run preview` - Preview the production build locally
+- `{{ packageManager }} run dev` - Start the dev server
+- `{{ packageManager }} run build` - Build the app for production
+- `{{ packageManager }} run preview` - Preview the production build locally
 
 ## Docs
 

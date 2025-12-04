@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, Plugin, RuntimeGlobals,
+  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
@@ -89,13 +89,26 @@ async fn render(
     return Ok(());
   };
   // system-named-assets-path is not supported
-  let name = options
-    .name
-    .map(serde_json::to_string)
-    .transpose()
-    .to_rspack_result()?
-    .map(|s| format!("{s}, "))
-    .unwrap_or_else(|| "".to_string());
+  let name = if let Some(name) = options.name {
+    let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+    let filename = Filename::from(name);
+    let path_data = PathData::default()
+      .chunk_id_optional(
+        chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+      )
+      .chunk_name_optional(chunk.and_then(|c| c.name()))
+      .chunk_hash_optional(chunk.and_then(|c| {
+        c.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        )
+      }));
+    let name = compilation.get_path(&filename, path_data).await?;
+    let name_str = serde_json::to_string(&name).to_rspack_result()?;
+    format!("{name_str}, ")
+  } else {
+    "".to_string()
+  };
 
   let module_graph = compilation.get_module_graph();
   let modules = compilation
@@ -120,7 +133,7 @@ async fn render(
   let external_arguments = external_module_names(&modules, compilation);
 
   // The name of the variable provided by System for exporting
-  let dynamic_export = "__WEBPACK_DYNAMIC_EXPORT__";
+  let dynamic_export = "__rspack_dynamic_export";
   let external_var_declarations = external_arguments
     .iter()
     .map(|name| format!("var {name} = {{}};\n"))
@@ -144,9 +157,9 @@ async fn render(
   let mut source = ConcatSource::default();
   source.add(RawStringSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
   if !is_has_external_modules {
-    // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
+    // 	var __rspack_external_{} = {};
     source.add(RawStringSource::from(external_var_declarations));
-    // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
+    // Object.defineProperty(__rspack_external_{}, "__esModule", { value: true });
     source.add(RawStringSource::from(external_var_initialization));
   }
   source.add(RawStringSource::from_static("return {\n"));

@@ -118,7 +118,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             &compilation.get_module_graph(),
           );
           if chunk_by_ukey.remove(&other_chunk_ukey).is_some()
-            && let Some(mutations) = compilation.incremental.mutations_write()
+            && let Some(mut mutations) = compilation.incremental.mutations_write()
           {
             mutations.add(Mutation::ChunksIntegrate { to: chunk_ukey });
             mutations.add(Mutation::ChunkRemove {

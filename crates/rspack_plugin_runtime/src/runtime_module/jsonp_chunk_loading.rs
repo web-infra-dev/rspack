@@ -1,10 +1,9 @@
 use std::ptr::NonNull;
 
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::generate_javascript_hmr_runtime;
@@ -21,10 +20,13 @@ pub struct JsonpChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for JsonpChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl JsonpChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/jsonp_chunk_loading"),
+      Identifier::from(format!(
+        "{}jsonp_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }
@@ -37,7 +39,13 @@ impl JsonpChunkLoadingRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -46,11 +54,14 @@ impl JsonpChunkLoadingRuntimeModule {
     match id {
       TemplateId::Raw => base_id.to_string(),
       TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPrefetchLink => format!("{base_id}_with_prefetch_link"),
       TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithPreloadLink => format!("{base_id}_with_preload_link"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
       TemplateId::WithCallback => format!("{base_id}_with_callback"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -59,11 +70,14 @@ impl JsonpChunkLoadingRuntimeModule {
 enum TemplateId {
   Raw,
   WithPrefetch,
+  WithPrefetchLink,
   WithPreload,
+  WithPreloadLink,
   WithHmr,
   WithHmrManifest,
   WithOnChunkLoad,
   WithCallback,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -83,8 +97,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.ejs").to_string(),
       ),
       (
+        self.template_id(TemplateId::WithPrefetchLink),
+        include_str!("runtime/jsonp_chunk_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
         self.template_id(TemplateId::WithPreload),
         include_str!("runtime/jsonp_chunk_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreloadLink),
+        include_str!("runtime/jsonp_chunk_loading_with_preload_link.ejs").to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
@@ -101,6 +123,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::WithCallback),
         include_str!("runtime/jsonp_chunk_loading_with_callback.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -164,7 +190,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_jsonp", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_jsonp",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -180,11 +211,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
-            "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
-              ""
-            } else {
-              "else installedChunks[chunkId] = 0;\n"
-            },
             "_fetch_priority": if with_fetch_priority {
                ", fetchPriority"
             } else {
@@ -200,7 +226,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
         if with_fetch_priority {
           ", fetchPriority"
         } else {
@@ -210,33 +238,13 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let cross_origin = match cross_origin_loading {
-        CrossOriginLoading::Disable => "".to_string(),
-        CrossOriginLoading::Enable(v) => {
-          format!("link.crossOrigin = '{v}';")
-        }
-      };
-      let link_prefetch_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    $CROSS_ORIGIN$
-    if (__webpack_require__.nc) {
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }
-    link.rel = 'prefetch';
-    link.as = 'script';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
-      "#
-      .cow_replace(
-        "$LINK_CHART_CHARSET$",
-        if charset {
-          "link.charset = 'utf-8';"
-        } else {
-          ""
-        },
-      )
-      .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
-      .to_string();
+      let link_prefetch_code = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPrefetchLink),
+        Some(serde_json::json!({
+          "_charset": charset,
+          "_cross_origin": cross_origin_loading.to_string(),
+        })),
+      )?;
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
@@ -264,62 +272,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let cross_origin = match cross_origin_loading {
-        CrossOriginLoading::Disable => "".to_string(),
-        CrossOriginLoading::Enable(v) => {
-          if v.eq("use-credentials") {
-            "link.crossOrigin = 'use-credentials';".to_string()
-          } else {
-            format!(
-              r#"
-              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{v}';
-              }}
-              "#
-            )
-          }
-        }
-      };
-      let script_type_link_pre = if script_type.eq("module") || script_type.eq("false") {
-        "".to_string()
-      } else {
-        format!(
-          "link.type = {}",
-          serde_json::to_string(script_type).expect("invalid json tostring")
-        )
-      };
-      let script_type_link_post = if script_type.eq("module") {
-        "link.rel = 'modulepreload';"
-      } else {
-        r#"
-        link.rel = 'preload';
-        link.as = 'script';
-        "#
-      };
-
-      let link_preload_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    $SCRIPT_TYPE_LINK_PRE$
-    if (__webpack_require__.nc) {
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }
-    $SCRIPT_TYPE_LINK_POST$
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
-    $CROSS_ORIGIN$  
-      "#
-      .cow_replace(
-        "$LINK_CHART_CHARSET$",
-        if charset {
-          "link.charset = 'utf-8';"
-        } else {
-          ""
-        },
-      )
-      .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
-      .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
-      .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)
-      .to_string();
+      let link_preload_code = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPreloadLink),
+        Some(serde_json::json!({
+          "_charset": charset,
+          "_script_type": script_type.as_str(),
+          "_cross_origin": cross_origin_loading.to_string(),
+        })),
+      )?;
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
@@ -355,7 +315,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })))?;
 
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("jsonp"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "jsonp",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {
@@ -383,10 +348,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
           "_chunk_loading_global_expr": &chunk_loading_global_expr,
-          "_with_on_chunk_load": match with_on_chunk_load {
-            true => format!("return {}(result);", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
-            false => "".to_string(),
-          },
+          "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
 

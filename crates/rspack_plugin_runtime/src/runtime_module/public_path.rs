@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, has_hash_placeholder,
-  impl_runtime_module,
+  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
+  has_hash_placeholder, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -12,8 +12,14 @@ pub struct PublicPathRuntimeModule {
 }
 
 impl PublicPathRuntimeModule {
-  pub fn new(public_path: Box<Filename>) -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/public_path"), public_path)
+  pub fn new(runtime_template: &RuntimeTemplate, public_path: Box<Filename>) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}public_path",
+        runtime_template.runtime_module_prefix()
+      )),
+      public_path,
+    )
   }
 }
 
@@ -26,8 +32,10 @@ impl RuntimeModule for PublicPathRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = \"{}\";",
-      RuntimeGlobals::PUBLIC_PATH.name(),
-      &PublicPath::render_filename(compilation, &self.public_path).await
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+      &PublicPath::render_filename(compilation, &self.public_path).await,
     ))
   }
 

@@ -6,7 +6,7 @@ use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceType, get_filename_without_hash_length, impl_runtime_module,
+  RuntimeTemplate, SourceType, get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -51,6 +51,7 @@ impl GetChunkFilenameRuntimeModule {
     F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
+    runtime_template: &RuntimeTemplate,
     content_type: &'static str,
     name: &'static str,
     source_type: SourceType,
@@ -59,7 +60,10 @@ impl GetChunkFilenameRuntimeModule {
     filename_for_chunk: T,
   ) -> Self {
     Self::with_default(
-      Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
+      Identifier::from(format!(
+        "{}get {name} chunk filename",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       content_type,
       source_type,
@@ -244,11 +248,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           let hash_len_str = hash_len_buffer.format(*hash_len);
           format!(
             "\" + {}().slice(0, {}) + \"",
-            RuntimeGlobals::GET_FULL_HASH,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
             hash_len_str
           )
         }
-        None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+        None => format!(
+          "\" + {}() + \"",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+        ),
       };
 
       Some(
@@ -329,11 +340,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             let hash_len_str = hash_len_buffer.format(*hash_len);
             format!(
               "\" + {}().slice(0, {}) + \"",
-              RuntimeGlobals::GET_FULL_HASH,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
               hash_len_str
             )
           }
-          None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+          None => format!(
+            "\" + {}() + \"",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+          ),
         };
         let chunk_runtime = chunk.runtime().as_str();
 

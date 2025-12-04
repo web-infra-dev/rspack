@@ -33,7 +33,7 @@ import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
-import type http from 'http';
+import type * as http from 'node:http';
 import { IncomingMessage } from 'http';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -60,7 +60,7 @@ import type { JsStatsError } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Module } from '@rspack/binding';
 import type { ModuleGraphConnection } from '@rspack/binding';
-import type net from 'net';
+import type * as net from 'node:net';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
@@ -86,14 +86,14 @@ import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
-import type stream from 'stream';
+import type * as stream from 'node:stream';
 import { sync } from '@rspack/binding';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import type { TransformOutput } from '@rspack/binding';
 import { Url } from 'url';
-import type url from 'url';
+import type * as url from 'node:url';
 
 // @public (undocumented)
 type Accessibility = "public" | "protected" | "private";
@@ -2221,6 +2221,7 @@ export type Environment = {
     dynamicImportInWorker?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
+    methodShorthand?: boolean;
     module?: boolean;
     nodePrefixForCoreModules?: boolean;
     optionalChaining?: boolean;
@@ -4509,7 +4510,9 @@ class LoaderObject {
     // (undocumented)
     options?: string | object;
     // (undocumented)
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     // (undocumented)
     path: string;
     // (undocumented)
@@ -7048,7 +7051,9 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 export type RuleSetLoaderWithOptions = {
     ident?: string;
     loader: RuleSetLoader;
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     options?: RuleSetLoaderOptions;
 };
 
@@ -7246,6 +7251,7 @@ export const RuntimePlugin: typeof RuntimePluginImpl & {
 // @public (undocumented)
 type RuntimePluginHooks = {
     createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    createLink: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 };
@@ -9374,7 +9380,7 @@ class Watchpack extends EventEmitter {
     // (undocumented)
     aggregatedRemovals: Set<string>;
     // (undocumented)
-    aggregateTimeout: NodeJS.Timer;
+    aggregateTimeout: number;
     close(): void;
     collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
     // (undocumented)

@@ -1,8 +1,8 @@
 var __webpack_modules__ = ({
-100: (function (module) {
+100(module) {
 module.exports = 'bar'
 
-}),
+},
 
 });
 // The module cache

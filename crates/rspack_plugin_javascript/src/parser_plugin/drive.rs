@@ -12,8 +12,9 @@ use crate::{
   parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    ExportedVariableInfo, JavascriptParser, Statement, VariableDeclaration,
+    ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
+    Statement, VariableDeclaration,
   },
 };
 
@@ -810,6 +811,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.expression_conditional_operation(parser, expr);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn import_meta_property_in_destructuring(
+    &self,
+    parser: &mut JavascriptParser,
+    property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
+    for plugin in &self.plugins {
+      let res = plugin.import_meta_property_in_destructuring(parser, property);
       // `SyncBailHook`
       if res.is_some() {
         return res;

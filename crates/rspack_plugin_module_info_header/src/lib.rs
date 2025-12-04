@@ -276,7 +276,7 @@ async fn render_js_module_package(
       let reqs = {
         let mut rr = runtime_requirements
           .iter()
-          .map(|v| v.name().to_string())
+          .map(|v| compilation.runtime_template.render_runtime_globals(&v))
           .collect::<Vec<_>>();
         rr.sort_by(|a, b| b.cmp(a));
         rr.join(", ")

@@ -1,0 +1,31 @@
+script = document.createElement('script');
+<% if (_script_type != "false") { %>
+script.type = '<%- _script_type %>';
+<% } %>
+<% if (_charset) { %>
+script.charset = 'utf-8';
+<% } %>
+script.timeout = <%- _chunk_load_timeout %>;
+if (<%- SCRIPT_NONCE %>) {
+  script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+}
+<% if (_unique_prefix) { %>
+script.setAttribute("data-rspack", uniqueName + key);
+<% } %>
+<% if (_with_fetch_priority) { %>
+if(fetchPriority) {
+  script.setAttribute("fetchpriority", fetchPriority);
+}
+<% } %>
+<% if (_with_create_script_url) { %>
+script.src = <%- CREATE_SCRIPT_URL %>(url);
+<% } else { %>
+script.src = url;
+<% } %>
+<% if (_cross_origin == "use-credentials") { %>
+script.crossOrigin = "use-credentials";
+<% } else if (_cross_origin != "") { %>
+if (script.src.indexOf(window.location.origin + '/') !== 0) {
+ script.crossOrigin = '<%- _cross_origin %>';
+}
+<% } %>

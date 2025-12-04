@@ -2,11 +2,12 @@ use std::{borrow::Cow, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use indexmap::IndexSet;
-use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation};
+use rspack_core::{
+  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, RuntimeGlobals,
+  RuntimeTemplate, SourceType,
+};
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
-
-pub const SRI_HASH_VARIABLE_REFERENCE: &str = "__webpack_require__.sriHashes";
 
 pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
@@ -17,6 +18,18 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   ))
   .expect("should initialize `Regex`")
 });
+
+pub fn get_hash_variable(runtime_template: &RuntimeTemplate, source_type: SourceType) -> String {
+  let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+  match source_type {
+    SourceType::JavaScript => format!("{require_name}.sriHashes"),
+    SourceType::Css => format!("{require_name}.sriCssHashes"),
+    SourceType::Custom(t) if t == "css/mini-extract" => {
+      format!("{require_name}.sriExtractCssHashes")
+    }
+    _ => unreachable!(),
+  }
+}
 
 pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> IndexSet<ChunkUkey> {
   let mut all_chunks = IndexSet::default();
@@ -64,8 +77,12 @@ fn recurse_chunk(
   }
 }
 
-pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
-  let placeholder_source = format!("{PLACEHOLDER_PREFIX}{id}");
+pub fn make_placeholder(
+  asset_type: ManifestAssetType,
+  hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
+  id: &str,
+) -> String {
+  let placeholder_source = format!("{PLACEHOLDER_PREFIX}{asset_type}{id}");
   let filler = compute_integrity(hash_funcs, &placeholder_source);
   format!(
     "{}{}",

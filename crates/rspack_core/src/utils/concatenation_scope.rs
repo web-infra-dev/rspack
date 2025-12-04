@@ -14,20 +14,19 @@ use crate::{
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
 };
 
-pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> =
-  LazyLock::new(|| "__WEBPACK_DEFAULT_EXPORT__".into());
-pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";
-pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
+pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
+pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
+pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 
 static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
-    r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(_deferredImport)?(?:_asiSafe(\d))?__$",
+    r"^__rspack_module_ref(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(_deferredImport)?(?:_asiSafe(\d))?__$",
   )
   .expect("should initialized regex")
 });
 
 static DYN_MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^__WEBPACK_MODULE_DYNAMIC_REFERENCE__(\d+)_(true|false)_([\da-f]+|ns)$")
+  Regex::new(r"^__rspack_module_dynamic_ref(\d+)_(true|false)_([\da-f]+|ns)$")
     .expect("should initialized regex")
 });
 
@@ -146,7 +145,7 @@ impl ConcatenationScope {
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(info.index());
     let module_ref = format!(
-      "__WEBPACK_MODULE_REFERENCE__{index_str}_{export_data}{call_flag}{direct_import_flag}{deferred_import_flag}{asi_safe_flag}__._"
+      "__rspack_module_ref{index_str}_{export_data}{call_flag}{direct_import_flag}{deferred_import_flag}{asi_safe_flag}__._"
     );
     let entry = self.refs.entry(*module).or_default();
     entry.insert(module_ref.clone(), options.clone());
@@ -200,7 +199,7 @@ impl ConcatenationScope {
     let index_str = index_buffer.format(info.index());
 
     let ref_string =
-      format!("__WEBPACK_MODULE_DYNAMIC_REFERENCE__{index_str}_{already_in_chunk}_{export_data}");
+      format!("__rspack_module_dynamic_ref{index_str}_{already_in_chunk}_{export_data}");
 
     let entry = self.dyn_refs.entry(*module).or_default();
     entry.insert((ref_string.clone(), id.clone()));

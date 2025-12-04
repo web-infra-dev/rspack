@@ -13,21 +13,43 @@ Used to decide how to handle different types of modules in a project.
 
 ## module.defaultRules
 
-- **Type:** `Rule[]`
+- **Type:** `(Rule | Falsy)[]`
 
-An array of rules applied by default for modules.
+`defaultRules` configures the built-in module resolution and processing rules that Rspack enables by default. These rules are applied automatically to ensure that common resource types such as JavaScript, JSON, CSS, and Wasm can be correctly resolved and bundled.
 
-See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381) for details.
+You can extend, override, or disable these default rules to gain finer control over the build behavior.
+
+For example, extending the default rules:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [
-      '...', // you can use "..." to reference those rules applied by webpack by default
+      // Use "..." to reference Rspack’s default rules
+      '...',
+      // Add a custom rule
+      {
+        test: /\.foo$/,
+        use: ['foo-loader'],
+      },
     ],
   },
 };
 ```
+
+If you want to remove all of Rspack's default rules, simply omit `"..."`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    defaultRules: [],
+  },
+};
+```
+
+:::tip
+See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) for the full list of default rules.
+:::
 
 ## module.noParse
 
@@ -2624,7 +2646,13 @@ export default {
 - **Type**: `boolean`
 - **Default:** `false`
 
-In version 1.3.1, the `Rule.use.parallel` configuration option was introduced. When enabled for corresponding loaders and `experiments.parallelLoader = true` is configured, the respective loaders will be executed in worker threads:
+Controls whether a given loader should run in worker threads for parallel execution. Loaders marked with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving overall build performance.
+
+- When set to `true`, the loader runs in a worker. Rspack automatically selects an appropriate number of worker threads.
+- When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
+- When set to `false` or omitted, the loader runs on the main thread.
+
+For example, enabling parallel execution for `less-loader`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -2650,13 +2678,13 @@ export default {
 };
 ```
 
-When multiple loaders in the current `Rule` are configured with `Rule.use.parallel = true`, Rspack will execute all loader tasks in the same worker until it encounters the next loader without the `parallel` flag or a Rust `builtin:` loader. This approach enhances loader parallel performance.
+When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves loader order while maximizing parallel efficiency.
 
-:::warning
+:::tip
 
-- This configuration only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
-- The loader configuration must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- Currently, Rspack does not support most of the methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module`.
+- This feature is experimental. It only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
+- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
+- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
 
 :::
 

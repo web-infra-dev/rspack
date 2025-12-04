@@ -23,10 +23,10 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
+  RuntimeTemplate, SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
@@ -225,7 +225,7 @@ pub struct DestructuringAssignmentProperty {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DestructuringAssignmentProperties {
   #[cacheable(with=AsVec<AsCacheable>)]
-  inner: FxHashSet<DestructuringAssignmentProperty>,
+  inner: FxIndexSet<DestructuringAssignmentProperty>,
 }
 
 impl Hash for DestructuringAssignmentProperties {
@@ -237,7 +237,7 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxHashSet<DestructuringAssignmentProperty>) -> Self {
+  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
     Self { inner: properties }
   }
 
@@ -325,6 +325,7 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
+  pub runtime_template: &'parser RuntimeTemplate,
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
@@ -372,6 +373,7 @@ impl<'parser> JavascriptParser<'parser> {
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
+    runtime_template: &'parser RuntimeTemplate,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
     let mut errors = Vec::with_capacity(4);
@@ -437,9 +439,17 @@ impl<'parser> JavascriptParser<'parser> {
           commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
         )));
       }
-      if compiler_options.node.is_some() {
-        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
-      }
+    }
+
+    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
+    // CJS features require node options; ESM features are always available for ESM-capable modules
+    let handle_cjs =
+      (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
+    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
+    if handle_cjs || handle_esm {
+      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
+        handle_cjs, handle_esm,
+      )));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
@@ -532,6 +542,7 @@ impl<'parser> JavascriptParser<'parser> {
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
       side_effects_item: None,
+      runtime_template,
     }
   }
 

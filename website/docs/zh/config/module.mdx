@@ -15,19 +15,41 @@ import WebpackLicense from '@components/WebpackLicense';
 
 - **类型：** `(Rule | Falsy)[]`
 
-应用于模块的默认规则。
+`defaultRules` 用于配置 Rspack 在内部默认启用的模块解析与处理规则。这些规则是自动生效的，用于确保常见资源类型（如 JavaScript、JSON、CSS、Wasm 等）能够被正常解析和打包。
 
-详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381)。
+你可以通过该选项扩展、覆写或禁用默认规则，从而对构建行为进行更细粒度的控制。
+
+例如，扩展默认规则：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     defaultRules: [
-      '...', // 使用 "..." 来引用 Rspack 默认规则
+      // 你可以使用 "..." 来引用 Rspack 默认的规则
+      '...',
+      // 增加一个自定义规则
+      {
+        test: /\.foo$/,
+        use: ['foo-loader'],
+      },
     ],
   },
 };
 ```
+
+如果你希望移除 Rspack 所有的默认规则，你可以省略 `"..."`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    defaultRules: [],
+  },
+};
+```
+
+:::tip
+查看 [源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) 了解所有的默认规则。
+:::
 
 ## module.noParse
 
@@ -2618,10 +2640,16 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **类型**: `boolean`
+- **类型**: `boolean | { maxWorkers?: number }`
 - **默认值:** `false`
 
-在 1.3.1 版本中支持了 `Rule.use.parallel` 配置项，当对对应 loader 开启并配置 `experiments.parallelLoader = true` 后，对应的 loader 会被发送到 worker threads 执行：
+用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
+
+- 设置为 `true` 时，loader 会在 worker 中执行，并由 Rspack 自动选择合适的线程数量。
+- 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
+- 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
+
+例如，将 `less-loader` 配置为并行执行：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -2647,13 +2675,13 @@ export default {
 };
 ```
 
-对于当前 `Rule` 中有多个 loader 同时配置了 `Rule.use.parallel = true`，rspack 会在同个 worker 中执行所有 loader 任务，直到下一个没有标记 `parallel` 的 loader 或下一个 loader 为一个 Rust 的 `builtin:` loader。这样做可以提升 loader 的并行性能。
+当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
 
-:::warning
+:::tip
 
-- 只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
-- loader 的配置需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 Rspack 不支持大多数 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的方法。
+- 由于当前功能是实验性特性，只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
+- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
+- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
 
 :::
 

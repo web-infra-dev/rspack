@@ -397,9 +397,9 @@ export default {
 Will generate into something like
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import * as __rspack_external_jquery from 'jquery';
 
-const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
+const jq = __rspack_external_jquery['default'];
 jq('.my-element').animate(/* ... */);
 ```
 
@@ -478,8 +478,8 @@ export default {
 Will generate into something like
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
-const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+import * as __rspack_external_lodash from 'lodash';
+const lodash = __rspack_external_jquery;
 
 var __webpack_modules__ = {
   jquery: module => {
@@ -560,13 +560,13 @@ var __webpack_modules__ = {
   },
 };
 
-// webpack runtime...
+// Rspack runtime...
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
     __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
-  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+  (0, lodash__rspack_import_0__.attempt)(() =>
     jq('.my-element').animate(/* ... */),
   );
 }
@@ -743,7 +743,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 ```
 
 :::tip
-When loading code with HTML `<script>` tags, the Rspack runtime will try to find an existing `<script>` tag that matches the `src` attribute or has a specific `data-webpack` attribute. For chunk loading `data-webpack` attribute would have value of `'[output.uniqueName]:chunk-[chunkId]'` while external script has value of `'[output.uniqueName]:[global]'`.
+When loading code with HTML `<script>` tags, the Rspack runtime will try to find an existing `<script>` tag that matches the `src` attribute or has a specific `data-rspack` attribute. For chunk loading `data-rspack` attribute would have value of `'[output.uniqueName]:chunk-[chunkId]'` while external script has value of `'[output.uniqueName]:[global]'`.
 
 Options like `output.chunkLoadTimeout`, `output.crossOriginLoading` and `output.scriptType` will also have effect on the external scripts loaded this way.
 :::

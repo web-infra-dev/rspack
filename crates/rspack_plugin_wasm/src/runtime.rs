@@ -1,8 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
-  get_filename_without_hash_length, impl_runtime_module,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  RuntimeTemplate, get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 
@@ -17,12 +17,16 @@ pub struct AsyncWasmLoadingRuntimeModule {
 
 impl AsyncWasmLoadingRuntimeModule {
   pub fn new(
+    runtime_template: &RuntimeTemplate,
     generate_load_binary_code: String,
     supports_streaming: bool,
     chunk: ChunkUkey,
   ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/async_wasm_loading"),
+      Identifier::from(format!(
+        "{}async_wasm_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       generate_load_binary_code,
       supports_streaming,
       chunk,
@@ -72,6 +76,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           compilation.options.output.import_meta_name.as_str(),
         ),
       self.supports_streaming,
+      &compilation.runtime_template,
     ))
   }
 
@@ -80,7 +85,11 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   }
 }
 
-fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
+fn get_async_wasm_loading(
+  req: &str,
+  supports_streaming: bool,
+  runtime_template: &RuntimeTemplate,
+) -> String {
   let fallback_code = r#"
           .then(function(x) { return x.arrayBuffer();})
           .then(function(bytes) { return WebAssembly.instantiate(bytes, importsObj);})
@@ -105,11 +114,12 @@ fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
         return fallback();
       });
 "#;
+  let instantiate_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM);
 
   if supports_streaming {
     format!(
       r#"
-    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
       var req = {req};
       var fallback = function() {{
         return req{fallback_code}
@@ -122,7 +132,7 @@ fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
     let req = req.trim_end_matches(';');
     format!(
       r#"
-    __webpack_require__.v = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+    {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
       return {req}{fallback_code}
     }};
       "#

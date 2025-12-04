@@ -1,5 +1,4 @@
 mod helper;
-mod utils;
 
 use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
@@ -8,7 +7,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
-use self::{helper::Helper, utils::is_node_package_path};
+use self::helper::{Helper, is_node_package_path};
 use super::{
   snapshot::{Snapshot, SnapshotOptions},
   storage::Storage,

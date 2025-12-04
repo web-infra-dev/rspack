@@ -1,82 +1,82 @@
 ```js title=a_js-_62a90.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_62a90"], {
-"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./i-2.js");
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_2__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
+/* import */ var _i_1__rspack_import_1 = __webpack_require__("./i-1.js");
+/* import */ var _i_1__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_i_1__rspack_import_1);
+/* import */ var _i_2__rspack_import_2 = __webpack_require__("./i-2.js");
+/* import */ var _i_2__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(_i_2__rspack_import_2);
 
 
 
 console.log("a");
 
 
-}),
-"./i-1.js": (function () {
+},
+"./i-1.js"() {
 console.log("i-1");
 
 
-}),
+},
 
 }]);
 ```
 
 ```js title=a_js-_62a91.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_62a91"], {
-"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./i-2.js");
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_2__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
+/* import */ var _i_1__rspack_import_1 = __webpack_require__("./i-1.js");
+/* import */ var _i_1__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_i_1__rspack_import_1);
+/* import */ var _i_2__rspack_import_2 = __webpack_require__("./i-2.js");
+/* import */ var _i_2__rspack_import_2_default = /*#__PURE__*/__webpack_require__.n(_i_2__rspack_import_2);
 
 
 
 console.log("a");
 
 
-}),
-"./i-2.js": (function () {
+},
+"./i-2.js"() {
 console.log("i-2");
 
 
-}),
+},
 
 }]);
 ```
 
 ```js title=index.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index"], {
-"./i-1.js": (function () {
+"./i-1.js"() {
 console.log("i-1");
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-1.js");
-/* import */var _i_1__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_1__WEBPACK_IMPORTED_MODULE_1__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
+/* import */ var _i_1__rspack_import_1 = __webpack_require__("./i-1.js");
+/* import */ var _i_1__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_i_1__rspack_import_1);
 
 
 __webpack_require__.e(/* import() */ "a_js-_62a91").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
 
 
-}),
-"./shared.js": (function () {
+},
+"./shared.js"() {
 console.log("shared");
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
@@ -88,29 +88,29 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 ```js title=index2.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index2"], {
-"./i-2.js": (function () {
+"./i-2.js"() {
 console.log("i-2");
 
 
-}),
-"./index2.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
+},
+"./index2.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
 "use strict";
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
-/* import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./i-2.js");
-/* import */var _i_2__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_i_2__WEBPACK_IMPORTED_MODULE_1__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
+/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
+/* import */ var _i_2__rspack_import_1 = __webpack_require__("./i-2.js");
+/* import */ var _i_2__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_i_2__rspack_import_1);
 
 
 __webpack_require__.e(/* import() */ "a_js-_62a90").then(__webpack_require__.bind(__webpack_require__, "./a.js"));
 console.log("index");
 
 
-}),
-"./shared.js": (function () {
+},
+"./shared.js"() {
 console.log("shared");
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

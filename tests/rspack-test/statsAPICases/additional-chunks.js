@@ -18,65 +18,65 @@ module.exports = {
 				chunkGroups: true
 			})
 		).toMatchInlineSnapshot(`
-		Object {
-		  errorsCount: 0,
-		  namedChunkGroups: Object {
-		    chunkB: Object {
-		      assets: Array [
-		        Object {
-		          name: chunkB.js,
-		          size: 143,
-		        },
-		      ],
-		      assetsSize: 143,
-		      auxiliaryAssets: undefined,
-		      auxiliaryAssetsSize: undefined,
-		      childAssets: undefined,
-		      children: undefined,
-		      chunks: Array [
-		        513,
-		      ],
-		      filteredAssets: 0,
-		      name: chunkB,
-		    },
-		    entryA: Object {
-		      assets: Array [
-		        Object {
-		          name: entryA.js,
-		          size: 204,
-		        },
-		      ],
-		      assetsSize: 204,
-		      auxiliaryAssets: undefined,
-		      auxiliaryAssetsSize: undefined,
-		      childAssets: undefined,
-		      children: undefined,
-		      chunks: Array [
-		        759,
-		      ],
-		      filteredAssets: 0,
-		      name: entryA,
-		    },
-		    entryB: Object {
-		      assets: Array [
-		        Object {
-		          name: entryB.js,
-		          size: 3212,
-		        },
-		      ],
-		      assetsSize: 3212,
-		      auxiliaryAssets: undefined,
-		      auxiliaryAssetsSize: undefined,
-		      childAssets: undefined,
-		      children: undefined,
-		      chunks: Array [
-		        706,
-		      ],
-		      filteredAssets: 0,
-		      name: entryB,
-		    },
-		  },
-		}
-	`);
+			Object {
+			  errorsCount: 0,
+			  namedChunkGroups: Object {
+			    chunkB: Object {
+			      assets: Array [
+			        Object {
+			          name: chunkB.js,
+			          size: 134,
+			        },
+			      ],
+			      assetsSize: 134,
+			      auxiliaryAssets: undefined,
+			      auxiliaryAssetsSize: undefined,
+			      childAssets: undefined,
+			      children: undefined,
+			      chunks: Array [
+			        513,
+			      ],
+			      filteredAssets: 0,
+			      name: chunkB,
+			    },
+			    entryA: Object {
+			      assets: Array [
+			        Object {
+			          name: entryA.js,
+			          size: 195,
+			        },
+			      ],
+			      assetsSize: 195,
+			      auxiliaryAssets: undefined,
+			      auxiliaryAssetsSize: undefined,
+			      childAssets: undefined,
+			      children: undefined,
+			      chunks: Array [
+			        759,
+			      ],
+			      filteredAssets: 0,
+			      name: entryA,
+			    },
+			    entryB: Object {
+			      assets: Array [
+			        Object {
+			          name: entryB.js,
+			          size: 3201,
+			        },
+			      ],
+			      assetsSize: 3201,
+			      auxiliaryAssets: undefined,
+			      auxiliaryAssetsSize: undefined,
+			      childAssets: undefined,
+			      children: undefined,
+			      chunks: Array [
+			        706,
+			      ],
+			      filteredAssets: 0,
+			      name: entryB,
+			    },
+			  },
+			}
+		`);
 	}
 };

@@ -1,7 +1,7 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./package/autogen/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./package/autogen/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
@@ -10,14 +10,14 @@ function a() {}
 function dddd() {}
 
 
-}),
-"./src/index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./package/autogen/a.js");
+},
+"./src/index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _package_src_index_js__rspack_import_0 = __webpack_require__("./package/autogen/a.js");
 
-_package_src_index_js__WEBPACK_IMPORTED_MODULE_0__.a;
+_package_src_index_js__rspack_import_0.a;
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

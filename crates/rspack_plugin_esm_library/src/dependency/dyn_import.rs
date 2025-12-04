@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
+  ChunkGraph, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
   FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
-  get_exports_type, missing_module_promise, module_id,
+  get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -27,7 +27,7 @@ fn then_expr(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return missing_module_promise(request);
+    return compilation.runtime_template.missing_module_promise(request);
   };
 
   let exports_type = get_exports_type(
@@ -36,7 +36,9 @@ fn then_expr(
     dep_id,
     &module.identifier(),
   );
-  let module_id_expr = module_id(compilation, dep_id, request, false);
+  let module_id_expr = compilation
+    .runtime_template
+    .module_id(compilation, dep_id, request, false);
 
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
@@ -46,8 +48,12 @@ fn then_expr(
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       appending = format!(
         ".then({}.bind({}, {module_id_expr}))",
-        RuntimeGlobals::REQUIRE,
-        RuntimeGlobals::REQUIRE
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       );
     }
     _ => {
@@ -62,7 +68,7 @@ fn then_expr(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
@@ -71,13 +77,19 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
-          RuntimeGlobals::REQUIRE,
-          RuntimeGlobals::REQUIRE
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -86,8 +98,12 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-          RuntimeGlobals::REQUIRE
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
       }
     }
@@ -118,7 +134,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       .request();
 
     let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
-      let missing_promise = missing_module_promise(request);
+      let missing_promise = code_generatable_context
+        .compilation
+        .runtime_template
+        .missing_module_promise(request);
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
@@ -165,7 +184,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     } else {
       Cow::Owned(format!(
         "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ref_chunk.as_u32()
+        ChunkGraph::get_chunk_id(
+          &code_generatable_context.compilation.chunk_ids_artifact,
+          &ref_chunk
+        )
+        .expect("should have id")
       ))
     };
 
@@ -222,7 +245,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       }) {
       // we only extract the named exports
       // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
+      // const { a, b } = await import('./refChunk').then(mod => ({ a: __rspack_module_dynamic_ref0_a, b: __rspack_module_dynamic_ref0_b }));
       let ref_exports = ref_exports
         .iter()
         .flat_map(|ref_exports| match ref_exports {

@@ -100,6 +100,7 @@ CompilerOptions {
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -139,6 +140,7 @@ CompilerOptions {
             dynamic_import_in_worker: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
         compare_before_emit: true,
     },

@@ -1,15 +1,15 @@
 ```mjs title=cjs-chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./cjs.js": 
+"./cjs.js"
 /*!****************!*\
   !*** ./cjs.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.value = 42
 
 
-}),
+},
 });
 
 ```

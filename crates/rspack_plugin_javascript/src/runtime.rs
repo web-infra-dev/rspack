@@ -154,6 +154,18 @@ pub async fn render_module(
     }
   };
 
+  /*
+  If supports method shorthand, render function factory as:
+  "./module.js"(module) { code }
+  Otherwise render as:
+  "./module.js": (function(module) { code })
+  */
+  let use_method_shorthand = compilation
+    .options
+    .output
+    .environment
+    .supports_method_shorthand();
+
   hooks
     .render_module_content
     .call(
@@ -173,7 +185,6 @@ pub async fn render_module(
     sources.add(RawStringSource::from(
       serde_json::to_string(&module_id).to_rspack_result()?,
     ));
-    sources.add(RawStringSource::from_static(": "));
 
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
@@ -190,38 +201,54 @@ pub async fn render_module(
 
       let mut args = Vec::new();
       if need_module || need_exports || need_require {
-        let module_argument = module.get_module_argument();
+        let module_argument = compilation
+          .runtime_template
+          .render_module_argument(module.get_module_argument());
         args.push(if need_module {
-          module_argument.to_string()
+          module_argument
         } else {
-          format!("__unused_webpack_{module_argument}")
+          format!("__unused_rspack_{module_argument}")
         });
       }
 
       if need_exports || need_require {
-        let exports_argument = module.get_exports_argument();
+        let exports_argument = compilation
+          .runtime_template
+          .render_exports_argument(module.get_exports_argument());
         args.push(if need_exports {
-          exports_argument.to_string()
+          exports_argument
         } else {
-          format!("__unused_webpack_{exports_argument}")
+          format!("__unused_rspack_{exports_argument}")
         });
       }
       if need_require {
-        args.push(RuntimeGlobals::REQUIRE.to_string());
+        args.push(
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        );
       }
 
       let mut container_sources = ConcatSource::default();
 
-      container_sources.add(RawStringSource::from(format!(
-        "(function ({}) {{\n",
-        args.join(", ")
-      )));
+      if use_method_shorthand {
+        container_sources.add(RawStringSource::from(format!("({}) {{\n", args.join(", "))));
+      } else {
+        container_sources.add(RawStringSource::from(format!(
+          ": (function ({}) {{\n",
+          args.join(", ")
+        )));
+      }
       if module.build_info().strict && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
       container_sources.add(render_source.source);
-      container_sources.add(RawStringSource::from_static("\n\n})"));
-      container_sources.add(RawStringSource::from_static(",\n"));
+
+      if use_method_shorthand {
+        container_sources.add(RawStringSource::from_static("\n\n},\n"));
+      } else {
+        container_sources.add(RawStringSource::from_static("\n\n}),\n"));
+      }
 
       RenderSource {
         source: container_sources.boxed(),
@@ -288,7 +315,9 @@ pub async fn render_chunk_runtime_modules(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "function({}) {{\n",
-    RuntimeGlobals::REQUIRE
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawStringSource::from_static("\n}\n"));

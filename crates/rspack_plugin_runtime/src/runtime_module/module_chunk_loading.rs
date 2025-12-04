@@ -1,10 +1,10 @@
 use std::ptr::NonNull;
 
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, compile_boolean_matcher,
+  impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -24,10 +24,13 @@ pub struct ModuleChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for ModuleChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl ModuleChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/module_chunk_loading"),
+      Identifier::from(format!(
+        "{}module_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }
@@ -51,7 +54,13 @@ impl ModuleChunkLoadingRuntimeModule {
           compilation.options.output.import_meta_name
         )
       });
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template(&self, template_id: TemplateId) -> String {
@@ -59,9 +68,12 @@ impl ModuleChunkLoadingRuntimeModule {
       TemplateId::Raw => self.id.to_string(),
       TemplateId::WithLoading => format!("{}_with_loading", self.id),
       TemplateId::WithPrefetch => format!("{}_with_prefetch", self.id),
+      TemplateId::WithPrefetchLink => format!("{}_with_prefetch_link", self.id),
       TemplateId::WithPreload => format!("{}_with_preload", self.id),
+      TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id),
       TemplateId::WithHMR => format!("{}_with_hmr", self.id),
       TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
+      TemplateId::HmrRuntime => format!("{}_hmr_runtime", self.id),
     }
   }
 }
@@ -70,9 +82,12 @@ enum TemplateId {
   Raw,
   WithLoading,
   WithPrefetch,
+  WithPrefetchLink,
   WithPreload,
+  WithPreloadLink,
   WithHMR,
   WithHMRManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -96,8 +111,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         include_str!("runtime/module_chunk_loading_with_prefetch.ejs").to_string(),
       ),
       (
+        self.template(TemplateId::WithPrefetchLink),
+        include_str!("runtime/module_chunk_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
         self.template(TemplateId::WithPreload),
         include_str!("runtime/module_chunk_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::WithPreloadLink),
+        include_str!("runtime/module_chunk_loading_with_preload_link.ejs").to_string(),
       ),
       (
         self.template(TemplateId::WithHMR),
@@ -106,6 +129,10 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       (
         self.template(TemplateId::WithHMRManifest),
         include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
       ),
     ]
   }
@@ -169,7 +196,12 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          let state_expression = format!(
+            "{}_module",
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+          );
           format!("{state_expression} = {state_expression} || ")
         }
         false => "".to_string(),
@@ -181,13 +213,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let raw_source = compilation.runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
-          "_ids": "__webpack_ids__",
-          "_modules": "__webpack_modules__",
-          "_runtime": "__webpack_runtime__",
-          "_with_on_chunk_load": match with_on_chunk_load {
-            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
-            false => "".to_string(),
-          },
+          "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
 
@@ -221,7 +248,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     } else {
       source.push_str("// no chunk on demand loading\n");
@@ -232,33 +261,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let charset = compilation.options.output.charset;
       let cross_origin_loading = &compilation.options.output.cross_origin_loading;
       if with_prefetch {
-        let cross_origin = match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            format!("link.crossOrigin = '{v}'")
-          }
-        };
-        let link_prefetch_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    $CROSS_ORIGIN$
-    if (__webpack_require__.nc) {
-      link.setAttribute('nonce', __webpack_require__.nc);
-    }
-    link.rel = 'prefetch';
-    link.as = 'script';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
-      "#
-        .cow_replace(
-          "$LINK_CHART_CHARSET$",
-          if charset {
-            "link.charset = 'utf-8';"
-          } else {
-            ""
-          },
-        )
-        .cow_replace("$CROSS_ORIGIN$", &cross_origin)
-        .to_string();
+        let link_prefetch_code = compilation.runtime_template.render(
+          &self.template(TemplateId::WithPrefetchLink),
+          Some(serde_json::json!({
+            "_charset": charset,
+            "_cross_origin": cross_origin_loading.to_string(),
+          })),
+        )?;
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
@@ -285,43 +294,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         source.push_str(&raw_source);
       }
       if with_preload {
-        let cross_origin = match cross_origin_loading {
-          CrossOriginLoading::Disable => "".to_string(),
-          CrossOriginLoading::Enable(v) => {
-            if v.eq("use-credentials") {
-              "link.crossOrigin = 'use-credentials';".to_string()
-            } else {
-              format!(
-                r#"
-              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-                link.crossOrigin = '{v}';
-              }}
-              "#
-              )
-            }
-          }
-        };
-
-        let link_preload_code = r#"
-    var link = document.createElement('link');
-    $LINK_CHART_CHARSET$
-    if (__webpack_require__.nc) {
-      link.setAttribute("nonce", __webpack_require__.nc);
-    }
-    link.rel = 'modulepreload';
-    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
-    $CROSS_ORIGIN$
-      "#
-        .cow_replace(
-          "$LINK_CHART_CHARSET$",
-          if charset {
-            "link.charset = 'utf-8';"
-          } else {
-            ""
-          },
-        )
-        .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
-        .to_string();
+        let link_preload_code = compilation.runtime_template.render(
+          &self.template(TemplateId::WithPreloadLink),
+          Some(serde_json::json!({
+            "_charset": charset,
+            "_cross_origin": cross_origin_loading.to_string(),
+          })),
+        )?;
 
         let chunk_ukey = self.chunk.expect("The chunk should be attached");
         let res = hooks
@@ -354,7 +333,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         r#"
         {} = installChunk;
         "#,
-        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
     } else {
       source.push_str("// no external install chunk\n");
@@ -367,7 +348,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             return installedChunks[chunkId] === 0;
         }}
         "#,
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     } else {
       source.push_str("// no on chunks loaded\n");
@@ -379,14 +362,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
  {}
  {}
       "#,
-        generate_javascript_hmr_runtime("module"),
+        generate_javascript_hmr_runtime(
+          &self.template(TemplateId::HmrRuntime),
+          "module",
+          &compilation.runtime_template
+        )?,
         compilation.runtime_template.render(
           &self.template(TemplateId::WithHMR),
           Some(serde_json::json!({
-            "_ids": "__webpack_ids__",
-            "_modules": "__webpack_modules__",
-            "_runtime": "__webpack_runtime__",
-            "importFunctionName": import_function_name,
+            "_modules": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+            "_import_function_name": import_function_name,
           })),
         )?
       ))
@@ -398,7 +383,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       source.push_str(&compilation.runtime_template.render(
         &self.template(TemplateId::WithHMRManifest),
         Some(serde_json::json!({
-          "importFunctionName": import_function_name,
+          "_import_function_name": import_function_name,
         })),
       )?)
     } else {

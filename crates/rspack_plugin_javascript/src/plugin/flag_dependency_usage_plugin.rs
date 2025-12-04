@@ -6,10 +6,11 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, get_entry_runtime,
-  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{queue::Queue, swc::join_atom};
 use rustc_hash::FxHashMap as HashMap;
@@ -46,7 +47,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 
   fn apply(&mut self) {
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph = self.compilation.get_seal_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
 
@@ -202,7 +203,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       {
         // after processing, we will set the exports info data back to the module graph
-        let mut mg = self.compilation.get_module_graph_mut();
+        let mut mg = self.compilation.get_seal_module_graph_mut();
         for (exports_info, res) in non_nested_res {
           for i in res {
             q.enqueue(i);
@@ -327,7 +328,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
   ) -> Vec<ProcessBlockTask> {
     let mut queue = vec![];
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph = self.compilation.get_seal_module_graph_mut();
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
@@ -477,15 +478,18 @@ impl FlagDependencyUsagePlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "FlagDependencyUsagePlugin (optimization.usedExports = true)",
     "it requires calculating the used exports based on all modules, which is a global effect",
   ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
+    diagnostics.extend(diagnostic);
     compilation.cgm_hash_artifact.clear();
   }
 

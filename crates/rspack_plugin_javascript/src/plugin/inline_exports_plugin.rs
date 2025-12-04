@@ -2,9 +2,10 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   Compilation, CompilationOptimizeDependencies, ExportProvided, ExportsInfo, ExportsInfoGetter,
-  Plugin, PrefetchExportsInfoMode, UsageState, UsedNameItem, incremental::IncrementalPasses,
+  Plugin, PrefetchExportsInfoMode, SideEffectsOptimizeArtifact, UsageState, UsedNameItem,
+  incremental::IncrementalPasses,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -18,19 +19,22 @@ pub struct InlineExportsPlugin;
 // imported export is inlined, then the dependency is inactive and will not be processed by buildChunkGraph, if a
 // module's all exports are all being inlined, then the module can be eliminated by buildChunkGraph
 #[plugin_hook(CompilationOptimizeDependencies for InlineExportsPlugin, stage = 100)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "InlineExportsPlugin (optimization.inlineExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
+    diagnostics.extend(diagnostic);
     compilation.cgm_hash_artifact.clear();
   }
 
-  let mut mg = compilation.get_module_graph_mut();
+  let mut mg = compilation.get_seal_module_graph_mut();
   let modules = mg.modules();
 
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();

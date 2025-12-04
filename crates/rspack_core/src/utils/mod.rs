@@ -4,12 +4,14 @@ use rspack_collections::Identifier;
 use rspack_util::comparators::{compare_ids, compare_numbers};
 
 use crate::{
-  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
+  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
+  ConcatenatedModule, ModuleGraph, ModuleIdentifier,
 };
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
+mod deref_option;
 mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
@@ -35,6 +37,7 @@ mod to_path;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
+pub use deref_option::DerefOption;
 pub use memory_gc::MemoryGCStorage;
 
 pub use self::{
@@ -145,6 +148,65 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
   compare_ids(&a.identifier(), &b.identifier())
 }
 
+/// # Returns
+/// - `Some(String)` if a hashbang is found in the module's build_info extras
+/// - `None` if no hashbang is present or the module doesn't exist
+pub fn get_module_hashbang(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<String> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("hashbang")
+    .and_then(|v| v.as_str())
+    .map(|s| s.to_string())
+}
+
+/// # Returns
+/// - `Some(Vec<String>)` if directives are found in the module's build_info extras
+/// - `None` if no directives are present or the module doesn't exist
+pub fn get_module_directives(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<Vec<String>> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("react_directives")
+    .and_then(|v| v.as_array())
+    .map(|arr| {
+      arr
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect()
+    })
+}
+
 pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
   let mut a_iter = modules_a.iter();
   let mut b_iter = modules_b.iter();
@@ -192,8 +254,8 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let modules_a = chunk_graph.get_chunk_modules_identifier(chunk_a_ukey);
-  let modules_b = chunk_graph.get_chunk_modules_identifier(chunk_b_ukey);
+  let modules_a = chunk_graph.get_ordered_chunk_modules_identifier(chunk_a_ukey);
+  let modules_b = chunk_graph.get_ordered_chunk_modules_identifier(chunk_b_ukey);
   if modules_a.len() > modules_b.len() {
     return Ordering::Less;
   }

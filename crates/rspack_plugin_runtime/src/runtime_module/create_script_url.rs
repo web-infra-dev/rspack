@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,9 +7,12 @@ pub struct CreateScriptUrlRuntimeModule {
   id: Identifier,
 }
 
-impl Default for CreateScriptUrlRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/create_script_url"))
+impl CreateScriptUrlRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}create_script_url",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -30,14 +33,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_return": if compilation.options.output.trusted_types.is_some() {
-          format!(
-            "{}().createScriptURL(url)",
-            RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
-          )
-        } else {
-          "url".to_string()
-        },
+        "_trusted_types": compilation.options.output.trusted_types.is_some(),
       })),
     )?;
 
