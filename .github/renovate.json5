@@ -123,15 +123,21 @@
 			matchManagers: ["github-actions"],
 			excludePackageNames: [
 				"actions/upload-artifact",
-				"actions/download-artifact"
+				"actions/download-artifact",
+				"lynx-infra/download-artifact",
+				"lynx-infra/upload-artifact",
+				"rspack-contrib/rust-cache"
 			]
 		},
 		{
-			groupName: "ignored github-actions upload-download-actions",
+			groupName: "manually managed github-actions",
 			matchManagers: ["github-actions"],
 			matchPackageNames: [
 				"actions/upload-artifact",
-				"actions/download-artifact"
+				"actions/download-artifact",
+				"lynx-infra/download-artifact",
+				"lynx-infra/upload-artifact",
+				"rspack-contrib/rust-cache"
 			],
 			enabled: false
 		}
