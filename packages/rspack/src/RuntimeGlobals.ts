@@ -493,7 +493,7 @@ function renderRuntimeGlobals(
 	);
 	switch (runtimeGlobals) {
 		case RuntimeGlobals.require:
-			return `${scope_name}`;
+			return scope_name;
 		case RuntimeGlobals.requireScope:
 			return `${scope_name}.*`;
 		case RuntimeGlobals.exports:
