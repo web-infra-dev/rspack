@@ -51,6 +51,8 @@ jobs:
           tool-cache: fals
 
       - name: Build x86_64-unknown-linux-gnu native
+        env:
+          CARGO_LOG: cargo::core::compiler::fingerprint=trace
         run: |
           rustup target add x86_64-unknown-linux-gnu
           RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release -- -vv
