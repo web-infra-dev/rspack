@@ -450,18 +450,54 @@ export function renderModulePrefix(
 	return "webpack/runtime/";
 }
 
+export enum RuntimeVariable {
+	Require,
+	Modules,
+	ModuleCache,
+	Module,
+	Exports,
+	StartupExec
+}
+
+export function renderRuntimeVariables(
+	variable: RuntimeVariable,
+	_compilerOptions?: RspackOptionsNormalized
+): string {
+	switch (variable) {
+		case RuntimeVariable.Require:
+			return "__webpack_require__";
+		case RuntimeVariable.Modules:
+			return "__webpack_modules__";
+		case RuntimeVariable.ModuleCache:
+			return "__webpack_module_cache__";
+		case RuntimeVariable.Module:
+			return "__webpack_module__";
+		case RuntimeVariable.Exports:
+			return "__webpack_exports__";
+		case RuntimeVariable.StartupExec:
+			return "__webpack_exec__";
+	}
+}
+
 function renderRuntimeGlobals(
 	runtimeGlobals: RuntimeGlobals,
 	_compilerOptions?: RspackOptionsNormalized
 ): string {
-	const scope_name = "__webpack_require__";
+	const scope_name = renderRuntimeVariables(
+		RuntimeVariable.Require,
+		_compilerOptions
+	);
+	const exports_name = renderRuntimeVariables(
+		RuntimeVariable.Exports,
+		_compilerOptions
+	);
 	switch (runtimeGlobals) {
 		case RuntimeGlobals.require:
 			return `${scope_name}`;
 		case RuntimeGlobals.requireScope:
 			return `${scope_name}.*`;
 		case RuntimeGlobals.exports:
-			return `__webpack_exports__`;
+			return exports_name;
 		case RuntimeGlobals.thisAsExports:
 			return `top-level-this-exports`;
 		case RuntimeGlobals.returnExportsFromRuntime:

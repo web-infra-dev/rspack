@@ -1,4 +1,5 @@
 import type { Compiler } from "./Compiler";
+import { RuntimeVariable, renderRuntimeVariables } from "./RuntimeGlobals";
 
 export default class ExecuteModulePlugin {
 	apply(compiler: Compiler) {
@@ -18,7 +19,7 @@ export default class ExecuteModulePlugin {
 
 					try {
 						const fn = vm.runInThisContext(
-							`(function(module, __webpack_module__, __webpack_exports__, exports, ${compiler.rspack.RuntimeGlobals.require}) {\n${code}\n})`,
+							`(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}) {\n${code}\n})`,
 							{
 								filename: moduleObject.id
 							}
@@ -30,7 +31,12 @@ export default class ExecuteModulePlugin {
 							moduleObject,
 							moduleObject.exports,
 							moduleObject.exports,
-							context.__webpack_require__
+							context[
+								renderRuntimeVariables(
+									RuntimeVariable.Require,
+									compiler.options
+								)
+							]
 						);
 					} catch (e: any) {
 						const err = e instanceof Error ? e : new Error(e);
