@@ -261,9 +261,21 @@ enum RuntimeGlobals {
 	getChunkCssFilename,
 
 	/**
+	 * rspack version
+	 * @internal
+	 */
+	rspackVersion,
+
+	/**
 	 * a flag when a module/chunk/tree has css modules
 	 */
 	hasCssModules,
+
+	/**
+	 * rspack unique id
+	 * @internal
+	 */
+	rspackUniqueId,
 
 	/**
 	 * the filename of the script part of the hot update chunk
@@ -308,6 +320,11 @@ enum RuntimeGlobals {
 	 * Returns the exports of the module or a Promise
 	 */
 	startupEntrypoint,
+
+	/**
+	 * startup signal from runtime for chunk dependencies
+	 */
+	startupChunkDependencies,
 
 	/**
 	 * register deferred code, which will run when certain
@@ -572,8 +589,12 @@ function renderRuntimeGlobals(
 			return `${scope_name}.u`;
 		case RuntimeGlobals.getChunkCssFilename:
 			return `${scope_name}.k`;
+		case RuntimeGlobals.rspackVersion:
+			return `${scope_name}.rv`;
 		case RuntimeGlobals.hasCssModules:
 			return `has css modules`;
+		case RuntimeGlobals.rspackUniqueId:
+			return `${scope_name}.ruid`;
 		case RuntimeGlobals.getChunkUpdateScriptFilename:
 			return `${scope_name}.hu`;
 		case RuntimeGlobals.getChunkUpdateCssFilename:
@@ -590,6 +611,8 @@ function renderRuntimeGlobals(
 			return `global chunk callback`;
 		case RuntimeGlobals.startupEntrypoint:
 			return `${scope_name}.X`;
+		case RuntimeGlobals.startupChunkDependencies:
+			return `${scope_name}.x (chunk dependencies)`;
 		case RuntimeGlobals.onChunksLoaded:
 			return `${scope_name}.O`;
 		case RuntimeGlobals.externalInstallChunk:
