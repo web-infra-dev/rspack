@@ -84,6 +84,31 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   }
   None
 }
+fn derive_module_name(alias: &str, internal_request: Option<&str>) -> String {
+  if let Some(req) = internal_request {
+    let trimmed = req.trim_start_matches("./");
+    if trimmed.is_empty() {
+      req.to_string()
+    } else {
+      trimmed.to_string()
+    }
+  } else {
+    let seg = alias.rsplit('/').next().unwrap_or("");
+    if seg.is_empty() || seg == alias {
+      ".".to_string()
+    } else {
+      seg.to_string()
+    }
+  }
+}
+fn normalize_used_in_entry(name: &str) -> String {
+  let base = name.split(" + ").next().unwrap_or(name);
+  std::path::Path::new(base)
+    .file_name()
+    .and_then(|f| f.to_str())
+    .unwrap_or(base)
+    .to_string()
+}
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
@@ -141,7 +166,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     },
     r#type: None,
   };
-  let (exposes, shared, remote_list) = if self.options.disable_assets_analyze {
+  let (exposes, shared, mut remote_list) = if self.options.disable_assets_analyze {
     let exposes = self
       .options
       .exposes
@@ -181,11 +206,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         } else {
           target.name.clone()
         };
+        let module_name = derive_module_name(alias, None);
         StatsRemote {
           alias: alias.clone(),
           consumingFederationContainerName: container_name.clone(),
           federationContainerName: remote_container_name.clone(),
-          moduleName: remote_container_name,
+          moduleName: module_name,
           entry: target.entry.clone(),
           usedIn: vec!["UNKNOWN".to_string()],
         }
@@ -464,14 +490,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       };
       let alias = remote_module.remote_key.clone();
-      let module_name = {
-        let trimmed = remote_module.internal_request.trim_start_matches("./");
-        if trimmed.is_empty() {
-          remote_module.internal_request.clone()
-        } else {
-          trimmed.to_string()
-        }
-      };
+      let module_name = derive_module_name(&alias, Some(remote_module.internal_request.as_str()));
       let (entry, federation_container_name) =
         if let Some(target) = provided_remote_alias_map.get(&alias) {
           let remote_container_name = if target.name.is_empty() {
@@ -487,7 +506,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names);
+        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names)
+          .into_iter()
+          .map(|s| normalize_used_in_entry(&s))
+          .collect();
       remote_list.push(StatsRemote {
         alias: alias.clone(),
         consumingFederationContainerName: container_name.clone(),
@@ -502,6 +524,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let shared = shared_map
       .into_values()
       .map(|mut v| {
+        v.usedIn = v
+          .usedIn
+          .into_iter()
+          .map(|s| normalize_used_in_entry(&s))
+          .collect();
         v.usedIn.sort();
         v.usedIn.dedup();
         v
@@ -509,6 +536,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
+  for (alias, target) in self.options.remote_alias_map.iter() {
+    let exists = remote_list.iter().any(|r| r.alias == *alias);
+    if !exists {
+      let remote_container_name = if target.name.is_empty() {
+        alias.clone()
+      } else {
+        target.name.clone()
+      };
+      remote_list.push(StatsRemote {
+        alias: alias.clone(),
+        consumingFederationContainerName: container_name.clone(),
+        federationContainerName: remote_container_name.clone(),
+        moduleName: "UNKNOWN".to_string(),
+        entry: target.entry.clone().filter(|e| !e.is_empty()),
+        usedIn: vec!["UNKNOWN".to_string()],
+      });
+    }
+  }
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),
@@ -527,7 +572,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     ),
   );
   // Build manifest from stats
-  let manifest = ManifestRoot {
+  let mut manifest = ManifestRoot {
     id: stats_root.id.clone(),
     name: stats_root.name.clone(),
     metaData: stats_root.metaData.clone(),
@@ -562,6 +607,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       })
       .collect(),
   };
+  // Supplement manifest.remotes with registered options if missing
+  for (alias, target) in self.options.remote_alias_map.iter() {
+    let exists = manifest.remotes.iter().any(|r| r.alias == *alias);
+    if !exists {
+      let remote_container_name = if target.name.is_empty() {
+        alias.clone()
+      } else {
+        target.name.clone()
+      };
+      let module_name = derive_module_name(alias, None);
+      manifest.remotes.push(ManifestRemote {
+        federationContainerName: remote_container_name.clone(),
+        moduleName: module_name,
+        alias: alias.clone(),
+        entry: target.entry.clone().filter(|e| !e.is_empty()),
+      });
+    }
+  }
   let manifest_json: String = serde_json::to_string_pretty(&manifest).expect("serialize manifest");
   compilation.emit_asset(
     self.options.manifest_file_name.clone(),

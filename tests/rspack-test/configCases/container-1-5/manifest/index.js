@@ -77,11 +77,41 @@ it("should record remote usage", () => {
 				consumingFederationContainerName: "container",
 				federationContainerName: "remote",
 				moduleName: ".",
-				usedIn: expect.arrayContaining([
+				usedIn: [
 					"module.js"
-				]),
+				],
 				entry: 'http://localhost:8000/remoteEntry.js'
-			})
+			}),
+			expect.objectContaining({
+				alias: "@remote/alias",
+				consumingFederationContainerName: "container",
+				federationContainerName: "remote",
+				moduleName: "List",
+				usedIn: [
+					"module.js"
+				],
+				entry: 'http://localhost:8000/remoteEntry.js'
+			}),
+			expect.objectContaining({
+				alias: "@dynamic-remote/alias",
+				consumingFederationContainerName: "container",
+				federationContainerName: "dynamic_remote",
+				moduleName: "UNKNOWN",
+				usedIn: [
+					"UNKNOWN"
+				],
+				entry: 'http://localhost:8001/remoteEntry.js'
+			}),
+				expect.objectContaining({
+				alias: "@scope-scope/ui",
+				consumingFederationContainerName: "container",
+				federationContainerName: "ui",
+				moduleName: "Button",
+				usedIn: [
+					"module.js"
+				],
+				entry: 'http://localhost:8002/remoteEntry.js'
+			}),
 		])
 	);
 });
@@ -92,7 +122,26 @@ it("should persist remote metadata in manifest", () => {
 			expect.objectContaining({
 				alias: "@remote/alias",
 				federationContainerName: "remote",
-				moduleName: "."
+				moduleName: ".",
+				entry: "http://localhost:8000/remoteEntry.js"
+			}),
+			expect.objectContaining({
+				alias: "@remote/alias",
+				federationContainerName: "remote",
+				moduleName: "List",
+				entry: "http://localhost:8000/remoteEntry.js"
+			}),
+			expect.objectContaining({
+				alias: "@dynamic-remote/alias",
+				federationContainerName: "dynamic_remote",
+				moduleName: "UNKNOWN",
+				entry: "http://localhost:8001/remoteEntry.js"
+			}),
+			expect.objectContaining({
+				alias: "@scope-scope/ui",
+				federationContainerName: "ui",
+				moduleName: "Button",
+				entry: "http://localhost:8002/remoteEntry.js"
 			})
 		])
 	);

@@ -23,7 +23,9 @@ module.exports = {
 			},
 			remoteType:'script',
 			remotes: {
-				'@remote/alias': 'remote@http://localhost:8000/remoteEntry.js'
+				'@remote/alias': 'remote@http://localhost:8000/remoteEntry.js',
+				'@dynamic-remote/alias': 'dynamic_remote@http://localhost:8001/remoteEntry.js',
+				'@scope-scope/ui': 'ui@http://localhost:8002/remoteEntry.js'
 			},
 			shared: {
 				react: {}
