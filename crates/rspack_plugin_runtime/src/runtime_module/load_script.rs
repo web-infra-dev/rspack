@@ -1,7 +1,9 @@
 use std::ptr::NonNull;
 
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 use crate::{
   CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin, get_chunk_runtime_requirements,
@@ -17,9 +19,17 @@ pub struct LoadScriptRuntimeModule {
 }
 
 impl LoadScriptRuntimeModule {
-  pub fn new(unique_name: String, with_create_script_url: bool, chunk_ukey: ChunkUkey) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    unique_name: String,
+    with_create_script_url: bool,
+    chunk_ukey: ChunkUkey,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/load_script"),
+      Identifier::from(format!(
+        "{}load_script",
+        runtime_template.runtime_module_prefix()
+      )),
       unique_name,
       with_create_script_url,
       chunk_ukey,

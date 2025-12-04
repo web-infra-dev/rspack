@@ -121,7 +121,10 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
+      Box::new(RemoteRuntimeModule::new(
+        &compilation.runtime_template,
+        self.options.enhanced,
+      )),
     )?;
   }
   Ok(None)

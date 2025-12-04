@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 use crate::get_chunk_runtime_requirements;
 
@@ -10,9 +12,15 @@ pub struct EnsureChunkRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for EnsureChunkRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/ensure_chunk"), None)
+impl EnsureChunkRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}ensure_chunk",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 

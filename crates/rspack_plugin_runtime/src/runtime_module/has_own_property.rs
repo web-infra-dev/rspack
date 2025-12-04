@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,9 +7,12 @@ pub struct HasOwnPropertyRuntimeModule {
   id: Identifier,
 }
 
-impl Default for HasOwnPropertyRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/has_own_property"))
+impl HasOwnPropertyRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}has_own_property",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

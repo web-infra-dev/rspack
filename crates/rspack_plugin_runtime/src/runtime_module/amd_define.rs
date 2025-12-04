@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,9 +9,12 @@ pub struct AmdDefineRuntimeModule {
   id: Identifier,
 }
 
-impl Default for AmdDefineRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/amd_define"))
+impl AmdDefineRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}amd_define",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

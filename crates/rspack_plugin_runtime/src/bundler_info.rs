@@ -68,7 +68,10 @@ async fn runtime_requirements_in_tree(
   if runtime_requirements.contains(RuntimeGlobals::RSPACK_VERSION) {
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(RspackVersionRuntimeModule::new(self.version.clone())),
+      Box::new(RspackVersionRuntimeModule::new(
+        &compilation.runtime_template,
+        self.version.clone(),
+      )),
     )?;
   }
 
@@ -76,6 +79,7 @@ async fn runtime_requirements_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(RspackUniqueIdRuntimeModule::new(
+        &compilation.runtime_template,
         self.bundler_name.clone(),
         self.version.clone(),
       )),
