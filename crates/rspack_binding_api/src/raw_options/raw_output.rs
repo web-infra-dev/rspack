@@ -58,6 +58,7 @@ pub struct RawEnvironment {
   pub optional_chaining: Option<bool>,
   pub template_literal: Option<bool>,
   pub dynamic_import_in_worker: Option<bool>,
+  pub import_meta_dirname_and_filename: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -78,6 +79,7 @@ impl From<RawEnvironment> for Environment {
       optional_chaining: value.optional_chaining,
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
+      import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
     }
   }
 }
