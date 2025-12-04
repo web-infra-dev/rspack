@@ -21,6 +21,7 @@ pub fn collect_modules(
   module_graph: &ModuleGraph,
   chunk_graph: &ChunkGraph,
   context: &Context,
+  compilation: &Compilation,
 ) -> HashMap<Identifier, RsdoctorModule> {
   let module_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
 
@@ -54,6 +55,20 @@ pub fn collect_modules(
             .collect::<HashSet<_>>()
         })
         .unwrap_or_default();
+
+      let mut size = 0;
+      let (map, result_map) = compilation.code_generation_results.inner();
+      if let Some(entry) = map.get(module_id)
+        && let Some(id) = entry.values().next()
+        && let Some(res) = result_map.get(id)
+      {
+        size = res.inner().values().map(|s| s.size() as i32).sum();
+      }
+
+      if true {
+        println!("Module: {}, Size: {}", module.identifier(), size);
+      }
+
       (
         module_id.to_owned(),
         RsdoctorModule {
@@ -74,6 +89,7 @@ pub fn collect_modules(
           chunks,
           issuer_path: None,
           bailout_reason: HashSet::default(),
+          size: 0,
         },
       )
     })
@@ -142,7 +158,8 @@ pub fn collect_module_original_sources(
       let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource().to_owned();
       let object_pool = tls.get_or(ObjectPool::default);
-      let source = module
+      // let source = module
+      let mut source = module
         .source()
         .and_then(|s| s.map(object_pool, &MapOptions::default()))
         .and_then(|s| {
@@ -164,6 +181,15 @@ pub fn collect_module_original_sources(
             source: content,
           })
         })?;
+
+      let (map, result_map) = compilation.code_generation_results.inner();
+      if let Some(entry) = map.get(module_id)
+        && let Some(id) = entry.values().next()
+        && let Some(res) = result_map.get(id)
+      {
+        source.size = res.inner().values().map(|s| s.size() as i32).sum();
+      }
+
       Some(source)
     })
     .collect::<Vec<_>>()
