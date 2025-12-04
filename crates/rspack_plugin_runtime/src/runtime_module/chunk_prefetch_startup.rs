@@ -51,7 +51,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
               compilation
                 .chunk_by_ukey
                 .expect_get(c)
-                .id(&compilation.chunk_ids_artifact)
+                .id()
             } else {
               None
             }
@@ -64,7 +64,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
             compilation
               .chunk_by_ukey
               .expect_get(c)
-              .id(&compilation.chunk_ids_artifact)
+              .id()
           })
           .collect_vec();
 

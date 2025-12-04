@@ -28,11 +28,9 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     IncrementalPasses::CHUNK_IDS,
     "DeterministicChunkIdsPlugin (optimization.chunkIds = \"deterministic\")",
     "it requires calculating the id of all the chunks, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
-    compilation.chunk_ids_artifact.clear();
+  ) && let Some(diagnostic) = diagnostic
+  {
+    compilation.push_diagnostic(diagnostic);
   }
 
   let mut used_ids = get_used_chunk_ids(compilation);
@@ -53,7 +51,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
   let chunks = compilation
     .chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())
+    .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
@@ -112,7 +110,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.set_id(&mut compilation.chunk_ids_artifact, id.to_string());
+    chunk.set_id(id.to_string());
   });
 
   Ok(())

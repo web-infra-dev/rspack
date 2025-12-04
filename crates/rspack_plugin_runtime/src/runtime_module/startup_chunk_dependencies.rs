@@ -48,7 +48,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           compilation
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
-            .expect_id(&compilation.chunk_ids_artifact)
+            .expect_id()
             .to_string()
         })
         .collect::<Vec<_>>();

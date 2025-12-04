@@ -1010,19 +1010,12 @@ impl RuntimeTemplate {
       .chunks
       .iter()
       .map(|c| compilation.chunk_by_ukey.expect_get(c))
-      .filter(|c| {
-        !c.has_runtime(&compilation.chunk_group_by_ukey)
-          && c.id(&compilation.chunk_ids_artifact).is_some()
-      })
+      .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id().is_some())
       .collect::<Vec<_>>();
 
     if chunks.len() == 1 {
-      let chunk_id = serde_json::to_string(
-        chunks[0]
-          .id(&compilation.chunk_ids_artifact)
-          .expect("should have chunk.id"),
-      )
-      .expect("should able to json stringify");
+      let chunk_id = serde_json::to_string(chunks[0].id().expect("should have chunk.id"))
+        .expect("should able to json stringify");
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
 
       let fetch_priority = chunk_group
@@ -1062,11 +1055,8 @@ impl RuntimeTemplate {
           .map(|c| format!(
             "{}({}{})",
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            serde_json::to_string(
-              c.id(&compilation.chunk_ids_artifact)
-                .expect("should have chunk.id")
-            )
-            .expect("should able to json stringify"),
+            serde_json::to_string(c.id().expect("should have chunk.id"))
+              .expect("should able to json stringify"),
             fetch_priority
               .map(|x| format!(r#", "{x}""#))
               .unwrap_or_default()

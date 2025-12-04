@@ -286,7 +286,7 @@ impl SourceMapDevToolPlugin {
                   let path_data = PathData::default()
                     .chunk_id_optional(
                       chunk
-                        .and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+                        .and_then(|c| c.id().map(|id| id.as_str())),
                     )
                     .chunk_name_optional(chunk.and_then(|c| c.name()))
                     .chunk_hash_optional(chunk.and_then(|c| {
@@ -542,7 +542,7 @@ impl SourceMapDevToolPlugin {
                   Some(chunk) => data
                     .chunk_id_optional(
                       chunk
-                        .id(&compilation.chunk_ids_artifact)
+                        .id()
                         .map(|id| id.as_str()),
                     )
                     .chunk_hash_optional(chunk.rendered_hash(
@@ -550,7 +550,7 @@ impl SourceMapDevToolPlugin {
                       compilation.options.output.hash_digest_length,
                     ))
                     .chunk_name_optional(
-                      chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
+                      chunk.name_for_filename_template(),
                     )
                     .content_hash_optional(Some(digest.encoded())),
                   None => data,
