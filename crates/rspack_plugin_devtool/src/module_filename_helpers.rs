@@ -41,22 +41,21 @@ pub struct ModuleFilenameHelpers;
 
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
-  asset_filename: &str,
   source_map_filename: Option<&str>,
-) -> String {
+) -> Option<String> {
   if absolute_resource_path.starts_with("webpack") {
-    return absolute_resource_path.to_string();
+    // Webpack runtime modules are virtual; keep the "absolute" path as the final value.
+    return Some(absolute_resource_path.to_string());
   }
-  match source_map_filename {
-    Some(sm_filename) => Path::new(absolute_resource_path)
+
+  // During the inline source map stage, the asset filename may not be available yet.
+  // In that case we cannot compute a relative path and must return None.
+  source_map_filename.map(|sm_filename| {
+    Path::new(absolute_resource_path)
       .relative(sm_filename)
       .to_string_lossy()
-      .to_string(),
-    None => Path::new(absolute_resource_path)
-      .relative(asset_filename)
-      .to_string_lossy()
-      .to_string(),
-  }
+      .to_string()
+  })
 }
 
 impl ModuleFilenameHelpers {
@@ -65,7 +64,6 @@ impl ModuleFilenameHelpers {
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
-    asset_filename: &str,
     source_map_filename: Option<&str>,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
@@ -92,11 +90,8 @@ impl ModuleFilenameHelpers {
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
-          asset_filename,
-          source_map_filename,
-        );
+        let relative_resource_path =
+          resolve_relative_resource_path(&absolute_resource_path, source_map_filename);
 
         let hash = get_hash(&identifier, output_options);
 
@@ -157,11 +152,8 @@ impl ModuleFilenameHelpers {
         };
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
-        let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
-          asset_filename,
-          source_map_filename,
-        );
+        let relative_resource_path =
+          resolve_relative_resource_path(&absolute_resource_path, source_map_filename);
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -187,7 +179,6 @@ impl ModuleFilenameHelpers {
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
-    asset_filename: &str,
     source_map_filename: Option<&str>,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
@@ -195,7 +186,6 @@ impl ModuleFilenameHelpers {
       compilation,
       output_options,
       namespace,
-      asset_filename,
       source_map_filename,
     );
 
@@ -208,7 +198,6 @@ impl ModuleFilenameHelpers {
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
-    asset_filename: &str,
     source_map_filename: Option<&str>,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
@@ -216,7 +205,6 @@ impl ModuleFilenameHelpers {
       compilation,
       output_options,
       namespace,
-      asset_filename,
       source_map_filename,
     );
 
@@ -327,7 +315,13 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
             b"[relative-resourcepath]" |
-            b"[relativeresourcepath]" => buf.push_str(&ctx.relative_resource_path),
+            b"[relativeresourcepath]" => {
+              if let Some(relative_resource_path) = &ctx.relative_resource_path {
+                 buf.push_str(relative_resource_path)
+              } else {
+                buf.push_str(&sstr[pos..next_pos]);
+              }
+            },
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
