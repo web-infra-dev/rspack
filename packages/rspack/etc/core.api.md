@@ -7115,7 +7115,10 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export enum RuntimeGlobals {
+export const RuntimeGlobals: typeof RuntimeGlobals_2;
+
+// @public (undocumented)
+enum RuntimeGlobals_2 {
     amdDefine = 62,
     amdOptions = 63,
     asyncModule = 69,

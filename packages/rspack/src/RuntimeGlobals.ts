@@ -51,7 +51,7 @@ export function __to_binding_runtime_globals(
 	return res;
 }
 
-export enum RuntimeGlobals {
+enum RuntimeGlobals {
 	/**
 	 * the internal require function
 	 */
@@ -452,7 +452,7 @@ export function renderModulePrefix(
 
 function renderRuntimeGlobals(
 	runtimeGlobals: RuntimeGlobals,
-	_compilerOptions: RspackOptionsNormalized
+	_compilerOptions?: RspackOptionsNormalized
 ): string {
 	const scope_name = "__webpack_require__";
 	switch (runtimeGlobals) {
@@ -608,7 +608,7 @@ function renderRuntimeGlobals(
 }
 
 export function createCompilerRuntimeGlobals(
-	compilerOptions: RspackOptionsNormalized
+	compilerOptions?: RspackOptionsNormalized
 ): typeof RuntimeGlobals {
 	const res: Record<string, string> = {};
 	for (const key of Object.keys(RuntimeGlobals)) {
@@ -619,3 +619,7 @@ export function createCompilerRuntimeGlobals(
 	}
 	return res as unknown as typeof RuntimeGlobals;
 }
+
+const DefaultRuntimeGlobals = createCompilerRuntimeGlobals();
+
+export { DefaultRuntimeGlobals as RuntimeGlobals };
