@@ -106,7 +106,7 @@ struct SourceMapTask {
   pub source: BoxSource,
   pub source_map: SourceMap,
   pub source_map_json: String,
-  pub source_map_filename: Option<String>,
+  pub source_map_filename: Option<Arc<str>>,
   pub source_mapping_url_comment: Option<String>,
   pub source_references: Vec<SourceReference>,
 }
@@ -114,7 +114,7 @@ struct SourceMapTask {
 #[derive(Debug, Clone)]
 pub(crate) struct MappedAsset {
   pub(crate) asset: (Arc<str>, CompilationAsset),
-  pub(crate) source_map: Option<(String, CompilationAsset)>,
+  pub(crate) source_map: Option<(Arc<str>, CompilationAsset)>,
 }
 
 #[plugin]
@@ -312,7 +312,7 @@ impl SourceMapDevToolPlugin {
       );
     }
 
-    task.source_map_filename = Some(source_map_filename);
+    task.source_map_filename = Some(Arc::from(source_map_filename));
 
     Ok(())
   }
@@ -427,7 +427,7 @@ impl SourceMapDevToolPlugin {
   ) -> Result<()> {
     let output_options = &compilation.options.output;
 
-    let mut reference_to_source_name_mapping: HashMap<SourceReference, (String, Option<String>)> =
+    let mut reference_to_source_name_mapping: HashMap<SourceReference, (String, Option<Arc<str>>)> =
       match &self.module_filename_template {
         ModuleFilenameTemplate::String(template) => {
           rspack_futures::scope::<_, Result<_>>(|token| {
@@ -747,7 +747,7 @@ impl SourceMapDevToolPlugin {
                     ])
                     .boxed(),
                   );
-                  asset.info.related.source_map = Some(source_map_filename.clone());
+                  asset.info.related.source_map = Some(source_map_filename.to_string());
                 } else {
                   asset.source = Some(source.clone());
                 }
@@ -852,18 +852,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
-        source_asset.info.related.source_map = Some(source_map_filename.clone());
+        source_asset.info.related.source_map = Some(source_map_filename.to_string());
       }
     }
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
     compilation.emit_asset(source_filename.to_string(), source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
-      compilation.emit_asset(source_map_filename.to_owned(), source_map_asset);
+      compilation.emit_asset(source_map_filename.to_string(), source_map_asset);
 
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
-        chunk.add_auxiliary_file(source_map_filename);
+        chunk.add_auxiliary_file(source_map_filename.to_string());
       }
     }
   }
