@@ -127,6 +127,7 @@ async fn eval_devtool_plugin_render_module_content(
       s,
       output_options,
       &namespace,
+      todo!(),
     ),
     ModuleFilenameTemplate::Fn(f) => {
       ModuleFilenameHelpers::create_filename_of_fn_template(
@@ -135,6 +136,7 @@ async fn eval_devtool_plugin_render_module_content(
         f,
         output_options,
         &namespace,
+        todo!(),
       )
       .await?
     }

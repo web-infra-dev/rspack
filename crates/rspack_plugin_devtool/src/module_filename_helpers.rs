@@ -1,9 +1,13 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  hash::{Hash, Hasher},
+  path::Path,
+};
 
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rustc_hash::FxHashMap as HashMap;
+use sugar_path::SugarPath;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
 
@@ -41,6 +45,7 @@ impl ModuleFilenameHelpers {
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
+    source_map_filename: &str,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
@@ -61,6 +66,7 @@ impl ModuleFilenameHelpers {
             .map(|s| s.to_string())
             .unwrap_or_default();
         let absolute_resource_path = "".to_string();
+        let relative_resource_path = "".to_string();
 
         let hash = get_hash(&identifier, output_options);
 
@@ -86,7 +92,7 @@ impl ModuleFilenameHelpers {
           identifier,
           module_id,
           absolute_resource_path,
-          relative_resource_path: todo!(),
+          relative_resource_path,
           hash,
           resource,
           loaders,
@@ -121,13 +127,17 @@ impl ModuleFilenameHelpers {
         };
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
+        let relative_resource_path = Path::new(&absolute_resource_path)
+          .relative(source_map_filename)
+          .to_string_lossy()
+          .to_string();
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
           identifier,
           module_id: "".to_string(),
           absolute_resource_path,
-          relative_resource_path: todo!(),
+          relative_resource_path,
           hash,
           resource,
           loaders,
@@ -146,12 +156,14 @@ impl ModuleFilenameHelpers {
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
+    source_map_filename: &str,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
+      source_map_filename,
     );
 
     module_filename_template(ctx).await
@@ -163,12 +175,14 @@ impl ModuleFilenameHelpers {
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
+    source_map_filename: &str,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
+      source_map_filename,
     );
 
     template_replace(module_filename_template, &ctx)
@@ -274,6 +288,11 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
             b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path),
+
+            b"[relative-resource-path]" |
+            b"[relativeresource-path]" |
+            b"[relative-resourcepath]" |
+            b"[relativeresourcepath]" => buf.push_str(&ctx.relative_resource_path),
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();

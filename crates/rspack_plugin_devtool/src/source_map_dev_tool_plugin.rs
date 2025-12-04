@@ -13,9 +13,11 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationAssets,
-  CompilationProcessAssets, Filename, Logger, ModuleIdentifier, PathData, Plugin,
-  rspack_sources::{ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  Logger, ModuleIdentifier, PathData, Plugin,
+  rspack_sources::{
+    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+  },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
@@ -99,57 +101,21 @@ enum SourceMappingUrlCommentRef<'a> {
   Fn(&'a AppendFn),
 }
 
+struct SourceMapTask {
+  pub asset_filename: Arc<str>,
+  pub source: BoxSource,
+  pub source_map: SourceMap,
+  pub source_map_json: String,
+  pub source_map_filename: Option<String>,
+  pub source_mapping_url_comment: Option<String>,
+  pub source_references: Vec<SourceReference>,
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct MappedAsset {
   pub(crate) asset: (Arc<str>, CompilationAsset),
   pub(crate) source_map: Option<(String, CompilationAsset)>,
 }
-
-// async fn map_source_map_filenames<Assets>(
-//   compilation_assets: Assets,
-//   source_filename: &str,
-//   file_to_chunk: &HashMap<&str, &Chunk>,
-// ) where
-//   Assets: Iterator<Item = (&'a String, &'a CompilationAsset)>,
-// {
-//   if let Some(source_map_filename_config) = &self.source_map_filename {
-//     let chunk = file_to_chunk.get(source_filename);
-//     let filename = match &self.file_context {
-//       Some(file_context) => Cow::Owned(
-//         Path::new(&source_filename)
-//           .relative(Path::new(file_context))
-//           .to_string_lossy()
-//           .to_string(),
-//       ),
-//       None => Cow::Borrowed(source_filename),
-//     };
-
-//     let mut hasher = RspackHash::from(&compilation.options.output);
-//     hasher.write(source_map_json.as_bytes());
-//     let digest = hasher.digest(&compilation.options.output.hash_digest);
-
-//     let data = PathData::default().filename(&filename);
-//     let data = match chunk {
-//       Some(chunk) => data
-//         .chunk_id_optional(
-//           chunk
-//             .id(&compilation.chunk_ids_artifact)
-//             .map(|id| id.as_str()),
-//         )
-//         .chunk_hash_optional(chunk.rendered_hash(
-//           &compilation.chunk_hashes_artifact,
-//           compilation.options.output.hash_digest_length,
-//         ))
-//         .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
-//         .content_hash_optional(Some(digest.encoded())),
-//       None => data,
-//     };
-
-//     let source_map_filename = compilation
-//       .get_asset_path(source_map_filename_config, data)
-//       .await?;
-//   }
-// }
 
 #[plugin]
 #[derive(Debug)]
@@ -245,20 +211,123 @@ impl SourceMapDevToolPlugin {
     )
   }
 
-  fn collect_asset_source_maps<'a>(
+  async fn resolve_source_map_filename(
     &self,
+    compilation: &Compilation,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    source_map_filename_config: &Filename,
+    task: &mut SourceMapTask,
+  ) -> Result<()> {
+    let SourceMapTask {
+      asset_filename,
+      source_map_json,
+      ..
+    } = task;
+
+    let chunk = file_to_chunk.get(asset_filename.as_ref());
+    let filename = match &self.file_context {
+      Some(file_context) => Cow::Owned(
+        Path::new(asset_filename.as_ref())
+          .relative(Path::new(file_context))
+          .to_string_lossy()
+          .to_string(),
+      ),
+      None => Cow::Borrowed(asset_filename.as_ref()),
+    };
+
+    let mut hasher = RspackHash::from(&compilation.options.output);
+    hasher.write(source_map_json.as_bytes());
+    let digest = hasher.digest(&compilation.options.output.hash_digest);
+
+    let data = PathData::default().filename(&filename);
+    let data = match chunk {
+      Some(chunk) => data
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .content_hash_optional(Some(digest.encoded())),
+      None => data,
+    };
+    let source_map_filename = compilation
+      .get_asset_path(source_map_filename_config, data)
+      .await?;
+
+    let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&asset_filename);
+    let current_source_mapping_url_comment = match &self.source_mapping_url_comment {
+      Some(SourceMappingUrlComment::String(s)) => {
+        let s = if css_extension_detected {
+          URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/")
+        } else {
+          Cow::from(s)
+        };
+        Some(SourceMappingUrlCommentRef::String(s))
+      }
+      Some(SourceMappingUrlComment::Fn(f)) => Some(SourceMappingUrlCommentRef::Fn(f)),
+      None => None,
+    };
+
+    if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
+      let source_map_url = if let Some(public_path) = &self.public_path {
+        format!("{public_path}{source_map_filename}")
+      } else {
+        let mut file_path = PathBuf::new();
+        file_path.push(Component::RootDir);
+        file_path.extend(Path::new(filename.as_ref()).components());
+
+        let mut source_map_path = PathBuf::new();
+        source_map_path.push(Component::RootDir);
+        source_map_path.extend(Path::new(&source_map_filename).components());
+
+        source_map_path
+          .relative(
+            #[allow(clippy::unwrap_used)]
+            file_path.parent().unwrap(),
+          )
+          .to_string_lossy()
+          .to_string()
+      };
+      let data = data.url(&source_map_url);
+      let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+        SourceMappingUrlCommentRef::String(s) => {
+          compilation
+            .get_asset_path(&Filename::from(s.as_ref()), data)
+            .await?
+        }
+        SourceMappingUrlCommentRef::Fn(f) => {
+          let comment = f(data).await?;
+          Filename::from(comment).render(data, None).await?
+        }
+      };
+      task.source_mapping_url_comment = Some(
+        current_source_mapping_url_comment
+          .cow_replace("[url]", &source_map_url)
+          .into_owned(),
+      );
+    }
+
+    task.source_map_filename = Some(source_map_filename);
+
+    Ok(())
+  }
+
+  async fn collect_tasks<'a>(
+    &self,
+    compilation: &Compilation,
+    file_to_chunk: &HashMap<&str, &Chunk>,
     compilation_assets: Vec<(String, &'a CompilationAsset)>,
-  ) -> Vec<(
-    Arc<str>,
-    &'a Arc<dyn Source>,
-    Option<rspack_core::rspack_sources::SourceMap>,
-  )> {
+  ) -> Result<Vec<SourceMapTask>> {
     let map_options = MapOptions::new(self.columns);
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
     let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
-
-    compilation_assets
+    let mut tasks = compilation_assets
       .into_par_iter()
       .filter_map(|(asset_filename, asset)| {
         let is_match = if need_match {
@@ -271,180 +340,238 @@ impl SourceMapDevToolPlugin {
           return None;
         }
 
-        asset.get_source().map(|source| {
+        asset.get_source().and_then(|source| {
           let object_pool = tls.get_or(ObjectPool::default);
-          let source_map = source.map(object_pool, &map_options);
-          (Arc::from(asset_filename), source, source_map)
+          let Some(source_map) = source.map(object_pool, &map_options) else {
+            return None;
+          };
+
+          let source_references = source_map
+            .sources()
+            .iter()
+            .map(|source_name| {
+              if let Some(stripped) = source_name.strip_prefix("webpack://") {
+                let source_name =
+                  make_paths_absolute(compilation.options.context.as_str(), stripped);
+                let identifier = ModuleIdentifier::from(source_name.as_str());
+                match compilation
+                  .get_module_graph()
+                  .module_by_identifier(&identifier)
+                {
+                  Some(module) => SourceReference::Module(module.identifier()),
+                  None => SourceReference::Source(Arc::from(source_name)),
+                }
+              } else {
+                SourceReference::Source(Arc::from(source_name.to_string()))
+              }
+            })
+            .collect::<Vec<_>>();
+
+          let source_map_json = match source_map.to_json().map_err(|e| error!(e.to_string())) {
+            Ok(json) => json,
+            Err(e) => {
+              return Some(Err(e));
+            }
+          };
+
+          Some(Ok(SourceMapTask {
+            asset_filename: Arc::from(asset_filename),
+            source: source.clone(),
+            source_map,
+            source_map_json,
+            source_map_filename: None,
+            source_mapping_url_comment: None,
+            source_references,
+          }))
         })
       })
-      .collect::<Vec<_>>()
+      .collect::<Result<Vec<_>>>()?;
+
+    if let Some(source_map_filename_config) = &self.source_map_filename {
+      rspack_futures::scope::<_, Result<_>>(|token| {
+        tasks.iter_mut().for_each(|task| {
+          let spawner = unsafe {
+            token.used((
+              &self,
+              compilation,
+              file_to_chunk,
+              source_map_filename_config,
+              task,
+            ))
+          };
+          spawner.spawn(
+            |(plugin, compilation, file_to_chunk, source_map_filename_config, task)| async move {
+              plugin
+                .resolve_source_map_filename(
+                  compilation,
+                  file_to_chunk,
+                  source_map_filename_config,
+                  task,
+                )
+                .await
+            },
+          );
+        })
+      })
+      .await
+      .into_iter()
+      .map(|r| r.to_rspack_result().flatten())
+      .collect::<Result<()>>()?;
+    }
+
+    Ok(tasks)
   }
 
-  async fn update_asset_source_maps<'a>(
+  async fn finalize_source_maps<'a>(
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    asset_source_map_tuples: &mut Vec<(
-      Arc<str>,
-      &'a Arc<dyn Source>,
-      Option<rspack_core::rspack_sources::SourceMap>,
-    )>,
+    tasks: &'a mut Vec<SourceMapTask>,
   ) -> Result<()> {
     let output_options = &compilation.options.output;
 
-    let source_reference_by_original_source: HashMap<String, (Arc<str>, SourceReference)> =
-      asset_source_map_tuples
-        .par_iter()
-        .filter_map(|(asset_filename, _asset, source_map)| {
-          source_map.as_ref().map(|s| (asset_filename, s))
-        })
-        .flat_map(|(asset_filename, source_map)| {
-          source_map
-            .sources()
-            .iter()
-            .map(|i| (asset_filename, i))
-            .collect::<Vec<_>>()
-        })
-        .map(|(asset_filename, source)| {
-          let source_reference = if let Some(stripped) = source.strip_prefix("webpack://") {
-            let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-            let identifier = ModuleIdentifier::from(source.as_str());
-            match compilation
-              .get_module_graph()
-              .module_by_identifier(&identifier)
-            {
-              Some(module) => SourceReference::Module(module.identifier()),
-              None => SourceReference::Source(source),
-            }
-          } else {
-            SourceReference::Source(source.to_string())
-          };
-
-          (
-            source.to_string(),
-            (asset_filename.clone(), source_reference),
+    let mut reference_to_source_name_mapping: HashMap<SourceReference, String> = match &self
+      .module_filename_template
+    {
+      ModuleFilenameTemplate::String(template) => rspack_futures::scope::<_, Result<_>>(|token| {
+        tasks
+          .iter()
+          .flat_map(
+            |SourceMapTask {
+               asset_filename,
+               source_references,
+               source_map_filename,
+               ..
+             }| {
+              source_references.iter().map(move |source_reference| {
+                (
+                  asset_filename.clone(),
+                  source_reference.clone(),
+                  source_map_filename.clone(),
+                )
+              })
+            },
           )
-        })
-        .collect::<HashMap<_, _>>();
+          .for_each(|(asset_filename, source_reference, source_map_filename)| {
+            let s = unsafe {
+              token.used((
+                self.namespace.as_str(),
+                &compilation,
+                asset_filename,
+                source_reference,
+                file_to_chunk,
+                template,
+                source_map_filename,
+              ))
+            };
+            s.spawn(
+              |(
+                namespace,
+                compilation,
+                asset_filename,
+                source_reference,
+                file_to_chunk,
+                template,
+                source_map_filename,
+              )| async move {
+                if let SourceReference::Source(source_name) = &source_reference
+                  && SCHEMA_SOURCE_REGEXP.is_match(source_name.as_ref())
+                {
+                  return Ok((source_reference.clone(), source_name.to_string()));
+                }
 
-    let mut source_by_reference: HashMap<&SourceReference, String> =
-      match &self.module_filename_template {
-        ModuleFilenameTemplate::String(template) => {
-          let source_names = rspack_futures::scope::<_, Result<_>>(|token| {
-            source_reference_by_original_source.values().for_each(
-              |(asset_filename, source_reference)| {
-                let s = unsafe {
-                  token.used((
-                    self.namespace.as_str(),
-                    &compilation,
-                    asset_filename,
-                    source_reference,
-                    file_to_chunk,
-                    template,
-                  ))
-                };
-                s.spawn(
-                  |(
-                    namespace,
-                    compilation,
-                    asset_filename,
-                    source_reference,
-                    file_to_chunk,
-                    template,
-                  )| async move {
-                    if let SourceReference::Source(source) = source_reference
-                      && SCHEMA_SOURCE_REGEXP.is_match(source)
-                    {
-                      return Ok(source.to_string());
-                    }
+                let chunk = file_to_chunk.get(asset_filename.as_ref());
+                let path_data = PathData::default()
+                  .chunk_id_optional(
+                    chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+                  )
+                  .chunk_name_optional(chunk.and_then(|c| c.name()))
+                  .chunk_hash_optional(chunk.and_then(|c| {
+                    c.rendered_hash(
+                      &compilation.chunk_hashes_artifact,
+                      compilation.options.output.hash_digest_length,
+                    )
+                  }));
 
-                    let chunk = file_to_chunk.get(asset_filename.as_ref());
-                    let path_data =
-                      PathData::default()
-                        .chunk_id_optional(chunk.and_then(|c| {
-                          c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())
-                        }))
-                        .chunk_name_optional(chunk.and_then(|c| c.name()))
-                        .chunk_hash_optional(chunk.and_then(|c| {
-                          c.rendered_hash(
-                            &compilation.chunk_hashes_artifact,
-                            compilation.options.output.hash_digest_length,
-                          )
-                        }));
+                let filename = Filename::from(namespace);
+                let namespace = compilation.get_path(&filename, path_data).await?;
 
-                    let filename = Filename::from(namespace);
-                    let namespace = compilation.get_path(&filename, path_data).await?;
-
-                    let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-                      source_reference,
-                      compilation,
-                      template,
-                      &compilation.options.output,
-                      &namespace,
-                    );
-                    Ok(source_name)
-                  },
+                let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
+                  &source_reference,
+                  compilation,
+                  template,
+                  &compilation.options.output,
+                  &namespace,
+                  source_map_filename
+                    .as_ref()
+                    .map(|filename| filename.as_str())
+                    .unwrap_or(""),
                 );
+                Ok((source_reference.clone(), source_name))
               },
-            )
+            );
           })
+      })
+      .await
+      .into_iter()
+      .map(|r| r.to_rspack_result().flatten())
+      .collect::<Result<HashMap<_, _>>>()?,
+      ModuleFilenameTemplate::Fn(f) => {
+        // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
+        let futures = tasks
+          .iter()
+          .flat_map(
+            |SourceMapTask {
+               source_references,
+               source_map_filename,
+               ..
+             }| {
+              source_references
+                .iter()
+                .map(move |source_reference| (source_reference, source_map_filename))
+            },
+          )
+          .map(|(source_reference, source_map_filename)| async move {
+            if let SourceReference::Source(source) = source_reference
+              && SCHEMA_SOURCE_REGEXP.is_match(source)
+            {
+              return Ok((source_reference.clone(), source.to_string()));
+            }
+
+            let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
+              source_reference,
+              compilation,
+              f,
+              output_options,
+              &self.namespace,
+              source_map_filename
+                .as_ref()
+                .map(|filename| filename.as_str())
+                .unwrap_or(""),
+            )
+            .await?;
+            Ok((source_reference.clone(), source_name))
+          })
+          .collect::<Vec<_>>();
+        join_all(futures)
           .await
           .into_iter()
-          .map(|r| r.to_rspack_result())
-          .collect::<Result<Vec<_>>>()?;
-
-          let mut res = HashMap::default();
-
-          for ((_, source_reference), source_name) in source_reference_by_original_source
-            .values()
-            .zip(source_names.into_iter())
-          {
-            res.insert(source_reference, source_name?);
-          }
-
-          res
-        }
-        ModuleFilenameTemplate::Fn(f) => {
-          // the tsfn will be called sync in javascript side so there is no need to use rspack futures to parallelize it
-          let tasks = source_reference_by_original_source
-            .values()
-            .map(|(_, source_reference)| async move {
-              if let SourceReference::Source(source) = source_reference
-                && SCHEMA_SOURCE_REGEXP.is_match(source)
-              {
-                return Ok((source_reference, source.to_string()));
-              }
-
-              let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-                source_reference,
-                compilation,
-                f,
-                output_options,
-                &self.namespace,
-              )
-              .await?;
-              Ok((source_reference, source_name))
-            })
-            .collect::<Vec<_>>();
-          join_all(tasks)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<_, _>>>()?
-        }
-      };
+          .collect::<Result<HashMap<_, _>>>()?
+      }
+    };
 
     let mut used_names_set = HashSet::<&String>::default();
     for (source_reference, source_name) in
-      source_by_reference
+      reference_to_source_name_mapping
         .iter_mut()
         .sorted_by(|(key_a, _), (key_b, _)| {
           let ident_a = match key_a {
             SourceReference::Module(identifier) => identifier,
-            SourceReference::Source(source) => source.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
           };
           let ident_b = match key_b {
             SourceReference::Module(identifier) => identifier,
-            SourceReference::Source(source) => source.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
           };
           ident_a.len().cmp(&ident_b.len())
         })
@@ -456,86 +583,94 @@ impl SourceMapDevToolPlugin {
       }
 
       // Try the fallback name first
-      let mut new_source_name = match &self.fallback_module_filename_template {
-        ModuleFilenameTemplate::String(s) => {
-          ModuleFilenameHelpers::create_filename_of_string_template(
-            source_reference,
-            compilation,
-            s,
-            output_options,
-            self.namespace.as_str(),
-          )
-        }
-        ModuleFilenameTemplate::Fn(f) => {
-          ModuleFilenameHelpers::create_filename_of_fn_template(
-            source_reference,
-            compilation,
-            f,
-            output_options,
-            self.namespace.as_str(),
-          )
-          .await?
-        }
-      };
+      // let mut new_source_name = match &self.fallback_module_filename_template {
+      //   ModuleFilenameTemplate::String(s) => {
+      //     ModuleFilenameHelpers::create_filename_of_string_template(
+      //       source_reference,
+      //       compilation,
+      //       s,
+      //       output_options,
+      //       self.namespace.as_str(),
+      //       source_map_filename
+      //         .as_ref()
+      //         .map(|filename| filename.as_str())
+      //         .unwrap_or(""),
+      //     )
+      //   }
+      //   ModuleFilenameTemplate::Fn(f) => {
+      //     ModuleFilenameHelpers::create_filename_of_fn_template(
+      //       source_reference,
+      //       compilation,
+      //       f,
+      //       output_options,
+      //       self.namespace.as_str(),
+      //       source_map_filename
+      //         .as_ref()
+      //         .map(|filename| filename.as_str())
+      //         .unwrap_or(""),
+      //     )
+      //     .await?
+      //   }
+      // };
 
-      has_name = used_names_set.contains(&new_source_name);
-      if !has_name {
-        *source_name = new_source_name;
-        used_names_set.insert(source_name);
-        continue;
-      }
+      // has_name = used_names_set.contains(&new_source_name);
+      // if !has_name {
+      //   *source_name = new_source_name;
+      //   used_names_set.insert(source_name);
+      //   continue;
+      // }
 
-      // Otherwise, append stars until we have a valid name
-      while has_name {
-        new_source_name.push('*');
-        has_name = used_names_set.contains(&new_source_name);
-      }
-      *source_name = new_source_name;
+      // // Otherwise, append stars until we have a valid name
+      // while has_name {
+      //   new_source_name.push('*');
+      //   has_name = used_names_set.contains(&new_source_name);
+      // }
+      // *source_name = new_source_name;
       used_names_set.insert(source_name);
     }
 
-    for (filename, _asset, source_map) in asset_source_map_tuples.iter_mut() {
-      if let Some(source_map) = source_map {
-        source_map.set_file(Some(filename.clone()));
+    for SourceMapTask {
+      asset_filename,
+      source_map,
+      source_references,
+      ..
+    } in tasks.iter_mut()
+    {
+      source_map.set_file(Some(asset_filename.clone()));
 
-        source_map.set_sources(
-          source_map
-            .sources()
-            .iter()
-            .map(|source| {
-              let source_reference = source_reference_by_original_source
-                .get(source)
-                .expect("expected a module or source");
-              source_by_reference
-                .get(&source_reference.1)
-                .expect("expected a filename at the given index but found None")
-                .clone()
-            })
-            .collect::<Vec<_>>(),
-        );
+      source_map.set_sources(
+        source_references
+          .iter()
+          .map(|source_reference| {
+            reference_to_source_name_mapping
+              .get(source_reference)
+              .expect("expected a filename at the given index but found None")
+              .to_string()
+          })
+          .collect::<Vec<_>>(),
+      );
 
-        if let Some(asset_conditions) = &self.ignore_list {
-          let ignore_list = source_map
-            .sources()
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, source)| {
-              if asset_conditions.try_match(source) {
-                Some(idx as u32)
-              } else {
-                None
-              }
-            })
-            .collect::<Vec<_>>();
-          source_map.set_ignore_list(Some(ignore_list));
-        }
+      if let Some(asset_conditions) = &self.ignore_list {
+        let ignore_list = source_map
+          .sources()
+          .iter()
+          .enumerate()
+          .filter_map(|(idx, source)| {
+            if asset_conditions.try_match(source) {
+              Some(idx as u32)
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<_>>();
+        source_map.set_ignore_list(Some(ignore_list));
+      }
 
-        if self.no_sources {
-          source_map.set_sources_content([]);
-        }
-        if let Some(source_root) = &self.source_root {
-          source_map.set_source_root(Some(source_root.clone()));
-        }
+      if self.no_sources {
+        source_map.set_sources_content([]);
+      }
+      if let Some(source_root) = &self.source_root {
+        source_map.set_source_root(Some(source_root.clone()));
       }
     }
 
@@ -548,41 +683,33 @@ impl SourceMapDevToolPlugin {
     file_to_chunk: &HashMap<&str, &Chunk>,
     compilation_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
-    let mut asset_source_map_tuples = self.collect_asset_source_maps(compilation_assets);
+    let mut tasks = self
+      .collect_tasks(compilation, file_to_chunk, compilation_assets)
+      .await?;
 
     self
-      .update_asset_source_maps(compilation, file_to_chunk, &mut asset_source_map_tuples)
+      .finalize_source_maps(compilation, file_to_chunk, &mut tasks)
       .await?;
 
     let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
-      asset_source_map_tuples
-        .into_iter()
-        .for_each(|(asset_filename, source, source_map)| {
-          let s = unsafe {
-            token.used((
-              &self,
-              compilation,
-              file_to_chunk,
-              asset_filename,
-              source,
-              source_map,
-            ))
-          };
-
+      tasks.into_iter().for_each(
+        |SourceMapTask {
+           asset_filename,
+           source,
+           source_map,
+           source_map_filename,
+           source_mapping_url_comment,
+           ..
+         }| {
+          let s = unsafe { token.used((&self, compilation, asset_filename, source, source_map)) };
           s.spawn(
-            |(plugin, compilation, file_to_chunk, asset_filename, source, source_map)| async move {
-              let (source_map_json, debug_id) = match source_map {
-                Some(mut map) => {
-                  let debug_id = plugin.debug_ids.then(|| {
-                    let debug_id = generate_debug_id(&asset_filename, &source.buffer());
-                    map.set_debug_id(Some(debug_id.clone()));
-                    debug_id
-                  });
-
-                  (Some(map.to_json().map_err(|e| error!(e.to_string()))?), debug_id)
-                }
-                None => (None, None),
-              };
+            |(plugin, compilation, asset_filename, source, mut source_map)| async move {
+              let debug_id = plugin.debug_ids.then(|| {
+                let debug_id = generate_debug_id(&asset_filename, &source.buffer());
+                source_map.set_debug_id(Some(debug_id.clone()));
+                debug_id
+              });
+              let source_map_json = source_map.to_json().map_err(|e| error!(e.to_string()))?;
 
               let mut asset = compilation
                 .assets()
@@ -594,12 +721,7 @@ impl SourceMapDevToolPlugin {
                   )
                 })
                 .clone();
-              let Some(source_map_json) = source_map_json else {
-                return Ok(MappedAsset {
-                  asset: (asset_filename, asset),
-                  source_map: None,
-                });
-              };
+
               let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&asset_filename);
               let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
                 Some(SourceMappingUrlComment::String(s)) => {
@@ -614,82 +736,9 @@ impl SourceMapDevToolPlugin {
                 None => None,
               };
 
-              if let Some(source_map_filename_config) = &plugin.source_map_filename {
-                let chunk = file_to_chunk.get(asset_filename.as_ref());
-                let filename = match &plugin.file_context {
-                  Some(file_context) => Cow::Owned(
-                    Path::new(asset_filename.as_ref())
-                      .relative(Path::new(file_context))
-                      .to_string_lossy()
-                      .to_string(),
-                  ),
-                  None => Cow::Borrowed(asset_filename.as_ref()),
-                };
-
-                let mut hasher = RspackHash::from(&compilation.options.output);
-                hasher.write(source_map_json.as_bytes());
-                let digest = hasher.digest(&compilation.options.output.hash_digest);
-
-                let data = PathData::default().filename(&filename);
-                let data = match chunk {
-                  Some(chunk) => data
-                    .chunk_id_optional(
-                      chunk
-                        .id(&compilation.chunk_ids_artifact)
-                        .map(|id| id.as_str()),
-                    )
-                    .chunk_hash_optional(chunk.rendered_hash(
-                      &compilation.chunk_hashes_artifact,
-                      compilation.options.output.hash_digest_length,
-                    ))
-                    .chunk_name_optional(
-                      chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-                    )
-                    .content_hash_optional(Some(digest.encoded())),
-                  None => data,
-                };
-                let source_map_filename = compilation
-                  .get_asset_path(source_map_filename_config, data)
-                  .await?;
-
-                if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment
+              if let Some(source_map_filename) = source_map_filename {
+                if let Some(source_mapping_url_comment) = source_mapping_url_comment
                 {
-                  let source_map_url = if let Some(public_path) = &plugin.public_path {
-                    format!("{public_path}{source_map_filename}")
-                  } else {
-                    let mut file_path = PathBuf::new();
-                    file_path.push(Component::RootDir);
-                    file_path.extend(Path::new(filename.as_ref()).components());
-
-                    let mut source_map_path = PathBuf::new();
-                    source_map_path.push(Component::RootDir);
-                    source_map_path.extend(Path::new(&source_map_filename).components());
-
-                    source_map_path
-                      .relative(
-                        #[allow(clippy::unwrap_used)]
-                        file_path.parent().unwrap(),
-                      )
-                      .to_string_lossy()
-                      .to_string()
-                  };
-                  let data = data.url(&source_map_url);
-                  let current_source_mapping_url_comment = match &current_source_mapping_url_comment
-                  {
-                    SourceMappingUrlCommentRef::String(s) => {
-                      compilation
-                        .get_asset_path(&Filename::from(s.as_ref()), data)
-                        .await?
-                    }
-                    SourceMappingUrlCommentRef::Fn(f) => {
-                      let comment = f(data).await?;
-                      Filename::from(comment).render(data, None).await?
-                    }
-                  };
-                  let current_source_mapping_url_comment = current_source_mapping_url_comment
-                    .cow_replace("[url]", &source_map_url)
-                    .into_owned();
-
                   let debug_id_comment = debug_id
                     .map(|id| format!("\n//# debugId={id}"))
                     .unwrap_or_default();
@@ -698,7 +747,7 @@ impl SourceMapDevToolPlugin {
                     ConcatSource::new([
                       source.clone(),
                       RawStringSource::from(debug_id_comment).boxed(),
-                      RawStringSource::from(current_source_mapping_url_comment).boxed(),
+                      RawStringSource::from(source_mapping_url_comment).boxed(),
                     ])
                     .boxed(),
                   );
@@ -754,7 +803,8 @@ impl SourceMapDevToolPlugin {
               }
             },
           );
-        });
+        },
+      );
     })
     .await
     .into_iter()

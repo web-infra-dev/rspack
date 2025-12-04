@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use dashmap::DashMap;
 use derive_more::Debug;
@@ -123,10 +123,10 @@ async fn eval_source_map_devtool_plugin_render_module_content(
               .module_by_identifier(&identifier)
             {
               Some(module) => SourceReference::Module(module.identifier()),
-              None => SourceReference::Source(source),
+              None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(source.to_string())
+            SourceReference::Source(Arc::from(source.to_string()))
           }
         });
         let path_data = PathData::default()
@@ -153,6 +153,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 s,
                 output_options,
                 &namespace,
+                todo!(),
               )
             })
             .collect::<Vec<_>>(),
@@ -165,6 +166,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 f,
                 output_options,
                 &namespace,
+                todo!(),
               )
             });
             join_all(features)
