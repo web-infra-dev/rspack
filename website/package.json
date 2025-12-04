@@ -21,7 +21,7 @@
     "markdown-to-jsx": "^8.0.0",
     "mermaid": "^11.12.2",
     "react": "^19.2.1",
-    "react-dom": "^19.1.1",
+    "react-dom": "^19.2.1",
     "semver": "^7.7.3",
     "tailwindcss": "^3.4.18"
   },

@@ -59,6 +59,12 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["/babel/"]
 		},
+		// React npm packages
+		{
+			groupName: "React",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/react/"]
+		},
 		// SWC npm packages
 		{
 			groupName: "SWC",
