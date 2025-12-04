@@ -1318,11 +1318,7 @@ impl Stats<'_> {
         == 0;
 
       stats.identifier = Some(module.identifier());
-      stats.name = Some(
-        module
-          .readable_identifier(&self.compilation.options.context)
-          .into(),
-      );
+      stats.name = Some(module.readable_identifier(&self.compilation.options.context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.cacheable = Some(!(module.full_hash() || module.dependent_hash()));
       stats.optional = Some(false);

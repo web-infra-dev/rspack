@@ -22,7 +22,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
   let mut from_js_map = FxHashMap::default();
 
   for (name, value) in RuntimeGlobals::all().iter_names() {
-    to_js_map.insert(value, name.to_lower_camel_case().into());
+    to_js_map.insert(value, name.to_lower_camel_case());
     from_js_map.insert(name, value);
   }
 
