@@ -336,6 +336,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 if let Some(line_pos) = output.code.find('\n') {
                   shebang = Some(output.code[0..line_pos + 1].to_string());
                   output.code = output.code[line_pos + 1..].to_string();
+                } else {
+                  // Handle shebang without newline - treat entire content as shebang
+                  shebang = Some(output.code.clone());
+                  output.code = String::new();
                 }
               }
 
