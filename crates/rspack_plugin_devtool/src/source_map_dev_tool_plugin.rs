@@ -389,16 +389,12 @@ impl SourceMapDevToolPlugin {
           .map(|source_reference| async move {
             let unresolved_source_map_path = self.get_unresolved_source_map_path(output_path);
 
-            let source_map_path = unresolved_source_map_path
-              .as_deref()
-              .map(|filename| output_path.node_join(filename));
-
             if let SourceReference::Source(source_name) = source_reference
               && SCHEMA_SOURCE_REGEXP.is_match(source_name)
             {
               return Ok((
                 source_reference.clone(),
-                (source_name.to_string(), source_map_path),
+                (source_name.to_string(), unresolved_source_map_path),
               ));
             }
 
@@ -408,12 +404,12 @@ impl SourceMapDevToolPlugin {
               f,
               output_options,
               &self.namespace,
-              source_map_path.as_ref().map(|p| p.as_path()),
+              unresolved_source_map_path.as_ref().map(|p| p.as_path()),
             )
             .await?;
             Ok((
               source_reference.clone(),
-              (source_name, source_map_path.clone()),
+              (source_name, unresolved_source_map_path.clone()),
             ))
           })
           .collect::<Vec<_>>();
@@ -502,7 +498,12 @@ impl SourceMapDevToolPlugin {
           .map(|source_reference| {
             reference_to_source_name_mapping
               .get(source_reference)
-              .expect("expected a filename at the given index but found None")
+              .unwrap_or_else(|| {
+                panic!(
+                  "SourceMapDevToolPlugin: missing source name for reference '{:?}' in asset '{}'.",
+                  source_reference, asset_filename
+                )
+              })
               .0
               .to_string()
           })
