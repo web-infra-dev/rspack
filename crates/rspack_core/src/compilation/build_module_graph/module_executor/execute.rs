@@ -224,7 +224,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
 
     if let Some(name) = chunk.name() {
-      chunk.set_id(&mut compilation.chunk_ids_artifact, name);
+      let name = name.to_string();
+      chunk.set_id(name);
     }
     let runtime: RuntimeSpec = once("build time".into()).collect();
 

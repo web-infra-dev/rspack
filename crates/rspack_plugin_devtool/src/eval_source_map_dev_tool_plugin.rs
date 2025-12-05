@@ -130,11 +130,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
           }
         });
         let path_data = PathData::default()
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name())
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,

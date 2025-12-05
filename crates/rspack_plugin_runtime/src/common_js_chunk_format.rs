@@ -118,7 +118,7 @@ async fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "exports.ids = [{}];\n",
-    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
+    json_stringify(chunk.expect_id())
   )));
   sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());

@@ -191,12 +191,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_id_optional(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .map(|id| id.as_str()),
-            )
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+            .chunk_name_optional(chunk.name_for_filename_template())
             .hash(&hash)
             .filename(file),
         )
