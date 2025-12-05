@@ -380,7 +380,11 @@ impl EsmLibraryPlugin {
           namespace_object_sources.insert(
             *module_info_id,
             format!(
-              "// NAMESPACE OBJECT: {}\nvar {} = {{}};\n{}({});\n{}\n",
+              r#"// NAMESPACE OBJECT: {}
+var {} = {{}};
+{}({});
+{}
+"#,
               module_readable_identifier,
               name,
               compilation
