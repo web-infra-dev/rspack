@@ -86,7 +86,9 @@ fn then_expr(
         );
         appending.push_str(
           format!(
-            ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
+            r#".then(function(m){{
+ return {}(m, {fake_type}) 
+}})"#,
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)

@@ -135,7 +135,9 @@ async fn render_chunk(
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
-      "// load runtime\nvar {} = require({});\n",
+      r#"// load runtime
+var {} = require({});
+"#,
       compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),

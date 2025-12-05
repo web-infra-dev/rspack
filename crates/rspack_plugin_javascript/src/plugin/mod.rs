@@ -302,7 +302,9 @@ var module = ({}[moduleId] = {{"#,
     if use_require || module_cache {
       header.push(
         format!(
-          "// The module cache\nvar {} = {{}};\n",
+          r#"// The module cache
+var {} = {{}};
+"#,
           runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
         )
         .into(),
@@ -314,23 +316,37 @@ var module = ({}[moduleId] = {{"#,
       // (see MakeDeferredNamespaceObjectRuntimeModule)
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
-      header.push("// The deferred module cache\nvar __rspack_deferred_exports = {};\n".into());
+      header.push(
+        r#"// The deferred module cache
+var __rspack_deferred_exports = {};
+"#
+        .into(),
+      );
     }
 
     if use_require {
       header.push(
         format!(
-          "// The require function\nfunction {}(moduleId) {{\n",
+          r#"// The require function
+function {}(moduleId) {{
+"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into(),
       );
       header.extend(Self::render_require(chunk_ukey, compilation));
-      header.push("\n}\n".into());
+      header.push(
+        r#"
+}
+"#
+        .into(),
+      );
     } else if require_scope_used {
       header.push(
         format!(
-          "// The require scope\nvar {} = {{}};\n",
+          r#"// The require scope
+var {} = {{}};
+"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into(),
@@ -341,7 +357,9 @@ var module = ({}[moduleId] = {{"#,
     {
       header.push(
         format!(
-          "// expose the modules object ({modules})\n{module_factories} = {modules};\n",
+          r#"// expose the modules object ({modules})
+{module_factories} = {modules};
+"#,
           modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           module_factories =
             runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
@@ -353,7 +371,9 @@ var module = ({}[moduleId] = {{"#,
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       header.push(
         format!(
-          "// expose the module cache\n{} = {};\n",
+          r#"// expose the module cache
+{} = {};
+"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
           runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         )
@@ -364,7 +384,9 @@ var module = ({}[moduleId] = {{"#,
     if intercept_module_execution {
       header.push(
         format!(
-          "// expose the module execution interceptor\n{} = [];\n",
+          r#"// expose the module execution interceptor
+{} = [];
+"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
         )
         .into(),
@@ -581,7 +603,9 @@ var module = ({}[moduleId] = {{"#,
           allow_inline_startup = false;
           header.push(
             format!(
-              "// the startup function\n{} = {};\n",
+              r#"// the startup function
+{} = {};
+"#,
               runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
               compilation.runtime_template.basic_function(
                 "",
@@ -610,7 +634,9 @@ var module = ({}[moduleId] = {{"#,
       } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
         header.push(
           format!(
-            "// the startup function\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
+            r#"// the startup function
+// It's empty as no entry modules are in this chunk
+{} = function(){{}};"#,
             runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
           )
           .into(),
@@ -619,7 +645,9 @@ var module = ({}[moduleId] = {{"#,
     } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
       header.push(
         format!(
-          "// the startup function\n// It's empty as some runtime module handles the default behavior\n{} = function(){{}};",
+          r#"// the startup function
+// It's empty as some runtime module handles the default behavior
+{} = function(){{}};"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
         )
         .into(),

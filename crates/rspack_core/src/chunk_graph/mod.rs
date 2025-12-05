@@ -103,7 +103,14 @@ impl ChunkGraph {
 
       let table_body = requests.clone();
 
-      format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
+      format!(
+        r#"
+<<table bgcolor="{bg_color}">
+{table_header}
+{table_body}
+</table>>
+"#
+      )
     };
 
     // push entry_point chunk group into visiting queue

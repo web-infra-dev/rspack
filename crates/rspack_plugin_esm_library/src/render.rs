@@ -232,7 +232,9 @@ impl EsmLibraryPlugin {
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
       if tree_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
         runtime_source.add(RawStringSource::from(format!(
-          "\nvar {} = {{}};\n",
+          r#"
+var {} = {{}};
+"#,
           compilation
             .runtime_template
             .render_runtime_variable(&RuntimeVariable::Modules)
@@ -681,7 +683,9 @@ impl EsmLibraryPlugin {
 
     if use_require || module_cache {
       source.add(RawStringSource::from(format!(
-        "// The module cache\nvar {} = {{}};\n",
+        r#"// The module cache
+var {} = {{}};
+"#,
         compilation
           .runtime_template
           .render_runtime_variable(&RuntimeVariable::ModuleCache)
@@ -690,7 +694,9 @@ impl EsmLibraryPlugin {
 
     if use_require {
       source.add(RawStringSource::from(format!(
-        "// The require function\nfunction {}(moduleId) {{\n",
+        r#"// The require function
+function {}(moduleId) {{
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -698,10 +704,16 @@ impl EsmLibraryPlugin {
       source.add(RawStringSource::from(
         JsPlugin::render_require(chunk_ukey, compilation).join("\n"),
       ));
-      source.add(RawStringSource::from_static("\n}\n"));
+      source.add(RawStringSource::from_static(
+        r#"
+}
+"#,
+      ));
     } else if require_scope_used {
       source.add(RawStringSource::from(format!(
-        "// The require scope\nvar {} = {{}};\n",
+        r#"// The require scope
+var {} = {{}};
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -710,7 +722,9 @@ impl EsmLibraryPlugin {
 
     if module_factories {
       source.add(RawStringSource::from(format!(
-        "// expose the modules object ({modules})\n{module_factories} = {modules};\n",
+        r#"// expose the modules object ({modules})
+{module_factories} = {modules};
+"#,
         module_factories = compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
@@ -722,7 +736,9 @@ impl EsmLibraryPlugin {
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       source.add(RawStringSource::from(format!(
-        "// expose the module cache\n{} = {};\n",
+        r#"// expose the module cache
+{} = {};
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
@@ -734,7 +750,9 @@ impl EsmLibraryPlugin {
 
     if intercept_module_execution {
       source.add(RawStringSource::from(format!(
-        "// expose the module execution interceptor\n{} = [];\n",
+        r#"// expose the module execution interceptor
+{} = [];
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)

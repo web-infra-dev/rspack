@@ -221,7 +221,10 @@ async fn eval_source_map_devtool_plugin_render_module_content(
         .unwrap_or_else(|e| panic!("{}", e.to_string()));
       let base64 = base64::encode_to_string(&map_buffer);
       let footer = format!(
-        "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n"
+        r#"
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}
+//# sourceURL=webpack-internal:///{module_id}
+"#
       );
       let module_content =
         simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("should convert to string");

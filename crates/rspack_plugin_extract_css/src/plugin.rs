@@ -394,7 +394,10 @@ despite it was not able to fulfill desired ordering with these modules:
         let req_str = readable_identifier.cow_replace("*/", "*_/");
         let req_str_star = "*".repeat(req_str.len());
         RawStringSource::from(format!(
-          "/*!****{req_str_star}****!*\\\n  !*** {req_str} ***!\n  \\****{req_str_star}****/\n"
+          r#"/*!****{req_str_star}****!*\
+  !*** {req_str} ***!
+  \****{req_str_star}****/
+"#
         ))
       });
 

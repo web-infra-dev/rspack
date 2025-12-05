@@ -146,7 +146,10 @@ async fn render(
     .iter()
     .map(|name| {
       format!(
-        "function(module) {{\n\tObject.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})\n}}"
+        r#"function(module) {{
+	Object.keys(module).forEach(function(key) {{
+ {name}[key] = module[key]; }})
+}}"#
       )
     })
     .collect::<Vec<_>>()

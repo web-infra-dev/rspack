@@ -812,7 +812,9 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(
-              "{content}\n/* reexport */ {}({}, __rspack_reexport);\n",
+              r#"{content}
+/* reexport */ {}({}, __rspack_reexport);
+"#,
               compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
