@@ -425,19 +425,20 @@ impl SourceMapDevToolPlugin {
     };
 
     let mut used_names_set = HashSet::<&String>::default();
-    for (source_reference, (source_name, source_map_path)) in reference_to_source_name_mapping
-      .iter_mut()
-      .sorted_by(|(key_a, _), (key_b, _)| {
-        let ident_a = match key_a {
-          SourceReference::Module(identifier) => identifier,
-          SourceReference::Source(source) => source.as_ref(),
-        };
-        let ident_b = match key_b {
-          SourceReference::Module(identifier) => identifier,
-          SourceReference::Source(source) => source.as_ref(),
-        };
-        ident_a.len().cmp(&ident_b.len())
-      })
+    for (source_reference, (source_name, unresolved_source_map_path)) in
+      reference_to_source_name_mapping
+        .iter_mut()
+        .sorted_by(|(key_a, _), (key_b, _)| {
+          let ident_a = match key_a {
+            SourceReference::Module(identifier) => identifier,
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          let ident_b = match key_b {
+            SourceReference::Module(identifier) => identifier,
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          ident_a.len().cmp(&ident_b.len())
+        })
     {
       let mut has_name = used_names_set.contains(source_name);
       if !has_name {
@@ -454,7 +455,7 @@ impl SourceMapDevToolPlugin {
             s,
             output_options,
             self.namespace.as_str(),
-            source_map_path.as_ref().map(|p| p.as_path()),
+            unresolved_source_map_path.as_ref().map(|p| p.as_path()),
           )
         }
         ModuleFilenameTemplate::Fn(f) => {
@@ -464,7 +465,7 @@ impl SourceMapDevToolPlugin {
             f,
             output_options,
             self.namespace.as_str(),
-            source_map_path.as_ref().map(|p| p.as_path()),
+            unresolved_source_map_path.as_ref().map(|p| p.as_path()),
           )
           .await?
         }

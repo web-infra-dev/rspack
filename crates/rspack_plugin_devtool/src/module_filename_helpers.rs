@@ -326,7 +326,7 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
             b"[relative-resourcepath]" |
             b"[relativeresourcepath]" => {
               if let Some(relative_resource_path) = &ctx.relative_resource_path {
-                 buf.push_str(relative_resource_path)
+                buf.push_str(relative_resource_path)
               } else {
                 buf.push_str(&sstr[pos..next_pos]);
               }
