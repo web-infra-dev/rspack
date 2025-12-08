@@ -32,6 +32,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
     for dependency_id in dependencies {
+      // Some dependencies here will not trigger the factorize task, so add all dependencies here.
       context
         .artifact
         .affected_dependencies
