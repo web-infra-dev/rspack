@@ -150,7 +150,7 @@ impl DependencyTemplate for URLContextDependencyTemplate {
     let dep = dep
       .as_any()
       .downcast_ref::<URLContextDependency>()
-      .expect("AMDRequireContextDependencyTemplate should be used for URLContextDependency");
+      .expect("URLContextDependencyTemplate should be used for URLContextDependency");
 
     context_dependency_template_as_require_call(
       dep,
