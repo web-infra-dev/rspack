@@ -94,7 +94,11 @@ fn wrap_comment(str: &str) -> String {
   let result = TRIALING_WHITESPACE.replace_all(&result, "\n");
   let result = result.trim_end();
 
-  format!("/*!\n * {result}\n */")
+  format!(
+    r#"/*!
+ * {result}
+ */"#
+  )
 }
 
 #[plugin]
