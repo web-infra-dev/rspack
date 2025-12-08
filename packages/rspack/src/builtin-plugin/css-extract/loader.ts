@@ -3,12 +3,12 @@ import path from "node:path";
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
 import { PLUGIN_NAME, stringifyLocal, stringifyRequest } from "./utils";
 
-export const BASE_URI = "webpack://";
+export const BASE_URI = "rspack-css-extract://";
 export const MODULE_TYPE = "css/mini-extract";
-export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/mini-css-extract-plugin/`;
+export const AUTO_PUBLIC_PATH = "__css_extract_public_path_auto__";
+export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
-	"__mini_css_extract_plugin_single_dot_path_segment__";
+	"__css_extract_single_dot_path_segment__";
 
 interface DependencyDescription {
 	identifier: string;
@@ -265,7 +265,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	};
 
 	this.importModule(
-		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
+		`${this.resourcePath}.rspack[javascript/auto]!=!!!${request}`,
 		{
 			layer: options.layer,
 			publicPath: publicPathForExtract,

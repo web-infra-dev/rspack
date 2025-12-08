@@ -43,10 +43,10 @@ pub static MODULE_TYPE: LazyLock<ModuleType> =
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
   LazyLock::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
 
-pub static BASE_URI: &str = "webpack://";
-pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
-pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
-pub static SINGLE_DOT_PATH_SEGMENT: &str = "__mini_css_extract_plugin_single_dot_path_segment__";
+pub static BASE_URI: &str = "rspack-css-extract://";
+pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
+pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
+pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
