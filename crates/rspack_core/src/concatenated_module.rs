@@ -3242,8 +3242,7 @@ fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIde
   let mut ids = Vec::new();
   for (node_id, node) in ast.nodes() {
     if node.kind == NodeKind::Ident {
-      // SAFETY: `node.kind == NodeKind::Ident`
-      let ident = unsafe { Ident::from_node_id_unchecked(node_id, ast) };
+      let ident = Ident::from_node_id(node_id, ast);
       let parent_id = semantic.parent_node(node_id);
       let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
         NodeKind::BindingIdent => {
@@ -3254,8 +3253,7 @@ fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIde
           )
         }
         NodeKind::ClassExpr => {
-          // SAFETY: `parent.kind == NodeKind::ClassExpr`
-          let class_expr = unsafe { ClassExpr::from_node_id_unchecked(parent_id, ast) };
+          let class_expr = ClassExpr::from_node_id(parent_id, ast);
           (false, class_expr.class(ast).super_class(ast).is_some())
         }
         NodeKind::ObjectLit => (true, false),
