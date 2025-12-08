@@ -1,4 +1,7 @@
-use rspack_core::{ConstDependency, JavascriptParserUrl, RuntimeGlobals};
+use rspack_core::{
+  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, JavascriptParserUrl, RuntimeGlobals,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -8,8 +11,10 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::URLDependency, magic_comment::try_extract_magic_comment,
-  parser_plugin::inner_graph::plugin::InnerGraphPlugin, visitors::JavascriptParser,
+  dependency::{URLContextDependency, URLDependency},
+  magic_comment::try_extract_magic_comment,
+  parser_plugin::inner_graph::plugin::InnerGraphPlugin,
+  visitors::{JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
@@ -153,7 +158,45 @@ impl JavascriptParserPlugin for URLPlugin {
       return Some(true);
     }
 
-    None
+    let arg2 = args.get(1)?;
+    if !arg2
+      .expr
+      .as_member()
+      .is_some_and(|member| is_meta_url(parser, member))
+    {
+      return None;
+    }
+
+    let param = parser.evaluate_expression(&arg.expr);
+    let result = create_context_dependency(&param, parser);
+    let options = ContextOptions {
+      mode: ContextMode::Sync,
+      recursive: true,
+      reg_exp: context_reg_exp(&result.reg, "", None, parser),
+      include: magic_comment_options.get_include(),
+      exclude: magic_comment_options.get_exclude(),
+      category: DependencyCategory::Url,
+      request: format!("{}{}{}", result.context, result.query, result.fragment),
+      context: result.context,
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: result.replaces,
+      start: expr.span().real_lo(),
+      end: expr.span().real_hi(),
+      referenced_exports: None,
+      attributes: None,
+    };
+
+    let mut dep = URLContextDependency::new(
+      options,
+      expr.span().into(),
+      param.range().into(),
+      parser.in_try,
+    );
+    *dep.critical_mut() = result.critical;
+    parser.add_dependency(Box::new(dep));
+
+    Some(true)
   }
 
   fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {

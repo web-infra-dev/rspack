@@ -36,8 +36,8 @@ use crate::{
     ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
-    amd_define_dependency::AMDDefineDependencyTemplate,
+    RequireResolveHeaderDependencyTemplate, URLContextDependencyTemplate, URLDependencyTemplate,
+    WorkerDependencyTemplate, amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
@@ -155,6 +155,10 @@ async fn compilation(
   );
   // URLPlugin
   compilation.set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
+  compilation.set_dependency_factory(
+    DependencyType::NewUrlContext,
+    params.context_module_factory.clone(),
+  );
   // ProvidePlugin
   compilation.set_dependency_factory(
     DependencyType::Provided,
@@ -348,6 +352,10 @@ async fn compilation(
   compilation.set_dependency_template(
     URLDependencyTemplate::template_type(),
     Arc::new(URLDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    URLContextDependencyTemplate::template_type(),
+    Arc::new(URLContextDependencyTemplate::default()),
   );
   // worker dependency templates
   compilation.set_dependency_template(

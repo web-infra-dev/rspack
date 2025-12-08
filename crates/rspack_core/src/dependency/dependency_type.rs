@@ -43,6 +43,8 @@ pub enum DependencyType {
   AmdRequireItem,
   // new URL("./foo", import.meta.url)
   NewUrl,
+  // new URL() context
+  NewUrlContext,
   // new Worker()
   NewWorker,
   // create script url
@@ -147,6 +149,7 @@ impl DependencyType {
       DependencyType::AmdRequire => "amd",
       DependencyType::AmdRequireItem => "amd require",
       DependencyType::NewUrl => "new URL()",
+      DependencyType::NewUrlContext => "new URL() context",
       DependencyType::NewWorker => "new Worker()",
       DependencyType::CreateScriptUrl => "create script url",
       DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
