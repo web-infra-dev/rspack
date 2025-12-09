@@ -211,6 +211,11 @@ async function check(
 			.replace(/[0-9]+(\.[0-9]+)? ms/g, "xx ms");
 	}
 
+	actual = actual
+		.split("\n")
+		.filter(line => !line.includes("@rstest/core/dist"))
+		.join("\n");
+
 	const snapshotPath = path.isAbsolute(snapshot)
 		? snapshot
 		: path.resolve(context.getSource(), `./__snapshots__/${snapshot}`);

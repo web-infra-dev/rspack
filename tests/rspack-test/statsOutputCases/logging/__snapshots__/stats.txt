@@ -36,17 +36,6 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
 |     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
 |     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at Object.fn (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTestsCase (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at TestRunner.runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at Object.runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runInPool (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/362.js<LINE_COL>)
 |     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -67,17 +56,6 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
 |     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
 |     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at Object.fn (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTestsCase (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTest (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at TestRunner.runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at Object.runTests (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/0%7E151.js<LINE_COL>)
-|     at runInPool (<ROOT>/node_modules/<PNPM_INNER>/@rstest/core/dist/362.js<LINE_COL>)
 |     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <-> Unimportant
   <i> Info message
