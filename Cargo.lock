@@ -3749,7 +3749,6 @@ dependencies = [
 name = "rspack_cacheable_macros"
 version = "0.6.6"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 2.0.95",
 ]
