@@ -150,6 +150,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let expose_name = expose.path.trim_start_matches("./").to_string();
         StatsExpose {
           path: expose.path.clone(),
+          file: String::new(),
           id: compose_id_with_separator(&container_name, &expose_name),
           name: expose_name,
           requires: Vec::new(),
@@ -166,7 +167,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         name: shared.name.clone(),
         version: shared.version.clone().unwrap_or_default(),
         requiredVersion: shared.required_version.clone(),
-        singleton: shared.singleton,
+        // default singleton to true when not provided by user
+        singleton: shared.singleton.or(Some(true)),
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
       })
@@ -255,6 +257,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let expose_file_key = strip_ext(import);
           exposes_map.entry(expose_file_key).or_insert(StatsExpose {
             path: expose_key.clone(),
+            file: String::new(),
             id: id_comp,
             name: expose_name,
             requires: Vec::new(),
@@ -276,6 +279,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
           if entry.version.is_empty() {
             entry.version = ver;
+          }
+          // overlay user-configured shared options (singleton/requiredVersion/version)
+          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+            if let Some(singleton) = opt.singleton {
+              entry.singleton = Some(singleton);
+            }
+            if entry.requiredVersion.is_none() {
+              entry.requiredVersion = opt.required_version.clone();
+            }
+            if entry.version.is_empty() {
+              if let Some(cfg_ver) = opt.version.clone() {
+                entry.version = cfg_ver;
+              }
+            }
           }
           let targets = shared_module_targets.entry(pkg.clone()).or_default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
@@ -320,6 +337,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
+        }
+        // overlay user-configured shared options
+        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if let Some(singleton) = opt.singleton {
+            entry.singleton = Some(singleton);
+          }
+          // prefer parsed requiredVersion but fill from config if still None
+          if entry.requiredVersion.is_none() {
+            entry.requiredVersion = opt.required_version.clone();
+          }
+          if entry.version.is_empty() {
+            if let Some(cfg_ver) = opt.version.clone() {
+              entry.version = cfg_ver;
+            }
+          }
         }
         record_shared_usage(
           &mut shared_usage_links,
@@ -403,6 +435,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       } else {
         empty_assets_group()
       };
+      if let Some(path) = expose_module_paths.get(expose_file_key) {
+        expose.file = path.clone();
+      }
       if !entry_name.is_empty() {
         assets.js.sync.retain(|asset| asset != &entry_name);
         assets.js.r#async.retain(|asset| asset != &entry_name);
@@ -487,7 +522,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names);
+        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names)
+          // keep only the file path, drop aggregated suffix like " + 1 modules"
+          .into_iter()
+          .map(|s| {
+            if let Some((before, _)) = s.split_once(" + ") {
+              before.to_string()
+            } else {
+              s
+            }
+          })
+          .collect();
       remote_list.push(StatsRemote {
         alias: alias.clone(),
         consumingFederationContainerName: container_name.clone(),
@@ -509,6 +554,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
+  // Ensure all configured remotes exist in stats, add missing with defaults
+  let mut remote_list = remote_list;
+  for (alias, target) in self.options.remote_alias_map.iter() {
+    if !remote_list.iter().any(|r| r.alias == *alias) {
+      let remote_container_name = if target.name.is_empty() {
+        alias.clone()
+      } else {
+        target.name.clone()
+      };
+      remote_list.push(StatsRemote {
+        alias: alias.clone(),
+        consumingFederationContainerName: container_name.clone(),
+        federationContainerName: remote_container_name.clone(),
+        // default moduleName to "." for missing entries
+        moduleName: ".".to_string(),
+        entry: target.entry.clone(),
+        usedIn: vec!["UNKNOWN".to_string()],
+      });
+    }
+  }
+
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),

@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@scope-sc/dep1": "1.0.0",
+    "@scope-sc2/dep2": "1.0.0",  
+    "react": "1.0.0"
+  }
+}
