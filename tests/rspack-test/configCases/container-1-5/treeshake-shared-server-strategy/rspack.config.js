@@ -20,7 +20,7 @@ module.exports = {
   target: 'async-node',
   plugins: [
     new ModuleFederationPlugin({
-      name: 'treeshake_share',
+      name: 'treeshake_share_server',
       manifest: true,
       filename: 'remoteEntry.js',
       library: {

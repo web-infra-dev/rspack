@@ -1,5 +1,6 @@
 use std::collections::{VecDeque, hash_map::Entry};
 
+use futures::executor::block_on;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -99,9 +100,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       // and also added referenced modules to queue for further processing
       let mut batch_res = vec![];
       for (block_id, runtime, force_side_effects) in batch {
-        let (referenced_exports, module_tasks) = self
-          .process_module(block_id, runtime.as_ref(), force_side_effects, self.global)
-          .await;
+        let (referenced_exports, module_tasks) = block_on(self.process_module(
+          block_id,
+          runtime.as_ref(),
+          force_side_effects,
+          self.global,
+        ));
         batch_res.push((
           runtime,
           force_side_effects,
@@ -513,7 +517,7 @@ async fn optimize_dependencies(
   }
 
   let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
-  proxy.apply().await;
+  proxy.apply();
   Ok(None)
 }
 

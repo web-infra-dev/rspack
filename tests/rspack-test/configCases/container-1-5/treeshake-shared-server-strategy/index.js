@@ -15,7 +15,7 @@ it('should not load treeshake shared via set server strategy and no server data 
   expect(bundleContent).toContain('List');
 
   const uiLibShared =
-    __FEDERATION__.__SHARE__['treeshake_share_server:0.0.0'].default['ui-lib'][
+    __FEDERATION__.__SHARE__['treeshake_share_server'].default['ui-lib'][
       '1.0.0'
     ];
   expect(uiLibShared.loaded).toEqual(true);
@@ -40,7 +40,7 @@ it('should not load treeshake shared via set server strategy and no server data 
   expect(uiLibESBundleContent).not.toContain('List');
 
   const uiLibESShared =
-    __FEDERATION__.__SHARE__['treeshake_share_server:0.0.0'].default[
+    __FEDERATION__.__SHARE__['treeshake_share_server'].default[
       'ui-lib-es'
     ]['1.0.0'];
   expect(uiLibESShared.loaded).toEqual(true);
@@ -59,7 +59,7 @@ it('should not load treeshake shared via set server strategy and no server data 
 it('should treeshake ui-lib-dynamic-specific-export correctly', async () => {
   const { dynamicUISpecificExport } = await import('./App.js');
   expect(await dynamicUISpecificExport()).toEqual(
-    'dynamic Uilib has List exports not treeshake',
+    'dynamic Uilib has List exports treeshake',
   );
 
   const bundlePath = path.join(
@@ -84,8 +84,8 @@ it('should treeshake ui-lib-dynamic-default-export', async () => {
   );
   const bundleContent = fs.readFileSync(bundlePath, 'utf-8');
   expect(bundleContent).toContain('List');
-  expect(bundleContent).toContain('Button');
-  expect(bundleContent).toContain('Badge');
+  expect(bundleContent).not.toContain('Button');
+  expect(bundleContent).not.toContain('Badge');
 });
 
 it('should not treeshake ui-lib-side-effect if not set sideEffect:false ', async () => {

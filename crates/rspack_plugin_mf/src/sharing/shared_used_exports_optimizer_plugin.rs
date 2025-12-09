@@ -1,7 +1,4 @@
-use std::{
-  collections::BTreeMap,
-  sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -9,10 +6,10 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyId,
   DependencyType, ExportsType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
-  NormalModule, Plugin, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
+  NormalModule, Plugin, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::dependency::{ESMImportSpecifierDependency, ImportDependency};
 use rspack_util::atom::Atom;
@@ -127,7 +124,12 @@ fn collect_processed_modules(
   CompilationOptimizeDependencies for SharedUsedExportsOptimizerPlugin,
   stage = 1
 )]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &mut Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
     let module_graph = compilation.get_module_graph();
     module_graph
@@ -263,7 +265,6 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
             .unwrap_or(false)
         };
 
-        dbg!(&is_side_effect_free, &share_key);
         if !is_side_effect_free {
           // Clear referenced exports for this share_key when module is not side-effect free
           if let Ok(mut shared_referenced_exports) = self.shared_referenced_exports.write() {
@@ -274,7 +275,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
           continue;
         }
 
-        let mut module_graph_mut = compilation.get_module_graph_mut();
+        let mut module_graph_mut = compilation.get_seal_module_graph_mut();
         module_graph_mut.active_all_exports_info();
         // mark used for collected modules
         for module_id in &modules_to_process {

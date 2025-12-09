@@ -1328,7 +1328,7 @@ export type ConsumesConfig = {
     shareScope?: string;
     singleton?: boolean;
     strictVersion?: boolean;
-    treeshakeStrategy?: 'server' | 'infer';
+    treeshakeStrategy?: "server" | "infer";
 };
 
 // @public (undocumented)
@@ -5942,7 +5942,7 @@ type ProvidesEnhancedExtraConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     requiredVersion?: false | string;
-    treeshakeStrategy?: 'server' | 'infer';
+    treeshakeStrategy?: "server" | "infer";
 };
 
 // @public (undocumented)
@@ -8447,7 +8447,7 @@ function transformSync(source: string, options?: Options): TransformOutput;
 // @public (undocumented)
 type TreeshakeConfig = {
     usedExports?: string[];
-    strategy?: 'server' | 'infer';
+    strategy?: "server" | "infer";
     filename?: string;
 };
 
