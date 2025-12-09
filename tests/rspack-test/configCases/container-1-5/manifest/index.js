@@ -18,7 +18,7 @@ it("should report xreact shared assets in sync only", () => {
     expect(xreact).toBeDefined();
     expect(xreact.assets.css.sync).toEqual([]);
     expect(xreact.assets.css.async).toEqual([]);
-    expect(xreact.assets.js.sync).toEqual(["node_modules_react_index_js.js"]);
+    expect(xreact.assets.js.sync).toEqual(["node_modules_xreact_index_js.js"]);
     expect(xreact.assets.js.async).toEqual([]);
 });
 
