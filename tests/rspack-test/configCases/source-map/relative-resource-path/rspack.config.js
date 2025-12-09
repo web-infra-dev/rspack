@@ -18,7 +18,7 @@ module.exports = {
                     const sourceMapJSON = fs.readFileSync(sourceMapPath, "utf-8");
                     const sourceMap = JSON.parse(sourceMapJSON);
 
-                    const realSources = sourceMap.sources.filter(s => !s.startsWith("webpack://"));
+                    const realSources = sourceMap.sources.filter(s => !s.startsWith("webpack/"));
 
                     realSources.forEach(s => {
                         expect(path.isAbsolute(s)).toBe(false);

@@ -45,12 +45,8 @@ fn resolve_relative_resource_path(
   source_map_path: Option<&Utf8Path>,
 ) -> Option<String> {
   if absolute_resource_path.starts_with("webpack/") {
-    // Webpack runtime modules are virtual; normalize to a schema-style URL (webpack://...)
-    // so they are not treated as file system paths.
-    let tail = absolute_resource_path
-      .strip_prefix("webpack/")
-      .unwrap_or(absolute_resource_path);
-    return Some(format!("webpack://{}", tail));
+    // Webpack runtime modules are virtual
+    return Some(absolute_resource_path.to_string());
   }
 
   let Some(source_map_path) = source_map_path else {
@@ -111,7 +107,7 @@ impl ModuleFilenameHelpers {
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = Some(format!("webpack://{resource}"));
+        let relative_resource_path = Some(resource.to_string());
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");

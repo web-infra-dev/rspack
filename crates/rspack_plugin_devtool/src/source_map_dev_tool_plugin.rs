@@ -343,9 +343,7 @@ impl SourceMapDevToolPlugin {
 
                 let chunk = file_to_chunk.get(asset_filename.as_ref());
                 let path_data = PathData::default()
-                  .chunk_id_optional(
-                    chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
-                  )
+                  .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
                   .chunk_name_optional(chunk.and_then(|c| c.name()))
                   .chunk_hash_optional(chunk.and_then(|c| {
                     c.rendered_hash(
