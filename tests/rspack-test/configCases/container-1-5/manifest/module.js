@@ -1,10 +1,10 @@
 import { loadRemote } from 'mf';
-import react from 'react';
+import xreact from 'xreact';
 import dep1 from '@scope-sc/dep1';
 import dep2 from '@scope-sc2/dep2';
 import remote from '@remote/alias';
 
-global.react = react;
+global.xreact = xreact;
 global.remote = remote;
 global.dep1 = dep1;
 global.dep2 = dep2;
