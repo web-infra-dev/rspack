@@ -1,8 +1,8 @@
 asset main.mjs xx KiB [emitted] [javascript module] (name: main)
-asset 753.mjs 304 bytes [emitted] [javascript module]
+asset 753.mjs xx bytes [emitted] [javascript module]
 runtime modules xx KiB 10 modules
-orphan modules 225 bytes [orphan] 2 modules
-cacheable modules 263 bytes
-  ./index.js + 1 modules 225 bytes [code generated]
-  ./chunk.js 38 bytes [built] [code generated]
+orphan modules xx bytes [orphan] 2 modules
+cacheable modules xx bytes
+  ./index.js + 1 modules xx bytes [code generated]
+  ./chunk.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

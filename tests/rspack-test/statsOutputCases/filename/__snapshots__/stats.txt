@@ -1,7 +1,7 @@
 asset 889.xxxx.js xx KiB [emitted] (name: main)
-asset 769.xxxx.js 306 bytes [emitted]
+asset 769.xxxx.js xx bytes [emitted]
 runtime modules xx KiB 11 modules
-cacheable modules 70 bytes
-  ./index.js 38 bytes [built] [code generated]
-  ./dynamic.js 32 bytes [built] [code generated]
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./dynamic.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

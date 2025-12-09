@@ -1,6 +1,6 @@
 <e> [LogTestPlugin] Error
-asset main.js 16 bytes [emitted] (name: main)
-./index.js 1 bytes [built] [code generated]
+asset main.js xx bytes [emitted] (name: main)
+./index.js xx bytes [built] [code generated]
 
 LOG from LogTestPlugin
 <e> Error

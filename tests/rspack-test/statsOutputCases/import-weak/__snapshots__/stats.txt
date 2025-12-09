@@ -1,0 +1,9 @@
+asset entry.js xx KiB [emitted] (name: entry)
+asset 357.js xx bytes [emitted]
+asset 966.js xx bytes [emitted]
+runtime modules xx KiB 12 modules
+cacheable modules xx bytes
+  ./entry.js xx bytes [built] [code generated]
+  ./modules/a.js xx bytes [built] [code generated]
+  ./modules/b.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

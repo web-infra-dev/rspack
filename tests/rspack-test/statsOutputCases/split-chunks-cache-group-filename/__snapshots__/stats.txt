@@ -1,10 +1,10 @@
-Entrypoint main xx KiB = 256.vendors.js 311 bytes 955.vendors.js 311 bytes 38.vendors.js 310 bytes main.js xx KiB
-chunk (runtime: main) 256.vendors.js (id hint: vendors) 20 bytes [initial] [rendered] split chunk (cache group: vendors)
-  ./node_modules/a.js 20 bytes [built] [code generated]
-chunk (runtime: main) 38.vendors.js (id hint: vendors) 20 bytes [initial] [rendered] split chunk (cache group: vendors)
-  ./node_modules/c.js 20 bytes [built] [code generated]
-chunk (runtime: main) main.js (main) 80 bytes (javascript) xx KiB (runtime) [entry] [rendered]
-  ./index.js 80 bytes [built] [code generated]
-chunk (runtime: main) 955.vendors.js (id hint: vendors) 20 bytes [initial] [rendered] split chunk (cache group: vendors)
-  ./node_modules/b.js 20 bytes [built] [code generated]
+Entrypoint main xx KiB = 256.vendors.js xx bytes 955.vendors.js xx bytes 38.vendors.js xx bytes main.js xx KiB
+chunk (runtime: main) 256.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
+  ./node_modules/a.js xx bytes [built] [code generated]
+chunk (runtime: main) 38.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
+  ./node_modules/c.js xx bytes [built] [code generated]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
+chunk (runtime: main) 955.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
+  ./node_modules/b.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

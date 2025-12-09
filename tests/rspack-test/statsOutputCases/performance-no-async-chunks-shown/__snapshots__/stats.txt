@@ -1,13 +1,13 @@
 asset main.js xx KiB [emitted] [big] (name: main)
-asset sec.js 944 bytes [emitted] (name: sec)
+asset sec.js xx bytes [emitted] (name: sec)
 Entrypoint main [big] xx KiB = main.js
-Entrypoint sec 944 bytes = sec.js
-./index.js 32 bytes [built] [code generated]
-./index2.js 48 bytes [built] [code generated]
+Entrypoint sec xx bytes = sec.js
+./index.js xx bytes [built] [code generated]
+./index2.js xx bytes [built] [code generated]
 ./a.js xx KiB [built] [code generated]
-./b.js 22 bytes [built] [code generated]
-./c.js 22 bytes [built] [code generated]
-./d.js 22 bytes [built] [code generated]
+./b.js xx bytes [built] [code generated]
+./c.js xx bytes [built] [code generated]
+./d.js xx bytes [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
   │   main.js (xx KiB)
