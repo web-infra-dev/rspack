@@ -52,7 +52,7 @@ impl MakeOccasion {
 
     // The updated dependencies should be synced to persistent cache.
     let mg = ModuleGraph::new_ref([Some(module_graph_partial), None]);
-    for dep_id in affected_dependencies.updated() {
+    for dep_id in affected_dependencies.active() {
       if let Some(m) = mg.get_parent_module(dep_id) {
         need_update_modules.insert(*m);
       }

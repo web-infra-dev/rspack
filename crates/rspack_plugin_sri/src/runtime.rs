@@ -24,7 +24,9 @@ fn add_attribute(
   cross_origin_loading: &CrossOriginLoading,
 ) -> String {
   format!(
-    "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = '{}';",
+    r#"{}
+{tag}.integrity = {}[chunkId];
+{tag}.crossOrigin = '{}';"#,
     code, variable_ref, cross_origin_loading
   )
 }
@@ -72,7 +74,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .iter()
       .filter_map(|c| {
         let chunk = compilation.chunk_by_ukey.get(c)?;
-        let id = chunk.id(&compilation.chunk_ids_artifact)?;
+        let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
@@ -127,12 +129,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
             .chunk_graph
             .has_chunk_module_by_source_type(c, source_type, &module_graph)
         })
-        .map(|c| {
-          compilation
-            .chunk_ids_artifact
-            .get(c)
-            .expect("should have chunk id in code generation")
-        })
+        .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
         .filter(|c| include_chunks.contains_key(c))
         .collect::<Vec<_>>();
 

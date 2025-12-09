@@ -1,5 +1,5 @@
 <%- PREFETCH_CHUNK_HANDLERS %>.miniCss = <%- basicFunction("chunkId") %> {
-  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _css_matcher %>) {
+  if ((!<%- HAS_OWN_PROPERTY %>(installedCssChunks, chunkId) || installedCssChunks[chunkId] === undefined) && <%- _css_matcher %>) {
     installedCssChunks[chunkId] = null;
 
     <%- _create_prefetch_link %>

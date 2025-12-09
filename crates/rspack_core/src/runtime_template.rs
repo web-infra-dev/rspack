@@ -423,9 +423,17 @@ impl RuntimeTemplate {
       .environment
       .supports_arrow_function()
     {
-      format!("({args}) => {{\n{body}\n}}")
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
     } else {
-      format!("function({args}) {{\n{body}\n}}")
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
     }
   }
 
@@ -883,7 +891,9 @@ impl RuntimeTemplate {
     let header = if weak {
       runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
       Some(format!(
-        "if(!{}[{module_id_expr}]) {{\n {} \n}}",
+        r#"if(!{}[{module_id_expr}]) {{
+ {} 
+}}"#,
         self.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
         self.weak_error(request)
       ))
@@ -928,7 +938,10 @@ impl RuntimeTemplate {
         ) {
           if let Some(header) = header {
             appending = format!(
-              ".then(function() {{\n {header}\nreturn {}\n}})",
+              r#".then(function() {{
+ {header}
+return {}
+}})"#,
               self.module_raw(compilation, runtime_requirements, dep_id, request, weak)
             )
           } else {
@@ -941,7 +954,9 @@ impl RuntimeTemplate {
           }
           appending.push_str(
             format!(
-              ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
+              r#".then(function(m){{
+ return {}(m, {fake_type}) 
+}})"#,
               self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
             )
             .as_str(),
@@ -953,7 +968,11 @@ impl RuntimeTemplate {
               "{}({module_id_expr}, {fake_type}))",
               self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
             );
-            appending = format!(".then(function() {{\n {header} return {expr};\n}})");
+            appending = format!(
+              r#".then(function() {{
+ {header} return {expr};
+}})"#
+            );
           } else {
             runtime_requirements.insert(RuntimeGlobals::REQUIRE);
             appending = format!(
@@ -1014,19 +1033,12 @@ impl RuntimeTemplate {
       .chunks
       .iter()
       .map(|c| compilation.chunk_by_ukey.expect_get(c))
-      .filter(|c| {
-        !c.has_runtime(&compilation.chunk_group_by_ukey)
-          && c.id(&compilation.chunk_ids_artifact).is_some()
-      })
+      .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id().is_some())
       .collect::<Vec<_>>();
 
     if chunks.len() == 1 {
-      let chunk_id = serde_json::to_string(
-        chunks[0]
-          .id(&compilation.chunk_ids_artifact)
-          .expect("should have chunk.id"),
-      )
-      .expect("should able to json stringify");
+      let chunk_id = serde_json::to_string(chunks[0].id().expect("should have chunk.id"))
+        .expect("should able to json stringify");
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
 
       let fetch_priority = chunk_group
@@ -1066,11 +1078,8 @@ impl RuntimeTemplate {
           .map(|c| format!(
             "{}({}{})",
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            serde_json::to_string(
-              c.id(&compilation.chunk_ids_artifact)
-                .expect("should have chunk.id")
-            )
-            .expect("should able to json stringify"),
+            serde_json::to_string(c.id().expect("should have chunk.id"))
+              .expect("should able to json stringify"),
             fetch_priority
               .map(|x| format!(r#", "{x}""#))
               .unwrap_or_default()

@@ -33,7 +33,9 @@ impl RuntimeModule for ExportRequireRuntimeModule {
       .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let export_temp_name = format!("{require_name}temp");
     Ok(format!(
-      "var {export_temp_name} = {require_name};\nexport {{ {export_temp_name} as {require_name} }};\n",
+      r#"var {export_temp_name} = {require_name};
+export {{ {export_temp_name} as {require_name} }};
+"#,
     ))
   }
 

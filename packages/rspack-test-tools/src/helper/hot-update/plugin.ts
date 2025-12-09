@@ -137,6 +137,7 @@ export class HotUpdatePlugin {
 	}
 
 	apply(compiler: Compiler) {
+		const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
 		const options = compiler.options;
 		options.context = this.tempDir;
 		options.module.rules ??= [];
@@ -160,7 +161,7 @@ export class HotUpdatePlugin {
 			compilation.hooks.additionalTreeRuntimeRequirements.tap(
 				PLUGIN_NAME,
 				(_chunk: any, set: any) => {
-					set.add(compiler.webpack.RuntimeGlobals.moduleCache);
+					set.add(compiler.rspack.RuntimeGlobals.moduleCache);
 				}
 			);
 			compilation.hooks.runtimeModule.tap(
@@ -169,9 +170,9 @@ export class HotUpdatePlugin {
 					if (module.constructorName === "DefinePropertyGettersRuntimeModule") {
 						module.source.source = Buffer.from(
 							`
-										__webpack_require__.d = function (exports, definition) {
+										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {
 												for (var key in definition) {
-														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+														if (${RuntimeGlobals.hasOwnProperty}(definition, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
 																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
 														}
 												}

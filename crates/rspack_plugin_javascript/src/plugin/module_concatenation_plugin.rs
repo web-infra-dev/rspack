@@ -1410,7 +1410,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
     compilation.cgm_hash_artifact.clear();
     compilation.module_ids_artifact.clear();
-    compilation.chunk_ids_artifact.clear();
+    compilation.named_chunk_ids_artifact.clear();
     compilation.cgc_runtime_requirements_artifact.clear();
     compilation.chunk_hashes_artifact.clear();
   }

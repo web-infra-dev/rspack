@@ -48,7 +48,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .chunk_name_optional(chunk.name_for_filename_template())
             .content_hash_optional(chunk.rendered_content_hash_by_source_type(
               &compilation.chunk_hashes_artifact,
               &SourceType::JavaScript,

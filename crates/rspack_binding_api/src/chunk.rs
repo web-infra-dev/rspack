@@ -45,7 +45,7 @@ impl Chunk {
   #[napi(getter)]
   pub fn id(&self) -> napi::Result<Either<&str, ()>> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(match chunk.id(&compilation.chunk_ids_artifact) {
+    Ok(match chunk.id() {
       Some(id) => Either::A(id.as_str()),
       None => Either::B(()),
     })
@@ -54,12 +54,7 @@ impl Chunk {
   #[napi(getter)]
   pub fn ids(&self) -> napi::Result<Vec<&str>> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(
-      chunk
-        .id(&compilation.chunk_ids_artifact)
-        .map(|id| vec![id.as_str()])
-        .unwrap_or_default(),
-    )
+    Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
   }
 
   #[napi(getter)]

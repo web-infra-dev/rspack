@@ -132,11 +132,7 @@ impl Stats<'_> {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
         asset.chunks = chunks
           .par_iter()
-          .map(|chunk| {
-            chunk
-              .id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
-          })
+          .map(|chunk| chunk.id().map(|id| id.as_str()))
           .collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
@@ -160,11 +156,7 @@ impl Stats<'_> {
       if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
         asset.auxiliary_chunks = auxiliary_chunks
           .par_iter()
-          .map(|chunk| {
-            chunk
-              .id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
-          })
+          .map(|chunk| chunk.id().map(|id| id.as_str()))
           .collect();
         asset.auxiliary_chunks.sort_unstable();
         asset.auxiliary_chunk_names = auxiliary_chunks
@@ -436,9 +428,7 @@ impl Stats<'_> {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c
-            .id(&self.compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
+          id: c.id().map(|id| id.as_str()),
           id_hints,
           names: c.name().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
@@ -491,7 +481,7 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(c)
-          .id(&self.compilation.chunk_ids_artifact)
+          .id()
           .map(|id| id.as_str())
       })
       .collect();
@@ -662,10 +652,7 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| {
-            c.id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
-          }),
+          chunk_id: chunk.and_then(|c| c.id().map(|id| id.as_str())),
           details: d.details.clone(),
           stack: d.stack.clone(),
           module_trace,
@@ -725,10 +712,7 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| {
-            c.id(&self.compilation.chunk_ids_artifact)
-              .map(|id| id.as_str())
-          }),
+          chunk_id: chunk.and_then(|c| c.id().map(|id| id.as_str())),
           details: d.details.clone(),
           stack: d.stack.clone(),
           module_trace,
@@ -959,7 +943,7 @@ impl Stats<'_> {
                   .compilation
                   .chunk_by_ukey
                   .expect_get(k)
-                  .id(&self.compilation.chunk_ids_artifact)
+                  .id()
                   .map(|id| id.as_str())
               })
               .collect::<Vec<_>>()
@@ -1254,7 +1238,7 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(k)
-          .id(&self.compilation.chunk_ids_artifact)
+          .id()
           .map(|id| id.as_str())
       })
       .collect();
@@ -1318,7 +1302,7 @@ impl Stats<'_> {
         == 0;
 
       stats.identifier = Some(module.identifier());
-      stats.name = Some(module.name().as_str().into());
+      stats.name = Some(module.readable_identifier(&self.compilation.options.context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.cacheable = Some(!(module.full_hash() || module.dependent_hash()));
       stats.optional = Some(false);
@@ -1408,7 +1392,7 @@ pub fn create_stats_errors<'a>(
         chunk_name: chunk.and_then(|c| c.name()),
         chunk_entry: chunk.map(|c| c.has_runtime(&compilation.chunk_group_by_ukey)),
         chunk_initial: chunk.map(|c| c.can_be_initial(&compilation.chunk_group_by_ukey)),
-        chunk_id: chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
+        chunk_id: chunk.and_then(|c| c.id().map(|id| id.as_str())),
         details: d.details.clone(),
         stack: d.stack.clone(),
         module_trace,

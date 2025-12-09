@@ -917,13 +917,16 @@ fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
 
 fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   use winnow::{
-    combinator::{delimited, eof, preceded, terminated},
+    combinator::{alt, delimited, eof, preceded, terminated},
     token::take_until,
   };
 
   let parser = (
-    take_until(0.., ".webpack"),
-    preceded(".webpack", delimited('[', take_until(1.., ']'), ']')),
+    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
+    preceded(
+      alt((".rspack", ".webpack")),
+      delimited('[', take_until(1.., ']'), ']'),
+    ),
   );
 
   terminated(parser, eof).parse_next(&mut input)
@@ -945,6 +948,17 @@ fn test_match_ext() {
 
   assert_eq!(
     match_ext("foo.css.webpack[javascript/auto]"),
+    Ok(("foo.css", "javascript/auto"))
+  );
+
+  // Test .rspack support
+  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  let cap = match_ext("foo.rspack[type/javascript]").unwrap();
+
+  assert_eq!(cap, ("foo", "type/javascript"));
+
+  assert_eq!(
+    match_ext("foo.css.rspack[javascript/auto]"),
     Ok(("foo.css", "javascript/auto"))
   );
 }

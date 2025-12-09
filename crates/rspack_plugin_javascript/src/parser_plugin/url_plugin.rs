@@ -92,6 +92,7 @@ impl JavascriptParserPlugin for URLPlugin {
     }
 
     let args = expr.args.as_ref()?;
+
     let arg = args.first()?;
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
     if magic_comment_options.get_ignore().unwrap_or_default() {
@@ -117,6 +118,17 @@ impl JavascriptParserPlugin for URLPlugin {
         Some(RuntimeGlobals::BASE_URI),
       )));
       return Some(true);
+    }
+
+    // should not parse new URL(import.meta.url)
+    if expr.args.as_ref().is_some_and(|args| {
+      args.len() == 1
+        && args[0]
+          .expr
+          .as_member()
+          .is_some_and(|member| is_meta_url(parser, member))
+    }) {
+      return None;
     }
 
     if let Some((request, start, end)) = get_url_request(parser, expr) {

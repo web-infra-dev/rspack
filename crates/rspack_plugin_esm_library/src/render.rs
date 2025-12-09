@@ -151,12 +151,8 @@ impl EsmLibraryPlugin {
             &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,
           ))
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+          .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
@@ -236,7 +232,9 @@ impl EsmLibraryPlugin {
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
       if tree_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
         runtime_source.add(RawStringSource::from(format!(
-          "\nvar {} = {{}};\n",
+          r#"
+var {} = {{}};
+"#,
           compilation
             .runtime_template
             .render_runtime_variable(&RuntimeVariable::Modules)
@@ -391,14 +389,14 @@ impl EsmLibraryPlugin {
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
       if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
+        let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk);
+
         final_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, &runtime_chunk)
-            .expect("should have id for chunk")
-            .as_str()
+          runtime_chunk.expect_id().as_str()
         )));
       }
     }
@@ -469,6 +467,7 @@ impl EsmLibraryPlugin {
       {
         continue;
       }
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
       final_source.add(RawStringSource::from(format!(
         "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
@@ -490,9 +489,7 @@ impl EsmLibraryPlugin {
               .join(", ")
           )
         },
-        ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, chunk)
-          .expect("should have chunk id")
-          .as_str()
+        chunk.expect_id().as_str()
       )));
     }
 
@@ -588,12 +585,8 @@ impl EsmLibraryPlugin {
           .join(", "),
         match re_export_from {
           crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            Cow::Owned(format!(
-              "__RSPACK_ESM_CHUNK_{}",
-              ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, chunk_ukey)
-                .expect("should have chunk id")
-                .as_str()
-            ))
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
           }
           crate::chunk_link::ReExportFrom::Request(request) => {
             Cow::Borrowed(request)
@@ -690,7 +683,9 @@ impl EsmLibraryPlugin {
 
     if use_require || module_cache {
       source.add(RawStringSource::from(format!(
-        "// The module cache\nvar {} = {{}};\n",
+        r#"// The module cache
+var {} = {{}};
+"#,
         compilation
           .runtime_template
           .render_runtime_variable(&RuntimeVariable::ModuleCache)
@@ -699,7 +694,9 @@ impl EsmLibraryPlugin {
 
     if use_require {
       source.add(RawStringSource::from(format!(
-        "// The require function\nfunction {}(moduleId) {{\n",
+        r#"// The require function
+function {}(moduleId) {{
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -707,10 +704,16 @@ impl EsmLibraryPlugin {
       source.add(RawStringSource::from(
         JsPlugin::render_require(chunk_ukey, compilation).join("\n"),
       ));
-      source.add(RawStringSource::from_static("\n}\n"));
+      source.add(RawStringSource::from_static(
+        r#"
+}
+"#,
+      ));
     } else if require_scope_used {
       source.add(RawStringSource::from(format!(
-        "// The require scope\nvar {} = {{}};\n",
+        r#"// The require scope
+var {} = {{}};
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -719,7 +722,9 @@ impl EsmLibraryPlugin {
 
     if module_factories {
       source.add(RawStringSource::from(format!(
-        "// expose the modules object ({modules})\n{module_factories} = {modules};\n",
+        r#"// expose the modules object ({modules})
+{module_factories} = {modules};
+"#,
         module_factories = compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
@@ -731,7 +736,9 @@ impl EsmLibraryPlugin {
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       source.add(RawStringSource::from(format!(
-        "// expose the module cache\n{} = {};\n",
+        r#"// expose the module cache
+{} = {};
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
@@ -743,7 +750,9 @@ impl EsmLibraryPlugin {
 
     if intercept_module_execution {
       source.add(RawStringSource::from(format!(
-        "// expose the module execution interceptor\n{} = [];\n",
+        r#"// expose the module execution interceptor
+{} = [];
+"#,
         compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)

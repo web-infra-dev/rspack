@@ -217,7 +217,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           Some(serde_json::json!({
             "_installed_chunks": format!(
               "{}: 0,\n",
-              serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
+              serde_json::to_string(chunk.expect_id())
                 .expect("json stringify failed")
             ),
             "_css_chunks": format!(
@@ -227,7 +227,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                 .filter_map(|id| {
                   let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-                  chunk.id(&compilation.chunk_ids_artifact).map(|id| {
+                  chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
                       serde_json::to_string(id).expect("json stringify failed")
@@ -328,7 +328,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.name().to_string();
+    let base_id = self.id.to_string();
 
     match id {
       TemplateId::Raw => base_id,

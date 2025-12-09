@@ -206,6 +206,8 @@ impl Task<TaskContext> for FactorizeResultTask {
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
     for dep in &mut dependencies {
+      // Some dependencies do not come from the process_dependencies task,
+      // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
 
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
