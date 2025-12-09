@@ -835,7 +835,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 
 						const newEntry: KnownStatsLoggingEntry = {
 							type,
-							message: message!,
+							message: message || "",
 							trace: loggingTrace ? entry.trace : undefined,
 							children:
 								type === LogType.group || type === LogType.groupCollapsed
