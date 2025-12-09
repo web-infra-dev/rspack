@@ -29,7 +29,8 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, IsIncludedDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveDependencyTemplate,
+    ImportMetaResolveHeaderDependencyTemplate, IsIncludedDependencyTemplate,
     ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
     ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
     ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
@@ -133,6 +134,10 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::ImportMetaContext,
     params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaResolve,
+    params.normal_module_factory.clone(),
   );
   // ImportPlugin
   compilation.set_dependency_factory(
@@ -303,6 +308,14 @@ async fn compilation(
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportMetaResolveDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaResolveHeaderDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveHeaderDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     RequireContextDependencyTemplate::template_type(),
     Arc::new(RequireContextDependencyTemplate::default()),
   );
@@ -433,7 +446,7 @@ async fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
+    chunk.id().hash(&mut hasher);
   }
 
   let module_graph = compilation.get_module_graph();
@@ -528,12 +541,8 @@ async fn render_manifest(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,

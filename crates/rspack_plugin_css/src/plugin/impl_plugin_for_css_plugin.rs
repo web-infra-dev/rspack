@@ -13,7 +13,7 @@ use rspack_core::{
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
   Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModuleExt, SelfModuleFactory, SourceType,
   get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -134,12 +134,9 @@ impl CssPlugin {
           "Conflicting order".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
-            chunk.name().unwrap_or(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .expect("should have chunk id")
-                .as_str()
-            ),
+            chunk
+              .name()
+              .unwrap_or(chunk.id().expect("should have chunk id").as_str()),
             failed_module.readable_identifier(&compilation.options.context),
             selected_module.readable_identifier(&compilation.options.context)
           ),
@@ -332,7 +329,10 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
+    compilation.add_runtime_module(
+      chunk_ukey,
+      CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
+    )?;
   }
 
   Ok(None)
@@ -422,16 +422,12 @@ async fn render_manifest(
     .get_path_with_info(
       filename_template,
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::Css,

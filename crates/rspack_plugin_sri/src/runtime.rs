@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
+  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeTemplate, SourceType,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
@@ -24,7 +24,9 @@ fn add_attribute(
   cross_origin_loading: &CrossOriginLoading,
 ) -> String {
   format!(
-    "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = '{}';",
+    r#"{}
+{tag}.integrity = {}[chunkId];
+{tag}.crossOrigin = '{}';"#,
     code, variable_ref, cross_origin_loading
   )
 }
@@ -38,9 +40,16 @@ struct SRIHashVariableRuntimeModule {
 }
 
 impl SRIHashVariableRuntimeModule {
-  pub fn new(chunk: ChunkUkey, hash_funcs: Vec<SubresourceIntegrityHashFunction>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    chunk: ChunkUkey,
+    hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("rspack/runtime/sri_hash_variable"),
+      Identifier::from(format!(
+        "{}sri_hash_variable",
+        runtime_template.runtime_module_prefix()
+      )),
       chunk,
       hash_funcs,
     )
@@ -65,7 +74,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .iter()
       .filter_map(|c| {
         let chunk = compilation.chunk_by_ukey.get(c)?;
-        let id = chunk.id(&compilation.chunk_ids_artifact)?;
+        let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
@@ -120,12 +129,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
             .chunk_graph
             .has_chunk_module_by_source_type(c, source_type, &module_graph)
         })
-        .map(|c| {
-          compilation
-            .chunk_ids_artifact
-            .get(c)
-            .expect("should have chunk id in code generation")
-        })
+        .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
         .filter(|c| include_chunks.contains_key(c))
         .collect::<Vec<_>>();
 
@@ -253,7 +257,12 @@ pub async fn handle_runtime(
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   compilation.add_runtime_module(
     chunk_ukey,
-    SRIHashVariableRuntimeModule::new(*chunk_ukey, self.options.hash_func_names.clone()).boxed(),
+    SRIHashVariableRuntimeModule::new(
+      &compilation.runtime_template,
+      *chunk_ukey,
+      self.options.hash_func_names.clone(),
+    )
+    .boxed(),
   )?;
   Ok(())
 }

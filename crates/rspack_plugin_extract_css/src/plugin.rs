@@ -43,10 +43,10 @@ pub static MODULE_TYPE: LazyLock<ModuleType> =
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
   LazyLock::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
 
-pub static BASE_URI: &str = "webpack://";
-pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
-pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
-pub static SINGLE_DOT_PATH_SEGMENT: &str = "__mini_css_extract_plugin_single_dot_path_segment__";
+pub static BASE_URI: &str = "rspack-css-extract://";
+pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
+pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
+pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
 
 static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
@@ -341,9 +341,7 @@ despite it was not able to fulfill desired ordering with these modules:
 {}"#,
             chunk
               .name()
-              .or_else(|| chunk
-                .id(&compilation.chunk_ids_artifact)
-                .map(|id| id.as_str()))
+              .or_else(|| chunk.id().map(|id| id.as_str()))
               .unwrap_or_default(),
             fallback_module.readable_identifier(&compilation.options.context),
             conflict
@@ -396,7 +394,10 @@ despite it was not able to fulfill desired ordering with these modules:
         let req_str = readable_identifier.cow_replace("*/", "*_/");
         let req_str_star = "*".repeat(req_str.len());
         RawStringSource::from(format!(
-          "/*!****{req_str_star}****!*\\\n  !*** {req_str} ***!\n  \\****{req_str_star}****/\n"
+          r#"/*!****{req_str_star}****!*\
+  !*** {req_str} ***!
+  \****{req_str_star}****/
+"#
         ))
       });
 
@@ -535,6 +536,7 @@ async fn runtime_requirement_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(GetChunkFilenameRuntimeModule::new(
+        &compilation.runtime_template,
         "css",
         "mini-css",
         SOURCE_TYPE[0],
@@ -565,6 +567,7 @@ async fn runtime_requirement_in_tree(
     compilation.add_runtime_module(
       chunk_ukey,
       Box::new(CssLoadingRuntimeModule::new(
+        &compilation.runtime_template,
         *chunk_ukey,
         self.options.attributes.clone(),
         self.options.link_type.clone(),
@@ -655,16 +658,12 @@ async fn render_manifest(
     .get_path_with_info(
       filename_template,
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SOURCE_TYPE[0],

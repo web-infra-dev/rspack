@@ -124,7 +124,7 @@ export interface ExecuteModuleArgument {
 }
 
 export interface ExecuteModuleContext {
-	__webpack_require__: (id: string) => any;
+	[key: string]: (id: string) => any;
 }
 
 export interface KnownNormalizedStatsOptions {

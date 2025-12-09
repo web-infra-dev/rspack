@@ -60,11 +60,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     let results = chunks
       .into_par_iter()
       .flat_map(|c| {
-        let mut files = c
-          .files()
-          .iter()
-          .map(|f| (c.id(&compilation.chunk_ids_artifact), f))
-          .collect::<Vec<_>>();
+        let mut files = c.files().iter().map(|f| (c.id(), f)).collect::<Vec<_>>();
         files.sort_by(|a, b| {
           let a_file = a.1.split("?").next().expect("should have a file name");
           let b_file = b.1.split("?").next().expect("should have a file name");

@@ -148,7 +148,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       })
       .map(|entrypoint| entrypoint.get_entrypoint_chunk())
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
-      .and_then(|chunk| chunk.id(&compilation.chunk_ids_artifact))
+      .and_then(|chunk| chunk.id())
       .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
       .expect("failed to get json stringified chunk id");
     let worker_import_base_url = if !dep.public_path.is_empty() {

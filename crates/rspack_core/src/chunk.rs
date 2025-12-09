@@ -13,10 +13,9 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkUkey, Compilation, EntryOptions, Filename, ModuleGraph,
-  RenderManifestEntry, RuntimeSpec, SourceType, chunk_graph_chunk::ChunkId, compare_chunk_group,
-  sort_group_by_index,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
+  Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
+  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +56,7 @@ pub struct ChunkRenderResult {
 pub struct Chunk {
   ukey: ChunkUkey,
   kind: ChunkKind,
+  id: Option<ChunkId>,
   // - If the chunk is create by entry config, the name is the entry name
   // - The name of chunks create by dynamic import is `None` unless users use
   // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
@@ -110,19 +110,24 @@ impl Chunk {
     self.css_filename_template = filename_template;
   }
 
-  pub fn id<'a>(&self, chunk_ids: &'a ChunkIdsArtifact) -> Option<&'a ChunkId> {
-    ChunkGraph::get_chunk_id(chunk_ids, &self.ukey)
+  pub fn id(&self) -> Option<&ChunkId> {
+    self.id.as_ref()
   }
 
-  pub fn expect_id<'a>(&self, chunk_ids: &'a ChunkIdsArtifact) -> &'a ChunkId {
-    self
-      .id(chunk_ids)
-      .expect("Should set id before calling expect_id")
+  pub fn expect_id(&self) -> &ChunkId {
+    self.id().expect("Should set id before calling expect_id")
   }
 
-  pub fn set_id(&self, chunk_ids: &mut ChunkIdsArtifact, id: impl Into<ChunkId>) -> bool {
-    let id = id.into();
-    ChunkGraph::set_chunk_id(chunk_ids, self.ukey, id)
+  pub fn set_id(&mut self, id: impl Into<ChunkId>) -> bool {
+    let id: ChunkId = id.into();
+    if let Some(prev_id) = &self.id
+      && prev_id == &id
+    {
+      return false;
+    }
+
+    self.id = Some(id);
+    true
   }
 
   pub fn prevent_integration(&self) -> bool {
@@ -280,6 +285,7 @@ impl Chunk {
       filename_template: None,
       css_filename_template: None,
       ukey: ChunkUkey::new(),
+      id: None,
       id_name_hints: Default::default(),
       prevent_integration: false,
       files: Default::default(),
@@ -667,14 +673,11 @@ impl Chunk {
     chunks
   }
 
-  pub fn name_for_filename_template<'a>(
-    &'a self,
-    chunk_ids: &'a ChunkIdsArtifact,
-  ) -> Option<&'a str> {
+  pub fn name_for_filename_template(&self) -> Option<&str> {
     if self.name.is_some() {
       self.name.as_deref()
     } else {
-      self.id(chunk_ids).map(|id| id.as_str())
+      self.id().map(|id| id.as_str())
     }
   }
 
@@ -687,7 +690,7 @@ impl Chunk {
   }
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
-    self.id(&compilation.chunk_ids_artifact).hash(hasher);
+    self.id().hash(hasher);
     let runtime_modules = compilation
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&self.ukey)
@@ -853,7 +856,7 @@ impl Chunk {
           && let Some(chunk_id) = compilation
             .chunk_by_ukey
             .expect_get(chunk_ukey)
-            .id(&compilation.chunk_ids_artifact)
+            .id()
             .cloned()
         {
           chunk_ids.push(chunk_id);
@@ -883,7 +886,7 @@ impl Chunk {
     ) -> Option<(ChunkId, Vec<ChunkId>)> {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
-        chunk.id(&compilation.chunk_ids_artifact).cloned(),
+        chunk.id().cloned(),
         chunk.get_child_ids_by_order(order, compilation, filter_fn),
       ) {
         return Some((chunk_id, child_chunk_ids));

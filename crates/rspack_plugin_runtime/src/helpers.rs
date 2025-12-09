@@ -40,7 +40,7 @@ pub fn update_hash_for_entry_startup(
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          chunk.id(&compilation.chunk_ids_artifact).hash(hasher);
+          chunk.id().hash(hasher);
         }
       }
     }
@@ -221,7 +221,7 @@ pub fn generate_entry_startup(
           .iter()
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id(&compilation.chunk_ids_artifact).clone()
+            chunk.expect_id().clone()
           })
           .collect::<HashSet<_>>(),
       );
@@ -333,16 +333,12 @@ pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> 
     .get_path(
       &filename,
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,

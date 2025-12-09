@@ -38,7 +38,10 @@ async fn additional_chunk_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(ChunkPrefetchStartupRuntimeModule::new(startup_child_chunks)),
+      Box::new(ChunkPrefetchStartupRuntimeModule::new(
+        &compilation.runtime_template,
+        startup_child_chunks,
+      )),
     )?
   }
   Ok(())
@@ -59,7 +62,10 @@ async fn additional_tree_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(ChunkPrefetchTriggerRuntimeModule::new(prefetch_map)),
+      Box::new(ChunkPrefetchTriggerRuntimeModule::new(
+        &compilation.runtime_template,
+        prefetch_map,
+      )),
     )?
   }
 
@@ -67,7 +73,10 @@ async fn additional_tree_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::PRELOAD_CHUNK);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::new(ChunkPreloadTriggerRuntimeModule::new(preload_map)),
+      Box::new(ChunkPreloadTriggerRuntimeModule::new(
+        &compilation.runtime_template,
+        preload_map,
+      )),
     )?
   }
 

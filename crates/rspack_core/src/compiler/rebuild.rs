@@ -8,7 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
+  ChunkGraph, ChunkKind, Compilation, Compiler, DerefOption, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
@@ -114,7 +114,7 @@ impl Compiler {
         .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
       {
         new_compilation.side_effects_optimize_artifact =
-          std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
+          DerefOption::new(self.compilation.side_effects_optimize_artifact.take());
       }
       if new_compilation
         .incremental
@@ -127,8 +127,8 @@ impl Compiler {
         .incremental
         .mutations_readable(IncrementalPasses::CHUNK_IDS)
       {
-        new_compilation.chunk_ids_artifact =
-          std::mem::take(&mut self.compilation.chunk_ids_artifact);
+        new_compilation.named_chunk_ids_artifact =
+          std::mem::take(&mut self.compilation.named_chunk_ids_artifact);
       }
       if new_compilation
         .incremental
@@ -234,10 +234,7 @@ impl CompilationRecords {
         let mut hashes = FxHashMap::default();
         for chunk in compilation.chunk_graph.get_module_chunks(*identifier) {
           let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-          let chunk_id = chunk
-            .id(&compilation.chunk_ids_artifact)
-            .expect("should have chunk_id")
-            .clone();
+          let chunk_id = chunk.id().expect("should have chunk_id").clone();
           let hash = compilation
             .code_generation_results
             .get_hash(identifier, Some(chunk.runtime()))
@@ -282,7 +279,7 @@ impl CompilationRecords {
       .values()
       .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
       .map(|chunk| {
-        let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact).clone();
+        let chunk_id = chunk.expect_id().clone();
         let chunk_runtime = chunk.runtime().clone();
         let chunk_modules: FxHashSet<ModuleId> = compilation
           .chunk_graph

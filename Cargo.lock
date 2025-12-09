@@ -3556,6 +3556,7 @@ dependencies = [
  "rspack",
  "rspack_cacheable",
  "rspack_core",
+ "rspack_error",
  "rspack_fs",
  "rspack_regex",
  "rspack_tasks",

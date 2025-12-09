@@ -3,7 +3,7 @@ use std::{borrow::Cow, ptr::NonNull};
 use rspack_collections::Identifier;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModule, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
@@ -18,13 +18,17 @@ pub struct CssLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for CssLoadingRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
-  }
-}
-
 impl CssLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}css_loading",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
+  }
+
   fn template_id(&self, id: TemplateId) -> String {
     let base_id = self.id.to_string();
 
@@ -121,7 +125,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let id = compilation
           .chunk_by_ukey
           .expect_get(chunk_ukey)
-          .expect_id(&compilation.chunk_ids_artifact)
+          .expect_id()
           .clone();
         if chunk_has_css(chunk_ukey, compilation) {
           initial_chunk_ids.insert(id);

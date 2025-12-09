@@ -7,7 +7,7 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkGraph, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
@@ -298,8 +298,9 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
   let mut chunk_ids_to_ukey = FxHashMap::default();
 
   for chunk_ukey in compilation.chunk_by_ukey.keys() {
-    let id = ChunkGraph::get_chunk_id(&compilation.chunk_ids_artifact, chunk_ukey);
-    if let Some(id) = id {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+    if let Some(id) = chunk.id() {
       chunk_ids_to_ukey.insert(id.as_str().to_string(), *chunk_ukey);
     }
   }
@@ -440,9 +441,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .unwrap_or_else(|| {
               panic!(
                 "at least one path for chunk: {:?}",
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| { id.as_str() })
+                chunk.id().map(|id| { id.as_str() })
               )
             })
             .as_str(),
