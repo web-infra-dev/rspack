@@ -1,7 +1,7 @@
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 637 bytes 3 modules
-orphan modules 1 bytes [orphan] 1 module
-cacheable modules 82 bytes
-  ./index.js 75 bytes [built] [code generated]
-  ./raw.png 7 bytes [built] [code generated]
+runtime modules xx bytes 3 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./raw.png xx bytes [built] [code generated]
 Rspack compiled successfully

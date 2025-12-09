@@ -816,12 +816,26 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
 							continue;
 						}
-						const message = entry.args?.length
-							? util.format(entry.args[0], ...entry.args.slice(1))
-							: "";
+
+						let message;
+						if (entry.type === LogType.time) {
+							const [label, first, second] =
+								/** @type {[string, number, number]} */
+								entry.args;
+
+							if (typeof first === "number" && typeof second === "number") {
+								message = `${label}: ${first * 1000 + second / 1000000} ms`;
+							}
+						}
+						if (!message) {
+							message = entry.args?.length
+								? util.format(entry.args[0], ...entry.args.slice(1))
+								: "";
+						}
+
 						const newEntry: KnownStatsLoggingEntry = {
 							type,
-							message,
+							message: message || "",
 							trace: loggingTrace ? entry.trace : undefined,
 							children:
 								type === LogType.group || type === LogType.groupCollapsed

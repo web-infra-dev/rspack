@@ -1,16 +1,16 @@
 asset main.js xx KiB {889} [emitted] (name: main)
-asset prefetched.js 537 bytes {730} [emitted] (name: prefetched)
-asset inner2.js 100 bytes {750} [emitted] (name: inner2)
-asset inner.js 87 bytes {222} [emitted] (name: inner)
-asset normal.js 87 bytes {667} [emitted] (name: normal)
-asset prefetched2.js 87 bytes {786} [emitted] (name: prefetched2)
-asset prefetched3.js 87 bytes {329} [emitted] (name: prefetched3)
+asset prefetched.js xx bytes {730} [emitted] (name: prefetched)
+asset inner2.js xx bytes {750} [emitted] (name: inner2)
+asset inner.js xx bytes {222} [emitted] (name: inner)
+asset normal.js xx bytes {667} [emitted] (name: normal)
+asset prefetched2.js xx bytes {786} [emitted] (name: prefetched2)
+asset prefetched3.js xx bytes {329} [emitted] (name: prefetched3)
 Entrypoint main xx KiB = main.js
   prefetch: prefetched.js {730} (name: prefetched), prefetched3.js {329} (name: prefetched3), prefetched2.js {786} (name: prefetched2)
-chunk {222} (runtime: main) inner.js (inner) 1 bytes <{730}> [rendered]
-chunk {329} (runtime: main) prefetched3.js (prefetched3) 1 bytes <{889}> [rendered]
-chunk {667} (runtime: main) normal.js (normal) 1 bytes <{889}> [rendered]
-chunk {730} (runtime: main) prefetched.js (prefetched) 228 bytes <{889}> >{222}< >{750}< (prefetch: {750} {222}) [rendered]
-chunk {750} (runtime: main) inner2.js (inner2) 2 bytes <{730}> [rendered]
-chunk {786} (runtime: main) prefetched2.js (prefetched2) 1 bytes <{889}> [rendered]
-chunk {889} (runtime: main) main.js (main) 436 bytes (javascript) xx KiB (runtime) >{329}< >{667}< >{730}< >{786}< (prefetch: {730} {329} {786}) [entry] [rendered]
+chunk {222} (runtime: main) inner.js (inner) xx bytes <{730}> [rendered]
+chunk {329} (runtime: main) prefetched3.js (prefetched3) xx bytes <{889}> [rendered]
+chunk {667} (runtime: main) normal.js (normal) xx bytes <{889}> [rendered]
+chunk {730} (runtime: main) prefetched.js (prefetched) xx bytes <{889}> >{222}< >{750}< (prefetch: {750} {222}) [rendered]
+chunk {750} (runtime: main) inner2.js (inner2) xx bytes <{730}> [rendered]
+chunk {786} (runtime: main) prefetched2.js (prefetched2) xx bytes <{889}> [rendered]
+chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{329}< >{667}< >{730}< >{786}< (prefetch: {730} {329} {786}) [entry] [rendered]

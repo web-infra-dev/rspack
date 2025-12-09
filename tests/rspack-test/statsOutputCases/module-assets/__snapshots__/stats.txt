@@ -1,0 +1,23 @@
+assets by path *.js xx KiB
+  asset main.js xx KiB [emitted] (name: main)
+  asset a.js xx bytes [emitted] (name: a)
+  asset b.js xx bytes [emitted] (name: b)
+assets by path *.png xx KiB
+  asset 1.png xx KiB [emitted] [from: node_modules/a/1.png]
+  asset 2.png xx KiB [emitted] [from: node_modules/a/2.png]
+Entrypoint main xx KiB = main.js
+Chunk Group a xx bytes = a.js
+Chunk Group b xx bytes = b.js
+chunk (runtime: main) a.js (a) xx bytes [rendered]
+  ./node_modules/a/index.js xx bytes [built] [code generated]
+chunk (runtime: main) b.js (b) xx bytes [rendered]
+  ./node_modules/b/index.js xx bytes [built] [code generated]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
+runtime modules xx KiB 10 modules
+orphan modules xx bytes [orphan] 2 modules
+modules with assets xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./node_modules/a/index.js xx bytes [built] [code generated]
+  ./node_modules/b/index.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

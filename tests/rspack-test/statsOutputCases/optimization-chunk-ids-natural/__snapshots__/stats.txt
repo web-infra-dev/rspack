@@ -1,7 +1,7 @@
 Entrypoint e1 xx KiB = e1.js
 Entrypoint e2 xx KiB = e2.js
-chunk (runtime: e1) 0.js 52 bytes [rendered]
-chunk (runtime: e1) 1.js 24 bytes [rendered]
-chunk (runtime: e1, e2) 2.js 22 bytes [rendered]
-chunk (runtime: e1) e1.js (e1) 74 bytes (javascript) xx KiB (runtime) [entry] [rendered]
-chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e1) 0.js xx bytes [rendered]
+chunk (runtime: e1) 1.js xx bytes [rendered]
+chunk (runtime: e1, e2) 2.js xx bytes [rendered]
+chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
