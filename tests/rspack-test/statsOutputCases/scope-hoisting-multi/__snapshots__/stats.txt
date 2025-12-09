@@ -1,0 +1,34 @@
+runtime modules xx KiB 22 modules
+orphan modules xx bytes [orphan] 4 modules
+cacheable modules xx bytes
+  ./first.js xx bytes [built] [code generated]
+  ./second.js xx bytes [built] [code generated]
+  ./lazy_first.js xx bytes [built] [code generated]
+  ./lazy_shared.js xx bytes [built] [code generated]
+  ./lazy_second.js xx bytes [built] [code generated]
+  ./common_lazy.js xx bytes [built] [code generated]
+  ./common_lazy_shared.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s
+
+runtime modules xx KiB 22 modules
+cacheable modules xx KiB
+  built modules xx bytes [built]
+    orphan modules xx bytes [orphan]
+      ./lazy_first.js xx bytes [orphan] [built]
+      ./lazy_second.js xx bytes [orphan] [built]
+      ./common.js xx bytes [orphan] [built]
+        ModuleConcatenation bailout: Module is not in any chunk
+      + 4 modules
+    code generated modules xx bytes [code generated]
+      ./first.js xx bytes [built] [code generated]
+        Statement with side_effects in source code at ./first.js<LINE_COL>-60
+        ModuleConcatenation bailout: Module is an entry point
+      ./second.js xx bytes [built] [code generated]
+        Statement with side_effects in source code at ./second.js<LINE_COL>-62
+        ModuleConcatenation bailout: Module is an entry point
+      ./lazy_shared.js xx bytes [built] [code generated]
+        ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-multi/common_lazy_shared.js: Module ./common_lazy_shared.js is referenced from different chunks by these modules: ./lazy_first.js, ./lazy_second.js
+      ./common_lazy_shared.js xx bytes [built] [code generated]
+  ./lazy_first.js + 1 modules xx bytes [code generated]
+  ./lazy_second.js + 1 modules xx bytes [code generated]
+Rspack x.x.x compiled successfully in X s

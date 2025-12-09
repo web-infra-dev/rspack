@@ -1,7 +1,7 @@
-asset main.js 157 bytes {889} [emitted] (name: main)
-chunk {889} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
-orphan modules 91 bytes [orphan] 2 modules
-./index.js + 1 modules [326] 91 bytes {889} [code generated]
+asset main.js xx bytes {889} [emitted] (name: main)
+chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
+orphan modules xx bytes [orphan] 2 modules
+./index.js + 1 modules [326] xx bytes {889} [code generated]
   [no exports]
   [no exports used]
   entry ./index.js
