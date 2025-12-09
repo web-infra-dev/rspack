@@ -20,8 +20,6 @@ pub const BARREL_OPTIMIZATION_PREFIX: &'static str = "__barrel_optimize__";
 pub const UNDERSCORE_NOT_FOUND_ROUTE: &str = "/_not-found";
 pub const UNDERSCORE_NOT_FOUND_ROUTE_ENTRY: &str = "/_not-found/page";
 
-// pub static REGEX_CSS: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.(css|scss|sass)(\?.*)?$").unwrap());
-
 /// The names of the webpack layers. These layers are the primitives for the
 /// webpack chunks.
 pub const LAYERS_NAMES: LayersNames = LayersNames {

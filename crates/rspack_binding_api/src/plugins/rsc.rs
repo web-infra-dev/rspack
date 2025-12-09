@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use futures::future::BoxFuture;
 use napi::{
   Env, Status,
   bindgen_prelude::{
@@ -8,77 +9,103 @@ use napi::{
   },
   threadsafe_function::ThreadsafeFunction,
 };
-use rspack_core::CompilerId;
+use rspack_core::{Compiler, CompilerId};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_plugin_rsc::{ClientCompilerHandle, ReactClientPluginOptions};
+use rspack_plugin_rsc::{Coordinator, ReactClientPluginOptions};
 
 use crate::JsCompiler;
 
-#[napi(object, object_to_js = false)]
-pub struct JsClientCompilerHandle {
-  pub compile: ThreadsafeFunction<(), Promise<()>, (), Status, false, true, 0>,
+type InvalidateTsFn = Arc<ThreadsafeFunction<(), (), (), Status, false, true, 0>>;
+
+#[napi]
+pub struct JsCoordinator {
+  invalidate_server_compiler_ts_fn: InvalidateTsFn,
+  invalidate_client_compiler_ts_fn: InvalidateTsFn,
+  get_server_compiler_id_ts_fn:
+    Arc<ThreadsafeFunction<(), &'static External<CompilerId>, (), Status, false, true, 0>>,
+  coordinator: Option<Arc<Coordinator>>,
 }
 
-impl From<JsClientCompilerHandle> for ClientCompilerHandle {
-  fn from(value: JsClientCompilerHandle) -> Self {
-    let ts_fn = Arc::new(value.compile);
-
-    ClientCompilerHandle::new(Box::new(move || {
-      let ts_fn = ts_fn.clone();
-      Box::pin(async move {
-        println!("Calling client compiler compile from JS");
-        let promise = ts_fn.call_async(()).await.to_rspack_result()?;
-        promise.await;
-        println!("Calling client compiler compile from JS end");
-        Ok(())
-      })
-    }))
-  }
-}
-
-type GetServerCompilerId = Box<dyn Fn() -> CompilerId + Sync + Send>;
-
-pub struct JsReactClientPluginOptions {
-  pub get_server_compiler_id:
-    ThreadsafeFunction<(), &'static External<CompilerId>, (), Status, false, true, 0>,
-}
-
-impl FromNapiValue for JsReactClientPluginOptions {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    napi_val: napi::sys::napi_value,
+#[napi]
+impl JsCoordinator {
+  #[napi(constructor)]
+  pub fn new(
+    invalidate_server_compiler_js_fn: Function<'static, (), ()>,
+    invalidate_client_compiler_js_fn: Function<'static, (), ()>,
+    get_server_compiler_id_js_fn: Function<'static, (), &'static External<CompilerId>>,
   ) -> napi::Result<Self> {
-    let obj = unsafe { Object::from_napi_value(env, napi_val)? };
+    let invalidate_server_compiler_ts_fn = Arc::new(
+      invalidate_server_compiler_js_fn
+        .build_threadsafe_function::<()>()
+        .callee_handled::<false>()
+        .max_queue_size::<0>()
+        .weak::<true>()
+        .build()?,
+    );
 
-    let js_fn = obj.get_named_property::<Function<'static, (), &'static External<CompilerId>>>(
-      "getServerCompilerId",
-    )?;
+    let invalidate_client_compiler_ts_fn = Arc::new(
+      invalidate_client_compiler_js_fn
+        .build_threadsafe_function::<()>()
+        .callee_handled::<false>()
+        .max_queue_size::<0>()
+        .weak::<true>()
+        .build()?,
+    );
 
-    let ts_fn = js_fn
-      .build_threadsafe_function::<()>()
-      .callee_handled::<false>()
-      .max_queue_size()
-      .weak::<true>()
-      .build()?;
+    let get_server_compiler_id_ts_fn = Arc::new(
+      get_server_compiler_id_js_fn
+        .build_threadsafe_function::<()>()
+        .callee_handled::<false>()
+        .max_queue_size()
+        .weak::<true>()
+        .build()?,
+    );
 
     Ok(Self {
-      get_server_compiler_id: ts_fn,
+      invalidate_server_compiler_ts_fn,
+      invalidate_client_compiler_ts_fn,
+      get_server_compiler_id_ts_fn,
+      coordinator: None,
     })
   }
 }
 
-impl From<JsReactClientPluginOptions> for ReactClientPluginOptions {
-  fn from(value: JsReactClientPluginOptions) -> Self {
-    let ts_fn = Arc::new(value.get_server_compiler_id);
+impl From<&mut JsCoordinator> for Arc<Coordinator> {
+  fn from(value: &mut JsCoordinator) -> Self {
+    if let Some(coordinator) = &value.coordinator {
+      return coordinator.clone();
+    }
+    let invalidate_server_compiler_ts_fn = value.invalidate_server_compiler_ts_fn.clone();
+    let invalidate_server_compiler =
+      Box::new(move || -> BoxFuture<'static, rspack_error::Result<()>> {
+        let ts_fn = invalidate_server_compiler_ts_fn.clone();
+        Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
+      });
 
-    Self {
-      get_server_compiler_id: Box::new(move || {
-        let ts_fn = ts_fn.clone();
+    let invalidate_client_compiler_ts_fn = value.invalidate_client_compiler_ts_fn.clone();
+    let invalidate_client_compiler =
+      Box::new(move || -> BoxFuture<'static, rspack_error::Result<()>> {
+        let ts_fn = invalidate_client_compiler_ts_fn.clone();
+        Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
+      });
+
+    let get_server_compiler_id_ts_fn = value.get_server_compiler_id_ts_fn.clone();
+    let get_server_compiler_id = Box::new(
+      move || -> BoxFuture<'static, rspack_error::Result<CompilerId>> {
+        let ts_fn = get_server_compiler_id_ts_fn.clone();
         Box::pin(async move {
           let external = ts_fn.call_async(()).await.to_rspack_result()?;
           Ok(**external)
         })
-      }),
-    }
+      },
+    );
+
+    let result = Arc::new(Coordinator::new(
+      invalidate_server_compiler,
+      invalidate_client_compiler,
+      get_server_compiler_id,
+    ));
+    value.coordinator = Some(result.clone());
+    result
   }
 }

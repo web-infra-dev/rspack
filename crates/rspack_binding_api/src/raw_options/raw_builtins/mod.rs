@@ -26,7 +26,7 @@ use std::cell::RefCell;
 
 use napi::{
   Either, Env, Unknown,
-  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
+  bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -127,9 +127,7 @@ use self::{
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{
-    JsClientCompilerHandle, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsReactClientPluginOptions,
-  },
+  plugins::{JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter},
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
@@ -838,12 +836,12 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::ReactServerPlugin => {
-        let options = downcast_into::<JsClientCompilerHandle>(self.options)
+        let options = downcast_into::<&mut JsCoordinator>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ReactServerPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::ReactClientPlugin => {
-        let options = downcast_into::<JsReactClientPluginOptions>(self.options)
+        let options = downcast_into::<&mut JsCoordinator>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ReactClientPlugin::new(options.into()).boxed());
       }

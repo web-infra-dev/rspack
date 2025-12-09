@@ -362,6 +362,10 @@ export declare class JsContextModuleFactoryBeforeResolveData {
   set recursive(recursive: boolean)
 }
 
+export declare class JsCoordinator {
+  constructor(invalidateServerCompilerJsFn: () => void, invalidateClientCompilerJsFn: () => void, getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
+}
+
 export declare class JsDependencies {
   get fileDependencies(): Array<string>
   get addedFileDependencies(): Array<string>
@@ -759,10 +763,6 @@ export interface JsChunkOptionNameCtx {
  */
 export interface JsCleanOptions {
   keep?: string | RegExp | ((path: string) => boolean)
-}
-
-export interface JsClientCompilerHandle {
-  compile: (() => Promise<undefined>)
 }
 
 export interface JsCodegenerationResult {

@@ -1,14 +1,14 @@
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::Identifiable;
 use rspack_core::{
   AssetInfo, BoxDependency, ChunkGraph, ClientEntryType, Compilation, CompilationAsset,
-  CompilationProcessAssets, CompilerFinishMake, Dependency, DependencyId, EntryDependency,
-  EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
-  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
-  RuntimeSpec,
+  CompilationParams, CompilationProcessAssets, CompilerFinishMake, CompilerThisCompilation,
+  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
+  ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType, Plugin,
+  PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -24,7 +24,7 @@ use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
   ClientReferenceManifestPlugin,
-  client_compiler_handle::ClientCompilerHandle,
+  client_compiler_handle::Coordinator,
   constants::{LAYERS_NAMES, REGEX_CSS},
   loaders::action_entry_loader::parse_action_entries,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
@@ -78,13 +78,24 @@ struct InjectedActionEntry {
 #[derive(Debug)]
 pub struct ReactServerPlugin {
   #[debug(skip)]
-  client_compiler_handle: ClientCompilerHandle,
+  coordinator: Arc<Coordinator>,
 }
 
 impl ReactServerPlugin {
-  pub fn new(client_compiler_handle: ClientCompilerHandle) -> Self {
-    Self::new_inner(client_compiler_handle)
+  pub fn new(coordinator: Arc<Coordinator>) -> Self {
+    Self::new_inner(coordinator)
   }
+}
+
+#[plugin_hook(CompilerThisCompilation for ReactServerPlugin)]
+async fn this_compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  self.coordinator.start_server_entries_compilation().await?;
+
+  Ok(())
 }
 
 #[plugin_hook(CompilerFinishMake for ReactServerPlugin)]
@@ -115,6 +126,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   self.traverse_modules(compilation, plugin_state);
   logger.time_end(start);
 
+  self.coordinator.idle().await?;
+
   Ok(())
 }
 
@@ -124,6 +137,11 @@ impl Plugin for ReactServerPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
+    ctx
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     ctx
@@ -456,10 +474,18 @@ impl ReactServerPlugin {
       info.set_used_in_unknown_way(&mut mg, runtime);
     }
 
-    // 启动 client compiler
-    // 1. 等待 client compiler finish make 阶段，检查 client compiler 收集到的 server actions
-    // 2. 根据 server actions 创建 action entries
-    self.client_compiler_handle.compile().await?;
+    // TODO: 避免被前置 error 导致没有走到这里
+    self
+      .coordinator
+      .complete_server_entries_compilation()
+      .await?;
+
+    self.coordinator.start_server_actions_compilation().await?;
+
+    self
+      .coordinator
+      .complete_server_actions_compilation()
+      .await?;
 
     // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     // let mut action_maps_per_client_entry: FxHashMap<
@@ -783,19 +809,19 @@ impl ReactServerPlugin {
       .insert(entry_name.to_string(), client_browser_loader);
     // }
 
-    let client_component_ssr_entry_dep = EntryDependency::new(
+    let ssr_entry_dependency = EntryDependency::new(
       client_server_loader.to_string(),
       compilation.options.context.clone(),
       Some(LAYERS_NAMES.server_side_rendering.to_string()),
       false,
     );
-    let ssr_dependency_id = *(client_component_ssr_entry_dep.id());
+    let ssr_dependency_id = *(ssr_entry_dependency.id());
 
     InjectedClientEntry {
       runtime,
       // should_invalidate,
       add_ssr_entry: (
-        Box::new(client_component_ssr_entry_dep),
+        Box::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
           ..Default::default()

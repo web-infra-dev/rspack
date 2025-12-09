@@ -49,12 +49,15 @@ impl ClientReferenceManifestPlugin {
     compilation: &mut Compilation,
     plugin_state: &mut PluginState,
   ) -> Result<()> {
+    let Some(module_loading) = plugin_state.module_loading.take() else {
+      return Err(rspack_error::error!(
+        "Module loading configuration is missing in plugin state. Ensure that the ReactClientPlugin is applied and configured correctly."
+      ));
+    };
+
     let mut manifest = ClientReferenceManifest {
       client_modules: Default::default(),
-      module_loading: ModuleLoading {
-        prefix: "".to_string(),
-        cross_origin: None,
-      },
+      module_loading,
       ssr_module_mapping: Default::default(),
       entry_css_files: plugin_state.entry_css_files.clone(),
       entry_js_files: Default::default(),

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use derive_more::Debug;
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -10,21 +12,22 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 
 use crate::{
+  Coordinator,
   constants::REGEX_CSS,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
-  reference_manifest::{CrossOriginMode, ManifestExport},
+  reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
   utils::GetServerCompilerId,
 };
 
 pub struct ReactClientPluginOptions {
-  pub get_server_compiler_id: GetServerCompilerId,
+  pub coordinator: Coordinator,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct ReactClientPlugin {
   #[debug(skip)]
-  get_server_compiler_id: GetServerCompilerId,
+  coordinator: Arc<Coordinator>,
 }
 
 fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> Vec<String> {
@@ -67,6 +70,7 @@ fn record_module(
     let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
       return;
     };
+    // TODO: server entry 的 resource id 需要处理，现在是写死的
     let css_files = plugin_state
       .entry_css_files
       .entry(
@@ -192,8 +196,8 @@ fn record_chunk_group(
 }
 
 impl ReactClientPlugin {
-  pub fn new(options: ReactClientPluginOptions) -> Self {
-    Self::new_inner(options.get_server_compiler_id)
+  pub fn new(coordinator: Arc<Coordinator>) -> Self {
+    Self::new_inner(coordinator)
   }
 
   async fn traverse_modules(
@@ -201,9 +205,25 @@ impl ReactClientPlugin {
     compilation: &Compilation,
     plugin_state: &mut PluginState,
   ) -> Result<()> {
+    let public_path = &compilation.options.output.public_path;
     let configured_cross_origin_loading = &compilation.options.output.cross_origin_loading;
 
-    let cross_origin_mode: Option<CrossOriginMode> = match configured_cross_origin_loading {
+    let prefix = match public_path {
+      rspack_core::PublicPath::Filename(filename) => match filename.template() {
+        Some(template) => {
+          // TODO: 只能是纯字符串，模版也不行
+          template.to_string()
+        }
+        None => {
+          return Err(rspack_error::error!(
+            "Expected Rspack publicPath to be a string when using React Server Components."
+          ));
+        }
+      },
+      rspack_core::PublicPath::Auto => "/".to_string(),
+    };
+
+    let cross_origin: Option<CrossOriginMode> = match configured_cross_origin_loading {
       CrossOriginLoading::Enable(value) => {
         if value == "use-credentials" {
           Some(CrossOriginMode::UseCredentials)
@@ -213,6 +233,11 @@ impl ReactClientPlugin {
       }
       _ => None,
     };
+
+    plugin_state.module_loading = Some(ModuleLoading {
+      prefix,
+      cross_origin,
+    });
 
     let mut client_reference_modules: FxHashSet<ModuleIdentifier> = Default::default();
     let module_graph = compilation.get_module_graph();
@@ -323,7 +348,10 @@ impl Plugin for ReactClientPlugin {
 // before injecting client component entries. Stage 100 ensures proper ordering.
 #[plugin_hook(CompilerMake for ReactClientPlugin, stage = 100)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  let server_compiler_id = (self.get_server_compiler_id)().await?;
+  println!("ReactClientPlugin make");
+  self.coordinator.start_client_entries_compilation().await?;
+
+  let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
   let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
   let Some(plugin_state) = guard.get(&server_compiler_id) else {
@@ -374,7 +402,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.ClientReferenceManifestPlugin");
 
-  let server_compiler_id = (self.get_server_compiler_id)().await?;
+  let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
   let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
   let Some(plugin_state) = guard.get_mut(&server_compiler_id) else {
@@ -389,6 +417,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("create client reference manifest");
   self.traverse_modules(compilation, plugin_state).await?;
   logger.time_end(start);
+
+  self
+    .coordinator
+    .complete_client_entries_compilation()
+    .await?;
 
   Ok(())
 }

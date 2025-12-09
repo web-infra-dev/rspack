@@ -341,7 +341,8 @@ export {
 	SourceMapDevToolPlugin,
 	SwcJsMinimizerRspackPlugin,
 	ReactServerPlugin,
-	ReactClientPlugin
+	ReactClientPlugin,
+	Coordinator
 } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
