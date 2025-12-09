@@ -37,6 +37,9 @@ pub struct EvalSourceMapDevToolPlugin {
   debug_ids: bool,
   ignore_list: Option<AssetConditions>,
 
+  test: Option<AssetConditions>,
+  include: Option<AssetConditions>,
+  exclude: Option<AssetConditions>,
   // TODO: memory leak if not clear across multiple compilations
   cache: DashMap<RspackHashDigest, BoxSource>,
 }
@@ -60,8 +63,30 @@ impl EvalSourceMapDevToolPlugin {
       options.source_root,
       options.debug_ids,
       options.ignore_list,
+      options.test,
+      options.include,
+      options.exclude,
       Default::default(),
     )
+  }
+
+  fn match_object(&self, str: &str) -> bool {
+    if let Some(condition) = &self.test
+      && !condition.try_match(str)
+    {
+      return false;
+    }
+    if let Some(condition) = &self.include
+      && !condition.try_match(str)
+    {
+      return false;
+    }
+    if let Some(condition) = &self.exclude
+      && condition.try_match(str)
+    {
+      return false;
+    }
+    true
   }
 }
 
@@ -98,6 +123,23 @@ async fn render_module_content(
     .code_generation_results
     .get_hash(&module.identifier(), Some(chunk.runtime()))
     .expect("should have codegen results hash in process assets");
+
+  if module
+    .as_normal_module()
+    .is_some_and(|m| !self.match_object(m.resource_resolved_data().resource()))
+  {
+    return Ok(());
+  }
+
+  if module.as_concatenated_module().is_some_and(|c| {
+    let mg = compilation.get_module_graph();
+    let root_id = c.get_root();
+    mg.module_by_identifier(&root_id)
+      .and_then(|m| m.as_normal_module())
+      .is_some_and(|m| !self.match_object(m.resource_resolved_data().resource()))
+  }) {
+    return Ok(());
+  }
 
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(module_hash) {
