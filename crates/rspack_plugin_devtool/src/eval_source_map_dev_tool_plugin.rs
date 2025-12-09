@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use dashmap::DashMap;
 use derive_more::Debug;
@@ -19,7 +19,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
 
 use crate::{
-  ModuleFilenameTemplate, ModuleOrSource, SourceMapDevToolPluginOptions,
+  ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
   generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
 };
 
@@ -66,7 +66,7 @@ impl EvalSourceMapDevToolPlugin {
 }
 
 #[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
-async fn eval_source_map_devtool_plugin_compilation(
+async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
@@ -75,20 +75,16 @@ async fn eval_source_map_devtool_plugin_compilation(
   let mut hooks = hooks.write().await;
   hooks
     .render_module_content
-    .tap(eval_source_map_devtool_plugin_render_module_content::new(
-      self,
-    ));
-  hooks
-    .chunk_hash
-    .tap(eval_source_map_devtool_plugin_js_chunk_hash::new(self));
+    .tap(render_module_content::new(self));
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
   hooks
     .inline_in_runtime_bailout
-    .tap(eval_source_map_devtool_plugin_inline_in_runtime_bailout::new(self));
+    .tap(inline_in_runtime_bailout::new(self));
   Ok(())
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin,tracing=false)]
-async fn eval_source_map_devtool_plugin_render_module_content(
+async fn render_module_content(
   &self,
   compilation: &Compilation,
   chunk: &ChunkUkey,
@@ -122,11 +118,11 @@ async fn eval_source_map_devtool_plugin_render_module_content(
               .get_module_graph()
               .module_by_identifier(&identifier)
             {
-              Some(module) => ModuleOrSource::Module(module.identifier()),
-              None => ModuleOrSource::Source(source),
+              Some(module) => SourceReference::Module(module.identifier()),
+              None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            ModuleOrSource::Source(source.to_string())
+            SourceReference::Source(Arc::from(source.to_string()))
           }
         });
         let path_data = PathData::default()
@@ -142,25 +138,27 @@ async fn eval_source_map_devtool_plugin_render_module_content(
 
         let module_filenames = match &self.module_filename_template {
           ModuleFilenameTemplate::String(s) => modules
-            .map(|module_or_source| {
+            .map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_string_template(
-                &module_or_source,
+                &source_reference,
                 compilation,
                 s,
                 output_options,
                 &namespace,
+                None,
               )
             })
             .collect::<Vec<_>>(),
           ModuleFilenameTemplate::Fn(f) => {
             let modules = modules.collect::<Vec<_>>();
-            let features = modules.iter().map(|module_or_source| {
+            let features = modules.iter().map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_fn_template(
-                module_or_source,
+                source_reference,
                 compilation,
                 f,
                 output_options,
                 &namespace,
+                None,
               )
             });
             join_all(features)
@@ -252,7 +250,7 @@ async fn eval_source_map_devtool_plugin_render_module_content(
 }
 
 #[plugin_hook(JavascriptModulesChunkHash for EvalSourceMapDevToolPlugin)]
-async fn eval_source_map_devtool_plugin_js_chunk_hash(
+async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
@@ -263,15 +261,12 @@ async fn eval_source_map_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalSourceMapDevToolPlugin)]
-async fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
-  &self,
-  _compilation: &Compilation,
-) -> Result<Option<String>> {
+async fn inline_in_runtime_bailout(&self, _compilation: &Compilation) -> Result<Option<String>> {
   Ok(Some("the eval-source-map devtool is used.".to_string()))
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin,tracing=false)]
-async fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
+async fn additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,
@@ -290,14 +285,11 @@ impl Plugin for EvalSourceMapDevToolPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compiler_hooks
-      .compilation
-      .tap(eval_source_map_devtool_plugin_compilation::new(self));
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
       .additional_module_runtime_requirements
-      .tap(eval_source_map_devtool_plugin_additional_module_runtime_requirements::new(self));
+      .tap(additional_module_runtime_requirements::new(self));
     Ok(())
   }
 }

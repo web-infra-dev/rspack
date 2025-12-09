@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use futures::Future;
 use rspack_core::CompilationAsset;
@@ -6,26 +8,29 @@ use rspack_error::{Error, Result};
 use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
-pub struct MappedAssetsCache(DashMap<String, MappedAsset>);
+pub struct MappedAssetsCache(DashMap<Arc<str>, MappedAsset>);
 
 impl MappedAssetsCache {
   pub fn new() -> Self {
     Self(DashMap::new())
   }
 
-  pub async fn use_cache<'a, F, R>(
+  pub async fn use_cache<'a, Assets, Handle, Return>(
     &self,
-    assets: Vec<(&'a String, &'a CompilationAsset)>,
-    map_assets: F,
+    assets: Assets,
+    map_assets: Handle,
   ) -> Result<Vec<MappedAsset>>
   where
-    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
-    R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
+    Assets: Iterator<Item = (&'a String, &'a CompilationAsset)>,
+    Handle: FnOnce(Vec<(String, &'a CompilationAsset)>) -> Return,
+    Return: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
   {
-    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
-    let mut vanilla_assets = Vec::with_capacity(assets.len());
+    let capacity = assets.size_hint().1.unwrap_or_default();
+
+    let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(capacity);
+    let mut vanilla_assets = Vec::with_capacity(capacity);
     for (filename, vanilla_asset) in assets {
-      if let Some((_, mapped_asset)) = self.0.remove(filename)
+      if let Some((_, mapped_asset)) = self.0.remove(filename.as_str())
         && !vanilla_asset.info.version.is_empty()
         && vanilla_asset.info.version == mapped_asset.asset.1.info.version
       {
@@ -44,7 +49,7 @@ impl MappedAssetsCache {
         ..
       } = mapped_asset;
       if !asset.info.version.is_empty() {
-        self.0.insert(filename.to_owned(), mapped_asset.clone());
+        self.0.insert(filename.clone(), mapped_asset.clone());
       }
     }
 
