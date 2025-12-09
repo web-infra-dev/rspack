@@ -95,71 +95,71 @@ LOG from Named Logger|<TEST_ROOT>/statsOutputCases/logging/index.js
     Message with named logger
 
 LOG from rspack.Compilation
-<t> finish modules: xx ms: NaN ms
-<t> optimize dependencies: xx ms: NaN ms
-<t> rebuild chunk graph: xx ms: NaN ms
-<t> create chunks: xx ms: NaN ms
-<t> optimize: xx ms: NaN ms
-<t> module ids: xx ms: NaN ms
-<t> chunk ids: xx ms: NaN ms
-<t> optimize code generation: xx ms: NaN ms
-<t> code generation: xx ms: NaN ms
-<t> runtime requirements.modules: xx ms: NaN ms
-<t> runtime requirements.chunks: xx ms: NaN ms
-<t> runtime requirements.entries: xx ms: NaN ms
-<t> runtime requirements: xx ms: NaN ms
-<t> hashing: hash chunks: xx ms: NaN ms
-<t> hashing: hash runtime chunks: xx ms: NaN ms
-<t> hashing: process full hash chunks: xx ms: NaN ms
-<t> hashing: xx ms: NaN ms
-<t> create module assets: xx ms: NaN ms
-<t> create chunk assets: xx ms: NaN ms
-<t> process assets: xx ms: NaN ms
-<t> after process assets: xx ms: NaN ms
-<t> after seal: xx ms: NaN ms
+<t> finish modules: xx ms
+<t> optimize dependencies: xx ms
+<t> rebuild chunk graph: xx ms
+<t> create chunks: xx ms
+<t> optimize: xx ms
+<t> module ids: xx ms
+<t> chunk ids: xx ms
+<t> optimize code generation: xx ms
+<t> code generation: xx ms
+<t> runtime requirements.modules: xx ms
+<t> runtime requirements.chunks: xx ms
+<t> runtime requirements.entries: xx ms
+<t> runtime requirements: xx ms
+<t> hashing: hash chunks: xx ms
+<t> hashing: hash runtime chunks: xx ms
+<t> hashing: process full hash chunks: xx ms
+<t> hashing: xx ms
+<t> create module assets: xx ms
+<t> create chunk assets: xx ms
+<t> process assets: xx ms
+<t> after process assets: xx ms
+<t> after seal: xx ms
 
 LOG from rspack.Compiler
-<t> make hook: xx ms: NaN ms
-<t> make: xx ms: NaN ms
-<t> finish make hook: xx ms: NaN ms
-<t> finish compilation: xx ms: NaN ms
-<t> seal compilation: xx ms: NaN ms
-<t> emitAssets: xx ms: NaN ms
+<t> make hook: xx ms
+<t> make: xx ms
+<t> finish make hook: xx ms
+<t> finish compilation: xx ms
+<t> seal compilation: xx ms
+<t> emitAssets: xx ms
 
 LOG from rspack.EnsureChunkConditionsPlugin
-<t> ensure chunk conditions: xx ms: NaN ms
+<t> ensure chunk conditions: xx ms
 
 LOG from rspack.ModuleConcatenationPlugin
-<t> select relevant modules: xx ms: NaN ms
+<t> select relevant modules: xx ms
     0 potential root modules, 0 potential inner modules
-<t> sort relevant modules: xx ms: NaN ms
-<t> find modules to concatenate: xx ms: NaN ms
+<t> sort relevant modules: xx ms
+<t> find modules to concatenate: xx ms
     0 candidates were considered for adding (0 cached failure, 0 already in config, 0 invalid module, 0 incorrect chunks, 0 incorrect dependency, 0 incorrect chunks of importer, 0 incorrect module dependency, 0 incorrect runtime condition, 0 importer failed, 0 added)
-<t> sort concat configurations: xx ms: NaN ms
+<t> sort concat configurations: xx ms
 
 LOG from rspack.RealContentHashPlugin
-<t> hash to asset names: xx ms: NaN ms
+<t> hash to asset names: xx ms
 
 LOG from rspack.RemoveEmptyChunksPlugin
-<t> remove empty chunks: xx ms: NaN ms
+<t> remove empty chunks: xx ms
 
 LOG from rspack.SideEffectsFlagPlugin
-<t> prepare connections: xx ms: NaN ms
-<t> find optimizable connections: xx ms: NaN ms
-<t> do optimize connections: xx ms: NaN ms
-<t> update connections: xx ms: NaN ms
+<t> prepare connections: xx ms
+<t> find optimizable connections: xx ms
+<t> do optimize connections: xx ms
+<t> update connections: xx ms
     optimized 0 connections
 
 LOG from rspack.SplitChunksPlugin
-<t> prepare module data: xx ms: NaN ms
-<t> prepare cache groups: xx ms: NaN ms
-<t> process cache groups: xx ms: NaN ms
-<t> ensure max size fit: xx ms: NaN ms
+<t> prepare module data: xx ms
+<t> prepare cache groups: xx ms
+<t> process cache groups: xx ms
+<t> ensure max size fit: xx ms
 
 LOG from rspack.buildChunkGraph
-<t> prepare entrypoints: xx ms: NaN ms
-<t> process queue: xx ms: NaN ms
-<t> extend chunkGroup runtime: xx ms: NaN ms
+<t> prepare entrypoints: xx ms
+<t> process queue: xx ms
+<t> extend chunkGroup runtime: xx ms
     2 queue items processed (1 blocks)
     0 chunk groups connected
     0 chunk groups processed for merging (0 module sets)
