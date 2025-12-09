@@ -44,10 +44,7 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
-		const use_build_std = values.profile === "release"
-				|| values.profile === "release-debug"
-				|| values.profile === "release-wasi"
-				|| values.profile === "profiling";
+		const use_build_std = false;
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
