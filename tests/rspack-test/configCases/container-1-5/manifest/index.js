@@ -12,36 +12,47 @@ it("should emit remote entry with hash", () => {
 	expect(fs.existsSync(remoteEntryPath)).toBe(true);
 });
 
-// shared
-it("should report shared assets in sync only", () => {
-	expect(stats.shared).toHaveLength(1);
-	expect(stats.shared[0].assets.js.sync.sort()).toEqual([
-		"node_modules_react_js.js"
-	]);
-	expect(stats.shared[0].assets.js.async).toEqual([]);
+it("should report react shared assets in sync only", () => {
+    const react = stats.shared.find(item => item.name === "react");
+		expect(react.singleton).toBe(true);
+    expect(react).toBeDefined();
+    expect(react.assets.css.sync).toEqual([]);
+    expect(react.assets.css.async).toEqual([]);
+    expect(react.assets.js.sync).toEqual(["node_modules_react_index_js.js"]);
+    expect(react.assets.js.async).toEqual([]);
 });
 
-it("should materialize in manifest", () => {
-	expect(manifest.shared).toEqual(
-		expect.arrayContaining([
-			expect.objectContaining({
-				name: "react",
-				assets: expect.objectContaining({
-					js: expect.objectContaining({
-						sync: expect.arrayContaining([
-							"node_modules_react_js.js"
-						]),
-						async: []
-					})
-				})
-			})
-		])
-	);
+it("should include scoped shared '@scope-sc/dep1' in stats", () => {
+    const dep1 = stats.shared.find(item => item.name === "@scope-sc/dep1");
+    expect(dep1).toBeDefined();
+		expect(dep1.singleton).toBe(true);
+    expect(dep1.version).toBe("1.0.0");
+    expect(dep1.requiredVersion).toBe("^1.0.0");
+    expect(dep1.assets.css.sync).toEqual([]);
+    expect(dep1.assets.css.async).toEqual([]);
+    expect(Array.isArray(dep1.assets.js.sync)).toBe(true);
+    expect(dep1.assets.js.async).toEqual([]);
+    expect(dep1.usedIn.includes("module.js")).toBe(true);
 });
+
+it("should include scoped shared '@scope-sc2/dep2' in stats", () => {
+    const dep2 = stats.shared.find(item => item.name === "@scope-sc2/dep2");
+    expect(dep2).toBeDefined();
+		expect(dep2.singleton).toBe(false);
+    expect(dep2.version).toBe("1.0.0");
+    expect(dep2.requiredVersion).toBe(">=1.0.0");
+    expect(dep2.assets.css.sync).toEqual([]);
+    expect(dep2.assets.css.async).toEqual([]);
+    expect(Array.isArray(dep2.assets.js.sync)).toBe(true);
+    expect(dep2.assets.js.async).toEqual([]);
+    expect(dep2.usedIn.includes("module.js")).toBe(true);
+});
+
 
 //exposes
 it("should expose sync assets only", () => {
 	expect(stats.exposes).toHaveLength(1);
+	expect(stats.exposes[0].file).toBe("module.js");
 	expect(stats.exposes[0].assets.js.sync).toEqual(["_federation_expose_a.js"]);
 	expect(stats.exposes[0].assets.js.async).toEqual([
 		"lazy-module_js.js"
@@ -70,30 +81,54 @@ it("should reflect expose assets in manifest", () => {
 // remotes
 
 it("should record remote usage", () => {
-	expect(stats.remotes).toEqual(
-		expect.arrayContaining([
-			expect.objectContaining({
-				alias: "@remote/alias",
-				consumingFederationContainerName: "container",
-				federationContainerName: "remote",
-				moduleName: ".",
-				usedIn: expect.arrayContaining([
-					"module.js"
-				]),
-				entry: 'http://localhost:8000/remoteEntry.js'
-			})
-		])
-	);
+    expect(stats.remotes).toEqual(
+        expect.arrayContaining([
+            // actual remote usage recorded for a concrete module
+            expect.objectContaining({
+                alias: "@remote/alias",
+                consumingFederationContainerName: "container",
+                federationContainerName: "remote",
+                moduleName: "Button",
+                usedIn: expect.arrayContaining(["module.js"]),
+                entry: 'http://localhost:8000/remoteEntry.js'
+            }),
+            // ensured default remote record with moduleName "."
+            expect.objectContaining({
+                alias: "@remote/alias",
+                consumingFederationContainerName: "container",
+                federationContainerName: "remote",
+                moduleName: ".",
+                usedIn: expect.arrayContaining(["module.js"]),
+                entry: 'http://localhost:8000/remoteEntry.js'
+            }),
+            // dynamic remote ensured with default values
+            expect.objectContaining({
+                alias: "dynamic-remote",
+                consumingFederationContainerName: "container",
+                federationContainerName: "dynamic_remote",
+                moduleName: ".",
+                usedIn: expect.arrayContaining([
+                    "UNKNOWN"
+                ]),
+                entry: 'http://localhost:8001/remoteEntry.js'
+            })
+        ])
+    );
 });
 
 it("should persist remote metadata in manifest", () => {
-	expect(manifest.remotes).toEqual(
-		expect.arrayContaining([
-			expect.objectContaining({
-				alias: "@remote/alias",
-				federationContainerName: "remote",
-				moduleName: "."
-			})
-		])
-	);
+    expect(manifest.remotes).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                alias: "@remote/alias",
+                federationContainerName: "remote",
+                moduleName: "."
+            }),
+            expect.objectContaining({
+                alias: "dynamic-remote",
+                federationContainerName: "dynamic_remote",
+                moduleName: "."
+            })
+        ])
+    );
 });
