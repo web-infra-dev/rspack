@@ -5,7 +5,10 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
-  ecma::ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
+  ecma::{
+    ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
+    visit::{Visit, VisitWith},
+  },
 };
 use url::Url;
 
@@ -16,6 +19,23 @@ use crate::{
   parser_plugin::inner_graph::plugin::InnerGraphPlugin,
   visitors::{JavascriptParser, context_reg_exp, create_context_dependency},
 };
+
+#[derive(Default)]
+struct NestedNewUrlVisitor {
+  has_nested_new_url: bool,
+}
+
+impl Visit for NestedNewUrlVisitor {
+  fn visit_new_expr(&mut self, expr: &NewExpr) {
+    if expr
+      .callee
+      .as_ident()
+      .is_some_and(|ident| ident.sym.eq("URL"))
+    {
+      self.has_nested_new_url = true;
+    }
+  }
+}
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
   let chain = parser.extract_member_expression_chain(expr);
@@ -156,6 +176,12 @@ impl JavascriptParserPlugin for URLPlugin {
         }),
       );
       return Some(true);
+    }
+
+    let mut nested_new_url_visitor = NestedNewUrlVisitor::default();
+    arg.expr.visit_with(&mut nested_new_url_visitor);
+    if nested_new_url_visitor.has_nested_new_url {
+      return None;
     }
 
     let arg2 = args.get(1)?;
