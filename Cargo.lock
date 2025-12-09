@@ -3735,7 +3735,7 @@ dependencies = [
  "once_cell",
  "rkyv 0.8.8",
  "rspack-allocative",
- "rspack_macros",
+ "rspack_cacheable_macros",
  "rspack_resolver",
  "rspack_sources",
  "serde_json",
@@ -3743,6 +3743,14 @@ dependencies = [
  "swc_core",
  "ustr-fxhash",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_cacheable_macros"
+version = "0.6.6"
+dependencies = [
+ "quote",
+ "syn 2.0.95",
 ]
 
 [[package]]
