@@ -73,7 +73,8 @@ On slower or high-latency file systems, it's recommended to keep the default val
 
 ## Working thread pool size
 
-Rspack internally uses a Tokio thread pool and Rayon thread pool to handle CPU bound tasks(Tokio for async tasks and Rayon for sync tasks). By default, Tokio and Rayon automatically determines the number of worker threads based on the number of CPU cores available.
+Rspack internally uses a Tokio thread pool and Rayon thread pool to handle CPU bound tasks (Tokio for async tasks and Rayon for sync tasks). By default, Tokio and Rayon automatically determines the number of worker threads based on the number of CPU cores available.
+
 If it consumes too much CPU resources during the build process, you can limit the number of worker threads by setting the `TOKIO_WORKER_THREADS` and `RAYON_NUM_THREADS` environment variable, for example:
 
 ```bash
