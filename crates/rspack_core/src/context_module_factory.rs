@@ -126,6 +126,10 @@ impl ContextModuleFactory {
       let resolver_factory = resolver_factory.clone();
       Box::pin(async move {
         tracing::trace!("resolving context module path {}", options.resource);
+        if options.resource.as_str().is_empty() {
+          return Ok(vec![]);
+        }
+
         let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
           resolve_options: options
             .resolve_options
