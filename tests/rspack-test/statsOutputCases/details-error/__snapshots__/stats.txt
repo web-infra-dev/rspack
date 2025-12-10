@@ -1,11 +1,11 @@
 0 errors 0 warnings:
-  asset 0.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 0.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
   0 errors 0 warnings (Rspack x.x.x) compiled successfully in X s
 
 1 errors 0 warnings:
-  asset 1.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 1.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   ERROR in × Test
   Error details
@@ -13,8 +13,8 @@
   1 errors 0 warnings (Rspack x.x.x) compiled with 1 error in X s
 
 0 errors 1 warnings:
-  asset 10.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 10.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
@@ -25,8 +25,8 @@
   0 errors 1 warnings (Rspack x.x.x) compiled with 1 warning in X s
 
 2 errors 0 warnings:
-  asset 2.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 2.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   ERROR in × Test
   Error details
@@ -37,8 +37,8 @@
   2 errors 0 warnings (Rspack x.x.x) compiled with 2 errors in X s
 
 0 errors 2 warnings:
-  asset 20.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 20.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
@@ -52,8 +52,8 @@
   0 errors 2 warnings (Rspack x.x.x) compiled with 2 warnings in X s
 
 1 errors 1 warnings:
-  asset 11.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 11.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
@@ -67,8 +67,8 @@
   1 errors 1 warnings (Rspack x.x.x) compiled with 1 error and 1 warning in X s
 
 2 errors 1 warnings:
-  asset 12.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 12.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
@@ -85,8 +85,8 @@
   2 errors 1 warnings (Rspack x.x.x) compiled with 2 errors and 1 warning in X s
 
 3 errors 1 warnings:
-  asset 13.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 13.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
@@ -109,8 +109,8 @@
   3 errors 1 warnings (Rspack x.x.x) compiled with 3 errors and 1 warning in X s
 
 3 errors 0 warnings:
-  asset 3.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 3.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   ERROR in × Test
   Error details
@@ -127,8 +127,8 @@
   3 errors 0 warnings (Rspack x.x.x) compiled with 3 errors in X s
 
 0 errors 3 warnings:
-  asset 30.js 317 bytes [emitted] (name: main)
-  ./index.js 1 bytes [built] [code generated]
+  asset 30.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
 
   WARNING in ⚠ Test
   Error details
