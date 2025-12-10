@@ -288,10 +288,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             if entry.requiredVersion.is_none() {
               entry.requiredVersion = opt.required_version.clone();
             }
-            if entry.version.is_empty() {
-              if let Some(cfg_ver) = opt.version.clone() {
-                entry.version = cfg_ver;
-              }
+            if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+              entry.version = cfg_ver;
             }
           }
           let targets = shared_module_targets.entry(pkg.clone()).or_default();
@@ -347,10 +345,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if entry.requiredVersion.is_none() {
             entry.requiredVersion = opt.required_version.clone();
           }
-          if entry.version.is_empty() {
-            if let Some(cfg_ver) = opt.version.clone() {
-              entry.version = cfg_ver;
-            }
+          if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+            entry.version = cfg_ver;
           }
         }
         record_shared_usage(
