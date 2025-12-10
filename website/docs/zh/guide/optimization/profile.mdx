@@ -75,8 +75,8 @@ cross-env RSPACK_BLOCKING_THREADS=8 rspack build
 
 ## 工作线程池大小
 
-Rspack 在内部使用 Tokio 线程池和 Rayon 线程池来处理 CPU 密集
-型任务（Tokio 用于异步任务，Rayon 用于同步任务）。默认情况下，Tokio 和 Rayon 会根据可用的 CPU 核心数自动确定工作线程的数量。
+Rspack 在内部使用 Tokio 线程池和 Rayon 线程池来处理 CPU 密集型任务（Tokio 用于异步任务，Rayon 用于同步任务）。默认情况下，Tokio 和 Rayon 会根据可用的 CPU 核心数自动确定工作线程的数量。
+
 如果在构建过程中消耗了过多的 CPU 资源，可以通过设置 `TOKIO_WORKER_THREADS` and `RAYON_NUM_THREADS` 环境变量来限制工作线程的数量，例如：
 
 ```bash
