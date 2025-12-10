@@ -17,7 +17,6 @@ use rspack_collections::{
 use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_javascript_compiler::ast::Ast;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
@@ -27,14 +26,13 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
+  atoms::Atom,
   common::{FileName, Spanned, SyntaxContext},
-  ecma::{
-    ast::{EsVersion, Program},
-    atoms::Atom,
-    parser::{EsSyntax, Syntax, parse_file_as_module},
-    transforms::base::resolver,
-  },
+  ecma::visit::swc_ecma_ast,
 };
+use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, FromNodeId, Ident, NodeKind};
+use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
+use swc_experimental_ecma_semantic::resolver::{Semantic, UNRESOLVED_SCOPE_ID, resolver};
 use swc_node_comments::SwcComments;
 
 use crate::{
@@ -45,9 +43,9 @@ use crate::{
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
   DependencyType, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, IdentCollector, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
+  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
@@ -2324,18 +2322,20 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
-      let mut errors = vec![];
-      let program = match parse_file_as_module(
-        &fm,
+      let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,
           ..Default::default()
         }),
         EsVersion::EsNext,
+        StringSource::new(fm.src.as_str()),
         Some(&comments),
-        &mut errors,
-      ) {
-        Ok(res) => Program::Module(res),
+      );
+      let p = Parser::new_from(lexer);
+      let ret = p.parse_module();
+
+      let ret = match ret {
+        Ok(ret) => ret,
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
@@ -2347,41 +2347,32 @@ impl ConcatenatedModule {
           ));
         }
       };
-      let mut ast = Ast::new(program, cm, Some(comments));
       let mut all_used_names = HashSet::default();
-      let mut global_ctxt = SyntaxContext::empty();
-      let mut module_ctxt = SyntaxContext::empty();
-      let mut collector = IdentCollector::default();
+      let ast = &ret.ast;
 
-      ast.transform(|program, context| {
-        global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-        module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-        program.visit_mut_with(&mut resolver(
-          context.unresolved_mark,
-          context.top_level_mark,
-          false,
-        ));
-        program.visit_with(&mut collector);
-      });
-      module_info.module_ctxt = module_ctxt;
-      module_info.global_ctxt = global_ctxt;
+      let semantic = resolver(ret.root, ast);
+      let ids = collect_ident(ast, &semantic);
 
-      for ident in collector.ids {
-        if ident.id.ctxt == module_info.global_ctxt {
-          module_info.global_scope_ident.push(ident.clone());
-          all_used_names.insert(ident.id.sym.clone());
+      module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+      module_info.global_ctxt = SyntaxContext::from_u32(UNRESOLVED_SCOPE_ID.raw());
+      for ident in ids {
+        if semantic.node_scope(ident.id) == UNRESOLVED_SCOPE_ID {
+          module_info
+            .global_scope_ident
+            .push(ident.to_legacy(ast, &semantic));
+          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
         }
         if ident.is_class_expr_with_ident {
-          all_used_names.insert(ident.id.sym.clone());
+          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
           continue;
         }
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
-        if ident.id.ctxt != module_info.module_ctxt {
-          all_used_names.insert(ident.id.sym.clone());
+        if semantic.node_scope(ident.id) != semantic.top_level_scope_id() {
+          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
         }
-        module_info.idents.push(ident);
+        module_info.idents.push(ident.to_legacy(ast, &semantic));
       }
       module_info.all_used_names = all_used_names;
 
@@ -3225,4 +3216,55 @@ pub fn escape_name(name: &str) -> String {
   }
 
   escape_identifier(name).into_owned()
+}
+
+#[derive(Clone, Debug)]
+pub struct NewConcatenatedModuleIdent {
+  pub id: Ident,
+  pub shorthand: bool,
+  pub is_class_expr_with_ident: bool,
+}
+
+impl NewConcatenatedModuleIdent {
+  pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
+    let span = self.id.span(ast);
+    let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
+    let ctxt = SyntaxContext::from_u32(semantic.node_scope(self.id).raw());
+    ConcatenatedModuleIdent {
+      id: swc_ecma_ast::Ident::new(sym, span, ctxt),
+      is_class_expr_with_ident: self.is_class_expr_with_ident,
+      shorthand: self.shorthand,
+    }
+  }
+}
+
+fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
+  let mut ids = Vec::new();
+  for (node_id, node) in ast.nodes() {
+    if node.kind == NodeKind::Ident {
+      let ident = Ident::from_node_id(node_id, ast);
+      let parent_id = semantic.parent_node(node_id);
+      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
+        NodeKind::BindingIdent => {
+          let parent_id = semantic.parent_node(parent_id);
+          (
+            ast.get_node(parent_id).kind == NodeKind::AssignPatProp,
+            false,
+          )
+        }
+        NodeKind::ClassExpr => {
+          let class_expr = ClassExpr::from_node_id(parent_id, ast);
+          (false, class_expr.class(ast).super_class(ast).is_some())
+        }
+        NodeKind::ObjectLit => (true, false),
+        _ => (false, false),
+      };
+      ids.push(NewConcatenatedModuleIdent {
+        id: ident,
+        shorthand,
+        is_class_expr_with_ident,
+      });
+    }
+  }
+  ids
 }

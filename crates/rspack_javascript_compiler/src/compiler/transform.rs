@@ -520,7 +520,7 @@ impl<'a> JavaScriptTransformer<'a> {
             let idx = match url.path().find("base64,") {
               Some(v) => v,
               None => {
-                bail!("failed to parse inline source map: not base64: {:?}", url)
+                bail!("failed to parse inline source map: not base64: {url:?}")
               }
             };
 
