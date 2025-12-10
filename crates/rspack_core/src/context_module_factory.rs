@@ -305,7 +305,7 @@ impl ContextModuleFactory {
           resource_fragment: resource.fragment,
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
-          context_options: dependency.options().clone(),
+          context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
         let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
@@ -324,7 +324,7 @@ impl ContextModuleFactory {
           resource_fragment: Default::default(),
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
-          context_options: dependency.options().clone(),
+          context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
         let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
