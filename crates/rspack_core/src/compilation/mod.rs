@@ -428,7 +428,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: BuildModuleGraphArtifact::default().into(),
+      build_module_graph_artifact: Default::default(),
       modified_files,
       removed_files,
       input_filesystem,
