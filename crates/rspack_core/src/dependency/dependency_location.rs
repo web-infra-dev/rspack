@@ -1,8 +1,6 @@
-use std::{
-  fmt::{self, Debug},
-  sync::Arc,
-};
+use std::fmt::{self, Debug};
 
+use ropey::Rope;
 use rspack_cacheable::cacheable;
 use rspack_location::{DependencyLocation, RealDependencyLocation, SourcePosition};
 use rspack_util::SpanExt;
@@ -96,16 +94,23 @@ impl SourceLocation for &str {
 }
 
 /// Type alias for a shared reference to a `SourceLocation` trait object, typically used for source maps.
-pub type SharedSourceMap = Arc<dyn SourceLocation>;
+pub type SharedSourceMap = Rope;
 
 pub trait AsLoc {
   fn as_loc(&self) -> &dyn SourceLocation;
 }
 
-impl AsLoc for &Arc<dyn SourceLocation> {
+impl AsLoc for Rope {
   #[inline]
   fn as_loc(&self) -> &dyn SourceLocation {
-    self.as_ref()
+    self
+  }
+}
+
+impl AsLoc for &Rope {
+  #[inline]
+  fn as_loc(&self) -> &dyn SourceLocation {
+    *self
   }
 }
 

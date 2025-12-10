@@ -10,7 +10,6 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
-  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -314,7 +313,7 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  pub source_rope: Arc<Rope>,
+  pub source_rope: Rope,
   pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
@@ -356,7 +355,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_rope: Arc<Rope>,
+    source_rope: Rope,
     source: &'parser str,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,

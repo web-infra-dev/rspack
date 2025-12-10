@@ -2,8 +2,6 @@ mod context_dependency_helper;
 mod parser;
 mod util;
 
-use std::sync::Arc;
-
 use ropey::Rope;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
@@ -36,7 +34,7 @@ pub struct ScanDependenciesResult {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source_rope: Arc<Rope>,
+  source_rope: Rope,
   source: &str,
   program: &Program,
   resource_data: &ResourceData,
