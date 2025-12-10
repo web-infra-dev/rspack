@@ -87,14 +87,14 @@ impl RstestParserPlugin {
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
-            Some(parser.source_map.clone()),
+            Some(parser.source_rope.clone()),
           );
           parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             range,
-            Some(parser.source_map.clone()),
+            Some(parser.source_rope.clone()),
           )));
 
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -151,7 +151,7 @@ impl RstestParserPlugin {
             ),
           ));
 
-          let source_map: SharedSourceMap = parser.source_map.clone();
+          let source_map: SharedSourceMap = parser.source_rope.clone();
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
             Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
@@ -481,7 +481,7 @@ impl RstestParserPlugin {
                   ),
                 ));
 
-                let source_map: SharedSourceMap = parser.source_map.clone();
+                let source_map: SharedSourceMap = parser.source_rope.clone();
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
                   Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
@@ -499,13 +499,13 @@ impl RstestParserPlugin {
                   first_arg.span().into(),
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  Some(parser.source_map.clone()),
+                  Some(parser.source_rope.clone()),
                 );
 
                 let range: DependencyRange = call_expr.callee.span().into();
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
                   range,
-                  Some(parser.source_map.clone()),
+                  Some(parser.source_rope.clone()),
                 )));
 
                 parser.add_dependency(Box::new(dep));

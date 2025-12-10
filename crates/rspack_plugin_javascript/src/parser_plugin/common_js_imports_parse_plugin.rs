@@ -52,7 +52,7 @@ fn create_commonjs_require_context_dependency(
   };
   let mut dep = CommonJsRequireContextDependency::new(
     options,
-    DependencyLocation::from_span(&span, &parser.source_map),
+    DependencyLocation::from_span(&span, &parser.source_rope),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
     parser.in_try,
@@ -159,7 +159,7 @@ impl CommonJsImportsParserPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope.clone()),
     ));
 
     if param.is_conditional() {
@@ -237,7 +237,7 @@ impl CommonJsImportsParserPlugin {
         is_call,
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope.clone()),
       )
     })
   }
@@ -255,7 +255,7 @@ impl CommonJsImportsParserPlugin {
         range_expr,
         Some(span.into()),
         parser.in_try,
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope.clone()),
       );
       parser.add_dependency(Box::new(dep));
       true
@@ -305,7 +305,7 @@ impl CommonJsImportsParserPlugin {
         let range: DependencyRange = callee.span().into();
         parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
           range,
-          Some(parser.source_map.clone()),
+          Some(parser.source_rope.clone()),
         )));
         return Some(true);
       }
@@ -338,7 +338,7 @@ impl CommonJsImportsParserPlugin {
       let range: DependencyRange = callee.span().into();
       parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
         range,
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope.clone()),
       )));
     }
     Some(true)
@@ -374,7 +374,7 @@ impl CommonJsImportsParserPlugin {
         referenced_exports: None,
         attributes: None,
       },
-      DependencyLocation::from_span(&span, &parser.source_map),
+      DependencyLocation::from_span(&span, &parser.source_rope),
       ident.span().into(),
       None,
       parser.in_try,

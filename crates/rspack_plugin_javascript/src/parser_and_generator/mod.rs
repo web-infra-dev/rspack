@@ -169,6 +169,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let source = remove_bom(source);
     let source_string = source.source().into_string_lossy().into_owned();
+    let source_rope = Arc::new(ropey::Rope::from_str(&source_string));
+
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       Arc::new(FileName::Custom(
@@ -245,7 +247,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        cm.clone(),
+        source_rope,
         &source_string,
         program,
         resource_data,

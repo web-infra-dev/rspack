@@ -15,6 +15,7 @@ use std::{
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
+use ropey::Rope;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -30,7 +31,7 @@ use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Mark, SourceMap, Span, Spanned, comments::Comments, util::take::Take},
+  common::{BytePos, Mark, Span, Spanned, comments::Comments, util::take::Take},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -313,7 +314,7 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  pub source_map: Arc<SourceMap>,
+  pub source_rope: Arc<Rope>,
   pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
@@ -355,7 +356,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_map: Arc<SourceMap>,
+    source_rope: Arc<Rope>,
     source: &'parser str,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
@@ -503,7 +504,7 @@ impl<'parser> JavascriptParser<'parser> {
       last_esm_import_order: 0,
       comments,
       javascript_options,
-      source_map,
+      source_rope,
       source,
       errors,
       warning_diagnostics,

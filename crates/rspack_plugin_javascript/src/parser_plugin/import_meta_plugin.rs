@@ -52,7 +52,7 @@ impl ImportMetaPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope.clone()),
     ));
 
     if param.is_conditional() {

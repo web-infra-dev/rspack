@@ -352,7 +352,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
-        let source_map: SharedSourceMap = parser.source_map.clone();
+        let source_map: SharedSourceMap = parser.source_rope.clone();
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
           Into::<DependencyRange>::into(import_call_span).to_loc(Some(&source_map)),

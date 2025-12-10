@@ -135,7 +135,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       }
     }));
 
-    let source_map: SharedSourceMap = parser.source_map.clone();
+    let source_map: SharedSourceMap = parser.source_rope.clone();
     let mut block = AsyncDependenciesBlock::new(
       *parser.module_identifier,
       Into::<DependencyRange>::into(expr.span).to_loc(Some(&source_map)),

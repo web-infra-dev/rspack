@@ -4076,6 +4076,7 @@ name = "rspack_location"
 version = "0.6.7"
 dependencies = [
  "itoa",
+ "ropey",
  "rspack_cacheable",
  "swc_core",
 ]
