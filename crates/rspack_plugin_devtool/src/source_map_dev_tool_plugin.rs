@@ -228,7 +228,7 @@ impl SourceMapDevToolPlugin {
               .to_string_lossy()
               .to_string(),
           ),
-          None => Cow::Borrowed(asset_filename.as_ref()),
+          None => Cow::Borrowed(asset_filename),
         };
 
         let data = PathData::default().filename(&filename);
@@ -350,7 +350,7 @@ impl SourceMapDevToolPlugin {
                 template,
               )| async move {
                 let unresolved_source_map_path = plugin
-                  .get_unresolved_source_map_path(&compilation, output_path, &asset_filename)
+                  .get_unresolved_source_map_path(compilation, output_path, &asset_filename)
                   .await?;
 
                 if let SourceReference::Source(source_name) = &source_reference
