@@ -7,6 +7,7 @@ module.exports = {
     devtool: "source-map",
     entry: "./src/index.js",
     output: {
+        filename: 'static/js/[name].js',
         devtoolModuleFilenameTemplate: '[relative-resource-path]',
     },
     plugins: [
@@ -14,7 +15,7 @@ module.exports = {
             apply(compiler) {
                 compiler.hooks.done.tap("PLUGIN", stats => {
                     const outputPath = stats.compilation.getPath(compiler.outputPath, {});
-                    const sourceMapPath = path.join(outputPath, "bundle0.js.map");
+                    const sourceMapPath = path.join(outputPath, "static/js/main.js.map");
                     const sourceMapJSON = fs.readFileSync(sourceMapPath, "utf-8");
                     const sourceMap = JSON.parse(sourceMapJSON);
 
