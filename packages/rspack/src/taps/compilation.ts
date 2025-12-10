@@ -234,7 +234,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 											codeGenerationResult: new CodeGenerationResult(result),
 											moduleObject
 										},
-										{ [`${RuntimeGlobals.require}`]: moduleRequireFn }
+										{ [RuntimeGlobals.require]: moduleRequireFn }
 									),
 								"Compilation.hooks.executeModule"
 							);
@@ -243,14 +243,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 						};
 
 						const moduleCache: Record<string, any> = (moduleRequireFn[
-							`${RuntimeGlobals.moduleCache}`.replace(
+							RuntimeGlobals.moduleCache.replace(
 								`${RuntimeGlobals.require}.`,
 								""
 							)
 						] = {});
 						const interceptModuleExecution: ((execOptions: any) => void)[] =
 							(moduleRequireFn[
-								`${RuntimeGlobals.interceptModuleExecution}`.replace(
+								RuntimeGlobals.interceptModuleExecution.replace(
 									`${RuntimeGlobals.require}.`,
 									""
 								)
