@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, input::SourceFileInput},
+  common::{BytePos, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -171,16 +171,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source_string = source.source().into_string_lossy().into_owned();
     let source_rope = ropey::Rope::from_str(&source_string);
 
-    let cm: Arc<swc_core::common::SourceMap> = Default::default();
-    let fm = cm.new_source_file(
-      Arc::new(FileName::Custom(
-        resource_data
-          .path()
-          .map(|p| p.as_str().to_string())
-          .unwrap_or_default(),
-      )),
-      source_string.clone(),
-    );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
 
@@ -201,14 +191,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..Default::default()
       }),
       target,
-      SourceFileInput::from(&*fm),
+      SourceFileInput::new(
+        &source_string,
+        BytePos(1),
+        BytePos(source_string.len() as u32 + 1),
+      ),
       Some(&comments),
     );
 
     let javascript_compiler = JavaScriptCompiler::new();
 
     let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
-      &fm,
+      &source_string,
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
