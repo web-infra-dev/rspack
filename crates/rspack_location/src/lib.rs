@@ -37,8 +37,8 @@ impl RealDependencyLocation {
   }
 
   pub fn from_span(span: &Span, source_rope: &Rope) -> Self {
-    let start_char_offset = source_rope.byte_to_char(span.lo.0 as usize);
-    let end_char_offset = source_rope.byte_to_char(span.hi.0 as usize);
+    let start_char_offset = source_rope.byte_to_char(span.lo.0 as usize - 1);
+    let end_char_offset = source_rope.byte_to_char(span.hi.0 as usize - 1);
 
     let start_line = source_rope.char_to_line(start_char_offset);
     let start_column = start_char_offset - source_rope.line_to_char(start_line);
