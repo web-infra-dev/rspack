@@ -383,8 +383,11 @@ impl ChunkGraph {
           .hash(&mut hasher);
         module.source_types(&mg).dyn_hash(&mut hasher);
 
-        ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
-          .dyn_hash(&mut hasher);
+        ModuleGraph::is_async(
+          &compilation.async_modules_artifact.borrow(),
+          &module_identifier,
+        )
+        .dyn_hash(&mut hasher);
         let exports_info =
           mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
         let (entry, exports) = exports_info.meta();
