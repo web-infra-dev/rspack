@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:0-14
+ERROR in ./index.js 1:1-14
   × Module not found: Can't resolve './foo' in '<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
    ╭────
  1 │ import "./foo"

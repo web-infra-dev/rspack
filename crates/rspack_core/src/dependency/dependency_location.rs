@@ -76,7 +76,7 @@ impl SourceLocation for ropey::Rope {
     Some((
       SourcePosition {
         line: start_line + 1,
-        column: start_column,
+        column: start_column + 1,
       },
       SourcePosition {
         line: end_line + 1,

@@ -46,7 +46,7 @@ modules by path ./ xx bytes (javascript) xx bytes (asset)
     ./raw.png [294] xx bytes (javascript) xx bytes (asset) {889} [depth 1] [built] [code generated]
       [exports: default]
       [no exports used]
-      esm import ./raw.png ./index.js 2:0-33
+      esm import ./raw.png ./index.js 2:1-33
 runtime modules xx KiB
   webpack/runtime/auto_public_path xx KiB {889} [code generated]
     [no exports]

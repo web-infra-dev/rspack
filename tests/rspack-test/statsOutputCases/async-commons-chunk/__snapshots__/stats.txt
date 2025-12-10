@@ -10,7 +10,7 @@ chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{26
   dependent modules xx bytes [dependent] 1 module
   ./index.js xx bytes [built] [code generated] [1 warning]
 
-WARNING in ./index.js 9:4-11
+WARNING in ./index.js 9:2-8
   ⚠ Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
     ╭─[9:4]
   7 │ 
