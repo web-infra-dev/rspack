@@ -10,6 +10,7 @@ version.workspace = true
 anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
+atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
