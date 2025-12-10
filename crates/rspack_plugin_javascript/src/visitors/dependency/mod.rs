@@ -2,7 +2,6 @@ mod context_dependency_helper;
 mod parser;
 mod util;
 
-use ropey::Rope;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
@@ -34,7 +33,6 @@ pub struct ScanDependenciesResult {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source_rope: Rope,
   source: &str,
   program: &Program,
   resource_data: &ResourceData,
@@ -53,7 +51,6 @@ pub fn scan_dependencies(
   runtime_template: &RuntimeTemplate,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
-    source_rope,
     source,
     compiler_options,
     module_parser_options

@@ -169,7 +169,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let source = remove_bom(source);
     let source_string = source.source().into_string_lossy().into_owned();
-    let source_rope = ropey::Rope::from_str(&source_string);
 
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -241,7 +240,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        source_rope,
         &source_string,
         program,
         resource_data,

@@ -101,7 +101,7 @@ fn add_dependencies(
     parsed_path.range.into(),
     need_new_url,
   ));
-  let source_map: SharedSourceMap = parser.source_rope.clone();
+  let source_map: SharedSourceMap = parser.source_rope().clone();
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
     Into::<DependencyRange>::into(span).to_loc(Some(&source_map)),
