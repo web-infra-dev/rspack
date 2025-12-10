@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyLocation, DependencyRange,
+  DependencyCategory, DependencyRange,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -52,7 +52,9 @@ fn create_commonjs_require_context_dependency(
   };
   let mut dep = CommonJsRequireContextDependency::new(
     options,
-    DependencyLocation::from_span(&span, &parser.source_rope),
+    DependencyRange::from(span)
+      .to_loc(Some(&parser.source_rope))
+      .expect("Should get correct loc"),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
     parser.in_try,
@@ -374,7 +376,9 @@ impl CommonJsImportsParserPlugin {
         referenced_exports: None,
         attributes: None,
       },
-      DependencyLocation::from_span(&span, &parser.source_rope),
+      DependencyRange::from(span)
+        .to_loc(Some(&parser.source_rope))
+        .expect("Should get correct loc"),
       ident.span().into(),
       None,
       parser.in_try,

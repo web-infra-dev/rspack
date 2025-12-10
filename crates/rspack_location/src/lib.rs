@@ -1,9 +1,7 @@
 use std::fmt::{self, Debug};
 
 pub use itoa::Buffer;
-use ropey::Rope;
 use rspack_cacheable::cacheable;
-use swc_core::common::Span;
 
 /// Represents a position in the source file, including the line number and column number.
 #[cacheable]
@@ -34,27 +32,6 @@ pub struct RealDependencyLocation {
 impl RealDependencyLocation {
   pub fn new(start: SourcePosition, end: Option<SourcePosition>) -> Self {
     Self { start, end }
-  }
-
-  pub fn from_span(span: &Span, source_rope: &Rope) -> Self {
-    let start_char_offset = source_rope.byte_to_char(span.lo.0 as usize - 1);
-    let end_char_offset = source_rope.byte_to_char(span.hi.0 as usize - 1);
-
-    let start_line = source_rope.char_to_line(start_char_offset);
-    let start_column = start_char_offset - source_rope.line_to_char(start_line);
-    let end_line = source_rope.char_to_line(end_char_offset);
-    let end_column = end_char_offset - source_rope.line_to_char(end_line);
-
-    RealDependencyLocation::new(
-      SourcePosition {
-        line: start_line + 1,
-        column: start_column,
-      },
-      Some(SourcePosition {
-        line: end_line + 1,
-        column: end_column,
-      }),
-    )
   }
 }
 
@@ -114,12 +91,6 @@ impl fmt::Display for SyntheticDependencyLocation {
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
   Synthetic(SyntheticDependencyLocation),
-}
-
-impl DependencyLocation {
-  pub fn from_span(span: &Span, source_rope: &Rope) -> Self {
-    DependencyLocation::Real(RealDependencyLocation::from_span(span, source_rope))
-  }
 }
 
 impl fmt::Display for DependencyLocation {
