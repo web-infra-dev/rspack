@@ -668,7 +668,7 @@ function renderRuntimeGlobals(
 
 export function createCompilerRuntimeGlobals(
 	compilerOptions?: RspackOptionsNormalized
-): typeof RuntimeGlobals {
+): Record<keyof typeof RuntimeGlobals, string> {
 	const res: Record<string, string> = {};
 	for (const key of Object.keys(RuntimeGlobals)) {
 		res[key] = renderRuntimeGlobals(
@@ -676,7 +676,7 @@ export function createCompilerRuntimeGlobals(
 			compilerOptions
 		);
 	}
-	return res as unknown as typeof RuntimeGlobals;
+	return res as unknown as Record<keyof typeof RuntimeGlobals, string>;
 }
 
 const DefaultRuntimeGlobals = createCompilerRuntimeGlobals();
