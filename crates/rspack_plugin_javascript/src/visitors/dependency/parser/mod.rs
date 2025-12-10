@@ -646,9 +646,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn source_rope(&mut self) -> &Rope {
-    self
-      .source_rope
-      .get_or_init(|| Rope::from_str(&self.source))
+    self.source_rope.get_or_init(|| Rope::from_str(self.source))
   }
 
   pub fn is_top_level_scope(&self) -> bool {

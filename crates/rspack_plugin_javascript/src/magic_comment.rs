@@ -296,7 +296,7 @@ fn analyze_comments(
             .name("_9")
             .map(|item| {
               match_item_to_error_span(
-                &source,
+                source,
                 comment.span,
                 &comment.text,
                 item.start(),
