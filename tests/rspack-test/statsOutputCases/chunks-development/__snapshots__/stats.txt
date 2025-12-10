@@ -3,8 +3,8 @@ asset bundle.js xx KiB [emitted] (name: main)
 chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
   > ./index main
   ./.|sync xx bytes [dependent] [built] [code generated]
-    commonjs require context . ./index.js 2:0-16
-    commonjs require context . ./index.js 3:0-16
+    commonjs require context . ./index.js 2:1-16
+    commonjs require context . ./index.js 3:1-16
     xx ms (resolving: xx ms, building: xx ms)
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js

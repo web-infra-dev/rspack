@@ -1,13 +1,13 @@
 Entrypoint main xx KiB = default/main.js
 chunk (runtime: main) default/async-b.js (async-b) (id hint: vendors) xx bytes <{889}> [rendered]
-  > b ./index.js 2:0-45
+  > b ./index.js 2:1-45
   ./node_modules/b.js xx bytes [built] [code generated]
 chunk (runtime: main) default/async-a.js (async-a) xx bytes <{889}> [rendered]
-  > a ./index.js 1:0-45
+  > a ./index.js 1:1-45
   ./node_modules/a.js xx bytes [built] [code generated]
 chunk (runtime: main) default/async-c-1.js (async-c-1) (id hint: vendors) xx bytes <{889}> [rendered]
-  > c ./index.js 3:0-47
-  > c ./index.js 4:0-47
+  > c ./index.js 3:1-47
+  > c ./index.js 4:1-47
   ./node_modules/c.js xx bytes [built] [code generated]
 chunk (runtime: main) default/main.js (main) xx bytes (javascript) xx KiB (runtime) >{701}< >{724}< >{828}< [entry] [rendered]
   > ./ main
