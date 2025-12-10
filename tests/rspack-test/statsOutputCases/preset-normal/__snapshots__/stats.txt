@@ -1,10 +1,10 @@
 <e> [LogTestPlugin] Error
 asset main.js xx KiB [emitted] (name: main)
-runtime modules 88 bytes 1 module
-modules by path ./*.js 73 bytes
-  ./index.js 51 bytes [built] [code generated] [2 warnings]
-  ./a.js 22 bytes [built] [code generated]
-./.|sync 160 bytes [built] [code generated]
+runtime modules xx bytes 1 module
+modules by path ./*.js xx bytes
+  ./index.js xx bytes [built] [code generated] [2 warnings]
+  ./a.js xx bytes [built] [code generated]
+./.|sync xx bytes [built] [code generated]
 
 LOG from LogTestPlugin
 <e> Error

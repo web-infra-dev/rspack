@@ -1,11 +1,16 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  hash::{Hash, Hasher},
+  path::Path,
+};
 
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
+use sugar_path::SugarPath;
 
-use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
+use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
 
 fn get_before(s: &str, token: &str) -> String {
   match s.rfind(token) {
@@ -35,18 +40,46 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 
 pub struct ModuleFilenameHelpers;
 
+fn resolve_relative_resource_path(
+  absolute_resource_path: &str,
+  source_map_path: Option<&Utf8Path>,
+) -> Option<String> {
+  if absolute_resource_path.starts_with("webpack/") {
+    // Webpack runtime modules are virtual
+    return Some(absolute_resource_path.to_string());
+  }
+
+  let Some(source_map_path) = source_map_path else {
+    // During the inline source map stage, the asset filename may not be available yet.
+    // In that case we cannot compute a relative path and must return None.
+    return None;
+  };
+
+  let Some(parent) = source_map_path.parent() else {
+    return Some(absolute_resource_path.to_string());
+  };
+
+  Some(
+    Path::new(absolute_resource_path)
+      .relative(parent)
+      .to_string_lossy()
+      .to_string(),
+  )
+}
+
 impl ModuleFilenameHelpers {
   fn create_module_filename_template_fn_ctx(
-    module_or_source: &ModuleOrSource,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     output_options: &OutputOptions,
     namespace: &str,
+    unresolved_source_map_path: Option<&Utf8Path>,
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
 
-    match module_or_source {
-      ModuleOrSource::Module(module_identifier) => {
+    match source_reference {
+      SourceReference::Module(module_identifier) => {
         let module_graph = compilation.get_module_graph();
         let module = module_graph
           .module_by_identifier(module_identifier)
@@ -60,7 +93,12 @@ impl ModuleFilenameHelpers {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map(|s| s.to_string())
             .unwrap_or_default();
-        let absolute_resource_path = "".to_string();
+        let absolute_resource_path = module
+          .identifier()
+          .split('!')
+          .next_back()
+          .unwrap_or("")
+          .to_string();
 
         let hash = get_hash(&identifier, output_options);
 
@@ -69,6 +107,7 @@ impl ModuleFilenameHelpers {
           .next_back()
           .unwrap_or("")
           .to_string();
+        let relative_resource_path = Some(resource.to_string());
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
@@ -86,6 +125,7 @@ impl ModuleFilenameHelpers {
           identifier,
           module_id,
           absolute_resource_path,
+          relative_resource_path,
           hash,
           resource,
           loaders,
@@ -95,7 +135,7 @@ impl ModuleFilenameHelpers {
           namespace: namespace.to_string(),
         }
       }
-      ModuleOrSource::Source(source) => {
+      SourceReference::Source(source) => {
         let short_identifier = contextify(context, source);
         let identifier = short_identifier.clone();
 
@@ -119,11 +159,16 @@ impl ModuleFilenameHelpers {
           resource[..resource.len().saturating_sub(q)].to_string()
         };
 
+        let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
+        let relative_resource_path =
+          resolve_relative_resource_path(&absolute_resource_path, unresolved_source_map_path);
+
         ModuleFilenameTemplateFnCtx {
           short_identifier,
           identifier,
           module_id: "".to_string(),
-          absolute_resource_path: source.split('!').next_back().unwrap_or("").to_string(),
+          absolute_resource_path,
+          relative_resource_path,
           hash,
           resource,
           loaders,
@@ -137,34 +182,38 @@ impl ModuleFilenameHelpers {
   }
 
   pub async fn create_filename_of_fn_template(
-    module_or_source: &ModuleOrSource,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplateFn,
     output_options: &OutputOptions,
     namespace: &str,
+    unresolved_source_map_path: Option<&Utf8Path>,
   ) -> Result<String> {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
-      module_or_source,
+      source_reference,
       compilation,
       output_options,
       namespace,
+      unresolved_source_map_path,
     );
 
     module_filename_template(ctx).await
   }
 
   pub fn create_filename_of_string_template(
-    module_or_source: &ModuleOrSource,
+    source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &str,
     output_options: &OutputOptions,
     namespace: &str,
+    unresolved_source_map_path: Option<&Utf8Path>,
   ) -> String {
     let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
-      module_or_source,
+      source_reference,
       compilation,
       output_options,
       namespace,
+      unresolved_source_map_path,
     );
 
     template_replace(module_filename_template, &ctx)
@@ -270,6 +319,17 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
             b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path),
+
+            b"[relative-resource-path]" |
+            b"[relativeresource-path]" |
+            b"[relative-resourcepath]" |
+            b"[relativeresourcepath]" => {
+              if let Some(relative_resource_path) = &ctx.relative_resource_path {
+                buf.push_str(relative_resource_path)
+              } else {
+                buf.push_str(&sstr[pos..next_pos]);
+              }
+            },
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();

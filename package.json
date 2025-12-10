@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -73,7 +73,7 @@
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.6.8",
+    "@rstest/core": "^0.7.1",
     "lint-staged": "^16.2.7",
     "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",

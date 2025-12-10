@@ -4,7 +4,7 @@ use rkyv::{
   ser::{Allocator, Writer},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
-use rspack_macros::enable_cacheable as cacheable;
+use rspack_cacheable_macros::enable_cacheable as cacheable;
 use rspack_sources::{
   BoxSource, ObjectPool, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,

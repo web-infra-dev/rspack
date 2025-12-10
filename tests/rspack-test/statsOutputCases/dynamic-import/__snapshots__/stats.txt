@@ -12,10 +12,10 @@ cacheable modules 1.12 MiB
       modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/*.js xx KiB 2 modules
       modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/cjs/*.js 1.03 MiB 2 modules
     modules by path ../../../../node_modules/<PNPM_INNER>/scheduler/ xx KiB
-      ../../../../node_modules/<PNPM_INNER>/scheduler/index.js 194 bytes [built] [code generated]
+      ../../../../node_modules/<PNPM_INNER>/scheduler/index.js xx bytes [built] [code generated]
       ../../../../node_modules/<PNPM_INNER>/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
   modules by path ./src/ xx KiB
-    ./src/index.js 753 bytes [built] [code generated]
-    ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object 160 bytes [built] [code generated]
+    ./src/index.js xx bytes [built] [code generated]
+    ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object xx bytes [built] [code generated]
     ./src/pages/home.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s

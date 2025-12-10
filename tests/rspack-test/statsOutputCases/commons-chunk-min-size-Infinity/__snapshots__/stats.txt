@@ -1,13 +1,13 @@
 asset entry-1.js xx KiB [emitted] (name: entry-1)
-asset vendor-1.js 196 bytes [emitted] (name: vendor-1) (id hint: vendor-1)
-Entrypoint entry-1 xx KiB = vendor-1.js 196 bytes entry-1.js xx KiB
+asset vendor-1.js xx bytes [emitted] (name: vendor-1) (id hint: vendor-1)
+Entrypoint entry-1 xx KiB = vendor-1.js xx bytes entry-1.js xx KiB
 runtime modules xx KiB 3 modules
-modules by path ./modules/*.js 132 bytes
-  ./modules/a.js 22 bytes [built] [code generated]
-  ./modules/b.js 22 bytes [built] [code generated]
-  ./modules/c.js 22 bytes [built] [code generated]
-  ./modules/d.js 22 bytes [built] [code generated]
-  ./modules/e.js 22 bytes [built] [code generated]
-  ./modules/f.js 22 bytes [built] [code generated]
-./entry-1.js 145 bytes [built] [code generated]
+modules by path ./modules/*.js xx bytes
+  ./modules/a.js xx bytes [built] [code generated]
+  ./modules/b.js xx bytes [built] [code generated]
+  ./modules/c.js xx bytes [built] [code generated]
+  ./modules/d.js xx bytes [built] [code generated]
+  ./modules/e.js xx bytes [built] [code generated]
+  ./modules/f.js xx bytes [built] [code generated]
+./entry-1.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

@@ -1,0 +1,145 @@
+0 errors 0 warnings:
+  asset 0.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+  0 errors 0 warnings (Rspack x.x.x) compiled successfully in X s
+
+1 errors 0 warnings:
+  asset 1.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  ERROR in × Test
+  Error details
+
+  1 errors 0 warnings (Rspack x.x.x) compiled with 1 error in X s
+
+0 errors 1 warnings:
+  asset 10.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  1 warning has detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  0 errors 1 warnings (Rspack x.x.x) compiled with 1 warning in X s
+
+2 errors 0 warnings:
+  asset 2.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  2 errors 0 warnings (Rspack x.x.x) compiled with 2 errors in X s
+
+0 errors 2 warnings:
+  asset 20.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  WARNING in ⚠ Test
+  Error details
+
+  2 warnings have detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  0 errors 2 warnings (Rspack x.x.x) compiled with 2 warnings in X s
+
+1 errors 1 warnings:
+  asset 11.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  1 warning has detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  ERROR in × Test
+  Error details
+
+  1 errors 1 warnings (Rspack x.x.x) compiled with 1 error and 1 warning in X s
+
+2 errors 1 warnings:
+  asset 12.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  1 warning has detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  2 errors 1 warnings (Rspack x.x.x) compiled with 2 errors and 1 warning in X s
+
+3 errors 1 warnings:
+  asset 13.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  1 warning has detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  3 errors have detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  3 errors 1 warnings (Rspack x.x.x) compiled with 3 errors and 1 warning in X s
+
+3 errors 0 warnings:
+  asset 3.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  ERROR in × Test
+  Error details
+
+  3 errors have detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  3 errors 0 warnings (Rspack x.x.x) compiled with 3 errors in X s
+
+0 errors 3 warnings:
+  asset 30.js xx bytes [emitted] (name: main)
+  ./index.js xx bytes [built] [code generated]
+
+  WARNING in ⚠ Test
+  Error details
+
+  WARNING in ⚠ Test
+  Error details
+
+  WARNING in ⚠ Test
+  Error details
+
+  3 warnings have detailed information that is not shown.
+  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+  0 errors 3 warnings (Rspack x.x.x) compiled with 3 warnings in X s

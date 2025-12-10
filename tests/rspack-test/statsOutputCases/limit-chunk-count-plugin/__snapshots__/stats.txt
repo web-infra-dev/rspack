@@ -1,47 +1,47 @@
 1 chunks:
   asset bundle1.js xx KiB [emitted] (name: main)
-  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) xx KiB (runtime) <{889}> >{889}< [entry] [rendered]
-    dependent modules 96 bytes [dependent] 4 modules
-    ./index.js 123 bytes [built] [code generated]
+  chunk (runtime: main) bundle1.js (main) xx bytes (javascript) xx KiB (runtime) <{889}> >{889}< [entry] [rendered]
+    dependent modules xx bytes [dependent] 4 modules
+    ./index.js xx bytes [built] [code generated]
   1 chunks (Rspack x.x.x) compiled successfully in X s
 
 2 chunks:
   asset bundle2.js xx KiB [emitted] (name: main)
-  asset 907.bundle2.js 453 bytes [emitted] (name: c)
-  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
-    dependent modules 22 bytes [dependent] 1 module
-    ./index.js 123 bytes [built] [code generated]
-  chunk (runtime: main) 907.bundle2.js (c) 74 bytes <{889}> <{907}> >{907}< [rendered]
-    dependent modules 44 bytes [dependent] 2 modules
-    ./c.js 30 bytes [built] [code generated]
+  asset 907.bundle2.js xx bytes [emitted] (name: c)
+  chunk (runtime: main) bundle2.js (main) xx bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
+    dependent modules xx bytes [dependent] 1 module
+    ./index.js xx bytes [built] [code generated]
+  chunk (runtime: main) 907.bundle2.js (c) xx bytes <{889}> <{907}> >{907}< [rendered]
+    dependent modules xx bytes [dependent] 2 modules
+    ./c.js xx bytes [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
 3 chunks:
   asset bundle3.js xx KiB [emitted] (name: main)
-  asset 907.bundle3.js 371 bytes [emitted] (name: c)
-  asset 719.bundle3.js 156 bytes [emitted]
-  chunk (runtime: main) 719.bundle3.js 44 bytes <{907}> [rendered]
-    ./d.js 22 bytes [built] [code generated]
-    ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
-    dependent modules 22 bytes [dependent] 1 module
-    ./index.js 123 bytes [built] [code generated]
-  chunk (runtime: main) 907.bundle3.js (c) 30 bytes <{889}> >{719}< [rendered]
-    ./c.js 30 bytes [built] [code generated]
+  asset 907.bundle3.js xx bytes [emitted] (name: c)
+  asset 719.bundle3.js xx bytes [emitted]
+  chunk (runtime: main) 719.bundle3.js xx bytes <{907}> [rendered]
+    ./d.js xx bytes [built] [code generated]
+    ./e.js xx bytes [built] [code generated]
+  chunk (runtime: main) bundle3.js (main) xx bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
+    dependent modules xx bytes [dependent] 1 module
+    ./index.js xx bytes [built] [code generated]
+  chunk (runtime: main) 907.bundle3.js (c) xx bytes <{889}> >{719}< [rendered]
+    ./c.js xx bytes [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
 4 chunks:
   asset bundle4.js xx KiB [emitted] (name: main)
-  asset 907.bundle4.js 371 bytes [emitted] (name: c)
-  asset 266.bundle4.js 115 bytes [emitted]
-  asset 327.bundle4.js 115 bytes [emitted]
-  chunk (runtime: main) 266.bundle4.js 22 bytes <{907}> [rendered]
-    ./d.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 327.bundle4.js 22 bytes <{907}> [rendered]
-    ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
-    dependent modules 22 bytes [dependent] 1 module
-    ./index.js 123 bytes [built] [code generated]
-  chunk (runtime: main) 907.bundle4.js (c) 30 bytes <{889}> >{266}< >{327}< [rendered]
-    ./c.js 30 bytes [built] [code generated]
+  asset 907.bundle4.js xx bytes [emitted] (name: c)
+  asset 266.bundle4.js xx bytes [emitted]
+  asset 327.bundle4.js xx bytes [emitted]
+  chunk (runtime: main) 266.bundle4.js xx bytes <{907}> [rendered]
+    ./d.js xx bytes [built] [code generated]
+  chunk (runtime: main) 327.bundle4.js xx bytes <{907}> [rendered]
+    ./e.js xx bytes [built] [code generated]
+  chunk (runtime: main) bundle4.js (main) xx bytes (javascript) xx KiB (runtime) >{907}< [entry] [rendered]
+    dependent modules xx bytes [dependent] 1 module
+    ./index.js xx bytes [built] [code generated]
+  chunk (runtime: main) 907.bundle4.js (c) xx bytes <{889}> >{266}< >{327}< [rendered]
+    ./c.js xx bytes [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s

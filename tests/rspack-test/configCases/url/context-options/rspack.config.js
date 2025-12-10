@@ -8,7 +8,8 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				dynamicUrl: true
+				// this is always true in rspack
+				// dynamicUrl: true
 			}
 		}
 	}

@@ -1,0 +1,36 @@
+production:
+  Entrypoint main xx KiB = main.js
+  chunk (runtime: main) async-a.js (async-a) xx bytes <{main}> ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
+    > ./a ./index.js 1:0-47
+    ./a.js + 1 modules xx bytes [code generated]
+  chunk (runtime: main) async-b.js (async-b) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
+    > ./b ./index.js 2:0-47
+    ./b.js xx bytes [built] [code generated]
+  chunk (runtime: main) async-c.js (async-c) xx bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_z_js}= [rendered]
+    > ./c ./index.js 3:0-47
+    ./c.js xx bytes [built] [code generated]
+  chunk (runtime: main) common-d_js.js (id hint: common) xx bytes <{main}> ={async-a}= ={async-b}= ={async-c}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= ={common-node_modules_z_js}= [rendered] split chunk (cache group: a)
+    > ./a ./index.js 1:0-47
+    > ./b ./index.js 2:0-47
+    > ./c ./index.js 3:0-47
+    ./d.js xx bytes [built] [code generated]
+  chunk (runtime: main) common-f_js.js (id hint: common) xx bytes <{main}> ={async-b}= ={async-c}= ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= ={common-node_modules_z_js}= [rendered] split chunk (cache group: a)
+    > ./b ./index.js 2:0-47
+    > ./c ./index.js 3:0-47
+    ./f.js xx bytes [built] [code generated]
+  chunk (runtime: main) common-node_modules_x_js.js (id hint: common) xx bytes <{main}> ={async-a}= ={async-b}= ={async-c}= ={common-d_js}= ={common-f_js}= ={common-node_modules_y_js}= ={common-node_modules_z_js}= [rendered] split chunk (cache group: b)
+    > ./a ./index.js 1:0-47
+    > ./b ./index.js 2:0-47
+    > ./c ./index.js 3:0-47
+    ./node_modules/x.js xx bytes [built] [code generated]
+  chunk (runtime: main) common-node_modules_y_js.js (id hint: common) xx bytes <{main}> ={async-a}= ={async-b}= ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= [rendered] split chunk (cache group: b)
+    > ./a ./index.js 1:0-47
+    > ./b ./index.js 2:0-47
+    ./node_modules/y.js xx bytes [built] [code generated]
+  chunk (runtime: main) common-node_modules_z_js.js (id hint: common) xx bytes <{main}> ={async-c}= ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= [rendered] split chunk (cache group: b)
+    > ./c ./index.js 3:0-47
+    ./node_modules/z.js xx bytes [built] [code generated]
+  chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{async-a}< >{async-b}< >{async-c}< >{common-d_js}< >{common-f_js}< >{common-node_modules_x_js}< >{common-node_modules_y_js}< >{common-node_modules_z_js}< [entry] [rendered]
+    > ./ main
+    ./index.js xx bytes [built] [code generated]
+  production (Rspack x.x.x) compiled successfully
