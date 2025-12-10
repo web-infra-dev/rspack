@@ -168,6 +168,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
+    let source_string = source.source().into_string_lossy().into_owned();
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
       Arc::new(FileName::Custom(
@@ -176,7 +177,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
       )),
-      source.source().into_string_lossy().into_owned(),
+      source_string.clone(),
     );
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -245,7 +246,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = match ast.visit(|program, _| {
       scan_dependencies(
         cm.clone(),
-        &fm,
+        &source_string,
         program,
         resource_data,
         compiler_options,

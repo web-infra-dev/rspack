@@ -111,7 +111,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.requireActual` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -169,7 +169,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importActual` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -351,7 +351,7 @@ impl RstestParserPlugin {
             create_traceable_error(
               "Invalid function call".into(),
               "`rs.mock` function expects a string literal as the first argument".into(),
-              parser.source_file(),
+              parser.source().to_owned(),
               call_expr.span.into(),
             )
             .into(),
@@ -363,7 +363,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.mock` function expects 1 or 2 arguments".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -406,7 +406,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.hoisted` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -437,7 +437,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.resetModules` function expects 0 arguments".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -524,7 +524,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),

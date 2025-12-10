@@ -273,7 +273,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         let mut error: Error = create_traceable_error(
           "Critical dependency".into(),
           "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-          parser.source_file,
+          parser.source.to_owned(),
           span.into()
         );
         error.severity = Severity::Warning;

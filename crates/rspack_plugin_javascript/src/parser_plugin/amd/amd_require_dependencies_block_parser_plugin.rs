@@ -351,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
-          parser.source_file,
+          parser.source.to_owned(),
           call_expr.span.into(),
         );
         error.severity = Severity::Warning;

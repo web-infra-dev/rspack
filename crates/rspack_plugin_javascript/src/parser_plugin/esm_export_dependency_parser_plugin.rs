@@ -92,7 +92,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         create_traceable_error(
           "JavaScript parse error".into(),
           format!("Duplicate export of '{export_name}'"),
-          parser.source_file,
+          parser.source.to_owned(),
           export_name_span.into(),
         )
         .into(),
@@ -179,7 +179,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
           create_traceable_error(
             "JavaScript parse error".into(),
             format!("Duplicate export of '{export_name}'"),
-            parser.source_file,
+            parser.source.to_owned(),
             export_name_span.expect("should exist").into(),
           )
           .into(),

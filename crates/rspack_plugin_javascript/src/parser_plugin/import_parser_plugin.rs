@@ -313,7 +313,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-        parser.source_file,
+        parser.source.to_owned(),
         import_call_span.into(),
       );
       error.severity = Severity::Warning;

@@ -384,7 +384,7 @@ impl CommonJsImportsParserPlugin {
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
           .to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         ident.span().into(),
       );
       error.severity = Severity::Warning;

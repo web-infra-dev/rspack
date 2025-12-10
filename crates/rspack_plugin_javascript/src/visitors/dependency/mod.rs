@@ -12,7 +12,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments};
+use swc_core::common::{BytePos, Mark, SourceMap, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
@@ -36,7 +36,7 @@ pub struct ScanDependenciesResult {
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   source_map: Arc<SourceMap>,
-  source_file: &SourceFile,
+  source: &str,
   program: &Program,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
@@ -55,7 +55,7 @@ pub fn scan_dependencies(
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source_map,
-    source_file,
+    source,
     compiler_options,
     module_parser_options
       .and_then(|p| p.get_javascript())
