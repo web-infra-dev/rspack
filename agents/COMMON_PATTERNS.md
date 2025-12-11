@@ -441,6 +441,6 @@ let hash = compilation
 ## Resources
 
 - See [CODE_STYLE.md](./CODE_STYLE.md) for coding standards
-- See [AGENTS.md](./AGENTS.md) for development workflow
+- See [AGENTS.md](../AGENTS.md) for development workflow
 - See existing plugins in `crates/rspack_plugin_*/` for examples
 - See existing loaders in `crates/rspack_loader_*/` for examples

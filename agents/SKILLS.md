@@ -310,7 +310,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 ### Official Documentation
 
 - [Rspack Documentation](https://rspack.rs/)
-- [Project Architecture](./website/docs/en/contribute/development/project.md)
+- [Project Architecture](../website/docs/en/contribute/development/project.md)
 - [Architecture Guide](./ARCHITECTURE.md)
 - [API Design](./API_DESIGN.md)
 - [Code Style](./CODE_STYLE.md)

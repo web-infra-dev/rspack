@@ -488,7 +488,7 @@ Runtime Code
 
 ## Resources
 
-- [Project Structure](./website/docs/en/contribute/development/project.md)
+- [Project Structure](../website/docs/en/contribute/development/project.md)
 - [Common Patterns](./COMMON_PATTERNS.md)
 - [Code Style](./CODE_STYLE.md)
 - [Plugin API Documentation](https://rspack.rs/api/plugin-api/)
