@@ -250,7 +250,7 @@ pub struct Compilation {
   // artifact for infer_async_modules_plugin
   pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
+  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -389,9 +389,9 @@ impl Compilation {
 
       async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: DerefOption::new(
+      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
         DependenciesDiagnosticsArtifact::default(),
-      ),
+      )),
       side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       named_chunk_ids_artifact: Default::default(),
