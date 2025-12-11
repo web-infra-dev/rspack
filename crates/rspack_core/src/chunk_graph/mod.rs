@@ -31,6 +31,23 @@ impl ChunkGraph {
     let cgm = self.expect_chunk_graph_module(*module_id);
     !cgm.entry_in_chunks.is_empty()
   }
+
+  pub fn get_chunk_group_blocks(
+    &self,
+    chunk_group_ukey: ChunkGroupUkey,
+  ) -> Vec<AsyncDependenciesBlockIdentifier> {
+    self
+      .block_to_chunk_group_ukey
+      .iter()
+      .filter_map(|(block_id, group_ukey)| {
+        if *group_ukey == chunk_group_ukey {
+          Some(*block_id)
+        } else {
+          None
+        }
+      })
+      .collect()
+  }
 }
 static INDENT: &str = "    ";
 

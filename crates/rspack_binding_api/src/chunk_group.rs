@@ -14,7 +14,7 @@ use crate::{
 
 #[napi]
 pub struct ChunkGroup {
-  chunk_group_ukey: rspack_core::ChunkGroupUkey,
+  pub(crate) chunk_group_ukey: rspack_core::ChunkGroupUkey,
   compilation: NonNull<Compilation>,
 }
 
