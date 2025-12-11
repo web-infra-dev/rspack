@@ -27,12 +27,11 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{Spanned, SyntaxContext},
 };
 use swc_experimental_ecma_ast::EsVersion;
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
-use swc_node_comments::SwcComments;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
@@ -2294,21 +2293,13 @@ impl ConcatenatedModule {
       }
 
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
+      let mut module_info = concatenation_scope.current_module;
+
       let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source();
-
-      let cm: Arc<swc_core::common::SourceMap> = Default::default();
-      let fm = cm.new_source_file(
-        Arc::new(FileName::Custom(format!(
-          "{}",
-          self.readable_identifier(&compilation.options.context),
-        ))),
-        source_code.into_string_lossy().into_owned(),
-      );
-      let comments = SwcComments::default();
-      let mut module_info = concatenation_scope.current_module;
+      let source_string = source_code.into_string_lossy().into_owned();
 
       let jsx = module
         .as_ref()
@@ -2327,8 +2318,8 @@ impl ConcatenatedModule {
           ..Default::default()
         }),
         EsVersion::EsNext,
-        StringSource::new(fm.src.as_str()),
-        Some(&comments),
+        StringSource::new(&source_string),
+        None,
       );
       let p = Parser::new_from(lexer);
       let ret = p.parse_module();
@@ -2338,7 +2329,7 @@ impl ConcatenatedModule {
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
-            Some(fm.src.clone().into_string()),
+            Some(source_string),
             err.span().real_lo() as usize,
             err.span().real_hi() as usize,
             "JavaScript parse error:\n".to_string(),
