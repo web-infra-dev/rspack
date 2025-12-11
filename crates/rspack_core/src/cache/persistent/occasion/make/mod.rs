@@ -3,6 +3,7 @@ mod module_graph;
 
 use std::sync::Arc;
 
+pub use module_graph::SCOPE;
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
