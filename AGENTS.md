@@ -14,6 +14,21 @@ Rspack is a Rust-first, webpack-compatible bundler. The repository mixes Rust cr
 - Format & lint with `pnpm run format:rs/js` plus `pnpm run lint:js`, `pnpm run lint:type`.
 - Run tests using `pnpm run test:unit`, `pnpm run test:e2e`, `pnpm run test:webpack`, or targeted Rust `cargo test`.
 
+## Common Commands
+- `pnpm run setup`: Install JS deps, bootstrap workspaces, and build initial Rust bindings.
+- `pnpm run build:binding:dev`: Compile napi bindings in development mode (debug info, no stripping).
+- `pnpm run build:cli:dev`: Full dev build covering bindings + CLI/runtime bundles.
+- `pnpm run build:js`: Build all JS packages; use `pnpm --filter <pkg> build` for a single package.
+- `pnpm run lint:js`: Run Biome lint checks across JS/TS sources.
+- `pnpm run lint:type`: Execute TypeScript type checking (rslib/rslint pipeline).
+- `pnpm run format:js`: Prettier formatting for JS/TS; `pnpm run format:rs` triggers `cargo fmt`.
+- `pnpm run test:unit`: Execute JavaScript unit tests.
+- `pnpm run test:e2e`: Run scenario-driven E2E suites under `tests/e2e`.
+- `pnpm run test:webpack`: Replay webpack compatibility corpus from `tests/rspack-test`.
+- `pnpm --filter @rspack/core dev`: Watch-mode build for the specified package (works for any workspace package).
+- `cargo test -p <crate>`: Run Rust tests for a single crate; add `-- --nocapture` for verbose logs.
+- `cargo bench -p rspack_benchmark`: Execute Criterion benchmarks defined in `xtask/benchmark`.
+
 ## Crate Catalog
 
 ### Core Engine & Workspace
