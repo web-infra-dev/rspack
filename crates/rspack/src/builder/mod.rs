@@ -3671,8 +3671,6 @@ pub struct ExperimentsBuilder {
   future_defaults: Option<bool>,
   /// Whether to enable css.
   css: Option<bool>,
-  /// Whether to enable parallel code splitting.
-  parallel_code_splitting: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
@@ -3685,7 +3683,6 @@ impl From<Experiments> for ExperimentsBuilder {
       top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
       cache: Some(value.cache),
-      parallel_code_splitting: Some(value.parallel_code_splitting),
       output_module: None,
       future_defaults: None,
       css: Some(value.css),
@@ -3704,7 +3701,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
-      parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
     }
   }
@@ -3747,12 +3743,6 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable parallel code splitting.
-  pub fn parallel_code_splitting(&mut self, parallel_code_splitting: bool) -> &mut Self {
-    self.parallel_code_splitting = Some(parallel_code_splitting);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3789,13 +3779,10 @@ impl ExperimentsBuilder {
     w!(self.async_web_assembly, *future_defaults);
     w!(self.output_module, false);
 
-    let parallel_code_splitting = d!(self.parallel_code_splitting, false);
-
     Ok(Experiments {
       incremental,
       top_level_await,
       rspack_future,
-      parallel_code_splitting,
       cache,
       css: d!(self.css, false),
       inline_const: false,

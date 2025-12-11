@@ -10,7 +10,6 @@ use crate::incremental::IncrementalOptions;
 #[derive(Debug)]
 pub struct Experiments {
   pub incremental: IncrementalOptions,
-  pub parallel_code_splitting: bool,
   pub top_level_await: bool,
   pub rspack_future: RspackFuture,
   pub cache: ExperimentCacheOptions,
