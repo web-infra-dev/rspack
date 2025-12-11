@@ -33,6 +33,10 @@ swc_core                   = { workspace = true, features = ["swc_ecma_transform
 tokio                      = { workspace = true }
 tracing                    = { workspace = true }
 
+swc_experimental_ecma_ast      = { workspace = true }
+swc_experimental_ecma_parser   = { workspace = true }
+swc_experimental_ecma_semantic = { workspace = true }
+
 [lints]
 workspace = true
 
