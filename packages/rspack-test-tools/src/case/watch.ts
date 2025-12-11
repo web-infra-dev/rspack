@@ -97,10 +97,16 @@ export function createWatchInitialProcessor(
 				watchContext.tempDir,
 				true
 			);
-			if (!fs.existsSync(path.join(watchContext.tempDir, "package.json"))) {
-				fs.writeJsonSync(path.join(watchContext.tempDir, "package.json"), {
-					name
-				});
+
+			const pkgJsonFile = path.join(watchContext.tempDir, "package.json");
+			if (!fs.existsSync(pkgJsonFile)) {
+				fs.writeJsonSync(pkgJsonFile, { name, version: "0.0.1" });
+				const longTimeAgo = Date.now() - 1000 * 60 * 60 * 24;
+				fs.utimesSync(
+					pkgJsonFile,
+					Date.now() - longTimeAgo,
+					Date.now() - longTimeAgo
+				);
 			}
 			const task = new Promise((resolve, reject) => {
 				compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
