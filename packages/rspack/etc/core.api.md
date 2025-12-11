@@ -4859,6 +4859,8 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
     shareStrategy?: "version-first" | "loaded-first";
+    // (undocumented)
+    treeshakeSharedExcludedPlugins?: string[];
 }
 
 // @public (undocumented)

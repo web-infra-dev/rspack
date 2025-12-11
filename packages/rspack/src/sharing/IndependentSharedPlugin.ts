@@ -26,7 +26,7 @@ const VIRTUAL_ENTRY_NAME = "virtual-entry";
 export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> &
 	Omit<T, K>;
 
-const filterPlugin = (plugin: Plugins[0]) => {
+const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
 	if (!plugin) {
 		return true;
 	}
@@ -39,7 +39,8 @@ const filterPlugin = (plugin: Plugins[0]) => {
 		"IndependentSharedPlugin",
 		"ModuleFederationPlugin",
 		"SharedUsedExportsOptimizerPlugin",
-		"HtmlWebpackPlugin"
+		"HtmlWebpackPlugin",
+		...excludedPlugins
 	].includes(pluginName);
 };
 
@@ -52,6 +53,7 @@ export interface IndependentSharePluginOptions {
 	treeshake?: boolean;
 	manifest?: ModuleFederationManifestPluginOptions;
 	injectUsedExports?: boolean;
+	treeshakeSharedExcludedPlugins?: string[];
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
@@ -121,6 +123,7 @@ export class IndependentSharedPlugin {
 	manifest?: ModuleFederationManifestPluginOptions;
 	buildAssets: ShareFallback = {};
 	injectUsedExports?: boolean;
+	treeshakeSharedExcludedPlugins?: string[];
 
 	name = "IndependentSharedPlugin";
 	constructor(options: IndependentSharePluginOptions) {
@@ -132,7 +135,8 @@ export class IndependentSharedPlugin {
 			name,
 			manifest,
 			injectUsedExports,
-			library
+			library,
+			treeshakeSharedExcludedPlugins
 		} = options;
 		this.shared = shared;
 		this.mfName = name;
@@ -142,6 +146,7 @@ export class IndependentSharedPlugin {
 		this.manifest = manifest;
 		this.injectUsedExports = injectUsedExports ?? true;
 		this.library = library;
+		this.treeshakeSharedExcludedPlugins = treeshakeSharedExcludedPlugins || [];
 		this.sharedOptions = parseOptions(
 			shared,
 			(item, key) => {
@@ -301,8 +306,15 @@ export class IndependentSharedPlugin {
 			shareRequestsMap: ShareRequestsMap;
 		}
 	) {
-		const { mfName, plugins, outputDir, sharedOptions, treeshake, library } =
-			this;
+		const {
+			mfName,
+			plugins,
+			outputDir,
+			sharedOptions,
+			treeshake,
+			library,
+			treeshakeSharedExcludedPlugins
+		} = this;
 
 		const outputDirWithShareName = resolveOutputDir(
 			outputDir,
@@ -329,7 +341,7 @@ export class IndependentSharedPlugin {
 			if (
 				plugin !== undefined &&
 				typeof plugin !== "string" &&
-				filterPlugin(plugin)
+				filterPlugin(plugin, treeshakeSharedExcludedPlugins)
 			) {
 				finalPlugins.push(plugin);
 			}

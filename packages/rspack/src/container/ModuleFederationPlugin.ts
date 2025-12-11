@@ -21,6 +21,7 @@ export interface ModuleFederationPluginOptions
 	shareStrategy?: "version-first" | "loaded-first";
 	injectUsedExports?: boolean;
 	independentShareDir?: string;
+	treeshakeSharedExcludedPlugins?: string[];
 	manifest?: ModuleFederationManifestPluginOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
