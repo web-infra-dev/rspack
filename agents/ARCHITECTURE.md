@@ -1,50 +1,30 @@
 # Architecture
 
-This document describes the high-level architecture of Rspack, including the core components, data flow, and design decisions.
+High-level architecture of Rspack, including core components, data flow, and design decisions.
 
 ## Overview
 
-Rspack is a high-performance JavaScript bundler written in Rust that maintains strong compatibility with the webpack ecosystem. The architecture is designed to leverage Rust's performance while providing a webpack-compatible API through Node.js bindings.
+Rspack is a high-performance JavaScript bundler written in Rust that maintains strong compatibility with the webpack ecosystem. The architecture leverages Rust's performance while providing a webpack-compatible API through Node.js bindings.
 
 ## High-Level Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    JavaScript/TypeScript Layer               │
-│  (@rspack/core, @rspack/cli, plugins, loaders)               │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ NAPI (Node-API)
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│                    Rust Core Layer                          │
-│  (rspack_core, plugins, loaders, compilation engine)       │
-└─────────────────────────────────────────────────────────────┘
+JavaScript/TypeScript Layer (@rspack/core, plugins, loaders)
+         ↓ NAPI (Node-API)
+Rust Core Layer (rspack_core, compilation engine)
 ```
 
 ### Layer Separation
 
-1. **JavaScript/TypeScript Layer** (`packages/`)
-   - Provides webpack-compatible API
-   - Handles configuration and plugin registration
-   - Manages file system operations
-   - Bridges to Rust core via NAPI
-
-2. **Rust Core Layer** (`crates/`)
-   - Core compilation engine
-   - Module system and dependency graph
-   - Plugin and loader execution
-   - Code transformation and optimization
-
-3. **Binding Layer** (`crates/rspack_binding_api`, `crates/rspack_napi`)
-   - NAPI bindings for Rust-JavaScript interop
-   - Type-safe API translation
-   - Memory management
+1. **JavaScript/TypeScript Layer** (`packages/`): Webpack-compatible API, configuration, file system operations
+2. **Rust Core Layer** (`crates/`): Core compilation engine, module system, plugin/loader execution
+3. **Binding Layer**: NAPI bindings for Rust-JavaScript interop
 
 ## Core Components
 
 ### Compiler
 
-The `Compiler` is the main entry point that orchestrates the build process.
+Main entry point orchestrating the build process.
 
 **Responsibilities:**
 
@@ -56,16 +36,11 @@ The `Compiler` is the main entry point that orchestrates the build process.
 
 **Key Hooks:**
 
-- `beforeRun`: Before starting compilation
-- `run`: Start compilation
-- `compile`: Create compilation
-- `make`: Build modules
-- `emit`: Write assets to output
-- `done`: Compilation complete
+- `beforeRun`, `run`, `compile`, `make`, `emit`, `done`
 
 ### Compilation
 
-The `Compilation` represents a single build instance and manages the module graph, chunks, and assets.
+Represents a single build instance managing module graph, chunks, and assets.
 
 **Responsibilities:**
 
@@ -77,22 +52,17 @@ The `Compilation` represents a single build instance and manages the module grap
 
 **Key Data Structures:**
 
-- `ModuleGraph`: Module graph tracking all modules, dependencies, and connections
+- `ModuleGraph`: Tracks modules, dependencies, and connections
 - `ChunkGraph`: Relationship between chunks and modules
-- `Assets`: Output files and their content
-- `ChunkByUkey`: Chunk storage and lookup
+- `Assets`: Output files and content
 
 **Key Hooks:**
 
-- `buildModule`: Build individual modules
-- `succeedModule`: Module built successfully
-- `processAssets`: Process and transform assets
-- `optimizeChunks`: Optimize chunk structure
-- `afterSeal`: After sealing compilation
+- `buildModule`, `succeedModule`, `processAssets`, `optimizeChunks`, `afterSeal`
 
 ### Module System
 
-Modules are the basic unit of code organization in Rspack.
+Modules are the basic unit of code organization.
 
 **Module Types:**
 
@@ -106,37 +76,30 @@ Modules are the basic unit of code organization in Rspack.
 1. **Parse**: Parse source code into AST
 2. **Build**: Resolve dependencies and build module
 3. **Code Generation**: Generate runtime code
-4. **Seal**: Finalize module (no more changes)
+4. **Seal**: Finalize module
 
 ### Module Graph
 
-The Module Graph manages modules and their relationships through dependencies and connections.
+Manages modules and their relationships through dependencies and connections.
 
 **Key Concepts:**
 
-- **Dependency**: Represents a relationship between modules (e.g., import, require). Each dependency has a `DependencyId` and can be of different types (ModuleDependency, ContextDependency, etc.)
-- **Connection**: A `ModuleGraphConnection` represents the actual link between modules, containing:
-  - `dependency_id`: The dependency that created this connection
-  - `original_module_identifier`: The module that references another module
-  - `resolved_module`: The module being referenced
-- **Module Graph**: The central data structure (`ModuleGraph`) that tracks:
-  - All modules in the compilation
-  - All dependencies between modules
-  - All connections (links) between modules
-  - Export/import information
+- **Dependency**: Relationship between modules (import, require). Has `DependencyId` and types (ModuleDependency, ContextDependency, etc.)
+- **Connection**: `ModuleGraphConnection` linking modules with `dependency_id`, `original_module_identifier`, `resolved_module`
+- **Module Graph**: Central data structure tracking all modules, dependencies, connections, and export/import information
 
 **Graph Construction:**
 
 1. Start from entry points
 2. Parse modules to discover dependencies
-3. Create `Dependency` objects for each import/require
+3. Create `Dependency` objects
 4. Resolve dependencies to target modules
-5. Create `ModuleGraphConnection` objects linking modules
-6. Build complete module graph with all relationships
+5. Create `ModuleGraphConnection` objects
+6. Build complete module graph
 
 ### Chunk System
 
-Chunks are groups of modules that are bundled together.
+Chunks are groups of modules bundled together.
 
 **Chunk Types:**
 
@@ -149,166 +112,86 @@ Chunks are groups of modules that are bundled together.
 
 - Controlled by `optimization.splitChunks`
 - Groups modules based on criteria (size, cache groups, etc.)
-- Creates separate chunks for better caching
 
 ## Compilation Pipeline
 
-The compilation process follows these stages:
-
 ```text
-1. Initialize
-   ├── Load configuration
-   ├── Create compiler instance
-   └── Register plugins
-
-2. Compile
-   ├── Create compilation
-   ├── Build module graph
-   │   ├── Parse entry modules
-   │   ├── Resolve dependencies
-   │   └── Build all modules
-   ├── Optimize
-   │   ├── Tree shaking
-   │   ├── Code splitting
-   │   └── Minification
-   └── Generate
-       ├── Code generation
-       ├── Asset creation
-       └── Output to filesystem
+1. Initialize → Load config, create compiler, register plugins
+2. Compile → Build module graph, resolve dependencies
+3. Optimize → Tree shaking, code splitting, minification
+4. Generate → Code generation, asset creation, output
 ```
 
 ### Detailed Stages
 
-#### 1. Initialize Phase
+#### Initialize Phase
 
 - Load and normalize configuration
 - Create compiler instance
 - Apply plugins
 - Initialize file systems
-- Set up hooks
 
-#### 2. Compile Phase
+#### Compile Phase
 
-**Entry Processing:**
+- **Entry Processing**: Process entry points, create entry modules
+- **Module Building**: Parse source (SWC), extract dependencies, transform (loaders)
+- **Dependency Resolution**: Resolve paths, handle aliases/extensions, process externals
 
-- Process entry points from configuration
-- Create entry modules
-- Add to module graph
+#### Optimization Phase
 
-**Module Building:**
+- **Tree Shaking**: Analyze exports/imports, remove unused code
+- **Code Splitting**: Split chunks based on configuration, create async chunks
+- **Minification**: Minify JS (SWC), CSS (Lightning CSS)
 
-- Parse source code (using SWC)
-- Extract dependencies
-- Transform code (using loaders)
-- Build module metadata
+#### Code Generation Phase
 
-**Dependency Resolution:**
-
-- Resolve module paths
-- Handle aliases and extensions
-- Process externals
-- Create dependency edges in graph
-
-#### 3. Optimization Phase
-
-**Tree Shaking:**
-
-- Analyze module exports/imports
-- Remove unused code
-- Mark side effects
-
-**Code Splitting:**
-
-- Analyze chunk dependencies
-- Split chunks based on configuration
-- Create async chunks for dynamic imports
-
-**Minification:**
-
-- Minify JavaScript (using SWC)
-- Minify CSS (using Lightning CSS)
-- Optimize asset sizes
-
-#### 4. Code Generation Phase
-
-**Runtime Code:**
-
-- Generate webpack runtime
-- Create module loading code
-- Generate HMR code (if enabled)
-
-**Asset Generation:**
-
-- Generate output files
-- Apply filename templates
-- Generate source maps
-- Process assets through plugins
+- **Runtime Code**: Generate webpack runtime, module loading code, HMR code
+- **Asset Generation**: Generate output files, apply filename templates, generate source maps
 
 ## Plugin System
 
 ### Plugin Architecture
 
-Plugins extend Rspack's functionality by hooking into the compilation lifecycle.
+Plugins extend functionality by hooking into compilation lifecycle.
 
 **Plugin Types:**
 
-- **Builtin Plugins**: Core functionality (JavaScript, CSS, HTML, etc.)
+- **Builtin Plugins**: Core functionality (JavaScript, CSS, HTML)
 - **User Plugins**: Custom plugins via configuration
 - **External Plugins**: webpack-compatible plugins
 
-**Plugin Registration:**
-
-```rust
-impl Plugin for MyPlugin {
-  fn apply(&self, ctx: &mut ApplyContext<'_>) -> Result<()> {
-    ctx.compilation_hooks.process_assets.tap(process_assets::new(self));
-    Ok(())
-  }
-}
-```
-
 ### Hook System
 
-Hooks allow plugins to intercept and modify the compilation process.
+Hooks allow plugins to intercept and modify compilation.
 
 **Hook Types:**
 
-- **SyncSeries**: Synchronous, sequential execution
-- **SyncSeriesBail**: Synchronous, can bail out early
-- **AsyncSeries**: Asynchronous, sequential execution
-- **AsyncSeriesBail**: Asynchronous, can bail out early
-- **AsyncParallel**: Asynchronous, parallel execution
-
-**Hook Usage:**
-
-```rust
-#[plugin_hook(CompilationProcessAssets for MyPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  // Process assets
-  Ok(())
-}
-```
+- **SyncSeries**: Synchronous, sequential
+- **SyncSeriesBail**: Synchronous, can bail out
+- **AsyncSeries**: Asynchronous, sequential
+- **AsyncSeriesBail**: Asynchronous, can bail out
+- **AsyncParallel**: Asynchronous, parallel
 
 ## Loader System
 
-Loaders transform source code before it's added to the dependency graph.
+Loaders transform source code before adding to dependency graph.
 
 **Loader Execution:**
 
-1. Loader chain is determined by module rules
+1. Loader chain determined by module rules
 2. Loaders execute in reverse order (last to first)
 3. Each loader receives previous loader's output
-4. Final output is parsed and added to module graph
+4. Final output parsed and added to module graph
 
 **Loader Types:**
 
-- **Builtin Loaders**: SWC loader, Lightning CSS loader, etc.
-- **JavaScript Loaders**: Custom loaders written in JavaScript
-- **Rust Loaders**: High-performance loaders written in Rust
+- **Builtin Loaders**: SWC loader, Lightning CSS loader
+- **JavaScript Loaders**: Custom loaders in JavaScript
+- **Rust Loaders**: High-performance loaders in Rust
 
 ## Module Resolution
 
-Module resolution determines how module paths are resolved to actual files.
+Determines how module paths resolve to actual files.
 
 **Resolution Process:**
 
@@ -320,19 +203,19 @@ Module resolution determines how module paths are resolved to actual files.
 
 **Resolution Strategies:**
 
-- **Relative**: `./module`, `../module`
-- **Absolute**: `/path/to/module`
-- **Module**: `module-name` (from node_modules)
-- **Alias**: Custom alias mappings
+- Relative: `./module`, `../module`
+- Absolute: `/path/to/module`
+- Module: `module-name` (from node_modules)
+- Alias: Custom alias mappings
 
 ## Caching System
 
-Rspack uses a multi-level caching system for performance.
+Multi-level caching for performance.
 
 **Cache Levels:**
 
-1. **Memory Cache**: In-memory cache for current build
-2. **Persistent Cache**: Disk-based cache across builds
+1. **Memory Cache**: In-memory for current build
+2. **Persistent Cache**: Disk-based across builds
 3. **Module Cache**: Cached module build results
 4. **Compilation Cache**: Cached compilation results
 
@@ -345,7 +228,7 @@ Rspack uses a multi-level caching system for performance.
 
 ## File System Abstraction
 
-Rspack uses a file system abstraction layer for cross-platform support.
+Cross-platform file system abstraction.
 
 **File System Types:**
 
@@ -362,7 +245,7 @@ Rspack uses a file system abstraction layer for cross-platform support.
 
 ## Error Handling
 
-Errors are handled through a unified error system.
+Unified error system.
 
 **Error Types:**
 
@@ -373,16 +256,16 @@ Errors are handled through a unified error system.
 
 **Error Propagation:**
 
-- Errors are collected in `compilation.errors`
-- Warnings are collected in `compilation.warnings`
-- Errors can be formatted with context and suggestions
+- Errors collected in `compilation.errors`
+- Warnings collected in `compilation.warnings`
+- Errors formatted with context and suggestions
 
 ## Performance Optimizations
 
 ### Parallel Processing
 
-- Module building is parallelized
-- Asset processing can be parallelized
+- Module building parallelized
+- Asset processing parallelized
 - Code generation uses parallel workers
 
 ### Incremental Compilation
@@ -393,7 +276,7 @@ Errors are handled through a unified error system.
 
 ### Memory Management
 
-- Uses mimalloc for optimized memory allocation (Linux/macOS)
+- Uses mimalloc for optimized allocation (Linux/macOS)
 - Efficient data structures (custom HashMap, HashSet)
 - Minimizes allocations in hot paths
 
@@ -402,54 +285,25 @@ Errors are handled through a unified error system.
 ### Build Request Flow
 
 ```text
-User Code
-  ↓
-Configuration
-  ↓
-Compiler.apply()
-  ↓
-Plugin Registration
-  ↓
-Compiler.run()
-  ↓
-Compilation Creation
-  ↓
-Module Graph Building
-  ↓
-Optimization
-  ↓
-Code Generation
-  ↓
-Asset Emission
-  ↓
-Output Files
+User Code → Configuration → Compiler.apply() → Plugin Registration
+→ Compiler.run() → Compilation → Module Graph → Optimization
+→ Code Generation → Asset Emission → Output Files
 ```
 
 ### Module Processing Flow
 
 ```text
-Source File
-  ↓
-Loader Chain
-  ↓
-Parsed AST
-  ↓
-Dependency Extraction
-  ↓
-Module Graph Node
-  ↓
-Code Generation
-  ↓
-Runtime Code
+Source File → Loader Chain → Parsed AST → Dependency Extraction
+→ Module Graph Node → Code Generation → Runtime Code
 ```
 
 ## Design Decisions
 
 ### Why Rust?
 
-- **Performance**: Rust provides near-C performance with memory safety
-- **Concurrency**: Excellent async/await support for parallel processing
-- **Ecosystem**: Rich ecosystem for parsing, transformation, and optimization
+- **Performance**: Near-C performance with memory safety
+- **Concurrency**: Excellent async/await for parallel processing
+- **Ecosystem**: Rich ecosystem for parsing and transformation
 
 ### Why Webpack Compatibility?
 
@@ -483,8 +337,8 @@ Runtime Code
 
 1. Define hook using `define_hook!` macro
 2. Add to appropriate hooks struct
-3. Call hook at appropriate point in compilation
-4. Plugins can now tap into the hook
+3. Call hook at appropriate point
+4. Plugins can tap into the hook
 
 ## Resources
 
