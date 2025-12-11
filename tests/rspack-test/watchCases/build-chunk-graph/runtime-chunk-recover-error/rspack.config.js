@@ -16,4 +16,4 @@ const config = index => ({
 	}
 });
 
-module.exports = [0, 1].map(index => config(index));
+module.exports = config(0);
