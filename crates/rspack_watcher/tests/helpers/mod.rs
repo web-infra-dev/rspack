@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+pub mod macros;
+
 use std::{
   mem::ManuallyDrop,
   path::PathBuf,
@@ -15,6 +17,8 @@ use rspack_util::fx_hash::FxHashSet;
 use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
 use tempfile::TempDir;
 use tokio::sync::RwLock;
+
+const TEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 pub struct TestHelper {
   /// Temporary directory for testing
@@ -157,19 +161,25 @@ impl TestHelper {
         SystemTime::now()
           .duration_since(SystemTime::UNIX_EPOCH)
           .unwrap()
-          .as_millis()
+          .as_micros()
       ),
     )
     .unwrap();
   }
 
-  pub fn collect_events(
+  /// Collects events from the receiver in a blocking manner.
+  ///
+  /// The `on_changed` and `on_aggregated` callbacks are invoked for each respective event.
+  /// If either callback sets the `abort` flag to `true`, the collection stops.
+  ///
+  /// The function will timeout after a predefined duration (10s) if no events are received.
+  pub fn collect_events_blocking(
     &self,
     rx: Receiver<Event>,
     mut on_changed: impl FnMut(&ChangedEvent, &mut bool),
     mut on_aggregated: impl FnMut(&AggregatedEvent, &mut bool),
   ) {
-    while let Ok(event) = rx.recv_timeout(std::time::Duration::from_secs(10)) {
+    while let Ok(event) = rx.recv_timeout(TEST_TIMEOUT) {
       match event {
         Event::Aggregated(agg_event) => {
           let mut abort = false;
@@ -189,8 +199,47 @@ impl TestHelper {
     }
   }
 
+  /// Collects events from the receiver in a separate thread.
+  ///
+  /// The `on_changed` and `on_aggregated` callbacks are invoked for each respective event.
+  /// If either callback sets the `abort` flag to `true`, the collection stops.
+  ///
+  /// The function will timeout after a predefined duration (10s) if no events are received.
+  pub fn collect_events(
+    &self,
+    rx: Receiver<Event>,
+    on_changed: impl Fn(&ChangedEvent, &mut bool) + Send + 'static,
+    on_aggregated: impl Fn(&AggregatedEvent, &mut bool) + Send + 'static,
+  ) {
+    std::thread::spawn(move || {
+      while let Ok(event) = rx.recv_timeout(TEST_TIMEOUT) {
+        match event {
+          Event::Aggregated(agg_event) => {
+            let mut abort = false;
+            on_aggregated(&agg_event, &mut abort);
+            if abort {
+              break;
+            }
+          }
+          Event::Changed(chg_event) => {
+            let mut abort = false;
+            on_changed(&chg_event, &mut abort);
+            if abort {
+              break;
+            }
+          }
+        }
+      }
+    });
+  }
+
   pub fn tick(&self, f: impl FnOnce()) {
     std::thread::sleep(std::time::Duration::from_millis(200));
+    f();
+  }
+
+  pub fn tick_ms(&self, duration: u64, f: impl FnOnce()) {
+    std::thread::sleep(std::time::Duration::from_millis(duration));
     f();
   }
 
@@ -270,10 +319,12 @@ impl TestHelper {
         changed_files: FxHashSet<String>,
         deleted_files: FxHashSet<String>,
       ) {
-        let _ = self.0.send(Event::Aggregated(AggregatedEvent {
+        if let Err(e) = self.0.send(Event::Aggregated(AggregatedEvent {
           changed_files,
           deleted_files,
-        }));
+        })) {
+          eprintln!("Failed to send aggregated event: {}", e);
+        }
       }
     }
 
@@ -281,16 +332,22 @@ impl TestHelper {
 
     impl EventHandler for ChangeHandler {
       fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
-        let _ = self
+        if let Err(e) = self
           .0
-          .send(Event::Changed(ChangedEvent::Changed(changed_file)));
+          .send(Event::Changed(ChangedEvent::Changed(changed_file)))
+        {
+          eprintln!("Failed to send change event: {}", e);
+        };
         Ok(())
       }
 
       fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
-        let _ = self
+        if let Err(e) = self
           .0
-          .send(Event::Changed(ChangedEvent::Deleted(deleted_file)));
+          .send(Event::Changed(ChangedEvent::Deleted(deleted_file)))
+        {
+          eprintln!("Failed to send delete event: {}", e);
+        };
         Ok(())
       }
     }
