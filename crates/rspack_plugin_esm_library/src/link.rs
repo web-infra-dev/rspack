@@ -1267,6 +1267,7 @@ var {} = {{}};
         }
 
         let chunk_link = link.get_mut_unwrap(&current_chunk);
+
         match re_exports {
           rspack_core::ExportMode::Missing
           | rspack_core::ExportMode::LazyMake
@@ -1422,8 +1423,6 @@ var {} = {{}};
             );
           }
           rspack_core::ExportMode::NormalReexport(mode) => {
-            let exports_info = module_graph.get_exports_info(&ref_module);
-
             for item in mode.items {
               let mut ref_module = orig_ref_module;
 
@@ -1439,34 +1438,21 @@ var {} = {{}};
                 continue;
               }
 
-              let name = item.ids.first().unwrap_or(&item.name);
-              let mut unknown_export_info = false;
-              let mut export_info =
-                if let Some(export_info) = exports_info.as_data(module_graph).named_exports(name) {
-                  export_info
-                } else {
-                  unknown_export_info = true;
-                  // export info not found, this is likely because the export is from unknown
-                  item.export_info.as_data(module_graph)
-                };
+              let item_export_info = item.export_info.as_data(module_graph);
+              let resolved_target = get_target(item_export_info, module_graph);
 
-              let resolved_target = get_target(export_info, module_graph);
-
-              let ids = match resolved_target {
+              let export_name = match resolved_target {
                 Some(result) => {
                   ref_module = result.module;
-                  if let Some(export_name) = &result.export {
-                    export_info = module_graph
-                      .get_exports_info(&ref_module)
-                      .as_data(module_graph)
-                      .named_exports(&export_name[0])
-                      .unwrap_or(export_info);
-                    export_name.clone()
+                  if let Some(export_name) = &result.export
+                    && !export_name.is_empty()
+                  {
+                    export_name.first().unwrap_or(&item.name).clone()
                   } else {
-                    item.ids.clone()
+                    item.name.clone()
                   }
                 }
-                None => item.ids.clone(),
+                None => item.name.clone(),
               };
 
               if ref_module != orig_ref_module
@@ -1486,7 +1472,7 @@ var {} = {{}};
                   &rspack_core::ExportMode::NormalReexport(ExportModeNormalReexport {
                     items: vec![NormalReexportItem {
                       name: item.name.clone(),
-                      ids: ids.clone(),
+                      ids: vec![export_name.clone()],
                       hidden: false,
                       checked: item.checked,
                       export_info: item.export_info.clone(),
@@ -1498,14 +1484,23 @@ var {} = {{}};
               }
 
               let chunk_link = link.get_mut_unwrap(&current_chunk);
-              let used_name = if unknown_export_info {
-                UsedNameItem::Str(item.name.clone())
-              } else {
-                export_info.get_used_name(None, None).unwrap_or_else(|| {
+
+              // Note that the export_info is current module's export info **NOT** ref module's export info
+              // so in order to find used name, we should go find the ref export info
+              let ref_exports_info = module_graph
+                .get_prefetched_exports_info(&ref_module, PrefetchExportsInfoMode::Default);
+
+              let ref_export_info_tmp =
+                ref_exports_info.get_export_info_without_mut_module_graph(&export_name);
+
+              let ref_export_info = ref_export_info_tmp.to_data();
+
+              let used_name = ref_export_info
+                .get_used_name(None, None)
+                .unwrap_or_else(|| {
                   // dynamic export
                   UsedNameItem::Str(item.name.clone())
-                })
-              };
+                });
 
               if let UsedNameItem::Inlined(inlined) = used_name {
                 let new_name = find_new_name(&item.name, &chunk_link.used_names, &vec![]);
@@ -1558,8 +1553,12 @@ var {} = {{}};
                   );
                 }
                 ModuleInfo::Concatenated(ref_info) => {
-                  let Some(internal_name) =
-                    ref_info.get_internal_name(ids.first().unwrap_or(&item.name))
+                  let Some(internal_name) = ref_info
+                    .export_map
+                    .as_ref()
+                    .and_then(|export_map| export_map.get(&export_name))
+                    .map(|export_name| Atom::from(export_name.clone()))
+                    .and_then(|export_local| ref_info.get_internal_name(&export_local))
                   else {
                     continue;
                   };
