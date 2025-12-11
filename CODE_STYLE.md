@@ -236,11 +236,11 @@ import util from "node:util";
 import type { Callback } from "@rspack/lite-tapable";
 import { Compiler } from "./Compiler";
 import {
-  applyRspackOptionsBaseDefaults,
-  applyRspackOptionsDefaults,
-  getNormalizedRspackOptions,
-  type RspackOptions,
-  type RspackPluginFunction
+	applyRspackOptionsBaseDefaults,
+	applyRspackOptionsDefaults,
+	getNormalizedRspackOptions,
+	type RspackOptions,
+	type RspackPluginFunction
 } from "./config";
 ```
 
@@ -253,8 +253,8 @@ import {
 
 ```typescript
 export interface RspackOptions {
-  entry?: EntryNormalized;
-  output?: OutputNormalized;
+	entry?: EntryNormalized;
+	output?: OutputNormalized;
 }
 
 export type RspackPluginFunction = (compiler: Compiler) => void;
@@ -268,7 +268,7 @@ export type RspackPluginFunction = (compiler: Compiler) => void;
 
 ```typescript
 if (isNil(options.context)) {
-  throw new Error("options.context is required");
+	throw new Error("options.context is required");
 }
 ```
 
@@ -280,11 +280,11 @@ if (isNil(options.context)) {
 
 ```typescript
 async function processAssets(compilation: Compilation): Promise<void> {
-  try {
-    await someAsyncOperation();
-  } catch (error) {
-    throw new Error(`Failed to process assets: ${error}`);
-  }
+	try {
+		await someAsyncOperation();
+	} catch (error) {
+		throw new Error(`Failed to process assets: ${error}`);
+	}
 }
 ```
 
@@ -303,7 +303,7 @@ async function processAssets(compilation: Compilation): Promise<void> {
  * @returns A new Compiler instance
  */
 function createCompiler(options: RspackOptions): Compiler {
-  // ...
+	// ...
 }
 ```
 
@@ -338,10 +338,10 @@ mod tests {
 
 ```typescript
 describe("Compiler", () => {
-  it("should create a compiler with valid options", () => {
-    const compiler = createCompiler({ context: "/path" });
-    expect(compiler).toBeInstanceOf(Compiler);
-  });
+	it("should create a compiler with valid options", () => {
+		const compiler = createCompiler({ context: "/path" });
+		expect(compiler).toBeInstanceOf(Compiler);
+	});
 });
 ```
 

@@ -202,7 +202,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationProcessAssets for MyPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.MyPlugin");
-  
+
   // Time operations
   let start = logger.time("operation name");
   // ... do work ...
@@ -227,7 +227,7 @@ use rspack_error::Result;
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Use ? to propagate errors
   let result = some_fallible_operation().await?;
-  
+
   // Or handle errors explicitly
   match some_operation().await {
     Ok(value) => {
@@ -300,7 +300,7 @@ async fn process_multiple(&self, items: Vec<Item>) -> Result<Vec<Result>>> {
     .into_iter()
     .map(|item| self.process_item(item))
     .collect();
-  
+
   join_all(futures).await
 }
 ```
@@ -339,24 +339,24 @@ mod tests {
 import rspack from "@rspack/core";
 
 it("should process assets correctly", async () => {
-  const compiler = rspack({
-    entry: "./index.js",
-    plugins: [
-      new MyPlugin({
-        option1: "test",
-        option2: true,
-      }),
-    ],
-  });
+	const compiler = rspack({
+		entry: "./index.js",
+		plugins: [
+			new MyPlugin({
+				option1: "test",
+				option2: true
+			})
+		]
+	});
 
-  const stats = await new Promise((resolve, reject) => {
-    compiler.run((err, stats) => {
-      if (err) reject(err);
-      else resolve(stats);
-    });
-  });
+	const stats = await new Promise((resolve, reject) => {
+		compiler.run((err, stats) => {
+			if (err) reject(err);
+			else resolve(stats);
+		});
+	});
 
-  expect(stats.hasErrors()).toBe(false);
+	expect(stats.hasErrors()).toBe(false);
 });
 ```
 
@@ -374,7 +374,7 @@ pub async fn my_loader(
 ) -> Result<LoaderResult> {
   // Transform content
   let transformed = transform_content(content)?;
-  
+
   Ok(LoaderResult::ok(transformed.into()))
 }
 ```
@@ -401,7 +401,7 @@ pub async fn my_loader(
 
   // Use options
   let transformed = transform_with_options(content, &options)?;
-  
+
   Ok(LoaderResult::ok(transformed.into()))
 }
 ```
@@ -416,11 +416,11 @@ pub async fn my_loader(
 pub struct MyPluginOptions {
   /// Description of option1
   pub option1: String,
-  
+
   /// Optional description of option2
   #[serde(default)]
   pub option2: Option<bool>,
-  
+
   /// Default value for option3
   #[serde(default = "default_option3")]
   pub option3: i32,
@@ -435,21 +435,21 @@ fn default_option3() -> i32 {
 
 ```typescript
 export interface MyPluginOptions {
-  /**
-   * Description of option1
-   */
-  option1: string;
-  
-  /**
-   * Optional description of option2
-   */
-  option2?: boolean;
-  
-  /**
-   * Default value is 10
-   * @default 10
-   */
-  option3?: number;
+	/**
+	 * Description of option1
+	 */
+	option1: string;
+
+	/**
+	 * Optional description of option2
+	 */
+	option2?: boolean;
+
+	/**
+	 * Default value is 10
+	 * @default 10
+	 */
+	option3?: number;
 }
 ```
 
@@ -507,7 +507,7 @@ fn process_string(input: &str) -> String {
     .cow_to_lowercase()
     .cow_replace("old", "new")
     .cow_replace("pattern", "replacement");
-  
+
   result.into_owned()
 }
 ```
