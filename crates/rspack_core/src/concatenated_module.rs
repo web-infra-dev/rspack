@@ -28,11 +28,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   atoms::Atom,
   common::{FileName, Spanned, SyntaxContext},
-  ecma::visit::swc_ecma_ast,
 };
-use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, Ident, NodeIdTrait, NodeKind};
+use swc_experimental_ecma_ast::EsVersion;
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
+use swc_experimental_ecma_semantic::resolver::resolver;
 use swc_node_comments::SwcComments;
 
 use crate::{
@@ -48,8 +47,8 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, collect_ident, escape_identifier,
+  filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -2356,23 +2355,21 @@ impl ConcatenatedModule {
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
       for ident in ids {
-        if semantic.node_scope(ident.id) == semantic.unresolved_scope_id() {
-          module_info
-            .global_scope_ident
-            .push(ident.to_legacy(ast, &semantic));
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+        if ident.id.ctxt == module_info.global_ctxt {
+          module_info.global_scope_ident.push(ident.clone());
+          all_used_names.insert(ident.id.sym.clone());
         }
         if ident.is_class_expr_with_ident {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ident.id.sym.clone());
           continue;
         }
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
-        if semantic.node_scope(ident.id) != semantic.top_level_scope_id() {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+        if ident.id.ctxt != module_info.module_ctxt {
+          all_used_names.insert(ident.id.sym.clone());
         }
-        module_info.idents.push(ident.to_legacy(ast, &semantic));
+        module_info.idents.push(ident);
       }
       module_info.all_used_names = all_used_names;
 
@@ -3216,55 +3213,4 @@ pub fn escape_name(name: &str) -> String {
   }
 
   escape_identifier(name).into_owned()
-}
-
-#[derive(Clone, Debug)]
-pub struct NewConcatenatedModuleIdent {
-  pub id: Ident,
-  pub shorthand: bool,
-  pub is_class_expr_with_ident: bool,
-}
-
-impl NewConcatenatedModuleIdent {
-  pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
-    let span = self.id.span(ast);
-    let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
-    let ctxt = semantic.node_scope(self.id).to_ctxt();
-    ConcatenatedModuleIdent {
-      id: swc_ecma_ast::Ident::new(sym, span, ctxt),
-      is_class_expr_with_ident: self.is_class_expr_with_ident,
-      shorthand: self.shorthand,
-    }
-  }
-}
-
-fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
-  let mut ids = Vec::new();
-  for (node_id, node) in ast.nodes() {
-    if node.kind() == NodeKind::Ident {
-      let ident = Ident::from_node_id(node_id, ast);
-      let parent_id = semantic.parent_node(node_id);
-      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind() {
-        NodeKind::BindingIdent => {
-          let parent_id = semantic.parent_node(parent_id);
-          (
-            ast.get_node(parent_id).kind() == NodeKind::AssignPatProp,
-            false,
-          )
-        }
-        NodeKind::ClassExpr => {
-          let class_expr = ClassExpr::from_node_id(parent_id, ast);
-          (false, class_expr.class(ast).super_class(ast).is_some())
-        }
-        NodeKind::ObjectLit => (true, false),
-        _ => (false, false),
-      };
-      ids.push(NewConcatenatedModuleIdent {
-        id: ident,
-        shorthand,
-        is_class_expr_with_ident,
-      });
-    }
-  }
-  ids
 }
