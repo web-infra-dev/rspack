@@ -97,7 +97,7 @@ Rspack is a Rust-first, webpack-compatible bundler. The repository mixes Rust cr
 - `rspack_plugin_dynamic_entry`: Resolves entry points generated at runtime/function form.
 - `rspack_plugin_ensure_chunk_conditions`: Validates chunk graph invariants before emit.
 - `rspack_plugin_entry`: Normalizes and wires standard entry configurations.
-- `rspack_plugin_esm_library`: Adjusts runtime for ESM-targeted library builds.
+- `rspack_plugin_esm_library`: Optimized output for ESM library, which is more statically analyzable.
 - `rspack_plugin_externals`: Marks modules as external and skips bundling.
 - `rspack_plugin_html`: Generates HTML assets from templates (HtmlWebpackPlugin parity).
 - `rspack_plugin_ignore`: Skips specified modules/files entirely.
@@ -114,8 +114,8 @@ Rspack is a Rust-first, webpack-compatible bundler. The repository mixes Rust cr
 - `rspack_plugin_warn_sensitive_module`: Warns when flagged modules enter the graph.
 
 #### CSS & Asset Flow
-- `rspack_plugin_css`: Core CSS parser/generator supporting modules and layering.
-- `rspack_plugin_css_chunking`: Splits CSS output per chunk to avoid duplication.
+- `rspack_plugin_css`: Rspack built-in CSS support.
+- `rspack_plugin_css_chunking`: Splits CSS output to make sure the CSS order always meets user expectation.
 - `rspack_plugin_extract_css`: Emits CSS into external files instead of JS strings.
 - `rspack_plugin_lightning_css_minimizer`: Minifies CSS via LightningCSS bindings.
 
@@ -127,7 +127,7 @@ Rspack is a Rust-first, webpack-compatible bundler. The repository mixes Rust cr
 - `rspack_plugin_remove_empty_chunks`: Drops chunks that no longer contain modules.
 - `rspack_plugin_runtime_chunk`: Extracts runtime logic into standalone chunks.
 - `rspack_plugin_size_limits`: Emits warnings when assets exceed configured budgets.
-- `rspack_plugin_split_chunks`: Implements webpack’s SplitChunksPlugin heuristics.
+- `rspack_plugin_split_chunks`: Split chunks after code splitting, to make browser loads the output more performant.
 
 #### Runtime, Federation & Workers
 - `rspack_plugin_hmr`: Hot Module Replacement runtime injection.
