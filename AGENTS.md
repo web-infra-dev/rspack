@@ -1,73 +1,144 @@
-# Rspack – Agent Handbook
+# Rspack – Crate Companion
 
-Rspack is a Rust-first, webpack-compatible bundler. The repository is a mixed Rust/TypeScript monorepo that ships native bindings for multiple platforms. This handbook gives coding agents the minimum context needed to reason about architecture, dependencies, and workflows.
+Rspack is a Rust-first, webpack-compatible bundler. The repository mixes Rust crates and TypeScript packages; this document focuses on the Rust side so agents can reason about every crate’s responsibility before touching code.
 
-## Project Snapshot
-- **Core idea**: `crates/rspack_core` implements compilation, chunk graph, and plugin hooks in Rust; JavaScript packages expose the API (`@rspack/core`, `@rspack/cli`) and tooling.
-- **Runtime bridge**: Platform-specific Node add-ons are built from `crates/node_binding` + `rspack_binding_*` crates and consumed by `@rspack/binding`, which is bundled into `@rspack/core`.
-- **Ecosystem parity**: The plugin set intentionally mirrors webpack concepts (CSS handling, HTML integration, MF, HMR, etc.) so most webpack configs run unchanged.
+## Quick Orientation
+- `crates/` holds all Rust workspace members listed in the root `Cargo.toml` (`crates/*`, `xtask`, `xtask/benchmark`).
+- Node consumers talk to the Rust engine through the napi stack (`node_binding` + `rspack_binding_*`), which is packaged into `@rspack/binding` and imported by `@rspack/core`.
+- Default behavior is assembled from many fine-grained plugins; understanding which crate owns a capability prevents duplicating logic.
 
-## Repository Topology
-- `crates/` – All Rust crates in the workspace. Cargo workspace members are declared in `Cargo.toml` (`crates/*`, `xtask/benchmark`, `xtask`).
-- `packages/` – Public npm packages: `@rspack/core`, `@rspack/cli`, `@rspack/browser`, `@rspack/test-tools`, and `create-rspack`.
-- `npm/` – Prebuilt platform-specific wrapper packages (linux-x64-gnu, darwin-arm64, etc.) that contain compiled bindings pulled by `@rspack/binding`.
-- `tests/` – `tests/rspack-test` (webpack compatibility corpus), `tests/e2e` (scenario-based suites), `tests/bench` (benchmarks).
-- `examples/` – Minimal runnable samples that double as integration smoke tests.
-- `xtask/` – Rust automation utilities (benchmark harnesses, release helpers).
-- `website/` – Docusaurus-powered documentation; kept in sync with package APIs.
+## Dev Workflow Cheat Sheet
+- Toolchains: Rust nightly (`rust-toolchain.toml`), Node ≥ 22, pnpm (see `.nvmrc`).
+- Bootstrap once via `pnpm run setup`, then rebuild bindings with `pnpm run build:binding:dev` or `pnpm run build:cli:dev`.
+- `pnpm run build:js`, `pnpm --filter <pkg> build`, or `cargo test -p <crate>` keep language-specific feedback loops tight.
+- Format & lint with `pnpm run format:rs/js` plus `pnpm run lint:js`, `pnpm run lint:type`.
+- Run tests using `pnpm run test:unit`, `pnpm run test:e2e`, `pnpm run test:webpack`, or targeted Rust `cargo test`.
 
-## Rust Workspace (`crates/`)
-There are ~80 crates. Organize your reasoning with the layers below (dependencies flow top → bottom unless noted).
+## Crate Catalog
 
-| Layer | Crates | Dependency Notes |
-| --- | --- | --- |
-| **Core runtime** | `rspack_core`, `rspack` | `rspack_core` is the compilation engine; `rspack` assembles core with default plugins & loaders. Depends on utilities (`rspack_util`, `rspack_error`, `rspack_storage`, `rspack_collections`, `rspack_hash`, `rspack_workspace`). |
-| **Shared utilities** | `rspack_util`, `rspack_error`, `rspack_storage`, `rspack_paths`, `rspack_resolver`, `rspack_fs`, `rspack_tasks`, `rspack_workspace` | Provide error handling, persistence, path logic, resolver logic, async task orchestration, and filesystem abstraction used by nearly every crate. |
-| **Compiler extensions** | `rspack_javascript_compiler`, `rspack_regex`, `rspack_ids`, `rspack_location`, `rspack_hook`, `rspack_futures`, `rspack_cacheable*`, `rspack_collections` | Power AST transforms, hashing, deterministic ids, macro helpers, and caching of compilation artifacts. Heavy SWC usage (`swc_core`, `swc_*` crates). |
-| **Plugin family** | `rspack_plugin_*` (asset, css, devtool, dll, entry, externals, hmr, html, javascript, json, lazy_compilation, library, mf, progress, rsdoctor, runtime, split_chunks, sri, wasm, worker, etc.) | Each crate implements `Plugin` traits from `rspack_core`. Most depend on `rspack_util`, `rspack_hook`, `rspack_javascript_compiler`, and sometimes SWC extras or lightningcss. Ensure new plugins register with `rspack` crate if they should be bundled by default. |
-| **Loader & parser layer** | `rspack_loader_*`, `rspack_loader_runner`, `rspack_loader_testing`, `rspack_cacheable_*` | Provide SWC/LightningCSS powered loaders and test harnesses. They feed transformed modules into `rspack_core`. Optional features on the `rspack` crate gate inclusion. |
-| **Bindings & runtime bridge** | `rspack_binding_api`, `rspack_binding_build`, `rspack_binding_builder*`, `rspack_napi*`, `node_binding`, `rspack_watcher` | Generate napi-compatible APIs, build node modules, and expose watch/wrapper utilities. `node_binding` links against the rest of the workspace and exports napi entry points consumed by `@rspack/binding`. |
-| **Tooling & tracing** | `rspack_tracing`, `rspack_tracing_perfetto`, `rspack_tasks`, `rspack_watcher`, `rspack_browser`, `rspack_allocator`, `rspack_browserslist` | Provide diagnostics, perfetto tracing export, custom allocator, browser runner shims, and browserslist data. |
-| **SWC plugins** | `swc_plugin_import`, `swc_plugin_ts_collector` | Optional SWC plugins for tree-shaking and TS metadata collection used by loaders/plugins. |
-| **Automation** | `xtask`, `xtask/benchmark` | CLI helpers that orchestrate benchmarks, fixture generation, and release automation; depend on workspace crates minimally to keep builds fast. |
+### Core Engine & Workspace
+- `rspack_core`: Compilation engine that models modules, chunks, dependency graphs, and plugin hooks.
+- `rspack`: Bundles `rspack_core` with default plugins/loaders and exposes feature flags such as `loader_swc`.
+- `rspack_workspace`: Workspace-level helpers for config, feature wiring, and shared constants.
+- `rspack_storage`: Persistent cache and serialization layer backing incremental builds.
+- `rspack_paths`: Cross-platform path normalization and resolver helpers.
+- `rspack_fs`: Virtual + native filesystem abstraction with memory FS support.
+- `rspack_tasks`: Async orchestration primitives shared across watchers, compilers, and tooling.
+- `rspack_browser`: Runtime shims for executing the compiler inside browser/WASM contexts.
+- `rspack_browserslist`: Embedded browserslist database plus query helpers used for target resolution.
+- `rspack_allocator`: Custom allocator glue (based on `mimalloc`) tuned for bundler workloads.
+- `rspack_tracing`: Tracing subscribers and span helpers for diagnostic logging.
+- `rspack_tracing_perfetto`: Perfetto exporter that converts tracing data into Perfetto-readable streams.
+- `rspack_watcher`: File watching abstraction that powers incremental compilation.
 
-When touching a crate:
-- Review its `Cargo.toml` to understand workspace feature gates; `rspack` exposes most functionality through features like `loader_swc`.
-- Keep dependency direction acyclic. New shared helpers usually belong in `rspack_util` or `rspack_workspace` rather than ad-hoc modules.
+### Utility & Shared Services
+- `rspack_util`: General-purpose helpers (hashing, path logic, formatting, env detection).
+- `rspack_collections`: Domain-specific data structures optimized for compiler hot paths.
+- `rspack_error`: Error types with rich diagnostics and miette integration.
+- `rspack_futures`: Async utilities and combinators tailored to the bundler.
+- `rspack_hash`: Hash helpers (xxhash, md4, etc.) used for asset and chunk hashing.
+- `rspack_ids`: Deterministic ID assignment for modules, chunks, and runtimes.
+- `rspack_location`: Source-location bookkeeping reused by diagnostics and loaders.
+- `rspack_regex`: Regex helpers and compiled patterns for loaders/resolvers.
+- `rspack_hook`: Trait definitions and dispatch utilities for the plugin system.
+- `rspack_javascript_compiler`: SWC-powered compilation frontend for JavaScript/TypeScript modules.
+- `rspack_cacheable`: Cacheable trait implementations and helpers for memoizing structures.
+- `rspack_cacheable_macros`: Procedural macros that derive cacheable implementations.
+- `rspack_cacheable_test`: Test suite validating cacheable behavior and stability.
 
-## JavaScript / TypeScript Packages (`packages/`)
+### Binding & NAPI Stack
+- `node_binding`: Binary crate that links the Rust engine into a napi module consumed by Node.js.
+- `rspack_binding_api`: Type-safe bridge exposing Rust APIs to the napi surface.
+- `rspack_binding_build`: Build scripts and shared logic for compiling/publishing bindings.
+- `rspack_binding_builder`: Helpers that map Rust structs/enums to napi objects.
+- `rspack_binding_builder_macros`: Macros backing the binding builder DSL.
+- `rspack_binding_builder_testing`: Regression tests for generated binding code.
+- `rspack_napi`: napi runtime glue, wrapping compiler operations for JavaScript callers.
+- `rspack_napi_macros`: Attribute macros that simplify napi export declarations.
 
-| Package | Purpose | Key Dependencies |
-| --- | --- | --- |
-| `@rspack/core` (`packages/rspack`) | Primary JS API that mirrors webpack’s compiler/runtime surface. Loads native bindings from `@rspack/binding`, ships built-in plugins/loaders, and exposes hot module runtime shims under `./hot/*`. | Depends on `@rspack/binding` (napi addon built from Rust), `@rspack/lite-tapable`, and tooling such as `memfs`, `enhanced-resolve`, `watchpack`. |
-| `@rspack/cli` (`packages/rspack-cli`) | CLI entry (bin `rspack`). Wraps `@rspack/core` with config loading, dev-server coordination, and analyzer hooks. | Depends on `@rspack/core`, `@rspack/dev-server`, `webpack-bundle-analyzer`. |
-| `@rspack/browser` | Experimental browser/WASM build of the compiler for playground scenarios; reuses `@napi-rs/wasm-runtime` plus the same tapable layer. | Shares hot runtime code with `@rspack/core`. |
-| `@rspack/test-tools` | Harness used by `tests/rspack-test` and downstream consumers. Provides helpers, snapshot tooling, and wasm setup hooks. | Depends on Babel, Jest utilities, `webpack`, and `@rspack/core`. |
-| `create-rspack` | Project scaffolding CLI (bin `create-rspack`). Ships templates under `packages/create-rspack/template-*`. | Wraps `create-rstack` to manage prompts and template copying. |
+### Loader, Macro & Testing Crates
+- `rspack_loader_runner`: Rust reimplementation of webpack’s loader-runner for executing loader chains.
+- `rspack_loader_swc`: Loader that leverages SWC for JS/TS transpilation.
+- `rspack_loader_lightningcss`: Loader providing LightningCSS parsing/minification.
+- `rspack_loader_react_refresh`: Injects React Refresh runtime hooks during compilation.
+- `rspack_loader_preact_refresh`: Equivalent hot-refresh support for Preact.
+- `rspack_loader_testing`: Shared fixtures and asserts for loader behavior.
+- `rspack_macros`: Shared procedural macros (hooks, visitors, AST utilities).
+- `rspack_macros_test`: Macro regression and compile-fail tests ensuring macro stability.
 
-Additional packaging notes:
-- `pnpm-workspace.yaml` includes `packages/*`, `scripts`, `website`, bindings (`crates/node_binding`), and large test fixtures so they can share devDependencies.
-- `npm/<platform>/package.json` describe binary distribution channels for prebuilt napi artifacts. They are published alongside `@rspack/binding`.
+### Plugin Crates
 
-## Dependency Flow Between Rust & JS
-1. Rust crates compile into a napi module via `node_binding` + `rspack_binding_api`.
-2. `@rspack/binding` (in `packages/rspack` build outputs and `npm/*`) bundles that addon and exposes low-level methods.
-3. `@rspack/core` wraps those bindings with JS-friendly classes (Compiler, Watching, MultiCompiler) and injects runtime helpers.
-4. CLI/test tools/builders (`@rspack/cli`, `@rspack/test-tools`, `create-rspack`) orchestrate higher-level workflows via the JS API.
+#### General & Entry Logic
+- `rspack_plugin_asset`: Enables asset modules and URL/inline emission strategies.
+- `rspack_plugin_banner`: Injects banner comments or license headers into assets.
+- `rspack_plugin_circular_dependencies`: Detects and reports circular import graphs.
+- `rspack_plugin_copy`: Copies static files/folders into the output directory.
+- `rspack_plugin_devtool`: Implements devtool/source-map related hooks.
+- `rspack_plugin_dll`: Provides webpack-style DLL (precompiled bundle) support.
+- `rspack_plugin_dynamic_entry`: Resolves entry points generated at runtime/function form.
+- `rspack_plugin_ensure_chunk_conditions`: Validates chunk graph invariants before emit.
+- `rspack_plugin_entry`: Normalizes and wires standard entry configurations.
+- `rspack_plugin_esm_library`: Adjusts runtime for ESM-targeted library builds.
+- `rspack_plugin_externals`: Marks modules as external and skips bundling.
+- `rspack_plugin_html`: Generates HTML assets from templates (HtmlWebpackPlugin parity).
+- `rspack_plugin_ignore`: Skips specified modules/files entirely.
+- `rspack_plugin_javascript`: Default JavaScript module processing pipeline.
+- `rspack_plugin_json`: Handles JSON modules, default exports, and tree-shaking.
+- `rspack_plugin_library`: Configures library target wrappers (UMD, global, etc.).
+- `rspack_plugin_module_info_header`: Prepends module metadata comments.
+- `rspack_plugin_module_replacement`: Implements NormalModuleReplacementPlugin behavior.
+- `rspack_plugin_no_emit_on_errors`: Cancels asset emit when compilation errors occur.
+- `rspack_plugin_progress`: Emits human-readable compilation progress updates.
+- `rspack_plugin_rsdoctor`: Integrates rsdoctor diagnostic reporting.
+- `rspack_plugin_rslib`: Utilities for bundling the rslib-based toolchain.
+- `rspack_plugin_rstest`: Hooks specific to rspack’s regression-testing harness.
+- `rspack_plugin_warn_sensitive_module`: Warns when flagged modules enter the graph.
 
-## Development Environment
-- **Toolchains**: Rust nightly (see `rust-toolchain.toml`), Node.js ≥ 22, pnpm (locked via `.nvmrc` / `package.json` engines).
-- **Setup**: `pnpm run setup` installs JS deps and builds initial bindings.
-- **Rebuilding bindings**: `pnpm run build:binding:dev` (native, debug); `pnpm run build:cli:dev` does a full binding + JS CLI build.
-- **JS builds**: `pnpm run build:js` (all packages) or run `pnpm --filter <pkg> build`.
-- **Formatting / linting**: `pnpm run format:rs`, `pnpm run format:js`, `pnpm run lint:js`, `pnpm run lint:type`.
-- **Testing**: `pnpm run test:unit`, `pnpm run test:e2e`, `pnpm run test:webpack`. Individual fixtures live in `tests/e2e/cases/**` and `tests/rspack-test/**`.
+#### CSS & Asset Flow
+- `rspack_plugin_css`: Core CSS parser/generator supporting modules and layering.
+- `rspack_plugin_css_chunking`: Splits CSS output per chunk to avoid duplication.
+- `rspack_plugin_extract_css`: Emits CSS into external files instead of JS strings.
+- `rspack_plugin_lightning_css_minimizer`: Minifies CSS via LightningCSS bindings.
+
+#### Chunking & Optimization
+- `rspack_plugin_limit_chunk_count`: Caps the number of emitted chunks.
+- `rspack_plugin_merge_duplicate_chunks`: Collapses chunks with identical content.
+- `rspack_plugin_real_content_hash`: Produces stable, content-derived chunk hashes.
+- `rspack_plugin_remove_duplicate_modules`: Deduplicates module instances across chunks.
+- `rspack_plugin_remove_empty_chunks`: Drops chunks that no longer contain modules.
+- `rspack_plugin_runtime_chunk`: Extracts runtime logic into standalone chunks.
+- `rspack_plugin_size_limits`: Emits warnings when assets exceed configured budgets.
+- `rspack_plugin_split_chunks`: Implements webpack’s SplitChunksPlugin heuristics.
+
+#### Runtime, Federation & Workers
+- `rspack_plugin_hmr`: Hot Module Replacement runtime injection.
+- `rspack_plugin_lazy_compilation`: Defers compilation until a module is requested.
+- `rspack_plugin_mf`: Module Federation runtime, manifests, and shared scope wiring.
+- `rspack_plugin_runtime`: Core runtime template and bootstrap logic.
+- `rspack_plugin_schemes`: Supports custom URL schemes (data:, http:, etc.).
+- `rspack_plugin_sri`: Generates Subresource Integrity hashes.
+- `rspack_plugin_swc_js_minimizer`: JavaScript minimizer built on SWC.
+- `rspack_plugin_wasm`: WebAssembly module loading/runtime helpers.
+- `rspack_plugin_web_worker_template`: Generates web worker wrapper code.
+- `rspack_plugin_worker`: Handles worker entrypoints across targets.
+
+### SWC Plugins
+- `swc_plugin_import`: SWC plugin that transforms import patterns (used by plugin_import functionality).
+- `swc_plugin_ts_collector`: Collects TypeScript metadata required for advanced analysis.
+
+### Automation & Benchmarks
+- `xtask`: Cargo xtask-style CLI for releasing, linting, and repository automation.
+- `rspack_benchmark` (`xtask/benchmark`): Criterion-based benchmark harness targeting hot compiler paths.
+
+## Packaging Notes
+- `packages/` exposes the JS surface area (`@rspack/core`, `@rspack/cli`, `@rspack/browser`, `@rspack/test-tools`, `create-rspack`).
+- `npm/<triple>/` packages publish prebuilt napi binaries per platform/arch; keep them updated when bindings change.
+- `pnpm-workspace.yaml` anchors which directories participate in JS dependency hoisting.
 
 ## Contribution Guardrails
-- Align new features with existing plugin architecture; prefer adding a new `rspack_plugin_*` crate rather than bloating `rspack_core`.
-- When touching bindings, update both the Rust crates and the npm wrapper (including any `npm/<platform>` manifests).
-- Keep docs (`website/` and package READMEs) in sync, especially when modifying public APIs.
-- Always run relevant Rust + JS tests locally before opening a PR; CI expects clean `cargo fmt`, `cargo clippy`, Biome, and TypeScript checks.
-- Follow conventional commits and keep PRs scoped; cross-language changes should mention the dependency chain explicitly to help reviewers.
+- Extend existing crates instead of duplicating logic; if behavior affects plugins, update the relevant `rspack_plugin_*` crate.
+- Updating the napi stack requires touching both Rust bindings and the JS consumers in `packages/`.
+- Document public API changes in `website/` and package READMEs.
+- Keep commits conventional and scoped; cross-language changes should mention the dependency chain explicitly.
 
-This document should remain model-friendly: prefer deterministic commands, keep dependency direction explicit, and document any new crates/packages you introduce so future agents can reason about them quickly.
+This reference should remain model-friendly: if you add a crate, include a one-line summary here so future agents can navigate the workspace without spelunking the codebase.
