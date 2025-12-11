@@ -1,10 +1,10 @@
-const config = index => ({
+module.exports = {
 	entry: {
 		entry1: "./entry1.js",
 		entry2: "./entry2.js"
 	},
 	output: {
-		filename: `[name].${index}.js`
+		filename: "[name].js"
 	},
 	optimization: {
 		runtimeChunk: "single"
@@ -14,6 +14,4 @@ const config = index => ({
 			buildChunkGraph: true
 		}
 	}
-});
-
-module.exports = config(0);
+};
