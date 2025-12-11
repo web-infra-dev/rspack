@@ -75,7 +75,6 @@ swc_core = { workspace = true, features = [
   "swc_ecma_codegen",
   "swc_ecma_visit",
 ] }
-swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
 urlencoding = { workspace = true }
