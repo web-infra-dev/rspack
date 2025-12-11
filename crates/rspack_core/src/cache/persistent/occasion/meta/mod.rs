@@ -6,7 +6,7 @@ use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
 use super::super::Storage;
 
-const SCOPE: &str = "meta";
+pub const SCOPE: &str = "meta";
 
 /// The meta data.
 #[cacheable]
