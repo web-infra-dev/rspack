@@ -324,6 +324,13 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
+    pnp_manifest: if options.pnp.unwrap_or(false) {
+      std::env::current_dir()
+        .ok()
+        .and_then(|cwd| pnp::find_pnp_manifest_path(&cwd).ok())
+    } else {
+      None
+    },
   }
 }
 
