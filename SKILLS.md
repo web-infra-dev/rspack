@@ -1,32 +1,30 @@
 # Skills Required for Rspack Development
 
-This document outlines the skills and knowledge areas needed to effectively contribute to the Rspack project. Whether you're a developer, contributor, or AI assistant, understanding these skills will help you navigate and contribute to the codebase.
+Skills and knowledge areas needed to contribute to Rspack.
 
 ## Core Programming Languages
 
 ### Rust (Essential)
 
-Rust is the primary language for Rspack's core engine. Strong Rust skills are essential for most contributions.
+Primary language for Rspack's core engine.
 
 **Required Skills:**
 
-- **Rust Fundamentals**: Ownership, borrowing, lifetimes, traits, generics
-- **Async Programming**: `async/await`, `Future`, `tokio` runtime
-- **Concurrency**: Thread-safe data structures, `Arc`, `Mutex`, `RwLock`
+- **Fundamentals**: Ownership, borrowing, lifetimes, traits, generics
+- **Async**: `async/await`, `Future`, `tokio` runtime
+- **Concurrency**: Thread-safe structures, `Arc`, `Mutex`, `RwLock`
 - **Error Handling**: `Result<T, E>`, `Option<T>`, error propagation
-- **Macros**: Declarative macros, procedural macros, derive macros
+- **Macros**: Declarative, procedural, derive macros
 - **Performance**: Zero-cost abstractions, memory management, profiling
-- **Testing**: Unit tests, integration tests, test organization
+- **Testing**: Unit tests, integration tests
 
-**Key Rust Crates Used:**
+**Key Crates:**
 
 - `napi-rs`: Node.js bindings
 - `swc`: JavaScript/TypeScript compiler
 - `tokio`: Async runtime
-- `serde`: Serialization/deserialization
+- `serde`: Serialization
 - `rayon`: Parallel processing
-- `rustc_hash`: Fast hash maps
-- `regex`: Regular expressions
 
 **Resources:**
 
@@ -36,21 +34,20 @@ Rust is the primary language for Rspack's core engine. Strong Rust skills are es
 
 ### JavaScript/TypeScript (Essential)
 
-TypeScript is used for the JavaScript API layer, CLI tools, and test infrastructure.
+Used for JavaScript API layer, CLI tools, and test infrastructure.
 
 **Required Skills:**
 
-- **TypeScript**: Type system, generics, utility types, type inference
-- **Modern JavaScript**: ES6+, async/await, Promises, modules (ESM/CJS)
-- **Node.js**: APIs, streams, file system, process management
-- **Package Management**: npm, pnpm, workspace management
-- **Build Tools**: Understanding of bundlers, loaders, plugins
+- **TypeScript**: Type system, generics, utility types
+- **Modern JavaScript**: ES6+, async/await, modules (ESM/CJS)
+- **Node.js**: APIs, streams, file system
+- **Package Management**: npm, pnpm, workspaces
+- **Build Tools**: Understanding bundlers, loaders, plugins
 
-**Key Libraries Used:**
+**Key Libraries:**
 
 - `@rspack/core`: Core Rspack API
 - `@rspack/test-tools`: Testing utilities
-- Various webpack-compatible plugins and loaders
 
 **Resources:**
 
@@ -62,17 +59,15 @@ TypeScript is used for the JavaScript API layer, CLI tools, and test infrastruct
 
 ### Bundler Concepts (Essential)
 
-Understanding how bundlers work is crucial for contributing to Rspack.
-
 **Key Concepts:**
 
-- **Module Resolution**: How modules are found and resolved
-- **Dependency Graph**: Module relationships and dependencies
-- **Code Splitting**: Chunking strategies and lazy loading
-- **Tree Shaking**: Dead code elimination
-- **Source Maps**: Debugging support
-- **Hot Module Replacement (HMR)**: Development experience
-- **Asset Processing**: Handling various file types (JS, CSS, images, etc.)
+- Module resolution
+- Dependency graph
+- Code splitting
+- Tree shaking
+- Source maps
+- Hot Module Replacement (HMR)
+- Asset processing
 
 **Resources:**
 
@@ -81,15 +76,11 @@ Understanding how bundlers work is crucial for contributing to Rspack.
 
 ### Compiler Theory (Helpful)
 
-Understanding compiler concepts helps with code transformation and optimization.
-
 **Key Concepts:**
 
-- **AST (Abstract Syntax Tree)**: Code representation
-- **Parsing**: Converting source code to AST
-- **Transformation**: Modifying AST
-- **Code Generation**: Converting AST back to code
-- **Static Analysis**: Type checking, dependency analysis
+- AST (Abstract Syntax Tree)
+- Parsing, transformation, code generation
+- Static analysis
 
 **Resources:**
 
@@ -100,27 +91,22 @@ Understanding compiler concepts helps with code transformation and optimization.
 
 ### Testing Skills (Essential)
 
-Comprehensive testing is critical for maintaining Rspack's reliability.
-
 **Rust Testing:**
 
 - Unit tests with `#[test]`
 - Integration tests
-- Test organization and fixtures
-- Mocking and test doubles
+- Test organization
 
 **JavaScript/TypeScript Testing:**
 
 - Integration tests in `tests/rspack-test/`
 - Snapshot testing
-- Test case types: Normal, Config, Hot, Watch, StatsOutput, etc.
-- E2E testing
+- Test types: Normal, Config, Hot, Watch, StatsOutput, etc.
 
 **Test Tools:**
 
 - `cargo test`: Rust test runner
 - `@rspack/test-tools`: Rspack test utilities
-- Jest-like testing patterns
 
 **Resources:**
 
@@ -128,8 +114,6 @@ Comprehensive testing is critical for maintaining Rspack's reliability.
 - [Testing Guide](./website/docs/en/contribute/development/testing.mdx)
 
 ### Code Quality (Essential)
-
-Maintaining high code quality is essential for a production tool.
 
 **Linting:**
 
@@ -143,29 +127,20 @@ Maintaining high code quality is essential for a production tool.
 - JavaScript/TypeScript: Prettier
 - TOML: taplo
 
-**Resources:**
-
-- [Rust Clippy](https://github.com/rust-lang/rust-clippy)
-- [Biome](https://biomejs.dev/)
-
 ## Debugging & Performance
 
 ### Debugging Skills (Essential)
-
-Effective debugging is crucial for development and troubleshooting.
 
 **Rust Debugging:**
 
 - VS Code debugging configuration
 - `rust-lldb` for panic debugging
 - Breakpoints and step-through debugging
-- Deadlock detection
 
 **JavaScript Debugging:**
 
 - Node.js `--inspect` flag
 - Chrome DevTools integration
-- Source map debugging
 
 **Resources:**
 
@@ -173,15 +148,13 @@ Effective debugging is crucial for development and troubleshooting.
 
 ### Performance Optimization (Important)
 
-Rspack prioritizes performance, so understanding optimization is valuable.
-
 **Key Areas:**
 
-- **Profiling**: Identifying bottlenecks
-- **Parallelization**: Multi-threaded processing
-- **Caching**: Persistent and memory caching
-- **Incremental Compilation**: Only rebuilding changed modules
-- **Memory Management**: Efficient memory usage
+- Profiling bottlenecks
+- Parallelization
+- Caching (persistent and memory)
+- Incremental compilation
+- Memory management
 
 **Tools:**
 
@@ -198,14 +171,12 @@ Rspack prioritizes performance, so understanding optimization is valuable.
 
 ### Monorepo Management (Important)
 
-Rspack is a monorepo with multiple Rust crates and JavaScript packages.
-
 **Skills:**
 
-- **Workspace Management**: pnpm workspaces, Cargo workspaces
-- **Dependency Management**: Version consistency, dependency resolution
-- **Build Orchestration**: Coordinating builds across packages
-- **Code Organization**: Module boundaries, API design
+- Workspace management (pnpm, Cargo)
+- Dependency management
+- Build orchestration
+- Code organization
 
 **Resources:**
 
@@ -214,14 +185,12 @@ Rspack is a monorepo with multiple Rust crates and JavaScript packages.
 
 ### Plugin System Architecture (Important)
 
-Understanding Rspack's plugin and hook system is essential for extending functionality.
-
 **Key Concepts:**
 
-- **Plugin Interface**: Implementing plugins
-- **Hook System**: Tapable hooks, hook types (sync/async, series/parallel)
-- **Compilation Lifecycle**: Make, seal, emit phases
-- **Module Graph**: Managing module relationships
+- Plugin interface
+- Hook system (sync/async, series/parallel)
+- Compilation lifecycle (make, seal, emit)
+- Module graph management
 
 **Resources:**
 
@@ -232,15 +201,13 @@ Understanding Rspack's plugin and hook system is essential for extending functio
 
 ### Rust-JavaScript Interop (Essential)
 
-Rspack bridges Rust and JavaScript through NAPI (Node-API).
-
 **Key Concepts:**
 
-- **NAPI (Node-API)**: Stable C API for Node.js addons
-- **napi-rs**: Rust bindings for NAPI
-- **Type Marshalling**: Converting between Rust and JavaScript types
-- **Async Interop**: Handling async operations across languages
-- **Memory Management**: Managing memory across language boundaries
+- NAPI (Node-API)
+- `napi-rs`: Rust bindings
+- Type marshalling
+- Async interop
+- Memory management
 
 **Resources:**
 
@@ -248,10 +215,6 @@ Rspack bridges Rust and JavaScript through NAPI (Node-API).
 - [napi-rs Documentation](https://napi.rs/)
 
 ### WebAssembly (Optional)
-
-Rspack supports WebAssembly builds for browser environments.
-
-**Skills:**
 
 - WASM compilation
 - WASI (WebAssembly System Interface)
@@ -261,14 +224,12 @@ Rspack supports WebAssembly builds for browser environments.
 
 ### Git & GitHub (Essential)
 
-Effective collaboration requires Git proficiency.
-
 **Skills:**
 
-- **Branching**: Feature branches, main branch workflow
-- **Commits**: Conventional commit messages
-- **Pull Requests**: Creating and reviewing PRs
-- **Code Review**: Reviewing and addressing feedback
+- Branching (feature branches)
+- Conventional commits
+- Pull requests
+- Code review
 
 **Resources:**
 
@@ -279,14 +240,12 @@ Effective collaboration requires Git proficiency.
 
 ### Webpack Ecosystem (Important)
 
-Rspack aims for webpack compatibility, so understanding webpack helps.
-
 **Key Areas:**
 
-- **Webpack API**: Compiler, Compilation, Module, Chunk APIs
-- **Webpack Plugins**: Plugin development patterns
-- **Webpack Loaders**: Loader development patterns
-- **Webpack Configuration**: Configuration options and defaults
+- Webpack API (Compiler, Compilation, Module, Chunk)
+- Plugin development patterns
+- Loader development patterns
+- Configuration options
 
 **Resources:**
 
@@ -294,10 +253,6 @@ Rspack aims for webpack compatibility, so understanding webpack helps.
 - [Webpack Plugin API](https://webpack.js.org/api/plugins/)
 
 ### Frontend Build Tools (Helpful)
-
-Understanding the broader frontend ecosystem provides context.
-
-**Related Tools:**
 
 - Vite, esbuild, Rollup, Parcel
 - Module Federation
@@ -309,8 +264,8 @@ Understanding the broader frontend ecosystem provides context.
 ### For Rust Developers New to Bundlers
 
 1. Learn webpack concepts and ecosystem
-2. Study Rspack's architecture and module system
-3. Understand the compilation pipeline
+2. Study Rspack's architecture
+3. Understand compilation pipeline
 4. Practice writing plugins and loaders
 
 ### For JavaScript Developers New to Rust
@@ -323,7 +278,7 @@ Understanding the broader frontend ecosystem provides context.
 ### For New Contributors
 
 1. Set up development environment
-2. Run existing tests and understand test structure
+2. Run existing tests and understand structure
 3. Fix small bugs or add tests
 4. Gradually work on larger features
 
@@ -338,7 +293,7 @@ Understanding the broader frontend ecosystem provides context.
 
 ### Intermediate Level
 
-- Can write Rust code following project patterns
+- Can write Rust code following patterns
 - Can implement plugins or loaders
 - Understands compilation pipeline
 - Can debug complex issues
@@ -350,7 +305,7 @@ Understanding the broader frontend ecosystem provides context.
 - Can optimize hot paths
 - Can mentor other contributors
 
-## Resources for Skill Development
+## Resources
 
 ### Official Documentation
 
@@ -377,6 +332,4 @@ Understanding the broader frontend ecosystem provides context.
 
 ## Conclusion
 
-Contributing to Rspack requires a diverse skill set spanning Rust, JavaScript/TypeScript, build systems, and performance optimization. However, you don't need to master everything at once. Start with the areas most relevant to your contributions and gradually expand your knowledge.
-
-The Rspack community is welcoming and supportive. Don't hesitate to ask questions, seek help, and learn from others. Every contribution, no matter how small, is valuable.
+Contributing to Rspack requires skills in Rust, JavaScript/TypeScript, build systems, and performance optimization. Start with areas most relevant to your contributions and gradually expand knowledge. The community is welcoming and supportive.

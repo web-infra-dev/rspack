@@ -1,72 +1,72 @@
 # Glossary
 
-This document defines terms and concepts used throughout the Rspack codebase and documentation.
+Terms and concepts used in Rspack codebase and documentation.
 
 ## Core Concepts
 
 ### Bundler
 
-A tool that combines multiple JavaScript modules and their dependencies into optimized bundles for deployment.
+Tool that combines multiple JavaScript modules and dependencies into optimized bundles.
 
 ### Module
 
-A single unit of code, typically a JavaScript/TypeScript file, that can be imported or required by other modules.
+Single unit of code (typically JS/TS file) that can be imported/required by other modules.
 
 ### Chunk
 
-A group of modules that are bundled together into a single output file. Chunks can be entry chunks, async chunks, or vendor chunks.
+Group of modules bundled together into a single output file. Types: entry chunks, async chunks, vendor chunks.
 
 ### Entry Point
 
-The starting point(s) of the application. Rspack begins building the module graph from entry points.
+Starting point(s) of the application. Rspack builds the module graph from entry points.
 
 ### Module Graph
 
-The dependency graph structure that tracks all modules and their dependencies in the compilation.
+Dependency graph structure tracking all modules and their dependencies in compilation.
 
 ### Chunk Graph
 
-The graph structure that tracks relationships between chunks and which modules belong to which chunks.
+Graph structure tracking relationships between chunks and which modules belong to which chunks.
 
 ## Compilation Terms
 
 ### Compilation
 
-A single build instance that processes modules, creates chunks, and generates output assets.
+Single build instance that processes modules, creates chunks, and generates output assets.
 
 ### Compiler
 
-The main orchestrator that manages the compilation lifecycle, plugins, and configuration.
+Main orchestrator managing compilation lifecycle, plugins, and configuration.
 
 ### Build
 
-The process of transforming source code into optimized output files.
+Process of transforming source code into optimized output files.
 
 ### Make Phase
 
-The phase of compilation where modules are built and the dependency graph is constructed.
+Phase where modules are built and dependency graph is constructed.
 
 ### Seal Phase
 
-The phase where the compilation is finalized and no more modules can be added.
+Phase where compilation is finalized and no more modules can be added.
 
 ### Emit Phase
 
-The phase where output assets are written to the file system.
+Phase where output assets are written to the file system.
 
 ## Module System
 
 ### Normal Module
 
-A regular JavaScript/TypeScript module that is parsed and processed normally.
+Regular JavaScript/TypeScript module parsed and processed normally.
 
 ### Context Module
 
-A module created from a dynamic require context (e.g., `require.context('./dir', true, /\.js$/)`).
+Module created from dynamic require context (e.g., `require.context('./dir', true, /\.js$/)`).
 
 ### External Module
 
-A module that is not bundled but referenced externally (e.g., from CDN or global variable).
+Module not bundled but referenced externally (e.g., from CDN or global variable).
 
 ### Concatenated Module
 
@@ -74,61 +74,61 @@ Multiple modules concatenated together for optimization (scope hoisting).
 
 ### Runtime Module
 
-A module containing webpack runtime code for module loading and HMR.
+Module containing webpack runtime code for module loading and HMR.
 
 ## Dependency Types
 
 ### Dependency
 
-A relationship between modules, representing an import, require, or other module reference.
+Relationship between modules, representing an import, require, or other module reference.
 
 ### Module Dependency
 
-A dependency on another module (e.g., `import './module'`).
+Dependency on another module (e.g., `import './module'`).
 
 ### Entry Dependency
 
-A dependency representing an entry point.
+Dependency representing an entry point.
 
 ### Context Dependency
 
-A dependency representing a require context.
+Dependency representing a require context.
 
 ### External Dependency
 
-A dependency on an external module that won't be bundled.
+Dependency on external module that won't be bundled.
 
 ## Chunk Types
 
 ### Entry Chunk
 
-A chunk generated from an entry point. Can be initial (loaded immediately) or non-initial.
+Chunk generated from entry point. Can be initial (loaded immediately) or non-initial.
 
 ### Async Chunk
 
-A chunk loaded asynchronously (e.g., via dynamic import or code splitting).
+Chunk loaded asynchronously (e.g., via dynamic import or code splitting).
 
 ### Initial Chunk
 
-A chunk that must be loaded before the entry point can execute.
+Chunk that must be loaded before entry point can execute.
 
 ### Runtime Chunk
 
-A chunk containing webpack runtime code, can be separated for better caching.
+Chunk containing webpack runtime code, can be separated for better caching.
 
 ### Vendor Chunk
 
-A chunk containing third-party dependencies, often separated for caching.
+Chunk containing third-party dependencies, often separated for caching.
 
 ## Asset Terms
 
 ### Asset
 
-An output file generated by the compilation (JavaScript, CSS, images, etc.).
+Output file generated by compilation (JavaScript, CSS, images, etc.).
 
 ### Source
 
-The content of an asset, represented as a Source object that can be read and transformed.
+Content of an asset, represented as Source object that can be read and transformed.
 
 ### Asset Info
 
@@ -136,123 +136,123 @@ Metadata about an asset (size, related assets, etc.).
 
 ### Filename Template
 
-A template string for generating output filenames with placeholders (e.g., `[name].[hash].js`).
+Template string for generating output filenames with placeholders (e.g., `[name].[hash].js`).
 
 ## Plugin System
 
 ### Plugin
 
-A JavaScript object or class that extends Rspack's functionality by hooking into the compilation lifecycle.
+JavaScript object or class extending Rspack's functionality by hooking into compilation lifecycle.
 
 ### Hook
 
-A point in the compilation process where plugins can intercept and modify behavior.
+Point in compilation process where plugins can intercept and modify behavior.
 
 ### Tap
 
-The act of registering a callback function to a hook.
+Act of registering a callback function to a hook.
 
 ### Hook Type
 
-The execution model of a hook (sync/async, series/parallel, bail).
+Execution model of a hook (sync/async, series/parallel, bail).
 
 ### Builtin Plugin
 
-A core plugin provided by Rspack (e.g., JavaScript plugin, CSS plugin).
+Core plugin provided by Rspack (e.g., JavaScript plugin, CSS plugin).
 
 ## Loader System Terms
 
 ### Loader
 
-A function that transforms source code before it's added to the dependency graph.
+Function that transforms source code before it's added to the dependency graph.
 
 ### Loader Chain
 
-A sequence of loaders applied to a module in reverse order.
+Sequence of loaders applied to a module in reverse order.
 
 ### Loader Context
 
-The context object (`this`) provided to loaders with utilities and metadata.
+Context object (`this`) provided to loaders with utilities and metadata.
 
 ### Pitch Loader
 
-A loader that executes in the "pitch" phase (before the loader chain runs normally).
+Loader that executes in the "pitch" phase (before loader chain runs normally).
 
 ## Optimization Terms
 
 ### Tree Shaking
 
-The process of removing unused code from the bundle by analyzing import/export usage.
+Process of removing unused code from bundle by analyzing import/export usage.
 
 ### Code Splitting
 
-The process of splitting code into multiple chunks for better caching and loading performance.
+Process of splitting code into multiple chunks for better caching and loading performance.
 
 ### Minification
 
-The process of reducing code size by removing whitespace, shortening names, and optimizing code.
+Process of reducing code size by removing whitespace, shortening names, and optimizing code.
 
 ### Scope Hoisting
 
-An optimization that concatenates modules into a single scope to reduce function call overhead.
+Optimization that concatenates modules into single scope to reduce function call overhead.
 
 ### Dead Code Elimination
 
-Removing code that is never executed (a form of tree shaking).
+Removing code that is never executed (form of tree shaking).
 
 ## Caching Terms
 
 ### Persistent Cache
 
-A disk-based cache that persists across builds to speed up subsequent builds.
+Disk-based cache that persists across builds to speed up subsequent builds.
 
 ### Memory Cache
 
-An in-memory cache used during a single build.
+In-memory cache used during a single build.
 
 ### Cache Invalidation
 
-The process of determining when cached data is no longer valid and needs to be regenerated.
+Process of determining when cached data is no longer valid and needs regeneration.
 
 ### Cache Key
 
-A unique identifier for cached data, typically based on file content and configuration.
+Unique identifier for cached data, typically based on file content and configuration.
 
 ## File System Terms
 
 ### Input File System
 
-The file system abstraction for reading source files.
+File system abstraction for reading source files.
 
 ### Output File System
 
-The file system abstraction for writing output files.
+File system abstraction for writing output files.
 
 ### Intermediate File System
 
-The file system abstraction for temporary files during compilation.
+File system abstraction for temporary files during compilation.
 
 ### Watch File System
 
-The file system abstraction for monitoring file changes in watch mode.
+File system abstraction for monitoring file changes in watch mode.
 
 ## Development Terms
 
 ### Hot Module Replacement (HMR)
 
-A feature that allows updating modules in the browser without a full page reload.
+Feature allowing updating modules in browser without full page reload.
 
 ### Watch Mode
 
-A mode where Rspack watches for file changes and automatically rebuilds.
+Mode where Rspack watches for file changes and automatically rebuilds.
 
 ### Dev Server
 
-A development server that serves the built application and supports HMR.
+Development server that serves built application and supports HMR.
 
 ### Source Map
 
-A file that maps the transformed code back to the original source code for debugging.
+File mapping transformed code back to original source code for debugging.
 
 ## Build Modes
 
@@ -268,67 +268,67 @@ Optimized for smaller bundle size and performance, includes minification and tre
 
 ### AST (Abstract Syntax Tree)
 
-A tree representation of the syntactic structure of source code.
+Tree representation of syntactic structure of source code.
 
 ### NAPI (Node-API)
 
-A stable API for building native Node.js addons, used for Rust-JavaScript interop.
+Stable API for building native Node.js addons, used for Rust-JavaScript interop.
 
 ### Binding
 
-The layer that connects Rust code to JavaScript/TypeScript, typically via NAPI.
+Layer connecting Rust code to JavaScript/TypeScript, typically via NAPI.
 
 ### Crate
 
-A Rust package/library (equivalent to npm package in JavaScript).
+Rust package/library (equivalent to npm package in JavaScript).
 
 ### Monorepo
 
-A repository containing multiple related packages or projects.
+Repository containing multiple related packages or projects.
 
 ## Rspack-Specific Terms
 
 ### Rspack
 
-The high-performance JavaScript bundler written in Rust.
+High-performance JavaScript bundler written in Rust.
 
 ### Rstack
 
-The unified JavaScript toolchain centered on Rspack (includes Rspack, Rsbuild, Rslib, etc.).
+Unified JavaScript toolchain centered on Rspack (includes Rspack, Rsbuild, Rslib, etc.).
 
 ### Builtin Loader
 
-A loader implemented natively in Rust for better performance (e.g., SWC loader, Lightning CSS loader).
+Loader implemented natively in Rust for better performance (e.g., SWC loader, Lightning CSS loader).
 
 ### Rspack Builtin Plugin
 
-A core plugin provided by Rspack, typically implemented in Rust.
+Core plugin provided by Rspack, typically implemented in Rust.
 
 ### RsDoctor
 
-A build analyzer tool for debugging and optimizing Rspack builds.
+Build analyzer tool for debugging and optimizing Rspack builds.
 
 ### Rstest
 
-A testing framework for Rspack.
+Testing framework for Rspack.
 
 ### Rslint
 
-A linter for Rspack projects.
+Linter for Rspack projects.
 
 ## Webpack Compatibility Terms
 
 ### Webpack Compatible
 
-An API or feature that works the same way as in webpack.
+API or feature that works the same way as in webpack.
 
 ### Webpack Plugin
 
-A plugin designed for webpack that may or may not work with Rspack.
+Plugin designed for webpack that may or may not work with Rspack.
 
 ### Webpack Loader
 
-A loader designed for webpack that may or may not work with Rspack.
+Loader designed for webpack that may or may not work with Rspack.
 
 ## Abbreviations
 
@@ -362,11 +362,11 @@ A loader designed for webpack that may or may not work with Rspack.
 
 ### Module Federation
 
-A technique for sharing code between multiple applications at runtime.
+Technique for sharing code between multiple applications at runtime.
 
 ### Lazy Loading
 
-Loading code only when it's needed, typically via dynamic imports.
+Loading code only when needed, typically via dynamic imports.
 
 ### Prefetching
 
@@ -374,7 +374,7 @@ Loading resources in advance before they're needed.
 
 ### Preloading
 
-Loading critical resources early in the page load process.
+Loading critical resources early in page load process.
 
 ## Resources
 
