@@ -1,0 +1,26 @@
+[package]
+description       = "rspack cache storage comparison tool"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_storage_compare"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[[bin]]
+name = "rspack_storage_compare"
+path = "src/main.rs"
+
+[dependencies]
+anyhow           = { workspace = true }
+async-trait      = { workspace = true }
+clap             = { workspace = true, features = ["derive", "std", "help", "usage", "error-context"] }
+futures          = { workspace = true }
+itertools        = { workspace = true }
+rspack_cacheable = { workspace = true }
+rspack_core      = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_fs        = { workspace = true }
+rspack_paths     = { workspace = true }
+rustc-hash       = { workspace = true }
+tokio            = { workspace = true, features = ["full"] }
