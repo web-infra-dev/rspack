@@ -10,17 +10,16 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
   ExportMode, ExportModeNormalReexport, ExportProvided, ExportsInfoGetter, ExportsType,
-  ExternalModule, FindTargetResult, GetUsedNameParam, IdentCollector, InitFragmentKey,
-  InitFragmentStage, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalReexportItem,
-  PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, collect_ident, escape_name, find_new_name,
-  get_cached_readable_identifier, get_js_chunk_filename_template, get_target, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ExternalModule, FindTargetResult, GetUsedNameParam, InitFragmentKey, InitFragmentStage,
+  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalReexportItem, PathData,
+  PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, collect_ident, escape_name, find_new_name, get_cached_readable_identifier,
+  get_js_chunk_filename_template, get_target, property_access, property_name,
+  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
+  to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
   JS_DEFAULT_KEYWORD, JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
@@ -29,7 +28,7 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
-use swc_core::common::{FileName, SyntaxContext};
+use swc_core::common::SyntaxContext;
 use swc_experimental_ecma_ast::EsVersion;
 use swc_experimental_ecma_parser::{Syntax, parse_file_as_module};
 use swc_experimental_ecma_semantic::resolver::resolver;
@@ -761,11 +760,6 @@ var {} = {{}};
                   .current_module
                   .clone();
 
-                let m = module_graph
-                  .module_by_identifier(&id)
-                  .expect("should have module");
-                let readable_identifier = m.readable_identifier(&compilation.options.context);
-
                 let source_string = render_source
                   .source
                   .source()
@@ -778,8 +772,8 @@ var {} = {{}};
                 let ast = &ret.ast;
                 let semantic = resolver(ret.root, ast);
 
-                let mut global_ctxt = semantic.unresolved_scope_id().to_ctxt();
-                let mut module_ctxt = semantic.top_level_scope_id().to_ctxt();
+                let global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                let module_ctxt = semantic.top_level_scope_id().to_ctxt();
                 let ids = collect_ident(ast, &semantic);
 
                 let mut all_used_names = FxHashSet::default();
