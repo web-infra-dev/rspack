@@ -4087,7 +4087,6 @@ version = "0.6.7"
 dependencies = [
  "itoa",
  "rspack_cacheable",
- "swc_core",
 ]
 
 [[package]]

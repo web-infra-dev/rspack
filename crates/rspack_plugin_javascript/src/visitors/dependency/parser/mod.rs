@@ -10,11 +10,12 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
-  sync::Arc,
 };
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
+use once_cell::unsync::OnceCell;
+use ropey::Rope;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -30,9 +31,7 @@ use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{
-    BytePos, Mark, SourceFile, SourceMap, Span, Spanned, comments::Comments, util::take::Take,
-  },
+  common::{BytePos, Mark, Span, Spanned, comments::Comments, util::take::Take},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -315,8 +314,8 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  pub source_map: Arc<SourceMap>,
-  pub(crate) source_file: &'parser SourceFile,
+  source_rope: OnceCell<Rope>,
+  pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -357,8 +356,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_map: Arc<SourceMap>,
-    source_file: &'parser SourceFile,
+    source: &'parser str,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
@@ -505,8 +503,8 @@ impl<'parser> JavascriptParser<'parser> {
       last_esm_import_order: 0,
       comments,
       javascript_options,
-      source_map,
-      source_file,
+      source_rope: OnceCell::new(),
+      source,
       errors,
       warning_diagnostics,
       dependencies,
@@ -643,8 +641,12 @@ impl<'parser> JavascriptParser<'parser> {
     self.warning_diagnostics.extend(warnings);
   }
 
-  pub fn source_file(&self) -> &SourceFile {
-    self.source_file
+  pub fn source(&self) -> &str {
+    self.source
+  }
+
+  pub fn source_rope(&mut self) -> &Rope {
+    self.source_rope.get_or_init(|| Rope::from_str(self.source))
   }
 
   pub fn is_top_level_scope(&self) -> bool {
