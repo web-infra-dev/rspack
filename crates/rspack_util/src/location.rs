@@ -29,6 +29,52 @@ impl Display for Location {
   }
 }
 
+/// Convert a (line, column) to a byte offset within the source.
+/// - Line is 1-based.
+/// - Column is 0-based.
+/// - Column is measured in UTF-8 bytes within the line.
+pub fn utf8_line_column_to_offset(source: &str, line: usize, column: usize) -> Option<usize> {
+  if line == 0 {
+    return None;
+  }
+
+  let bytes = source.as_bytes();
+  let target_line = line - 1;
+
+  // Find start of target line using memchr
+  let line_start = if target_line == 0 {
+    0
+  } else {
+    let mut count = 0usize;
+    let mut pos = None;
+    for idx in memchr::memchr_iter(b'\n', bytes) {
+      count += 1;
+      if count == target_line {
+        pos = Some(idx + 1);
+        break;
+      }
+    }
+    pos?
+  };
+
+  // End of line (exclusive) to validate column
+  let line_end = memchr::memchr(b'\n', &bytes[line_start..])
+    .map(|rel| line_start + rel)
+    .unwrap_or(bytes.len());
+
+  // Column is 1-based byte offset within the line
+  let byte_offset_in_line = column;
+
+  // Validate column within line bounds
+  if line_start + byte_offset_in_line > line_end {
+    return None;
+  }
+
+  let offset = line_start + byte_offset_in_line;
+
+  Some(offset)
+}
+
 /// Convert utf16 line, column, length to a (offset, length)
 /// Semantics match V8 Error stack positions:
 /// - Both line and column are 1-based.

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{
   ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
 };
@@ -60,7 +62,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       DependencyType::EsmImport,
       phase,
       attributes,
-      Some(parser.source_rope().clone()),
+      Some(parser.source().clone()),
       false,
     );
 
@@ -149,7 +151,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       None,
       settings.phase,
       settings.attributes,
-      Some(parser.source_rope().clone()),
+      Some(parser.source().clone()),
     );
     dep.evaluated_in_operator = true;
 
@@ -219,7 +221,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
-      Some(parser.source_rope().clone()),
+      Some(parser.source().clone()),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
@@ -287,7 +289,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       None,
       settings.phase,
       settings.attributes,
-      Some(parser.source_rope().clone()),
+      Some(parser.source().clone()),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
@@ -354,7 +356,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
-      Some(parser.source_rope().clone()),
+      Some(parser.source().clone()),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));

@@ -8,6 +8,7 @@ use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
+use rspack_util::location::utf8_line_column_to_offset;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -336,9 +337,7 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
-        let Some(offset) =
-          json_error_line_column_length_to_offset_length(content, error.line, error.column)
-        else {
+        let Some(offset) = utf8_line_column_to_offset(content, error.line, error.column) else {
           return rspack_error::error!(format!(
             "JSON parse error: {:?} in '{}'",
             error,
@@ -437,53 +436,4 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     Severity::Error
   };
   error
-}
-
-/// Convert a (line, column) position to a byte offset within the source.
-/// - Lines and columns are 1-based.
-/// - Column is measured in bytes within the line (not UTF-16 units or characters).
-pub fn json_error_line_column_length_to_offset_length(
-  source: &str,
-  line: usize,
-  column: usize,
-) -> Option<usize> {
-  if line == 0 || column == 0 {
-    return None;
-  }
-
-  let bytes = source.as_bytes();
-  let target_line = line - 1;
-
-  // Find start of target line using memchr
-  let line_start = if target_line == 0 {
-    0
-  } else {
-    let mut count = 0usize;
-    let mut pos = None;
-    for idx in memchr::memchr_iter(b'\n', bytes) {
-      count += 1;
-      if count == target_line {
-        pos = Some(idx + 1);
-        break;
-      }
-    }
-    pos?
-  };
-
-  // End of line (exclusive) to validate column
-  let line_end = memchr::memchr(b'\n', &bytes[line_start..])
-    .map(|rel| line_start + rel)
-    .unwrap_or(bytes.len());
-
-  // Column is 1-based byte offset within the line
-  let byte_offset_in_line = column - 1;
-
-  // Validate column within line bounds
-  if line_start + byte_offset_in_line > line_end {
-    return None;
-  }
-
-  let offset = line_start + byte_offset_in_line;
-
-  Some(offset)
 }

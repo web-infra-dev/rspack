@@ -240,7 +240,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        &source_string,
+        Arc::from(source_string),
         program,
         resource_data,
         compiler_options,

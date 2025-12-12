@@ -102,7 +102,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -170,7 +170,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -199,7 +199,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;

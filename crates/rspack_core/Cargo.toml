@@ -33,7 +33,6 @@ paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
-ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }

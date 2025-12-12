@@ -45,7 +45,7 @@ impl ProvideParserPlugin {
           .iter()
           .map(|s| Atom::from(s.as_str()))
           .collect_vec(),
-        Some(parser.source_rope().clone()),
+        Some(parser.source.clone()),
       );
       parser.add_dependency(Box::new(dep));
 
