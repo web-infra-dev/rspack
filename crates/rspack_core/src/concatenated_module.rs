@@ -30,9 +30,9 @@ use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
-use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, FromNodeId, Ident, NodeKind};
+use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, Ident, NodeIdTrait, NodeKind};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::{Semantic, UNRESOLVED_SCOPE_ID, resolver};
+use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_node_comments::SwcComments;
 
 use crate::{
@@ -2353,10 +2353,10 @@ impl ConcatenatedModule {
       let semantic = resolver(ret.root, ast);
       let ids = collect_ident(ast, &semantic);
 
-      module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-      module_info.global_ctxt = SyntaxContext::from_u32(UNRESOLVED_SCOPE_ID.raw());
+      module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
+      module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
       for ident in ids {
-        if semantic.node_scope(ident.id) == UNRESOLVED_SCOPE_ID {
+        if semantic.node_scope(ident.id).to_ctxt() == module_info.global_ctxt {
           module_info
             .global_scope_ident
             .push(ident.to_legacy(ast, &semantic));
@@ -3229,7 +3229,7 @@ impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = self.id.span(ast);
     let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
-    let ctxt = SyntaxContext::from_u32(semantic.node_scope(self.id).raw());
+    let ctxt = semantic.node_scope(self.id).to_ctxt();
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),
       is_class_expr_with_ident: self.is_class_expr_with_ident,
@@ -3241,14 +3241,14 @@ impl NewConcatenatedModuleIdent {
 fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
   let mut ids = Vec::new();
   for (node_id, node) in ast.nodes() {
-    if node.kind == NodeKind::Ident {
+    if node.kind() == NodeKind::Ident {
       let ident = Ident::from_node_id(node_id, ast);
       let parent_id = semantic.parent_node(node_id);
-      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
+      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind() {
         NodeKind::BindingIdent => {
           let parent_id = semantic.parent_node(parent_id);
           (
-            ast.get_node(parent_id).kind == NodeKind::AssignPatProp,
+            ast.get_node(parent_id).kind() == NodeKind::AssignPatProp,
             false,
           )
         }
