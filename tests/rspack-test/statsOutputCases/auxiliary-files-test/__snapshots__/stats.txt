@@ -15,11 +15,11 @@ chunk {889} (runtime: main) bundle.js (main) xx bytes (asset) xx bytes (javascri
     | ./raw.png [294] xx bytes (javascript) xx bytes (asset) {889} [depth 1] [built] [code generated]
     |   [exports: default]
     |   [no exports used]
-    |   esm import ./raw.png ./index.js 2:0-33
+    |   esm import ./raw.png ./index.js 2:1-33
   ./raw.png [294] xx bytes (javascript) xx bytes (asset) {889} [depth 1] [built] [code generated]
     [exports: default]
     [no exports used]
-    esm import ./raw.png ./index.js 2:0-33
+    esm import ./raw.png ./index.js 2:1-33
 modules by path ./ xx bytes (javascript) xx bytes (asset)
   orphan modules xx bytes [orphan]
     ./index.js xx bytes [depth 0] [orphan] [built]
@@ -29,7 +29,7 @@ modules by path ./ xx bytes (javascript) xx bytes (asset)
     ./stringModule.js xx bytes [depth 1] [orphan] [built]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      [inactive] esm import ./stringModule [587] ./index.js 1:0-41
+      [inactive] esm import ./stringModule [587] ./index.js 1:1-41
   code generated modules xx bytes (javascript) xx bytes (asset) [code generated]
     ./index.js + 1 modules [587] xx bytes {889} [depth 0] [code generated]
       [no exports]
@@ -42,11 +42,11 @@ modules by path ./ xx bytes (javascript) xx bytes (asset)
       | ./raw.png [294] xx bytes (javascript) xx bytes (asset) {889} [depth 1] [built] [code generated]
       |   [exports: default]
       |   [no exports used]
-      |   esm import ./raw.png ./index.js 2:0-33
+      |   esm import ./raw.png ./index.js 2:1-33
     ./raw.png [294] xx bytes (javascript) xx bytes (asset) {889} [depth 1] [built] [code generated]
       [exports: default]
       [no exports used]
-      esm import ./raw.png ./index.js 2:0-33
+      esm import ./raw.png ./index.js 2:1-33
 runtime modules xx KiB
   webpack/runtime/auto_public_path xx KiB {889} [code generated]
     [no exports]

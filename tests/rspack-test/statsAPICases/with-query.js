@@ -132,7 +132,7 @@ module.exports = {
 			            Object {
 			              active: true,
 			              explanation: undefined,
-			              loc: 2:12-17,
+			              loc: 2:10-14,
 			              moduleId: 679,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/c.js?c=3,
 			              moduleName: ./fixtures/c.js?c=3,
@@ -722,7 +722,7 @@ module.exports = {
 			        Object {
 			          active: true,
 			          explanation: undefined,
-			          loc: 2:12-17,
+			          loc: 2:10-14,
 			          moduleId: 679,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/c.js?c=3,
 			          moduleName: ./fixtures/c.js?c=3,
