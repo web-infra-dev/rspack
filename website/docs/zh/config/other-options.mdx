@@ -86,17 +86,58 @@ export default [
 
 ## ignoreWarnings
 
-<PropertyType
-  type="(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+下面是对应的中文翻译，力求准确、清晰，并贴近实际使用语义。
 
-告知 Rspack 忽略特定的警告。
+---
+
+## ignoreWarnings
+
+- **类型：**
+
+```ts
+type IgnoreWarnings = (
+  | RegExp
+  | {
+      file?: RegExp;
+      message?: RegExp;
+      module?: RegExp;
+    }
+  | ((warning: WebpackError, compilation: Compilation) => boolean)
+)[];
+```
+
+- **默认值：** `undefined`
+
+用于在构建过程中忽略特定的编译警告。你可以通过匹配警告的 `message`、`module` 或 `file`，或者提供一个自定义函数，来决定哪些警告应被忽略。
+
+使用正则表达式时来匹配警告的 `message` 字段：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
-  ignoreWarnings: [/warning from compiler/, warning => true],
+  ignoreWarnings: [/warning from compiler/, /other warning/],
+};
+```
+
+通过对象形式，可以分别对 `message` 或 `file` 等字段进行匹配：
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    { message: /warning from compiler/ },
+    { file: /node_modules/ },
+  ],
+};
+```
+
+当需要更灵活的控制逻辑时，可以使用函数形式。返回 `true` 表示忽略该警告。
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    (warning, compilation) => {
+      return /warning from compiler/.test(warning.message || '');
+    },
+  ],
 };
 ```
 
