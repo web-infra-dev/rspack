@@ -327,7 +327,7 @@ fn to_rspack_resolver_options(
     pnp_manifest: if options.pnp.unwrap_or(false) {
       std::env::current_dir()
         .ok()
-        .and_then(|cwd| pnp::find_pnp_manifest_path(&cwd).ok())
+        .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
     } else {
       None
     },
