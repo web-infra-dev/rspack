@@ -4,7 +4,7 @@ module.exports = {
 		entry2: "./entry2.js"
 	},
 	output: {
-		filename: "[name].js"
+		filename: "[name].0.js"
 	},
 	optimization: {
 		runtimeChunk: "single"
