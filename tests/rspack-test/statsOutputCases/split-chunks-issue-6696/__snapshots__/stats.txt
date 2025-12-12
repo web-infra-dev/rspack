@@ -1,0 +1,17 @@
+default:
+  Entrypoint main xx KiB = vendors.js xx bytes main.js xx KiB
+  chunk (runtime: main) vendors.js (vendors) (id hint: vendors) xx bytes ={889}= >{701}< >{724}< [initial] [rendered] split chunk (cache group: vendors) (name: vendors)
+    > ./ main
+    ./node_modules/y.js xx bytes [built] [code generated]
+  chunk (runtime: main) async-b.js (async-b) xx bytes <{545}> <{889}> [rendered]
+    > ./b ./index.js 3:0-47
+    dependent modules xx bytes [dependent] 1 module
+    ./b.js xx bytes [built] [code generated]
+  chunk (runtime: main) async-a.js (async-a) xx bytes <{545}> <{889}> [rendered]
+    > ./a ./index.js 2:0-47
+    dependent modules xx bytes [dependent] 1 module
+    ./a.js xx bytes [built] [code generated]
+  chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) ={545}= >{701}< >{724}< [entry] [rendered]
+    > ./ main
+    ./index.js xx bytes [built] [code generated]
+  default (Rspack x.x.x) compiled successfully

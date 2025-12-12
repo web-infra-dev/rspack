@@ -1,37 +1,37 @@
 assets by path *.wasm xx KiB
-  asset a0f3fcadb09a1a9b.module.wasm 531 bytes [emitted] [immutable]
-  asset 4d75fb9d421cb1ec.module.wasm 290 bytes [emitted] [immutable]
-  asset 448bdf8d3829b42d.module.wasm 156 bytes [emitted] [immutable]
-  asset 28c603ffa1d25701.module.wasm 154 bytes [emitted] [immutable]
-  asset 4f244726a350135b.module.wasm 154 bytes [emitted] [immutable]
-  asset 934e4a526f464eac.module.wasm 120 bytes [emitted] [immutable]
+  asset a0f3fcadb09a1a9b.module.wasm xx bytes [emitted] [immutable]
+  asset 4d75fb9d421cb1ec.module.wasm xx bytes [emitted] [immutable]
+  asset 448bdf8d3829b42d.module.wasm xx bytes [emitted] [immutable]
+  asset 28c603ffa1d25701.module.wasm xx bytes [emitted] [immutable]
+  asset 4f244726a350135b.module.wasm xx bytes [emitted] [immutable]
+  asset 934e4a526f464eac.module.wasm xx bytes [emitted] [immutable]
 assets by path *.js xx KiB
   asset bundle.js xx KiB [emitted] (name: main)
   asset 549.bundle.js xx KiB [emitted]
-  asset 440.bundle.js 263 bytes [emitted] (id hint: vendors)
-chunk (runtime: main) 440.bundle.js (id hint: vendors) 34 bytes [rendered] split chunk (cache group: defaultVendors)
-  ./node_modules/env.js 34 bytes [built] [code generated]
+  asset 440.bundle.js xx bytes [emitted] (id hint: vendors)
+chunk (runtime: main) 440.bundle.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
+  ./node_modules/env.js xx bytes [built] [code generated]
 chunk (runtime: main) 28c603ffa1d25701.module.wasm, 448bdf8d3829b42d.module.wasm, 4d75fb9d421cb1ec.module.wasm, 4f244726a350135b.module.wasm, 549.bundle.js, 934e4a526f464eac.module.wasm, a0f3fcadb09a1a9b.module.wasm xx KiB (javascript) xx KiB (wasm) [rendered]
-  ./Q_rsqrt.wasm 156 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
-  ./duff.wasm 531 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
-  ./fact.wasm 154 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
-  ./fast-math.wasm 290 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
-  ./popcnt.wasm 120 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
-  ./testFunction.wasm 154 bytes (wasm) 40 bytes (javascript) [dependent] [built] [code generated]
+  ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./duff.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fact.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
   ./tests.js xx KiB [built] [code generated]
-chunk (runtime: main) bundle.js (main) 586 bytes (javascript) xx KiB (runtime) [entry] [rendered]
-  ./index.js 586 bytes [built] [code generated]
+chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
 runtime modules xx KiB 13 modules
 cacheable modules xx KiB (wasm) xx KiB (javascript)
-  webassembly modules xx KiB (wasm) 240 bytes (javascript)
-    ./Q_rsqrt.wasm 156 bytes (wasm) 40 bytes (javascript) [built] [code generated]
-    ./testFunction.wasm 154 bytes (wasm) 40 bytes (javascript) [built] [code generated]
-    ./fact.wasm 154 bytes (wasm) 40 bytes (javascript) [built] [code generated]
-    ./popcnt.wasm 120 bytes (wasm) 40 bytes (javascript) [built] [code generated]
-    ./fast-math.wasm 290 bytes (wasm) 40 bytes (javascript) [built] [code generated]
-    ./duff.wasm 531 bytes (wasm) 40 bytes (javascript) [built] [code generated]
+  webassembly modules xx KiB (wasm) xx bytes (javascript)
+    ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fact.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./duff.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
   javascript modules xx KiB
-    ./index.js 586 bytes [built] [code generated]
+    ./index.js xx bytes [built] [code generated]
     ./tests.js xx KiB [built] [code generated]
-    ./node_modules/env.js 34 bytes [built] [code generated]
+    ./node_modules/env.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

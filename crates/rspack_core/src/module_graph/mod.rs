@@ -1,6 +1,5 @@
 use std::{
   collections::hash_map::Entry,
-  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -445,10 +444,10 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
-    let mut async_modules_artifact = mem::take(&mut compilation.async_modules_artifact);
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), source_module);
+    let mut async_modules_artifact = compilation.async_modules_artifact.borrow_mut();
     ModuleGraph::set_async(&mut async_modules_artifact, *target_module, is_async);
-    compilation.async_modules_artifact = async_modules_artifact;
   }
 
   pub fn move_module_connections(

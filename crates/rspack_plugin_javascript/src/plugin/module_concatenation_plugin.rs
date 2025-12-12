@@ -889,7 +889,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
+        if ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -1410,7 +1410,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
     compilation.cgm_hash_artifact.clear();
     compilation.module_ids_artifact.clear();
-    compilation.chunk_ids_artifact.clear();
+    compilation.named_chunk_ids_artifact.clear();
     compilation.cgc_runtime_requirements_artifact.clear();
     compilation.chunk_hashes_artifact.clear();
   }

@@ -184,7 +184,8 @@ impl ExternalInterop {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();
 
-    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), &self.module);
 
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(

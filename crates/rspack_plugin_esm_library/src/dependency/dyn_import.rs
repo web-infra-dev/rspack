@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
+  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
   FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
   get_exports_type,
 };
@@ -68,7 +68,7 @@ fn then_expr(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        &compilation.async_modules_artifact,
+        &compilation.async_modules_artifact.borrow(),
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
@@ -86,7 +86,9 @@ fn then_expr(
         );
         appending.push_str(
           format!(
-            ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
+            r#".then(function(m){{
+ return {}(m, {fake_type}) 
+}})"#,
             compilation
               .runtime_template
               .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
@@ -179,16 +181,16 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
     let already_in_chunk = ref_chunk == orig_chunk;
+    let ref_chunk = code_generatable_context
+      .compilation
+      .chunk_by_ukey
+      .expect_get(&ref_chunk);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
       Cow::Owned(format!(
         "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ChunkGraph::get_chunk_id(
-          &code_generatable_context.compilation.chunk_ids_artifact,
-          &ref_chunk
-        )
-        .expect("should have id")
+        ref_chunk.expect_id().as_str()
       ))
     };
 

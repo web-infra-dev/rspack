@@ -29,7 +29,10 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP) {
-    compilation.add_runtime_module(chunk_ukey, ShareRuntimeModule::new(self.enhanced).boxed())?;
+    compilation.add_runtime_module(
+      chunk_ukey,
+      ShareRuntimeModule::new(&compilation.runtime_template, self.enhanced).boxed(),
+    )?;
   }
   Ok(None)
 }

@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::generate_javascript_hmr_runtime;
@@ -20,10 +20,13 @@ pub struct JsonpChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for JsonpChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl JsonpChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/jsonp_chunk_loading"),
+      Identifier::from(format!(
+        "{}jsonp_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }

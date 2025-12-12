@@ -1,27 +1,27 @@
 Entrypoint main xx KiB = default/main.js
-chunk (runtime: main) default/321.js (id hint: vendors) 126 bytes <{889}> ={543}= ={648}= ={742}= [rendered] split chunk (cache group: defaultVendors)
+chunk (runtime: main) default/321.js (id hint: vendors) xx bytes <{889}> ={543}= ={648}= ={742}= [rendered] split chunk (cache group: defaultVendors)
   > ./c ./index.js 3:0-47
   > ./d ./index.js 4:0-47
   > ./e ./index.js 5:0-47
-  ./node_modules/shared.js?2 126 bytes [built] [code generated]
-chunk (runtime: main) default/async-d.js (async-d) 50 bytes <{889}> ={321}= [rendered]
+  ./node_modules/shared.js?2 xx bytes [built] [code generated]
+chunk (runtime: main) default/async-d.js (async-d) xx bytes <{889}> ={321}= [rendered]
   > ./d ./index.js 4:0-47
-  ./d.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/async-e.js (async-e) 50 bytes <{889}> ={321}= [rendered]
+  ./d.js xx bytes [built] [code generated]
+chunk (runtime: main) default/async-e.js (async-e) xx bytes <{889}> ={321}= [rendered]
   > ./e ./index.js 5:0-47
-  ./e.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/async-b.js (async-b) 176 bytes <{889}> [rendered]
+  ./e.js xx bytes [built] [code generated]
+chunk (runtime: main) default/async-b.js (async-b) xx bytes <{889}> [rendered]
   > ./b ./index.js 2:0-47
-  ./b.js 50 bytes [built] [code generated]
-  ./node_modules/shared.js?1 126 bytes [dependent] [built] [code generated]
-chunk (runtime: main) default/async-a.js (async-a) 176 bytes <{889}> [rendered]
+  ./b.js xx bytes [built] [code generated]
+  ./node_modules/shared.js?1 xx bytes [dependent] [built] [code generated]
+chunk (runtime: main) default/async-a.js (async-a) xx bytes <{889}> [rendered]
   > ./a ./index.js 1:0-47
-  ./a.js 50 bytes [built] [code generated]
-  ./node_modules/shared.js?1 126 bytes [dependent] [built] [code generated]
-chunk (runtime: main) default/async-c.js (async-c) 50 bytes <{889}> ={321}= [rendered]
+  ./a.js xx bytes [built] [code generated]
+  ./node_modules/shared.js?1 xx bytes [dependent] [built] [code generated]
+chunk (runtime: main) default/async-c.js (async-c) xx bytes <{889}> ={321}= [rendered]
   > ./c ./index.js 3:0-47
-  ./c.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/main.js (main) 245 bytes (javascript) xx KiB (runtime) >{321}< >{543}< >{648}< >{701}< >{724}< >{742}< [entry] [rendered]
+  ./c.js xx bytes [built] [code generated]
+chunk (runtime: main) default/main.js (main) xx bytes (javascript) xx KiB (runtime) >{321}< >{543}< >{648}< >{701}< >{724}< >{742}< [entry] [rendered]
   > ./ main
-  ./index.js 245 bytes [built] [code generated]
+  ./index.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully

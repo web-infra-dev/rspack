@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
   impl_runtime_module,
 };
 
@@ -13,10 +13,13 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for GetTrustedTypesPolicyRuntimeModule {
-  fn default() -> Self {
+impl GetTrustedTypesPolicyRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      Identifier::from(format!(
+        "{}get_trusted_types_policy",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }

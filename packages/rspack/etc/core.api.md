@@ -2349,7 +2349,7 @@ interface ExecuteModuleArgument {
 // @public (undocumented)
 interface ExecuteModuleContext {
     // (undocumented)
-    __webpack_require__: (id: string) => any;
+    [key: string]: (id: string) => any;
 }
 
 // @public (undocumented)
@@ -7123,81 +7123,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: {
-    readonly require: "__webpack_require__";
-    readonly requireScope: "__webpack_require__.*";
-    readonly exports: "__webpack_exports__";
-    readonly thisAsExports: "top-level-this-exports";
-    readonly returnExportsFromRuntime: "return-exports-from-runtime";
-    readonly module: "module";
-    readonly moduleId: "module.id";
-    readonly moduleLoaded: "module.loaded";
-    readonly publicPath: "__webpack_require__.p";
-    readonly entryModuleId: "__webpack_require__.s";
-    readonly moduleCache: "__webpack_require__.c";
-    readonly moduleFactories: "__webpack_require__.m";
-    readonly moduleFactoriesAddOnly: "__webpack_require__.m (add only)";
-    readonly ensureChunk: "__webpack_require__.e";
-    readonly ensureChunkHandlers: "__webpack_require__.f";
-    readonly ensureChunkIncludeEntries: "__webpack_require__.f (include entries)";
-    readonly prefetchChunk: "__webpack_require__.E";
-    readonly prefetchChunkHandlers: "__webpack_require__.F";
-    readonly preloadChunk: "__webpack_require__.G";
-    readonly preloadChunkHandlers: "__webpack_require__.H";
-    readonly definePropertyGetters: "__webpack_require__.d";
-    readonly makeNamespaceObject: "__webpack_require__.r";
-    readonly createFakeNamespaceObject: "__webpack_require__.t";
-    readonly compatGetDefaultExport: "__webpack_require__.n";
-    readonly harmonyModuleDecorator: "__webpack_require__.hmd";
-    readonly nodeModuleDecorator: "__webpack_require__.nmd";
-    readonly getFullHash: "__webpack_require__.h";
-    readonly wasmInstances: "__webpack_require__.w";
-    readonly instantiateWasm: "__webpack_require__.v";
-    readonly uncaughtErrorHandler: "__webpack_require__.oe";
-    readonly scriptNonce: "__webpack_require__.nc";
-    readonly loadScript: "__webpack_require__.l";
-    readonly createScript: "__webpack_require__.ts";
-    readonly createScriptUrl: "__webpack_require__.tu";
-    readonly getTrustedTypesPolicy: "__webpack_require__.tt";
-    readonly hasFetchPriority: "has fetch priority";
-    readonly chunkName: "__webpack_require__.cn";
-    readonly runtimeId: "__webpack_require__.j";
-    readonly getChunkScriptFilename: "__webpack_require__.u";
-    readonly getChunkCssFilename: "__webpack_require__.k";
-    readonly hasCssModules: "has css modules";
-    readonly getChunkUpdateScriptFilename: "__webpack_require__.hu";
-    readonly getChunkUpdateCssFilename: "__webpack_require__.hk";
-    readonly startup: "__webpack_require__.x";
-    readonly startupNoDefault: "__webpack_require__.x (no default handler)";
-    readonly startupOnlyAfter: "__webpack_require__.x (only after)";
-    readonly startupOnlyBefore: "__webpack_require__.x (only before)";
-    readonly chunkCallback: "webpackChunk";
-    readonly startupEntrypoint: "__webpack_require__.X";
-    readonly onChunksLoaded: "__webpack_require__.O";
-    readonly externalInstallChunk: "__webpack_require__.C";
-    readonly interceptModuleExecution: "__webpack_require__.i";
-    readonly global: "__webpack_require__.g";
-    readonly shareScopeMap: "__webpack_require__.S";
-    readonly initializeSharing: "__webpack_require__.I";
-    readonly currentRemoteGetScope: "__webpack_require__.R";
-    readonly getUpdateManifestFilename: "__webpack_require__.hmrF";
-    readonly hmrDownloadManifest: "__webpack_require__.hmrM";
-    readonly hmrDownloadUpdateHandlers: "__webpack_require__.hmrC";
-    readonly hmrModuleData: "__webpack_require__.hmrD";
-    readonly hmrInvalidateModuleHandlers: "__webpack_require__.hmrI";
-    readonly hmrRuntimeStatePrefix: "__webpack_require__.hmrS";
-    readonly amdDefine: "__webpack_require__.amdD";
-    readonly amdOptions: "__webpack_require__.amdO";
-    readonly system: "__webpack_require__.System";
-    readonly hasOwnProperty: "__webpack_require__.o";
-    readonly systemContext: "__webpack_require__.y";
-    readonly baseURI: "__webpack_require__.b";
-    readonly relativeUrl: "__webpack_require__.U";
-    readonly asyncModule: "__webpack_require__.a";
-    readonly asyncModuleExportSymbol: "__webpack_require__.aE";
-    readonly makeDeferredNamespaceObject: "__webpack_require__.z";
-    readonly makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS";
-};
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {

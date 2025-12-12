@@ -12,8 +12,8 @@ use itertools::{
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
+  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -204,7 +204,15 @@ pub fn get_short_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  named_chunk_ids_artifact: &ChunkNamedIdArtifact,
 ) -> String {
+  if let Some(name) = named_chunk_ids_artifact
+    .chunk_short_names
+    .get(&chunk.ukey())
+  {
+    return name.clone();
+  }
+
   let modules = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
@@ -254,7 +262,12 @@ pub fn get_long_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  named_chunk_ids_artifact: &ChunkNamedIdArtifact,
 ) -> String {
+  if let Some(name) = named_chunk_ids_artifact.chunk_long_names.get(&chunk.ukey()) {
+    return name.clone();
+  }
+
   let modules = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
@@ -321,7 +334,7 @@ pub fn request_to_id(request: &str) -> String {
 pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
   let mut used_ids = FxHashSet::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    if let Some(id) = chunk.id(&compilation.chunk_ids_artifact) {
+    if let Some(id) = chunk.id() {
       used_ids.insert(id.to_string());
     }
   }
@@ -335,19 +348,19 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   if !used_ids.is_empty() {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
+      if chunk.id().is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }
   } else {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
-        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
+      if chunk.id().is_none() {
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }

@@ -8,7 +8,7 @@ use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::Result;
 
@@ -30,9 +30,15 @@ pub struct EmbedFederationRuntimeModule {
 }
 
 impl EmbedFederationRuntimeModule {
-  pub fn new(options: EmbedFederationRuntimeModuleOptions) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    options: EmbedFederationRuntimeModuleOptions,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/embed_federation_runtime"),
+      Identifier::from(format!(
+        "{}embed_federation_runtime",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       options,
     )

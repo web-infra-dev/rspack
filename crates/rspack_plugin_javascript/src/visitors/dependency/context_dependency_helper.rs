@@ -222,6 +222,7 @@ pub fn create_context_dependency(
   }
 }
 
+#[derive(Debug)]
 pub struct ContextModuleScanResult {
   pub context: String,
   pub reg: String,

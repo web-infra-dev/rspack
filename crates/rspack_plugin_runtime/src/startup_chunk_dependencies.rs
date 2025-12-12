@@ -45,7 +45,11 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupChunkDependenciesRuntimeModule::new(async_chunk_loading).boxed(),
+      StartupChunkDependenciesRuntimeModule::new(
+        &compilation.runtime_template,
+        async_chunk_loading,
+      )
+      .boxed(),
     )?;
   }
 
@@ -55,7 +59,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     compilation.add_runtime_module(
       chunk_ukey,
-      StartupEntrypointRuntimeModule::new(async_chunk_loading).boxed(),
+      StartupEntrypointRuntimeModule::new(&compilation.runtime_template, async_chunk_loading).boxed(),
     )?;
   }
 

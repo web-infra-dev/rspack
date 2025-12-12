@@ -3,7 +3,8 @@ use std::ptr::NonNull;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeVariable, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, compile_boolean_matcher,
+  impl_runtime_module,
 };
 
 use super::utils::{chunk_has_js, get_output_dir};
@@ -23,10 +24,13 @@ pub struct ModuleChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for ModuleChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl ModuleChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/module_chunk_loading"),
+      Identifier::from(format!(
+        "{}module_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }

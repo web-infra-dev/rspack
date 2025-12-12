@@ -1,0 +1,28 @@
+Entrypoint main xx KiB = default/main.js
+chunk (runtime: main) default/184.js (id hint: vendors) xx bytes <{889}> ={724}= [rendered] split chunk (cache group: defaultVendors)
+  > ./a ./index.js 1:0-47
+  ./node_modules/shared.js?1 xx bytes [built] [code generated]
+chunk (runtime: main) default/321.js (id hint: vendors) xx bytes <{889}> ={701}= ={742}= [rendered] split chunk (cache group: defaultVendors)
+  > ./b ./index.js 2:0-47
+  > ./c ./index.js 3:0-47
+  ./node_modules/shared.js?2 xx bytes [built] [code generated]
+chunk (runtime: main) default/async-d.js (async-d) xx bytes <{889}> ={979}= [rendered]
+  > ./d ./index.js 4:0-47
+  ./d.js xx bytes [built] [code generated]
+chunk (runtime: main) default/async-b.js (async-b) xx bytes <{889}> ={321}= [rendered]
+  > ./b ./index.js 2:0-47
+  ./b.js xx bytes [built] [code generated]
+chunk (runtime: main) default/async-a.js (async-a) xx bytes <{889}> ={184}= [rendered]
+  > ./a ./index.js 1:0-47
+  ./a.js xx bytes [built] [code generated]
+chunk (runtime: main) default/async-c.js (async-c) xx bytes <{889}> ={321}= [rendered]
+  > ./c ./index.js 3:0-47
+  ./c.js xx bytes [built] [code generated]
+chunk (runtime: main) default/main.js (main) xx bytes (javascript) xx KiB (runtime) >{184}< >{321}< >{543}< >{701}< >{724}< >{742}< >{979}< [entry] [rendered]
+  > ./ main
+  ./index.js xx bytes [built] [code generated]
+chunk (runtime: main) default/979.js (id hint: vendors) xx bytes <{889}> ={543}= [rendered] split chunk (cache group: defaultVendors)
+  > ./d ./index.js 4:0-47
+  ./node_modules/shared.js?3 xx bytes [built] [code generated]
+  ./node_modules/shared.js?4 xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully

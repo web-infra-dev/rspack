@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -32,7 +32,7 @@
     "format:toml": "taplo format",
     "lint:js": "pnpm run lint-ci:js --write",
     "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
-    "lint:rs": "cargo clippy --workspace --all-targets",
+    "lint:rs": "cargo check --workspace --all-targets --locked",
     "lint:type": "rslint --config rslint.json",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
@@ -44,6 +44,7 @@
     "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"e2e-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit",
+    "test:rs": "cargo test --workspace --exclude rspack_binding_api --exclude rspack_node --exclude rspack_binding_builder --exclude rspack_binding_builder_macros --exclude rspack_binding_builder_testing --exclude rspack_binding_build --exclude rspack_napi --exclude rspack_watcher -- --nocapture",
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
@@ -57,10 +58,10 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "10.20.0"
+    "pnpm": "10.24.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.7",
+    "@biomejs/biome": "^2.3.8",
     "@microsoft/api-extractor": "7.55.1",
     "@microsoft/api-extractor-model": "7.32.1",
     "@rslint/core": "0.1.13",
@@ -73,7 +74,7 @@
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.6.8",
+    "@rstest/core": "^0.7.1",
     "lint-staged": "^16.2.7",
     "prettier": "3.6.2",
     "prettier-2": "npm:prettier@2.8.8",
@@ -82,7 +83,7 @@
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@10.24.0",
   "pnpm": {
     "patchedDependencies": {
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"

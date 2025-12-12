@@ -4,8 +4,7 @@ import type { Module } from "../Module";
 import {
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals,
-	isReservedRuntimeGlobal,
-	RuntimeGlobals
+	isReservedRuntimeGlobal
 } from "../RuntimeGlobals";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
@@ -39,10 +38,22 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					chunk,
 					runtimeRequirements
 				}: binding.JsAdditionalTreeRuntimeRequirementsArg) {
-					const set = __from_binding_runtime_globals(runtimeRequirements);
+					const set = __from_binding_runtime_globals(
+						runtimeRequirements,
+						getCompiler().rspack.RuntimeGlobals as unknown as Record<
+							string,
+							string
+						>
+					);
 					queried.call(chunk, set);
 					return {
-						runtimeRequirements: __to_binding_runtime_globals(set)
+						runtimeRequirements: __to_binding_runtime_globals(
+							set,
+							getCompiler().rspack.RuntimeGlobals as unknown as Record<
+								string,
+								string
+							>
+						)
 					};
 				};
 			}
@@ -61,15 +72,36 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					allRuntimeRequirements,
 					runtimeRequirements
 				}: binding.JsRuntimeRequirementInTreeArg): binding.JsRuntimeRequirementInTreeResult {
-					const set = __from_binding_runtime_globals(runtimeRequirements);
-					const all = __from_binding_runtime_globals(allRuntimeRequirements);
+					const set = __from_binding_runtime_globals(
+						runtimeRequirements,
+						getCompiler().rspack.RuntimeGlobals as unknown as Record<
+							string,
+							string
+						>
+					);
+					const all = __from_binding_runtime_globals(
+						allRuntimeRequirements,
+						getCompiler().rspack.RuntimeGlobals as unknown as Record<
+							string,
+							string
+						>
+					);
 					// We don't really pass the custom runtime globals to the rust side, we only pass reserved
 					// runtime globals to the rust side, and iterate over the custom runtime globals in the js side
 					const customRuntimeGlobals = new Set<string>();
 					const originalAdd = all.add.bind(all);
 					const add = function add(r: string) {
 						if (all.has(r)) return all;
-						if (isReservedRuntimeGlobal(r)) return originalAdd(r);
+						if (
+							isReservedRuntimeGlobal(
+								r,
+								getCompiler().rspack.RuntimeGlobals as unknown as Record<
+									string,
+									string
+								>
+							)
+						)
+							return originalAdd(r);
 						customRuntimeGlobals.add(r);
 						return originalAdd(r);
 					};
@@ -81,7 +113,13 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 						queried.for(r).call(chunk, all);
 					}
 					return {
-						allRuntimeRequirements: __to_binding_runtime_globals(all)
+						allRuntimeRequirements: __to_binding_runtime_globals(
+							all,
+							getCompiler().rspack.RuntimeGlobals as unknown as Record<
+								string,
+								string
+							>
+						)
 					};
 				};
 			}
@@ -160,7 +198,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					runtimeModules
 				}: binding.JsExecuteModuleArg) {
 					try {
-						const __webpack_require__: any = (id: string) => {
+						const RuntimeGlobals = getCompiler().rspack.RuntimeGlobals;
+						const moduleRequireFn: any = (id: string) => {
 							const cached = moduleCache[id];
 							if (cached !== undefined) {
 								if (cached.error) throw cached.error;
@@ -175,7 +214,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 									loaded: false,
 									error: undefined
 								},
-								require: __webpack_require__
+								require: moduleRequireFn
 							};
 
 							for (const handler of interceptModuleExecution) {
@@ -195,7 +234,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 											codeGenerationResult: new CodeGenerationResult(result),
 											moduleObject
 										},
-										{ __webpack_require__ }
+										{ [RuntimeGlobals.require]: moduleRequireFn }
 									),
 								"Compilation.hooks.executeModule"
 							);
@@ -203,14 +242,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 							return moduleObject.exports;
 						};
 
-						const moduleCache: Record<string, any> = (__webpack_require__[
+						const moduleCache: Record<string, any> = (moduleRequireFn[
 							RuntimeGlobals.moduleCache.replace(
 								`${RuntimeGlobals.require}.`,
 								""
 							)
 						] = {});
 						const interceptModuleExecution: ((execOptions: any) => void)[] =
-							(__webpack_require__[
+							(moduleRequireFn[
 								RuntimeGlobals.interceptModuleExecution.replace(
 									`${RuntimeGlobals.require}.`,
 									""
@@ -218,10 +257,10 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 							] = []);
 
 						for (const runtimeModule of runtimeModules) {
-							__webpack_require__(runtimeModule);
+							moduleRequireFn(runtimeModule);
 						}
 
-						const executeResult = __webpack_require__(entry);
+						const executeResult = moduleRequireFn(entry);
 						getCompiler()
 							.__internal__get_module_execution_results_map()
 							.set(id, executeResult);

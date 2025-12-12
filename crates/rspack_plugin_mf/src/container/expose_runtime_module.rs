@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
-  impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
@@ -16,8 +16,14 @@ pub struct ExposeRuntimeModule {
 
 impl ExposeRuntimeModule {
   #[allow(clippy::new_without_default)]
-  pub fn new() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/initialize_exposes"), None)
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}initialize_exposes",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 

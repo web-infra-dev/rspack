@@ -194,7 +194,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let len_str = len_buffer.format(len);
                 let import_var = format!("rspack_import_{}", len_str);
                 if ModuleGraph::is_async(
-                  &compilation.async_modules_artifact,
+                  &compilation.async_modules_artifact.borrow(),
                   &mgm.module_identifier,
                 ) {
                   promises.push(import_var.clone());

@@ -258,7 +258,7 @@ impl JsModuleGraph {
   pub fn is_async(&self, module: ModuleObjectRef) -> napi::Result<bool> {
     let (compilation, _) = self.as_ref()?;
     Ok(ModuleGraph::is_async(
-      &compilation.async_modules_artifact,
+      &compilation.async_modules_artifact.borrow(),
       &module.identifier,
     ))
   }

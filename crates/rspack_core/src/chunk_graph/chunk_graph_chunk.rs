@@ -12,8 +12,8 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
+  ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -719,10 +719,7 @@ impl ChunkGraph {
       .iter()
     {
       let chunk = compilation.chunk_by_ukey.expect_get(c);
-      map.insert(
-        chunk.expect_id(&compilation.chunk_ids_artifact).to_string(),
-        filter(c, compilation),
-      );
+      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
     map
@@ -1153,24 +1150,5 @@ impl ChunkGraph {
         None
       })
       .unwrap_or(module.source_types(module_graph).iter().copied().collect())
-  }
-
-  pub fn get_chunk_id<'a>(
-    chunk_ids: &'a ChunkIdsArtifact,
-    chunk_ukey: &ChunkUkey,
-  ) -> Option<&'a ChunkId> {
-    chunk_ids.get(chunk_ukey)
-  }
-
-  pub fn set_chunk_id(
-    chunk_ids: &mut ChunkIdsArtifact,
-    chunk_ukey: ChunkUkey,
-    id: ChunkId,
-  ) -> bool {
-    if let Some(old_id) = chunk_ids.insert(chunk_ukey, id.clone()) {
-      old_id != id
-    } else {
-      true
-    }
   }
 }

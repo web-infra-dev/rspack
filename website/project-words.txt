@@ -35,6 +35,7 @@ CRACO
 cssextractrspackplugin
 dail
 darwin
+deconflict
 devongovett
 devserverdevmiddleware
 devserverhot

@@ -4,6 +4,7 @@ mod import_context_dependency;
 mod import_meta_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
+mod url_context_dependency;
 
 pub use amd_require_context_dependency::{
   AMDRequireContextDependency, AMDRequireContextDependencyTemplate,
@@ -24,6 +25,7 @@ use rspack_core::{
   ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
   ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
+pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 
 fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,

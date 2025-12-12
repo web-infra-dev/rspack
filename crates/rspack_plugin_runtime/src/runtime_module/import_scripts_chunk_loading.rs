@@ -1,7 +1,7 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, impl_runtime_module,
+  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 
 use super::{
@@ -22,9 +22,12 @@ pub struct ImportScriptsChunkLoadingRuntimeModule {
 }
 
 impl ImportScriptsChunkLoadingRuntimeModule {
-  pub fn new(with_create_script_url: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, with_create_script_url: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
+      Identifier::from(format!(
+        "{}import_scripts_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       with_create_script_url,
     )

@@ -11,6 +11,7 @@ use std::{
   },
 };
 
+use atomic_refcell::AtomicRefCell;
 use build_chunk_graph::{
   artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
 };
@@ -44,17 +45,17 @@ use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ConcatenationScope, DependenciesDiagnosticsArtifact,
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType,
-  DerefOption, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename,
-  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage,
-  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial,
-  ModuleGraphRef, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats, ValueCacheVersions,
+  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, ConcatenationScope,
+  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
+  DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
+  ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -78,7 +79,7 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -247,15 +248,15 @@ pub struct Compilation {
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: DerefOption<AsyncModulesArtifact>,
+  pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
+  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
   // artifact for side_effects_flag_plugin
-  pub side_effects_optimize_artifact: SideEffectsOptimizeArtifact,
+  pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: ModuleIdsArtifact,
-  // artifact for chunk_ids
-  pub chunk_ids_artifact: ChunkIdsArtifact,
+  // artifact for named_chunk_ids
+  pub named_chunk_ids_artifact: ChunkNamedIdArtifact,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
@@ -386,14 +387,14 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
-      async_modules_artifact: DerefOption::new(AsyncModulesArtifact::default()),
+      async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: DerefOption::new(
+      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
         DependenciesDiagnosticsArtifact::default(),
-      ),
-      side_effects_optimize_artifact: Default::default(),
+      )),
+      side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
-      chunk_ids_artifact: Default::default(),
+      named_chunk_ids_artifact: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_artifact: Default::default(),
       cgm_runtime_requirements_artifact: Default::default(),
@@ -1650,15 +1651,19 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let mut diagnostics: Vec<Diagnostic> = vec![];
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self)
+        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
+    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
+    self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
 
@@ -2006,7 +2011,6 @@ impl Compilation {
       entrypoint_ukey: &ChunkGroupUkey,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       chunk_by_ukey: &ChunkByUkey,
-      chunk_ids: &ChunkIdsArtifact,
       chunk_graph: &mut ChunkGraph,
     ) {
       let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
@@ -2022,7 +2026,7 @@ impl Compilation {
         runtime,
         chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),
       ) {
-        chunk_graph.set_runtime_id(runtime, chunk.id(chunk_ids).map(|id| id.to_string()));
+        chunk_graph.set_runtime_id(runtime, chunk.id().map(|id| id.to_string()));
       }
     }
     for i in self.entrypoints.iter() {
@@ -2030,7 +2034,6 @@ impl Compilation {
         i.1,
         &self.chunk_group_by_ukey,
         &self.chunk_by_ukey,
-        &self.chunk_ids_artifact,
         &mut self.chunk_graph,
       )
     }
@@ -2039,7 +2042,6 @@ impl Compilation {
         i,
         &self.chunk_group_by_ukey,
         &self.chunk_by_ukey,
-        &self.chunk_ids_artifact,
         &mut self.chunk_graph,
       )
     }
@@ -2525,17 +2527,14 @@ impl Compilation {
         .filter(|(_, (_, remaining))| *remaining != 0)
         .map(|(chunk_ukey, _)| self.chunk_by_ukey.expect_get(chunk_ukey))
         .collect();
-      circular.sort_unstable_by(|a, b| {
-        a.id(&self.chunk_ids_artifact)
-          .cmp(&b.id(&self.chunk_ids_artifact))
-      });
+      circular.sort_unstable_by(|a, b| a.id().cmp(&b.id()));
       runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey()));
       let circular_names = circular
         .iter()
         .map(|chunk| {
           chunk
             .name()
-            .or(chunk.id(&self.chunk_ids_artifact).map(|id| id.as_str()))
+            .or(chunk.id().map(|id| id.as_str()))
             .unwrap_or("no id chunk")
         })
         .join(", ");

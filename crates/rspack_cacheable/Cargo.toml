@@ -10,24 +10,24 @@ version.workspace = true
 noop = []
 
 [dependencies]
-allocative      = { workspace = true, optional = true }
-camino          = { workspace = true }
-dashmap         = { workspace = true }
-hashlink        = { workspace = true }
-indexmap        = { workspace = true }
-inventory       = { workspace = true }
-json            = { workspace = true }
-lightningcss    = { workspace = true }
-once_cell       = { workspace = true }
-rkyv            = { workspace = true }
-rspack_macros   = { workspace = true }
-rspack_resolver = { workspace = true }
-rspack_sources  = { workspace = true }
-serde_json      = { workspace = true }
-smol_str        = { workspace = true }
-swc_core        = { workspace = true, features = ["ecma_ast"] }
-ustr            = { workspace = true }
-xxhash-rust     = { workspace = true, features = ["const_xxh64"] }
+allocative              = { workspace = true, optional = true }
+camino                  = { workspace = true }
+dashmap                 = { workspace = true }
+hashlink                = { workspace = true }
+indexmap                = { workspace = true }
+inventory               = { workspace = true }
+json                    = { workspace = true }
+lightningcss            = { workspace = true }
+once_cell               = { workspace = true }
+rkyv                    = { workspace = true }
+rspack_cacheable_macros = { workspace = true }
+rspack_resolver         = { workspace = true }
+rspack_sources          = { workspace = true }
+serde_json              = { workspace = true }
+smol_str                = { workspace = true }
+swc_core                = { workspace = true, features = ["ecma_ast"] }
+ustr                    = { workspace = true }
+xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
 
 [lints.rust.unexpected_cfgs]
 check-cfg = ['cfg(allocative)']

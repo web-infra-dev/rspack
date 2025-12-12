@@ -158,7 +158,13 @@ impl ModuleInfoHeaderPlugin {
 
     let req_stars_str = "*".repeat(req.len());
 
-    format!("\n/*!****{req_stars_str}****!*\\\n  !*** {req} ***!\n  \\****{req_stars_str}****/\n")
+    format!(
+      r#"
+/*!****{req_stars_str}****!*\
+  !*** {req} ***!
+  \****{req_stars_str}****/
+"#
+    )
   }
 }
 

@@ -46,6 +46,7 @@ import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
+import { createCompilerRuntimeGlobals } from "./RuntimeGlobals";
 import { Stats } from "./Stats";
 import {
 	createCompilationHooksRegisters,
@@ -245,8 +246,15 @@ class Compiler {
 			additionalPass: new liteTapable.AsyncSeriesHook([])
 		};
 
-		this.webpack = rspack;
-		this.rspack = rspack;
+		const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
+		this.webpack = {
+			...rspack,
+			RuntimeGlobals: compilerRuntimeGlobals
+		} as typeof rspack;
+		this.rspack = {
+			...rspack,
+			RuntimeGlobals: compilerRuntimeGlobals
+		} as typeof rspack;
 		this.root = this;
 		this.outputPath = "";
 

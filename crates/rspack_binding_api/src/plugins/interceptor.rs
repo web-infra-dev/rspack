@@ -1347,7 +1347,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         name: module
           .name()
           .as_str()
-          .cow_replace("webpack/runtime/", "")
+          .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
           .into_owned(),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),

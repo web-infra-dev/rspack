@@ -15,11 +15,9 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     IncrementalPasses::CHUNK_IDS,
     "NaturalChunkIdsPlugin (optimization.chunkIds = \"natural\")",
     "it requires calculating the id of all the chunks, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
-    compilation.chunk_ids_artifact.clear();
+  ) && let Some(diagnostic) = diagnostic
+  {
+    compilation.push_diagnostic(diagnostic);
   }
 
   let module_ids = &compilation.module_ids_artifact;

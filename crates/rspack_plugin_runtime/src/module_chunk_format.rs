@@ -127,7 +127,7 @@ async fn render_chunk(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
-  let chunk_id_json_string = json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact));
+  let chunk_id_json_string = json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(

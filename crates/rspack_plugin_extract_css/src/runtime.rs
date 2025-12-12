@@ -1,10 +1,10 @@
 use std::ptr::NonNull;
 
 use itertools::Itertools;
-use rspack_collections::UkeySet;
+use rspack_collections::{Identifier, UkeySet};
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, impl_runtime_module,
+  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
@@ -18,6 +18,7 @@ use crate::plugin::{InsertType, SOURCE_TYPE};
 #[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct CssLoadingRuntimeModule {
+  id: Identifier,
   chunk: ChunkUkey,
   attributes: FxHashMap<String, String>,
   link_type: Option<String>,
@@ -26,12 +27,22 @@ pub(crate) struct CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   pub(crate) fn new(
+    runtime_template: &RuntimeTemplate,
     chunk: ChunkUkey,
     attributes: FxHashMap<String, String>,
     link_type: Option<String>,
     insert: InsertType,
   ) -> Self {
-    Self::with_default(chunk, attributes, link_type, insert)
+    Self::with_default(
+      Identifier::from(format!(
+        "{}css loading",
+        runtime_template.runtime_module_prefix()
+      )),
+      chunk,
+      attributes,
+      link_type,
+      insert,
+    )
   }
 
   fn get_css_chunks(&self, compilation: &Compilation) -> UkeySet<ChunkUkey> {
@@ -68,7 +79,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn name(&self) -> rspack_collections::Identifier {
-    "webpack/runtime/css loading".into()
+    self.id
   }
 
   fn stage(&self) -> RuntimeModuleStage {
@@ -206,7 +217,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           Some(serde_json::json!({
             "_installed_chunks": format!(
               "{}: 0,\n",
-              serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
+              serde_json::to_string(chunk.expect_id())
                 .expect("json stringify failed")
             ),
             "_css_chunks": format!(
@@ -216,7 +227,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                 .filter_map(|id| {
                   let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-                  chunk.id(&compilation.chunk_ids_artifact).map(|id| {
+                  chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
                       serde_json::to_string(id).expect("json stringify failed")
@@ -317,7 +328,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.name().to_string();
+    let base_id = self.id.to_string();
 
     match id {
       TemplateId::Raw => base_id,

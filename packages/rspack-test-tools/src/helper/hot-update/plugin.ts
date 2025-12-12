@@ -23,6 +23,7 @@ async function loopFile(
 }
 
 const PLUGIN_NAME = "HotUpdatePlugin";
+const MAX_UPDATE_INDEX = 100;
 
 export class HotUpdatePlugin {
 	private initialized = false;
@@ -107,11 +108,36 @@ export class HotUpdatePlugin {
 		}, 1);
 	}
 	async goNext() {
+		if (this.updateIndex > MAX_UPDATE_INDEX) {
+			throw new Error("NEXT_* has been called more than the maximum times");
+		}
 		this.updateIndex++;
 		await this.updateFiles();
 	}
+	async moveTempDir() {
+		// generate next temp dir path.
+		const nextTempDir =
+			this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, "") +
+			"___" +
+			this.updateIndex;
+
+		// update this.files.
+		for (const key of Object.keys(this.files)) {
+			const nextKey = key.replace(this.tempDir, nextTempDir);
+			this.files[nextKey] = this.files[key];
+			delete this.files[key];
+		}
+
+		// move files.
+		rimrafSync(nextTempDir);
+		fs.renameSync(this.tempDir, nextTempDir);
+		this.tempDir = nextTempDir;
+
+		return this.tempDir;
+	}
 
 	apply(compiler: Compiler) {
+		const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
 		const options = compiler.options;
 		options.context = this.tempDir;
 		options.module.rules ??= [];
@@ -135,7 +161,7 @@ export class HotUpdatePlugin {
 			compilation.hooks.additionalTreeRuntimeRequirements.tap(
 				PLUGIN_NAME,
 				(_chunk: any, set: any) => {
-					set.add(compiler.webpack.RuntimeGlobals.moduleCache);
+					set.add(compiler.rspack.RuntimeGlobals.moduleCache);
 				}
 			);
 			compilation.hooks.runtimeModule.tap(
@@ -144,9 +170,9 @@ export class HotUpdatePlugin {
 					if (module.constructorName === "DefinePropertyGettersRuntimeModule") {
 						module.source.source = Buffer.from(
 							`
-										__webpack_require__.d = function (exports, definition) {
+										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {
 												for (var key in definition) {
-														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+														if (${RuntimeGlobals.hasOwnProperty}(definition, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
 																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
 														}
 												}
