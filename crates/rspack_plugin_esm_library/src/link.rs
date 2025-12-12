@@ -10,33 +10,28 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
   ExportMode, ExportModeNormalReexport, ExportProvided, ExportsInfoGetter, ExportsType,
-  ExternalModule, FindTargetResult, GetUsedNameParam, IdentCollector, InitFragmentKey,
-  InitFragmentStage, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalReexportItem,
-  PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_name, find_new_name, get_cached_readable_identifier,
+  ExternalModule, FindTargetResult, GetUsedNameParam, InitFragmentKey, InitFragmentStage,
+  MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, NormalReexportItem, PathData,
+  PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, collect_ident, escape_name, find_new_name, get_cached_readable_identifier,
   get_js_chunk_filename_template, get_target, property_access, property_name,
   reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
   to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
   JS_DEFAULT_KEYWORD, JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
-  visitors::swc_visitor::resolver,
 };
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
-use swc_core::{
-  common::{FileName, SyntaxContext},
-  ecma::{
-    ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
-  },
-};
+use swc_core::common::SyntaxContext;
+use swc_experimental_ecma_ast::EsVersion;
+use swc_experimental_ecma_parser::{Syntax, parse_file_as_module};
+use swc_experimental_ecma_semantic::resolver::resolver;
 
 use crate::{
   EsmLibraryPlugin,
@@ -765,47 +760,25 @@ var {} = {{}};
                   .current_module
                   .clone();
 
-                let m = module_graph
-                  .module_by_identifier(&id)
-                  .expect("should have module");
-                let cm: Arc<swc_core::common::SourceMap> = Default::default();
-                let readable_identifier = m.readable_identifier(&compilation.options.context);
-                let fm = cm.new_source_file(
-                  Arc::new(FileName::Custom(readable_identifier.clone().into_owned())),
-                  render_source
-                    .source
-                    .source()
-                    .into_string_lossy()
-                    .into_owned(),
-                );
-                let mut errors = vec![];
-                let module = parse_file_as_module(
-                  &fm,
-                  Syntax::default(),
-                  EsVersion::EsNext,
-                  None,
-                  &mut errors,
-                )
-                .expect("parse failed");
-                let mut ast = Ast::new(Program::Module(module), cm, None);
+                let source_string = render_source
+                  .source
+                  .source()
+                  .into_string_lossy()
+                  .into_owned();
 
-                let mut global_ctxt = SyntaxContext::empty();
-                let mut module_ctxt = SyntaxContext::empty();
-                let mut collector = IdentCollector::default();
+                let ret =
+                  parse_file_as_module(&source_string, Syntax::default(), EsVersion::EsNext, None)
+                    .expect("parse failed");
+                let ast = &ret.ast;
+                let semantic = resolver(ret.root, ast);
+
+                let global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                let module_ctxt = semantic.top_level_scope_id().to_ctxt();
+                let ids = collect_ident(ast, &semantic);
+
                 let mut all_used_names = FxHashSet::default();
-                ast.transform(|program, context| {
-                  global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                  module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                  program.visit_mut_with(&mut resolver(
-                    context.unresolved_mark,
-                    context.top_level_mark,
-                    false,
-                  ));
-                  program.visit_with(&mut collector);
-                });
-
                 let mut idents = vec![];
-                for ident in collector.ids {
+                for ident in ids {
                   if ident.id.ctxt == global_ctxt {
                     all_used_names.insert(ident.id.sym.clone());
                   }

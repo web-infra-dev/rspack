@@ -3853,7 +3853,6 @@ dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
- "swc_node_comments",
  "tokio",
  "tracing",
  "urlencoding",
@@ -4368,7 +4367,6 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_hook",
- "rspack_javascript_compiler",
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
@@ -4376,6 +4374,9 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_parser",
+ "swc_experimental_ecma_semantic",
  "tokio",
  "tracing",
 ]
@@ -4515,6 +4516,9 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_parser",
+ "swc_experimental_ecma_semantic",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -6507,59 +6511,54 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_ast"
-version = "0.1.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f8d2d1395dee9633e93427f23df04c0dbd6648fe87d8fe8925a1093b5364343"
+checksum = "78d9d999c1793ffba298e447566f4644c8e1effcb5a68a7cb96f9e36bf43941d"
 dependencies = [
  "num-bigint",
  "oxc_index",
- "swc_atoms",
- "swc_common",
+ "swc_core",
  "swc_experimental_ast_macros",
  "unicode-id-start",
 ]
 
 [[package]]
 name = "swc_experimental_ecma_parser"
-version = "0.1.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b28206a21db7bf7cd767cc10ca2726f20f8062b5aa70f1786c41398c86b17411"
+checksum = "7da6a68bf51264e6a95cee44fc3a5cee4d75461d2c9b1d7c842874946e76cf89"
 dependencies = [
  "bitflags 2.9.1",
  "either",
  "num-bigint",
- "oxc_index",
  "rustc-hash",
  "seq-macro",
  "smartstring",
- "stacker",
- "swc_atoms",
- "swc_common",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "tracing",
 ]
 
 [[package]]
 name = "swc_experimental_ecma_semantic"
-version = "0.1.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e26a9fe675fe7c79b7eaccd52b8dcb9ff99505ecaae020a50e3843d861e4ddc9"
+checksum = "1713abe315d207e69a6a418da2ecabaeee887278135a5626c7dae0b019676aa4"
 dependencies = [
  "bitflags 2.9.1",
  "oxc_index",
  "rustc-hash",
- "swc_common",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_visit",
 ]
 
 [[package]]
 name = "swc_experimental_ecma_visit"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98f09d9eb1fe206b4813304f0145dab14ce39eda21b0a785a33d3106924a9570"
+checksum = "ec14f38ebeec39e138c3fb7127dd0867f3a6d531a5fea73715ecbd65f4fb249d"
 dependencies = [
- "swc_common",
  "swc_experimental_ecma_ast",
 ]
 

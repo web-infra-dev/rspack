@@ -11,27 +11,30 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-async-trait                = { workspace = true }
-atomic_refcell             = { workspace = true }
-rayon                      = { workspace = true }
-regex                      = { workspace = true }
-rspack_cacheable           = { workspace = true }
-rspack_collections         = { workspace = true }
-rspack_core                = { workspace = true }
-rspack_error               = { workspace = true }
-rspack_futures             = { workspace = true }
-rspack_hash                = { workspace = true }
-rspack_hook                = { workspace = true }
-rspack_javascript_compiler = { workspace = true }
-rspack_plugin_javascript   = { workspace = true }
-rspack_plugin_runtime      = { workspace = true }
-rspack_util                = { workspace = true }
-serde                      = { workspace = true }
-serde_json                 = { workspace = true }
-sugar_path                 = { workspace = true }
-swc_core                   = { workspace = true, features = ["swc_ecma_transforms_base"] }
-tokio                      = { workspace = true }
-tracing                    = { workspace = true }
+async-trait              = { workspace = true }
+atomic_refcell           = { workspace = true }
+rayon                    = { workspace = true }
+regex                    = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_futures           = { workspace = true }
+rspack_hash              = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_plugin_runtime    = { workspace = true }
+rspack_util              = { workspace = true }
+serde                    = { workspace = true }
+serde_json               = { workspace = true }
+sugar_path               = { workspace = true }
+swc_core                 = { workspace = true, features = ["swc_ecma_transforms_base"] }
+tokio                    = { workspace = true }
+tracing                  = { workspace = true }
+
+swc_experimental_ecma_ast      = { workspace = true }
+swc_experimental_ecma_parser   = { workspace = true }
+swc_experimental_ecma_semantic = { workspace = true }
 
 [lints]
 workspace = true

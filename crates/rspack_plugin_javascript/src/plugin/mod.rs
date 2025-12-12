@@ -29,7 +29,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, RuntimeVariable, SourceType,
+  ExportsArgument, Module, RuntimeGlobals, RuntimeVariable, SourceType, collect_ident,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -39,7 +39,6 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
-use rspack_javascript_compiler::ast::Ast;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -47,9 +46,9 @@ use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
-  ecma::transforms::base::resolver,
+  common::{Spanned, SyntaxContext},
 };
+use swc_experimental_ecma_semantic::resolver::resolver;
 use tokio::sync::RwLock;
 
 use crate::runtime::{
@@ -1103,44 +1102,24 @@ var {} = {{}};
             }
 
             if !use_cache {
-              let cm: Arc<swc_core::common::SourceMap> = Default::default();
-              let fm = cm.new_source_file(
-                Arc::new(FileName::Custom(m.identifier().to_string())),
-                code.source().into_string_lossy().into_owned(),
-              );
-              let comments = swc_node_comments::SwcComments::default();
-              let mut errors = vec![];
+              let source_string = code.source().into_string_lossy().into_owned();
 
-              if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
-                &fm,
-                swc_core::ecma::parser::Syntax::default(),
-                swc_core::ecma::ast::EsVersion::EsNext,
-                Some(&comments),
-                &mut errors,
+              if let Ok(ret) = swc_experimental_ecma_parser::parse_file_as_program(
+                &source_string,
+                swc_experimental_ecma_parser::Syntax::default(),
+                swc_experimental_ecma_ast::EsVersion::EsNext,
+                None,
               ) {
-                let mut ast: Ast = Ast::new(program, cm, Some(comments));
-                let mut global_ctxt = SyntaxContext::empty();
-                let mut module_ctxt = SyntaxContext::empty();
-
-                ast.transform(|program, context| {
-                  global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                  module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                  program.visit_mut_with(&mut resolver(
-                    context.unresolved_mark,
-                    context.top_level_mark,
-                    false,
-                  ));
-                });
-
-                let mut collector = IdentCollector::default();
-                ast.visit(|program, _ctxt| {
-                  program.visit_with(&mut collector);
-                });
+                let ast = &ret.ast;
+                let semantic = resolver(ret.root, ast);
+                let global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                let module_ctxt = semantic.top_level_scope_id().to_ctxt();
+                let ids = collect_ident(ast, &semantic);
 
                 if is_inlined_module {
                   let mut module_scope_idents = Vec::new();
 
-                  for ident in collector.ids {
+                  for ident in ids {
                     if ident.id.ctxt == global_ctxt
                       || ident.id.ctxt != module_ctxt
                       || ident.is_class_expr_with_ident
@@ -1177,7 +1156,7 @@ var {} = {{}};
                   let module_ident = m.identifier();
                   let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
 
-                  for ident in collector.ids {
+                  for ident in ids {
                     if ident.id.ctxt == global_ctxt {
                       acc.all_used_names.insert(ident.clone().id.sym.clone());
                       idents_vec.push(ident.clone());
