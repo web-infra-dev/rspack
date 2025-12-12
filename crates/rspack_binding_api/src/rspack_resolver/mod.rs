@@ -218,7 +218,7 @@ impl ResolverFactory {
         if op.enable_pnp.unwrap_or_default() {
           std::env::current_dir()
             .ok()
-            .and_then(|cwd| pnp::find_pnp_manifest_path(&cwd).ok())
+            .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
         } else {
           None
         }
