@@ -52,8 +52,28 @@ export class ModuleFederationPlugin {
 			this._treeShakeSharedPlugin.apply(compiler);
 		}
 
+		// need to wait treeShakeSharedPlugin buildAssets
 		let runtimePluginApplied = false;
 		compiler.hooks.beforeRun.tapPromise(
+			{
+				name: "ModuleFederationPlugin",
+				stage: 100
+			},
+			async () => {
+				if (runtimePluginApplied) return;
+				runtimePluginApplied = true;
+				const entryRuntime = getDefaultEntryRuntime(
+					paths,
+					this._options,
+					compiler,
+					this._treeShakeSharedPlugin?.buildAssets || {}
+				);
+				new ModuleFederationRuntimePlugin({
+					entryRuntime
+				}).apply(compiler);
+			}
+		);
+		compiler.hooks.watchRun.tapPromise(
 			{
 				name: "ModuleFederationPlugin",
 				stage: 100
