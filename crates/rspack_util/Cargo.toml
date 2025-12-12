@@ -17,6 +17,7 @@ cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
+memchr           = { workspace = true }
 regex            = { workspace = true, features = ["pattern"] }
 ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }

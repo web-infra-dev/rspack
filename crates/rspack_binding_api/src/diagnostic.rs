@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::*;
 use rspack_error::{Diagnostic, Error as RspackError, Label, Severity};
 use rspack_util::location::{
-  try_line_column_length_to_location, try_line_column_length_to_offset_length,
+  v8_line_column_length_to_offset_length, v8_line_column_to_byte_location,
 };
 
 #[napi(object)]
@@ -49,16 +49,16 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
   }
   let mut loc = None;
   if let Some(ref source_code) = source_code {
-    let rope = ropey::Rope::from_str(source_code);
     if let Some(location) = location {
-      loc = try_line_column_length_to_location(
-        &rope,
+      loc = v8_line_column_to_byte_location(
+        &source_code,
         location.line as usize,
         location.column as usize,
         location.length as usize,
       );
-      let (offset, length) = try_line_column_length_to_offset_length(
-        &rope,
+      // TODO: Avoid redundant computation: location and (offset, length) are both derived from the same inputs.
+      let (offset, byte_length) = v8_line_column_length_to_offset_length(
+        &source_code,
         location.line as usize,
         location.column as usize,
         location.length as usize,
@@ -69,8 +69,8 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
           "Format diagnostic failed: Invalid location. Did you pass the correct line, column and length?",
         )
       })?;
-      let end_byte = offset.saturating_add(length);
-      if end_byte > rope.len_bytes() {
+      let end_byte = offset.saturating_add(byte_length);
+      if end_byte > source_code.len() {
         return Err(Error::new(
           Status::Unknown,
           "Format diagnostic failed: Invalid `length` in location.",
@@ -85,7 +85,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
       error.labels = Some(vec![Label {
         name: location.text,
         offset,
-        len: length,
+        len: byte_length,
       }]);
     }
   }
