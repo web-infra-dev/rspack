@@ -55,7 +55,7 @@ module.exports = [
               "stack": undefined,
             },
             Object {
-              "loc": "1:0-33",
+              "loc": "1:1-33",
               "message": "  × Module not found: Can't resolve './answer' in '<TEST_ROOT>/fixtures/errors/resolve-fail-esm'   ╭──── 1 │ import { answer } from './answer'   · ─────────────────────────────────   ╰────  help: Did you mean './answer.js'?                The request './answer' failed to resolve only because it was resolved as fully specified,        probably because the origin is strict EcmaScript Module,        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.                The extension in the request is mandatory for it to be fully specified.        Add the extension to the request.",
               "moduleId": "./resolve-fail-esm/index.js",
               "moduleIdentifier": "javascript/esm|<TEST_ROOT>/fixtures/errors/resolve-fail-esm/index.js",
@@ -226,7 +226,7 @@ module.exports = [
               "stack": "Error: test splice    at <TEST_ROOT>/errorCases/error-write.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
             },
             Object {
-              "loc": "1:0-33",
+              "loc": "1:1-33",
               "message": "  × Module not found: Can't resolve './answer' in '<TEST_ROOT>/fixtures/errors/resolve-fail-esm'   ╭──── 1 │ import { answer } from './answer'   · ─────────────────────────────────   ╰────  help: Did you mean './answer.js'?                The request './answer' failed to resolve only because it was resolved as fully specified,        probably because the origin is strict EcmaScript Module,        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"'.                The extension in the request is mandatory for it to be fully specified.        Add the extension to the request.",
               "moduleId": "./resolve-fail-esm/index.js",
               "moduleIdentifier": "javascript/esm|<TEST_ROOT>/fixtures/errors/resolve-fail-esm/index.js",

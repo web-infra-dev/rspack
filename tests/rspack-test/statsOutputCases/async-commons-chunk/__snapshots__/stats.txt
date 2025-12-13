@@ -1,16 +1,16 @@
 chunk (runtime: main) 267.js (id hint: ) xx bytes <{889}> ={269}= [rendered]
-  > ./index.js 17:4-21:6
-  > ./index.js 2:4-5:6
+  > ./index.js 17:2-21:3
+  > ./index.js 2:2-5:3
   ./a.js xx bytes [built] [code generated]
 chunk (runtime: main) 269.js xx bytes <{889}> ={267}= [rendered]
-  > ./index.js 17:4-21:6
+  > ./index.js 17:2-21:3
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{267}< >{269}< [entry] [rendered]
   > ./ main
   dependent modules xx bytes [dependent] 1 module
   ./index.js xx bytes [built] [code generated] [1 warning]
 
-WARNING in ./index.js 9:4-11
+WARNING in ./index.js 9:2-8
   ⚠ Critical dependency: require function is used in a way in which dependencies cannot be statically extracted
     ╭─[9:4]
   7 │ 

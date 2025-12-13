@@ -29,7 +29,7 @@ sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
 swc_config = { workspace = true }
-swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
+swc_core   = { workspace = true, features = ["__common", "base", "ecma_ast"] }
 
 # wasm runtime
 anyhow            = { workspace = true, optional = true }

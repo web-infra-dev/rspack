@@ -52,7 +52,7 @@ impl ImportMetaPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
     ));
 
     if param.is_conditional() {
@@ -273,7 +273,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         let mut error: Error = create_traceable_error(
           "Critical dependency".into(),
           "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-          parser.source_file,
+          parser.source.to_owned(),
           span.into()
         );
         error.severity = Severity::Warning;
