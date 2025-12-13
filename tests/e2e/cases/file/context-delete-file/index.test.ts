@@ -7,8 +7,7 @@ test("delete file should work", async ({
 	rspack
 }) => {
 	// asset page status
-	const statusText = await page.textContent("#root");
-	expect(statusText).toBe("__PAGE_RENDER__");
+	await expect(page.locator("#root")).toHaveText("__PAGE_RENDER__");
 	// asset script content
 	const response = await request.get(
 		`http://localhost:${rspack.devServer.options.port}/main.js`

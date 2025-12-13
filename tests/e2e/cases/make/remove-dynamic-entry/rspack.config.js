@@ -22,4 +22,7 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
+  lazyCompilation: {
+    entries: false
+  }
 };

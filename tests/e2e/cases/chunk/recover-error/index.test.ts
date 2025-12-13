@@ -2,7 +2,7 @@ import { test, expect } from "@/fixtures";
 import path from "path";
 
 test("should error with invalid syntax", async ({ page, fileAction, rspack }) => {
-	const codePath = path.resolve(rspack.outDir, "AppIndex.js");
+	const codePath = path.resolve(rspack.outDir, "src_AppIndex_jsx.js");
 	await expect(page.locator("button")).toHaveText("count is 0");
 	await page.click("button");
 	await expect(page.locator("button")).toHaveText("count is 1");

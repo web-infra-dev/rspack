@@ -74,7 +74,9 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  infrastructureLogging: Object {},
-			  lazyCompilation: false,
+			  lazyCompilation: Object {
+			    entries: false,
+			  },
 			  loader: Object {
 			    environment: Object {
 			      arrowFunction: true,

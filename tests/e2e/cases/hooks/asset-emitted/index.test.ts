@@ -8,7 +8,7 @@ test("asset emitted hook should only emit modified assets", async ({
 	const assets = (rspack.compiler as any).assets;
 	// reset assets
 	assets.length = 0;
-	expect(await page.textContent("#root")).toBe("__ROOT_TEXT____FOO_VALUE__");
+	await expect(page.locator("#root")).toHaveText("__ROOT_TEXT____FOO_VALUE__");
 
 	// update js file
 	fileAction.updateFile("src/index.js", content => {

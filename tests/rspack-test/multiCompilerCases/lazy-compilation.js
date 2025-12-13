@@ -9,7 +9,8 @@ module.exports = {
     return [
       {
         entry: "./esm/a.js",
-        context
+        context,
+        lazyCompilation: false,
       },
       {
         entry: "./esm/b.js",

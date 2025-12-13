@@ -1,8 +1,8 @@
 import { expect, test } from "@/fixtures";
 
 test("should compile", async ({ page, fileAction, rspack }) => {
-	await expect(page.getByText("index1")).toBeVisible();
-	await expect(page.getByText("index2")).toBeVisible();
+	await expect(page.locator("#index1")).toBeVisible();
+	await expect(page.locator("#index2")).toBeVisible();
 
 	fileAction.deleteFile("src/index2.js");
 	fileAction.updateFile("src/index1.js", content => content.replace("div.innerText = \"index1\";", "div.innerText = \"index1 updated\";"));
