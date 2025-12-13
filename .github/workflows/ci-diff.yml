@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "**/*.md"
+      - "website/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,8 +33,8 @@ jobs:
       prefer_docker: false
       ref: ${{ github.event.pull_request.head.sha }}
 
-  demo-test:
-    name: Demo Test
+  diff-projects:
+    name: Diff Benchmark Projects
     needs: build
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     defaults:
