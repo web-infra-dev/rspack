@@ -84,7 +84,7 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@a92db9e3ee802d42a74c130a9a144f053d2f13cc
+        uses: web-infra-dev/rsdoctor-action@3576edf3ddc2c86c9651d4a916fad68013c4d6cd
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: "../build-tools-performance/**/dist/rsdoctor-data.json"

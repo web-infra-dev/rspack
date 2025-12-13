@@ -116,5 +116,5 @@ ERROR in ./app.ts
   help: 
         You may need an appropriate loader to handle this file type.
 
-ERROR in ./index.js 34:14-25
+ERROR in ./index.js 34:12-22
   × No parser registered for 'ts'

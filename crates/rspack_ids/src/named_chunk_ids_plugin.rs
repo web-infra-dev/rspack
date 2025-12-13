@@ -110,7 +110,11 @@ fn assign_named_chunk_ids(
 
   let mut ordered_chunk_modules_cache = Default::default();
 
-  for (name, mut items) in name_to_items {
+  // Sort by name to ensure deterministic processing order
+  let mut name_to_items_sorted: Vec<_> = name_to_items.into_iter().collect();
+  name_to_items_sorted.sort_by(|a, b| a.0.cmp(&b.0));
+
+  for (name, mut items) in name_to_items_sorted {
     if name.is_empty() {
       for item in items {
         unnamed_items.push(item)

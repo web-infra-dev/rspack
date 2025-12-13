@@ -930,7 +930,7 @@ impl RuntimeTemplate {
         }
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         if ModuleGraph::is_async(
-          &compilation.async_modules_artifact,
+          &compilation.async_modules_artifact.borrow(),
           compilation
             .get_module_graph()
             .module_identifier_by_dependency_id(dep_id)
@@ -1356,7 +1356,10 @@ fn get_outgoing_async_modules(
     visited: &mut HashSet<ModuleIdentifier>,
   ) {
     let module_identifier = module.identifier();
-    if !ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier) {
+    if !ModuleGraph::is_async(
+      &compilation.async_modules_artifact.borrow(),
+      &module_identifier,
+    ) {
       return;
     }
     if !visited.insert(module_identifier) {

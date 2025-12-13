@@ -11,6 +11,7 @@ use std::{
   },
 };
 
+use atomic_refcell::AtomicRefCell;
 use build_chunk_graph::{
   artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
 };
@@ -247,9 +248,9 @@ pub struct Compilation {
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: DerefOption<AsyncModulesArtifact>,
+  pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
+  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -386,11 +387,11 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
 
-      async_modules_artifact: DerefOption::new(AsyncModulesArtifact::default()),
+      async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: DerefOption::new(
+      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
         DependenciesDiagnosticsArtifact::default(),
-      ),
+      )),
       side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       named_chunk_ids_artifact: Default::default(),

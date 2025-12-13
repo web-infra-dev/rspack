@@ -230,7 +230,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
-  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), &target_module.identifier()));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,

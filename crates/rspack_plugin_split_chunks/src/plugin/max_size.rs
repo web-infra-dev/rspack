@@ -7,8 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
@@ -279,17 +278,22 @@ fn deterministic_grouping_for_modules(
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
 
-  let nodes = items.into_iter().map(|module| {
-    let module: &dyn Module = module.as_ref();
+  let mut nodes = items
+    .into_iter()
+    .map(|module| {
+      let module: &dyn Module = module.as_ref();
 
-    GroupItem {
-      module: module.identifier(),
-      size: get_size(module, compilation),
-      key: get_key(module, delimiter, compilation),
-    }
-  });
+      GroupItem {
+        module: module.identifier(),
+        size: get_size(module, compilation),
+        key: get_key(module, delimiter, compilation),
+      }
+    })
+    .collect::<Vec<_>>();
 
-  let mut initial_nodes = nodes
+  nodes.sort_by(|a, b| a.key.cmp(&b.key));
+
+  let initial_nodes = nodes
     .into_iter()
     .filter_map(|node| {
       // The Module itself is already bigger than `allow_max_size`, we will create a chunk
@@ -311,7 +315,6 @@ fn deterministic_grouping_for_modules(
     .collect::<Vec<_>>();
 
   if !initial_nodes.is_empty() {
-    initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
     let similarities = get_similarities(&initial_nodes);
     let initial_group = Group::new(initial_nodes, None, similarities);
 

@@ -2,6 +2,10 @@
 // ./lib3.js
 const lib3_lib3 = 42
 
+const lib_local = 24
+
+
+
 // ./lib2.js
 
 
@@ -16,12 +20,13 @@ const lib_lib = 42
 
 
 it('should re-export esm correctly', async () => {
-	const { lib, lib2, lib3 } = await import(/* webpackIgnore: true */ './main.mjs')
+	const { lib, lib2, lib3, lib4 } = await import(/* webpackIgnore: true */ './main.mjs')
 	expect(lib).toBe(42)
 	expect(lib2).toBe(42)
 	expect(lib3).toBe(42)
+	expect(lib4).toBe(24)
 })
 
-export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib };
+export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib, lib_local as lib4 };
 
 ```

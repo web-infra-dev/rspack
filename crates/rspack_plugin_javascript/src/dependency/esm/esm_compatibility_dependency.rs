@@ -78,7 +78,10 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       )));
     }
 
-    if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
+    if ModuleGraph::is_async(
+      &compilation.async_modules_artifact.borrow(),
+      &module.identifier(),
+    ) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(

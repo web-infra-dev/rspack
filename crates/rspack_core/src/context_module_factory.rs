@@ -14,10 +14,10 @@ use tracing::instrument;
 
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  DependencyCategory, DependencyId, DependencyType, FactoryMeta, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve,
+  DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver, resolve,
 };
 
 #[derive(Debug)]
@@ -126,6 +126,10 @@ impl ContextModuleFactory {
       let resolver_factory = resolver_factory.clone();
       Box::pin(async move {
         tracing::trace!("resolving context module path {}", options.resource);
+        if options.resource.as_str().is_empty() {
+          return Ok(vec![]);
+        }
+
         let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
           resolve_options: options
             .resolve_options
@@ -305,30 +309,30 @@ impl ContextModuleFactory {
           resource_fragment: resource.fragment,
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
-          context_options: dependency.options().clone(),
+          context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
         let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
-        let ident = format!("{}/{}", data.context, specifier);
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-        let mut raw_module = RawModule::new(
-          "/* (ignored) */".to_owned(),
-          module_identifier,
-          format!("{specifier} (ignored)"),
-          Default::default(),
-        )
-        .boxed();
+        // should create an empty context module when ignored
+        let mut dependency_options = dependency.options().clone();
+        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
 
-        raw_module.set_factory_meta(FactoryMeta {
-          side_effect_free: Some(true),
-        });
-
-        data.add_file_dependencies(file_dependencies);
-        data.add_missing_dependencies(missing_dependencies);
-        return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
+        let options = ContextModuleOptions {
+          addon: loader_request.clone(),
+          resource: Default::default(),
+          resource_query: Default::default(),
+          resource_fragment: Default::default(),
+          layer: data.issuer_layer.clone(),
+          resolve_options: data.resolve_options.clone(),
+          context_options: dependency_options,
+          type_prefix: dependency.type_prefix(),
+        };
+        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
+        (module, Some(options))
       }
       Err(err) => {
         data.add_file_dependencies(file_dependencies);
