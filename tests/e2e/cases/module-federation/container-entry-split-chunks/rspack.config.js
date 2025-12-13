@@ -69,8 +69,5 @@ module.exports = {
 		devMiddleware: {
 			writeToDisk: true,
 		}
-	},
-	lazyCompilation:{
-		entries: false
 	}
 };

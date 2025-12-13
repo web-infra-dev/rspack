@@ -10,7 +10,7 @@ test("delete file should work", async ({
 	await expect(page.locator("#root")).toHaveText("__PAGE_RENDER__");
 	// asset script content
 	const response = await request.get(
-		`http://localhost:${rspack.devServer.options.port}/src_index_js.js`
+		`http://localhost:${rspack.devServer.options.port}/main.js`
 	);
 	const bodyResponse = (await response.body()).toString();
 	expect(bodyResponse).toContain("this is mod1");
@@ -20,7 +20,7 @@ test("delete file should work", async ({
 	await expect(page.locator("#root")).toHaveText("__HMR_UPDATED__");
 	// asset new script content
 	const responseAfterDelete = await request.get(
-		`http://localhost:${rspack.devServer.options.port}/src_index_js.js`
+		`http://localhost:${rspack.devServer.options.port}/main.js`
 	);
 	const bodyResponseAfterDelete = (await responseAfterDelete.body()).toString();
 	expect(bodyResponseAfterDelete).not.toContain("this is mod1");
