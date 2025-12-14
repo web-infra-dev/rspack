@@ -5,7 +5,6 @@ import {
 	type Configuration,
 	rspack,
 	type RspackOptions as RspackConfig,
-	experiments
 } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import type { PathInfoFixtures } from "./pathInfo";
@@ -64,7 +63,7 @@ class Rspack {
 		});
 		const DevServerConstructor = RspackDevServer;
 		if (compiler.options.lazyCompilation) {
-			const middleware = experiments.lazyCompilationMiddleware(compiler);
+			const middleware = rspack.lazyCompilationMiddleware(compiler);
 			compiler.options.devServer ??= {};
 			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
 			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {

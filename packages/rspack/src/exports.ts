@@ -157,6 +157,8 @@ interface Node {
 	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
 }
 
+export { lazyCompilationMiddleware };
+
 export const node: Node = {
 	NodeTargetPlugin,
 	NodeTemplatePlugin,
@@ -374,6 +376,9 @@ interface Experiments {
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+	/**
+	 * @deprecated Use `rspack.lazyCompilationMiddleware` instead
+	 */
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 	swc: {
 		transform: typeof transform;

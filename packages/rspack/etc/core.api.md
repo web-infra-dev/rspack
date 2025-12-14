@@ -2428,7 +2428,7 @@ interface Experiments_2 {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
@@ -4247,8 +4247,8 @@ interface LabeledStatement extends Node_4, HasSpan {
 // @public
 export type Layer = string | null;
 
-// @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
+// @public
+export const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -6593,6 +6593,7 @@ declare namespace rspackExports {
         OutputFileSystem,
         WatchFileSystem,
         web,
+        lazyCompilationMiddleware,
         node,
         electron,
         library,
