@@ -198,11 +198,10 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_MODULE => {
-        let source_rope = parser.source_rope().clone();
         parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
           None,
           ident.span.into(),
-          Some(source_rope),
+          Some(parser.source.clone()),
         )));
         Some(true)
       }
@@ -371,7 +370,7 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source, for_name, false, member_expr.span());
+        expression_not_supported(parser.source.as_ref(), for_name, false, member_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);
@@ -415,11 +414,10 @@ impl JavascriptParserPlugin for APIPlugin {
         RuntimeGlobals::MODULE_ID,
       )));
 
-      let source_rope = parser.source_rope().clone();
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
         member_expr.span().into(),
-        Some(source_rope),
+        Some(parser.source.clone()),
       )));
       return Some(true);
     }
@@ -440,7 +438,7 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source, for_name, true, call_expr.span());
+        expression_not_supported(parser.source.as_ref(), for_name, true, call_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

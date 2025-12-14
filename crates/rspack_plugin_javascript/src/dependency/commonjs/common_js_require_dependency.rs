@@ -25,7 +25,7 @@ impl CommonJsRequireDependency {
     optional: bool,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source_map.as_deref());
     Self {
       id: DependencyId::new(),
       request,

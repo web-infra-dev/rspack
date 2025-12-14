@@ -313,7 +313,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         import_call_span.into(),
       );
       error.severity = Severity::Warning;
@@ -352,10 +352,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
-        let source_map: SharedSourceMap = parser.source_rope().clone();
+        let source_map: SharedSourceMap = parser.source().clone();
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(&source_map)),
+          Into::<DependencyRange>::into(import_call_span).to_loc(Some(source_map.as_ref())),
           None,
           vec![dep],
           Some(param.string().clone()),

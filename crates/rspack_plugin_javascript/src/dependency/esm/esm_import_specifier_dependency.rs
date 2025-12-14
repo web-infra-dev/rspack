@@ -76,7 +76,7 @@ impl ESMImportSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source_map.as_deref());
     Self {
       id: DependencyId::new(),
       request,

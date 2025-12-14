@@ -12,7 +12,6 @@ lightningcss     = { workspace = true, features = ["sourcemap"] }
 parcel_sourcemap = { workspace = true }
 rayon            = { workspace = true }
 regex            = { workspace = true }
-ropey            = { workspace = true }
 thread_local     = { workspace = true }
 tracing          = { workspace = true }
 
@@ -23,4 +22,4 @@ rspack_hook  = { workspace = true }
 rspack_util  = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "ropey"]
+ignored = ["tracing"]
