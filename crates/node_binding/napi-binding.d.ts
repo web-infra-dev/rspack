@@ -150,6 +150,7 @@ export declare class ChunkGraph {
   getModuleId(module: Module): string | number | null
   _getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): ChunkGroup | null
+  getChunkGroupBlocks(chunkGroup: ChunkGroup): AsyncDependenciesBlock[]
 }
 
 export declare class ChunkGroup {
