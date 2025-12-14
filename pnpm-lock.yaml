@@ -336,8 +336,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       memfs:
-        specifier: 4.48.1
-        version: 4.48.1
+        specifier: 4.51.1
+        version: 4.51.1
       prebundle:
         specifier: ^1.6.0
         version: 1.6.0(typescript@5.9.3)
@@ -375,8 +375,8 @@ importers:
         specifier: ^2.4.5
         version: 2.4.5
       memfs:
-        specifier: 4.48.1
-        version: 4.48.1
+        specifier: 4.51.1
+        version: 4.51.1
       webpack-sources:
         specifier: 3.3.3
         version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
@@ -475,8 +475,8 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       memfs:
-        specifier: 4.48.1
-        version: 4.48.1
+        specifier: 4.51.1
+        version: 4.51.1
       path-serializer:
         specifier: 0.5.1
         version: 0.5.1
@@ -783,8 +783,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       memfs:
-        specifier: 4.48.1
-        version: 4.48.1
+        specifier: 4.51.1
+        version: 4.51.1
       mime-types:
         specifier: ^3.0.2
         version: 3.0.2
@@ -6291,8 +6291,8 @@ packages:
     resolution: {integrity: sha512-UERzLsxzllchadvbPs5aolHh65ISpKpM+ccLbOJ8/vvpBKmAWf+la7dXFy7Mr0ySHbdHrFv5kGFCUHHe6GFEmw==}
     engines: {node: '>= 4.0.0'}
 
-  memfs@4.48.1:
-    resolution: {integrity: sha512-vWO+1ROkhOALF1UnT9aNOOflq5oFDlqwTXaPg6duo07fBLxSH0+bcF0TY1lbA1zTNKyGgDxgaDdKx5MaewLX5A==}
+  memfs@4.51.1:
+    resolution: {integrity: sha512-Eyt3XrufitN2ZL9c/uIRMyDwXanLI88h/L3MoWqNY747ha3dMR9dWqp8cRT5ntjZ0U1TNuq4U91ZXK0sMBjYOQ==}
 
   merge-descriptors@1.0.3:
     resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
@@ -14390,7 +14390,7 @@ snapshots:
     dependencies:
       fs-monkey: 1.1.0
 
-  memfs@4.48.1:
+  memfs@4.51.1:
     dependencies:
       '@jsonjoy.com/json-pack': 1.14.0(tslib@2.8.1)
       '@jsonjoy.com/util': 1.9.0(tslib@2.8.1)
@@ -16767,7 +16767,7 @@ snapshots:
   webpack-dev-middleware@7.4.5(webpack@5.102.1):
     dependencies:
       colorette: 2.0.20
-      memfs: 4.48.1
+      memfs: 4.51.1
       mime-types: 3.0.2
       on-finished: 2.4.1
       range-parser: 1.2.1
@@ -16778,7 +16778,7 @@ snapshots:
   webpack-dev-middleware@7.4.5(webpack@5.99.9):
     dependencies:
       colorette: 2.0.20
-      memfs: 4.48.1
+      memfs: 4.51.1
       mime-types: 3.0.2
       on-finished: 2.4.1
       range-parser: 1.2.1
