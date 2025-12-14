@@ -4,7 +4,6 @@ use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
   hash::{BuildHasherDefault, Hash},
-  mem,
   sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
@@ -254,33 +253,33 @@ pub struct Compilation {
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
-  pub module_ids_artifact: ModuleIdsArtifact,
+  pub module_ids_artifact: DerefOption<ModuleIdsArtifact>,
   // artifact for named_chunk_ids
-  pub named_chunk_ids_artifact: ChunkNamedIdArtifact,
+  pub named_chunk_ids_artifact: DerefOption<ChunkNamedIdArtifact>,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
-  pub cgm_hash_artifact: CgmHashArtifact,
+  pub cgm_hash_artifact: DerefOption<CgmHashArtifact>,
   // artifact for process_modules_runtime_requirements
-  pub cgm_runtime_requirements_artifact: CgmRuntimeRequirementsArtifact,
+  pub cgm_runtime_requirements_artifact: DerefOption<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
-  pub cgc_runtime_requirements_artifact: CgcRuntimeRequirementsArtifact,
+  pub cgc_runtime_requirements_artifact: DerefOption<CgcRuntimeRequirementsArtifact>,
   // artifact for create_hash
-  pub chunk_hashes_artifact: ChunkHashesArtifact,
+  pub chunk_hashes_artifact: DerefOption<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
-  pub chunk_render_artifact: ChunkRenderArtifact,
+  pub chunk_render_artifact: DerefOption<ChunkRenderArtifact>,
   // artifact for caching get_mode
-  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  pub module_graph_cache_artifact: DerefOption<ModuleGraphCacheArtifact>,
   // artifact for caching module static info
-  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+  pub module_static_cache_artifact: DerefOption<ModuleStaticCacheArtifact>,
   // artifact for chunk render cache
-  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
-  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  pub chunk_render_cache_artifact: DerefOption<ChunkRenderCacheArtifact>,
+  pub imported_by_defer_modules_artifact: DerefOption<ImportedByDeferModulesArtifact>,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub old_cache: Arc<OldCache>,
-  pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
+  pub build_chunk_graph_artifact: DerefOption<BuildChunkGraphArtifact>,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -300,7 +299,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: BuildModuleGraphArtifact,
+  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -409,11 +408,12 @@ impl Compilation {
           CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
         },
-      )),
+      ))
+      .into(),
       build_time_executed_modules: Default::default(),
       old_cache,
       incremental,
-      build_chunk_graph_artifact: Default::default(),
+      build_chunk_graph_artifact: DerefOption::new(Default::default()),
 
       hash: None,
 
@@ -429,7 +429,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: BuildModuleGraphArtifact::default(),
+      build_module_graph_artifact: Default::default(),
       modified_files,
       removed_files,
       input_filesystem,
@@ -456,7 +456,7 @@ impl Compilation {
     );
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    mem::swap(&mut self.build_module_graph_artifact, make_artifact);
+    self.build_module_graph_artifact.swap(make_artifact);
   }
 
   pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
@@ -691,7 +691,7 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -705,7 +705,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
     Ok(())
   }
 
@@ -738,7 +739,7 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let make_artifact = self.build_module_graph_artifact.take();
     self.build_module_graph_artifact = update_module_graph(
       self,
       make_artifact,
@@ -752,7 +753,8 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await?
+    .into();
     Ok(())
   }
 
@@ -1048,8 +1050,8 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
+    let artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = build_module_graph(self, artifact).await?.into();
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1061,7 +1063,7 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let artifact = self.build_module_graph_artifact.take();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
@@ -1071,7 +1073,8 @@ impl Compilation {
       artifact,
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
-    .await?;
+    .await?
+    .into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1466,8 +1469,8 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?.into();
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
