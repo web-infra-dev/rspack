@@ -50,6 +50,7 @@ import type {
 	HotUpdateChunkFilename,
 	HotUpdateGlobal,
 	HotUpdateMainFilename,
+	IgnoreWarnings,
 	Iife,
 	ImportFunctionName,
 	ImportMetaName,
@@ -91,33 +92,52 @@ import type {
 	WorkerPublicPath
 } from "./types";
 
+/**
+ * Normalize the `ignoreWarnings` option into an array of predicate functions.
+ */
+const normalizeIgnoreWarnings = (ignoreWarnings?: IgnoreWarnings) => {
+	if (!ignoreWarnings) {
+		return undefined;
+	}
+
+	return ignoreWarnings.map(ignore => {
+		if (typeof ignore === "function") {
+			return ignore;
+		}
+
+		const rule = ignore instanceof RegExp ? { message: ignore } : ignore;
+
+		return (warning: WebpackError) => {
+			if (!rule.message && !rule.module && !rule.file) {
+				return false;
+			}
+
+			if (rule.message && !rule.message.test(warning.message)) {
+				return false;
+			}
+
+			if (
+				rule.module &&
+				(!warning.module ||
+					!rule.module.test(warning.module.readableIdentifier()))
+			) {
+				return false;
+			}
+
+			if (rule.file && (!warning.file || !rule.file.test(warning.file))) {
+				return false;
+			}
+
+			return true;
+		};
+	});
+};
+
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
-		ignoreWarnings: config.ignoreWarnings
-			? config.ignoreWarnings.map(ignore => {
-					if (typeof ignore === "function") return ignore;
-					const i = ignore instanceof RegExp ? { message: ignore } : ignore;
-					return (warning: WebpackError) => {
-						if (!i.message && !i.module && !i.file) return false;
-						if (i.message && !i.message.test(warning.message)) {
-							return false;
-						}
-						if (
-							i.module &&
-							(!warning.module ||
-								!i.module.test(warning.module.readableIdentifier()))
-						) {
-							return false;
-						}
-						if (i.file && (!warning.file || !i.file.test(warning.file))) {
-							return false;
-						}
-						return true;
-					};
-				})
-			: undefined,
+		ignoreWarnings: normalizeIgnoreWarnings(config.ignoreWarnings),
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
