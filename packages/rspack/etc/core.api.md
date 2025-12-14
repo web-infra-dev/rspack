@@ -2398,7 +2398,6 @@ export type Experiments = {
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
-    parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
@@ -2488,8 +2487,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // @deprecated (undocumented)
-    parallelCodeSplitting?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
     // (undocumented)
