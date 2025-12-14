@@ -49,7 +49,7 @@ Loader functions for pitch or normal will not be passed to the Rust side. Instea
 
 ### Passing options
 
-Options will normally be converted to query, but some of the options contain fields that cannot be serialized, Rspack will reuse the _**loader ident**_ created by webpack to uniquely identify the option and restore it in later loading process.
+Options will normally be converted to query, but some of the options contain fields that cannot be serialized, Rspack will reuse the **loader ident** created by webpack to uniquely identify the option and restore it in later loading process.
 
 ### Optimization for pitching
 
