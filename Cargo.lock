@@ -3818,6 +3818,7 @@ dependencies = [
  "num-bigint",
  "once_cell",
  "paste",
+ "pnp",
  "pretty_assertions",
  "rayon",
  "regex",
