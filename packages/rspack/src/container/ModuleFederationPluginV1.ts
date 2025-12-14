@@ -40,7 +40,7 @@ export class ModuleFederationPluginV1 {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
-			new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
+			new ShareRuntimePlugin(enhanced).apply(compiler);
 			if (
 				options.exposes &&
 				(Array.isArray(options.exposes)

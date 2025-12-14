@@ -39,7 +39,6 @@ import {
 	ThreadsafeOutputNodeFS
 } from "./FileSystem";
 import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import { rspack } from "./index";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 import { Logger } from "./logging/Logger";
@@ -69,6 +68,8 @@ import type {
 import { makePathsRelative } from "./util/identifier";
 import { VirtualModulesPlugin } from "./VirtualModulesPlugin";
 import { Watching } from "./Watching";
+
+type RspackApi = typeof import("./index").rspack;
 
 export interface AssetEmittedInfo {
 	content: Buffer;
@@ -124,6 +125,20 @@ export type CompilerHooks = {
 	additionalPass: liteTapable.AsyncSeriesHook<[]>;
 };
 
+function getRspackApi(): RspackApi {
+	const g: any = typeof globalThis !== "undefined" ? (globalThis as any) : undefined;
+	if (g?.__RSPACK_WEBPACK_API__) return g.__RSPACK_WEBPACK_API__ as RspackApi;
+	// CJS fallback (avoids static import cycle). Safe in ESM because we guard with typeof.
+	if (typeof require !== "undefined") {
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		const mod = require("./index");
+		return (mod?.rspack ?? mod?.default ?? mod) as RspackApi;
+	}
+	throw new Error(
+		"Failed to initialize Compiler.webpack API: please import rspack via the package entry before constructing a Compiler."
+	);
+}
+
 class Compiler {
 	#instance?: binding.JsCompiler;
 	#initial: boolean;
@@ -142,8 +157,8 @@ class Compiler {
 
 	hooks: CompilerHooks;
 
-	webpack: typeof rspack;
-	rspack: typeof rspack;
+	webpack: RspackApi;
+	rspack: RspackApi;
 	name?: string;
 	parentCompilation?: Compilation;
 	root: Compiler;
@@ -247,14 +262,15 @@ class Compiler {
 		};
 
 		const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
+		const rspackApi = getRspackApi();
 		this.webpack = {
-			...rspack,
+			...rspackApi,
 			RuntimeGlobals: compilerRuntimeGlobals
-		} as typeof rspack;
+		} as RspackApi;
 		this.rspack = {
-			...rspack,
+			...rspackApi,
 			RuntimeGlobals: compilerRuntimeGlobals
-		} as typeof rspack;
+		} as RspackApi;
 		this.root = this;
 		this.outputPath = "";
 
