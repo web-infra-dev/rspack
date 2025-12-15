@@ -290,16 +290,6 @@ impl ChunkGroup {
       .join("+")
   }
 
-  pub fn get_parents<'a>(
-    &'a self,
-    chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  ) -> Vec<&'a ChunkGroup> {
-    self
-      .parents_iterable()
-      .map(|ukey| chunk_group_by_ukey.expect_get(ukey))
-      .collect_vec()
-  }
-
   pub fn name(&self) -> Option<&str> {
     match &self.kind {
       ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),

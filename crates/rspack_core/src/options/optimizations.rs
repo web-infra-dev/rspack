@@ -33,13 +33,6 @@ impl SideEffectOption {
     matches!(self, Self::True)
   }
 
-  /// Returns `true` if the side effect option is [`Flag`].
-  ///
-  /// [`Flag`]: SideEffectOption::Flag
-  pub fn is_flag(&self) -> bool {
-    matches!(self, Self::Flag)
-  }
-
   pub fn is_enable(&self) -> bool {
     matches!(self, Self::Flag | Self::True)
   }

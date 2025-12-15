@@ -499,13 +499,6 @@ impl GeneratorOptions {
       .and_then(|x| x.data_url.as_ref())
       .or_else(|| self.get_asset_inline().and_then(|x| x.data_url.as_ref()))
   }
-
-  pub fn asset_emit(&self) -> Option<bool> {
-    self
-      .get_asset()
-      .and_then(|x| x.emit)
-      .or_else(|| self.get_asset_resource().and_then(|x| x.emit))
-  }
 }
 
 #[cacheable]

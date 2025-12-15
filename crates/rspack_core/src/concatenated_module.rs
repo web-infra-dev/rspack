@@ -294,10 +294,6 @@ impl ModuleInfo {
     matches!(self, ModuleInfo::External(_))
   }
 
-  pub fn is_concatenated(&self) -> bool {
-    matches!(self, ModuleInfo::Concatenated(_))
-  }
-
   pub fn try_as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
     if let Self::Concatenated(v) = self {
       Some(v)

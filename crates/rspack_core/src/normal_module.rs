@@ -301,24 +301,12 @@ impl NormalModule {
     &*self.inner().parser_and_generator
   }
 
-  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
-    &mut self.inner_mut().parser_and_generator
-  }
-
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.inner().code_generation_dependencies
   }
 
-  pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
-    &mut self.inner_mut().code_generation_dependencies
-  }
-
   pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
     &self.inner().presentational_dependencies
-  }
-
-  pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
-    &mut self.inner_mut().presentational_dependencies
   }
 
   #[tracing::instrument(

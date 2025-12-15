@@ -629,10 +629,6 @@ impl<'parser> JavascriptParser<'parser> {
     self.errors.push(error);
   }
 
-  pub fn add_errors(&mut self, errors: impl IntoIterator<Item = Diagnostic>) {
-    self.errors.extend(errors);
-  }
-
   pub fn add_warning(&mut self, warning: Diagnostic) {
     self.warning_diagnostics.push(warning);
   }
