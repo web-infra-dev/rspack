@@ -76,6 +76,7 @@ module.exports = {
 			  infrastructureLogging: Object {},
 			  lazyCompilation: Object {
 			    entries: false,
+			    imports: true,
 			  },
 			  loader: Object {
 			    environment: Object {
