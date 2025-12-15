@@ -66,7 +66,7 @@ Rspack supports the following dependency types:
 - `amd`: Modules referenced using AMD-style definitions, such as `define()`.
 - `url`: Modules referenced via URLs, such as `new URL('./asset.png', import.meta.url)`.
 - `wasm`: WebAssembly modules referenced using ES module semantics.
-- `worker`: Modules referenced via `new Worker('./worker.js', import.meta.url)`.
+- `worker`: Modules referenced via `new Worker(new URL('./worker.js', import.meta.url))`.
 - `css-import`: CSS modules referenced via `@import`.
 - `unknown`: A fallback type used when the type cannot be determined.
 
