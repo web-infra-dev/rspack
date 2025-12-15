@@ -6,7 +6,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Module Rules
 
-- **类型：** `Rule[]`
+- **类型：** `(Rule | Falsy)[]`
 - **默认值：** `[]`
 
 `module.rules` 用于定义 Rspack 在构建过程中应如何处理不同类型的模块。
@@ -460,14 +460,6 @@ export default {
   },
 };
 ```
-
-## rules[].loaders
-
-:::warning
-
-这个选项已经被废弃，请使用 `rules[].use` 代替。
-
-:::
 
 ## rules[].loader
 
