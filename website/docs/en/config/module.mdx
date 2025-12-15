@@ -2146,7 +2146,7 @@ Matches all modules that match this resource, and will match against layer of th
 For more information about layers, see the [Layer guide](/guide/features/layer).
 
 :::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
 :::
 
 A basic example:
@@ -2358,14 +2358,6 @@ export default {
 };
 ```
 
-### Rule.loaders
-
-:::warning
-
-This option is deprecated, please use `Rule.use` instead
-
-:::
-
 ### Rule.loader
 
 `Rule.loader` is a shortcut to `Rule.use: [ { loader } ]`. See [Rule.use](/config/module#ruleuse) for details.
@@ -2553,7 +2545,7 @@ Used to mark the layer of the matching module. A group of modules could be unite
 For more information about layers, see the [Layer guide](/guide/features/layer).
 
 :::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
+For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
 :::
 
 ```js title="rspack.config.mjs"
