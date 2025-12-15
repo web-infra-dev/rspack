@@ -569,6 +569,10 @@ const applyModuleDefaults = (
 			{
 				with: { type: "json" },
 				type: "json"
+			},
+			{
+				with: { type: "text" },
+				type: "asset/source"
 			}
 		);
 
