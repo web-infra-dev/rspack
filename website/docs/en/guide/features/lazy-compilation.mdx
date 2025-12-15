@@ -90,18 +90,18 @@ Only when corresponding entries and modules are executed will Rspack compile the
 
 ## Integrating with custom server
 
-When using Rspack CLI, the `experiments.lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to dev server to handle lazy compilation requests from client.
+When using Rspack CLI, the `lazyCompilation` option is actually processed by `@rspack/cli`. It adds an [Express-style middleware](https://expressjs.com/en/guide/using-middleware.html) to dev server to handle lazy compilation requests from client.
 
-If you are using a custom dev server, you will need to manually integrate `rspack.experiments.lazyCompilationMiddleware` into your dev server.
+If you are using a custom dev server, you will need to manually integrate `rspack.lazyCompilationMiddleware` into your dev server.
 
 ```js title="start.mjs"
-import { experiments, rspack } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
-import DevServer from 'webpack-dev-server';
+import DevServer from '@rspack/dev-server';
 
 const compiler = rspack(config);
 
-const middleware = experiments.lazyCompilationMiddleware(compiler);
+const middleware = rspack.lazyCompilationMiddleware(compiler);
 
 const server = new DevServer(
   {
@@ -116,9 +116,13 @@ const server = new DevServer(
 server.start();
 ```
 
-`lazyCompilationMiddleware` accepts one parameters:
+`lazyCompilationMiddleware` accepts one parameter:
 
-- `compiler`: The current [Compiler](/api/javascript-api/compiler) instance, use `experiments.lazyCompilation` config from it.
+- `compiler`: The current [Compiler](/api/javascript-api/compiler) instance, use `lazyCompilation` config from it.
+
+:::tip
+Prior to Rspack 1.7, this middleware was only available via `rspack.experiments.lazyCompilationMiddleware`.
+:::
 
 ## Customizing lazy compilation endpoint
 
