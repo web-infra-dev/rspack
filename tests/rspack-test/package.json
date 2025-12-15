@@ -21,7 +21,7 @@
     "@rspack/test-tools": "workspace:*",
     "@rstest/core": "^0.7.1",
     "@swc/helpers": "0.5.17",
-    "@swc/plugin-remove-console": "^10.0.0",
+    "@swc/plugin-remove-console": "^12.0.1",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
