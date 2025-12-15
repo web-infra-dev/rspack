@@ -126,7 +126,8 @@ export type CompilerHooks = {
 };
 
 function getRspackApi(): RspackApi {
-	const g: any = typeof globalThis !== "undefined" ? (globalThis as any) : undefined;
+	const g: any =
+		typeof globalThis !== "undefined" ? (globalThis as any) : undefined;
 	if (g?.__RSPACK_WEBPACK_API__) return g.__RSPACK_WEBPACK_API__ as RspackApi;
 	// CJS fallback (avoids static import cycle). Safe in ESM because we guard with typeof.
 	if (typeof require !== "undefined") {
