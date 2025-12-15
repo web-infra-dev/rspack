@@ -40,6 +40,8 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
 		"ModuleFederationPlugin",
 		"SharedUsedExportsOptimizerPlugin",
 		"HtmlWebpackPlugin",
+		"HtmlRspackPlugin",
+		"RsbuildHtmlPlugin",
 		...excludedPlugins
 	].includes(pluginName);
 };
@@ -61,13 +63,19 @@ export type ShareFallback = Record<string, [string, string, string][]>;
 
 class VirtualEntryPlugin {
 	sharedOptions: [string, SharedConfig][];
-	constructor(sharedOptions: [string, SharedConfig][]) {
+	collectShared = false;
+	constructor(sharedOptions: [string, SharedConfig][], collectShared: boolean) {
 		this.sharedOptions = sharedOptions;
+		this.collectShared = collectShared;
 	}
 	createEntry() {
-		const { sharedOptions } = this;
+		const { sharedOptions, collectShared } = this;
 		const entryContent = sharedOptions.reduce<string>((acc, cur, index) => {
-			return `${acc}import shared_${index} from '${cur[0]}';\n`;
+			const importLine = `import shared_${index} from '${cur[0]}';\n`;
+			// Always mark the import as used to prevent tree-shaking removal
+			// Optional console for debugging: reference the variable, not a string
+			const logLine = collectShared ? `console.log(shared_${index});\n` : "";
+			return acc + importLine + logLine;
 		}, "");
 		return entryContent;
 	}
@@ -383,7 +391,7 @@ export class IndependentSharedPlugin {
 			);
 		}
 		finalPlugins.push(
-			new VirtualEntryPlugin(sharedOptions)
+			new VirtualEntryPlugin(sharedOptions, !extraOptions)
 			// new rspack.experiments.VirtualModulesPlugin({
 			// 	[VIRTUAL_ENTRY]: this.createEntry()
 			// })
@@ -394,6 +402,20 @@ export class IndependentSharedPlugin {
 		);
 		const compilerConfig: RspackOptions = {
 			...parentConfig,
+			module: {
+				...parentConfig.module,
+				rules: [
+					{
+						test: /virtual-entry\.js$/,
+						type: "javascript/auto",
+						resolve: { fullySpecified: false },
+						use: {
+							loader: "builtin:swc-loader"
+						}
+					},
+					...(parentConfig.module?.rules || [])
+				]
+			},
 			mode: parentConfig.mode || "development",
 
 			entry: VirtualEntryPlugin.entry,

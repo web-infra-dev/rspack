@@ -187,7 +187,7 @@ impl Module for SharedContainerEntryModule {
       r#"localBundlerRuntime.installInitialConsumes({{ 
         installedModules: localInstalledModules, 
         initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes, 
-        moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping, 
+        moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
         webpackRequire: __webpack_require__, 
         asyncLoad: true 
       }})"#
