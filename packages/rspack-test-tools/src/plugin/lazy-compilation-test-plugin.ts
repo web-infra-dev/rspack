@@ -1,6 +1,10 @@
 import { createServer } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import { type Compiler, experiments, MultiCompiler } from "@rspack/core";
+import {
+	type Compiler,
+	lazyCompilationMiddleware,
+	MultiCompiler
+} from "@rspack/core";
 
 export class LazyCompilationTestPlugin {
 	apply(compiler: Compiler | MultiCompiler) {
@@ -29,7 +33,7 @@ export class LazyCompilationTestPlugin {
 				} else if (compiler.options.lazyCompilation) {
 					compiler.options.lazyCompilation.serverUrl = urlBase;
 				}
-				middleware = experiments.lazyCompilationMiddleware(compiler);
+				middleware = lazyCompilationMiddleware(compiler);
 
 				resolve(null);
 			});

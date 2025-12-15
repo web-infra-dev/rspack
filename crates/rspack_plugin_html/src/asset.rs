@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   collections::HashMap,
   env,
-  hash::{DefaultHasher, Hash, Hasher},
   path::{Path, PathBuf},
 };
 
@@ -16,6 +15,7 @@ use rspack_core::{
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_paths::Utf8PathBuf;
+use rspack_util::hash_for_source;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -383,10 +383,4 @@ pub async fn create_html_asset(
     output_path,
     CompilationAsset::new(Some(RawStringSource::from(html).boxed()), asset_info),
   ))
-}
-
-fn hash_for_source(source: &str) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

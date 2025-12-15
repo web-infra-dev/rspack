@@ -51,10 +51,10 @@
     "browserslist-load-config": "^1.0.1",
     "enhanced-resolve": "5.18.3",
     "glob-to-regexp": "^0.4.1",
-    "memfs": "4.48.1",
+    "memfs": "4.51.1",
     "prebundle": "^1.6.0",
     "tinypool": "^1.1.1",
-    "tsx": "^4.20.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "watchpack": "^2.4.4",
     "webpack-sources": "3.3.3"

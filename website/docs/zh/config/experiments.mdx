@@ -156,7 +156,7 @@ Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量
 - **类型**: `boolean`
 - **默认值:** `false`
 
-开启并行 loader，你需要使用 [`Rule.use.parallel`](/config/module#ruleuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
+开启并行 loader，你需要使用 [`rules[].use.parallel`](/config/module-rules#rulesuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -785,7 +785,7 @@ export default {
 无副作用模块是指满足以下条件之一的模块：
 
 - 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
-- 通过 [module.rule.sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
+- 通过 [rules[].sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
 
 :::info FAQ
 
@@ -795,7 +795,7 @@ export default {
 
 2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
 
-   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `module.rule.sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
+   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `rules[].sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
 
 3. 所以 `export * from "./x"` 不再是问题了？
 
@@ -823,93 +823,3 @@ export default {
   },
 };
 ```
-
-## experiments.topLevelAwait
-
-:::warning
-
-该配置项已经废弃，将在 Rspack v2.0 中被移除。
-
-未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
-
-:::
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
-
-默认开启，可通过该配置关闭：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-:::warning
-该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
-:::
-
-控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
-
-`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
-
-模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta deprecatedVersion="1.6.2" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
-
-:::warning
-该选项已被废弃，在某些包含大量循环 chunk 的边缘情况下会出现严重的性能问题，我们会在未来改进 build_chunk_graph 的性能来替代该选项。
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
-
-这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
-:::

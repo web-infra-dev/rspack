@@ -296,7 +296,7 @@ export default {
   ]}
 />
 
-如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `module.rule.sideEffects`），而不分析源代码，可以这样配置：
+如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `rules[].sideEffects`），而不分析源代码，可以这样配置：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -307,7 +307,7 @@ export default {
 };
 ```
 
-配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`module.rule.sideEffects`](/config/module#rulesideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
+配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`rules[].sideEffects`](/config/module-rules#rulessideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
 
 配置为 `true` 会让 Rspack 除了识别用户主动标记以外，还会尝试分析未被标记的 module 源码是否包含副作用。
 

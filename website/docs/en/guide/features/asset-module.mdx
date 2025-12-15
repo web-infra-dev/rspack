@@ -40,7 +40,7 @@ export default {
 
 By default, the `'asset/inline'` mechanism is applied if the asset size is less than or equal to 8096 bytes, otherwise the `'asset/resource'` policy is used.
 
-If you wish to modify this behavior, you can use [`module.parser.asset.dataUrlCondition`](/config/module#moduleparserasset) to modify the global configuration, or use [`Rule.parser.dataUrlCondition`](/config/module#ruleparserdataurlcondition) to configure it separately for a specific eligible module.
+If you wish to modify this behavior, you can use [`module.parser.asset.dataUrlCondition`](/config/module#moduleparserasset) to modify the global configuration, or use [`rules[].parser.dataUrlCondition`](/config/module-rules#rulesparserdataurlcondition) to configure it separately for a specific eligible module.
 
 ### Replacing `url-loader`
 
