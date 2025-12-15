@@ -66,7 +66,7 @@ Rspack 支持以下依赖类型：
 - `amd`：使用 AMD 风格定义（如 `define()`）引用的模块。
 - `url`：通过 URL 形式引用的模块，例如 `new URL('./asset.png', import.meta.url)`。
 - `wasm`：以 ES 模块语义引用的 WebAssembly 模块。
-- `worker`：通过 `new Worker('./worker.js', import.meta.url)` 引用的模块。
+- `worker`：通过 `new Worker(new URL('./worker.js', import.meta.url))` 引用的模块。
 - `css-import`：通过 `@import` 引用的 CSS 模块。
 - `unknown`：当无法确定依赖类型时使用的兜底类型。
 
