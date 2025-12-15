@@ -3057,7 +3057,18 @@ export type RspackOptions = {
 	 */
 	loader?: Loader;
 	/**
-	 * Warnings to ignore during compilation.
+	 * Tells Rspack to suppress specific compilation warnings by matching their
+	 * message, module, or file, or by using a custom function.
+	 *
+	 * @example
+	 * ```js
+	 * export default {
+	 *   ignoreWarnings: [
+	 *     /warning from compiler/,
+	 *     { file: /node_modules/ },
+	 *   ],
+	 * };
+	 * ```
 	 */
 	ignoreWarnings?: IgnoreWarnings;
 	/**

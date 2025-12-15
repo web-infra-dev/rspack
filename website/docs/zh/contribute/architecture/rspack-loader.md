@@ -50,7 +50,7 @@ Rspack 会将带有选项的标识符传递给 JS 端，以指示 Webpack（如 
 
 ### 传递 options 选项
 
-选项通常会转换为 query，但有些选项包含无法序列化的字段，Rspack 会复用 webpack 创建的**_loader ident_** 作为唯一标识选项
+选项通常会转换为 query，但有些选项包含无法序列化的字段，Rspack 会复用 webpack 创建的**loader ident** 作为唯一标识选项
 并在以后的加载过程中恢复它。
 
 ### 针对 pitching 的优化

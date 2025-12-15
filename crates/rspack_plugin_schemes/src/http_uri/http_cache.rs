@@ -1,10 +1,4 @@
-use std::{
-  collections::HashMap,
-  fmt::Debug,
-  path::PathBuf,
-  sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::{collections::HashMap, fmt::Debug, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -12,7 +6,7 @@ use cow_utils::CowUtils;
 use napi::bindgen_prelude::Buffer;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
-use rspack_util::{base64, fx_hash::FxHashMap};
+use rspack_util::{base64, current_time, fx_hash::FxHashMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
@@ -471,13 +465,6 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
       (store_lock, store_cache, valid_until)
     })
     .unwrap_or((true, true, 0))
-}
-
-fn current_time() -> u64 {
-  SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .expect("Time went backwards")
-    .as_millis() as u64
 }
 
 fn compute_integrity(content: &[u8]) -> String {

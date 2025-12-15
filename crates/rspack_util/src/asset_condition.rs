@@ -29,3 +29,28 @@ impl AssetConditions {
     }
   }
 }
+
+pub struct AssetConditionsObject<'a> {
+  pub test: Option<&'a AssetConditions>,
+  pub include: Option<&'a AssetConditions>,
+  pub exclude: Option<&'a AssetConditions>,
+}
+
+pub fn match_object<'a>(obj: &'a AssetConditionsObject<'a>, str: &str) -> bool {
+  if let Some(condition) = &obj.test
+    && !condition.try_match(str)
+  {
+    return false;
+  }
+  if let Some(condition) = &obj.include
+    && !condition.try_match(str)
+  {
+    return false;
+  }
+  if let Some(condition) = &obj.exclude
+    && condition.try_match(str)
+  {
+    return false;
+  }
+  true
+}

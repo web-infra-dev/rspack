@@ -16,7 +16,11 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rspack_util::{asset_condition::AssetConditions, base64, identifier::make_paths_absolute};
+use rspack_util::{
+  asset_condition::{AssetConditions, AssetConditionsObject, match_object},
+  base64,
+  identifier::make_paths_absolute,
+};
 
 use crate::{
   ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
@@ -69,25 +73,6 @@ impl EvalSourceMapDevToolPlugin {
       Default::default(),
     )
   }
-
-  fn match_object(&self, str: &str) -> bool {
-    if let Some(condition) = &self.test
-      && !condition.try_match(str)
-    {
-      return false;
-    }
-    if let Some(condition) = &self.include
-      && !condition.try_match(str)
-    {
-      return false;
-    }
-    if let Some(condition) = &self.exclude
-      && condition.try_match(str)
-    {
-      return false;
-    }
-    true
-  }
 }
 
 #[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
@@ -123,10 +108,15 @@ async fn render_module_content(
     .code_generation_results
     .get_hash(&module.identifier(), Some(chunk.runtime()))
     .expect("should have codegen results hash in process assets");
+  let condition_object = AssetConditionsObject {
+    test: self.test.as_ref(),
+    include: self.include.as_ref(),
+    exclude: self.exclude.as_ref(),
+  };
 
   if module
     .as_normal_module()
-    .is_some_and(|m| !self.match_object(m.resource_resolved_data().resource()))
+    .is_some_and(|m| !match_object(&condition_object, m.resource_resolved_data().resource()))
   {
     return Ok(());
   }
@@ -136,7 +126,7 @@ async fn render_module_content(
     let root_id = c.get_root();
     mg.module_by_identifier(&root_id)
       .and_then(|m| m.as_normal_module())
-      .is_some_and(|m| !self.match_object(m.resource_resolved_data().resource()))
+      .is_some_and(|m| !match_object(&condition_object, m.resource_resolved_data().resource()))
   }) {
     return Ok(());
   }
