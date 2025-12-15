@@ -31,5 +31,6 @@
   "stats",
   "experiments",
   "infrastructure-logging",
-  "other-options"
+  "other-options",
+  "deprecated-options"
 ]
