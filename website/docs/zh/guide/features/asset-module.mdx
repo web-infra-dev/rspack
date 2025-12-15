@@ -40,7 +40,7 @@ export default {
 
 默认情况下，如果资源体积小于等于 8096 bytes，则使用 `'asset/inline'` 策略，否则使用 `'asset/resource'` 策略。
 
-如果你希望修改这个行为，可以使用 [module.parser.asset.dataUrlCondition](/config/module#moduleparserasset) 来修改全局的配置，或使用 [Rule.parser.dataUrlCondition](/config/module#ruleparserdataurlcondition) 对特定符合条件的模块单独配置。
+如果你希望修改这个行为，可以使用 [module.parser.asset.dataUrlCondition](/config/module#moduleparserasset) 来修改全局的配置，或使用 [rules[].parser.dataUrlCondition](/config/module-rules#rulesparserdataurlcondition) 对特定符合条件的模块单独配置。
 
 ### 替换 `url-loader`
 

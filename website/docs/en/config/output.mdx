@@ -19,11 +19,11 @@ The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/
 
 `[name]`, `[file]`, `[query]`, `[fragment]`, `[base]`, and `[path]` are set to an empty string for the assets built from data URI replacements.
 
-The name of the file to be output by the Asset module. This value can be overridden by [Rule.generator.filename](/config/module#rulegenerator).
+The name of the file to be output by the Asset module. This value can be overridden by [rules[].generator.filename](/config/module-rules#rulesgenerator).
 
 :::info Asset module output as a separate file
 
-- Module type is `'asset'` and asset is set to satisfy [Rule.parser.dataUrlCondition](/config/module#ruleparserdataurlcondition)
+- Module type is `'asset'` and asset is set to satisfy [rules[].parser.dataUrlCondition](/config/module-rules#rulesparserdataurlcondition)
 - Module type is `'asset/resource'`
 
 :::

@@ -11,7 +11,7 @@ These options are kept for backward compatibility only and should not be used in
 - **Type:** `boolean`
 - **Default:** `true`
 
-Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module#ruletype) set to `javascript/esm`.
+Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module-rules#rulestype) set to `javascript/esm`.
 
 Enabled by default. Can be disabled with this configuration:
 
@@ -50,7 +50,7 @@ Controls whether to enable the layer feature. Layers add an identifier prefix to
 
 The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
 
-By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
+By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module-rules#ruleslayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module-rules#rulesissuerlayer).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -99,5 +99,5 @@ This maintains consistency with the previous code splitting algorithm, which enf
 An array to pass the loader package name and its options.
 
 :::warning
-This option has been deprecated. Use [rules[].use](/config/module#ruleuse) instead.
+This option has been deprecated. Use [rules[].use](/config/module-rules#rulesuse) instead.
 :::

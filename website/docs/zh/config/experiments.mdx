@@ -156,7 +156,7 @@ Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量
 - **类型**: `boolean`
 - **默认值:** `false`
 
-开启并行 loader，你需要使用 [`Rule.use.parallel`](/config/module#ruleuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
+开启并行 loader，你需要使用 [`rules[].use.parallel`](/config/module-rules#rulesuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -785,7 +785,7 @@ export default {
 无副作用模块是指满足以下条件之一的模块：
 
 - 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
-- 通过 [module.rule.sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
+- 通过 [rules[].sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
 
 :::info FAQ
 
@@ -795,7 +795,7 @@ export default {
 
 2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
 
-   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `module.rule.sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
+   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `rules[].sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
 
 3. 所以 `export * from "./x"` 不再是问题了？
 
