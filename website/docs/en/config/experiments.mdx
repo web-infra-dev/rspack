@@ -155,7 +155,7 @@ Starting from v1.4.0, Rspack enables incremental builds for all phases by defaul
 - **Type**: `boolean`
 - **Default:** `false`
 
-Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`Rule.use.parallel`](/config/module#ruleuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
+Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`rules[].use.parallel`](/config/module-rules#rulesuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -784,7 +784,7 @@ export default {
 A side-effect-free module is a module that meets one of the following conditions:
 
 - The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
-- Modules explicitly marked as `false` through the [module.rule.sideEffects](/config/optimization#optimizationsideeffects) option
+- Modules explicitly marked as `false` through the [rules[].sideEffects](/config/optimization#optimizationsideeffects) option
 
 :::info FAQ
 
@@ -794,7 +794,7 @@ A side-effect-free module is a module that meets one of the following conditions
 
 2. Why depend on `"sideEffects": false` in package.json, can Rspack automatically analyze a module is side effects free or not?
 
-   Rspack has the ability to analyze a module is side effects free or not of course, it's already used by `optimization.sideEffects` to tree shaking side effects free modules. But these analyzed modules still require checking whether their dependencies have side effects - only when all dependencies are also side effects free can the module be considered truly side effects free. However, during the make phase, dependencies must first be built before their side effects can be analyzed, and the `lazyBarrel` is intend to avoid to build those dependencies. `"sideEffects": false` in package.json or `module.rule.sideEffects` doesn't require dependency checking, as it signifies the entire package is side effects free. Therefore, `lazyBarrel` can only rely on this marker rather than automatic analysis.
+   Rspack has the ability to analyze a module is side effects free or not of course, it's already used by `optimization.sideEffects` to tree shaking side effects free modules. But these analyzed modules still require checking whether their dependencies have side effects - only when all dependencies are also side effects free can the module be considered truly side effects free. However, during the make phase, dependencies must first be built before their side effects can be analyzed, and the `lazyBarrel` is intend to avoid to build those dependencies. `"sideEffects": false` in package.json or `rules[].sideEffects` doesn't require dependency checking, as it signifies the entire package is side effects free. Therefore, `lazyBarrel` can only rely on this marker rather than automatic analysis.
 
 3. So `export * from "./x"` is not a problem any more?
 

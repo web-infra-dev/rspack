@@ -285,7 +285,7 @@ See available options for configuring this behavior in the [SplitChunksPlugin](/
   ]}
 />
 
-If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `module.rule.sideEffects`) and don't analyse source code:
+If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `rules[].sideEffects`) and don't analyse source code:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -296,7 +296,7 @@ export default {
 };
 ```
 
-`flag` tells Rspack to recognise the sideEffects flag in package.json or [module.rule.sideEffects](/config/module#rulesideeffects) to skip over modules which are flagged to contain no side effects when exports are not used.
+`flag` tells Rspack to recognise the sideEffects flag in package.json or [rules[].sideEffects](/config/module-rules#rulessideeffects) to skip over modules which are flagged to contain no side effects when exports are not used.
 
 `true` tells Rspack not only recognise the sideEffects flag, but also analyse modules which are not flagged explicitly, and determine if they have side effects or not.
 
