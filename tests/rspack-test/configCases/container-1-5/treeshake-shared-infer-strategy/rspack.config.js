@@ -32,6 +32,12 @@ module.exports = {
       },
       runtimePlugins: [require.resolve('./runtime-plugin.js')],
       shared: {
+				'@scope-sc/ui-lib': {
+          requiredVersion: '*',
+          treeshake: {
+            strategy: 'infer',
+          },
+        },
         'ui-lib': {
           requiredVersion: '*',
           treeshake: {

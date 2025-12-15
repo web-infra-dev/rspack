@@ -122,3 +122,16 @@ it('should inject usedExports into manifest and stats if enable manifest', async
     ),
   ).toEqual(JSON.stringify(['Button', 'default']));
 });
+
+it('should treeshake scope-sc ui-lib correctly', async () => {
+  const { scopeScUILib } = await import('./App.js');
+  expect(scopeScUILib()).toEqual('scope-sc Uilib has Button, List, Badge');
+
+  const bundlePath = path.join(
+    __dirname,
+    'node_modules_scope-sc_ui-lib_index_js.js',
+  );
+  const bundleContent = fs.readFileSync(bundlePath, 'utf-8');
+  expect(bundleContent).toContain('Button');
+  expect(bundleContent).toContain('default');
+});

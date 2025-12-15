@@ -130,8 +130,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         if let Some(pos) = ident.find(") ") {
           let rest = &ident[pos + 2..];
-          let at = rest.find('@').unwrap_or(rest.len());
-          key = rest[..at].to_string();
+          // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
+          let suffix_start = rest.find(" (").unwrap_or(rest.len());
+          let head = &rest[..suffix_start];
+          // Use the LAST '@' within the head to split "{share_key}@{version}",
+          // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
+          let at = head.rfind('@').unwrap_or(head.len());
+          key = head[..at].to_string();
         }
         (scope, key)
       };

@@ -1,10 +1,17 @@
 import UiLib from 'ui-lib';
 import { Button } from 'ui-lib-es';
+import UiLibScopeSc from '@scope-sc/ui-lib';
 
 export default () => {
   return `default Uilib has ${Object.keys(UiLib).join(
     ', ',
   )} exports not treeshake, and ui-lib-es Button value is ${Button} should treeshake`;
+};
+
+export const scopeScUILib = () => {
+  return `scope-sc Uilib has ${Object.keys(UiLibScopeSc).join(
+    ', ',
+  )}`;
 };
 
 export const dynamicUISpecificExport = async () => {
