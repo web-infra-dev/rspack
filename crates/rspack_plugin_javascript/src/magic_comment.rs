@@ -169,7 +169,7 @@ pub fn try_extract_magic_comment(
   let mut warning_diagnostics = Vec::new();
   parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
-      parser.source,
+      parser.source.as_ref(),
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -178,7 +178,7 @@ pub fn try_extract_magic_comment(
   });
   parser.comments.with_trailing(span.hi, |comments| {
     analyze_comments(
-      parser.source,
+      parser.source.as_ref(),
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -220,17 +220,35 @@ impl Location {
   }
 }
 
-/// # Panics
-///
-/// Panics if `start` or `end` is out-of-bound.
-fn byte_offset_to_location(rope: &ropey::Rope, start: usize, end: usize) -> Location {
-  let char_index = rope.byte_to_char(start);
-  let sl = rope.char_to_line(char_index);
-  let sc = char_index - rope.line_to_char(sl);
+/// Convert a byte offset range [start, end) to a UTF-8 line/column location within `source`.
+/// - Lines are 0-based here to match internal `Location`.
+/// - Columns are 0-based and measured in UTF-8 bytes.
+fn byte_offset_to_location(source: &str, start: usize, end: usize) -> Location {
+  assert!(start <= end, "start must be <= end");
+  let bytes = source.as_bytes();
+  assert!(end <= bytes.len(), "end out of bounds");
+  assert!(start <= bytes.len(), "start out of bounds");
 
-  let char_index = rope.byte_to_char(end);
-  let el = rope.char_to_line(char_index);
-  let ec = char_index - rope.line_to_char(el);
+  // Count newlines before start to get start line
+  let mut sl = 0usize;
+  let mut last_nl_pos = None;
+  for idx in memchr::memchr_iter(b'\n', &bytes[..start]) {
+    sl += 1;
+    last_nl_pos = Some(idx);
+  }
+  // Column is bytes since last newline (or from 0)
+  let line_start_byte = last_nl_pos.map(|p| p + 1).unwrap_or(0);
+  let sc = start - line_start_byte;
+
+  // Count newlines before end to get end line
+  let mut el = 0usize;
+  let mut last_nl_pos_end = None;
+  for idx in memchr::memchr_iter(b'\n', &bytes[..end]) {
+    el += 1;
+    last_nl_pos_end = Some(idx);
+  }
+  let end_line_start_byte = last_nl_pos_end.map(|p| p + 1).unwrap_or(0);
+  let ec = end - end_line_start_byte;
 
   Location {
     sl: sl as u32,
@@ -253,20 +271,54 @@ fn match_item_to_error_span(
   match_start: usize,
   match_end: usize,
 ) -> DependencyRange {
-  let s = ropey::Rope::from_str(source);
   // SAFETY: `comment_span` is always within the bound of `source`.
   let s_loc = byte_offset_to_location(
-    &s,
+    source,
     comment_span.real_lo() as usize,
     comment_span.real_hi() as usize,
   );
-  let c = ropey::Rope::from_str(comment_text);
-  // SAFETY: `match_start` or `match_end` is always within the bound of `comment_text`.
-  let c_loc = byte_offset_to_location(&c, match_start, match_end);
+
+  // SAFETY: `match_start` and `match_end` are within `comment_text`.
+  let c_loc = byte_offset_to_location(comment_text, match_start, match_end);
 
   let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
-  let start = s.line_to_byte(sl as usize) + sc as usize;
-  let end = s.line_to_byte(el as usize) + ec as usize;
+
+  // Compute absolute byte offsets from (line, column) for start and end in `source`.
+  let bytes = source.as_bytes();
+  // Start line -> byte index
+  let start_line_byte = if sl == 0 {
+    0usize
+  } else {
+    let mut count = 0usize;
+    let mut pos = 0usize;
+    for idx in memchr::memchr_iter(b'\n', bytes) {
+      count += 1;
+      pos = idx + 1;
+      if count == sl as usize {
+        break;
+      }
+    }
+    pos
+  };
+  let start = start_line_byte + sc as usize;
+
+  // End line -> byte index
+  let end_line_byte = if el == 0 {
+    0usize
+  } else {
+    let mut count = 0usize;
+    let mut pos = 0usize;
+    for idx in memchr::memchr_iter(b'\n', bytes) {
+      count += 1;
+      pos = idx + 1;
+      if count == el as usize {
+        break;
+      }
+    }
+    pos
+  };
+  let end = end_line_byte + ec as usize;
+
   DependencyRange::new(start as u32, end as u32)
 }
 

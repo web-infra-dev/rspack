@@ -2,6 +2,8 @@ mod context_dependency_helper;
 mod parser;
 mod util;
 
+use std::sync::Arc;
+
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
@@ -33,7 +35,7 @@ pub struct ScanDependenciesResult {
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source: &str,
+  source: Arc<str>,
   program: &Program,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,

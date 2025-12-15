@@ -3,7 +3,10 @@ use std::fmt::{self, Debug};
 pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
 
-/// Represents a position in the source file, including the line number and column number.
+/// Represents a position within a source file (line and column).
+/// Semantics match V8 Error stack positions:
+/// - Both line and column are 1-based.
+/// - Column counts UTF-16 code units (not Unicode scalar values or UTF-8 bytes).
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {

@@ -51,12 +51,11 @@ fn extract_deps(
 
 impl JavascriptParser<'_> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
-    let source_rope = self.source_rope().clone();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot".into()),
       span.into(),
-      Some(source_rope),
+      Some(self.source().clone()),
     )));
   }
 
@@ -65,12 +64,11 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let source_rope = self.source_rope().clone();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
       call_expr.callee.span().into(),
-      Some(source_rope.clone()),
+      Some(self.source().clone()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
@@ -85,7 +83,7 @@ impl JavascriptParser<'_> {
         range,
         callback_arg.is_some(),
         dependency_ids,
-        Some(source_rope.clone()),
+        Some(self.source().clone()),
       )));
       self.add_dependencies(dependencies);
       for arg in call_expr.args.iter().skip(1) {
@@ -102,12 +100,11 @@ impl JavascriptParser<'_> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let source_rope = self.source_rope().clone();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
       call_expr.callee.span().into(),
-      Some(source_rope),
+      Some(self.source().clone()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     self.add_dependencies(dependencies);

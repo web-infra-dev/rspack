@@ -15,7 +15,7 @@ pub struct RequireHeaderDependency {
 
 impl RequireHeaderDependency {
   pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source_map.as_deref());
     Self {
       id: DependencyId::new(),
       range,

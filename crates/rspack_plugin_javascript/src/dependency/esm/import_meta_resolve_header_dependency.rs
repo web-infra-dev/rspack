@@ -31,7 +31,7 @@ impl Dependency for ImportMetaResolveHeaderDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.range.to_loc(self.source_map.as_deref())
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {
