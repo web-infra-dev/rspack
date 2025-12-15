@@ -83,7 +83,7 @@ export const applyRspackOptionsDefaults = (
 	D(options, "watch", false);
 	D(options, "profile", false);
 	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
-	D(options, "lazyCompilation", { entries: false });
+	D(options, "lazyCompilation", { imports: true, entries: false });
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
