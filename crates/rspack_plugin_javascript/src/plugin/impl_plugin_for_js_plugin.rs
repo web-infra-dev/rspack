@@ -523,10 +523,7 @@ async fn render_manifest(
   {
     return Ok(());
   }
-  if !is_hot_update
-    && !is_main_chunk
-    && !is_runtime_chunk
-    && !chunk_has_js(chunk_ukey, &compilation)
+  if !is_hot_update && !is_main_chunk && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation)
   {
     return Ok(());
   }
