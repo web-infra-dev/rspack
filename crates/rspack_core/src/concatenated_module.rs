@@ -3067,14 +3067,6 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
   )
 }
 
-/// Mark boxed errors as [crate::diagnostics::ModuleParseError],
-/// then, map it to diagnostics
-pub fn map_box_diagnostics_to_module_parse_diagnostics(
-  errors: Vec<Error>,
-) -> Vec<rspack_error::Diagnostic> {
-  errors.into_iter().map(|e| e.into()).collect()
-}
-
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
   let mut name = old_name.to_string();
 

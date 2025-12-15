@@ -1,8 +1,4 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::DefaultHasher,
-  hash::{Hash, Hasher},
-};
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
 use rspack_cacheable::{
@@ -18,7 +14,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{itoa, json_stringify};
+use rspack_util::{hash_for_source, itoa, json_stringify};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -349,10 +345,4 @@ async fn render_wasm_name(
         .hash(hash),
     )
     .await
-}
-
-fn hash_for_source(source: &BoxSource) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }
