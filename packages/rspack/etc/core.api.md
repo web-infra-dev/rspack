@@ -868,9 +868,14 @@ export class Compilation {
     // (undocumented)
     buildDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     get builtModules(): ReadonlySet<Module>;
@@ -891,9 +896,14 @@ export class Compilation {
     // (undocumented)
     contextDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     createChildCompiler(name: string, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
@@ -917,9 +927,14 @@ export class Compilation {
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     fileSystemInfo: {
@@ -1002,9 +1017,14 @@ export class Compilation {
     // (undocumented)
     missingDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     moduleGraph: ModuleGraph;
