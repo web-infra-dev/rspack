@@ -2920,10 +2920,7 @@ impl ConcatenatedModule {
           crate::FindTargetResult::ValidTarget(reexport) => {
             if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
-              let build_meta = mg
-                .module_by_identifier(&ref_info.id())
-                .expect("should have module")
-                .build_meta();
+
               return Self::get_final_binding(
                 mg,
                 mg_cache,
@@ -2937,7 +2934,7 @@ impl ConcatenatedModule {
                 runtime,
                 as_call,
                 reexport.defer,
-                build_meta.strict_esm_module,
+                module.build_meta().strict_esm_module,
                 asi_safe,
                 already_visited,
               );
