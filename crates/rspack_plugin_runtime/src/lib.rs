@@ -19,7 +19,7 @@ mod import_scripts_chunk_loading;
 pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
 pub use runtime_module::{
-  EXPORT_REQUIRE_RUNTIME_MODULE_ID, GetChunkFilenameRuntimeModule, chunk_has_css, chunk_has_js,
+  EXPORT_REQUIRE_RUNTIME_MODULE_ID, GetChunkFilenameRuntimeModule, chunk_has_css,
   is_enabled_for_chunk, stringify_chunks,
 };
 mod startup_chunk_dependencies;

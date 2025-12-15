@@ -526,11 +526,7 @@ async fn render_manifest(
   if !is_hot_update
     && !is_main_chunk
     && !is_runtime_chunk
-    && !chunk_has_js(
-      chunk_ukey,
-      &compilation.chunk_graph,
-      &compilation.get_module_graph(),
-    )
+    && !chunk_has_js(chunk_ukey, &compilation)
   {
     return Ok(());
   }
@@ -653,12 +649,20 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &ModuleGraph) -> bool {
-  if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
-    true
-  } else {
-    chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
+pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  if compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0
+  {
+    return true;
   }
+
+  compilation.chunk_graph.has_chunk_module_by_source_type(
+    chunk_ukey,
+    SourceType::JavaScript,
+    &compilation.get_module_graph(),
+  )
 }
 
 fn chunk_has_runtime_or_js(

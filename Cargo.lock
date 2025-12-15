@@ -3898,6 +3898,7 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
+ "rspack_util",
  "tokio",
  "tracing",
 ]
@@ -5069,6 +5070,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_paths",
+ "rspack_util",
  "rustc-hash",
  "tokio",
  "tracing",
