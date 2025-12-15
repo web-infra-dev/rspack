@@ -609,7 +609,7 @@ export function rmrf(
 	p: string,
 	callback: (err?: Error | null) => void
 ) {
-	fs.stat(p, (err, stats) => {
+	(fs.lstat || fs.stat)(p, (err, stats) => {
 		if (err) {
 			if (err.code === "ENOENT") {
 				return callback();
