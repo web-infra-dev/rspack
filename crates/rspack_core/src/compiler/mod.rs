@@ -389,25 +389,21 @@ impl Compiler {
     // Check for case-sensitive conflicts before emitting assets
     // Only check for filenames that differ in casing (not query strings)
     // Only report conflict if filenames have same lowercase but different casing
-    let mut case_map: HashMap<String, Vec<String>> = HashMap::default();
+    let mut case_map: HashMap<String, HashSet<String>> = HashMap::default();
     for filename in self.compilation.assets().keys() {
       let (target_file, _query) = filename.split_once('?').unwrap_or((filename, ""));
-      let lower_key = target_file.to_lowercase();
+      let lower_key = cow_utils::CowUtils::cow_to_lowercase(target_file);
       case_map
-        .entry(lower_key)
-        .or_insert_with(Vec::new)
-        .push(target_file.to_string());
+        .entry(lower_key.to_string())
+        .or_default()
+        .insert(target_file.to_string());
     }
 
     // Found conflict: multiple filenames with same lowercase representation but different casing
     for (_lower_key, filenames) in case_map.iter() {
       // Only report conflict if there are multiple unique filenames (different casing)
-      let unique_filenames: HashSet<&String> = filenames.iter().collect();
-      if unique_filenames.len() > 1 {
-        let filenames_str = unique_filenames
-          .iter()
-          .map(|f| format!("  - {}", f))
-          .join("\n");
+      if filenames.len() > 1 {
+        let filenames_str = filenames.iter().map(|f| format!("  - {f}")).join("\n");
         self.compilation.push_diagnostic(
           rspack_error::error!(
             "Prevent writing to file that only differs in casing or query string from already written file.\nThis will lead to a race-condition and corrupted files on case-insensitive file systems.\n{}",
