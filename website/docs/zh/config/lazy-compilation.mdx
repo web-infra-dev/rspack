@@ -14,7 +14,7 @@ import { ApiMeta } from '@components/ApiMeta';
 ## lazyCompilation
 
 - **类型：** `boolean | LazyCompilationOptions`
-- **默认值：** 当 [`Target`](/config/target) 为 `'web'` 或者 `['web']` 时 `{ entries: false, imports: true }`, 其他情况 `false`.
+- **默认值：** 当 [`Target`](/config/target) 仅为 `'web'` 应用时 `{ entries: false, imports: true }`, 其他情况 `false`.
 
 ```ts
 type LazyCompilationOptions =
