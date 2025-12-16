@@ -2168,7 +2168,7 @@ export class EntryOptionPlugin {
     // (undocumented)
     static applyEntryOption(compiler: Compiler, context: string, entry: EntryNormalized): void;
     // (undocumented)
-    static entryDescriptionToOptions(compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
+    static entryDescriptionToOptions(_compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
 }
 
 // @public
@@ -6335,9 +6335,9 @@ type ResolveOptionsWithDependencyType = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
+    resolve(_context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
-    resolveSync(context: object, path: string, request: string): string | false;
+    resolveSync(_context: object, path: string, request: string): string | false;
 }
 
 // @public (undocumented)
