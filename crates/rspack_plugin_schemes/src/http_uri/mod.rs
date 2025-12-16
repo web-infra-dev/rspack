@@ -35,18 +35,84 @@ async fn get_info(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFe
       options.allowed_uris.get_allowed_uris_description(),
     ));
   }
-  resolve_content(url, options).await
+  resolve_content(url, options, 0).await
+}
+
+const MAX_REDIRECTS: usize = 5;
+
+/// Sanitize URL for inclusion in error messages
+#[allow(clippy::disallowed_methods)]
+fn sanitize_url_for_error(href: &str) -> String {
+  match Url::parse(href) {
+    Ok(u) => format!("{}//{}", u.scheme(), u.host_str().unwrap_or("")),
+    Err(_) => href
+      .chars()
+      .take(200)
+      .collect::<String>()
+      .replace(['\r', '\n'].as_ref(), ""),
+  }
+}
+
+/// Validate redirect location against allowed URIs and protocol constraints
+fn validate_redirect_location(
+  location: &str,
+  base: &str,
+  options: &HttpUriPluginOptions,
+) -> Result<String> {
+  // Parse the redirect location relative to the base URL
+  let base_url =
+    Url::parse(base).map_err(|_| error!("Invalid base URL: {}", sanitize_url_for_error(base)))?;
+
+  let next_url = base_url
+    .join(location)
+    .map_err(|_| error!("Invalid redirect URL: {}", sanitize_url_for_error(location)))?;
+
+  // Ensure redirect uses only http or https protocol
+  if next_url.scheme() != "http" && next_url.scheme() != "https" {
+    return Err(error!(
+      "Redirected URL uses disallowed protocol: {}",
+      sanitize_url_for_error(next_url.as_str())
+    ));
+  }
+
+  // Ensure redirect target is still within allowed URIs
+  if !options.allowed_uris.is_allowed(next_url.as_str()) {
+    return Err(error!(
+      "{} doesn't match the allowedUris policy after redirect. These URIs are allowed:\n{}",
+      next_url.as_str(),
+      options.allowed_uris.get_allowed_uris_description(),
+    ));
+  }
+
+  Ok(next_url.to_string())
 }
 
 // recursively handle http redirect
-async fn resolve_content(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFetchResult> {
+async fn resolve_content(
+  url: &str,
+  options: &HttpUriPluginOptions,
+  redirect_count: usize,
+) -> Result<ContentFetchResult> {
   let result = fetch_content(url, options)
     .await
     .to_rspack_result_from_anyhow()?;
   match result {
     FetchResultType::Content(content) => Ok(content),
     FetchResultType::Redirect(redirect) => {
-      Box::pin(resolve_content(&redirect.location, options)).await
+      // Validate redirect before following
+      let validated_location = validate_redirect_location(&redirect.location, url, options)?;
+
+      // Check redirect limit
+      if redirect_count >= MAX_REDIRECTS {
+        return Err(error!("Too many redirects"));
+      }
+
+      Box::pin(resolve_content(
+        &validated_location,
+        options,
+        redirect_count + 1,
+      ))
+      .await
     }
   }
 }
