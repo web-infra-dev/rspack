@@ -1,7 +1,14 @@
 use std::{
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::{Duration, Instant},
 };
+
+use regex::Regex;
+
+static RSTEST_MOCK_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
+    .expect("should initialize `Regex`")
+});
 
 use rspack_core::{
   Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
@@ -163,15 +170,13 @@ struct MockFlagPos {
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut files = vec![];
+  let mut files = Vec::with_capacity(compilation.chunk_by_ukey.len());
 
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       files.push(file.clone());
     }
   }
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
-    .expect("should initialize `Regex`");
 
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
@@ -183,7 +188,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       }
 
       let content = old.source().into_string_lossy();
-      let captures: Vec<_> = regex.captures_iter(&content).collect();
+      let captures: Vec<_> = RSTEST_MOCK_FLAG_REGEX.captures_iter(&content).collect();
 
       for c in captures {
         let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {

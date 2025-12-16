@@ -183,14 +183,9 @@ impl RstestParserPlugin {
 
   fn calc_mocked_target(&self, value: &str) -> Utf8PathBuf {
     // node:foo will be mocked to `__mocks__/foo`.
-    let path_buf = Utf8PathBuf::from(
-      value
-        .to_string()
-        .strip_prefix("node:")
-        .unwrap_or(value.as_ref())
-        .to_string(),
-    );
-    let is_relative_request = path_buf.to_string().starts_with("."); // TODO: consider alias?
+    let stripped = value.strip_prefix("node:").unwrap_or(value);
+    let path_buf = Utf8PathBuf::from(stripped);
+    let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
       // Mock relative request to alongside `__mocks__` directory.
