@@ -1802,7 +1802,7 @@ pub fn code_split(compilation: &mut Compilation) -> Result<()> {
     })
     .collect::<IdentifierMap<_>>();
 
-  let module_graph: &ModuleGraph<'_> = &compilation.get_module_graph();
+  let module_graph = compilation.get_module_graph();
 
   // Compute affected modules while holding the lock, then release it
   let affected_modules = {

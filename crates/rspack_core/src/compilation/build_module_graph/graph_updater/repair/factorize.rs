@@ -221,7 +221,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 
-    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
+    let module_graph = artifact.get_module_graph_mut();
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");

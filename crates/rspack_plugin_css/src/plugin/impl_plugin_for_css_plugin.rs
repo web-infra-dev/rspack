@@ -89,7 +89,7 @@ impl CssPlugin {
   async fn render_chunk(
     &self,
     compilation: &Compilation,
-    mg: &ModuleGraph<'_>,
+    mg: &ModuleGraph,
     chunk: &Chunk,
     output_path: &str,
     css_import_modules: Vec<&dyn Module>,

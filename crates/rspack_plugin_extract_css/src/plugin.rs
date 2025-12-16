@@ -127,7 +127,7 @@ impl PluginCssExtract {
     chunk: &Chunk,
     modules: &[&dyn Module],
     compilation: &'comp Compilation,
-    module_graph: &'comp ModuleGraph<'comp>,
+    module_graph: &'comp ModuleGraph,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
     let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
       .iter()

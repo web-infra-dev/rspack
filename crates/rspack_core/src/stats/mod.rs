@@ -731,7 +731,7 @@ impl Stats<'_> {
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
-    module_graph: &'a ModuleGraph<'a>,
+    module_graph: &'a ModuleGraph,
     module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
@@ -1331,7 +1331,7 @@ impl Stats<'_> {
 
 pub fn create_stats_errors<'a>(
   compilation: &'a Compilation,
-  module_graph: &'a ModuleGraph<'a>,
+  module_graph: &'a ModuleGraph,
   diagnostics: &'a mut Vec<Diagnostic>,
   colored: bool,
 ) -> Vec<StatsError<'a>> {

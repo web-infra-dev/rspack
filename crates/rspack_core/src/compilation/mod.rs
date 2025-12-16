@@ -52,10 +52,10 @@ use crate::{
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -459,18 +459,8 @@ impl Compilation {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
 
-  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        Some(other_module_graph),
-      ])
-    } else {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ])
-    }
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph()
   }
 
   // FIXME: find a better way to do this.
@@ -481,38 +471,19 @@ impl Compilation {
       return module.as_ref();
     };
 
-    if let Some(module) = self
+    self
       .build_module_graph_artifact
-      .get_module_graph_partial()
-      .modules
-      .get(identifier)
-    {
-      return module.as_ref();
-    }
-
-    None
+      .get_module_graph()
+      .module_by_identifier(identifier)
   }
   pub fn get_make_module_graph_mut(
     build_module_graph_artifact: &mut BuildModuleGraphArtifact,
-  ) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut(
-      [None, None],
-      build_module_graph_artifact.get_module_graph_partial_mut(),
-    )
+  ) -> &mut ModuleGraph {
+    build_module_graph_artifact.get_module_graph_mut()
   }
   // TODO: remove &mut self in the future
-  pub fn get_seal_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    let seal_module_graph_partial = self
-      .seal_module_graph_partial
-      .as_mut()
-      .expect("should set seal_module_graph");
-    ModuleGraph::new_mut(
-      [
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ],
-      seal_module_graph_partial,
-    )
+  pub fn get_seal_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph_mut()
   }
 
   pub fn file_dependencies(

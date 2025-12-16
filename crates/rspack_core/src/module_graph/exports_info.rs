@@ -1,5 +1,3 @@
-use std::collections::hash_map::Entry;
-
 use rayon::prelude::*;
 
 use crate::{
@@ -7,7 +5,7 @@ use crate::{
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
 };
 
-impl<'a> ModuleGraph<'a> {
+impl ModuleGraph {
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
     self
       .module_graph_module_by_identifier(module_identifier)
@@ -41,51 +39,30 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.loop_partials(|p| p.exports_info_map.get(id))
+    self.inner.exports_info_map.get(id)
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {
     self
-      .loop_partials_mut(
-        |p| p.exports_info_map.contains_key(id),
-        |p, search_result| {
-          p.exports_info_map.insert(*id, search_result);
-        },
-        |p| p.exports_info_map.get(id).cloned(),
-        |p| p.exports_info_map.get_mut(id),
-      )
+      .inner
+      .exports_info_map
+      .get_mut(id)
       .expect("should have exports info")
   }
 
   pub fn set_exports_info(&mut self, id: ExportsInfo, info: ExportsInfoData) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.exports_info_map.insert(id, info);
+    self.inner.exports_info_map.insert(id, info);
   }
 
   pub fn active_all_exports_info(&mut self) {
-    let active_partial = self.active.as_mut().expect("should have active partial");
-    for partial in self.partials.iter().rev().flatten() {
-      for (id, exports_info) in partial.exports_info_map.iter() {
-        match active_partial.exports_info_map.entry(*id) {
-          Entry::Occupied(_) => {}
-          Entry::Vacant(entry) => {
-            entry.insert(exports_info.clone());
-          }
-        }
-      }
-    }
+    // With the simplified ModuleGraph, all exports info is already in inner
+    // This method is now a no-op since we don't have separate partials to merge
   }
 
   pub fn reset_all_exports_info_used(&mut self) {
-    let exports_info_map = &mut self
-      .active
-      .as_mut()
-      .expect("should have active partial")
-      .exports_info_map;
-
-    exports_info_map
+    self
+      .inner
+      .exports_info_map
       .par_iter_mut()
       .for_each(|(_, exports_info)| {
         for export_info in exports_info.exports_mut().values_mut() {

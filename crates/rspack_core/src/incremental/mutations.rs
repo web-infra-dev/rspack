@@ -257,7 +257,7 @@ fn compute_affected_modules_with_module_graph(
   fn get_direct_and_transitive_affected_modules(
     modules: &IdentifierSet,
     all_affected_modules: &IdentifierSet,
-    module_graph: &ModuleGraph<'_>,
+    module_graph: &ModuleGraph,
   ) -> (IdentifierSet, IdentifierSet) {
     modules
       .par_iter()

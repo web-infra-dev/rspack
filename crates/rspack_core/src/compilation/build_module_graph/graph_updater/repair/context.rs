@@ -7,11 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
-  SharedPluginDriver,
-  incremental::Incremental,
-  module_graph::{ModuleGraph, ModuleGraphMut, ModuleGraphPartial},
-  old_cache::Cache as OldCache,
+  DependencyTemplateType, DependencyType, ModuleFactory, ModuleGraph, ResolverFactory,
+  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, old_cache::Cache as OldCache,
 };
 
 #[derive(Debug)]
@@ -57,8 +54,8 @@ impl TaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut([None, None], partial)
+  pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
+    artifact.get_module_graph_mut()
   }
 
   // TODO remove it after incremental rebuild cover all stage

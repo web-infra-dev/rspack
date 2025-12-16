@@ -26,7 +26,7 @@ impl JsModuleGraph {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraphRef<'static>)> {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ModuleGraph)> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
 
