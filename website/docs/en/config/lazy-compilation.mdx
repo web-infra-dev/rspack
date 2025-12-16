@@ -14,7 +14,7 @@ Enable lazy compilation, which can greatly improve the dev startup performance o
 ## **lazyCompilation**
 
 - **Type:** `boolean | LazyCompilationOptions`
-- **Default:** `{ entries: false, imports: true }`
+- **Default:** `{ entries: false, imports: true }` when `'web'` or `['web']` [`Target`](/config/target), `false` for others.
 
 ```ts
 type LazyCompilationOptions =

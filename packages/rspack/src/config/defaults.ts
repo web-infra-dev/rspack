@@ -142,7 +142,6 @@ export const applyRspackOptionsDefaults = (
 		outputModule: options.experiments.outputModule,
 		entry: options.entry
 	});
-
 	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
 	applybundlerInfoDefaults(
 		options.experiments.rspackFuture,
