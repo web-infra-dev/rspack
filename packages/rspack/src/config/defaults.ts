@@ -84,17 +84,17 @@ export const applyRspackOptionsDefaults = (
 	D(options, "profile", false);
 	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
 	F(options, "lazyCompilation", () => {
-		// "web" or ["web"]
+		// for 'web' target only
 		if (
-			options.target === "web" ||
-			(Array.isArray(options.target) &&
-				options.target.length === 1 &&
-				options.target[0] === "web")
+			!!targetProperties &&
+			targetProperties.web &&
+			!targetProperties.electron &&
+			!targetProperties.node &&
+			!targetProperties.nwjs
 		) {
 			return { imports: true, entries: false };
-		} else {
-			return false;
 		}
+		return false;
 	});
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
