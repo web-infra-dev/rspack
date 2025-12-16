@@ -45,10 +45,9 @@ pub struct DependencyParents {
   pub index_in_block: usize,
 }
 
-/// A partial module graph that contains modified parts of the origin make_phased module_graph during seal phase
-/// persistent cache will always use the origin make_phased module and ignore all module_graph change in the modified parts of ModuleGraphPartial in seal phase
+/// Internal data structure for ModuleGraph
 #[derive(Debug, Default, Clone)]
-pub(crate) struct ModuleGraphPartial {
+pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
@@ -91,9 +90,9 @@ pub(crate) struct ModuleGraphPartial {
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ModuleGraph {
-  inner: ModuleGraphPartial,
+  inner: ModuleGraphData,
 }
 
 /// Type alias for backward compatibility - ModuleGraphRef is now just ModuleGraph
@@ -102,11 +101,11 @@ pub type ModuleGraphRef<'a> = ModuleGraph;
 pub type ModuleGraphMut<'a> = ModuleGraph;
 
 impl ModuleGraph {
-  pub(crate) fn new(inner: ModuleGraphPartial) -> Self {
+  pub(crate) fn new(inner: ModuleGraphData) -> Self {
     Self { inner }
   }
 
-  pub(crate) fn into_inner(self) -> ModuleGraphPartial {
+  pub(crate) fn into_inner(self) -> ModuleGraphData {
     self.inner
   }
 
@@ -314,7 +313,7 @@ impl ModuleGraph {
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let mut module_graph = compilation.get_module_graph_mut();
     let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");

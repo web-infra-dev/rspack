@@ -222,8 +222,8 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  // module graph used in seal phase for additional modifications
-  pub seal_module_graph: Option<ModuleGraph>,
+  /// Module graph used in seal phase, cloned from build_module_graph_artifact.module_graph
+  pub module_graph: Option<ModuleGraph>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -362,7 +362,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      seal_module_graph: None,
+      module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -465,8 +465,8 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.seal_module_graph {
-      if let Some(module) = other_module_graph.module_by_identifier(identifier) {
+    if let Some(module_graph) = &self.module_graph {
+      if let Some(module) = module_graph.module_by_identifier(identifier) {
         return Some(module);
       }
     };
@@ -481,9 +481,11 @@ impl Compilation {
   ) -> &mut ModuleGraph {
     build_module_graph_artifact.get_module_graph_mut()
   }
-  // TODO: remove &mut self in the future
-  pub fn get_seal_module_graph_mut(&mut self) -> &mut ModuleGraph {
-    self.build_module_graph_artifact.get_module_graph_mut()
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    self
+      .module_graph
+      .as_mut()
+      .expect("module_graph should be initialized in seal phase")
   }
 
   pub fn file_dependencies(
@@ -1603,7 +1605,7 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.seal_module_graph = Some(ModuleGraph::default());
+    self.module_graph = Some(self.build_module_graph_artifact.module_graph.clone());
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();

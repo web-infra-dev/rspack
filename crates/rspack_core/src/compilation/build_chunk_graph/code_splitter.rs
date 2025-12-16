@@ -707,9 +707,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        compilation
-          .get_seal_module_graph_mut()
-          .set_depth_if_lower(&k, v);
+        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
       }
     }
 
@@ -1165,7 +1163,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let mut module_graph = compilation.get_seal_module_graph_mut();
+      let mut module_graph = compilation.get_module_graph_mut();
       let module = module_graph
         .module_graph_module_by_identifier_mut(&item.module)
         .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
@@ -1210,7 +1208,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let mut module_graph = compilation.get_module_graph_mut();
     let module = module_graph
       .module_graph_module_by_identifier_mut(&item.module)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));

@@ -1021,7 +1021,7 @@ impl CodeSplitter {
       }
     }
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let mut module_graph = compilation.get_module_graph_mut();
 
     for (m, idx) in pre_order_indices {
       module_graph
@@ -1327,7 +1327,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
               let assign_depths_map = assigned_depths
                 .remove(&idx)
                 .expect("should have assign depths map");
-              let mut module_graph = compilation.get_seal_module_graph_mut();
+              let mut module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
               }

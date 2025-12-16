@@ -71,7 +71,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     compilation.cgm_hash_artifact.clear();
   }
 
-  let mut mg = compilation.get_seal_module_graph_mut();
+  let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut exports_info_cache = FxHashMap::default();

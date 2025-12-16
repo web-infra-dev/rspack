@@ -34,7 +34,7 @@ async fn optimize_dependencies(
     compilation.cgm_hash_artifact.clear();
   }
 
-  let mut mg = compilation.get_seal_module_graph_mut();
+  let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();
