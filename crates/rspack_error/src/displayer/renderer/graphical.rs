@@ -244,15 +244,13 @@ impl GraphicalReportHandler {
           char, self.theme.characters.hbar, self.theme.characters.rarrow
         ))
         .to_string();
-        let rest_indent = dim(&format!(
-          "  {}   ",
-          if is_last {
-            ' '
-          } else {
-            self.theme.characters.vbar
-          }
-        ))
-        .to_string();
+
+        let rest_indent = if is_last {
+          "      ".to_string()
+        } else {
+          dim(&format!("  {}   ", self.theme.characters.vbar)).to_string()
+        };
+
         let opts = textwrap::Options::new(width)
           .initial_indent(&initial_indent)
           .subsequent_indent(&rest_indent);
