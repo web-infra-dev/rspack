@@ -125,7 +125,7 @@ function collectManifestExposes(
 	type ExposesConfigInput = { import: string | string[]; name?: string };
 	const parsed = parseOptions<ExposesConfigInput, NormalizedExpose>(
 		exposes,
-		(value, key) => ({
+		value => ({
 			import: Array.isArray(value) ? value : [value],
 			name: undefined
 		}),
