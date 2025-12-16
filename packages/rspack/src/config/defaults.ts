@@ -83,7 +83,7 @@ export const applyRspackOptionsDefaults = (
 	D(options, "watch", false);
 	D(options, "profile", false);
 	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
-	D(options, "lazyCompilation", false);
+	D(options, "lazyCompilation", { imports: true, entries: false });
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
@@ -128,9 +128,7 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
-		development,
-		entry: options.entry,
-		futureDefaults: options.experiments.futureDefaults!
+		entry: options.entry
 	});
 	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
 	applybundlerInfoDefaults(
@@ -569,6 +567,10 @@ const applyModuleDefaults = (
 			{
 				with: { type: "json" },
 				type: "json"
+			},
+			{
+				with: { type: "text" },
+				type: "asset/source"
 			}
 		);
 
@@ -583,17 +585,13 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
-		development,
-		entry,
-		futureDefaults
+		entry
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
-		development: boolean;
 		entry: EntryNormalized;
-		futureDefaults: boolean;
 	}
 ) => {
 	const getLibraryName = (library: Library): string => {
@@ -618,7 +616,7 @@ const applyOutputDefaults = (
 	F(output, "uniqueName", () => {
 		const libraryName = getLibraryName(output.library).replace(
 			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
-			(m, a, d1, d2, b, c) => {
+			(_, a, d1, d2, b, c) => {
 				const content = a || b || c;
 				return content.startsWith("\\") && content.endsWith("\\")
 					? `${d2 || ""}[${content.slice(1, -1)}]${d1 || ""}`

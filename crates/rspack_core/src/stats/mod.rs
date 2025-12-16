@@ -5,7 +5,7 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::{Diagnostic, Display, Result, StdioDisplayer, StringDisplayer};
+use rspack_error::{Diagnostic, Display, Result, StringDisplayer};
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;
@@ -28,19 +28,6 @@ pub struct Stats<'compilation> {
 impl<'compilation> Stats<'compilation> {
   pub fn new(compilation: &'compilation Compilation) -> Self {
     Self { compilation }
-  }
-
-  pub fn emit_diagnostics(&self) -> Result<()> {
-    let displayer = StdioDisplayer::default();
-    displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
-    displayer.emit_batch_diagnostic(self.compilation.get_errors())
-  }
-
-  pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
-    let displayer = StringDisplayer::new(false, sorted);
-    let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
-    let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
-    Ok(format!("{warnings}{errors}"))
   }
 }
 

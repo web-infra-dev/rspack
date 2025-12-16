@@ -34,5 +34,6 @@ module.exports = {
 	],
 	devServer: {
 		hot: true
-	}
+	},
+	lazyCompilation: false,
 };

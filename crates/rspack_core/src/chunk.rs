@@ -106,10 +106,6 @@ impl Chunk {
     self.css_filename_template.as_ref()
   }
 
-  pub fn set_css_filename_template(&mut self, filename_template: Option<Filename>) {
-    self.css_filename_template = filename_template;
-  }
-
   pub fn id(&self) -> Option<&ChunkId> {
     self.id.as_ref()
   }

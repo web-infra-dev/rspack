@@ -74,7 +74,10 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  infrastructureLogging: Object {},
-			  lazyCompilation: false,
+			  lazyCompilation: Object {
+			    entries: false,
+			    imports: true,
+			  },
 			  loader: Object {
 			    environment: Object {
 			      arrowFunction: true,
@@ -178,6 +181,12 @@ module.exports = {
 			        type: json,
 			        with: Object {
 			          type: json,
+			        },
+			      },
+			      Object {
+			        type: asset/source,
+			        with: Object {
+			          type: text,
 			        },
 			      },
 			    ],

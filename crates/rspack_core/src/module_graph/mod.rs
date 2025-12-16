@@ -585,13 +585,6 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.depth)
   }
 
-  pub fn set_depth(&mut self, module_id: ModuleIdentifier, depth: usize) {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(&module_id)
-      .expect("should have module graph module");
-    mgm.depth = Some(depth);
-  }
-
   pub fn set_depth_if_lower(&mut self, module_id: &ModuleIdentifier, depth: usize) -> bool {
     let mgm = self
       .module_graph_module_by_identifier_mut(module_id)
@@ -675,22 +668,6 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.blocks.get(block_id))?
       .as_ref()
       .map(|b| &**b)
-  }
-
-  pub fn block_by_id_mut(
-    &mut self,
-    block_id: &AsyncDependenciesBlockIdentifier,
-  ) -> Option<&mut Box<AsyncDependenciesBlock>> {
-    self
-      .loop_partials_mut(
-        |p| p.blocks.contains_key(block_id),
-        |p, search_result| {
-          p.blocks.insert(*block_id, search_result);
-        },
-        |p| p.blocks.get(block_id).cloned(),
-        |p| p.blocks.get_mut(block_id),
-      )?
-      .as_mut()
   }
 
   pub fn block_by_id_expect(

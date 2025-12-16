@@ -28,7 +28,6 @@ mod memory_gc;
 mod module_rules;
 mod property_access;
 mod property_name;
-mod queue;
 mod remove_bom;
 mod runtime;
 mod source;
@@ -54,7 +53,6 @@ pub use self::{
   module_rules::*,
   property_access::*,
   property_name::*,
-  queue::*,
   remove_bom::*,
   runtime::*,
   source::*,

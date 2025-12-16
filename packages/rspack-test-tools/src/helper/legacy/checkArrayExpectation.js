@@ -109,31 +109,61 @@ module.exports = async function checkArrayExpectation(
 			);
 			return true;
 		}
-		for (let i = 0; i < array.length; i++) {
-			if (Array.isArray(expected[i])) {
-				for (let j = 0; j < expected[i].length; j++) {
-					if (!check(expected[i][j], array[i])) {
-						done(
-							new Error(
-								`${upperCaseKind} ${i}: ${explain(
-									array[i]
-								)} doesn't match ${explain(expected[i][j])}`
-							)
-						);
 
-						return true;
+		const usedExpected = new Array(expected.length).fill(false);
+
+		for (let i = 0; i < array.length; i++) {
+			let found = false;
+			for (let j = 0; j < expected.length; j++) {
+				if (usedExpected[j]) continue;
+
+				if (Array.isArray(expected[j])) {
+					for (let k = 0; k < expected[j].length; k++) {
+						if (check(expected[j][k], array[i])) {
+							usedExpected[j] = true;
+							found = true;
+							break;
+						}
+					}
+				} else {
+					if (check(expected[j], array[i])) {
+						usedExpected[j] = true;
+						found = true;
+						break;
 					}
 				}
-			} else if (!check(expected[i], array[i])) {
+				if (found) break;
+			}
+			if (!found) {
 				done(
 					new Error(
-						`${upperCaseKind} ${i}: ${explain(
-							array[i]
-						)} doesn't match ${explain(expected[i])}`
+						`${upperCaseKind} ${i}: ${explain(array[i])} doesn't match any expected value`
 					)
 				);
 				return true;
 			}
+		}
+
+
+		const unused = [];
+		for (let j = 0; j < expected.length; j++) {
+			if (!usedExpected[j]) {
+				unused.push(
+					Array.isArray(expected[j])
+						? expected[j].map(explain).join(' | ')
+						: explain(expected[j])
+				);
+			}
+		}
+		if (unused.length > 0) {
+			done(
+				new Error(
+					`The following expected ${kind}s were not matched:\n${unused
+						.map(u => `  ${u}`)
+						.join('\n')}`
+				)
+			);
+			return true;
 		}
 	} else if (array.length > 0) {
 		done(

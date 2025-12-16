@@ -13,6 +13,7 @@ module.exports = {
 			compiler.hooks.environment.tap("Test", () => {
 				if (once) {
 					const outputPath = compiler.options.output.path;
+					fs.mkdirSync(outputPath, { recursive: true });
 					const originalPath = path.join(outputPath, "file.ext");
 					fs.writeFileSync(originalPath, "");
 					const customDir = path.join(outputPath, "this/dir/should/be/removed");
@@ -28,13 +29,13 @@ module.exports = {
 			compiler.hooks.afterEmit.tap("Test", compilation => {
 				const outputPath = compilation.getPath(compiler.outputPath, {});
 				expect(readDir(outputPath)).toMatchInlineSnapshot(`
-			Object {
-			  "directories": Array [],
-			  "files": Array [
-			    "bundle0.js",
-			  ],
-			}
-		`);
+					Object {
+					  directories: Array [],
+					  files: Array [
+					    bundle0.js,
+					  ],
+					}
+				`);
 			});
 		}
 	]

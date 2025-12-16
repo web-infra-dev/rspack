@@ -24,9 +24,7 @@ pub mod test;
 pub mod tracing_preset;
 
 use std::{
-  collections::hash_map::DefaultHasher,
   future::Future,
-  hash::{Hash, Hasher},
   sync::LazyLock,
   time::{SystemTime, UNIX_EPOCH},
 };
@@ -45,19 +43,6 @@ where
   let it = it.into_iter();
   for i in it {
     if f(i).await? {
-      return Ok(true);
-    }
-  }
-  Ok(false)
-}
-
-pub fn try_any_sync<T, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
-where
-  F: Fn(T) -> Result<bool, E>,
-{
-  let it = it.into_iter();
-  for i in it {
-    if f(i)? {
       return Ok(true);
     }
   }
@@ -98,11 +83,4 @@ static QUOTE_META_REG: LazyLock<Regex> = LazyLock::new(|| {
 /// Escape special regex characters in a string
 pub fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()
-}
-
-/// Compute a 16-character hexadecimal hash for a value that implements Hash
-pub fn hash_for_source<T: Hash + ?Sized>(source: &T) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }
