@@ -73,6 +73,7 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
@@ -101,6 +102,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      inline_exports: false,
       collected_typescript_info: None,
       extras: Default::default(),
     }

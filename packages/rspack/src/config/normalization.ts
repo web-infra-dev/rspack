@@ -366,6 +366,30 @@ export const getNormalizedRspackOptions = (
 					"`experiments.parallelCodeSplitting` config has been deprecated and will be removed in next minor. It has huge regression in some edge cases where the chunk graph has lots of cycles, we'll improve the performance of build_chunk_graph in the future instead"
 				)();
 			}
+			if (experiments.lazyBarrel) {
+				util.deprecate(
+					() => {},
+					"`experiments.lazyBarrel` config has been deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Please remove this option from your Rspack configuration."
+				)();
+			}
+			if (experiments.inlineConst) {
+				util.deprecate(
+					() => {},
+					"`experiments.inlineConst` config has been deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Please remove this option from your Rspack configuration."
+				)();
+			}
+			if (experiments.inlineEnum) {
+				util.deprecate(
+					() => {},
+					"`experiments.inlineEnum` config has been deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Please remove this option from your Rspack configuration."
+				)();
+			}
+			if (experiments.typeReexportsPresence) {
+				util.deprecate(
+					() => {},
+					"`experiments.typeReexportsPresence` config has been deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Please remove this option from your Rspack configuration."
+				)();
+			}
 			return {
 				...experiments,
 				cache: optionalNestedConfig(experiments.cache, cache => {
@@ -694,9 +718,18 @@ export interface ExperimentsNormalized {
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	inlineConst?: boolean;
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	inlineEnum?: boolean;
 	typeReexportsPresence?: boolean;
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
 	deferImport?: boolean;

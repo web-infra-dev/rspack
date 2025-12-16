@@ -588,7 +588,6 @@ function getRawJavascriptParserOptions(
 		commonjs: parser.commonjs,
 		importDynamic: parser.importDynamic,
 		commonjsMagicComments: parser.commonjsMagicComments,
-		inlineConst: parser.inlineConst,
 		typeReexportsPresence: parser.typeReexportsPresence,
 		jsx: parser.jsx,
 		deferImport: parser.deferImport
