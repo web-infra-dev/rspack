@@ -1,7 +1,4 @@
-use std::{
-  collections::hash_map::Entry,
-  ops::{Deref, DerefMut},
-};
+use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -51,7 +48,7 @@ pub struct DependencyParents {
 /// A partial module graph that contains modified parts of the origin make_phased module_graph during seal phase
 /// persistent cache will always use the origin make_phased module and ignore all module_graph change in the modified parts of ModuleGraphPartial in seal phase
 #[derive(Debug, Default, Clone)]
-pub struct ModuleGraphPartial {
+pub(crate) struct ModuleGraphPartial {
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
@@ -94,40 +91,6 @@ pub struct ModuleGraphPartial {
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 
-impl ModuleGraphPartial {
-  /// Merge another partial into this one
-  /// Values from other will override values in self where they exist
-  pub fn merge_from(&mut self, other: &ModuleGraphPartial) {
-    for (k, v) in &other.modules {
-      self.modules.insert(*k, v.clone());
-    }
-    for (k, v) in &other.dependencies {
-      self.dependencies.insert(*k, v.clone());
-    }
-    for (k, v) in &other.blocks {
-      self.blocks.insert(*k, v.clone());
-    }
-    for (k, v) in &other.module_graph_modules {
-      self.module_graph_modules.insert(*k, v.clone());
-    }
-    for (k, v) in &other.connections {
-      self.connections.insert(*k, v.clone());
-    }
-    for (k, v) in &other.dependency_id_to_parents {
-      self.dependency_id_to_parents.insert(*k, v.clone());
-    }
-    for (k, v) in &other.exports_info_map {
-      self.exports_info_map.insert(*k, v.clone());
-    }
-    for (k, v) in &other.connection_to_condition {
-      self.connection_to_condition.insert(*k, v.clone());
-    }
-    for (k, v) in &other.dep_meta_map {
-      self.dep_meta_map.insert(*k, v.clone());
-    }
-  }
-}
-
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   inner: ModuleGraphPartial,
@@ -138,52 +101,13 @@ pub type ModuleGraphRef<'a> = ModuleGraph;
 /// Type alias for backward compatibility - ModuleGraphMut is now just ModuleGraph
 pub type ModuleGraphMut<'a> = ModuleGraph;
 
-impl Deref for ModuleGraph {
-  type Target = ModuleGraphPartial;
-  fn deref(&self) -> &Self::Target {
-    &self.inner
-  }
-}
-
-impl DerefMut for ModuleGraph {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.inner
-  }
-}
-
 impl ModuleGraph {
-  pub fn new(inner: ModuleGraphPartial) -> Self {
+  pub(crate) fn new(inner: ModuleGraphPartial) -> Self {
     Self { inner }
   }
 
-  pub fn into_inner(self) -> ModuleGraphPartial {
+  pub(crate) fn into_inner(self) -> ModuleGraphPartial {
     self.inner
-  }
-
-  /// Creates a ModuleGraph by merging multiple partials into one
-  /// The partials are merged in order, with later partials overriding earlier ones
-  pub fn new_ref(partials: [Option<&ModuleGraphPartial>; 2]) -> ModuleGraph {
-    let mut merged = ModuleGraphPartial::default();
-    for partial in partials.into_iter().flatten() {
-      merged.merge_from(partial);
-    }
-    ModuleGraph { inner: merged }
-  }
-
-  /// Creates a ModuleGraph by merging base partials and using active as the mutable target
-  /// The partials are merged in order, with later partials overriding earlier ones
-  /// The active partial is used as the base and will be modified
-  pub fn new_mut(
-    partials: [Option<&ModuleGraphPartial>; 2],
-    active: &mut ModuleGraphPartial,
-  ) -> ModuleGraph {
-    // Merge base partials into active
-    for partial in partials.into_iter().flatten() {
-      active.merge_from(partial);
-    }
-    ModuleGraph {
-      inner: std::mem::take(active),
-    }
   }
 
   /// Return an unordered iterator of modules

@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet;
 
 use super::super::{Storage, cacheable_context::CacheableContext};
 use crate::{
-  FactorizeInfo, ModuleGraph,
+  FactorizeInfo,
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   utils::{FileCounter, ResourceId},
 };
@@ -70,11 +70,10 @@ impl MakeOccasion {
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
-    let (partial, module_to_lazy_make, entry_dependencies) =
+    let (mg, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
 
     // regenerate statistical data
-    let mg = ModuleGraph::new(partial);
     // recovery make_failed_module
     let mut make_failed_module = IdentifierSet::default();
     // recovery *_dep

@@ -52,10 +52,10 @@ use crate::{
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphPartial, ModuleIdentifier, ModuleIdsArtifact,
-  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
-  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
+  PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -222,8 +222,8 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  // module graph partial used in seal phase
-  pub seal_module_graph_partial: Option<ModuleGraphPartial>,
+  // module graph used in seal phase for additional modifications
+  pub seal_module_graph: Option<ModuleGraph>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -362,7 +362,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      seal_module_graph_partial: None,
+      seal_module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -465,10 +465,10 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial
-      && let Some(module) = other_module_graph.modules.get(identifier)
-    {
-      return module.as_ref();
+    if let Some(other_module_graph) = &self.seal_module_graph {
+      if let Some(module) = other_module_graph.module_by_identifier(identifier) {
+        return Some(module);
+      }
     };
 
     self
@@ -1603,7 +1603,7 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.seal_module_graph_partial = Some(ModuleGraphPartial::default());
+    self.seal_module_graph = Some(ModuleGraph::default());
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();

@@ -5,7 +5,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
@@ -72,14 +72,6 @@ impl BuildModuleGraphArtifact {
     &self.module_graph
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
-    &mut self.module_graph
-  }
-  // TODO remove it
-  pub fn get_module_graph_partial(&self) -> &ModuleGraphPartial {
-    &self.module_graph
-  }
-  // TODO remove it
-  pub fn get_module_graph_partial_mut(&mut self) -> &mut ModuleGraphPartial {
     &mut self.module_graph
   }
 
