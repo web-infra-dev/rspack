@@ -180,6 +180,12 @@ module.exports = {
 			          type: json,
 			        },
 			      },
+			      Object {
+			        type: asset/source,
+			        with: Object {
+			          type: text,
+			        },
+			      },
 			    ],
 			    generator: Object {
 			      json: Object {
