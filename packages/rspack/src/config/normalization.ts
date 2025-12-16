@@ -578,6 +578,7 @@ export type EntryDescriptionNormalized = Pick<
 	EntryDescription,
 	| "runtime"
 	| "chunkLoading"
+	| "wasmLoading"
 	| "asyncChunks"
 	| "publicPath"
 	| "baseUri"

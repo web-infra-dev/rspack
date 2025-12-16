@@ -816,6 +816,7 @@ export interface JsEntryOptions {
   name?: string
   runtime?: false | string
   chunkLoading?: false | string
+  wasmLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string

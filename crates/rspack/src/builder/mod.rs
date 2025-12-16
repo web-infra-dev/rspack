@@ -1196,6 +1196,7 @@ impl CompilerOptionsBuilder {
           name: Some(name),
           runtime: desc.runtime.map(EntryRuntime::String),
           chunk_loading: desc.chunk_loading,
+          wasm_loading: desc.wasm_loading,
           async_chunks: desc.async_chunks,
           public_path: desc.public_path,
           base_uri: desc.base_uri,
@@ -3056,11 +3057,27 @@ impl OutputOptionsBuilder {
         .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
       || {
         let mut enabled_wasm_loading_types = HashSet::default();
-        if let WasmLoading::Enable(ty) = wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
         }
-        if let WasmLoading::Enable(ty) = worker_wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &worker_wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
+        }
+        // Check if chunkLoading is universal, then enable universal wasm loading
+        if matches!(&chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        if matches!(&worker_chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        for (_, desc) in entry.iter() {
+          if let Some(ChunkLoading::Enable(ChunkLoadingType::Custom(s))) = &desc.chunk_loading
+            && s == "universal"
+          {
+            enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+          }
         }
         // for (_, desc) in entry.iter() {
         //   if let Some(wasm_loading) = &desc.wasm_loading {

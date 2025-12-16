@@ -1,1 +1,1 @@
-module.exports = () => "TODO: invalid wasm loading type: universal";
+module.exports = () => true;

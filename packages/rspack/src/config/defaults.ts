@@ -823,9 +823,12 @@ const applyOutputDefaults = (
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
 			if (tp.nodeBuiltins) return "async-node";
-			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-				// return "universal";
-				return false;
+			if (
+				(tp.nodeBuiltins === null || tp.fetchWasm === null) &&
+				output.module &&
+				environment.dynamicImport
+			) {
+				return "universal";
 			}
 		}
 		return false;
@@ -904,11 +907,11 @@ const applyOutputDefaults = (
 		if (output.workerWasmLoading) {
 			enabledWasmLoadingTypes.add(output.workerWasmLoading);
 		}
-		// forEachEntry(desc => {
-		// 	if (desc.wasmLoading) {
-		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
-		// 	}
-		// });
+		forEachEntry(desc => {
+			if (desc.wasmLoading) {
+				enabledWasmLoadingTypes.add(desc.wasmLoading);
+			}
+		});
 		return Array.from(enabledWasmLoadingTypes);
 	});
 };
