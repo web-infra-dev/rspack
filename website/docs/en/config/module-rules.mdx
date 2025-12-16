@@ -718,16 +718,18 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => ({
-          loader: 'svgo-loader',
-          options: {
-            plugins: [
-              {
-                cleanupIDs: { prefix: basename(info.resource) },
-              },
-            ],
+        use: info => [
+          {
+            loader: 'svgo-loader',
+            options: {
+              plugins: [
+                {
+                  cleanupIDs: { prefix: basename(info.resource) },
+                },
+              ],
+            },
           },
-        }),
+        ],
       },
     ],
   },
