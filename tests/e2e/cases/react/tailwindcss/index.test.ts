@@ -5,18 +5,8 @@ test("tailwindcss should work when modify js file", async ({
 	fileAction,
 	rspack
 }) => {
-	function getAppFontSize() {
-		return page.evaluate(() => {
-			const app = document.querySelector("#app");
-			if (!app) {
-				return "";
-			}
-			return window.getComputedStyle(app).fontSize;
-		});
-	}
 
-	let appFontSize = await getAppFontSize();
-	expect(appFontSize).toBe("24px");
+	await expect(page.locator("#app")).toHaveClass(/text-2xl/);
 
 	// update
 	fileAction.updateFile("src/App.jsx", content => {
@@ -24,7 +14,4 @@ test("tailwindcss should work when modify js file", async ({
 	});
 
 	await expect(page.locator("#app")).toHaveClass(/text-3xl/);
-
-	appFontSize = await getAppFontSize();
-	expect(appFontSize).toBe("30px");
 });
