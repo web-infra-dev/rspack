@@ -65,7 +65,6 @@ it("should wire async startup through the shared runtime chunk", () => {
 	const content = fs.readFileSync(runtimeFile(), "utf-8");
 
 	// Guard added to make calling STARTUP() without args safe when async startup is enabled.
-	expect(content).toContain("__webpack_require__startup");
 	expect(content).toContain("chunkIds === undefined && result === undefined");
 
 	// Ensure async federation runtime hook is present in the runtime chunk.

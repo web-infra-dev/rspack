@@ -57,18 +57,32 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 
 	raw(compiler: Compiler): BuiltinPlugin {
 		const { remoteType, remotes } = this._options;
-		const remoteExternals: any = {};
+		const remoteExternals: Record<string, string> = {};
+		const importExternals: Record<string, string> = {};
 		for (const [key, config] of remotes) {
 			let i = 0;
 			for (const external of config.external) {
 				if (external.startsWith("internal ")) continue;
-				remoteExternals[
-					`webpack/container/reference/${key}${i ? `/fallback-${i}` : ""}`
-				] = external;
+				const request = `webpack/container/reference/${key}${i ? `/fallback-${i}` : ""}`;
+				// In ESM output, `externalsType: "module"` emits a static `import * as ... from "..."`
+				// which can create a circular dependency for relative remotes (notably self-remotes like
+				// `containerB: "./container.mjs"` with `runtimeChunk: "single"`). Prefer dynamic `import()`
+				// for those to break the cycle.
+				if (
+					(remoteType === "module" || remoteType === "module-import") &&
+					external.startsWith(".")
+				) {
+					importExternals[request] = external;
+				} else {
+					remoteExternals[request] = external;
+				}
 				i++;
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals, true).apply(compiler);
+		if (Object.keys(importExternals).length > 0) {
+			new ExternalsPlugin("import", importExternals, true).apply(compiler);
+		}
 		new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
 
 		const rawOptions: RawContainerReferencePluginOptions = {

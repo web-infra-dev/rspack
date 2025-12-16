@@ -113,52 +113,77 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
       let mut code = String::with_capacity(256 + module_executions.len());
 
-      // Expose once-guarded startup on __webpack_require__ so other runtime pieces can call it
-      code.push_str("var __webpack_require__mf_has_run = false;\n");
-      code.push_str("var __webpack_require__mf_startup_result;\n");
-      code.push_str("function __webpack_require__mfAsyncStartup() {\n");
-      code.push_str(
-        "\tif (__webpack_require__mf_has_run) return __webpack_require__mf_startup_result;\n",
-      );
-      code.push_str("\t__webpack_require__mf_has_run = true;\n");
-      code.push_str("\t__webpack_require__mf_startup_result = (function(){\n");
+      // Expose a once-guarded startup hook on __webpack_require__ and keep the implementation
+      // minimal (single assignment + fewer temp bindings).
+      code.push_str(&format!("{async_startup} = (function() {{\n"));
+      code.push_str("\tvar hasRun = false;\n");
+      code.push_str("\tvar result;\n");
+      code.push_str("\treturn function __webpack_require__mfAsyncStartup() {\n");
+      code.push_str("\t\tif (hasRun) return result;\n");
+      code.push_str("\t\thasRun = true;\n");
+      // Run embedded federation runtime modules once (may return a Promise)
+      code.push_str("\t\tvar base = (function(){\n");
       // Inline the federation runtime executions directly; keep newlines so the inserted code
       // remains syntactically valid inside the startup function body.
       code.push_str(&module_executions);
-      code.push_str("\t})();\n");
-      code.push_str("\treturn __webpack_require__mf_startup_result;\n");
-      code.push_str("}\n");
-      code.push_str(&format!(
-        "{async_startup} = __webpack_require__mfAsyncStartup;\n"
-      ));
-
-      code.push_str("function __webpack_require__mf_wrapStartup(prev) {\n");
-      code.push_str("\tvar fn = typeof prev === 'function' ? prev : function(){};\n");
-      code.push_str("\treturn function() {\n");
-      code.push_str("\t\tvar res = __webpack_require__mfAsyncStartup();\n");
-      code.push_str("\t\tif (res && typeof res.then === \"function\") {\n");
-      code.push_str("\t\t\treturn res.then(() => fn.apply(this, arguments));\n");
-      code.push_str("\t\t}\n");
-      code.push_str("\t\treturn fn.apply(this, arguments);\n");
-      code.push_str("\t};\n");
-      code.push_str("}\n");
-
-      // Make STARTUP_ENTRYPOINT tolerant to zero-arg calls (runtimeChunk: 'single' startup path)
-      code.push_str("var __webpack_require__startup = __webpack_require__.X;\n");
-      code.push_str("function __webpack_require__startup_guard(result, chunkIds, fn) {\n");
+      code.push_str("\t\t})();\n");
+      // Collect thenables from base + remote/consume handlers (mirrors webpack async startup)
+      code
+        .push_str("\t\tvar promises = base && typeof base.then === \"function\" ? [base] : [];\n");
+      code.push_str("\t\tvar f = __webpack_require__.f;\n");
+      code.push_str("\t\tif (f) {\n");
+      code.push_str("\t\t\tvar startupChunkIds = [];\n");
+      code.push_str("\t\t\tvar seen = {};\n");
+      code.push_str("\t\t\tvar mapping;\n");
       code.push_str(
-        "\tif (chunkIds === undefined && result === undefined) return Promise.resolve();\n",
+        "\t\t\tif (__webpack_require__.remotesLoadingData && (mapping = __webpack_require__.remotesLoadingData.chunkMapping)) {\n",
       );
-      code.push_str("\tif (chunkIds === undefined) chunkIds = [];\n");
-      code.push_str("\treturn __webpack_require__startup.call(this, result, chunkIds, fn);\n");
-      code.push_str("}\n");
-      code.push_str("__webpack_require__.X = __webpack_require__startup_guard;\n");
+      code.push_str("\t\t\t\tfor (var id in mapping) {\n");
+      code
+        .push_str("\t\t\t\t\tif (!Object.prototype.hasOwnProperty.call(mapping, id)) continue;\n");
+      code.push_str("\t\t\t\t\tif (seen[id]) continue;\n");
+      code.push_str("\t\t\t\t\tseen[id] = 1;\n");
+      code.push_str("\t\t\t\t\tstartupChunkIds.push(id);\n");
+      code.push_str("\t\t\t\t}\n");
+      code.push_str("\t\t\t}\n");
+      code.push_str(
+        "\t\t\tif (__webpack_require__.consumesLoadingData && (mapping = __webpack_require__.consumesLoadingData.chunkMapping)) {\n",
+      );
+      code.push_str("\t\t\t\tfor (var id in mapping) {\n");
+      code
+        .push_str("\t\t\t\t\tif (!Object.prototype.hasOwnProperty.call(mapping, id)) continue;\n");
+      code.push_str("\t\t\t\t\tif (seen[id]) continue;\n");
+      code.push_str("\t\t\t\t\tseen[id] = 1;\n");
+      code.push_str("\t\t\t\t\tstartupChunkIds.push(id);\n");
+      code.push_str("\t\t\t\t}\n");
+      code.push_str("\t\t\t}\n");
+      code.push_str("\t\t\tif (startupChunkIds.length) {\n");
+      code.push_str("\t\t\t\tvar consumes = f.consumes;\n");
+      code.push_str("\t\t\t\tif (typeof consumes === \"function\") {\n");
+      code.push_str(
+        "\t\t\t\t\tfor (var i = 0; i < startupChunkIds.length; i++) consumes(startupChunkIds[i], promises);\n",
+      );
+      code.push_str("\t\t\t\t}\n");
+      code.push_str("\t\t\t\tvar remotes = f.remotes;\n");
+      code.push_str("\t\t\t\tif (typeof remotes === \"function\") {\n");
+      code.push_str(
+        "\t\t\t\t\tfor (var i = 0; i < startupChunkIds.length; i++) remotes(startupChunkIds[i], promises);\n",
+      );
+      code.push_str("\t\t\t\t}\n");
+      code.push_str("\t\t\t}\n");
+      code.push_str("\t\t}\n");
+      code.push_str("\t\tresult = promises.length ? Promise.all(promises) : base;\n");
+      code.push_str("\t\treturn result;\n");
+      code.push_str("\t};\n");
+      code.push_str("})();\n");
 
       code.push_str(&format!(
-        "{startup} = __webpack_require__mf_wrapStartup({startup});\n"
+        "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.apply(this, arguments));\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
       ));
+
+      // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
       code.push_str(&format!(
-        "{startup_entry} = __webpack_require__mf_wrapStartup({startup_entry});\n"
+        "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(() => {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.call(this, result, chunkIds, cb));\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
       ));
 
       Ok(code)

@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeVariable,
-  UsedNameItem, property_access,
+  ChunkGraph, ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided,
+  ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  RuntimeGlobals, RuntimeVariable, UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };
@@ -76,11 +76,15 @@ async fn render_startup(
     .render_runtime_variable(&RuntimeVariable::Exports);
   let mut source = ConcatSource::default();
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), module);
+  let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
   // export { local as exported }
   let mut exports: Vec<(String, Option<String>)> = vec![];
-  if is_async {
+  // In async federation startup mode, STARTUP may return a Promise even when the entry module is
+  // sync (because it awaits federation init). Ensure we await the startup result before reading
+  // export fields so module outputs like MF containers still export live functions (get/init).
+  if is_async || runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
     source.add(RawStringSource::from(format!(
       "{exports_name} = await {exports_name};\n"
     )));

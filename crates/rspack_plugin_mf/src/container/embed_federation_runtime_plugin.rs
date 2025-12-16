@@ -199,10 +199,6 @@ async fn render_startup(
     return Ok(());
   }
 
-  let async_startup_global = compilation
-    .runtime_template
-    .render_runtime_globals(&RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
-
   // Ensure the synchronous startup global exists even in async startup mode so the
   // embedded federation runtime wrapper has a stable hook point.
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
@@ -213,49 +209,6 @@ async fn render_startup(
 
   // Runtime chunks with entry modules
   if has_runtime && has_entry_modules {
-    // For async startup, make sure the federation runtime is installed before
-    // any chunk ensure handlers run. We can't change the templates here, so
-    // prepend a guard that triggers the embedded federation startup once,
-    // collects ensure-handler promises for all known federation chunk ids,
-    // and returns a Promise so the caller can await remote loading before the
-    // entry executes (mirrors webpack async startup behaviour).
-    if self.experiments.async_startup {
-      let mut with_startup = ConcatSource::default();
-      with_startup.add(RawStringSource::from(format!(
-        r#"(function() {{
-  var originalMfAsyncStartup = typeof {async_startup_global} === "function" ? {async_startup_global} : null;
-  {async_startup_global} = function() {{
-    var base = originalMfAsyncStartup && originalMfAsyncStartup();
-    var promises = base && typeof base.then === "function" ? [base] : [];
-
-    var startupChunkIds = [];
-    if (__webpack_require__.remotesLoadingData && __webpack_require__.remotesLoadingData.chunkMapping) {{
-      startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.remotesLoadingData.chunkMapping));
-    }}
-    if (__webpack_require__.consumesLoadingData && __webpack_require__.consumesLoadingData.chunkMapping) {{
-      startupChunkIds.push.apply(startupChunkIds, Object.keys(__webpack_require__.consumesLoadingData.chunkMapping));
-    }}
-    if (!startupChunkIds.length) return base;
-
-    var f = __webpack_require__.f || {{}};
-    var handlers = [f.consumes, f.remotes];
-    for (var i = 0; i < handlers.length; i++) {{
-      var h = handlers[i];
-      if (typeof h !== "function") continue;
-      for (var j = 0; j < startupChunkIds.length; j++) {{
-        h(startupChunkIds[j], promises);
-      }}
-    }}
-
-    if (promises.length) return Promise.all(promises);
-    return base;
-  }};
-}})();
-"#,
-      )));
-      with_startup.add(render_source.source.clone());
-      render_source.source = with_startup.boxed();
-    }
     return Ok(());
   }
 
