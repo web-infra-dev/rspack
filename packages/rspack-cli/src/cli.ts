@@ -135,9 +135,8 @@ export class RspackCLI {
 				item.output.path = path.resolve(process.cwd(), options.outputPath);
 			}
 			if (options.analyze) {
-				const { BundleAnalyzerPlugin } = await import(
-					"webpack-bundle-analyzer"
-				);
+				const { BundleAnalyzerPlugin } =
+					await import("webpack-bundle-analyzer");
 				(item.plugins ??= []).push({
 					name: "rspack-bundle-analyzer",
 					apply(compiler: any) {
