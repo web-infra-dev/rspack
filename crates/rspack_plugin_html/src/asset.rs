@@ -378,7 +378,7 @@ pub async fn create_html_asset(
       output_file_name,
       PathData::default()
         .filename(template_file_name)
-        .content_hash(&content_hash),
+        .content_hash(content_hash),
       &mut asset_info,
     )
     .await?;

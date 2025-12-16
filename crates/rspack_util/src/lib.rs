@@ -86,10 +86,3 @@ static QUOTE_META_REG: LazyLock<Regex> = LazyLock::new(|| {
 pub fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()
 }
-
-/// Compute a 16-character hexadecimal hash for a value that implements Hash
-pub fn hash_for_source<T: Hash + ?Sized>(source: &T) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
-}
