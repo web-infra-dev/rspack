@@ -416,10 +416,6 @@ var {} = {{}};
     Ok(())
   }
 
-  pub fn is_orphan(m: ModuleIdentifier, compilation: &Compilation) -> bool {
-    compilation.chunk_graph.get_module_chunks(m).is_empty()
-  }
-
   pub fn get_module_chunk(m: ModuleIdentifier, compilation: &Compilation) -> ChunkUkey {
     let chunks = compilation.chunk_graph.get_module_chunks(m);
     if chunks.is_empty() {

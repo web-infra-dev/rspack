@@ -151,10 +151,6 @@ pub enum UsedName {
 }
 
 impl UsedName {
-  pub fn is_inlined(&self) -> bool {
-    matches!(self, UsedName::Inlined { .. })
-  }
-
   pub fn append(&mut self, item: impl IntoIterator<Item = Atom>) {
     match self {
       UsedName::Normal(vec) => vec.extend(item),

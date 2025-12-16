@@ -80,40 +80,10 @@ impl GraphicalReportHandler {
     self
   }
 
-  /// Whether to enable error code linkification using [`Diagnostic::url()`].
-  pub fn with_links(mut self, links: bool) -> Self {
-    self.links = if links {
-      LinkStyle::Link
-    } else {
-      LinkStyle::Text
-    };
-    self
-  }
-
   /// Include the cause chain of the top-level error in the graphical output,
   /// if available.
   pub fn with_cause_chain(mut self) -> Self {
     self.with_cause_chain = true;
-    self
-  }
-
-  /// Do not include the cause chain of the top-level error in the graphical
-  /// output.
-  pub fn without_cause_chain(mut self) -> Self {
-    self.with_cause_chain = false;
-    self
-  }
-
-  /// Whether to include [`Diagnostic::url()`] in the output.
-  ///
-  /// Disabling this is not recommended, but can be useful for more easily
-  /// reproducible tests, as `url(docsrs)` links are version-dependent.
-  pub fn with_urls(mut self, urls: bool) -> Self {
-    self.links = match (self.links, urls) {
-      (_, false) => LinkStyle::None,
-      (LinkStyle::None, true) => LinkStyle::Link,
-      (links, true) => links,
-    };
     self
   }
 
@@ -126,12 +96,6 @@ impl GraphicalReportHandler {
   /// Sets the width to wrap the report at.
   pub fn with_width(mut self, width: usize) -> Self {
     self.termwidth = width;
-    self
-  }
-
-  /// Sets the 'global' footer for this handler.
-  pub fn with_footer(mut self, footer: String) -> Self {
-    self.footer = Some(footer);
     self
   }
 

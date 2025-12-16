@@ -374,21 +374,6 @@ impl ChunkLinkContext {
     }
   }
 
-  pub fn add_export(&mut self, local_name: Atom, export_name: Atom) -> &Atom {
-    let exported = if self.exported_symbols.insert(export_name.clone()) {
-      export_name
-    } else {
-      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
-      self.exported_symbols.insert(new_name.clone());
-      self.used_names.insert(new_name.clone());
-      new_name
-    };
-
-    let set = self.exports.entry(local_name.clone()).or_default();
-    set.insert(exported.clone());
-    set.get(&exported).expect("just inserted")
-  }
-
   pub fn add_re_export_from_request(
     &mut self,
     request: String,
