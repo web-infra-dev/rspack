@@ -14,7 +14,6 @@ module.exports = [
 		},
 		output: {
 			webassemblyModuleFilename: "[id].[hash].wasm",
-			wasmLoading: "universal"
 		},
 		experiments: {
 			outputModule: true,
@@ -35,7 +34,6 @@ module.exports = [
 		},
 		output: {
 			webassemblyModuleFilename: "[id].[hash].wasm",
-			wasmLoading: "universal"
 		},
 		experiments: {
 			outputModule: true,

@@ -29,6 +29,7 @@ BuilderContext {
                     ),
                     runtime: None,
                     chunk_loading: None,
+                    wasm_loading: None,
                     async_chunks: None,
                     public_path: None,
                     base_uri: None,
