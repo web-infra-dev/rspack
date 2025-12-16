@@ -333,11 +333,10 @@ impl NormalModuleFactory {
             ) {
               // use RawModule instead of RawDataUrlModule
               RawModule::new(
-                format!(
-                  r#"/* (ignored-asset) */
+                r#"/* (ignored-asset) */
 module.exports = "data:,";
 "#
-                ),
+                .to_owned(),
                 module_identifier,
                 format!("{} (ignored-asset)", data.request),
                 RuntimeGlobals::MODULE,
