@@ -1174,7 +1174,7 @@ export class Compiler {
     // (undocumented)
     root: Compiler;
     // (undocumented)
-    rspack: RspackApi;
+    rspack: typeof rspack;
     // (undocumented)
     run(callback: liteTapable.Callback<Error, Stats>, options?: {
         modifiedFiles?: ReadonlySet<string>;
@@ -1195,7 +1195,7 @@ export class Compiler {
     // (undocumented)
     watchMode: boolean;
     // (undocumented)
-    webpack: RspackApi;
+    webpack: typeof rspack;
 }
 
 // @public (undocumented)
@@ -6498,9 +6498,6 @@ function rspack_2(options: RspackOptions, callback?: Callback<Error, Stats>): nu
 
 // @public (undocumented)
 function rspack_2(options: MultiRspackOptions | RspackOptions, callback?: Callback<Error, MultiStats | Stats>): null | MultiCompiler | Compiler;
-
-// @public (undocumented)
-type RspackApi = rspack;
 
 // @public (undocumented)
 abstract class RspackBuiltinPlugin implements RspackPluginInstance {
