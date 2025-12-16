@@ -5,7 +5,7 @@ use crate::{ModuleIdentifier, RuntimeSpec, RuntimeSpecMap};
 
 #[derive(Debug, Default)]
 pub struct CgmHashArtifact {
-  module_to_hashes: IdentifierMap<RuntimeSpecMap<RspackHashDigest>>,
+  module_to_hashes: im::HashMap<ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>>,
 }
 
 impl CgmHashArtifact {
