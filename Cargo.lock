@@ -4444,6 +4444,7 @@ dependencies = [
  "rspack_core",
  "rspack_dojang",
  "rspack_error",
+ "rspack_hash",
  "rspack_hook",
  "rspack_paths",
  "rspack_util",
