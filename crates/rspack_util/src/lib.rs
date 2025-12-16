@@ -24,9 +24,7 @@ pub mod test;
 pub mod tracing_preset;
 
 use std::{
-  collections::hash_map::DefaultHasher,
   future::Future,
-  hash::{Hash, Hasher},
   sync::LazyLock,
   time::{SystemTime, UNIX_EPOCH},
 };
