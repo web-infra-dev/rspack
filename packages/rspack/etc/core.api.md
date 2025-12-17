@@ -2138,7 +2138,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
     dependOn?: string[];
 };
