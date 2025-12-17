@@ -793,7 +793,9 @@ impl ESMExportImportedSpecifierDependency {
         }
         content += "__rspack_reexport[__rspack_import_key] =";
 
-        if supports_arrow_function {
+        // Arrow getters capture the loop variable by reference.
+        // They are only correct when the loop binding is block-scoped (const/let), not var.
+        if supports_arrow_function && supports_const {
           content += &format!("() => {import_var}[__rspack_import_key]");
         } else {
           content +=
