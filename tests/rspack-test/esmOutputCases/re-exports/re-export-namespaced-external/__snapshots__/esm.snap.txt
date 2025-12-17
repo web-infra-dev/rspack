@@ -1,16 +1,8 @@
 ```mjs title=main.mjs
+var named = /* inlined */ (42);
+var starExports = /* inlined */ (42);
 import * as __rspack_external_fs from "fs";
 // fs
-
-// ./lib.js
-const named = 42
-
-/* should not exported */
-const namedUnused = 42
-
-
-// ./lib2.js
-const starExports = 42
 
 // ./index.js
 

@@ -24,7 +24,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  RuntimeTemplate, SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
+  RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -374,7 +374,7 @@ impl<'parser> JavascriptParser<'parser> {
     runtime_template: &'parser RuntimeTemplate,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
-    let mut errors = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
     let dependencies = Vec::with_capacity(64);
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
@@ -466,13 +466,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    // disabled by default for now, it's still experimental
-    if javascript_options.inline_const.unwrap_or_default() {
-      if !compiler_options.experiments.inline_const {
-        errors.push(rspack_error::error!("inlineConst is still an experimental feature. To continue using it, please enable 'experiments.inlineConst'.").into());
-      } else {
-        plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-      }
+    if compiler_options.optimization.inline_exports {
+      build_info.inline_exports = true;
+      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
@@ -484,16 +480,6 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
       )));
-    }
-
-    if !matches!(
-      javascript_options
-        .type_reexports_presence
-        .unwrap_or_default(),
-      TypeReexportPresenceMode::NoTolerant
-    ) && !compiler_options.experiments.type_reexports_presence
-    {
-      errors.push(rspack_error::error!("typeReexportsPresence is still an experimental feature. To continue using it, please enable 'experiments.typeReexportsPresence'.").into());
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));

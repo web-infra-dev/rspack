@@ -1179,9 +1179,6 @@ export type JavascriptParserOptions = {
 	 */
 	commonjsMagicComments?: boolean;
 
-	/** Inline const values in this module */
-	inlineConst?: boolean;
-
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
 
@@ -2534,6 +2531,14 @@ export type Optimization = {
 	mangleExports?: "size" | "deterministic" | boolean;
 
 	/**
+	 * Allows to inline exports when possible to reduce code size.
+	 *
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
+	 */
+	inlineExports?: boolean;
+
+	/**
 	 * Tells Rspack to set process.env.NODE_ENV to a given string value.
 	 * @default false
 	 */
@@ -2841,21 +2846,25 @@ export type Experiments = {
 	/**
 	 * Enable inline const feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	inlineConst?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	inlineEnum?: boolean;
 	/**
 	 * Enable type reexports presence feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	typeReexportsPresence?: boolean;
 	/**
 	 * Enable lazy make side effects free barrel file
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	lazyBarrel?: boolean;
 	/**

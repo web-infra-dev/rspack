@@ -1196,6 +1196,7 @@ impl CompilerOptionsBuilder {
           name: Some(name),
           runtime: desc.runtime.map(EntryRuntime::String),
           chunk_loading: desc.chunk_loading,
+          wasm_loading: desc.wasm_loading,
           async_chunks: desc.async_chunks,
           public_path: desc.public_path,
           base_uri: desc.base_uri,
@@ -1725,7 +1726,6 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
-          inline_const: Some(false),
           jsx: Some(false),
           ..Default::default()
         }),
@@ -3056,11 +3056,27 @@ impl OutputOptionsBuilder {
         .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
       || {
         let mut enabled_wasm_loading_types = HashSet::default();
-        if let WasmLoading::Enable(ty) = wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
         }
-        if let WasmLoading::Enable(ty) = worker_wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &worker_wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
+        }
+        // Check if chunkLoading is universal, then enable universal wasm loading
+        if matches!(&chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        if matches!(&worker_chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        for (_, desc) in entry.iter() {
+          if let Some(ChunkLoading::Enable(ChunkLoadingType::Custom(s))) = &desc.chunk_loading
+            && s == "universal"
+          {
+            enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+          }
         }
         // for (_, desc) in entry.iter() {
         //   if let Some(wasm_loading) = &desc.wasm_loading {
@@ -3192,6 +3208,8 @@ pub struct OptimizationOptionsBuilder {
   inner_graph: Option<bool>,
   /// Whether to enable mangle exports.
   mangle_exports: Option<MangleExportsOption>,
+  /// Whether to enable inline exports.
+  inline_exports: Option<bool>,
   /// Whether to enable concatenate modules.
   concatenate_modules: Option<bool>,
   /// Whether to enable real content hash.
@@ -3216,6 +3234,7 @@ impl From<Optimization> for OptimizationOptionsBuilder {
       used_exports: Some(value.used_exports),
       inner_graph: Some(value.inner_graph),
       mangle_exports: Some(value.mangle_exports),
+      inline_exports: Some(value.inline_exports),
       concatenate_modules: Some(value.concatenate_modules),
       avoid_entry_iife: Some(value.avoid_entry_iife),
       remove_empty_chunks: None,
@@ -3247,6 +3266,7 @@ impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
       used_exports: value.used_exports.take(),
       inner_graph: value.inner_graph.take(),
       mangle_exports: value.mangle_exports.take(),
+      inline_exports: value.inline_exports.take(),
       concatenate_modules: value.concatenate_modules.take(),
       real_content_hash: value.real_content_hash.take(),
       avoid_entry_iife: value.avoid_entry_iife.take(),
@@ -3542,6 +3562,7 @@ impl OptimizationOptionsBuilder {
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin);
     }
 
+    let inline_exports = d!(self.inline_exports, production);
     let mangle_exports = f!(self.mangle_exports.take(), || {
       if production {
         MangleExportsOption::Deterministic
@@ -3645,6 +3666,7 @@ impl OptimizationOptionsBuilder {
       used_exports,
       inner_graph,
       mangle_exports,
+      inline_exports,
       concatenate_modules,
       avoid_entry_iife,
       real_content_hash,
@@ -3798,10 +3820,7 @@ impl ExperimentsBuilder {
       parallel_code_splitting,
       cache,
       css: d!(self.css, false),
-      inline_const: false,
-      inline_enum: false,
-      type_reexports_presence: false,
-      lazy_barrel: false,
+      lazy_barrel: true,
       defer_import: false,
     })
   }

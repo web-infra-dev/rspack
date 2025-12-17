@@ -6,7 +6,9 @@ module.exports = {
 			context: context.getSource(),
 			entry: "./fixtures/esm/abc",
 			optimization: {
-				concatenateModules: true
+				concatenateModules: true,
+				// Avoid stats info reduced by inlineExports
+				inlineExports: false,
 			}
 		};
 	},

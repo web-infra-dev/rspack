@@ -48,6 +48,22 @@ self.importScripts = url => {
 				};
 };
 self.fetch = async url => {
+	if (typeof url === "string" ? url.endsWith(".wasm") : url.toString().endsWith(".wasm")) {
+		return new Promise((resolve, reject) => {
+			fs.readFile(require("node:url").fileURLToPath(url), (err, data) => {
+				if (err) {
+					reject(err);
+					return;
+				}
+				return resolve(
+					new Response(data, {
+						headers: { "Content-Type": "application/wasm" }
+					})
+				);
+			});
+		});
+	}
+
 	try {
 		const buffer = await new Promise((resolve, reject) =>
 			fs.readFile(urlToPath(url), (err, b) =>
@@ -55,7 +71,9 @@ self.fetch = async url => {
 			)
 		);
 		return {
-		  headers: { get(name) { } },
+		  headers: { get(name) {
+				if (name.toLowerCase() === "content-type") {}
+			} },
 			status: 200,
 			ok: true,
 			arrayBuffer() { return buffer; },

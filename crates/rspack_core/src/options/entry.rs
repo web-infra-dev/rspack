@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 
-use crate::{ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath};
+use crate::{
+  ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath, WasmLoading,
+};
 
 pub type Entry = IndexMap<String, EntryData>;
 
@@ -11,6 +13,7 @@ pub struct EntryDescription {
   pub import: Option<EntryItem>,
   pub runtime: Option<String>,
   pub chunk_loading: Option<ChunkLoading>,
+  pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,

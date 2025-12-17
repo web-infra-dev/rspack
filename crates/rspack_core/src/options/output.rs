@@ -169,7 +169,8 @@ impl ChunkLoadingType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
@@ -184,10 +185,12 @@ impl From<&str> for WasmLoading {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
+  Universal,
 }
 
 impl From<&str> for WasmLoadingType {
@@ -195,7 +198,10 @@ impl From<&str> for WasmLoadingType {
     match value {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
-      _ => unreachable!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
+      "universal" => Self::Universal,
+      _ => unreachable!(
+        "invalid wasm loading type: {value}, expect one of [fetch, async-node, universal]",
+      ),
     }
   }
 }

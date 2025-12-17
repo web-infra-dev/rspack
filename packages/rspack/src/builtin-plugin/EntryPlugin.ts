@@ -51,14 +51,13 @@ export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
 EntryPlugin.createDependency = request => new EntryDependency(request);
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
-	const runtime = entry.runtime;
-	const chunkLoading = entry.chunkLoading;
 	return {
 		name: entry.name,
 		publicPath: entry.publicPath,
 		baseUri: entry.baseUri,
-		runtime,
-		chunkLoading,
+		runtime: entry.runtime,
+		chunkLoading: entry.chunkLoading,
+		wasmLoading: entry.wasmLoading,
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
 		library: entry.library,

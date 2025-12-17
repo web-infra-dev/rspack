@@ -1,4 +1,5 @@
 ```mjs title=main.mjs
+var lib3_0 = /* inlined */ (42);
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
 "./lib.js"
@@ -26,25 +27,12 @@ eval('')
   \*****************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  B: () => (/* reexport safe */ _lib3__rspack_import_0.B),
+  B: () => (/* reexport safe */ (42)),
   u: () => (lib2)
 });
-/* import */ var _lib3__rspack_import_0 = __webpack_require__(/*! ./lib3 */ "./lib3.js");
 
 
 const lib2 = 42
-
-
-},
-"./lib3.js"
-/*!*****************!*\
-  !*** ./lib3.js ***!
-  \*****************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  B: () => (lib3)
-});
-const lib3 = 42
 
 
 },
@@ -62,13 +50,10 @@ it('should re-export esm correctly', async () => {
 const lib2_0 = __webpack_require__("./lib2.js");
 var u = lib2_0.u;
 
-const lib3_0 = __webpack_require__("./lib3.js");
-var B = lib3_0.B;
-
 const lib_0 = __webpack_require__("./lib.js");
 var cR = lib_0.cR;
 
-export { B as lib3, cR as lib, u as lib2 };
+export { cR as lib, lib3_0 as lib3, u as lib2 };
 
 ```
 

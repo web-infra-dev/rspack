@@ -1,8 +1,3 @@
-const { CachedSource } = require("webpack-sources");
-const { AsyncWebAssemblyModulesPlugin } = require("@rspack/core").wasm;
-
-/** @typedef {import("@rspack/core").Compiler} Compiler */
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
@@ -20,19 +15,4 @@ module.exports = {
 	experiments: {
 		asyncWebAssembly: true
 	},
-	plugins: [
-		/**
-		 * @this {Compiler} compiler
-		 */
-		function () {
-			this.hooks.compilation.tap("Test", compilation => {
-				AsyncWebAssemblyModulesPlugin.getCompilationHooks(
-					compilation
-				).renderModuleContent.tap("Test", source => {
-					// this is important to make each returned value a new instance
-					return new CachedSource(source);
-				});
-			});
-		}
-	]
 };

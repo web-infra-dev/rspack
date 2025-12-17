@@ -9,14 +9,12 @@ __webpack_require__.add({
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
-  named: () => (/* reexport safe */ _lib__rspack_import_1.K),
+  named: () => (/* reexport safe */ (42)),
   r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  starExports: () => (/* reexport safe */ _lib2__rspack_import_2.i)
+  starExports: () => (/* reexport safe */ (42))
 });
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
-/* import */ var _lib__rspack_import_1 = __webpack_require__(/*! ./lib */ "./lib.js");
-/* import */ var _lib2__rspack_import_2 = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -40,34 +38,6 @@ it('should compile and import success', async () => {
 	expect(r).toBeDefined()
 	expect(readFile).toBeDefined()
 })
-
-
-},
-"./lib.js"
-/*!****************!*\
-  !*** ./lib.js ***!
-  \****************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  K: () => (named)
-});
-const named = 42
-
-/* should not exported */
-const namedUnused = 42
-
-
-
-},
-"./lib2.js"
-/*!*****************!*\
-  !*** ./lib2.js ***!
-  \*****************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  i: () => (starExports)
-});
-const starExports = 42
 
 
 },

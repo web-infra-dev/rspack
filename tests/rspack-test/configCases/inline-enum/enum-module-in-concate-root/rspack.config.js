@@ -3,11 +3,6 @@ module.exports = {
 		main: './index.js',
 	},
 	module: {
-    parser: {
-      javascript: {
-        inlineEnum: true,
-      },
-    },
     rules: [
       {
         test: /\.ts/,

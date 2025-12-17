@@ -1,9 +1,9 @@
 production:
   asset production-a.js xx KiB [emitted] (name: a)
   asset production-b.js xx KiB [emitted] (name: b)
-  asset production-dx_js.js xx bytes [emitted]
   asset production-dw_js-_ec0f0.js xx bytes [emitted]
   asset production-dw_js-_ec0f1.js xx bytes [emitted]
+  asset production-dx_js.js xx bytes [emitted]
   asset production-dy_js.js xx bytes [emitted]
   asset production-dz_js.js xx bytes [emitted]
   asset production-c.js xx bytes [emitted] (name: c)
