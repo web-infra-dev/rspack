@@ -1,6 +1,4 @@
 ```mjs title=main.mjs
-var lib3_0 = /* inlined */ (42);
-var lib4_0 = /* inlined */ (24);
 // ./lib2.js
 
 
@@ -22,6 +20,8 @@ it('should re-export esm correctly', async () => {
 	expect(lib4).toBe(24)
 })
 
-export { lib2_lib2 as lib2, lib3_0 as lib3, lib4_0 as lib4, lib_lib as lib };
+var index_lib3 = /* inlined export .lib3 */(42);
+var index_lib4 = /* inlined export .lib4 */(24);
+export { index_lib3 as lib3, index_lib4 as lib4, lib2_lib2 as lib2, lib_lib as lib };
 
 ```

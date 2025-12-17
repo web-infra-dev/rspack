@@ -1,22 +1,12 @@
 ```mjs title=demo/index.mjs
-import { demo as other_demo } from "./other.mjs";
+import { other_demo } from "./other.mjs";
 
 // ./src/demo/index.js
 
 
-const demo_demo = () => 'demo'
-
-it('should have strict export symbol', async () => {
-	const demo = () => 42
-	expect(demo()).toBe(42)
-	expect(other_demo()).toBe('otherDemo')
-	const allExports = await import(/*webpackIgnore: true*/'./index.mjs')
-
-	expect(allExports).toHaveProperty('demo')
-})
-
-
-export { demo_demo as demo };
+const demo = () => 'demo'
+other_demo;
+export { demo as local };
 
 ```
 
@@ -29,13 +19,7 @@ const other_demo = () => 'otherDemo'
 	console.log.bind(demo)
 }
 
-it('should have strict export symbol', async () => {
-	const allExports = await import(/*webpackIgnore: true*/'./other.mjs')
-
-	expect(allExports).toHaveProperty('demo')
-})
-
-export { other_demo as demo };
+export { other_demo };
 
 ```
 
@@ -57,6 +41,6 @@ it('should have strict export symbol', async () => {
 
 
 
-export { demo as local } from "./demo/index.mjs";
+export { local } from "./demo/index.mjs";
 
 ```
