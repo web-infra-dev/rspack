@@ -21,7 +21,7 @@ it('should has correct exec order and export value', async () => {
 	expect(demo).toBe(84)
 })
 
-const demo = _lib_js__rspack_import_1/* .lib */.c + _lib_defer_js__rspack_import_0.v
+const demo = /* inlined export .lib */ (42) + _lib_defer_js__rspack_import_0.v
 
 
 __rspack_async_done();
@@ -49,11 +49,8 @@ __rspack_async_done();
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(module, __webpack_exports__, __webpack_require__) {
+(module, __unused_rspack___webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.d(__webpack_exports__, {
-  c: () => (lib)
-});
 await 42
 const lib = 42
 

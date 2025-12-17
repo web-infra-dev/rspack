@@ -1,13 +1,88 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, ExportProvided, ExportsInfo, ExportsInfoGetter,
-  Plugin, PrefetchExportsInfoMode, SideEffectsOptimizeArtifact, UsageState, UsedNameItem,
-  incremental::IncrementalPasses,
+  Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
+  ExportProvided, ExportsInfo, ExportsInfoGetter, GetUsedNameParam, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
+  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
+
+use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
+
+fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
+  let module = mg
+    .get_module_by_dependency_id(dependency_id)
+    .expect("should have target module");
+  module.build_info().inline_exports
+}
+
+pub fn is_export_inlined(
+  mg: &ModuleGraph,
+  module: &ModuleIdentifier,
+  ids: &[Atom],
+  runtime: Option<&RuntimeSpec>,
+) -> bool {
+  let used_name = if ids.is_empty() {
+    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
+      &mg.get_exports_info(module),
+      mg,
+      runtime,
+      false,
+    );
+    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithoutNames(&exports_info), runtime, ids)
+  } else {
+    let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
+    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids)
+  };
+  matches!(used_name, Some(UsedName::Inlined(_)))
+}
+
+pub fn connection_active_inline_value_for_esm_import_specifier(
+  dependency: &ESMImportSpecifierDependency,
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> bool {
+  if !inline_enabled(dependency.id(), mg) {
+    return true;
+  }
+  let module = connection.module_identifier();
+  let ids = dependency.get_ids(mg);
+  !is_export_inlined(mg, module, ids, runtime)
+}
+
+pub fn connection_active_inline_value_for_esm_export_imported_specifier(
+  dependency: &ESMExportImportedSpecifierDependency,
+  mode: &ExportMode,
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  mg: &ModuleGraph,
+) -> bool {
+  if !inline_enabled(dependency.id(), mg) {
+    return true;
+  }
+  let ExportMode::NormalReexport(mode) = mode else {
+    return true;
+  };
+  let module = connection.module_identifier();
+  let exports_info = mg.get_exports_info(module).as_data(mg);
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return true;
+  }
+  for item in &mode.items {
+    if item.hidden || item.checked {
+      return true;
+    }
+    if !is_export_inlined(mg, module, &item.ids, runtime) {
+      return true;
+    }
+  }
+  false
+}
 
 #[plugin]
 #[derive(Debug, Default)]

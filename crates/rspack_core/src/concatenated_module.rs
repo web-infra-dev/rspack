@@ -683,10 +683,8 @@ impl Module for ConcatenatedModule {
       .module_by_identifier(&self.root_module_ctxt.id)
       .expect("should have root module");
 
-    // populate root collected_typescript_info
-    if let Some(collected_typescript_info) = &root_module.build_info().collected_typescript_info {
-      self.build_info.collected_typescript_info = Some(collected_typescript_info.clone());
-    }
+    // populate root inline_exports
+    self.build_info.inline_exports = root_module.build_info().inline_exports;
 
     for m in self.modules.iter() {
       let module = module_graph

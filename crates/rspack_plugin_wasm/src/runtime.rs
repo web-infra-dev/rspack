@@ -11,6 +11,8 @@ use rspack_util::itoa;
 pub struct AsyncWasmLoadingRuntimeModule {
   id: Identifier,
   generate_load_binary_code: String,
+  generate_before_load_binary_code: String,
+  generate_before_instantiate_streaming: String,
   supports_streaming: bool,
   chunk: ChunkUkey,
 }
@@ -28,6 +30,29 @@ impl AsyncWasmLoadingRuntimeModule {
         runtime_template.runtime_module_prefix()
       )),
       generate_load_binary_code,
+      Default::default(),
+      Default::default(),
+      supports_streaming,
+      chunk,
+    )
+  }
+
+  pub fn new_with_before_streaming(
+    runtime_template: &RuntimeTemplate,
+    generate_load_binary_code: String,
+    generate_before_load_binary_code: String,
+    generate_before_instantiate_streaming: String,
+    supports_streaming: bool,
+    chunk: ChunkUkey,
+  ) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}async_wasm_loading",
+        runtime_template.runtime_module_prefix()
+      )),
+      generate_load_binary_code,
+      generate_before_load_binary_code,
+      generate_before_instantiate_streaming,
       supports_streaming,
       chunk,
     )
@@ -67,14 +92,19 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           .runtime(chunk.runtime().as_str()),
       )
       .await?;
+
     Ok(get_async_wasm_loading(
       &self
         .generate_load_binary_code
-        .cow_replace("$PATH", &format!("\"{path}\""))
         .cow_replace(
           "$IMPORT_META_NAME",
           compilation.options.output.import_meta_name.as_str(),
-        ),
+        )
+        .cow_replace("$PATH", &format!("\"{path}\"")),
+      &self
+        .generate_before_load_binary_code
+        .cow_replace("$PATH", &format!("\"{path}\"")),
+      &self.generate_before_instantiate_streaming,
       self.supports_streaming,
       &compilation.runtime_template,
     ))
@@ -87,6 +117,8 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
 
 fn get_async_wasm_loading(
   req: &str,
+  generate_before_load_binary_code: &str,
+  generate_before_instantiate_streaming: &str,
   supports_streaming: bool,
   runtime_template: &RuntimeTemplate,
 ) -> String {
@@ -96,30 +128,33 @@ fn get_async_wasm_loading(
           .then(function(res) { return Object.assign(exports, res.instance.exports);});
 "#;
 
-  let streaming_code = r#"
-      return req.then(function(res) {
-        if (typeof WebAssembly.instantiateStreaming === "function") {
-          return WebAssembly.instantiateStreaming(res, importsObj)
+  let streaming_code = format!(
+    r#"
+      return req.then(function(res) {{
+        if (typeof WebAssembly.instantiateStreaming === "function") {{
+{generate_before_instantiate_streaming}          return WebAssembly.instantiateStreaming(res, importsObj)
             .then(
-              function(res) { return Object.assign(exports, res.instance.exports);},
-              function(e) {
-                if(res.headers.get("Content-Type") !== "application/wasm") {
+              function(res) {{ return Object.assign(exports, res.instance.exports);}},
+              function(e) {{
+                if(res.headers.get("Content-Type") !== "application/wasm") {{
                   console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\n", e);
                   return fallback();
-                }
+                }}
                 throw e;
-              }
+              }}
             );
-        }
+        }}
         return fallback();
-      });
-"#;
+      }});
+"#
+  );
   let instantiate_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM);
 
   if supports_streaming {
     format!(
       r#"
     {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+      {generate_before_load_binary_code}
       var req = {req};
       var fallback = function() {{
         return req{fallback_code}
