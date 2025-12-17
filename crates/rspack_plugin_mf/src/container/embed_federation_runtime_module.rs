@@ -177,14 +177,30 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       code.push_str("\t};\n");
       code.push_str("})();\n");
 
-      code.push_str(&format!(
-        "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.apply(this, arguments));\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
-      ));
+      let supports_arrow_function = compilation
+        .options
+        .output
+        .environment
+        .supports_arrow_function();
+      if supports_arrow_function {
+        code.push_str(&format!(
+          "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.apply(this, arguments));\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
+        ));
 
-      // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
-      code.push_str(&format!(
-        "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(() => {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.call(this, result, chunkIds, cb));\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
-      ));
+        // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
+        code.push_str(&format!(
+          "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(() => {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.call(this, result, chunkIds, cb));\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
+        ));
+      } else {
+        code.push_str(&format!(
+          "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\tvar _this = this, _args = arguments;\n\t\t\treturn res.then(function() {{ return fn.apply(_this, _args); }});\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
+        ));
+
+        // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
+        code.push_str(&format!(
+          "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(function() {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\tvar _this = this;\n\t\t\treturn res.then(function() {{ return fn.call(_this, result, chunkIds, cb); }});\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
+        ));
+      }
 
       Ok(code)
     } else {
