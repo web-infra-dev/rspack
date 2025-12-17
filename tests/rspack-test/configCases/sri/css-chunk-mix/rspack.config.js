@@ -1,4 +1,4 @@
-const { CssExtractRspackPlugin, experiments } = require("@rspack/core");
+const { CssExtractRspackPlugin, SubresourceIntegrityPlugin } = require("@rspack/core");
 const fs = require("fs");
 const path = require("path");
 
@@ -13,7 +13,7 @@ module.exports = (_, { testPath }) => ({
   },
   plugins: [
     new CssExtractRspackPlugin(),
-    new experiments.SubresourceIntegrityPlugin({
+    new SubresourceIntegrityPlugin({
       hashFuncNames: ["sha256", "sha384"],
     }),
     {
