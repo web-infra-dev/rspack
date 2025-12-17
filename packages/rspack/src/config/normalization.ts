@@ -411,7 +411,7 @@ export const getNormalizedRspackOptions = (
 							unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
 							managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
 								...p
-							]) || [/\/node_modules\//]
+							]) || [/\/node_modules\/[^.]/]
 						},
 						storage: {
 							type: "filesystem",
