@@ -110,7 +110,7 @@ async fn finish_modules(
     let mut should_scope_hoisting = true;
 
     if let Some(reason) =
-      module.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+      module.get_concatenation_bailout_reason(module_graph, &compilation.chunk_graph)
     {
       logger.debug(format!(
         "module {module_identifier} has bailout reason: {reason}",
@@ -151,7 +151,7 @@ async fn finish_modules(
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {
-          export_info.is_reexport() && get_target(export_info, &module_graph).is_none()
+          export_info.is_reexport() && get_target(export_info, module_graph).is_none()
         })
         .copied()
         .collect::<Vec<_>>();
@@ -258,12 +258,10 @@ async fn finish_modules(
     );
   }
 
-  let mut module_graph =
+  let module_graph =
     Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
   for m in entry_modules {
-    let exports_info = module_graph
-      .get_exports_info(&m)
-      .as_data_mut(&mut module_graph);
+    let exports_info = module_graph.get_exports_info(&m).as_data_mut(module_graph);
 
     exports_info.set_all_known_exports_used(None);
   }

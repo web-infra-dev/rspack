@@ -49,7 +49,7 @@ impl JsExportsInfo {
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       runtime.as_ref(),
       false,
     );
@@ -65,7 +65,7 @@ impl JsExportsInfo {
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       runtime.as_ref(),
       false,
     );
@@ -82,7 +82,7 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .set_used_in_unknown_way(&mut module_graph, runtime.as_ref()),
+        .set_used_in_unknown_way(module_graph, runtime.as_ref()),
     )
   }
 
@@ -106,7 +106,7 @@ impl JsExportsInfo {
     };
     let exports_info = ExportsInfoGetter::prefetch(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       PrefetchExportsInfoMode::Nested(&names),
     );
     let used = exports_info.get_used(&names, runtime.as_ref());

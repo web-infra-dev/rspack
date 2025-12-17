@@ -996,7 +996,7 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let module_graph = compilation.get_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
       if can_be_root {

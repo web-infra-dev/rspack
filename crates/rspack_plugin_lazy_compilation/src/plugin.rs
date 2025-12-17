@@ -229,7 +229,7 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
-  let mut module_graph =
+  let module_graph =
     Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
   let mut errors = vec![];
   for module_id in &active_modules {

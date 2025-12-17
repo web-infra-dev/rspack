@@ -131,7 +131,7 @@ impl SplitChunksPlugin {
     {
       combinator.prepare_group_by_used_exports(
         &all_modules,
-        &module_graph,
+        module_graph,
         &compilation.chunk_by_ukey,
         &module_chunks,
         &chunk_index_map,

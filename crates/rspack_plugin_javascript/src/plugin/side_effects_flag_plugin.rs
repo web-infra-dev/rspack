@@ -276,7 +276,7 @@ async fn optimize_dependencies(
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let module_graph = compilation.get_module_graph_mut();
 
     let new_connections: Vec<_> = do_optimizes
       .into_iter()

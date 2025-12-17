@@ -460,8 +460,8 @@ impl Compilation {
   }
 
   pub fn get_module_graph(&self) -> &ModuleGraph {
-    if self.module_graph.is_some() {
-      self.module_graph.as_ref().unwrap()
+    if let Some(mg) = self.module_graph.as_ref() {
+      mg
     } else {
       self.build_module_graph_artifact.get_module_graph()
     }

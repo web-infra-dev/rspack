@@ -160,7 +160,7 @@ impl ModernModuleLibraryPlugin {
           && let Some(reexport_dep) = export_dep
             .as_any()
             .downcast_ref::<ESMExportImportedSpecifierDependency>()
-          && self.reexport_star_from_external_module(reexport_dep, &mg)
+          && self.reexport_star_from_external_module(reexport_dep, mg)
         {
           let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
           if let Some(reexport_connection) = reexport_connection {
@@ -181,7 +181,7 @@ impl ModernModuleLibraryPlugin {
                         .as_any()
                         .downcast_ref::<ESMExportImportedSpecifierDependency>()
                     {
-                      return self.reexport_star_from_external_module(dep, &mg);
+                      return self.reexport_star_from_external_module(dep, mg);
                     }
 
                     false
@@ -230,8 +230,7 @@ impl ModernModuleLibraryPlugin {
       }
     }
 
-    let mut mg =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mg = Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
     for dep in deps_to_replace {
       let dep_id = dep.id();
       external_connections.remove(dep_id);
@@ -278,7 +277,7 @@ async fn render_startup(
     .module_by_identifier(module_id)
     .expect("should have module");
   let exports_type = module.get_exports_type(
-    &module_graph,
+    module_graph,
     &compilation.module_graph_cache_artifact,
     module.build_meta().strict_esm_module,
   );

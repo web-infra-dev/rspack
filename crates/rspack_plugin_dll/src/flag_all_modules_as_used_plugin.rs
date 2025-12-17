@@ -56,13 +56,13 @@ async fn optimize_dependencies(
       a
     });
 
-  let mut mg = compilation.get_module_graph_mut();
+  let mg = compilation.get_module_graph_mut();
 
   let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
 
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
-    exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+    exports_info.set_used_in_unknown_way(mg, Some(&runtime));
   }
 
   Ok(None)
