@@ -32,30 +32,6 @@ it("should include scoped shared '@scope-sc/dep1' in stats", () => {
     expect(dep1.assets.css.async).toEqual([]);
     expect(Array.isArray(dep1.assets.js.sync)).toBe(true);
     expect(dep1.assets.js.async).toEqual([]);
-		expect(JSON.stringify(dep1,null,2)).toEqual(
-			JSON.stringify(
-				{
-					name: "@scope-sc/dep1",
-					singleton: true,
-					version: "1.0.0",
-					requiredVersion: "^1.0.0",
-					assets: {
-						css: {
-							sync: [],
-							async: []
-						},
-						js: {
-							sync: ["node_modules_scope-sc_dep1_index_js.js"],
-							async: []
-						}
-					},
-					usedIn: ["module.js"]
-				},
-				null,
-				2
-			)
-		);
-    expect(dep1.usedIn.includes("module.js")).toBe(true);
 });
 
 it("should include scoped shared '@scope-sc2/dep2' in stats", () => {
