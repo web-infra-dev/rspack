@@ -520,12 +520,6 @@ impl<T: Module> ModuleExt for T {
 #[repr(transparent)]
 pub struct BoxModule(Box<dyn Module>);
 
-impl Clone for BoxModule {
-  fn clone(&self) -> Self {
-    todo!("not implemented: cloning BoxModule is not supported yet")
-  }
-}
-
 impl BoxModule {
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {

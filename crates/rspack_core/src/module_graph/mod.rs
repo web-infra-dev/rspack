@@ -1,4 +1,4 @@
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
@@ -49,7 +49,7 @@ pub struct DependencyParents {
 #[derive(Debug, Default, Clone)]
 pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
+  pub(crate) modules: IdentifierMap<Option<Arc<BoxModule>>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
@@ -114,7 +114,7 @@ impl ModuleGraph {
     let mut res = IdentifierMap::default();
     for (k, v) in &self.inner.modules {
       if let Some(v) = v {
-        res.insert(*k, v);
+        res.insert(*k, v.as_ref());
       } else {
         res.remove(k);
       }
@@ -229,7 +229,9 @@ impl ModuleGraph {
       if let Some(m_id) = original_module_identifier
         && let Some(Some(module)) = self.inner.modules.get_mut(&m_id)
       {
-        module.remove_dependency_id(*dep_id);
+        Arc::get_mut(module)
+          .expect("module should have unique reference")
+          .remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
         && let Some(Some(block)) = self.inner.blocks.get_mut(&b_id)
@@ -494,11 +496,11 @@ impl ModuleGraph {
     match self.inner.modules.entry(module.identifier()) {
       Entry::Occupied(mut val) => {
         if val.get().is_none() {
-          val.insert(Some(module));
+          val.insert(Some(Arc::new(module)));
         }
       }
       Entry::Vacant(val) => {
-        val.insert(Some(module));
+        val.insert(Some(Arc::new(module)));
       }
     }
   }
@@ -619,7 +621,7 @@ impl ModuleGraph {
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
     if let Some(module_id) = self.module_identifier_by_dependency_id(dep_id) {
-      self.inner.modules.get(module_id)?.as_ref()
+      self.inner.modules.get(module_id)?.as_deref()
     } else {
       None
     }
@@ -709,14 +711,14 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    self.inner.modules.get(identifier)?.as_ref()
+    self.inner.modules.get(identifier)?.as_deref()
   }
 
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    self.inner.modules.get_mut(identifier)?.as_mut()
+    Arc::get_mut(self.inner.modules.get_mut(identifier)?.as_mut()?)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
