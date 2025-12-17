@@ -358,7 +358,7 @@ An array of paths to immutable files, changes to these paths will be ignored dur
 
 - **Type:** `(RegExp | string)[]`
 
-- **Default:** `[/\/node_modules\//]`
+- **Default:** `[/\/node_modules\/[^.]/]`
 
 An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
 
