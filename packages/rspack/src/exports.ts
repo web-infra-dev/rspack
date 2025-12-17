@@ -373,6 +373,9 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	/**
+	 * @deprecated Use `rspack.SubresourceIntegrityPlugin` instead
+	 */
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;

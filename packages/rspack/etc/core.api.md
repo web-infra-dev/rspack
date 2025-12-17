@@ -2465,7 +2465,7 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // (undocumented)
+    // @deprecated (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
