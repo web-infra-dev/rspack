@@ -232,9 +232,10 @@ impl SwcLoader {
           );
         }
 
-        let mut esm_source = r#"import { createResourcesProxy } from "@rspack/rsc-runtime";
+        let mut esm_source =
+          r#"import { createResourcesProxy } from "react-server-dom-rspack/server";
 "#
-        .to_string();
+          .to_string();
 
         for client_ref in &rsc.client_refs {
           match client_ref.as_str() {
@@ -278,7 +279,7 @@ _original_{},
       if rsc.module_type == RSCModuleType::Client {
         // TODO 生成代码需要区分 ESM 和 CJS
         let mut esm_source = format!(
-          r#"import {{ registerClientReference }} from "react-server-dom-webpack/server"
+          r#"import {{ registerClientReference }} from "react-server-dom-rspack/server"
 "#,
         );
 

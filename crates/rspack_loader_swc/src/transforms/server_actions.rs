@@ -1566,7 +1566,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     let create_ref_ident = private_ident!("createServerReference");
 
     let client_layer_import = (self.has_action && !self.config.is_react_server_layer).then(|| {
-      // import { createServerReference } from '@rspack/rsc/client'
+      // import { createServerReference } from 'react-server-dom-rspack/client'
       // createServerReference("action_id")
       ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
         span: DUMMY_SP,
@@ -1578,7 +1578,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         })],
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: atom!("@rspack/rsc/client").into(),
+          value: atom!("react-server-dom-rspack/client").into(),
           raw: None,
         }),
         type_only: false,
@@ -1763,7 +1763,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if self.has_action && self.config.is_react_server_layer {
       // Inlined actions are only allowed on the server layer.
-      // import { registerServerReference } from 'react-server-dom-webpack/server'
+      // import { registerServerReference } from 'react-server-dom-rspack/server'
       new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
         span: DUMMY_SP,
         specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {

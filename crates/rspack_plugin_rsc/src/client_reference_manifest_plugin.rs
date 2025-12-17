@@ -11,7 +11,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleType, NormalModule, Plugin, PrefetchExportsInfoMode, RSCMeta,
   RSCModuleType, RuntimeSpec,
   build_module_graph::{UpdateParam, update_module_graph},
-  rspack_sources::{RawStringSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -77,8 +77,29 @@ impl ClientReferenceManifestPlugin {
         .insert(resource, client_manifest_export);
     }
 
-    let json = serde_json::to_string_pretty(&manifest).to_rspack_result()?;
-    let source = RawStringSource::from(json).boxed();
+    let json = serde_json::to_string(&manifest).to_rspack_result()?;
+    let source = RawStringSource::from(json.clone()).boxed();
+
+    let assets = compilation.assets_mut();
+    for asset in assets.values_mut() {
+      if let Some(source) = asset.source.as_ref() {
+        if let SourceValue::String(code) = source.source() {
+          if code.contains("__RSPACK_RSC_CLIENT_REFERENCE_MANIFEST__") {
+            asset.set_source(Some(
+              RawStringSource::from(code.replace(
+                "__RSPACK_RSC_CLIENT_REFERENCE_MANIFEST__",
+                &format!(
+                  "JSON.parse({})",
+                  serde_json::to_string(&json).to_rspack_result()?
+                ),
+              ))
+              .boxed(),
+            ));
+          }
+        }
+      }
+    }
+
     compilation.emit_asset(
       "client-reference-manifest.json".into(),
       CompilationAsset::new(Some(source), AssetInfo::default()),

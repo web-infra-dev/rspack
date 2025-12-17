@@ -205,6 +205,12 @@ impl JsCompiler {
       plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
       plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
+        rspack_plugin_rsc::ClientReferenceManifestLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(
+        rspack_plugin_rsc::ServerReferenceManifestLoaderPlugin::new(),
+      ));
+      plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
       ));
       plugins.push(Box::new(

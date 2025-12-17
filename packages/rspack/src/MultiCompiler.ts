@@ -147,11 +147,13 @@ export class MultiCompiler {
 			});
 		}
 	}
+
 	set unsafeFastDrop(value: boolean) {
 		for (const compiler of this.compilers) {
 			compiler.unsafeFastDrop = value;
 		}
 	}
+
 	get options() {
 		return Object.assign(
 			this.compilers.map(c => c.options),

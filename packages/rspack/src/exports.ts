@@ -342,6 +342,7 @@ export {
 	SwcJsMinimizerRspackPlugin,
 	ReactServerPlugin,
 	ReactClientPlugin,
+	createRscPlugins,
 	Coordinator
 } from "./builtin-plugin";
 

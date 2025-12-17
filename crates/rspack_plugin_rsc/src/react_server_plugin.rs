@@ -9,9 +9,9 @@ use rspack_core::{
   Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
   ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType, Plugin,
   PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
-  rspack_sources::{RawStringSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -1014,6 +1014,26 @@ impl ReactServerPlugin {
 
     let json = serde_json::to_string_pretty(&server_actions).unwrap();
     let assets = compilation.assets_mut();
+
+    for asset in assets.values_mut() {
+      if let Some(source) = asset.source.as_ref() {
+        if let SourceValue::String(code) = source.source() {
+          if code.contains("__RSPACK_RSC_SERVER_REFERENCE_MANIFEST__") {
+            asset.set_source(Some(
+              RawStringSource::from(code.replace(
+                "__RSPACK_RSC_SERVER_REFERENCE_MANIFEST__",
+                &format!(
+                  "JSON.parse({})",
+                  serde_json::to_string(&json).to_rspack_result()?
+                ),
+              ))
+              .boxed(),
+            ));
+          }
+        }
+      }
+    }
+
     assets.insert(
       "server-reference-manifest.json".to_string(),
       CompilationAsset::new(

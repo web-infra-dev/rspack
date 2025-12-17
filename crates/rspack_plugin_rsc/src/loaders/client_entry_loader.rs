@@ -63,7 +63,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
   #[tracing::instrument("loader:client-entry-loader", skip_all, fields(
     perfetto.track_name = "loader:client-entry-loader",
     perfetto.process_name = "Loader Analysis",
-    resource =loader_context.resource(),
+    resource = loader_context.resource(),
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let Some(loader_query) = loader_context.current_loader().query() else {

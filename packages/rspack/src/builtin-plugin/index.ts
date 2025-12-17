@@ -85,3 +85,4 @@ export * from "./WorkerPlugin";
 export * from "./rsc/ReactServerPlugin";
 export * from "./rsc/ReactClientPlugin";
 export * from "./rsc/coordinator";
+export { createRscPlugins } from "./rsc";
