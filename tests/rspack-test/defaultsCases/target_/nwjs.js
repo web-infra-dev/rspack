@@ -4,120 +4,126 @@ module.exports = {
 	options: () => ({ target: "nwjs" }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+			- Expected
+			+ Received
 
-		@@ ... @@
-		-     "node": false,
-		-     "nwjs": false,
-		+     "node": true,
-		+     "nwjs": true,
-		@@ ... @@
-		-       "document": true,
-		+       "document": false,
-		@@ ... @@
-		-     "target": "web",
-		+     "target": "nwjs",
-		@@ ... @@
-		-     "__dirname": "warn-mock",
-		-     "__filename": "warn-mock",
-		-     "global": "warn",
-		+     "__dirname": "eval-only",
-		+     "__filename": "eval-only",
-		+     "global": false,
-		@@ ... @@
-		-     "chunkFormat": "array-push",
-		+     "chunkFormat": "commonjs",
-		@@ ... @@
-		-     "chunkLoading": "jsonp",
-		+     "chunkLoading": "async-node",
-		@@ ... @@
-		-       "jsonp",
-		-       "import-scripts",
-		+       "async-node",
-		@@ ... @@
-		-       "fetch",
-		+       "async-node",
-		@@ ... @@
-		-       "document": true,
-		+       "document": false,
-		@@ ... @@
-		-     "globalObject": "self",
-		+     "globalObject": "global",
-		@@ ... @@
-		-     "publicPath": "auto",
-		+     "publicPath": "",
-		@@ ... @@
-		-     "wasmLoading": "fetch",
-		+     "wasmLoading": "async-node",
-		@@ ... @@
-		-     "workerChunkLoading": "import-scripts",
-		+     "workerChunkLoading": "async-node",
-		@@ ... @@
-		-     "workerWasmLoading": "fetch",
-		+     "workerWasmLoading": "async-node",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		-         "aliasFields": Array [
-		-           "browser",
-		-         ],
-		+         "aliasFields": Array [],
-		@@ ... @@
-		-           "browser",
-		@@ ... @@
-		+       "node",
-		@@ ... @@
-		+       "nwjs",
-		@@ ... @@
-		-   "target": "web",
-		+   "target": "nwjs",
-	`)
+			@@ ... @@
+			-     "node": false,
+			-     "nwjs": false,
+			+     "node": true,
+			+     "nwjs": true,
+			@@ ... @@
+			-   "lazyCompilation": Object {
+			-     "entries": false,
+			-     "imports": true,
+			-   },
+			+   "lazyCompilation": false,
+			@@ ... @@
+			-       "document": true,
+			+       "document": false,
+			@@ ... @@
+			-     "target": "web",
+			+     "target": "nwjs",
+			@@ ... @@
+			-     "__dirname": "warn-mock",
+			-     "__filename": "warn-mock",
+			-     "global": "warn",
+			+     "__dirname": "eval-only",
+			+     "__filename": "eval-only",
+			+     "global": false,
+			@@ ... @@
+			-     "chunkFormat": "array-push",
+			+     "chunkFormat": "commonjs",
+			@@ ... @@
+			-     "chunkLoading": "jsonp",
+			+     "chunkLoading": "async-node",
+			@@ ... @@
+			-       "jsonp",
+			-       "import-scripts",
+			+       "async-node",
+			@@ ... @@
+			-       "fetch",
+			+       "async-node",
+			@@ ... @@
+			-       "document": true,
+			+       "document": false,
+			@@ ... @@
+			-     "globalObject": "self",
+			+     "globalObject": "global",
+			@@ ... @@
+			-     "publicPath": "auto",
+			+     "publicPath": "",
+			@@ ... @@
+			-     "wasmLoading": "fetch",
+			+     "wasmLoading": "async-node",
+			@@ ... @@
+			-     "workerChunkLoading": "import-scripts",
+			+     "workerChunkLoading": "async-node",
+			@@ ... @@
+			-     "workerWasmLoading": "fetch",
+			+     "workerWasmLoading": "async-node",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			-         "aliasFields": Array [
+			-           "browser",
+			-         ],
+			+         "aliasFields": Array [],
+			@@ ... @@
+			-           "browser",
+			@@ ... @@
+			+       "node",
+			@@ ... @@
+			+       "nwjs",
+			@@ ... @@
+			-   "target": "web",
+			+   "target": "nwjs",
+		`)
 };
