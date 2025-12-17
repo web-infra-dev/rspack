@@ -373,6 +373,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
@@ -413,6 +414,7 @@ export const experiments: Experiments = {
 		}
 	},
 	RemoveDuplicateModulesPlugin,
+	SubresourceIntegrityPlugin,
 	EsmLibraryPlugin,
 	/**
 	 * Note: This plugin is unstable yet

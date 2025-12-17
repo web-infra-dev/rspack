@@ -2466,6 +2466,8 @@ interface Experiments_2 {
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
     // (undocumented)
+    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+    // (undocumented)
     swc: {
         transform: typeof transform;
         minify: typeof minify;
