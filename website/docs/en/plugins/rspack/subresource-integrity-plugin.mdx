@@ -4,7 +4,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} addedVersion="1.2.4" />
 
-The `rspack.experiments.SubresourceIntegrityPlugin` is a plugin for enabling Subresource Integrity in Rspack.
+The `rspack.SubresourceIntegrityPlugin` is a plugin for enabling Subresource Integrity in Rspack.
 
 ## What is SRI
 
@@ -29,15 +29,14 @@ The plugin supports code splitting. When you use dynamic imports, the plugin wil
 You can use the plugin by importing it as an experimental plugin from `@rspack/core`:
 
 ```js title="rspack.config.mjs"
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 ```
 
 Or:
 
 ```js title="rspack.config.cjs"
 const {
-  experiments: { SubresourceIntegrityPlugin },
+  SubresourceIntegrityPlugin
 } = require('@rspack/core');
 ```
 
@@ -46,8 +45,7 @@ const {
 The [output.crossOriginLoading](/config/output#outputcrossoriginloading) option is required for SRI to work:
 
 ```js title="rspack.config.mjs"
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 
 export default {
   output: {
@@ -64,8 +62,7 @@ When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx
 The SubresourceIntegrityPlugin will interact with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) by default:
 
 ```js title="rspack.config.mjs"
-import { experiments, HtmlRspackPlugin } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin, HtmlRspackPlugin } from '@rspack/core';
 
 export default {
   plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
@@ -76,8 +73,7 @@ If [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) is u
 
 ```js title="rspack.config.mjs"
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 
 export default {
   plugins: [

@@ -2466,8 +2466,6 @@ interface Experiments_2 {
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
     // (undocumented)
-    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
-    // (undocumented)
     swc: {
         transform: typeof transform;
         minify: typeof minify;
@@ -6612,6 +6610,7 @@ declare namespace rspackExports {
         LoaderTargetPlugin,
         OutputFileSystem,
         WatchFileSystem,
+        SubresourceIntegrityPlugin,
         web,
         lazyCompilationMiddleware,
         node,
@@ -7799,7 +7798,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
-class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
     constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;

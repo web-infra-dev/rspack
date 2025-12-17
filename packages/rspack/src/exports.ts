@@ -139,6 +139,8 @@ import {
 	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
 
+export { SubresourceIntegrityPlugin };
+
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
@@ -375,7 +377,6 @@ interface Experiments {
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
-	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	/**
 	 * @deprecated Use `rspack.lazyCompilationMiddleware` instead
 	 */
@@ -431,7 +432,6 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RslibPlugin,
-	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
 	swc: {
 		minify,
