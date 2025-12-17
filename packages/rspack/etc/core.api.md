@@ -2494,13 +2494,13 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineConst?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineEnum?: boolean;
     // @deprecated (undocumented)
     layers?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -3549,7 +3549,6 @@ export type JavascriptParserOptions = {
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
     deferImport?: boolean;
@@ -5403,6 +5402,7 @@ export type Optimization = {
     innerGraph?: boolean;
     usedExports?: "global" | boolean;
     mangleExports?: "size" | "deterministic" | boolean;
+    inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
     avoidEntryIife?: boolean;

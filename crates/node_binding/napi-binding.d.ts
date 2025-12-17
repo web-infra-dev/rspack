@@ -2129,9 +2129,6 @@ rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
-inlineConst: boolean
-inlineEnum: boolean
-typeReexportsPresence: boolean
 lazyBarrel: boolean
 deferImport: boolean
 }
@@ -2359,11 +2356,6 @@ commonjsMagicComments?: boolean
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
  */
-inlineConst?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
 typeReexportsPresence?: string
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
@@ -2583,6 +2575,7 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   realContentHash: boolean
   mangleExports: boolean | string
+  inlineExports: boolean
   concatenateModules: boolean
   avoidEntryIife: boolean
 }
