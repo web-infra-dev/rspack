@@ -193,7 +193,7 @@ async fn finish_modules(
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
@@ -214,7 +214,7 @@ async fn finish_modules(
 
   let mut module_graph =
     Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
-  FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }
 

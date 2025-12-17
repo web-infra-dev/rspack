@@ -357,7 +357,7 @@ impl FixIssuers {
     let mut need_clean_cycle_modules: IdentifierMap<IdentifierMap<IdentifierSet>> =
       IdentifierMap::default();
     for (mid, parents) in need_check_available_modules {
-      match helper.calc_issuer(&module_graph, &mid, parents) {
+      match helper.calc_issuer(module_graph, &mid, parents) {
         CalcIssuerResult::Ok(issuer) => {
           let mgm = module_graph
             .module_graph_module_by_identifier_mut(&mid)
@@ -438,7 +438,7 @@ impl FixIssuers {
             .map(|item| item.original_module_identifier)
             .collect();
 
-          match helper.calc_issuer(&module_graph, &mid, parents) {
+          match helper.calc_issuer(module_graph, &mid, parents) {
             CalcIssuerResult::Ok(issuer) => {
               let mgm = module_graph
                 .module_graph_module_by_identifier_mut(&mid)

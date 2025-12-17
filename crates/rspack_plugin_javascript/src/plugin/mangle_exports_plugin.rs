@@ -71,7 +71,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     compilation.cgm_hash_artifact.clear();
   }
 
-  let mut mg = compilation.get_module_graph_mut();
+  let mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut exports_info_cache = FxHashMap::default();
@@ -96,7 +96,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           if !can_mangle(&exports_info_data) {
             return None;
@@ -188,7 +188,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     let batch = tasks
       .into_par_iter()
       .map(|exports_info| {
-        mangle_exports_info(&mg, self.deterministic, exports_info, &exports_info_cache)
+        mangle_exports_info(mg, self.deterministic, exports_info, &exports_info_cache)
       })
       .collect::<Vec<_>>();
 

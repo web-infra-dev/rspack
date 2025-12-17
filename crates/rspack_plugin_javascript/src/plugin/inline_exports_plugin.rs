@@ -53,7 +53,7 @@ async fn optimize_dependencies(
       .par_iter()
       .filter_map(|exports_info| {
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.
@@ -93,7 +93,7 @@ async fn optimize_dependencies(
           .into_iter()
           .filter_map(|(export_info, nested_exports_info, do_inline)| {
             if do_inline {
-              let data = export_info.as_data_mut(&mut mg);
+              let data = export_info.as_data_mut(mg);
               data.set_used_name(UsedNameItem::Inlined(
                 data
                   .can_inline_provide()

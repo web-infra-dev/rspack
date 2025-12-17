@@ -167,7 +167,7 @@ async fn optimize_dependencies(
       (
         *module_identifier,
         module.get_side_effects_connection_state(
-          &module_graph,
+          module_graph,
           &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
@@ -218,7 +218,7 @@ async fn optimize_dependencies(
       |mut modules, mutation| match mutation {
         Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
-            affected_incoming_modules(module, &module_graph, &mut modules);
+            affected_incoming_modules(module, module_graph, &mut modules);
           }
           modules.extend(
             module_graph
@@ -257,7 +257,7 @@ async fn optimize_dependencies(
     .map(|connection| {
       (
         connection.dependency_id,
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph),
+        can_optimize_connection(connection, &side_effects_state_map, module_graph),
       )
     })
     .consume(|(dep_id, can_optimize)| {
@@ -281,7 +281,7 @@ async fn optimize_dependencies(
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, &mut module_graph)
+        do_optimize_connection(dependency, do_optimize, module_graph)
       })
       .collect();
 
@@ -291,7 +291,7 @@ async fn optimize_dependencies(
       .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph)
+        can_optimize_connection(connection, &side_effects_state_map, module_graph)
           .map(|i| (connection.dependency_id, i))
       })
       .collect();

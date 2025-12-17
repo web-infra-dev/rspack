@@ -128,7 +128,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               let mut nested_tasks = vec![];
               let mut non_nested_tasks = vec![];
               for (module_id, exports) in referenced_exports {
-                let exports_info = mg.get_exports_info(&module_id).as_data(&mg);
+                let exports_info = mg.get_exports_info(&module_id).as_data(mg);
                 let has_nested = exports_info.redirect_to().is_some()
                   || exports.iter().any(|e| match e {
                     ExtendedReferencedExport::Array(arr) => arr.len() > 1,
@@ -170,7 +170,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         non_nested_tasks
           .into_par_iter()
           .map(|(module_id, tasks)| {
-            let mut exports_info = mg.get_exports_info(&module_id).as_data(&mg).clone();
+            let mut exports_info = mg.get_exports_info(&module_id).as_data(mg).clone();
             let module = mg
               .module_by_identifier(&module_id)
               .expect("should have module");
@@ -252,7 +252,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let (dependencies, async_blocks) = collect_active_dependencies(
       block_id,
       runtime,
-      &self.compilation.get_module_graph(),
+      self.compilation.get_module_graph(),
       &self.compilation.module_graph_cache_artifact,
       global,
     );
@@ -262,7 +262,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let old_referenced_exports = map.remove(&module_id);
       let Some(referenced_exports) = get_dependency_referenced_exports(
         dep_id,
-        &self.compilation.get_module_graph(),
+        self.compilation.get_module_graph(),
         &self.compilation.module_graph_cache_artifact,
         runtime,
       ) else {
@@ -338,7 +338,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         BuildMetaExportsType::Unset
       );
       if need_insert {
-        let flag = mgm_exports_info.set_used_without_info(&mut module_graph, runtime.as_ref());
+        let flag = mgm_exports_info.set_used_without_info(module_graph, runtime.as_ref());
         if flag {
           queue.push((
             ModuleOrAsyncDependenciesBlock::Module(module_id),
@@ -357,7 +357,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
         };
         if used_exports.is_empty() {
-          let flag = mgm_exports_info.set_used_in_unknown_way(&mut module_graph, runtime.as_ref());
+          let flag = mgm_exports_info.set_used_in_unknown_way(module_graph, runtime.as_ref());
 
           if flag {
             queue.push((
@@ -372,8 +372,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info = current_exports_info
-              .get_export_info(&mut module_graph, &used_export)
-              .as_data_mut(&mut module_graph);
+              .get_export_info(module_graph, &used_export)
+              .as_data_mut(module_graph);
             if !can_mangle {
               export_info.set_can_mangle_use(Some(false));
             }
@@ -451,7 +451,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         return queue;
       }
       let changed_flag = mgm_exports_info
-        .as_data_mut(&mut module_graph)
+        .as_data_mut(module_graph)
         .set_used_for_side_effects_only(runtime.as_ref());
       if changed_flag {
         queue.push((

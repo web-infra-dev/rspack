@@ -465,10 +465,10 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(module_graph) = &self.module_graph {
-      if let Some(module) = module_graph.module_by_identifier(identifier) {
-        return Some(module);
-      }
+    if let Some(module_graph) = &self.module_graph
+      && let Some(module) = module_graph.module_by_identifier(identifier)
+    {
+      return Some(module);
     };
 
     self
@@ -1544,7 +1544,7 @@ impl Compilation {
           for revoked_module in revoked_modules {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
-          let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+          let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
           let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
           logger.log(format!(
             "{} modules are affected, {} in total",
@@ -1580,7 +1580,7 @@ impl Compilation {
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
           .filter_map(|dependency| {
             dependency
-              .get_diagnostics(&module_graph, module_graph_cache)
+              .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {
                 diagnostics.into_iter().map(|mut diagnostic| {
                   diagnostic.module_identifier = Some(*module_identifier);

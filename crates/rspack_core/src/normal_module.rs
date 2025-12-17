@@ -672,7 +672,7 @@ impl Module for NormalModule {
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self
-        .source_types(&module_graph)
+        .source_types(module_graph)
         .contains(&SourceType::JavaScript)
       {
         let error = error.render_report(compilation.options.stats.colors)?;
@@ -706,7 +706,7 @@ impl Module for NormalModule {
     }
 
     let module_graph = compilation.get_module_graph();
-    for source_type in self.source_types(&module_graph) {
+    for source_type in self.source_types(module_graph) {
       let generation_result = inner
         .parser_and_generator
         .generate(

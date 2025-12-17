@@ -765,7 +765,7 @@ impl Module for ConcatenatedModule {
     let context = compilation.options.context.clone();
 
     let (references_info, module_to_info_map) = self.get_modules_with_info(
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       runtime,
       &compilation.imported_by_defer_modules_artifact,
@@ -851,7 +851,7 @@ impl Module for ConcatenatedModule {
         let mut escaped_identifiers: HashMap<String, Vec<String>> = HashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -895,7 +895,7 @@ impl Module for ConcatenatedModule {
         .expect("should have module identifier");
       let readable_identifier = get_cached_readable_identifier(
         &info.id(),
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -1191,7 +1191,7 @@ impl Module for ConcatenatedModule {
         ) in refs
         {
           let final_name = Self::get_final_name(
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
             &compilation.module_static_cache_artifact,
             referenced_info_id,
@@ -1267,7 +1267,7 @@ impl Module for ConcatenatedModule {
       };
       exports_map.insert(used_name.clone(), {
         let final_name = Self::get_final_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           &compilation.module_graph_cache_artifact,
           &compilation.module_static_cache_artifact,
           &root_module_id,
@@ -1455,7 +1455,7 @@ impl Module for ConcatenatedModule {
           .expect("should have box module");
         let module_readable_identifier = get_cached_readable_identifier(
           module_info_id,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1476,7 +1476,7 @@ impl Module for ConcatenatedModule {
 
           if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
               &compilation.module_static_cache_artifact,
               module_info_id,
@@ -1563,7 +1563,7 @@ impl Module for ConcatenatedModule {
           .expect("should have module");
         let module_readable_identifier = get_cached_readable_identifier(
           &info.module,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1571,7 +1571,7 @@ impl Module for ConcatenatedModule {
           .runtime_template
           .get_property_accessed_deferred_module(
             module.get_exports_type(
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               root_module.build_meta().strict_esm_module,
             ),
@@ -1606,7 +1606,7 @@ impl Module for ConcatenatedModule {
               .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
             module_id,
             render_make_deferred_namespace_mode_from_exports_type(module.get_exports_type(
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               root_module.build_meta().strict_esm_module,
             )),
@@ -1625,7 +1625,7 @@ impl Module for ConcatenatedModule {
         .expect("should have module info");
       let module_readable_identifier = get_cached_readable_identifier(
         &module_info_id,
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -1690,7 +1690,7 @@ impl Module for ConcatenatedModule {
               "\n// non-deferred import to a deferred module ({})\nvar {} = {}.a;",
               get_cached_readable_identifier(
                 &info.module,
-                &module_graph,
+                module_graph,
                 &compilation.module_static_cache_artifact,
                 &context,
               ),
@@ -1811,7 +1811,7 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
       runtime,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
     );
 
@@ -1833,7 +1833,7 @@ impl Module for ConcatenatedModule {
             ConcatenationEntry::External(e) => Ok(
               ChunkGraph::get_module_id(
                 &compilation.module_ids_artifact,
-                e.module(&compilation.get_module_graph()),
+                e.module(compilation.get_module_graph()),
               )
               .map(|id| id.to_string()),
             ),

@@ -1613,7 +1613,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
-    let mode = dep.get_mode(&module_graph, *runtime, module_graph_cache);
+    let mode = dep.get_mode(module_graph, *runtime, module_graph_cache);
 
     if let Some(scope) = concatenation_scope {
       if let ExportMode::ReexportUndefined(mode) = mode {

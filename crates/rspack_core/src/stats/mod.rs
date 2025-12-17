@@ -219,7 +219,7 @@ impl Stats<'_> {
       .par_bridge()
       .map(|module| {
         self.get_module(
-          &module_graph,
+          module_graph,
           module_graph_cache,
           module,
           false,
@@ -309,7 +309,7 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), &module_graph, module_graph_cache)
+          .get_chunk_root_modules(&c.ukey(), module_graph, module_graph_cache)
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -324,12 +324,12 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey(), &module_graph);
+            .get_chunk_modules(&c.ukey(), module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
               self.get_module(
-                &module_graph,
+                module_graph,
                 module_graph_cache,
                 m,
                 false,
@@ -619,7 +619,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );
@@ -677,7 +677,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );

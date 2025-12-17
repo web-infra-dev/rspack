@@ -186,7 +186,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
   let unnamed_modules = assign_named_module_ids(
     modules,
     context,
-    &module_graph,
+    module_graph,
     &mut used_ids,
     &mut module_ids,
     &mut mutations,

@@ -235,7 +235,7 @@ impl CreateChunkRoot {
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, module_graph, module_graph_cache, &mut ctx);
         }
 
         vec![ChunkDesc::Entry(Box::new(EntryChunkDesc {
@@ -289,7 +289,7 @@ impl CreateChunkRoot {
             continue;
           };
 
-          splitter.fill_chunk_modules(*m, runtime, &module_graph, module_graph_cache, &mut ctx);
+          splitter.fill_chunk_modules(*m, runtime, module_graph, module_graph_cache, &mut ctx);
         }
 
         if let Some(group_option) = block.get_group_options()
@@ -511,7 +511,7 @@ impl CodeSplitter {
       let outgoings = tasks
         .par_iter()
         .map(|(_module, runtime, _)| {
-          self.outgoings_modules(_module, runtime.as_ref(), &module_graph, module_graph_cache)
+          self.outgoings_modules(_module, runtime.as_ref(), module_graph, module_graph_cache)
         })
         .collect::<Vec<_>>();
 
@@ -992,7 +992,7 @@ impl CodeSplitter {
             if !self.module_deps.contains_key(runtime) {
               self.module_deps.insert(runtime.clone(), Default::default());
             }
-            let guard = self.outgoings_modules(&m, runtime, &module_graph, module_graph_cache);
+            let guard = self.outgoings_modules(&m, runtime, module_graph, module_graph_cache);
             let (modules, blocks) = guard.as_ref();
 
             for m in modules.iter().rev() {
@@ -1021,7 +1021,7 @@ impl CodeSplitter {
       }
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let module_graph = compilation.get_module_graph_mut();
 
     for (m, idx) in pre_order_indices {
       module_graph
@@ -1327,7 +1327,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
               let assign_depths_map = assigned_depths
                 .remove(&idx)
                 .expect("should have assign depths map");
-              let mut module_graph = compilation.get_module_graph_mut();
+              let module_graph = compilation.get_module_graph_mut();
               for (m, depth) in assign_depths_map {
                 module_graph.set_depth_if_lower(&m, depth);
               }
