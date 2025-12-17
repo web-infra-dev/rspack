@@ -1,3 +1,5 @@
+import './module.js';
+
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
 
