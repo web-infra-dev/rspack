@@ -30,8 +30,12 @@ it('should have exports', async () => {
 	expect(externalsNs).toBeDefined();
 });
 
-export { externals_namespaceObject as externalsNs };
-export { default, default as externals, readFile } from "fs";
+var default_0 = __rspack_external_fs["default"];
+var externals_0 = __rspack_external_fs["default"];
+var readFile_0 = __rspack_external_fs.readFile;
+export { externals_0 as externals, externals_namespaceObject as externalsNs, readFile_0 as readFile };
+export * from "fs";
+export default default_0;
 
 ```
 

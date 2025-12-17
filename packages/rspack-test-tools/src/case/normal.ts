@@ -140,6 +140,7 @@ function defaultOptions(
 					providedExports: true,
 					usedExports: true,
 					mangleExports: true,
+					inlineExports: true,
 					// CHANGE: rspack does not support `emitOnErrors` yet.
 					emitOnErrors: true,
 					concatenateModules: !!testConfig?.optimization?.concatenateModules,
@@ -227,7 +228,6 @@ function defaultOptions(
 			},
 			asyncWebAssembly: true,
 			topLevelAwait: true,
-			inlineConst: true,
 			// CHANGE: rspack does not support `backCompat` yet.
 			// backCompat: false,
 			// CHANGE: Rspack enables `css` by default.

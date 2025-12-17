@@ -9,7 +9,9 @@ module.exports = {
 			},
 			optimization: {
 				usedExports: true,
-				providedExports: true
+				providedExports: true,
+				// Avoid stats info reduced by inlineExports
+				inlineExports: false,
 			}
 		};
 	},

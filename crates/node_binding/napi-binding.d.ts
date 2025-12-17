@@ -816,6 +816,7 @@ export interface JsEntryOptions {
   name?: string
   runtime?: false | string
   chunkLoading?: false | string
+  wasmLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
@@ -2128,9 +2129,6 @@ rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
-inlineConst: boolean
-inlineEnum: boolean
-typeReexportsPresence: boolean
 lazyBarrel: boolean
 deferImport: boolean
 }
@@ -2354,11 +2352,6 @@ commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
  */
 importDynamic?: boolean
 commonjsMagicComments?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-inlineConst?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
@@ -2587,6 +2580,7 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   realContentHash: boolean
   mangleExports: boolean | string
+  inlineExports: boolean
   concatenateModules: boolean
   avoidEntryIife: boolean
 }

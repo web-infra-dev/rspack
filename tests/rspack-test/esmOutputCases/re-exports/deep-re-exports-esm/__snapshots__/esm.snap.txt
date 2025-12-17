@@ -1,11 +1,4 @@
 ```mjs title=main.mjs
-// ./lib3.js
-const lib3_lib3 = 42
-
-const lib_local = 24
-
-
-
 // ./lib2.js
 
 
@@ -27,6 +20,8 @@ it('should re-export esm correctly', async () => {
 	expect(lib4).toBe(24)
 })
 
-export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib, lib_local as lib4 };
+var index_lib3 = /* inlined export .lib3 */(42);
+var index_lib4 = /* inlined export .lib4 */(24);
+export { index_lib3 as lib3, index_lib4 as lib4, lib2_lib2 as lib2, lib_lib as lib };
 
 ```
