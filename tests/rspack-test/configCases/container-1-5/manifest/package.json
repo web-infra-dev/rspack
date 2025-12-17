@@ -1,5 +1,5 @@
 {
-  "name": "manifest",
+  "name": "mf-manifest",
   "version": "1.0.0",
   "dependencies": {
     "xreact": "^1.0.0",
