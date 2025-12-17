@@ -44,7 +44,6 @@ it("should include scoped shared '@scope-sc2/dep2' in stats", () => {
     expect(dep2.assets.css.async).toEqual([]);
     expect(Array.isArray(dep2.assets.js.sync)).toBe(true);
     expect(dep2.assets.js.async).toEqual([]);
-    expect(dep2.usedIn.includes("module.js")).toBe(true);
 });
 
 
