@@ -718,7 +718,8 @@ impl ModuleGraph {
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    Arc::get_mut(self.inner.modules.get_mut(identifier)?.as_mut()?)
+    let module = self.inner.modules.get_mut(identifier)?.as_mut()?;
+    Some(Arc::get_mut(module).unwrap())
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
