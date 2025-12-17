@@ -46,7 +46,7 @@ jobs:
         run: |
           curl -L https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-v1.5.7-win64.zip --output zstd.zip
           unzip zstd.zip
-          mv zstd-v1.5.5-win64/zstd.exe C:/Windows/System32/
+          mv zstd-v1.5.7-win64/zstd.exe C:/Windows/System32/
           # Verify installation
           zstd --version
 
