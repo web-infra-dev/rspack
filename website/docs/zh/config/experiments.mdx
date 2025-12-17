@@ -360,7 +360,7 @@ export default {
 
 - **类型：** `(RegExp | string)[]`
 
-- **默认值：** `[/\/node_modules\//]`
+- **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
 
 由包管理器管理的路径数组，热启动时会通过 package.json 中的版本来判断是否修改。
 
