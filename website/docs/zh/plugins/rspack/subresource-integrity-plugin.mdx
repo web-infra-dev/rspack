@@ -4,7 +4,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} addedVersion="1.2.4" />
 
-`rspack.experiments.SubresourceIntegrityPlugin` 是一个用于在 Rspack 中启用子资源完整性的插件。
+`rspack.SubresourceIntegrityPlugin` 是一个用于在 Rspack 中启用子资源完整性的插件。
 
 ## 什么是 SRI
 
@@ -26,19 +26,16 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 ## 使用方法
 
-可以通过从 `@rspack/core` 中导入，目前该插件处于实验性阶段：
+可以从 `@rspack/core` 中导入：
 
 ```js title="rspack.config.mjs"
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 ```
 
 或
 
 ```js title="rspack.config.cjs"
-const {
-  experiments: { SubresourceIntegrityPlugin },
-} = require('@rspack/core');
+const { SubresourceIntegrityPlugin } = require('@rspack/core');
 ```
 
 ### 推荐的 Rspack 配置
@@ -46,8 +43,7 @@ const {
 为了确保 SRI 正常工作，需要配置 [output.crossOriginLoading](/config/output#outputcrossoriginloading) 选项：
 
 ```js title="rspack.config.mjs"
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 
 export default {
   output: {
@@ -64,8 +60,7 @@ export default {
 SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 交互：
 
 ```js title="rspack.config.mjs"
-import { experiments, HtmlRspackPlugin } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin, HtmlRspackPlugin } from '@rspack/core';
 
 export default {
   plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
@@ -76,8 +71,7 @@ export default {
 
 ```js title="rspack.config.mjs"
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import { experiments } from '@rspack/core';
-const { SubresourceIntegrityPlugin } = experiments;
+import { SubresourceIntegrityPlugin } from '@rspack/core';
 
 export default {
   plugins: [

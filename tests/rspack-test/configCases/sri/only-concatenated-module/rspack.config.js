@@ -22,7 +22,7 @@ module.exports = {
 		moduleIds: "named",
 	},
 	plugins: [
-		new rspack.experiments.SubresourceIntegrityPlugin(),
+		new rspack.SubresourceIntegrityPlugin(),
 		{
 			apply(compiler) {
 				compiler.hooks.done.tap('TestPlugin', () => {
