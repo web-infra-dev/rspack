@@ -4,11 +4,12 @@ use derive_more::Debug;
 use regex::Regex;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AssetInfo, BoxDependency, ChunkGraph, ClientEntryType, Compilation, CompilationAsset,
-  CompilationParams, CompilationProcessAssets, CompilerFinishMake, CompilerThisCompilation,
-  Dependency, DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module,
-  ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType, Plugin,
-  PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeSpec,
+  AssetInfo, BoxDependency, ChunkGraph, ChunkUkey, ClientEntryType, Compilation, CompilationAsset,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
+  CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId, EntryDependency,
+  EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
+  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
+  RuntimeGlobals, RuntimeSpec,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -27,6 +28,7 @@ use crate::{
   client_compiler_handle::Coordinator,
   constants::{LAYERS_NAMES, REGEX_CSS},
   loaders::action_entry_loader::parse_action_entries,
+  manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::ManifestExport,
   utils::{ChunkModules, EntryModules},
@@ -109,6 +111,22 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationRuntimeRequirementInTree for ReactServerPlugin)]
+async fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::RSC_MANIFEST) {
+    compilation.add_runtime_module(chunk_ukey, Box::new(RscManifestRuntimeModule::new()))?;
+  }
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationProcessAssets for ReactServerPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.ReactServerPlugin");
@@ -143,6 +161,11 @@ impl Plugin for ReactServerPlugin {
       .tap(this_compilation::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
 
     ctx
       .compilation_hooks

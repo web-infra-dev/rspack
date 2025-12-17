@@ -58,6 +58,7 @@ const API_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
 const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
 const API_VERSION: &str = "__rspack_version__";
 const API_UNIQUE_ID: &str = "__rspack_unique_id__";
+const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 
 pub struct APIPluginOptions {
   module: bool,
@@ -93,6 +94,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
     API_GET_SCRIPT_FILENAME => Some("function"),
     API_VERSION => Some("string"),
     API_UNIQUE_ID => Some("string"),
+    API_RSC_MANIFEST => Some("object"),
     _ => None,
   }
 }
@@ -279,6 +281,14 @@ impl JavascriptParserPlugin for APIPlugin {
           ident.span.into(),
           format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
           Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
+        )));
+        Some(true)
+      }
+      API_RSC_MANIFEST => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          ident.span.into(),
+          RuntimeGlobals::RSC_MANIFEST.name().into(),
+          Some(RuntimeGlobals::RSC_MANIFEST),
         )));
         Some(true)
       }

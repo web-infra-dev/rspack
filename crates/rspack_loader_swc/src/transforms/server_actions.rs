@@ -1774,7 +1774,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         })],
         src: Box::new(Str {
           span: DUMMY_SP,
-          value: atom!("react-server-dom-webpack/server").into(),
+          value: atom!("react-server-dom-rspack/server").into(),
           raw: None,
         }),
         type_only: false,

@@ -263,6 +263,9 @@ bitflags! {
     const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 68;
     const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 69;
     const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 70;
+
+    // react server component manifest
+    const RSC_MANIFEST = 1 << 71;
   }
 }
 
@@ -356,6 +359,7 @@ impl RuntimeGlobals {
       R::HAS_CSS_MODULES => "has css modules",
 
       R::HAS_FETCH_PRIORITY => "has fetch priority",
+      R::RSC_MANIFEST => "__webpack_require__.rscM",
       _ => unreachable!(),
     }
   }

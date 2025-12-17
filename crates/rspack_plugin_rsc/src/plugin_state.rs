@@ -13,6 +13,7 @@ pub struct PluginState {
   pub ssr_modules: FxHashMap<String, ManifestExport>,
   pub server_actions: ServerReferenceManifest,
   pub entry_css_files: FxHashMap<String, FxHashSet<String>>,
+  pub entry_js_files: FxHashMap<String, FxHashSet<String>>,
 }
 
 pub static PLUGIN_STATE_BY_COMPILER_ID: Lazy<Mutex<FxHashMap<CompilerId, PluginState>>> =

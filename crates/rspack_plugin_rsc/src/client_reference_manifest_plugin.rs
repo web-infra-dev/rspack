@@ -58,7 +58,7 @@ impl ClientReferenceManifestPlugin {
     let mut manifest = ClientReferenceManifest {
       client_modules: Default::default(),
       module_loading,
-      ssr_module_mapping: Default::default(),
+      ssr_module_map: Default::default(),
       entry_css_files: plugin_state.entry_css_files.clone(),
       entry_js_files: Default::default(),
     };
@@ -68,7 +68,7 @@ impl ClientReferenceManifestPlugin {
         let mut v = FxHashMap::default();
         v.insert("*".to_string(), ssr_manifest_export);
         manifest
-          .ssr_module_mapping
+          .ssr_module_map
           .insert(client_manifest_export.id.to_string(), v);
       }
 

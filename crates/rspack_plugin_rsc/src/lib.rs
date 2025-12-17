@@ -3,6 +3,7 @@ mod client_reference_dependency;
 mod client_reference_manifest_plugin;
 mod constants;
 mod loaders;
+mod manifest_runtime_module;
 mod plugin_state;
 mod react_client_plugin;
 mod react_server_plugin;

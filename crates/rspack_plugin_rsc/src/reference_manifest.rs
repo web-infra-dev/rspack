@@ -40,7 +40,7 @@ pub struct ClientReferenceManifest {
   #[serde(rename = "moduleLoading")]
   pub module_loading: ModuleLoading,
   #[serde(rename = "ssrModuleMapping")]
-  pub ssr_module_mapping: FxHashMap<String, ManifestNode>,
+  pub ssr_module_map: FxHashMap<String, ManifestNode>,
   #[serde(rename = "entryCSSFiles")]
   pub entry_css_files: FxHashMap<String, FxHashSet<String>>,
   #[serde(rename = "entryJSFiles")]
