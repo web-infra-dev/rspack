@@ -1,5 +1,6 @@
 import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import Markdown from 'markdown-to-jsx';
 import type React from 'react';
 import * as i18n from './i18n';
@@ -402,11 +403,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
           return {
-            name: (
-              <a href={url} target="_blank" rel="noreferrer">
-                {name}
-              </a>
-            ),
+            name: <Link href={url}>{name}</Link>,
             status: statusText,
             notes: getNotesText(lang, description, status),
           };
