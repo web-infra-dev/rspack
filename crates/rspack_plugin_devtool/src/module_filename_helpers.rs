@@ -3,6 +3,7 @@ use std::{
   path::Path,
 };
 
+use cow_utils::CowUtils;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -61,7 +62,8 @@ fn resolve_relative_resource_path(
       absolute_resource_path
         .normalize()
         .to_string_lossy()
-        .replace("\\", "/"),
+        .cow_replace("\\", "/")
+        .to_string(),
     );
   };
 
@@ -69,7 +71,8 @@ fn resolve_relative_resource_path(
     Path::new(absolute_resource_path)
       .relative(parent)
       .to_string_lossy()
-      .replace("\\", "/"),
+      .cow_replace("\\", "/")
+      .to_string(),
   )
 }
 
