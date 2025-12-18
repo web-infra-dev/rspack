@@ -68,7 +68,7 @@ jobs:
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
     steps:
@@ -102,7 +102,7 @@ jobs:
 
   calculate-eco-ci-suite:
     if: github.repository == 'web-infra-dev/rspack'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       suites: ${{ steps.calculate.outputs.result }}
     steps:
@@ -141,7 +141,7 @@ jobs:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
       fail-fast: false
     name: eco-ci (${{ matrix.suite }})
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     #    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout
@@ -232,7 +232,7 @@ jobs:
 
   comment-compare-results:
     if: github.repository == 'web-infra-dev/rspack' && !cancelled()
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [create-comment, eco-ci]
     outputs:
       summary: ${{ steps.build-summary.outputs.summary }}
@@ -308,7 +308,7 @@ jobs:
   publish-ecosystem-history:
     if: github.repository == 'web-infra-dev/rspack' && github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
     needs: [eco-ci, comment-compare-results]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Checkout ecosystem-ci repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5

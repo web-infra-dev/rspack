@@ -16,7 +16,7 @@ jobs:
       force-use-github-runner: false
 
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     name: Check Changed
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
@@ -66,7 +66,7 @@ jobs:
   publish:
     if: github.repository == 'web-infra-dev/rspack'
     name: Pkg Preview
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs:
       - build
     steps:

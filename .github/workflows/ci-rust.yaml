@@ -27,7 +27,7 @@ jobs:
     # TODO: enable it after self hosted runners are ready
     # if: needs.rust_changes.outputs.changed == 'true' && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     if: false
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
@@ -60,7 +60,7 @@ jobs:
     name: Rust Test Required Check
     needs: [rust_tests]
     if: ${{ always() && !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Log
         run: echo ${{ needs.*.result }}

@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   issue-labeled:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: 🤔 Need Reproduce
         if: github.event.label.name == 'need reproduction'

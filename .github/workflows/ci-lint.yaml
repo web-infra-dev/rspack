@@ -16,7 +16,7 @@ on:
       - "**"
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -37,7 +37,7 @@ jobs:
 
   lint:
     name: Lint and format code
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
@@ -82,7 +82,7 @@ jobs:
 
   lint-website:
     name: Lint and format website
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
     steps:
@@ -102,7 +102,7 @@ jobs:
 
   spell:
     name: Spell check
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - uses: crate-ci/typos@2d0ce569feab1f8752f1dde43cc2f2aa53236e06 # v1.40.0
@@ -111,7 +111,7 @@ jobs:
 
   pnpm_lockfile_check:
     name: Pnpm Lockfile Check
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
@@ -129,7 +129,7 @@ jobs:
     name: Lint Required Check
     needs: [lint, lint-website, check-changed, spell, pnpm_lockfile_check]
     if: ${{ always() && !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}

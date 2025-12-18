@@ -40,7 +40,7 @@ jobs:
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
     steps:
@@ -133,7 +133,7 @@ jobs:
 
   comment-compare-results:
     if: github.repository == 'web-infra-dev/rspack' && !cancelled()
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [create-comment, bench]
     steps:
       - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8

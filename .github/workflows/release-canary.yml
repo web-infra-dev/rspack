@@ -76,7 +76,7 @@ jobs:
 
   release:
     name: Release Canary
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: build
     environment: npm-canary
     steps:

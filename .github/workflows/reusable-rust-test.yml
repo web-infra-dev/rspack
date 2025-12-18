@@ -11,7 +11,7 @@ on:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -186,7 +186,7 @@ jobs:
         check-changed
       ]
     if: ${{ always() && !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
