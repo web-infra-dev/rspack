@@ -33,7 +33,18 @@ Asset module 输出的文件名称。这个值可以被 [rules[].generator.filen
 - **类型：** `boolean`
 - **默认值：** `true`
 
-是否创建按需加载的异步 chunk。
+用于控制通过动态导入加载的模块，是被输出为独立的异步 chunk，还是被打包进已有的 chunk 中。
+
+- `true`：通过 `import()` 加载的模块会被拆分为独立的异步 chunk。这些 chunk 会作为单独的文件输出，并在运行时按需加载。这样可以启用代码拆分，减小初始包体积。
+- `false`：通过动态导入加载的模块不会生成单独的文件，而是被直接打包进现有的 chunk 中。此时不会额外生成异步 chunk 文件。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    asyncChunks: false,
+  },
+};
+```
 
 ## output.charset
 
