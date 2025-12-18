@@ -1,6 +1,13 @@
 const path = require("path");
 const fs = require("fs");
 
+function normalizeToUrlStyle(s) {
+    // 1) Convert Windows backslashes to forward slashes
+    const withForward = s.replace(/\\/g, "/");
+    // 2) POSIX-normalize to collapse ".." / "." segments
+    return path.posix.normalize(withForward);
+}
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
     mode: "development",
@@ -23,6 +30,8 @@ module.exports = {
 
                     realSources.forEach(s => {
                         expect(path.isAbsolute(s)).toBe(false);
+                        // sources in a source map should be relative/URL-style (not absolute filesystem paths)
+                        expect(normalizeToUrlStyle(s)).toBe(s);
                     });
 
                     const mapDir = path.dirname(sourceMapPath);

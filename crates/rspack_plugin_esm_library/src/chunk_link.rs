@@ -276,6 +276,8 @@ pub enum ReExportFrom {
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
 
+  pub decl_before_exports: FxIndexSet<String>,
+
   /**
   specifier order doesn't matter, we can sort them based on name
   Map<module_id, Map<local_name, export_name>>
@@ -358,6 +360,7 @@ impl ChunkLinkContext {
       chunk: chunk_ukey,
       hoisted_modules,
       decl_modules,
+      decl_before_exports: Default::default(),
       exports: Default::default(),
       re_exports: Default::default(),
       imports: Default::default(),
