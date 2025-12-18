@@ -431,21 +431,31 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
-      let mut assets;
-      if let Some(module_id) = module_ids_by_name.get(expose_file_key) {
-        assets = collect_assets_for_module(compilation, module_id, &entry_point_names)
-          .unwrap_or_else(empty_assets_group);
-      } else if let Some(chunk_key) = compilation.named_chunks.get(expose_file_key) {
-        assets = collect_assets_from_chunk(compilation, chunk_key, &entry_point_names);
-      } else if let Some(chunk_name) = expose_chunk_names.get(expose_file_key) {
+      let mut assets = None;
+      if let Some(chunk_name) = expose_chunk_names.get(expose_file_key) {
         if let Some(chunk_key) = compilation.named_chunks.get(chunk_name) {
-          assets = collect_assets_from_chunk(compilation, chunk_key, &entry_point_names);
-        } else {
-          assets = empty_assets_group();
+          assets = Some(collect_assets_from_chunk(
+            compilation,
+            chunk_key,
+            &entry_point_names,
+          ));
         }
-      } else {
-        assets = empty_assets_group();
       }
+      if assets.is_none() {
+        if let Some(chunk_key) = compilation.named_chunks.get(expose_file_key) {
+          assets = Some(collect_assets_from_chunk(
+            compilation,
+            chunk_key,
+            &entry_point_names,
+          ));
+        }
+      }
+      if assets.is_none() {
+        if let Some(module_id) = module_ids_by_name.get(expose_file_key) {
+          assets = collect_assets_for_module(compilation, module_id, &entry_point_names);
+        }
+      }
+      let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
         expose.file = path.clone();
       }

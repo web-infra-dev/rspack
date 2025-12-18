@@ -1,1 +1,1 @@
-export const  lazy = true
+export const lazy = 'lazy'

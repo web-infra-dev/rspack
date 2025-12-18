@@ -1,4 +1,3 @@
-import './module.js';
 
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
@@ -7,6 +6,12 @@ const statsPath = path.join(__dirname, "mf-stats.json");
 const manifestPath = path.join(__dirname, "mf-manifest.json");
 const stats = JSON.parse(fs.readFileSync(statsPath, "utf-8"));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+
+it("should render as expected", async () => {
+	const { App, AppAsync } = await import('./module.js');
+	expect(App()).toBe('Dep1 Dep2 remote XReact');
+	expect(await AppAsync()).toBe('dynamic-remote remote/Button lazy');
+});
 
 it("should emit remote entry with hash", () => {
 	const remoteEntryFile = stats.metaData.remoteEntry.name;
