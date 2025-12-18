@@ -1,4 +1,5 @@
 const { ModuleFederationPlugin } = require("@rspack/core").container;
+const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -36,7 +37,8 @@ module.exports = {
 					singleton:false,
 					requiredVersion: '>=1.0.0'
 				}
-			}
+			},
+			runtimePlugins: [path.resolve(__dirname, './runtime-plugin.js')],
 		})
 	]
 };
