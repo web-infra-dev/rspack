@@ -232,10 +232,9 @@ impl SwcLoader {
           );
         }
 
-        let mut esm_source =
-          r#"import { createResourcesProxy } from "react-server-dom-rspack/server";
+        let mut esm_source = r#"import { createServerEntry } from "react-server-dom-rspack/server";
 "#
-          .to_string();
+        .to_string();
 
         for client_ref in &rsc.client_refs {
           match client_ref.as_str() {
@@ -243,7 +242,7 @@ impl SwcLoader {
               // 增加 skip-rsc-transform 查询参数，避免代理模块中导入 server entry 模块，被重复生成为代理代码
               esm_source.push_str(&format!(
                 r#"import _default from "{}?skip-rsc-transform";
-export default createResourcesProxy(
+export default createServerEntry(
 _default,
 "{}",
 )
@@ -255,7 +254,7 @@ _default,
             Some(ident) => {
               esm_source.push_str(&format!(
                 r#"import {{ {} as _original_{} }} from "{}?skip-rsc-transform";
-export const {} = createResourcesProxy(
+export const {} = createServerEntry(
 _original_{},
 "{}",
 )

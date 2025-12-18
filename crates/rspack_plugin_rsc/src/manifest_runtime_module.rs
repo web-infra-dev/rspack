@@ -1,17 +1,19 @@
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, RuntimeModuleStage,
-  impl_runtime_module,
+  ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphRef, ModuleId,
+  ModuleIdentifier, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use crate::{
+  constants::LAYERS_NAMES,
   loaders::action_entry_loader::parse_action_entries,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{ManifestExport, ManifestNode},
+  utils::ChunkModules,
 };
 
 #[impl_runtime_module]
@@ -58,18 +60,13 @@ impl RuntimeModule for RscManifestRuntimeModule {
       )
     })?;
 
-    let mut ssr_module_map: FxHashMap<String, ManifestNode> = Default::default();
-    for (resource, client_manifest_export) in &plugin_state.client_modules {
-      if let Some(ssr_manifest_export) = plugin_state.ssr_modules.get(resource) {
-        let mut v = FxHashMap::default();
-        v.insert("*".to_string(), ssr_manifest_export.clone());
-        ssr_module_map.insert(client_manifest_export.id.to_string(), v);
-      }
-    }
+    let server_consumer_module_map =
+      build_server_consumer_module_map(compilation, &plugin_state.client_modules);
 
     let client_manifest_literal =
       to_json_string_literal(&plugin_state.client_modules).to_rspack_result()?;
-    let ssr_module_map_literal = to_json_string_literal(&ssr_module_map).to_rspack_result()?;
+    let server_consumer_module_map_literal =
+      to_json_string_literal(&server_consumer_module_map).to_rspack_result()?;
     let module_loading_literal = to_json_string_literal(module_loading).to_rspack_result()?;
     let entry_css_files_literal =
       to_json_string_literal(&plugin_state.entry_css_files).to_rspack_result()?;
@@ -78,17 +75,18 @@ impl RuntimeModule for RscManifestRuntimeModule {
 
     Ok(formatdoc! {
         r#"
-          __webpack_require__.rscM = {{}};
-          __webpack_require__.rscM.serverManifest = JSON.parse({server_manifest});
-          __webpack_require__.rscM.clientManifest = JSON.parse({client_manifest});
-          __webpack_require__.rscM.ssrModuleMap = JSON.parse({ssr_module_map});
-          __webpack_require__.rscM.moduleLoading = JSON.parse({module_loading});
-          __webpack_require__.rscM.entryCssFiles = JSON.parse({entry_css_files});
-          __webpack_require__.rscM.entryJsFiles = JSON.parse({entry_js_files});
+          __webpack_require__.rscM = {{
+            serverManifest: JSON.parse({server_manifest}),
+            clientManifest: JSON.parse({client_manifest}),
+            serverConsumerModuleMap: JSON.parse({server_consumer_module_map}),
+            moduleLoading: JSON.parse({module_loading}),
+            entryCssFiles: JSON.parse({entry_css_files}),
+            entryJsFiles: JSON.parse({entry_js_files}),
+          }};
         "#,
       server_manifest = server_manifest_literal,
       client_manifest = client_manifest_literal,
-      ssr_module_map = ssr_module_map_literal,
+      server_consumer_module_map = server_consumer_module_map_literal,
       module_loading = module_loading_literal,
       entry_css_files = entry_css_files_literal,
       entry_js_files = entry_js_files_literal,
@@ -169,4 +167,81 @@ fn build_server_manifest<'a>(
   }
 
   Ok(server_actions)
+}
+
+fn record_module(
+  compilaiton: &Compilation,
+  client_modules: &FxHashMap<String, ManifestExport>,
+  module_graph: &ModuleGraphRef<'_>,
+  module_idenfitifier: ModuleIdentifier,
+  module_id: ModuleId,
+  server_consumer_module_map: &mut FxHashMap<String, ManifestNode>,
+) {
+  let Some(module) = module_graph.module_by_identifier(&module_idenfitifier) else {
+    return;
+  };
+  let Some(normal_module) = module.as_normal_module() else {
+    return;
+  };
+
+  if normal_module.build_info().rsc.as_ref().is_none()
+    || !normal_module
+      .get_layer()
+      .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
+  {
+    return;
+  }
+
+  // Match Resource is undefined unless an import is using the inline match resource syntax
+  // https://webpack.js.org/api/loaders/#inline-matchresource
+  let mod_path = normal_module
+    .match_resource()
+    .map(|resource| resource.path())
+    .unwrap_or(normal_module.resource_resolved_data().path());
+  let mod_query = normal_module.resource_resolved_data().query().unwrap_or("");
+  // query is already part of mod.resource
+  // so it's only necessary to add it for matchResource or mod.resourceResolveData
+  let resource = match mod_path {
+    Some(mod_path) => format!("{}{}", mod_path.as_str(), mod_query),
+    None => normal_module
+      .resource_resolved_data()
+      .resource()
+      .to_string(),
+  };
+
+  if resource.is_empty() {
+    return;
+  }
+
+  let manifest_export = ManifestExport {
+    id: module_id.to_string(),
+    name: "*".to_string(),
+    chunks: vec![],
+    r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
+  };
+  let mut node = FxHashMap::default();
+  node.insert("*".to_string(), manifest_export);
+  if let Some(export) = client_modules.get(&resource) {
+    server_consumer_module_map.insert(export.id.clone(), node);
+  }
+}
+
+fn build_server_consumer_module_map(
+  compilation: &Compilation,
+  client_modules: &FxHashMap<String, ManifestExport>,
+) -> FxHashMap<String, ManifestNode> {
+  let mut server_consumer_module_map: FxHashMap<String, ManifestNode> = Default::default();
+  let module_graph = compilation.get_module_graph();
+  let chunk_modules = ChunkModules::new(compilation, &module_graph);
+  for (module_identifier, module_id) in chunk_modules {
+    record_module(
+      compilation,
+      client_modules,
+      &module_graph,
+      module_identifier,
+      module_id,
+      &mut server_consumer_module_map,
+    );
+  }
+  server_consumer_module_map
 }
