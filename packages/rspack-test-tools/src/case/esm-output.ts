@@ -121,6 +121,10 @@ const defaultOptions = (
 		chunkIds: "named",
 		runtimeChunk: "single"
 	},
+	externals: {
+		fs: "module-import fs",
+		path: "module-import path"
+	},
 	plugins: [new rspack.experiments.EsmLibraryPlugin()],
 	experiments: {
 		css: true,

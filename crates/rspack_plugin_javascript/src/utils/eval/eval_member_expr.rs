@@ -13,7 +13,7 @@ pub fn eval_member_expression<'a>(
   expr: &'a Expr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
-    parser.get_member_expression_info(member, AllowedMemberTypes::Expression)
+    parser.get_member_expression_info(Expr::Member(member.clone()), AllowedMemberTypes::Expression)
   {
     parser
       .plugin_drive

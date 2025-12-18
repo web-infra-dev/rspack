@@ -3,6 +3,7 @@ use std::{
   path::Path,
 };
 
+use cow_utils::CowUtils;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -40,6 +41,7 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 
 pub struct ModuleFilenameHelpers;
 
+// sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
@@ -56,13 +58,20 @@ fn resolve_relative_resource_path(
   };
 
   let Some(parent) = source_map_path.parent() else {
-    return Some(absolute_resource_path.to_string());
+    return Some(
+      absolute_resource_path
+        .normalize()
+        .to_string_lossy()
+        .cow_replace("\\", "/")
+        .to_string(),
+    );
   };
 
   Some(
     Path::new(absolute_resource_path)
       .relative(parent)
       .to_string_lossy()
+      .cow_replace("\\", "/")
       .to_string(),
   )
 }

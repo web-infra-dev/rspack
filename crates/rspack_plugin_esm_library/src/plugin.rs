@@ -261,11 +261,9 @@ async fn finish_modules(
   let mut module_graph =
     Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
   for m in entry_modules {
-    let exports_info = module_graph
-      .get_exports_info(&m)
-      .as_data_mut(&mut module_graph);
+    let exports_info = module_graph.get_exports_info(&m);
 
-    exports_info.set_all_known_exports_used(None);
+    exports_info.set_used_in_unknown_way(&mut module_graph, None);
   }
 
   Ok(())

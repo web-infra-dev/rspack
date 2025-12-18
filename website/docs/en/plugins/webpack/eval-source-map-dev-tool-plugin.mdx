@@ -12,6 +12,24 @@ new webpack.EvalSourceMapDevToolPlugin(options);
 
 ## Options
 
+### test
+
+- **Type:** `string` `RegExp` `[string, RegExp]`
+
+Include source maps for modules based on their extension (defaults to `.js`, `.mjs`, and `.css`).
+
+### include
+
+- **Type:** `string` `RegExp` `[string, RegExp]`
+
+Include source maps for module paths that match the given value.
+
+### exclude
+
+- **Type:** `string` `RegExp` `[string, RegExp]`
+
+Exclude modules that match the given value from source map generation.
+
 ### append
 
 - **Type:** `string | function`

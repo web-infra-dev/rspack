@@ -33,16 +33,14 @@ it('should have correct re-export', async () => {
 	expect(defaultV.bar()).toBe('bar')
 })
 
-const cjs = __webpack_require__("./cjs.cjs");
-var foo_1 = cjs.foo;
-
 const cjs_unknown = __webpack_require__("./cjs-unknown.cjs");
-var cjs_unknown_default = /*#__PURE__*/__webpack_require__.n(cjs_unknown);
-var cjs_unknown_default_0 = cjs_unknown_default();
-var bar_1 = cjs_unknown.bar;
+var bar_0 = cjs_unknown.bar;
 
-export { bar_1 as bar, foo_1 as foo };
-export default cjs_unknown_default_0;
+const cjs = __webpack_require__("./cjs.cjs");
+var foo_0 = cjs.foo;
+
+export { bar_0 as bar, foo_0 as foo };
+export default cjs_unknown;
 
 ```
 
@@ -75,32 +73,6 @@ __webpack_require__.m = __webpack_modules__;
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
-};
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 
 export { __webpack_require__ };

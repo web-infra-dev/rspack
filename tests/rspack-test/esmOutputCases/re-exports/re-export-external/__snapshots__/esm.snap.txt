@@ -1,8 +1,5 @@
 ```mjs title=main.mjs
-var named = /* inlined */ (42);
-var starExports = /* inlined */ (42);
-import fs_0 , { readFile as external_fs_readFile } from "fs";
-
+import * as __rspack_external_fs from "fs";
 // fs
 
 // ./index.js
@@ -27,8 +24,12 @@ it('should compile and import success', async () => {
 	expect(readFile).toBeDefined()
 })
 
-export { named, starExports };
+var fs_0 = __rspack_external_fs["default"];
+var index_named = /* inlined export .named */(42);
+var r_0 = __rspack_external_fs.readFile;
+var readFile_0 = __rspack_external_fs.readFile;
+var index_starExports = /* inlined export .starExports */(42);
+export { fs_0 as fs, index_named as named, index_starExports as starExports, r_0 as r, readFile_0 as readFile };
 export * from "fs";
-export { default as fs, readFile as r, readFile } from "fs";
 
 ```

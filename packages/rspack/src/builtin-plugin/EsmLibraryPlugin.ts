@@ -15,6 +15,9 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
 	// chunk rendering is handled by EsmLibraryPlugin
 	options.output.chunkFormat = false;
 
+	// mark output is module
+	options.output.module = true;
+
 	if (options.output.chunkLoading && options.output.chunkLoading !== "import") {
 		logger.warn(
 			`\`output.chunkLoading\` should be \`"import"\` or \`false\`, but got ${options.output.chunkLoading}, changed it to \`"import"\``

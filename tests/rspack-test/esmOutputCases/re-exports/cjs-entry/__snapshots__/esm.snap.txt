@@ -45,11 +45,10 @@ it('should have correct output for entry re-exports', async () => {
 },
 });
 const index = __webpack_require__("./index.js");
-var __esModule = index.__esModule;
 var bar = index.bar;
 var foo = index.foo;
 
-export { __esModule, bar, foo };
+export { bar, foo };
 
 ```
 
