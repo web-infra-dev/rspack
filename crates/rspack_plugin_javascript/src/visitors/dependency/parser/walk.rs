@@ -1070,6 +1070,11 @@ impl JavascriptParser<'_> {
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
+          // ((…) => { }(…))
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
+        } else if let Expr::Arrow(arrow_expr) = &**callee
+          && arrow_expr.params.iter().all(|p| p.as_ident().is_some())
+        {
           // (function(…) { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
