@@ -1,4 +1,4 @@
-const { experiments, HtmlRspackPlugin } = require("@rspack/core");
+const { SubresourceIntegrityPlugin, HtmlRspackPlugin } = require("@rspack/core");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const fs = require("fs");
 const path = require("path");
@@ -10,7 +10,7 @@ module.exports = (_, { testPath }) => ([{
     crossOriginLoading: "anonymous",
   },
   plugins: [
-    new experiments.SubresourceIntegrityPlugin(),
+    new SubresourceIntegrityPlugin(),
     new HtmlRspackPlugin({
       filename: "index.html",
     }),
@@ -39,7 +39,7 @@ module.exports = (_, { testPath }) => ([{
     crossOriginLoading: "anonymous",
   },
   plugins: [
-    new experiments.SubresourceIntegrityPlugin({
+    new SubresourceIntegrityPlugin({
       htmlPlugin: require.resolve("html-webpack-plugin"),
     }),
     new HtmlWebpackPlugin({

@@ -1286,7 +1286,11 @@ impl CompilationAdditionalTreeRuntimeRequirements
     };
     let result = self.function.call_with_sync(arg).await?;
     if let Some(result) = result {
-      let _ = std::mem::replace(runtime_requirements, result.as_runtime_globals());
+      runtime_requirements.insert(
+        result
+          .as_runtime_globals()
+          .difference(*runtime_requirements),
+      );
     }
     Ok(())
   }

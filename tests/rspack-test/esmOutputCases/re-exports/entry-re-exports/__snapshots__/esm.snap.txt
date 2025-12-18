@@ -25,9 +25,9 @@ it('should have correct output for entry re-exports', async () => {
 })
 
 const bar_0 = __webpack_require__("./bar.js");
-var bar_2 = bar_0.bar;
+var bar_1 = bar_0.bar;
 
-export { bar_2 as bar, foo_foo as foo };
+export { bar_1 as bar, foo_foo as foo };
 
 ```
 

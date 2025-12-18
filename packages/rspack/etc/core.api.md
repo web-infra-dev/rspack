@@ -2138,7 +2138,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2465,7 +2465,7 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // (undocumented)
+    // @deprecated (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
@@ -2494,13 +2494,13 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineConst?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineEnum?: boolean;
     // @deprecated (undocumented)
     layers?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -3549,7 +3549,6 @@ export type JavascriptParserOptions = {
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
     deferImport?: boolean;
@@ -5403,6 +5402,7 @@ export type Optimization = {
     innerGraph?: boolean;
     usedExports?: "global" | boolean;
     mangleExports?: "size" | "deterministic" | boolean;
+    inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
     avoidEntryIife?: boolean;
@@ -6612,6 +6612,7 @@ declare namespace rspackExports {
         LoaderTargetPlugin,
         OutputFileSystem,
         WatchFileSystem,
+        SubresourceIntegrityPlugin,
         web,
         lazyCompilationMiddleware,
         node,
@@ -7799,7 +7800,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
-class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
     constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;

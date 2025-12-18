@@ -24,7 +24,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  RuntimeTemplate, SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
+  RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -374,7 +374,7 @@ impl<'parser> JavascriptParser<'parser> {
     runtime_template: &'parser RuntimeTemplate,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
-    let mut errors = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
     let dependencies = Vec::with_capacity(64);
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
@@ -466,13 +466,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    // disabled by default for now, it's still experimental
-    if javascript_options.inline_const.unwrap_or_default() {
-      if !compiler_options.experiments.inline_const {
-        errors.push(rspack_error::error!("inlineConst is still an experimental feature. To continue using it, please enable 'experiments.inlineConst'.").into());
-      } else {
-        plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-      }
+    if compiler_options.optimization.inline_exports {
+      build_info.inline_exports = true;
+      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
@@ -484,16 +480,6 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
       )));
-    }
-
-    if !matches!(
-      javascript_options
-        .type_reexports_presence
-        .unwrap_or_default(),
-      TypeReexportPresenceMode::NoTolerant
-    ) && !compiler_options.experiments.type_reexports_presence
-    {
-      errors.push(rspack_error::error!("typeReexportsPresence is still an experimental feature. To continue using it, please enable 'experiments.typeReexportsPresence'.").into());
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -898,7 +884,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(member);
+          let extracted = self.extract_member_expression_chain(Expr::Member(member.clone()));
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
@@ -957,17 +943,17 @@ impl<'parser> JavascriptParser<'parser> {
     expr: &Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    expr
-      .as_member()
-      .and_then(|member| self.get_member_expression_info(member, allowed_types))
-      .or_else(|| {
-        self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types)
-      })
+    match expr {
+      Expr::Member(_) | Expr::OptChain(_) => {
+        self.get_member_expression_info(expr.clone(), allowed_types)
+      }
+      _ => self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types),
+    }
   }
 
   pub fn get_member_expression_info(
     &mut self,
-    expr: &MemberExpr,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let ExtractedMemberExpressionChainData {
@@ -985,11 +971,8 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain(
-    &self,
-    expr: &MemberExpr,
-  ) -> ExtractedMemberExpressionChainData {
-    let mut object = Expr::Member(expr.clone());
+  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
+    let mut object = expr;
     let mut members = Vec::new();
     let mut members_optionals = Vec::new();
     let mut member_ranges = Vec::new();

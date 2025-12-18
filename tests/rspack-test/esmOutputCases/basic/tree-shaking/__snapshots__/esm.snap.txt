@@ -5,7 +5,8 @@ __webpack_require__.add({
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
-(module, __unused_rspack___webpack_exports__, __webpack_require__) {
+(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -15,7 +16,7 @@ console.log.bind(module)
 
 },
 });
-const index = __webpack_require__("./index.js");
+__webpack_require__("./index.js");
 
 
 ```
@@ -66,6 +67,16 @@ __webpack_require__.hmd = (module) => {
       }
   });
   return module;
+};
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
 };
 })();
 
