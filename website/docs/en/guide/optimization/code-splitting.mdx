@@ -79,13 +79,13 @@ Entrypoint index = index.js
 
 Similarly, examining the output shows that they all include the repeated `shared.js`.
 
-## SplitChunksPlugin
+## Configuring chunk splitting
 
 The splitting approach above is intuitive, but most modern browsers support concurrent network requests. If we split a single-page application into one chunk per page, the browser still has to fetch a large chunk when users switch pages, which wastes that concurrency. Instead, we can break the chunk into smaller ones and request those smaller chunks at the same time to use the browser's network capacity more effectively.
 
 Rspack defaults to splitting files in the `node_modules` directory and duplicate modules, extracting these modules from their original Chunk into a separate new Chunk. Why does `shared.js` still appear repeatedly in our example above? The `shared.js` file here is very small, and splitting such a small module into its own Chunk can actually slow down loading.
 
-We can configure the minimum split size to 0 to allow `shared.js` to be extracted on its own.
+We can configure the minimum split size through [splitChunks.minSize](/plugins/webpack/split-chunks-plugin#splitchunksminsize) to 0 to allow `shared.js` to be extracted on its own.
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -104,7 +104,7 @@ After rebuilding, you will find that `shared.js` has been extracted separately, 
 
 ### Force the splitting of certain modules
 
-We can specify certain modules to be forcibly grouped into a single Chunk, for example, the following configuration:
+We can use [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupname) to force specific modules to be grouped into the same chunk, for example, with the following configuration:
 
 ```js title="rspack.config.mjs"
 export default {

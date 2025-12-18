@@ -79,13 +79,13 @@ Entrypoint index = index.js
 
 同样的，如果你查看他们会发现他们都会包含有重复的 `shared.js`。
 
-## SplitChunksPlugin
+## 配置 Chunk 拆分
 
-上面的代码分割是很符合直觉的分割逻辑，但现代浏览器大多支持并发网络请求，如果我们将一个 SPA 应用中每一个页面分为一个 Chunk ，当用户切换页面的时候请求一个较大体积的 Chunk ，这显然不能很好利用到浏览器的并发网络请求能力，因此我们可以将 Chunk 拆分成更小的多个 Chunk ，需要请求这个 Chunk 的时候，我们改为同时请求这些更小的 Chunk ，这样会让浏览器请求更加高效。
+上面的代码分割是很符合直觉的分割逻辑，但现代浏览器大多支持并发网络请求，如果我们将一个 SPA 应用中每一个页面分为一个 Chunk ，当用户切换页面的时候请求一个较大体积的 Chunk，这显然不能很好利用到浏览器的并发网络请求能力，因此我们可以将 Chunk 拆分成更小的多个 Chunk ，需要请求这个 Chunk 的时候，我们改为同时请求这些更小的 Chunk ，这样会让浏览器请求更加高效。
 
 Rspack 默认会对 `node_modules` 目录下的文件以及重复模块进行拆分，将这些模块从他们所属的原 Chunk 抽离到单独的新 Chunk 中。那为何我们上面例子中，`shared.js` 还是在多个 Chunk 中重复出现了呢？这是因为我们例子中的 `shared.js` 体积很小，如果对一个很小的模块单独拆成一个 Chunk 让浏览器加载，可能反而会让加载更慢。
 
-我们可以配置最小拆分体积为 0 ，来让 `shared.js` 被单独抽离。
+我们可以通过 [splitChunks.minSize](/plugins/webpack/split-chunks-plugin#splitchunksminsize) 配置最小拆分体积为 0，来让 `shared.js` 被单独抽离。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -104,7 +104,7 @@ export default {
 
 ### 强制拆分某些模块
 
-我们可以通过 `optimization.splitChunks.cacheGroups.{cacheGroup}.name` 强制将指定模块分到一个 Chunk 中去，例如如下配置：
+我们可以通过 [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupname) 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
 ```js title="rspack.config.mjs"
 export default {
