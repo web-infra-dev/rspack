@@ -652,7 +652,13 @@ export type Output = {
 	hashSalt?: HashSalt;
 
 	/**
-	 * Create async chunks that are loaded on demand.
+	 * Controls whether dynamically imported modules are emitted as separate async chunks or bundled into
+	 * existing chunks.
+	 * - `true`: Modules loaded via `import()` are split into independent async chunks. These chunks are
+	 * emitted as separate files and are loaded on demand at runtime. This enables code splitting and keeps
+	 * the initial bundle smaller.
+	 * - `false`: Dynamically imported modules are bundled into existing chunks instead of being emitted as
+	 * separate files. No additional async chunk files are generated.
 	 * @default true
 	 * */
 	asyncChunks?: AsyncChunks;

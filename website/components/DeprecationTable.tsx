@@ -1,6 +1,7 @@
 import { Table } from '@builtIns/Table';
 import { useLocation } from '@hooks/useLocation';
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import semver from 'semver';
 
 function useDeprecatedVersion() {
@@ -61,13 +62,13 @@ function DeprecationTable() {
             <>
               The default behavior is <b>changed</b> to the latest one. Turning
               off this new behavior is still an option, check out
-              <a
+              <Link
                 href="/config/experiments#experimentsrspackfuture"
                 className="ml-2 mr-2"
                 style={{ borderBottom: '1px dashed var(--rp-c-brand)' }}
               >
                 experiments.rspackFuture
-              </a>
+              </Link>
               for the way to do it , but you should migrate to the new behavior
               as soon as possible.
             </>
@@ -109,13 +110,13 @@ function DeprecationTable() {
           <>
             默认行为 <b>已更新</b>{' '}
             至新行为。但你仍旧可以关闭这个行为，具体请参考：
-            <a
+            <Link
               href={`/${lang}/config/experiments#experimentsrspackfuture`}
               className="ml-2 mr-2"
               style={{ borderBottom: '1px dashed var(--rp-c-brand)' }}
             >
               experiments.rspackFuture
-            </a>
+            </Link>
             。请尽快迁移至新行为，以免功能不可用。
           </>
         ),
