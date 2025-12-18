@@ -961,7 +961,7 @@ impl<'parser> JavascriptParser<'parser> {
       members,
       members_optionals,
       member_ranges,
-    } = self.extract_member_expression_chain(expr.clone());
+    } = self.extract_member_expression_chain(expr);
     self._get_member_expression_info(
       object,
       members,
