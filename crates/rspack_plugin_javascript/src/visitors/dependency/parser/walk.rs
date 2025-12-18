@@ -802,7 +802,9 @@ impl JavascriptParser<'_> {
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
     // println!("{:#?}", expr);
-    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
+    if let Some(expr_info) =
+      self.get_member_expression_info(Expr::Member(expr.clone()), AllowedMemberTypes::all())
+    {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           let drive = self.plugin_drive.clone();
@@ -1074,25 +1076,26 @@ impl JavascriptParser<'_> {
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
           if let Expr::Member(member) = &**callee {
-            if let Some(MemberExpressionInfo::Call(expr_info)) =
-              self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-              && expr_info
-                .root_info
-                .call_hooks_name(self, |this, for_name| {
-                  this
-                    .plugin_drive
-                    .clone()
-                    .call_member_chain_of_call_member_chain(
-                      this,
-                      expr,
-                      &expr_info.callee_members,
-                      &expr_info.call,
-                      &expr_info.members,
-                      &expr_info.member_ranges,
-                      for_name,
-                    )
-                })
-                .unwrap_or_default()
+            if let Some(MemberExpressionInfo::Call(expr_info)) = self.get_member_expression_info(
+              Expr::Member(member.clone()),
+              AllowedMemberTypes::CallExpression,
+            ) && expr_info
+              .root_info
+              .call_hooks_name(self, |this, for_name| {
+                this
+                  .plugin_drive
+                  .clone()
+                  .call_member_chain_of_call_member_chain(
+                    this,
+                    expr,
+                    &expr_info.callee_members,
+                    &expr_info.call,
+                    &expr_info.members,
+                    &expr_info.member_ranges,
+                    for_name,
+                  )
+              })
+              .unwrap_or_default()
             {
               return;
             }
@@ -1300,8 +1303,8 @@ impl JavascriptParser<'_> {
       );
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
-      if let Some(MemberExpressionInfo::Expression(expr_name)) =
-        self.get_member_expression_info(member, AllowedMemberTypes::Expression)
+      if let Some(MemberExpressionInfo::Expression(expr_name)) = self
+        .get_member_expression_info(Expr::Member(member.clone()), AllowedMemberTypes::Expression)
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {

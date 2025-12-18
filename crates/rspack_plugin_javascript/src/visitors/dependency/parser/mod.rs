@@ -884,7 +884,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(member);
+          let extracted = self.extract_member_expression_chain(Expr::Member(member.clone()));
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
@@ -943,17 +943,17 @@ impl<'parser> JavascriptParser<'parser> {
     expr: &Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    expr
-      .as_member()
-      .and_then(|member| self.get_member_expression_info(member, allowed_types))
-      .or_else(|| {
-        self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types)
-      })
+    match expr {
+      Expr::Member(_) | Expr::OptChain(_) => {
+        self.get_member_expression_info(expr.clone(), allowed_types)
+      }
+      _ => self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types),
+    }
   }
 
   pub fn get_member_expression_info(
     &mut self,
-    expr: &MemberExpr,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let ExtractedMemberExpressionChainData {
@@ -961,7 +961,7 @@ impl<'parser> JavascriptParser<'parser> {
       members,
       members_optionals,
       member_ranges,
-    } = self.extract_member_expression_chain(expr);
+    } = self.extract_member_expression_chain(expr.clone());
     self._get_member_expression_info(
       object,
       members,
@@ -971,11 +971,8 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain(
-    &self,
-    expr: &MemberExpr,
-  ) -> ExtractedMemberExpressionChainData {
-    let mut object = Expr::Member(expr.clone());
+  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
+    let mut object = expr;
     let mut members = Vec::new();
     let mut members_optionals = Vec::new();
     let mut member_ranges = Vec::new();
