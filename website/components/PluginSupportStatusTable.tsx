@@ -2,7 +2,6 @@ import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
 import type React from 'react';
 import { useI18nUrl } from 'theme/i18n';
-import S from './PluginSupportStatusTable.module.scss';
 
 enum SupportStatus {
   NotSupported = 0,
@@ -476,7 +475,6 @@ export const PluginSupportStatusTable: React.FC = () => {
 
   return (
     <Table
-      className={S.PluginSupportStatusTable}
       header={[
         {
           name: lang === 'zh' ? '插件' : 'Plugin',

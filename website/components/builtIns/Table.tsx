@@ -1,10 +1,10 @@
 import Markdown from 'markdown-to-jsx';
 import type { ReactNode } from 'react';
 import {
-  Table as ModernTable,
-  Td as ModernTableData,
-  Th as ModernTableHead,
-  Tr as ModernTableRow,
+  Table as BaseTable,
+  Td as BaseTableData,
+  Th as BaseTableHead,
+  Tr as BaseTableRow,
 } from './mdx-components';
 
 interface TableProps {
@@ -31,12 +31,12 @@ interface TableProps {
 //   ]}
 //   body={[
 //     {
-//       name: 'Modern.js',
-//       description: 'A JavaScript framework for the modern web.',
+//       name: 'Foo',
+//       description: 'Description1',
 //     },
 //     {
-//       name: 'Modern.js Doc Tools',
-//       description: 'A tool for building documentation sites.',
+//       name: 'Bar',
+//       description: 'Description2',
 //     }
 //   ]}
 // />
@@ -61,30 +61,30 @@ export function Table(props: TableProps) {
 
   // generate table tag
   return (
-    <ModernTable style={tableStyle} className={props.className}>
+    <BaseTable style={tableStyle} className={props.className}>
       <thead>
-        <ModernTableRow>
+        <BaseTableRow>
           {header.map(item => (
-            <ModernTableHead key={item.key} style={item.style}>
+            <BaseTableHead key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
-            </ModernTableHead>
+            </BaseTableHead>
           ))}
-        </ModernTableRow>
+        </BaseTableRow>
       </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => {
           const key = `row-${index}`;
           return (
-            <ModernTableRow key={key}>
+            <BaseTableRow key={key}>
               {header.map(headerItem => (
-                <ModernTableData key={headerItem.key}>
+                <BaseTableData key={headerItem.key}>
                   {item[headerItem.key]}
-                </ModernTableData>
+                </BaseTableData>
               ))}
-            </ModernTableRow>
+            </BaseTableRow>
           );
         })}
       </tbody>
-    </ModernTable>
+    </BaseTable>
   );
 }
