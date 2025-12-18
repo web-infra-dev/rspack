@@ -9,4 +9,4 @@ mod render;
 mod runtime;
 mod split_chunks;
 pub use plugin::EsmLibraryPlugin;
-pub use split_chunks::{CacheGroup, GetNameGetter, ModuleFilter, ModuleTypeFilter};
+pub use split_chunks::{GetNameGetter, ModuleFilter, ModuleTypeFilter};

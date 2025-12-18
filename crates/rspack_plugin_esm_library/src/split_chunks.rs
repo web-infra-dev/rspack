@@ -4,14 +4,14 @@ use futures::future::BoxFuture;
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  BoxModule, Compilation, CompilerId, Module, ModuleGraph, ModuleIdentifier, SourceType,
+  BoxModule, Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_split_chunks::{
-  ModuleSizes, SplitChunkSizes, get_module_sizes,
-  min_size::{ModulesContainer, remove_min_size_violating_modules},
+  CacheGroup, CacheGroupTest, CacheGroupTestFnCtx, ChunkNameGetter, ChunkNameGetterFnCtx,
+  ModuleSizes, SplitChunkSizes, get_module_sizes, min_size::ModulesContainer,
 };
-use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use crate::EsmLibraryPlugin;
 
@@ -27,37 +27,6 @@ pub type ModuleFilter =
   Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
 pub type ModuleTypeFilter =
   Arc<dyn for<'a> Fn(&'a BoxModule, &'a Compilation) -> BoxFuture<'static, bool> + Sync + Send>;
-use derive_more::Debug;
-
-#[derive(Debug)]
-pub struct CacheGroup {
-  #[debug(skip)]
-  pub name: GetNameGetter,
-  pub key: String,
-  #[debug(skip)]
-  pub test: ModuleFilter,
-  #[debug(skip)]
-  pub r#type: ModuleTypeFilter,
-  pub filename: Option<String>,
-  pub priority: f64,
-  pub min_size: Option<SplitChunkSizes>,
-  pub index: usize,
-}
-
-impl CacheGroup {
-  async fn matches(&self, module: &BoxModule, compilation: &Compilation) -> bool {
-    (self.test)(module, compilation).await && (self.r#type)(module, compilation).await
-  }
-}
-
-pub(crate) struct SplitChunks {
-  cache_groups: Vec<CacheGroup>,
-}
-
-struct SplitResult {
-  modules: IdentifierSet,
-  name: Option<String>,
-}
 
 #[derive(Default)]
 struct MatchGroup {
@@ -65,16 +34,21 @@ struct MatchGroup {
   removed: Vec<ModuleIdentifier>,
   added: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
-
   source_types_modules: HashMap<SourceType, IdentifierSet>,
   total_size: f64,
+  name_hint: Option<String>,
+  filename_template: Option<Filename>,
 }
 
 impl MatchGroup {
-  pub fn add_module(&mut self, module: ModuleIdentifier) {
-    if self.modules.insert(module) {
+  pub fn add_module(&mut self, module: ModuleIdentifier) -> bool {
+    let inserted = self.modules.insert(module);
+
+    if inserted {
       self.added.push(module);
     }
+
+    inserted
   }
 
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
@@ -173,85 +147,141 @@ fn get_module_deps(module: ModuleIdentifier, module_graph: &ModuleGraph) -> Vec<
     .collect()
 }
 
-pub(crate) async fn split(
-  groups: &[CacheGroup],
-  compilation: &mut Compilation,
-  merge_dependencies: bool,
-) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
+async fn matches_module_to_cache_group(
+  module: &dyn Module,
+  compilation: &Compilation,
+  cache_group: &CacheGroup,
+) -> Result<bool> {
+  // match test
+  let satisfied_test = match &cache_group.test {
+    CacheGroupTest::String(str) => module.identifier().contains(str),
+    CacheGroupTest::RegExp(regexp) => regexp.test(module.identifier().as_str()),
+    CacheGroupTest::Fn(f) => f(CacheGroupTestFnCtx {
+      compilation,
+      module,
+    })
+    .await
+    .to_rspack_result()?
+    .unwrap_or(false),
+    CacheGroupTest::Enabled => true,
+  };
 
+  if !satisfied_test {
+    return Ok(false);
+  }
+
+  // match r#type
+  if !(cache_group.r#type)(module) {
+    return Ok(false);
+  }
+
+  // match layer
+  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+    .await
+    .to_rspack_result()
+    .unwrap_or(false)
+  {
+    return Ok(false);
+  }
+
+  Ok(true)
+}
+
+pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) -> Result<()> {
   let modules = compilation.chunk_graph.modules();
-
-  let results: Vec<Result<Option<Either>>> = rspack_futures::scope::<_, Result<_>>(|token| {
-    modules.iter().for_each(|module_identifier| {
-      let module = module_graph
-        .module_by_identifier(module_identifier)
-        .expect("should have module");
+  let results: Vec<std::result::Result<_, _>> = rspack_futures::scope::<_, Result<_>>(|token| {
+    modules.iter().copied().for_each(|module_identifier| {
       let s = unsafe { token.used((groups, &*compilation)) };
-      s.spawn(|(groups, compilation)| async move {
+      s.spawn(move |(groups, compilation)| async move {
+        let module_graph = compilation.get_module_graph();
+        let module: &dyn Module = module_graph
+          .module_by_identifier(&module_identifier)
+          .expect("should have module")
+          .as_ref();
         for (index, group) in groups.iter().enumerate() {
-          if !group.matches(&module, compilation).await {
+          if !matches_module_to_cache_group(module, compilation, group).await? {
             continue;
           }
 
-          return match &group.name {
-            Either::Left(Some(name)) => Some((Either::Left(name.clone()), *module_identifier)),
-            Either::Left(None) => Some((Either::Right(index), *module_identifier)),
-            Either::Right(func) => {
-              if let Some(name) = func(&module, &compilation).await? {
-                Some((Either::Left(name), *module_identifier))
+          return Ok(match &group.name {
+            ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
+            ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
+            ChunkNameGetter::Fn(func) => {
+              if let Ok(Some(name)) = func(ChunkNameGetterFnCtx {
+                module,
+                compilation,
+                chunks: &compilation
+                  .chunk_graph
+                  .get_module_chunks(module_identifier)
+                  .iter()
+                  .copied()
+                  .collect(),
+                cache_group_key: &group.key,
+              })
+              .await
+              {
+                Some((Either::Left(name), module_identifier))
               } else {
-                Some((Either::Right(index), *module_identifier))
+                Some((Either::Right(index), module_identifier))
               }
             }
-          };
+          });
         }
-        None
+        Ok(None)
       });
     });
   })
   .await;
-  let results = results.into_iter().collect::<Result<Vec<_>>>();
 
+  let modules = compilation.chunk_graph.modules();
   let mut modules_in_group: IdentifierSet =
     IdentifierSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
   let mut group_modules: HashMap<Either<String, usize>, MatchGroup> =
     HashMap::with_capacity_and_hasher(results.len(), Default::default());
 
-  for (index_or_name, module_identifier) in results {
+  for item in results {
+    let Some((index_or_name, module_identifier)) = item.to_rspack_result()?? else {
+      continue;
+    };
     modules_in_group.insert(module_identifier);
 
-    group_modules
-      .entry(index_or_name)
-      .or_default()
-      .modules
-      .insert(module_identifier);
+    let cache_group = match &index_or_name {
+      Either::Left(_) => None,
+      Either::Right(index) => Some(&groups[*index]),
+    };
+
+    let group = group_modules.entry(index_or_name).or_default();
+
+    group.add_module(module_identifier);
+    if let Some(cache_group) = &cache_group {
+      group.name_hint = Some(cache_group.key.clone());
+      group.filename_template = cache_group.filename.clone();
+    }
   }
 
   // module is guarrented to be exist in only one group
   // we should merge modules' dependencies into the same group
-  if merge_dependencies {
-    group_modules.par_iter_mut().for_each(|(_, match_group)| {
-      for m in match_group.modules.clone() {
-        // merge dependencies
+  let module_graph = compilation.get_module_graph();
+  group_modules.par_iter_mut().for_each(|(_, match_group)| {
+    for m in match_group.modules.clone() {
+      // merge dependencies
 
-        let mut stack = get_module_deps(m, &module_graph);
-        while let Some(m) = stack.pop() {
-          // if module is already in any group, skip
-          if modules_in_group.contains(&m) {
-            continue;
-          }
-
-          // if module is already in the group, skip
-          if !match_group.modules.insert(m) {
-            continue;
-          }
-
-          stack.extend(get_module_deps(m, &module_graph));
+      let mut stack = get_module_deps(m, &module_graph);
+      while let Some(m) = stack.pop() {
+        // if module is already in any group, skip
+        if modules_in_group.contains(&m) {
+          continue;
         }
+
+        // if module is already in the group, skip
+        if !match_group.add_module(m) {
+          continue;
+        }
+
+        stack.extend(get_module_deps(m, &module_graph));
       }
-    });
-  }
+    }
+  });
 
   let module_sizes = get_module_sizes(modules.par_iter().copied(), compilation);
 
@@ -260,25 +290,9 @@ pub(crate) async fn split(
     .into_par_iter()
     .filter_map(|(index_or_name, mut match_group)| {
       if let Either::Right(index) = &index_or_name {
-        if let Some(min_size) = &groups[*index].min_size {
-          if remove_min_size_violating_modules(
-            &groups[*index].key,
-            &groups[*index].key,
-            &mut match_group,
-            min_size,
-            &module_sizes,
-          ) {
-            return None;
-          }
-
-          // TODO:
-          // we don't support maxSize yet, as the maxSize split algorithm is complex
-          // it needs to split modules into multiple chunks if the size exceeds maxSize,
-          // but this is likely causing cycles in chunks, and if so, there is a great possibility
-          // causing runtime errors
-          // for example, A -> B -> C
-          // if the chunk split A and C into one chunk, and B into another chunk,
-          // then there will be a cycle between these two chunks
+        let min_size = &groups[*index].min_size;
+        if match_group.get_sizes(&module_sizes).smaller_than(min_size) {
+          return None;
         }
       }
 
@@ -286,17 +300,22 @@ pub(crate) async fn split(
     })
     .collect::<Vec<_>>();
 
-  for (index_or_name, match_group) in group_modules {
+  let mut splitted_modules = IdentifierSet::default();
+  for (index_or_name, mut match_group) in group_modules {
+    match_group
+      .modules
+      .retain(|m| !splitted_modules.contains(m));
+
     if match_group.modules.is_empty() {
       continue;
     }
 
+    // split chunk
     let chunk_name = match &index_or_name {
       Either::Left(name) => Some(name),
       Either::Right(_) => None,
     };
 
-    // split chunk
     let chunk_ukey = if let Some(chunk_name) = chunk_name {
       let (ukey, created) = Compilation::add_named_chunk(
         chunk_name.clone(),
@@ -306,8 +325,8 @@ pub(crate) async fn split(
 
       if !created {
         compilation.push_diagnostic(rspack_error::Diagnostic::warn(
-          "".into(),
-          format!("Merge modules into a existing chunk: {}. This can cause runtime errors if there are cyclic dependencies", chunk_name),
+          String::new(),
+          format!("Merge modules into a existing chunk: {chunk_name}. This can cause runtime errors if there are cyclic dependencies"),
         ));
       }
 
@@ -315,6 +334,17 @@ pub(crate) async fn split(
     } else {
       Compilation::add_chunk(&mut compilation.chunk_by_ukey)
     };
+
+    compilation.chunk_graph.add_chunk(chunk_ukey);
+
+    let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    if let Some(filename_template) = match_group.filename_template {
+      chunk.set_filename_template(Some(filename_template));
+    }
+
+    if let Some(name_hint) = match_group.name_hint {
+      chunk.add_id_name_hints(name_hint);
+    }
 
     let entry_modules = compilation.entry_modules();
 
@@ -324,11 +354,12 @@ pub(crate) async fn split(
         continue;
       }
 
+      let orig_chunk = EsmLibraryPlugin::get_module_chunk(*m, compilation);
+
       compilation
         .chunk_graph
         .connect_chunk_and_module(chunk_ukey, *m);
 
-      let orig_chunk = EsmLibraryPlugin::get_module_chunk(*m, compilation);
       compilation
         .chunk_graph
         .disconnect_chunk_and_module(&orig_chunk, *m);
@@ -353,11 +384,13 @@ pub(crate) async fn split(
         unreachable!()
       };
 
+      // chunk.set_filename_template();
+
       orig_chunk.split(chunk, &mut compilation.chunk_group_by_ukey);
     }
+
+    splitted_modules.extend(match_group.modules.clone());
   }
 
   Ok(())
 }
-
-fn ensure_min_size() {}

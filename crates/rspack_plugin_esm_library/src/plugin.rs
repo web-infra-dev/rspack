@@ -23,6 +23,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -30,7 +31,7 @@ use tokio::sync::RwLock;
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
   ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
-  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime, split_chunks::CacheGroup,
+  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -488,12 +489,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     if !errors.is_empty() {
       compilation.extend_diagnostics(errors);
     }
-  } else {
-    if let Some(cache_groups) = &self.split_chunks {
-      crate::split_chunks::split(cache_groups, compilation, true);
-    }
-    ensure_entry_exports(compilation);
+  } else if let Some(cache_groups) = &self.split_chunks {
+    crate::split_chunks::split(cache_groups, compilation).await?;
   }
+
+  ensure_entry_exports(compilation);
 
   Ok(None)
 }

@@ -263,7 +263,7 @@ fn deterministic_grouping_for_modules(
   let mut results: Vec<Group> = Default::default();
 
   let mut nodes = items
-    .into_iter()
+    .iter()
     .map(|module| {
       let module: &dyn Module = module.as_ref();
 

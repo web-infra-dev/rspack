@@ -419,7 +419,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(
           EsmLibraryPlugin::new(
             options.preserve_modules.as_deref().map(Into::into),
-            options.split_chunks.as_deref().map(Into::into),
+            options.split_chunks.map(Into::into),
           )
           .boxed(),
         );
