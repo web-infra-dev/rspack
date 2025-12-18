@@ -1,5 +1,6 @@
 import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import type React from 'react';
 import { useI18nUrl } from 'theme/i18n';
 
@@ -497,13 +498,7 @@ export const PluginSupportStatusTable: React.FC = () => {
         const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
         return {
-          name: url ? (
-            <a href={tUrl(url)} target="_blank" rel="noreferrer">
-              {name}
-            </a>
-          ) : (
-            name
-          ),
+          name: url ? <Link href={tUrl(url)}>{name}</Link> : name,
           status: statusText,
           notes: getNotesText(lang, notes, status),
         };

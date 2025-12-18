@@ -1,4 +1,5 @@
 import { NoSSR } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import style from './RandomMemberList.module.scss';
 
 interface Member {
@@ -210,33 +211,21 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
             <div className={style.name}>{item.name || item.id}</div>
             <div className={style.desc}>{item.desc}</div>
             <div className={style.icons}>
-              <a
+              <Link
                 className={style.icon}
                 href={`https://github.com/${item.id}`}
-                target="_blank"
-                rel="noreferrer"
               >
                 {GitHubSVG}
-              </a>
+              </Link>
               {item.x ? (
-                <a
-                  className={style.icon}
-                  href={item.x}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <Link className={style.icon} href={item.x}>
                   {TwitterSVG}
-                </a>
+                </Link>
               ) : null}
               {item.bluesky ? (
-                <a
-                  className={style.icon}
-                  href={item.bluesky}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <Link className={style.icon} href={item.bluesky}>
                   {BlueskySVG}
-                </a>
+                </Link>
               ) : null}
             </div>
           </div>

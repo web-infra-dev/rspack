@@ -1,6 +1,6 @@
-import Markdown from 'markdown-to-jsx';
-import type { ReactNode } from 'react';
-import { Table as BaseTable, Td, Th, Tr } from './mdx-components';
+import { getCustomMDXComponent, Link } from '@rspress/core/theme';
+import Markdown, { type MarkdownToJSX } from 'markdown-to-jsx';
+import type { JSX, ReactNode } from 'react';
 
 interface TableProps {
   children?: ReactNode[];
@@ -14,6 +14,14 @@ interface TableProps {
   tableStyle?: Record<string, string>;
   className?: string;
 }
+
+const MarkdownOptions = {
+  overrides: {
+    a: {
+      component: Link,
+    },
+  },
+} satisfies MarkdownToJSX.Options;
 
 // Use case example:
 //
@@ -41,43 +49,45 @@ export function Table(props: TableProps) {
   const compiledValue = body.map((item: any) => {
     for (const key of Object.keys(item)) {
       if (typeof item[key] === 'string') {
-        item[key] = <Markdown>{item[key]}</Markdown>;
+        item[key] = <Markdown options={MarkdownOptions}>{item[key]}</Markdown>;
       }
     }
     return item;
   });
 
+  const { table: Table } = getCustomMDXComponent();
+
   const renderHeaderItem = (name: string | JSX.Element) => {
     if (typeof name === 'string') {
-      return <Markdown>{name}</Markdown>;
+      return <Markdown options={MarkdownOptions}>{name}</Markdown>;
     }
     return name;
   };
 
   // generate table tag
   return (
-    <BaseTable style={tableStyle} className={props.className}>
+    <Table style={tableStyle} className={props.className}>
       <thead>
-        <Tr>
+        <tr>
           {header.map(item => (
-            <Th key={item.key} style={item.style}>
+            <th key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
-            </Th>
+            </th>
           ))}
-        </Tr>
+        </tr>
       </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => {
           const key = `row-${index}`;
           return (
-            <Tr key={key}>
+            <tr key={key}>
               {header.map(headerItem => (
-                <Td key={headerItem.key}>{item[headerItem.key]}</Td>
+                <td key={headerItem.key}>{item[headerItem.key]}</td>
               ))}
-            </Tr>
+            </tr>
           );
         })}
       </tbody>
-    </BaseTable>
+    </Table>
   );
 }
