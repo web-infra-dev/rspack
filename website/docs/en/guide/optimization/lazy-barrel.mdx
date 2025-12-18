@@ -20,11 +20,11 @@ This allows consumers to import from a single entry point:
 import { Button, Card } from './components';
 ```
 
-However, barrel files can cause performance issues because bundlers traditionally need to build **all** re-exported modules, even if only a few are actually used.
+However, barrel files can cause performance issues because bundlers traditionally need to build all re-exported modules, even if only a few are actually used.
 
 ## How lazy barrel works
 
-When lazy barrel optimization is enabled (which it is by default), Rspack will **skip building unused re-export modules** in side-effect-free barrel files until they're actually needed.
+When lazy barrel optimization is enabled (which it is by default), Rspack will skip building unused re-export modules in side-effect-free barrel files until they're actually needed.
 
 ### Example
 
@@ -43,7 +43,7 @@ export { Modal } from './Modal';
 
 With lazy barrel optimization:
 - ✅ Only `Button.js` is built
-- ✅ `Card.js`, `Modal.js`, and other unused modules are **not built**
+- ✅ `Card.js`, `Modal.js`, and other unused modules are not built
 - ✅ Faster build times, especially in large projects
 
 Without lazy barrel optimization:
@@ -52,9 +52,9 @@ Without lazy barrel optimization:
 
 ## Requirements
 
-For lazy barrel optimization to work, barrel files must be **side-effect-free**. A module is considered side-effect-free when it meets one of the following conditions:
+For lazy barrel optimization to work, barrel files must be side-effect-free. A module is considered side-effect-free when it meets one of the following conditions:
 
-1. **Package-level declaration**: The `package.json` file declares `"sideEffects": false`
+1. Package-level declaration: The `package.json` file declares `"sideEffects": false`
 
    ```json title="package.json"
    {
@@ -65,7 +65,7 @@ For lazy barrel optimization to work, barrel files must be **side-effect-free**.
 
    See [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis) for more details.
 
-2. **Module-level declaration**: Modules explicitly marked as side-effect-free through [`rules[].sideEffects`](/config/module-rules#rulessideeffects)
+2. Module-level declaration: Modules explicitly marked as side-effect-free through [`rules[].sideEffects`](/config/module-rules#rulessideeffects)
 
    ```js title="rspack.config.mjs"
    export default {
@@ -113,7 +113,7 @@ export default function App() { /* ... */ }
 
 ## Star re-exports (`export *`)
 
-Star re-exports (`export * from "./module"`) are **not fully optimized** by lazy barrel and remain a performance concern.
+Star re-exports (`export * from "./module"`) are not fully optimized by lazy barrel and remain a performance concern.
 
 ```js title="components/index.js (barrel file with star re-exports)"
 export * from './Button';
@@ -124,11 +124,11 @@ export const API_VERSION = '1.0';
 
 ### When lazy barrel can still optimize
 
-Lazy barrel will **skip building** star re-exports **only when**:
-1. The barrel file **is** side-effect-free, **and**
-2. The imported specifier **is found** in the barrel's named exports
+Lazy barrel will skip building star re-exports only when:
+1. The barrel file is side-effect-free, and
+2. The imported specifier is found in the barrel's named exports
 
-**Example scenario where optimization works:**
+Example scenario where optimization works:
 
 ```js title="src/index.js"
 import { API_VERSION } from './components';
@@ -137,9 +137,9 @@ console.log(API_VERSION);
 
 In this case:
 - ✅ `API_VERSION` is a named export in the barrel file itself
-- ✅ Rspack can optimize this—**no modules are built** (`Button.js`, `Card.js`, `Modal.js` are all skipped)
+- ✅ Rspack can optimize this—no modules are built (`Button.js`, `Card.js`, `Modal.js` are all skipped)
 
-**Example scenario where optimization fails:**
+Example scenario where optimization fails:
 
 ```js title="src/index.js"
 import { Button } from './components';
@@ -148,23 +148,23 @@ console.log(Button);
 
 In this case:
 - ❌ `Button` is not a named export in the barrel file—it's from `export * from './Button'`
-- ❌ Rspack must build `./Button.js` **and potentially all other star re-exports** to find which module exports `Button`
+- ❌ Rspack must build `./Button.js` and potentially all other star re-exports to find which module exports `Button`
 
 ## FAQ
 
 ### 1. Does lazy barrel support CommonJS?
 
-Currently, lazy barrel **only supports ES modules** (ESM). CommonJS support would require improvements to Rspack's CommonJS tree shaking, particularly the static analysis capabilities. Support for CommonJS may be added in a future release.
+Currently, lazy barrel only supports ES modules (ESM). CommonJS support would require improvements to Rspack's CommonJS tree shaking, particularly the static analysis capabilities. Support for CommonJS may be added in a future release.
 
 ### 2. Can Rspack automatically detect side-effect-free modules?
 
 Rspack can analyze whether a module has side effects (this capability is already used by [`optimization.sideEffects`](/config/optimization#optimizationsideeffects) for tree shaking). However, this analysis requires checking the module's dependencies recursively—a module is only truly side-effect-free when all its dependencies are also side-effect-free.
 
-During the make phase, dependencies must be built before their side effects can be analyzed. Lazy barrel is specifically designed to **avoid building** those dependencies. Therefore, it relies on explicit markers like `"sideEffects": false` in `package.json` or `rules[].sideEffects`, which don't require dependency checking since they declare the entire package or matched modules as side-effect-free.
+During the make phase, dependencies must be built before their side effects can be analyzed. Lazy barrel is specifically designed to avoid building those dependencies. Therefore, it relies on explicit markers like `"sideEffects": false` in `package.json` or `rules[].sideEffects`, which don't require dependency checking since they declare the entire package or matched modules as side-effect-free.
 
 ## Configuration
 
-Lazy barrel is **enabled by default** since Rspack 1.6.0. No configuration is needed.
+Lazy barrel is enabled by default since Rspack 1.6.0. No configuration is needed.
 
 If you're using an older version and have `experiments.lazyBarrel` in your configuration, you can safely remove it:
 

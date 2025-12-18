@@ -115,19 +115,6 @@ export default {
 此配置已被废弃，不再需要。内联导出优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 控制。
 :::
 
-## module.parser.javascript.inlineConst
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于控制是否在解析器中对常量导出执行跨模块内联优化。
-
-:::warning
-此配置已被废弃。请使用 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports)。
-:::
-
 ## experiments.inlineEnum
 
 <ApiMeta deprecatedVersion="1.7.0" />
@@ -141,21 +128,6 @@ export default {
 此配置已被废弃，不再需要。枚举内联优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 和 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 控制。
 
 详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
-:::
-
-## experiments.typeReexportsPresence
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于启用类型重导出的错误容忍。
-
-:::warning
-此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 控制。
-
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
 :::
 
 ## experiments.lazyBarrel
@@ -175,5 +147,33 @@ export default {
 Lazy barrel 现在是一个稳定功能，始终处于启用状态。它通过跳过无副作用 barrel 文件中未使用的重导出模块的构建来优化构建性能。
 
 更多详情，请参阅 [Lazy barrel 指南](/guide/optimization/lazy-barrel)。
+:::
+
+## experiments.typeReexportsPresence
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+用于启用类型重导出的错误容忍。
+
+:::warning
+此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 控制。
+
+详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
+:::
+
+## module.parser.javascript.inlineConst
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+用于控制是否在解析器中对常量导出执行跨模块内联优化。
+
+:::warning
+此配置已被废弃。请使用 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports)。
 :::
 
