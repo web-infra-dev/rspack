@@ -266,10 +266,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               requires: Vec::new(),
               assets: StatsAssetsGroup::default(),
             });
-          if let Some(n) = &options.name {
-            if !n.is_empty() {
-              expose_chunk_names.insert(expose_file_key, n.clone());
-            }
+          if let Some(n) = &options.name
+            && !n.is_empty()
+          {
+            expose_chunk_names.insert(expose_file_key, n.clone());
           }
         }
         continue;
@@ -432,28 +432,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
       let mut assets = None;
-      if let Some(chunk_name) = expose_chunk_names.get(expose_file_key) {
-        if let Some(chunk_key) = compilation.named_chunks.get(chunk_name) {
-          assets = Some(collect_assets_from_chunk(
-            compilation,
-            chunk_key,
-            &entry_point_names,
-          ));
-        }
+      if let Some(chunk_name) = expose_chunk_names.get(expose_file_key)
+        && let Some(chunk_key) = compilation.named_chunks.get(chunk_name)
+      {
+        assets = Some(collect_assets_from_chunk(
+          compilation,
+          chunk_key,
+          &entry_point_names,
+        ));
       }
-      if assets.is_none() {
-        if let Some(chunk_key) = compilation.named_chunks.get(expose_file_key) {
-          assets = Some(collect_assets_from_chunk(
-            compilation,
-            chunk_key,
-            &entry_point_names,
-          ));
-        }
+      if assets.is_none()
+        && let Some(chunk_key) = compilation.named_chunks.get(expose_file_key)
+      {
+        assets = Some(collect_assets_from_chunk(
+          compilation,
+          chunk_key,
+          &entry_point_names,
+        ));
       }
-      if assets.is_none() {
-        if let Some(module_id) = module_ids_by_name.get(expose_file_key) {
-          assets = collect_assets_for_module(compilation, module_id, &entry_point_names);
-        }
+      if assets.is_none()
+        && let Some(module_id) = module_ids_by_name.get(expose_file_key)
+      {
+        assets = collect_assets_for_module(compilation, module_id, &entry_point_names);
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
