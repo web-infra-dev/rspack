@@ -3,7 +3,6 @@ import { useLang } from '@rspress/core/runtime';
 import Markdown from 'markdown-to-jsx';
 import type React from 'react';
 import * as i18n from './i18n';
-import S from './PluginSupportStatusTable.module.scss';
 
 export enum CompatibleStatus {
   NotCompatible = 0,
@@ -379,7 +378,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
   return (
     <Table
-      className={S.PluginSupportStatusTable}
       header={[
         {
           name: lang === 'zh' ? '插件' : 'Plugin',

@@ -1,11 +1,6 @@
 import Markdown from 'markdown-to-jsx';
 import type { ReactNode } from 'react';
-import {
-  Table as ModernTable,
-  Td as ModernTableData,
-  Th as ModernTableHead,
-  Tr as ModernTableRow,
-} from './mdx-components';
+import { Table as BaseTable, Td, Th, Tr } from './mdx-components';
 
 interface TableProps {
   children?: ReactNode[];
@@ -31,12 +26,12 @@ interface TableProps {
 //   ]}
 //   body={[
 //     {
-//       name: 'Modern.js',
-//       description: 'A JavaScript framework for the modern web.',
+//       name: 'Foo',
+//       description: 'Description1',
 //     },
 //     {
-//       name: 'Modern.js Doc Tools',
-//       description: 'A tool for building documentation sites.',
+//       name: 'Bar',
+//       description: 'Description2',
 //     }
 //   ]}
 // />
@@ -61,30 +56,28 @@ export function Table(props: TableProps) {
 
   // generate table tag
   return (
-    <ModernTable style={tableStyle} className={props.className}>
+    <BaseTable style={tableStyle} className={props.className}>
       <thead>
-        <ModernTableRow>
+        <Tr>
           {header.map(item => (
-            <ModernTableHead key={item.key} style={item.style}>
+            <Th key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
-            </ModernTableHead>
+            </Th>
           ))}
-        </ModernTableRow>
+        </Tr>
       </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => {
           const key = `row-${index}`;
           return (
-            <ModernTableRow key={key}>
+            <Tr key={key}>
               {header.map(headerItem => (
-                <ModernTableData key={headerItem.key}>
-                  {item[headerItem.key]}
-                </ModernTableData>
+                <Td key={headerItem.key}>{item[headerItem.key]}</Td>
               ))}
-            </ModernTableRow>
+            </Tr>
           );
         })}
       </tbody>
-    </ModernTable>
+    </BaseTable>
   );
 }
