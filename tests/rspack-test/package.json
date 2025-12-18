@@ -67,7 +67,7 @@
     "coffeescript": "^2.7.0",
     "es5-ext": "^0.10.64",
     "is-ci": "4.1.0",
-    "less": "4.4.2",
+    "less": "4.5.1",
     "lodash-es": "^4.17.22",
     "mime-types": "^3.0.2",
     "bundle-loader": "^0.5.6",
