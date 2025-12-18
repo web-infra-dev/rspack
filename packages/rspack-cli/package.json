@@ -36,7 +36,7 @@
     "webpack-bundle-analyzer": "4.10.2"
   },
   "devDependencies": {
-    "@rslib/core": "0.18.4",
+    "@rslib/core": "0.18.5",
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",

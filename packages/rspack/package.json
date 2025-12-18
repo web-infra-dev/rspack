@@ -44,7 +44,7 @@
     "@ast-grep/napi": "^0.40.3",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.18.4",
+    "@rslib/core": "0.18.5",
     "@swc/types": "0.1.25",
     "@types/node": "^20.19.27",
     "@types/watchpack": "^2.4.5",
