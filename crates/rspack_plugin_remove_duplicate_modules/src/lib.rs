@@ -207,8 +207,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       continue;
     }
 
-    dbg!("here");
-
     // this is an empty chunk, and it only depends on 1 chunk, try reusing the existing chunks
     let dep_chunk = chunk_deps[&chunk_ukey]
       .iter()
@@ -285,7 +283,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     new_chunks.remove(&dep_chunk);
   }
 
-  if let Some(mutations) = compilation.incremental.mutations_write() {
+  if let Some(mut mutations) = compilation.incremental.mutations_write() {
     for chunk in new_chunks {
       mutations.add(Mutation::ChunkAdd { chunk });
     }
