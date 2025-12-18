@@ -32,11 +32,11 @@ console.log('bar.js');
 Building this project produces three chunks: `src_bar_js.js`, `src_foo_js.js`, and `main.js`. Inspecting them shows that `shared.js` exists in both `src_bar_js.js` and `src_foo_js.js`. We will cover how to remove duplicated modules later.
 
 :::tip
-Refer to [Module methods - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) for the detailed dynamic import API, as well as how to use dynamic expressions and magic comments in dynamic import.
-:::
 
-:::info
-Although `shared.js` exists in two chunks, it is executed only once, so you don't have to worry about multiple instances.
+1. Refer to [Module methods - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) for the detailed dynamic import API, as well as how to use dynamic expressions and magic comments in dynamic import.
+2. Although `shared.js` exists in two chunks, it is executed only once, so you don't have to worry about multiple instances.
+3. Use the [output.asyncChunks option](/config/output/#outputasyncchunks) to control whether dynamically imported modules generate independent async chunks.
+
 :::
 
 ## Entry point

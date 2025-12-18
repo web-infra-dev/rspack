@@ -32,11 +32,11 @@ console.log('bar.js');
 此时我们执行构建，会得到 3 个 Chunk ，`src_bar_js.js`，`src_foo_js.js` 以及 `main.js`，如果我们查看他们，会发现 `src_bar_js.js` 和 `src_foo_js.js` 中有重复的部分：`shared.js`，我们后面会介绍为何存在重复模块，以及如何去除重复模块。
 
 :::tip
-参考 [模块方法 - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) 了解详细的 dynamic import API，以及如何在 dynamic import 中使用动态表达式和 magic comments。
-:::
 
-:::info
-虽然 `shared.js` 在 2 个 Chunk 中重复出现，但它只会被执行一次，不用担心重复模块会重复执行的问题。
+1. 参考 [模块方法 - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) 了解详细的 dynamic import API，以及如何在 dynamic import 中使用动态表达式和 magic comments。
+2. 虽然 `shared.js` 在 2 个 chunks 中重复出现，但它只会被执行一次，不用担心重复模块会重复执行的问题。
+3. 使用 [output.asyncChunks 选项](/config/output/#outputasyncchunks) 可以控制动态导入的模块是否生成独立的异步 chunk。
+
 :::
 
 ## 分割入口起点（entry point）
