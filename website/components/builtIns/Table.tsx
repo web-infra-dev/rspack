@@ -1,11 +1,6 @@
 import Markdown from 'markdown-to-jsx';
 import type { ReactNode } from 'react';
-import {
-  Table as BaseTable,
-  Td as BaseTableData,
-  Th as BaseTableHead,
-  Tr as BaseTableRow,
-} from './mdx-components';
+import { Table as BaseTable, Td, Th, Tr } from './mdx-components';
 
 interface TableProps {
   children?: ReactNode[];
@@ -63,25 +58,23 @@ export function Table(props: TableProps) {
   return (
     <BaseTable style={tableStyle} className={props.className}>
       <thead>
-        <BaseTableRow>
+        <Tr>
           {header.map(item => (
-            <BaseTableHead key={item.key} style={item.style}>
+            <Th key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
-            </BaseTableHead>
+            </Th>
           ))}
-        </BaseTableRow>
+        </Tr>
       </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => {
           const key = `row-${index}`;
           return (
-            <BaseTableRow key={key}>
+            <Tr key={key}>
               {header.map(headerItem => (
-                <BaseTableData key={headerItem.key}>
-                  {item[headerItem.key]}
-                </BaseTableData>
+                <Td key={headerItem.key}>{item[headerItem.key]}</Td>
               ))}
-            </BaseTableRow>
+            </Tr>
           );
         })}
       </tbody>
