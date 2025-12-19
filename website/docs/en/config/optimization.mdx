@@ -385,6 +385,65 @@ The following values are supported:
 | true            | Same as 'deterministic'                                                                                                            |
 | false           | Keep original name. Good for readability and debugging.                                                                            |
 
+## optimization.inlineExports
+
+<ApiMeta addedVersion="1.7.0" />
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Performs cross-module inline optimization for:
+
+1. Exported constant value in leaf modules of the module graph:
+
+    - `null` or `undefined`
+    - `boolean` values (`true` or `false`)
+    - `number` with length \<= 6
+    - `string` with length \<= 6
+
+2. Exported TypeScript enums that collected by [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum)
+
+This optimization helps reduce bundle size and can improve runtime performance.
+
+A common use case is with `constants.js` files:
+
+```js
+// constants.js
+export const A = true;
+export const B = 'hello';
+
+// index.js
+import { A, B } from './constants';
+console.log(A ? 1 : 2);
+console.log(B.length);
+```
+
+When `inlineExports` is enabled, constant values will be inlined at their usage sites:
+
+```js
+// Bundled by Rspack: output.js
+const __webpack_modules__ = {
+  './index.js': () => {
+    // Constants are inlined directly
+    console.log(true ? 1 : 2);
+    console.log('hello'.length);
+    // If all exports from constants.js are inlined, the constants.js module
+    // will be optimized away and won't appear in the final output
+  },
+};
+```
+
+:::tip
+Since this feature relies on module export usage information ([optimization.usedExports](#optimizationusedexports)), it is recommended to enable it only in production mode where `usedExports` is enabled by default.
+:::
+
+For more details, refer to the [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const).
+
 ## optimization.innerGraph
 
 <PropertyType
