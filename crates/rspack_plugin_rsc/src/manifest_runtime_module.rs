@@ -20,7 +20,7 @@ use crate::{
 #[derive(Debug)]
 pub struct RscManifestRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
+  chunk_ukey: Option<ChunkUkey>,
 }
 
 impl RscManifestRuntimeModule {
@@ -41,6 +41,16 @@ impl RuntimeModule for RscManifestRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let server_compiler_id = compilation.compiler_id();
+
+    let Some(entry_name) = self
+      .chunk_ukey
+      .as_ref()
+      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
+      .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+      .and_then(|entry_options| entry_options.name.as_ref())
+    else {
+      return Ok(String::new());
+    };
 
     let mut state_by_compiler_id = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
     let plugin_state = state_by_compiler_id
@@ -70,8 +80,10 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let module_loading_literal = to_json_string_literal(module_loading).to_rspack_result()?;
     let entry_css_files_literal =
       to_json_string_literal(&plugin_state.entry_css_files).to_rspack_result()?;
-    let entry_js_files_literal =
-      to_json_string_literal(&plugin_state.entry_js_files).to_rspack_result()?;
+    let entry_js_files_literal = match &plugin_state.entry_js_files.get(entry_name) {
+      Some(entry_js_files) => to_json_string_literal(&entry_js_files).to_rspack_result()?,
+      None => to_json_string_literal("[]")?,
+    };
 
     Ok(formatdoc! {
         r#"
@@ -93,8 +105,8 @@ impl RuntimeModule for RscManifestRuntimeModule {
     })
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
+  fn attach(&mut self, chunk_ukey: ChunkUkey) {
+    self.chunk_ukey = Some(chunk_ukey);
   }
 }
 

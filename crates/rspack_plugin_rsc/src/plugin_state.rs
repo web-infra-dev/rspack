@@ -19,6 +19,11 @@ pub struct PluginState {
   // 例如 entry 具有不同的 layer，同一个 server entry 的表现将不同
   pub entry_css_imports: FxHashMap<String, FxIndexSet<String>>,
   pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
+  /// Nested map of JS chunk files for each entry pair.
+  ///
+  /// Structure:
+  /// - key: entry name
+  /// - value: ordered set of JS chunk file paths (deduped)
   pub entry_js_files: FxHashMap<String, FxIndexSet<String>>,
 }
 

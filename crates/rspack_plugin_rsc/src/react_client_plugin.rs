@@ -322,6 +322,34 @@ impl ReactClientPlugin {
   }
 }
 
+async fn record_entry_js_files(
+  compilation: &Compilation,
+  plugin_state: &mut PluginState,
+) -> Result<()> {
+  for (entry_name, chunk_group_ukey) in &compilation.entrypoints {
+    let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
+      continue;
+    };
+    let entry_js_files = plugin_state
+      .entry_js_files
+      .entry(entry_name.to_string())
+      .or_default();
+    for chunk_ukey in &chunk_group.chunks {
+      let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+        continue;
+      };
+      entry_js_files.extend(
+        chunk
+          .files()
+          .iter()
+          .filter(|file| file.ends_with(".js"))
+          .cloned(),
+      );
+    }
+  }
+  Ok(())
+}
+
 impl Plugin for ReactClientPlugin {
   fn name(&self) -> &'static str {
     "ReactClientPlugin"
@@ -412,6 +440,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       server_compiler_id.as_u32()
     ));
   };
+
+  let start = logger.time("record entry js files");
+  record_entry_js_files(compilation, plugin_state).await?;
+  logger.time_end(start);
 
   let start = logger.time("create client reference manifest");
   self.traverse_modules(compilation, plugin_state).await?;
