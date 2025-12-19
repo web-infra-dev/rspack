@@ -1,0 +1,216 @@
+# Lazy barrel
+
+Lazy barrel 是 Rspack 中一个稳定的优化功能，通过跳过无副作用 barrel 文件中未使用的重导出模块的构建来提升构建性能。
+
+## 什么是 barrel 文件
+
+Barrel 文件是一个从其他模块重导出功能的模块，常用于为包或目录创建更清晰的公共 API：
+
+```js title="components/index.js (barrel 文件)"
+export { Button } from './Button';
+export { Card } from './Card';
+export { Modal } from './Modal';
+export { Tabs } from './Tabs';
+// ... 几十个组件
+```
+
+这允许使用者从单一入口导入：
+
+```js
+import { Button, Card } from './components';
+```
+
+然而，barrel 文件可能会导致性能问题，因为打包工具传统上需要构建所有重导出的模块，即使只使用其中一小部分。
+
+## Lazy barrel 的工作原理
+
+当启用 lazy barrel 优化（默认启用）时，Rspack 会跳过无副作用 barrel 文件中未使用的重导出模块的构建，直到它们实际被需要。
+
+### 示例
+
+```js title="src/index.js"
+import { Button } from './components';
+
+console.log(Button);
+```
+
+```js title="src/components/index.js (barrel 文件)"
+export { Button } from './Button';
+export { Card } from './Card';
+export { Modal } from './Modal';
+// ... 更多导出
+```
+
+使用 lazy barrel 优化：
+- ✅ 只构建 `Button.js`
+- ✅ `Card.js`、`Modal.js` 和其他未使用的模块**不会被构建**
+- ✅ 更快的构建时间，特别是在大型项目中
+
+不使用 lazy barrel 优化：
+- ❌ 所有模块（`Button.js`、`Card.js`、`Modal.js` 等）都会被构建
+- ❌ 构建时间更慢，即使大多数模块未被使用
+
+## 使用要求
+
+为了使 lazy barrel 优化生效，barrel 文件必须是无副作用的。当模块满足以下条件之一时，被视为无副作用：
+
+1. 包级声明：`package.json` 文件声明了 `"sideEffects": false`
+
+   ```json title="package.json"
+   {
+     "name": "my-components",
+     "sideEffects": false
+   }
+   ```
+
+   详见[副作用分析](/guide/optimization/tree-shaking#副作用分析)。
+
+2. 模块级声明：通过 [`rules[].sideEffects`](/config/module-rules#rulessideeffects) 显式标记为无副作用的模块
+
+   ```js title="rspack.config.mjs"
+   export default {
+     module: {
+       rules: [
+         {
+           test: /\.js$/,
+           sideEffects: false,
+         },
+       ],
+     },
+   };
+   ```
+
+## 支持的导出模式
+
+Lazy barrel 优化适用于以下导出模式：
+
+### 具名重导出
+
+```js
+export { Component } from './Component';
+export { utils } from './utils';
+```
+
+### 命名空间重导出
+
+```js
+export * as Components from './components';
+```
+
+### 本地声明的具名导出
+
+```js
+export const API_URL = 'https://api.example.com';
+export function helper() { /* ... */ }
+```
+
+### 默认导出
+
+```js
+export default function App() { /* ... */ }
+// 对于 lazy barrel，名称是 "default"
+```
+
+## 星号重导出（`export *`）
+
+星号重导出（`export * from "./module"`）**未完全优化**，仍然是一个性能问题。
+
+```js title="不推荐"
+export * from './Button';
+export * from './Card';
+export * from './Modal';
+```
+
+在以下情况下，lazy barrel 仍会构建星号重导出：
+1. barrel 文件不是无副作用的，或者
+2. 你导入的特定导出在 barrel 的具名导出中未找到
+
+### Lazy barrel 仍可优化的情况
+
+Lazy barrel 将跳过构建星号重导出仅当：
+1. barrel 文件是无副作用的，并且
+2. 导入的标识符在 barrel 的具名导出中找到
+
+优化生效的场景示例：
+
+```js title="components/index.js (带星号重导出的 barrel 文件)"
+export * from './Button';
+export * from './Card';
+export * from './Modal';
+export const API_VERSION = '1.0';
+```
+
+```js title="src/index.js"
+import { API_VERSION } from './components';
+console.log(API_VERSION);
+```
+
+在这种情况下：
+- ✅ `API_VERSION` 是 barrel 文件本身的具名导出
+- ✅ Rspack 可以优化这个——不构建任何模块（`Button.js`、`Card.js`、`Modal.js` 全部跳过）
+
+优化失效的场景示例：
+
+```js title="src/index.js"
+import { Button } from './components';
+console.log(Button);
+```
+
+在这种情况下：
+- ❌ `Button` 不是 barrel 文件的具名导出——它来自 `export * from './Button'`
+- ❌ Rspack 必须构建 `./Button.js` 以及可能的所有其他星号重导出来找到哪个模块导出了 `Button`
+
+### 星号重导出为何有问题
+
+星号重导出要求打包工具：
+1. 读取重导出的模块以发现它导出了什么
+2. 可能需要解决命名冲突
+3. 检查循环依赖
+
+这破坏了惰性求值的目的，因为必须预先处理模块才能知道正在重导出什么。
+
+### 推荐的替代方案
+
+使用显式的具名重导出：
+
+```js title="推荐"
+export { Button, IconButton } from './Button';
+export { Card, CardHeader, CardBody } from './Card';
+export { Modal, ModalDialog } from './Modal';
+```
+
+## 常见问题
+
+### 1. Lazy barrel 是否支持 CommonJS？
+
+目前，lazy barrel 仅支持 ES 模块（ESM）。CommonJS 支持需要改进 Rspack 的 CommonJS tree shaking 能力，特别是静态分析部分。未来版本可能会添加对 CommonJS 的支持。
+
+### 2. Rspack 能否自动检测无副作用的模块？
+
+Rspack 可以分析模块是否有副作用（这个能力已经被 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects) 用于 tree shaking）。但是，这种分析需要递归检查模块的依赖——只有当所有依赖也都无副作用时，模块才真正无副作用。
+
+在 make 阶段，必须先构建依赖才能分析它们的副作用。Lazy barrel 专门设计用于避免构建这些依赖。因此，它依赖于显式标记，如 `package.json` 中的 `"sideEffects": false` 或 `rules[].sideEffects`，这些标记不需要依赖检查，因为它们声明整个包或匹配的模块都是无副作用的。
+
+## 配置
+
+Lazy barrel 自 Rspack 1.6.0 起默认启用。无需配置。
+
+如果你使用的是旧版本且配置中有 `experiments.lazyBarrel`，可以安全地移除它：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    lazyBarrel: true,
+-  },
+};
+```
+
+:::warning 废弃的配置
+`experiments.lazyBarrel` 配置选项已被废弃，将在 Rspack v2.0 中移除。参见[废弃选项](/config/deprecated-options#experimentslazybarrel)。
+:::
+
+## 延伸阅读
+
+- [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
+- [Tree shaking](/guide/optimization/tree-shaking)
+- [副作用分析](/guide/optimization/tree-shaking#副作用分析)
