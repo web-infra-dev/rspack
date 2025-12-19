@@ -728,6 +728,8 @@ impl ReactServerPlugin {
 
       plugin_state
         .entry_css_imports
+        .entry(entry_name.clone())
+        .or_default()
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {

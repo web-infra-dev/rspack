@@ -49,6 +49,7 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
 }
 
 fn record_module(
+  entry_name: &str,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
   client_reference_modules: &FxHashSet<ModuleIdentifier>,
@@ -57,34 +58,44 @@ fn record_module(
   required_chunks: &Vec<String>,
   plugin_state: &mut PluginState,
 ) {
-  if !client_reference_modules.contains(module_identifier) {
-    return;
-  }
-  let Some(module) = compilation.module_by_identifier(module_identifier) else {
-    return;
-  };
-  let Some(normal_module) = module.as_normal_module() else {
+  let Some(normal_module) = (client_reference_modules.contains(module_identifier))
+    .then(|| compilation.module_by_identifier(module_identifier))
+    .flatten()
+    .and_then(|m| m.as_normal_module())
+  else {
     return;
   };
-  if is_css_mod(module.as_ref()) {
-    let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+
+  if is_css_mod(normal_module) {
+    let (Some(chunk), Some(entry_css_imports)) = (
+      compilation.chunk_by_ukey.get(chunk_ukey),
+      plugin_state.entry_css_imports.get(entry_name),
+    ) else {
       return;
     };
+
+    let css_files: Vec<String> = chunk
+      .files()
+      .iter()
+      .filter(|file| file.ends_with(".css"))
+      .cloned()
+      .collect();
+    if css_files.is_empty() {
+      return;
+    }
+
+    let entry_css_files = plugin_state
+      .entry_css_files
+      .entry(entry_name.to_string())
+      .or_default();
+
     let resource = get_module_resource(normal_module);
-    println!("Recording CSS module resource: {}", resource);
-    for (server_entry, imports) in &plugin_state.entry_css_imports {
+    for (server_entry, imports) in entry_css_imports {
       if imports.get(resource.as_ref()).is_some() {
-        let css_files = plugin_state
-          .entry_css_files
+        entry_css_files
           .entry(server_entry.clone())
-          .or_default();
-        css_files.extend(
-          chunk
-            .files()
-            .iter()
-            .filter(|file| file.ends_with(".css"))
-            .cloned(),
-        );
+          .or_default()
+          .extend(css_files.iter().cloned());
       }
     }
     return;
@@ -111,6 +122,7 @@ fn record_module(
 }
 
 fn record_chunk_group(
+  entry_name: &str,
   client_reference_modules: &FxHashSet<ModuleIdentifier>,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
@@ -153,6 +165,7 @@ fn record_chunk_group(
       if let Some(concatenated_module) = module.as_concatenated_module() {
         for inner_module in concatenated_module.get_modules() {
           record_module(
+            entry_name,
             module_id,
             &inner_module.id,
             client_reference_modules,
@@ -164,6 +177,7 @@ fn record_chunk_group(
         }
       } else {
         record_module(
+          entry_name,
           module_id,
           &module_identifier,
           client_reference_modules,
@@ -185,6 +199,7 @@ fn record_chunk_group(
     let start_len = required_chunks.len();
     required_chunks.extend(child_required_chunks);
     record_chunk_group(
+      entry_name,
       client_reference_modules,
       child,
       compilation,
@@ -272,34 +287,6 @@ impl ReactClientPlugin {
     }
 
     for (entry_name, entrypoint_ukey) in &compilation.entrypoints {
-      let css_files = plugin_state
-        .entry_css_files
-        .entry(entry_name.to_string())
-        .or_default();
-
-      // manifest.entryCSSFiles[chunkEntryName] = entrypoint
-      //   .getFiles()
-      //   .filter((f) => !f.startsWith('static/css/pages/') && f.endsWith('.css'))
-      //   .map((file) => {
-      //     const source = compilation.getAsset(file)!.source.source()
-      //     if (
-      //       this.experimentalInlineCss &&
-      //       // Inline CSS currently does not work properly with HMR, so we only
-      //       // inline CSS in production.
-      //       !this.dev
-      //     ) {
-      //       return {
-      //         inlined: true,
-      //         path: file,
-      //         content: typeof source === 'string' ? source : source.toString(),
-      //       }
-      //     }
-      //     return {
-      //       inlined: false,
-      //       path: file,
-      //     }
-      //   })
-
       let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) else {
         continue;
       };
@@ -308,6 +295,7 @@ impl ReactClientPlugin {
       let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
       let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
       record_chunk_group(
+        entry_name,
         &client_reference_modules,
         entrypoint,
         compilation,

@@ -13,12 +13,8 @@ pub struct PluginState {
   pub client_modules: FxHashMap<String, ManifestExport>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
   pub server_actions: ServerReferenceManifest,
-  // Key: server entry name
-  // Value: CSS import specifiers/requests (e.g. resolved `path + query`)
-  // TODO: 应该区分同一个 server entry 在不同 entry 的情况，
-  // 例如 entry 具有不同的 layer，同一个 server entry 的表现将不同
-  pub entry_css_imports: FxHashMap<String, FxIndexSet<String>>,
-  pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
+  pub entry_css_imports: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
+  pub entry_css_files: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
   /// Nested map of JS chunk files for each entry pair.
   ///
   /// Structure:
