@@ -400,11 +400,10 @@ The following values are supported:
 Performs cross-module inline optimization for:
 
 1. Exported constant value in leaf modules of the module graph:
-
-    - `null` or `undefined`
-    - `boolean` values (`true` or `false`)
-    - `number` with length \<= 6
-    - `string` with length \<= 6
+   - `null` or `undefined`
+   - `boolean` values (`true` or `false`)
+   - `number` with length \<= 6
+   - `string` with length \<= 6
 
 2. Exported TypeScript enums that collected by [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum)
 

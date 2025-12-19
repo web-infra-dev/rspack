@@ -393,11 +393,10 @@ export default {
 对以下内容执行跨模块内联优化：
 
 1. 模块图叶子模块中导出的常量值：
-
-    - `null` 或 `undefined`
-    - `boolean` 值（`true` 或 `false`）
-    - 长度 \<= 6 的 `number`
-    - 长度 \<= 6 的 `string`
+   - `null` 或 `undefined`
+   - `boolean` 值（`true` 或 `false`）
+   - 长度 \<= 6 的 `number`
+   - 长度 \<= 6 的 `string`
 
 2. 由 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 收集的导出 TypeScript 枚举
 

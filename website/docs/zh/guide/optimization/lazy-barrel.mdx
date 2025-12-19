@@ -42,11 +42,13 @@ export { Modal } from './Modal';
 ```
 
 使用 lazy barrel 优化：
+
 - ✅ 只构建 `Button.js`
 - ✅ `Card.js`、`Modal.js` 和其他未使用的模块**不会被构建**
 - ✅ 更快的构建时间，特别是在大型项目中
 
 不使用 lazy barrel 优化：
+
 - ❌ 所有模块（`Button.js`、`Card.js`、`Modal.js` 等）都会被构建
 - ❌ 构建时间更慢，即使大多数模块未被使用
 
@@ -101,13 +103,17 @@ export * as Components from './components';
 
 ```js
 export const API_URL = 'https://api.example.com';
-export function helper() { /* ... */ }
+export function helper() {
+  /* ... */
+}
 ```
 
 ### 默认导出
 
 ```js
-export default function App() { /* ... */ }
+export default function App() {
+  /* ... */
+}
 // 对于 lazy barrel，名称是 "default"
 ```
 
@@ -122,12 +128,14 @@ export * from './Modal';
 ```
 
 在以下情况下，lazy barrel 仍会构建星号重导出：
+
 1. barrel 文件不是无副作用的，或者
 2. 你导入的特定导出在 barrel 的具名导出中未找到
 
 ### Lazy barrel 仍可优化的情况
 
 Lazy barrel 将跳过构建星号重导出仅当：
+
 1. barrel 文件是无副作用的，并且
 2. 导入的标识符在 barrel 的具名导出中找到
 
@@ -146,6 +154,7 @@ console.log(API_VERSION);
 ```
 
 在这种情况下：
+
 - ✅ `API_VERSION` 是 barrel 文件本身的具名导出
 - ✅ Rspack 可以优化这个——不构建任何模块（`Button.js`、`Card.js`、`Modal.js` 全部跳过）
 
@@ -157,12 +166,14 @@ console.log(Button);
 ```
 
 在这种情况下：
+
 - ❌ `Button` 不是 barrel 文件的具名导出——它来自 `export * from './Button'`
 - ❌ Rspack 必须构建 `./Button.js` 以及可能的所有其他星号重导出来找到哪个模块导出了 `Button`
 
 ### 星号重导出为何有问题
 
 星号重导出要求打包工具：
+
 1. 读取重导出的模块以发现它导出了什么
 2. 可能需要解决命名冲突
 3. 检查循环依赖
