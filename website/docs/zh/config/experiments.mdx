@@ -688,7 +688,6 @@ export default {
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
 
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
