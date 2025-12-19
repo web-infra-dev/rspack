@@ -36,4 +36,6 @@ pub struct LayersNames {
 
 pub const SERVER_REFERENCE_MANIFEST: &str = "server-reference-manifest";
 
-pub static REGEX_CSS: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.(css|scss|sass)(\?.*)?$").unwrap());
+pub static REGEX_CSS: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\.(css|less|sass|scss|styl|stylus|pcss|postcss|sss)(?:$|\?)$").unwrap()
+});

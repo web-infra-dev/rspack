@@ -8,7 +8,7 @@ use rspack_core::{
   CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
   CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId, EntryDependency,
   EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId,
-  ModuleIdentifier, ModuleType, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
+  ModuleIdentifier, NormalModule, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType,
   RuntimeGlobals, RuntimeSpec,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
@@ -18,25 +18,28 @@ use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
 };
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
-  ClientReferenceManifestPlugin,
+  // ClientReferenceManifestPlugin,
   client_compiler_handle::Coordinator,
   constants::{LAYERS_NAMES, REGEX_CSS},
-  loaders::action_entry_loader::parse_action_entries,
+  loaders::{
+    action_entry_loader::parse_action_entries, client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
+  },
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::ManifestExport,
-  utils::{ChunkModules, EntryModules},
+  utils::{ChunkModules, ServerEntryModules, get_module_resource, is_css_mod},
 };
 
-/// { [client import path]: [exported names] }
+// { [client import path]: [exported names] }
 pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
-pub type CssImports = FxHashMap<String, FxHashSet<String>>;
+// { [server entry path]: [css imports] }
+pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
 
 type ActionIdNamePair = (Atom, Atom);
 
@@ -45,8 +48,10 @@ struct ClientEntry {
   entry_name: String,
   runtime: Option<RuntimeSpec>,
   client_imports: ClientComponentImports,
+  css_imports: CssImports,
 }
 
+#[derive(Debug)]
 struct ComponentInfo {
   css_imports: CssImports,
   client_component_imports: ClientComponentImports,
@@ -172,28 +177,9 @@ impl Plugin for ReactServerPlugin {
       .process_assets
       .tap(process_assets::new(self));
 
-    ClientReferenceManifestPlugin::new().apply(ctx)?;
+    // ClientReferenceManifestPlugin::new().apply(ctx)?;
 
     Ok(())
-  }
-}
-
-fn get_module_resource(module: &dyn Module) -> String {
-  if let Some(module) = module.as_normal_module() {
-    let resource_resolved_data = module.resource_resolved_data();
-    let mod_path = resource_resolved_data
-      .path()
-      .map(|path| path.as_str())
-      .unwrap_or("");
-    let mod_query = resource_resolved_data.query().unwrap_or("");
-    // We have to always use the resolved request here to make sure the
-    // server and client are using the same module path (required by RSC), as
-    // the server compiler and client compiler have different resolve configs.
-    format!("{}{}", mod_path, mod_query)
-  } else if let Some(module) = module.as_context_module() {
-    module.identifier().to_string()
-  } else {
-    "".to_string()
   }
 }
 
@@ -297,18 +283,6 @@ fn add_client_import(
   }
 }
 
-// This function checks if a module is able to emit CSS resources. You should
-// never only rely on a single regex to do that.
-pub fn is_css_mod(module: &dyn Module) -> bool {
-  if let ModuleType::Custom(custom_type) = module.module_type() {
-    return custom_type == "css/mini-extract";
-  }
-  matches!(
-    module.module_type(),
-    ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto
-  )
-}
-
 // Determine if the whole module is client action, 'use server' in nested closure in the client module
 fn is_action_client_layer_module(module: &dyn Module) -> bool {
   let rsc = get_module_rsc_information(module);
@@ -336,12 +310,9 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
 impl ReactServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
-
     let mut created_ssr_dependencies_for_entry: FxHashMap<String, Vec<DependencyId>> =
       Default::default();
-
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
-
     let mut action_maps_per_entry: FxHashMap<
       String,
       (
@@ -349,44 +320,29 @@ impl ReactServerPlugin {
         FxHashMap<String, Vec<ActionIdNamePair>>,
       ),
     > = Default::default();
-
     let mut created_action_ids: FxHashSet<String> = Default::default();
 
     let module_graph = compilation.get_module_graph();
-    let entry_modules = EntryModules::new(compilation, &module_graph);
-    for (entry_module, entry_name, runtime) in entry_modules {
+    let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
+    for (server_entry_module, entry_name, runtime) in server_entry_modules {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
-      let mut merged_css_imports: CssImports = CssImports::default();
 
-      for dependency_id in module_graph.get_outgoing_deps_in_order(&entry_module.identifier()) {
-        let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
-          continue;
-        };
-        let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
-        else {
-          continue;
-        };
-        let component_info = self.collect_component_info_from_server_entry_dependency(
-          &entry_name,
-          runtime.as_ref(),
-          &compilation,
-          resolved_module.as_ref(),
-        );
-
-        for (dep, actions) in component_info.action_imports {
-          action_entry_imports.insert(dep, actions);
-        }
-
-        merged_css_imports.extend(component_info.css_imports);
-
-        if !component_info.client_component_imports.is_empty() {
-          client_entries_to_inject.push(ClientEntry {
-            entry_name: entry_name.to_string(),
-            runtime: runtime.clone(),
-            client_imports: component_info.client_component_imports,
-          });
-        }
+      let component_info = self.collect_component_info_from_server_entry_dependency(
+        runtime.as_ref(),
+        &compilation,
+        server_entry_module,
+      );
+      for (dep, actions) in component_info.action_imports {
+        action_entry_imports.insert(dep, actions);
+      }
+      if !component_info.client_component_imports.is_empty() {
+        client_entries_to_inject.push(ClientEntry {
+          entry_name: entry_name.to_string(),
+          runtime: runtime.clone(),
+          client_imports: component_info.client_component_imports,
+          css_imports: component_info.css_imports,
+        });
       }
 
       {
@@ -395,15 +351,7 @@ impl ReactServerPlugin {
           .entry(compilation.compiler_id())
           .or_insert(PluginState::default());
 
-        // TODO: deduplicate CSS Imports for depend on
-        for mut client_entry_to_inject in client_entries_to_inject {
-          let client_imports = &mut client_entry_to_inject.client_imports;
-          if let Some(css_imports) = merged_css_imports.get(&client_entry_to_inject.entry_name) {
-            for css_import in css_imports {
-              client_imports.insert(css_import.clone(), FxHashSet::default());
-            }
-          }
-
+        for client_entry_to_inject in client_entries_to_inject {
           let entry_name = client_entry_to_inject.entry_name.to_string();
           let injected = self
             .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject, plugin_state)
@@ -593,10 +541,9 @@ impl ReactServerPlugin {
 
   fn collect_component_info_from_server_entry_dependency(
     &self,
-    entry_name: &str,
     runtime: Option<&RuntimeSpec>,
     compilation: &Compilation,
-    resolved_module: &dyn Module,
+    resolved_module: &NormalModule,
   ) -> ComponentInfo {
     // Keep track of checked modules to avoid infinite loops with recursive imports.
     let mut visited_of_client_components_traverse: FxHashSet<String> = FxHashSet::default();
@@ -604,7 +551,7 @@ impl ReactServerPlugin {
     // Info to collect.
     let mut client_component_imports: ClientComponentImports = Default::default();
     let mut action_imports: Vec<(String, Vec<ActionIdNamePair>)> = Vec::new();
-    let mut css_imports: FxHashSet<String> = Default::default();
+    let mut css_imports: FxIndexSet<String> = Default::default();
 
     // Traverse the module graph to find all client components.
     self.filter_client_components(
@@ -619,7 +566,8 @@ impl ReactServerPlugin {
     );
 
     let mut css_imports_map: CssImports = Default::default();
-    css_imports_map.insert(entry_name.to_string(), css_imports);
+    let server_entry_resource = get_module_resource(resolved_module);
+    css_imports_map.insert(server_entry_resource.to_string(), css_imports);
 
     ComponentInfo {
       css_imports: css_imports_map,
@@ -636,18 +584,18 @@ impl ReactServerPlugin {
     visited: &mut FxHashSet<String>,
     client_component_imports: &mut ClientComponentImports,
     action_imports: &mut Vec<(String, Vec<ActionIdNamePair>)>,
-    css_imports: &mut FxHashSet<String>,
+    css_imports: &mut FxIndexSet<String>,
     compilation: &Compilation,
   ) {
-    let mod_resource = get_module_resource(module);
-    if mod_resource.is_empty() {
+    let resource = get_module_resource(module);
+    if resource.is_empty() {
       return;
     }
-    if visited.contains(&mod_resource) {
-      if client_component_imports.contains_key(&mod_resource) {
+    if visited.contains(resource.as_ref()) {
+      if client_component_imports.contains_key(resource.as_ref()) {
         add_client_import(
           module,
-          &mod_resource,
+          &resource,
           client_component_imports,
           imported_identifiers,
           false,
@@ -655,12 +603,12 @@ impl ReactServerPlugin {
       }
       return;
     }
-    visited.insert(mod_resource.clone());
+    visited.insert(resource.to_string());
 
     let actions = get_actions_from_build_info(module);
     if let Some(actions) = actions {
       action_imports.push((
-        mod_resource.clone(),
+        resource.to_string(),
         actions
           .iter()
           .map(|(id, name)| (id.clone(), name.clone()))
@@ -688,14 +636,14 @@ impl ReactServerPlugin {
         }
       }
 
-      css_imports.insert(mod_resource);
+      css_imports.insert(resource.to_string());
     } else if is_client_component_entry_module(module) {
-      if !client_component_imports.contains_key(&mod_resource) {
-        client_component_imports.insert(mod_resource.clone(), Default::default());
+      if !client_component_imports.contains_key(resource.as_ref()) {
+        client_component_imports.insert(resource.to_string(), Default::default());
       }
       add_client_import(
         module,
-        &mod_resource,
+        resource.as_ref(),
         client_component_imports,
         imported_identifiers,
         true,
@@ -761,35 +709,28 @@ impl ReactServerPlugin {
       entry_name,
       runtime,
       client_imports,
+      css_imports,
     } = client_entry;
 
     let mut should_invalidate = false;
 
-    let mut modules: Vec<_> = client_imports
-      .keys()
-      .map(|client_import_path| {
-        let ids: Vec<_> = client_imports[client_import_path].iter().cloned().collect();
-        (client_import_path.clone(), ids)
-      })
-      .collect();
-
-    modules.sort_unstable_by(|a, b| {
-      let a_is_css = REGEX_CSS.is_match(&a.0);
-      let b_is_css = REGEX_CSS.is_match(&b.0);
-      match (a_is_css, b_is_css) {
-        (false, true) => std::cmp::Ordering::Less,
-        (true, false) => std::cmp::Ordering::Greater,
-        (_, _) => a.0.cmp(&b.0),
-      }
-    });
-
     let client_browser_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
-      for (request, ids) in &modules {
-        serializer.append_pair(
-          "name",
-          "/Users/bytedance/Documents/github/webinfra_webinfra/rspack-rsc-examples/src/Todos.tsx",
-        );
+      let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
+      for request in merged_css_imports {
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": []
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+
+      plugin_state
+        .entry_css_imports
+        .extend(css_imports.into_iter());
+
+      for (request, ids) in &client_imports {
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": ids
@@ -798,12 +739,16 @@ impl ReactServerPlugin {
         serializer.append_pair("modules", &module_json);
       }
       serializer.append_pair("server", "false");
-      format!("builtin:client-entry-loader?{}!", serializer.finish())
+      format!(
+        "{}?{}!",
+        CLIENT_ENTRY_LOADER_IDENTIFIER,
+        serializer.finish()
+      )
     };
 
     let client_server_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
-      for (request, ids) in &modules {
+      for (request, ids) in &client_imports {
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": ids
@@ -812,7 +757,11 @@ impl ReactServerPlugin {
         serializer.append_pair("modules", &module_json);
       }
       serializer.append_pair("server", "true");
-      format!("builtin:client-entry-loader?{}!", serializer.finish())
+      format!(
+        "{}?{}!",
+        CLIENT_ENTRY_LOADER_IDENTIFIER,
+        serializer.finish()
+      )
     };
 
     // Add for the client compilation
@@ -931,23 +880,7 @@ impl ReactServerPlugin {
       return;
     }
 
-    // Match Resource is undefined unless an import is using the inline match resource syntax
-    // https://webpack.js.org/api/loaders/#inline-matchresource
-    let mod_path = normal_module
-      .match_resource()
-      .map(|resource| resource.path())
-      .unwrap_or(normal_module.resource_resolved_data().path());
-    let mod_query = normal_module.resource_resolved_data().query().unwrap_or("");
-    // query is already part of mod.resource
-    // so it's only necessary to add it for matchResource or mod.resourceResolveData
-    let resource = match mod_path {
-      Some(mod_path) => format!("{}{}", mod_path.as_str(), mod_query),
-      None => normal_module
-        .resource_resolved_data()
-        .resource()
-        .to_string(),
-    };
-
+    let resource = get_module_resource(normal_module);
     if resource.is_empty() {
       return;
     }
@@ -958,7 +891,9 @@ impl ReactServerPlugin {
       chunks: vec![],
       r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
     };
-    plugin_state.ssr_modules.insert(resource, manifest_export);
+    plugin_state
+      .ssr_modules
+      .insert(resource.to_string(), manifest_export);
   }
 
   fn traverse_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {

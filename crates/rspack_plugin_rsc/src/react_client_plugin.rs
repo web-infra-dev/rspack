@@ -9,14 +9,14 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
   constants::REGEX_CSS,
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
-  utils::GetServerCompilerId,
+  utils::{GetServerCompilerId, get_module_resource, is_css_mod},
 };
 
 pub struct ReactClientPluginOptions {
@@ -66,25 +66,27 @@ fn record_module(
   let Some(normal_module) = module.as_normal_module() else {
     return;
   };
-  if REGEX_CSS.is_match(&normal_module.request()) {
+  if is_css_mod(module.as_ref()) {
     let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
       return;
     };
-    // TODO: server entry 的 resource id 需要处理，现在是写死的
-    let css_files = plugin_state
-      .entry_css_files
-      .entry(
-        "/Users/bytedance/Documents/github/webinfra_webinfra/rspack-rsc-examples/src/Todos.tsx"
-          .to_string(),
-      )
-      .or_default();
-    css_files.extend(
-      chunk
-        .files()
-        .iter()
-        .filter(|file| file.ends_with(".css"))
-        .cloned(),
-    );
+    let resource = get_module_resource(normal_module);
+    println!("Recording CSS module resource: {}", resource);
+    for (server_entry, imports) in &plugin_state.entry_css_imports {
+      if imports.get(resource.as_ref()).is_some() {
+        let css_files = plugin_state
+          .entry_css_files
+          .entry(server_entry.clone())
+          .or_default();
+        css_files.extend(
+          chunk
+            .files()
+            .iter()
+            .filter(|file| file.ends_with(".css"))
+            .cloned(),
+        );
+      }
+    }
     return;
   }
 
@@ -241,7 +243,7 @@ impl ReactClientPlugin {
 
     let mut client_reference_modules: FxHashSet<ModuleIdentifier> = Default::default();
     let module_graph = compilation.get_module_graph();
-    for (entry_name, entry_data) in &compilation.entries {
+    for entry_data in compilation.entries.values() {
       for include_dependencies in &entry_data.include_dependencies {
         let Some(module_identifier) =
           module_graph.module_identifier_by_dependency_id(include_dependencies)
@@ -262,13 +264,6 @@ impl ReactClientPlugin {
         }
         for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
           let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
-            continue;
-          };
-          let Some(module) = module_graph.module_by_identifier(&connection.module_identifier())
-          else {
-            continue;
-          };
-          let Some(normal_module) = module.as_normal_module() else {
             continue;
           };
           client_reference_modules.insert(*connection.module_identifier());
@@ -365,6 +360,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   let context = compilation.options.context.clone();
   let mut include_dependencies = vec![];
+  println!(
+    "Injected client entries: {:?}",
+    plugin_state.injected_client_entries
+  );
   for (entry_name, import) in &plugin_state.injected_client_entries {
     {
       if compilation.entries.get(entry_name).is_none() {
@@ -400,7 +399,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[plugin_hook(CompilationProcessAssets for ReactClientPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ClientReferenceManifestPlugin");
+  let logger = compilation.get_logger("rspack.RscClientPlugin");
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
