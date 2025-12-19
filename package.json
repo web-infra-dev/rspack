@@ -66,6 +66,7 @@
     "@microsoft/api-extractor-model": "7.32.2",
     "@rslint/core": "0.1.13",
     "@rspack/cli": "workspace:*",
+    "@rstest/core": "^0.7.4",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/node": "^20.19.27",
@@ -74,7 +75,6 @@
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.7.4",
     "lint-staged": "^16.2.7",
     "prettier": "3.7.4",
     "prettier-2": "npm:prettier@2.8.8",
@@ -85,11 +85,19 @@
   },
   "packageManager": "pnpm@10.24.0",
   "pnpm": {
+    "packageExtensions": {
+      "@module-federation/enhanced@*": {
+        "dependencies": {
+          "tapable": "^2.2.1"
+        }
+      }
+    },
     "patchedDependencies": {
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
     },
     "onlyBuiltDependencies": [
       "@biomejs/biome",
+      "@parcel/watcher",
       "@swc/core",
       "core-js",
       "es5-ext",
