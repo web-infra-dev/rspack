@@ -400,6 +400,17 @@ var {} = {{}};
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let module_graph = compilation.get_module_graph();
+        let has_expose_entry = entries.iter().any(|(module, _)| {
+          module_graph
+            .module_by_identifier(module)
+            .map(|module| {
+              module
+                .source_types(&module_graph)
+                .contains(&SourceType::Expose)
+            })
+            .unwrap_or(false)
+        });
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
@@ -419,7 +430,6 @@ var {} = {{}};
             allow_inline_startup = false;
           }
           if allow_inline_startup && {
-            let module_graph = compilation.get_module_graph();
             let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
@@ -619,14 +629,36 @@ var {} = {{}};
             .into(),
           );
           startup.push("// run startup".into());
-          startup.push(
-            format!(
-              "var {} = {}();",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
-              runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
-            )
-            .into(),
-          );
+          if has_expose_entry
+            && runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP)
+          {
+            let require_global = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+            startup.push(
+              format!(
+                "if ({}.mfStartupBase) {}.mfStartupBase();",
+                require_global, require_global
+              )
+              .into(),
+            );
+            startup.push(
+              format!(
+                "var {} = ({}.mfStartup || {})();",
+                runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
+                require_global,
+                runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
+              )
+              .into(),
+            );
+          } else {
+            startup.push(
+              format!(
+                "var {} = {}();",
+                runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
+                runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
+              )
+              .into(),
+            );
+          }
         } else {
           startup.push("// startup".into());
           startup.push(buf2.join("\n").into());

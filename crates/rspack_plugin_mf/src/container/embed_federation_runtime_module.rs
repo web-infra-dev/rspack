@@ -110,10 +110,33 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let async_startup = compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+      let require_global = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE);
 
       let mut code = String::with_capacity(256 + module_executions.len());
 
-      // Expose a once-guarded startup hook on __webpack_require__ and keep the implementation
+      // Expose a once-guarded base startup hook so containers can run federation
+      // runtime setup without awaiting async preloads.
+      code.push_str(&format!(
+        "{require_global}.mfStartupBase = (function() {{\n"
+      ));
+      code.push_str("\tvar hasRun = false;\n");
+      code.push_str("\tvar result;\n");
+      code.push_str("\treturn function __webpack_require__mfStartupBase() {\n");
+      code.push_str("\t\tif (hasRun) return result;\n");
+      code.push_str("\t\thasRun = true;\n");
+      // Run embedded federation runtime modules once (may return a Promise)
+      code.push_str("\t\tresult = (function(){\n");
+      // Inline the federation runtime executions directly; keep newlines so the inserted code
+      // remains syntactically valid inside the startup function body.
+      code.push_str(&module_executions);
+      code.push_str("\t\t})();\n");
+      code.push_str("\t\treturn result;\n");
+      code.push_str("\t};\n");
+      code.push_str("})();\n");
+
+      // Expose a once-guarded async startup hook on __webpack_require__ and keep the implementation
       // minimal (single assignment + fewer temp bindings).
       code.push_str(&format!("{async_startup} = (function() {{\n"));
       code.push_str("\tvar hasRun = false;\n");
@@ -122,11 +145,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       code.push_str("\t\tif (hasRun) return result;\n");
       code.push_str("\t\thasRun = true;\n");
       // Run embedded federation runtime modules once (may return a Promise)
-      code.push_str("\t\tvar base = (function(){\n");
-      // Inline the federation runtime executions directly; keep newlines so the inserted code
-      // remains syntactically valid inside the startup function body.
-      code.push_str(&module_executions);
-      code.push_str("\t\t})();\n");
+      code.push_str(&format!(
+        "\t\tvar base = {require_global}.mfStartupBase && {require_global}.mfStartupBase();\n"
+      ));
       // Collect thenables from base + remote/consume handlers (mirrors webpack async startup)
       code
         .push_str("\t\tvar promises = base && typeof base.then === \"function\" ? [base] : [];\n");
@@ -176,6 +197,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       code.push_str("\t\treturn result;\n");
       code.push_str("\t};\n");
       code.push_str("})();\n");
+
+      // Preserve the original startup function for synchronous container entry execution.
+      code.push_str(&format!("{require_global}.mfStartup = {startup};\n"));
 
       let supports_arrow_function = compilation
         .options
