@@ -74,11 +74,12 @@ fn record_module(
       return;
     };
 
+    let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
     let css_files: Vec<String> = chunk
       .files()
       .iter()
       .filter(|file| file.ends_with(".css"))
-      .cloned()
+      .map(|file| format!("{}{}", prefix, file))
       .collect();
     if css_files.is_empty() {
       return;
@@ -212,6 +213,35 @@ fn record_chunk_group(
   }
 }
 
+async fn collect_entry_js_files(
+  compilation: &Compilation,
+  plugin_state: &mut PluginState,
+) -> Result<()> {
+  for (entry_name, chunk_group_ukey) in &compilation.entrypoints {
+    let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
+      continue;
+    };
+    let entry_js_files = plugin_state
+      .entry_js_files
+      .entry(entry_name.to_string())
+      .or_default();
+    for chunk_ukey in &chunk_group.chunks {
+      let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+        continue;
+      };
+      let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
+      entry_js_files.extend(
+        chunk
+          .files()
+          .iter()
+          .filter(|file| file.ends_with(".js"))
+          .map(|file| format!("{}{}", prefix, file)),
+      );
+    }
+  }
+  Ok(())
+}
+
 impl ReactClientPlugin {
   pub fn new(coordinator: Arc<Coordinator>) -> Self {
     Self::new_inner(coordinator)
@@ -310,34 +340,6 @@ impl ReactClientPlugin {
   }
 }
 
-async fn record_entry_js_files(
-  compilation: &Compilation,
-  plugin_state: &mut PluginState,
-) -> Result<()> {
-  for (entry_name, chunk_group_ukey) in &compilation.entrypoints {
-    let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
-      continue;
-    };
-    let entry_js_files = plugin_state
-      .entry_js_files
-      .entry(entry_name.to_string())
-      .or_default();
-    for chunk_ukey in &chunk_group.chunks {
-      let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
-        continue;
-      };
-      entry_js_files.extend(
-        chunk
-          .files()
-          .iter()
-          .filter(|file| file.ends_with(".js"))
-          .cloned(),
-      );
-    }
-  }
-  Ok(())
-}
-
 impl Plugin for ReactClientPlugin {
   fn name(&self) -> &'static str {
     "ReactClientPlugin"
@@ -359,7 +361,6 @@ impl Plugin for ReactClientPlugin {
 // before injecting client component entries. Stage 100 ensures proper ordering.
 #[plugin_hook(CompilerMake for ReactClientPlugin, stage = 100)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  println!("ReactClientPlugin make");
   self.coordinator.start_client_entries_compilation().await?;
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
@@ -376,10 +377,6 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   let context = compilation.options.context.clone();
   let mut include_dependencies = vec![];
-  println!(
-    "Injected client entries: {:?}",
-    plugin_state.injected_client_entries
-  );
   for (entry_name, import) in &plugin_state.injected_client_entries {
     {
       if compilation.entries.get(entry_name).is_none() {
@@ -429,12 +426,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     ));
   };
 
-  let start = logger.time("record entry js files");
-  record_entry_js_files(compilation, plugin_state).await?;
-  logger.time_end(start);
-
   let start = logger.time("create client reference manifest");
   self.traverse_modules(compilation, plugin_state).await?;
+  logger.time_end(start);
+
+  let start = logger.time("record entry js files");
+  collect_entry_js_files(compilation, plugin_state).await?;
   logger.time_end(start);
 
   self

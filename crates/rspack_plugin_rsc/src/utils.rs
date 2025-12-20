@@ -46,7 +46,6 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
     return true;
   }
   let resource = get_module_resource(module);
-  println!("is_css_mod resource: {}", resource);
   REGEX_CSS.is_match(resource.as_ref())
 }
 
