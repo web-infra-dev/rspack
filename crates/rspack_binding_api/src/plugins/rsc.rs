@@ -19,39 +19,17 @@ type InvalidateTsFn = Arc<ThreadsafeFunction<(), (), (), Status, false, true, 0>
 
 #[napi]
 pub struct JsCoordinator {
-  invalidate_server_compiler_ts_fn: InvalidateTsFn,
-  invalidate_client_compiler_ts_fn: InvalidateTsFn,
   get_server_compiler_id_ts_fn:
     Arc<ThreadsafeFunction<(), &'static External<CompilerId>, (), Status, false, true, 0>>,
-  coordinator: Option<Arc<Coordinator>>,
+  inner: Option<Arc<Coordinator>>,
 }
 
 #[napi]
 impl JsCoordinator {
   #[napi(constructor)]
   pub fn new(
-    invalidate_server_compiler_js_fn: Function<'static, (), ()>,
-    invalidate_client_compiler_js_fn: Function<'static, (), ()>,
     get_server_compiler_id_js_fn: Function<'static, (), &'static External<CompilerId>>,
   ) -> napi::Result<Self> {
-    let invalidate_server_compiler_ts_fn = Arc::new(
-      invalidate_server_compiler_js_fn
-        .build_threadsafe_function::<()>()
-        .callee_handled::<false>()
-        .max_queue_size::<0>()
-        .weak::<true>()
-        .build()?,
-    );
-
-    let invalidate_client_compiler_ts_fn = Arc::new(
-      invalidate_client_compiler_js_fn
-        .build_threadsafe_function::<()>()
-        .callee_handled::<false>()
-        .max_queue_size::<0>()
-        .weak::<true>()
-        .build()?,
-    );
-
     let get_server_compiler_id_ts_fn = Arc::new(
       get_server_compiler_id_js_fn
         .build_threadsafe_function::<()>()
@@ -62,32 +40,17 @@ impl JsCoordinator {
     );
 
     Ok(Self {
-      invalidate_server_compiler_ts_fn,
-      invalidate_client_compiler_ts_fn,
       get_server_compiler_id_ts_fn,
-      coordinator: None,
+      inner: None,
     })
   }
 }
 
 impl From<&mut JsCoordinator> for Arc<Coordinator> {
   fn from(value: &mut JsCoordinator) -> Self {
-    if let Some(coordinator) = &value.coordinator {
-      return coordinator.clone();
+    if let Some(inner) = &value.inner {
+      return inner.clone();
     }
-    let invalidate_server_compiler_ts_fn = value.invalidate_server_compiler_ts_fn.clone();
-    let invalidate_server_compiler =
-      Box::new(move || -> BoxFuture<'static, rspack_error::Result<()>> {
-        let ts_fn = invalidate_server_compiler_ts_fn.clone();
-        Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
-      });
-
-    let invalidate_client_compiler_ts_fn = value.invalidate_client_compiler_ts_fn.clone();
-    let invalidate_client_compiler =
-      Box::new(move || -> BoxFuture<'static, rspack_error::Result<()>> {
-        let ts_fn = invalidate_client_compiler_ts_fn.clone();
-        Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
-      });
 
     let get_server_compiler_id_ts_fn = value.get_server_compiler_id_ts_fn.clone();
     let get_server_compiler_id = Box::new(
@@ -100,12 +63,8 @@ impl From<&mut JsCoordinator> for Arc<Coordinator> {
       },
     );
 
-    let result = Arc::new(Coordinator::new(
-      invalidate_server_compiler,
-      invalidate_client_compiler,
-      get_server_compiler_id,
-    ));
-    value.coordinator = Some(result.clone());
-    result
+    let coordinator = Arc::new(Coordinator::new(get_server_compiler_id));
+    value.inner = Some(coordinator.clone());
+    coordinator
   }
 }

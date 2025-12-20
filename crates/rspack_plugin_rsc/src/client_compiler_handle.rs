@@ -1,51 +1,32 @@
-use std::sync::Arc;
-
-use futures::future::BoxFuture;
+use atomic_refcell::AtomicRefCell;
 use rspack_core::CompilerId;
-use rspack_error::{Result, ToStringResultToRspackResultExt};
-use tokio::sync::{Mutex, MutexGuard, Notify, OwnedMutexGuard};
+use rspack_error::Result;
+use tokio::sync::Notify;
 
-use crate::{
-  loaders::client_entry_loader::ClientEntry, plugin_state::PLUGIN_STATE_BY_COMPILER_ID,
-  utils::GetServerCompilerId,
-};
+use crate::utils::GetServerCompilerId;
 
-// Server 启动（只有 js 侧拿到最准确的状态）
-// Client 启动（只有 js 侧拿到最准确的状态）
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
   Idle,
   ServerEntriesCompiling,
-  ServerEntriesCompiled,
+  ServerEntriesDone,
   ClientEntriesCompiling,
-  ClientEntriesCompiled,
+  ClientEntriesDone,
   ServerActionsCompiling,
-  ServerActionsCompiled,
+  ServerActionsDone,
 }
 
-type InvalidateFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
-
 pub struct Coordinator {
-  state: Mutex<State>,
+  state: AtomicRefCell<State>,
   state_notify: Notify,
-
-  invalidate_server_compiler: InvalidateFn,
-  invalidate_client_compiler: InvalidateFn,
   get_server_compiler_id: GetServerCompilerId,
 }
 
 impl Coordinator {
-  pub fn new(
-    invalidate_server_compiler: InvalidateFn,
-    invalidate_client_compiler: InvalidateFn,
-    get_server_compiler_id: GetServerCompilerId,
-  ) -> Self {
+  pub fn new(get_server_compiler_id: GetServerCompilerId) -> Self {
     Self {
-      state: Mutex::new(State::Idle),
+      state: AtomicRefCell::new(State::Idle),
       state_notify: Default::default(),
-      invalidate_server_compiler,
-      invalidate_client_compiler,
       get_server_compiler_id,
     }
   }
@@ -54,24 +35,11 @@ impl Coordinator {
     (self.get_server_compiler_id)().await
   }
 
-  pub async fn idle(&self) -> Result<()> {
-    let mut state = self.state.lock().await;
-    if !matches!(*state, State::ServerActionsCompiled) {
-      return Err(rspack_error::error!(
-        "Invalid state transition: expected ServerActionsCompiled before idle, got {:?}",
-        *state
-      ));
-    }
-    *state = State::Idle;
-    self.state_notify.notify_waiters();
-    Ok(())
-  }
-
-  pub async fn wait_idle(&self) -> Result<()> {
+  async fn wait_for(&self, mut predicate: impl FnMut(State) -> bool) -> Result<()> {
     loop {
       {
-        let state = self.state.lock().await;
-        if matches!(*state, State::Idle) {
+        let state = *self.state.borrow();
+        if predicate(state) {
           return Ok(());
         }
       }
@@ -79,145 +47,132 @@ impl Coordinator {
     }
   }
 
+  async fn transition(&self, expected: State, next: State, context: &'static str) -> Result<()> {
+    let mut state = self.state.borrow_mut();
+    if *state != expected {
+      return Err(rspack_error::error!(
+        "Invalid state transition in {}: expected {:?}, got {:?}",
+        context,
+        expected,
+        *state
+      ));
+    }
+    *state = next;
+    self.state_notify.notify_waiters();
+    Ok(())
+  }
+
+  async fn set_if_current(&self, current: State, next: State) -> bool {
+    let mut state = self.state.borrow_mut();
+    if *state == current {
+      *state = next;
+      self.state_notify.notify_waiters();
+      true
+    } else {
+      false
+    }
+  }
+
+  pub async fn idle(&self) -> Result<()> {
+    self
+      .transition(State::ServerActionsDone, State::Idle, "idle")
+      .await
+  }
+
+  async fn wait_idle(&self) -> Result<()> {
+    self.wait_for(|s| s == State::Idle).await
+  }
+
   pub async fn start_server_entries_compilation(&self) -> Result<()> {
-    println!("start_server_entries_compilation");
     loop {
+      if self
+        .set_if_current(State::Idle, State::ServerEntriesCompiling)
+        .await
       {
-        let mut state = self.state.lock().await;
-        match *state {
-          State::Idle => {
-            *state = State::ServerEntriesCompiling;
-            self.state_notify.notify_waiters();
-            (self.invalidate_client_compiler)().await?;
-            return Ok(());
-          }
-          _ => {}
-        }
+        return Ok(());
       }
       self.wait_idle().await?;
     }
   }
 
   pub async fn complete_server_entries_compilation(&self) -> Result<()> {
-    println!("complete_server_entries_compilation");
-    let mut state = self.state.lock().await;
-    if !matches!(*state, State::ServerEntriesCompiling) {
-      return Err(rspack_error::error!(
-        "Invalid state transition: expected ServerEntriesCompiling before completing server entries, got {:?}",
-        *state
-      ));
-    }
-    *state = State::ServerEntriesCompiled;
-    println!("self.state_notify.notify_waiters()");
-    self.state_notify.notify_waiters();
-    Ok(())
+    self
+      .transition(
+        State::ServerEntriesCompiling,
+        State::ServerEntriesDone,
+        "complete_server_entries_compilation",
+      )
+      .await
   }
 
-  pub async fn wait_server_entries_compiled(&self) -> Result<()> {
-    loop {
-      {
-        let state = self.state.lock().await;
-        println!("wait_server_entries_compiled {:#?}", *state);
-        if matches!(*state, State::ServerEntriesCompiled) {
-          return Ok(());
-        }
-      }
-      self.state_notify.notified().await;
-    }
+  async fn wait_server_entries_compiled(&self) -> Result<()> {
+    self.wait_for(|s| s == State::ServerEntriesDone).await
   }
 
   pub async fn start_client_entries_compilation(&self) -> Result<()> {
-    println!("start_client_entries_compilation");
     loop {
+      if self
+        .set_if_current(State::ServerEntriesDone, State::ClientEntriesCompiling)
+        .await
       {
-        let mut state = self.state.lock().await;
-        match *state {
-          State::ServerEntriesCompiling => {}
-          State::ServerEntriesCompiled => {
-            *state = State::ClientEntriesCompiling;
-            self.state_notify.notify_waiters();
-            return Ok(());
-          }
-          State::ClientEntriesCompiling => {
-            panic!()
-          }
-          State::ClientEntriesCompiled => {
-            panic!()
-          }
-          State::Idle | State::ServerActionsCompiling | State::ServerActionsCompiled => {
-            println!("self.invalidate_server_compiler");
-            (self.invalidate_server_compiler)().await?;
-            println!("self.invalidate_server_compiler end");
-          }
-        }
+        return Ok(());
       }
       self.wait_server_entries_compiled().await?;
     }
   }
 
   pub async fn complete_client_entries_compilation(&self) -> Result<()> {
-    println!("complete_client_entries_compilation");
-    let mut state = self.state.lock().await;
-    if !matches!(*state, State::ClientEntriesCompiling) {
-      return Err(rspack_error::error!(
-        "Invalid state transition: expected ClientEntriesCompiling before completing server entries, got {:?}",
-        *state
-      ));
-    }
-    *state = State::ClientEntriesCompiled;
-    self.state_notify.notify_waiters();
-    Ok(())
+    self
+      .transition(
+        State::ClientEntriesCompiling,
+        State::ClientEntriesDone,
+        "complete_client_entries_compilation",
+      )
+      .await
   }
 
-  pub async fn wait_client_entries_compiled(&self) -> Result<()> {
-    loop {
-      {
-        let state = self.state.lock().await;
-        if matches!(*state, State::ClientEntriesCompiled) {
-          return Ok(());
-        }
-      }
-      self.state_notify.notified().await;
-    }
+  async fn wait_client_entries_compiled(&self) -> Result<()> {
+    self.wait_for(|s| s == State::ClientEntriesDone).await
   }
 
   pub async fn start_server_actions_compilation(&self) -> Result<()> {
-    println!("start_server_actions_compilation");
     loop {
+      if self
+        .set_if_current(State::ClientEntriesDone, State::ServerActionsCompiling)
+        .await
       {
-        let mut state = self.state.lock().await;
-        match *state {
-          State::ClientEntriesCompiled => {
-            *state = State::ServerActionsCompiling;
-            self.state_notify.notify_waiters();
-            return Ok(());
-          }
-          State::ServerEntriesCompiled | State::ClientEntriesCompiling => {
-            drop(state);
-            self.wait_client_entries_compiled().await?;
+        return Ok(());
+      }
+
+      {
+        let state = *self.state.borrow();
+        match state {
+          State::ServerEntriesDone | State::ClientEntriesCompiling => {
+            // fallthrough to wait below
           }
           _ => {
             return Err(rspack_error::error!(
-              "Invalid state transition: expected ServerEntriesCompiled/ClientEntriesCompiled/ClientEntriesCompiling before starting server actions, got {:?}",
-              *state
+              "Invalid state transition in start_server_actions_compilation: expected {:?}/{:?}/{:?}, got {:?}",
+              State::ServerEntriesDone,
+              State::ClientEntriesCompiling,
+              State::ClientEntriesDone,
+              state
             ));
           }
         }
       }
+
+      self.wait_client_entries_compiled().await?;
     }
   }
 
   pub async fn complete_server_actions_compilation(&self) -> Result<()> {
-    println!("complete_server_actions_compilation");
-    let mut state = self.state.lock().await;
-    if !matches!(*state, State::ServerActionsCompiling) {
-      return Err(rspack_error::error!(
-        "Invalid state transition: expected ServerActionsCompiling before completing server entries, got {:?}",
-        *state
-      ));
-    }
-    *state = State::ServerActionsCompiled;
-    self.state_notify.notify_waiters();
-    Ok(())
+    self
+      .transition(
+        State::ServerActionsCompiling,
+        State::ServerActionsDone,
+        "complete_server_actions_compilation",
+      )
+      .await
   }
 }

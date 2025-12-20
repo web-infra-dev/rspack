@@ -363,7 +363,7 @@ export declare class JsContextModuleFactoryBeforeResolveData {
 }
 
 export declare class JsCoordinator {
-  constructor(invalidateServerCompilerJsFn: () => void, invalidateClientCompilerJsFn: () => void, getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
+  constructor(getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
 }
 
 export declare class JsDependencies {

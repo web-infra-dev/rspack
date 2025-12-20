@@ -1,72 +1,25 @@
 import binding from "@rspack/binding";
 
 import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
-import rspack, { Compiler } from "../..";
-import { Coordinator } from "./coordinator";
+import { Compiler } from "../..";
+import { Coordinator, GET_OR_INIT_BINDING } from "./coordinator";
 
 export class RscServerPlugin extends RspackBuiltinPlugin {
 	name = "RscServerPlugin";
-	logger: any; // TODO: 类型信息
-	coordinator: Coordinator;
+	#coordinator: Coordinator;
 
 	constructor(coordinator: Coordinator) {
 		super();
-		this.coordinator = coordinator;
+		this.#coordinator = coordinator;
 	}
 
 	#resolve(serverCompiler: Compiler) {
-		this.coordinator.applyServerCompiler(serverCompiler);
-		// if (!this.clientCompilerOptions.output) {
-		// 	this.clientCompilerOptions.output = {};
-		// }
-		// if (!this.clientCompilerOptions.output.path) {
-		// 	this.clientCompilerOptions.output.path = path.join(
-		// 		serverCompiler.context,
-		// 		serverCompiler.outputPath,
-		// 		"dist/client"
-		// 	);
-		// }
-		// if (!this.clientCompilerOptions.plugins) {
-		// 	this.clientCompilerOptions.plugins = [];
-		// }
-		// this.clientCompilerOptions.plugins.push(
-		// 	new RscClientPlugin(serverCompiler)
-		// );
-
-		// const clientCompiler = createCompiler(this.clientCompilerOptions);
-
-		// if (serverCompiler.watchMode) {
-		// }
-
-		return this.coordinator.getBinding();
-	}
-
-	applyHMRPluginIfAbsent(compiler: Compiler) {
-		const HMRPluginExists = compiler.options.plugins.find(
-			plugin =>
-				plugin && plugin.constructor === rspack.HotModuleReplacementPlugin
-		);
-
-		if (HMRPluginExists) {
-			this.logger.warn(
-				'"hot: true" automatically applies HMR plugin, you don\'t have to add it manually to your Rspack configuration.'
-			);
-		} else {
-			// Apply the HMR plugin
-			const plugin = new rspack.HotModuleReplacementPlugin();
-			plugin.apply(compiler);
-		}
+		this.#coordinator.applyServerCompiler(serverCompiler);
+		// @ts-ignore
+		return this.#coordinator[GET_OR_INIT_BINDING]();
 	}
 
 	raw(compiler: Compiler): binding.BuiltinPlugin {
-		this.logger = compiler.getInfrastructureLogger("RSCPlugin");
-
-		// new rspack.EntryPlugin(compiler.context, getClientHotEntry(), {
-		// 	name: undefined
-		// }).apply(compiler);
-
-		// this.applyHMRPluginIfAbsent(compiler);
-
 		const bindingOptions = this.#resolve(compiler);
 		return createBuiltinPlugin(this.name, bindingOptions);
 	}

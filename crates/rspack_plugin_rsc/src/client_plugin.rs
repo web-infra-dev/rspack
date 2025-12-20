@@ -236,7 +236,7 @@ async fn collect_entry_js_files(
         chunk
           .files()
           .iter()
-          .filter(|file| file.ends_with(".js"))
+          .filter(|file| file.ends_with(".js") && !file.ends_with(".hot.js"))
           .map(|file| format!("{}{}", prefix, file)),
       );
     }
