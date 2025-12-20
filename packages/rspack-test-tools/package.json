@@ -50,7 +50,7 @@
     "jsdom": "^26.1.0",
     "memfs": "4.51.1",
     "path-serializer": "0.5.1",
-    "pretty-format": "29.7.0",
+    "pretty-format": "30.2.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
     "terser-webpack-plugin": "^5.3.16",
