@@ -10,6 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -227,29 +228,33 @@ async fn collect_entry_js_files(
       .entry_js_files
       .entry(entry_name.to_string())
       .or_default();
-    for chunk_ukey in &chunk_group.chunks {
-      let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
-        continue;
-      };
-      let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
-      entry_js_files.extend(
-        chunk
-          .files()
-          .iter()
-          .filter(|file| file.ends_with(".js") && !file.ends_with(".hot.js"))
-          .map(|file| format!("{}{}", prefix, file)),
-      );
-    }
+    let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
+
+    *entry_js_files = chunk_group
+      .get_files(&compilation.chunk_by_ukey)
+      .into_iter()
+      .filter(|chunk_file| chunk_file.ends_with(".js"))
+      .filter(|chunk_file| {
+        let Some(asset) = compilation.assets().get(chunk_file) else {
+          return true;
+        };
+        // Prevent hot-module files from being included
+        let asset_info = asset.get_info();
+        !(asset_info.hot_module_replacement.unwrap_or(false)
+          || asset_info.development.unwrap_or(false))
+      })
+      .map(|file| format!("{}{}", prefix, file))
+      .collect::<FxIndexSet<String>>();
   }
   Ok(())
 }
 
-fn collect_actions_in_dep(
+fn collect_actions(
   compilation: &Compilation,
   module_graph: &ModuleGraphRef<'_>,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
-  visited_module: &mut FxHashSet<ModuleIdentifier>,
+  visited_modules: &mut FxHashSet<ModuleIdentifier>,
 ) {
   let module = match module_graph.module_by_identifier(&module_identifier) {
     Some(m) => m,
@@ -261,10 +266,10 @@ fn collect_actions_in_dep(
     return;
   }
 
-  if visited_module.contains(module_identifier) {
+  if visited_modules.contains(module_identifier) {
     return;
   }
-  visited_module.insert(*module_identifier);
+  visited_modules.insert(*module_identifier);
 
   if let Some(action_ids) = module
     .build_info()
@@ -285,12 +290,12 @@ fn collect_actions_in_dep(
     let Some(resolved_module) = module_graph.get_resolved_module(dependency_id) else {
       continue;
     };
-    collect_actions_in_dep(
+    collect_actions(
       compilation,
       module_graph,
       resolved_module,
       collected_actions,
-      visited_module,
+      visited_modules,
     );
   }
 }
@@ -303,7 +308,7 @@ fn collect_client_actions_from_dependencies(
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
 
   // Keep track of checked modules to avoid infinite loops with recursive imports.
-  let mut visited_module: FxHashSet<Identifier> = Default::default();
+  let mut visited_modules: FxHashSet<Identifier> = Default::default();
 
   let module_graph = compilation.get_module_graph();
   for entry_dependency_id in entry_dependencies {
@@ -315,12 +320,12 @@ fn collect_client_actions_from_dependencies(
       let Some(module_identifier) = module_graph.get_resolved_module(dependency_id) else {
         continue;
       };
-      collect_actions_in_dep(
+      collect_actions(
         compilation,
         &module_graph,
         module_identifier,
         &mut collected_actions,
-        &mut visited_module,
+        &mut visited_modules,
       );
     }
   }

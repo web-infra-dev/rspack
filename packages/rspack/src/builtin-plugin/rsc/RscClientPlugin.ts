@@ -2,7 +2,7 @@ import binding from "@rspack/binding";
 
 import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
 import { Compiler } from "../..";
-import { Coordinator, GET_OR_INIT_BINDING } from "./coordinator";
+import { Coordinator, GET_OR_INIT_BINDING } from "./Coordinator";
 
 export class RscClientPlugin extends RspackBuiltinPlugin {
 	name = "RscClientPlugin";

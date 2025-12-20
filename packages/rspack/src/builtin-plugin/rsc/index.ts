@@ -1,5 +1,5 @@
 import { RspackPluginInstance } from "../..";
-import { Coordinator } from "./coordinator";
+import { Coordinator } from "./Coordinator";
 import { RscClientPlugin } from "./RscClientPlugin";
 import { RscServerPlugin } from "./RscServerPlugin";
 

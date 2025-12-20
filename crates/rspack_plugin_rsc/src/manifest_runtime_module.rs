@@ -81,7 +81,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       Some(entry_css_files) => to_json_string_literal(&entry_css_files).to_rspack_result()?,
       None => to_json_string_literal("{}")?,
     };
-    let entry_js_files_literal = match &plugin_state.entry_js_files.get(entry_name) {
+    let entry_js_files_literal = match &plugin_state.entry_js_files.remove(entry_name) {
       Some(entry_js_files) => to_json_string_literal(&entry_js_files).to_rspack_result()?,
       None => to_json_string_literal("[]")?,
     };
