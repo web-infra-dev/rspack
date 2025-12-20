@@ -70,7 +70,7 @@
     "@types/is-ci": "^3.0.4",
     "@types/node": "^20.19.27",
     "check-dependency-version-consistency": "^5.0.1",
-    "commander": "13.1.0",
+    "commander": "14.0.2",
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
