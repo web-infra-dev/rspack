@@ -54,17 +54,13 @@ pub fn parse_action_entries(v: &str) -> Result<Option<Vec<ActionEntry>>> {
         let Some(tuple) = tuple.as_array() else {
           return Ok(None);
         };
-        let Some(item1) = tuple.get(0) else {
-          continue;
+        let id = match tuple.get(0).and_then(|v| v.as_str()) {
+          Some(id) => id,
+          None => continue,
         };
-        let Some(id) = item1.as_str() else {
-          continue;
-        };
-        let Some(item2) = tuple.get(1) else {
-          continue;
-        };
-        let Some(exported_name) = item2.as_str() else {
-          continue;
+        let exported_name = match tuple.get(1).and_then(|v| v.as_str()) {
+          Some(v) => v,
+          None => continue,
         };
         action_entries.push(ActionEntry {
           id: id.to_string(),

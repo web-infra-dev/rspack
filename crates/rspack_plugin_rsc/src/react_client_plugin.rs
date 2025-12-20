@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::Identifiable;
+use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
-  CompilerMake, CrossOriginLoading, Dependency, EntryDependency, Logger, Module, ModuleGraph,
-  ModuleId, ModuleIdentifier, ModuleType, Plugin, chunk_graph_chunk::ChunkId,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
+  CompilerMake, CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
+  ModuleGraphRef, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,10 +14,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
-  constants::REGEX_CSS,
-  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
-  utils::{GetServerCompilerId, get_module_resource, is_css_mod},
+  utils::{get_module_resource, is_css_mod},
 };
 
 pub struct ReactClientPluginOptions {
@@ -28,6 +28,7 @@ pub struct ReactClientPluginOptions {
 pub struct ReactClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
+  client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
 }
 
 fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> Vec<String> {
@@ -242,9 +243,93 @@ async fn collect_entry_js_files(
   Ok(())
 }
 
+fn collect_actions_in_dep(
+  compilation: &Compilation,
+  module_graph: &ModuleGraphRef<'_>,
+  module_identifier: &ModuleIdentifier,
+  collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
+  visited_module: &mut FxHashSet<ModuleIdentifier>,
+) {
+  let module = match module_graph.module_by_identifier(&module_identifier) {
+    Some(m) => m,
+    None => return,
+  };
+
+  let module_resource = get_module_resource(module.as_ref());
+  if module_resource.is_empty() {
+    return;
+  }
+
+  if visited_module.contains(module_identifier) {
+    return;
+  }
+  visited_module.insert(*module_identifier);
+
+  if let Some(action_ids) = module
+    .build_info()
+    .rsc
+    .as_ref()
+    .and_then(|rsc| rsc.action_ids.as_ref())
+  {
+    let pairs = action_ids
+      .into_iter()
+      .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
+      .collect::<Vec<_>>();
+
+    collected_actions.insert(module_resource.to_string(), pairs);
+  }
+
+  // Collect used exported actions transversely.
+  for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
+    let Some(resolved_module) = module_graph.get_resolved_module(dependency_id) else {
+      continue;
+    };
+    collect_actions_in_dep(
+      compilation,
+      module_graph,
+      resolved_module,
+      collected_actions,
+      visited_module,
+    );
+  }
+}
+
+fn collect_client_actions_from_dependencies(
+  compilation: &Compilation,
+  entry_dependencies: &FxHashSet<DependencyId>,
+) -> FxHashMap<String, Vec<ActionIdNamePair>> {
+  // action file path -> action names
+  let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
+
+  // Keep track of checked modules to avoid infinite loops with recursive imports.
+  let mut visited_module: FxHashSet<Identifier> = Default::default();
+
+  let module_graph = compilation.get_module_graph();
+  for entry_dependency_id in entry_dependencies {
+    let Some(entry_module_identifier) = module_graph.get_resolved_module(entry_dependency_id)
+    else {
+      continue;
+    };
+    for dependency_id in module_graph.get_outgoing_deps_in_order(entry_module_identifier) {
+      let Some(module_identifier) = module_graph.get_resolved_module(dependency_id) else {
+        continue;
+      };
+      collect_actions_in_dep(
+        compilation,
+        &module_graph,
+        module_identifier,
+        &mut collected_actions,
+        &mut visited_module,
+      );
+    }
+  }
+
+  collected_actions
+}
+
 impl ReactClientPlugin {
   pub fn new(coordinator: Arc<Coordinator>) -> Self {
-    Self::new_inner(coordinator)
+    Self::new_inner(coordinator, Default::default())
   }
 
   async fn traverse_modules(
@@ -395,6 +480,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         None,
         false,
       ));
+      self
+        .client_entries_per_entry
+        .borrow_mut()
+        .entry(entry_name.clone())
+        .or_default()
+        .insert(*dependency.id());
       include_dependencies.push(*dependency.id());
       compilation
         .get_module_graph_mut()
@@ -433,6 +524,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("record entry js files");
   collect_entry_js_files(compilation, plugin_state).await?;
   logger.time_end(start);
+
+  for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
+    let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
+    plugin_state
+      .client_actions_per_entry
+      .insert(entry_name.clone(), client_actions);
+  }
 
   self
     .coordinator

@@ -26,12 +26,12 @@ use swc_core::atoms::{Atom, Wtf8Atom};
 use crate::{
   // ClientReferenceManifestPlugin,
   client_compiler_handle::Coordinator,
-  constants::{LAYERS_NAMES, REGEX_CSS},
+  constants::LAYERS_NAMES,
   loaders::{
     action_entry_loader::parse_action_entries, client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
   manifest_runtime_module::RscManifestRuntimeModule,
-  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::ManifestExport,
   utils::{ChunkModules, ServerEntryModules, get_module_resource, is_css_mod},
 };
@@ -40,8 +40,6 @@ use crate::{
 pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
 // { [server entry path]: [css imports] }
 pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
-
-type ActionIdNamePair = (Atom, Atom);
 
 #[derive(Debug)]
 struct ClientEntry {
@@ -313,20 +311,18 @@ impl ReactServerPlugin {
     let mut created_ssr_dependencies_for_entry: FxHashMap<String, Vec<DependencyId>> =
       Default::default();
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
-    let mut action_maps_per_entry: FxHashMap<
-      String,
-      (
-        Option<RuntimeSpec>,
-        FxHashMap<String, Vec<ActionIdNamePair>>,
-      ),
-    > = Default::default();
+    let mut server_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>> =
+      Default::default();
     let mut created_action_ids: FxHashSet<String> = Default::default();
+    let mut runtime_per_entry: FxHashMap<String, Option<RuntimeSpec>> = Default::default();
 
     let module_graph = compilation.get_module_graph();
     let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
     for (server_entry_module, entry_name, runtime) in server_entry_modules {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
+
+      runtime_per_entry.insert(entry_name.to_string(), runtime.clone());
 
       let component_info = self.collect_component_info_from_server_entry_dependency(
         runtime.as_ref(),
@@ -368,15 +364,15 @@ impl ReactServerPlugin {
       }
 
       if !action_entry_imports.is_empty() {
-        action_maps_per_entry
+        server_actions_per_entry
           .entry(entry_name.to_string())
-          .or_insert((runtime, Default::default()))
-          .1
+          .or_default()
           .extend(action_entry_imports);
       }
     }
 
-    for (name, (runtime, action_entry_imports)) in action_maps_per_entry {
+    for (name, action_entry_imports) in server_actions_per_entry {
+      let runtime = runtime_per_entry.get(&name).cloned().unwrap_or_default();
       self
         .inject_action_entry(
           compilation,
@@ -458,68 +454,50 @@ impl ReactServerPlugin {
       .complete_server_actions_compilation()
       .await?;
 
-    // let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
-    // let mut action_maps_per_client_entry: FxHashMap<
-    //   String,
-    //   FxHashMap<String, Vec<ActionIdNamePair>>,
-    // > = Default::default();
+    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
+    let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+    let plugin_state = guard.get(&compilation.compiler_id()).unwrap();
 
-    // // We need to create extra action entries that are created from the
-    // // client layer.
-    // // Start from each entry's created SSR dependency from our previous step.
-    // for (name, ssr_entry_dependencies) in created_ssr_dependencies_for_entry {
-    //   // Collect from all entries, e.g. layout.js, page.js, loading.js, ...
-    //   // add aggregate them.
-    //   let action_entry_imports =
-    //     self.collect_client_actions_from_dependencies(compilation, ssr_entry_dependencies);
+    for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
+      // If an action method is already created in the server layer, we don't
+      // need to create it again in the action layer.
+      // This is to avoid duplicate action instances and make sure the module
+      // state is shared.
+      let mut remaining_client_imported_actions = false;
+      let mut remaining_action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> =
+        Default::default();
+      let runtime = runtime_per_entry
+        .get(entry_name)
+        .cloned()
+        .unwrap_or_default();
+      for (dep, actions) in action_entry_imports {
+        let mut remaining_actions: Vec<ActionIdNamePair> = Vec::new();
+        for action in actions {
+          if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.0)) {
+            remaining_actions.push(action.clone());
+          }
+        }
+        if !remaining_actions.is_empty() {
+          remaining_action_entry_imports.insert(dep.clone(), remaining_actions);
+          remaining_client_imported_actions = true;
+        }
+      }
 
-    //   if !action_entry_imports.is_empty() {
-    //     if !action_maps_per_client_entry.contains_key(&name) {
-    //       action_maps_per_client_entry.insert(name.clone(), HashMap::default());
-    //     }
-    //     let entry = action_maps_per_client_entry.get_mut(&name).unwrap();
-    //     for (key, value) in action_entry_imports {
-    //       entry.insert(key.clone(), value);
-    //     }
-    //   }
-    // }
-
-    // for (entry_name, action_entry_imports) in action_maps_per_client_entry {
-    //   // If an action method is already created in the server layer, we don't
-    //   // need to create it again in the action layer.
-    //   // This is to avoid duplicate action instances and make sure the module
-    //   // state is shared.
-    //   let mut remaining_client_imported_actions = false;
-    //   let mut remaining_action_entry_imports = HashMap::default();
-    //   for (dep, actions) in action_entry_imports {
-    //     let mut remaining_action_names = Vec::new();
-    //     for (id, name) in actions {
-    //       // `action` is a [id, name] pair.
-    //       if !created_action_ids.contains(&format!("{}@{}", entry_name, &id)) {
-    //         remaining_action_names.push((id, name));
-    //       }
-    //     }
-    //     if !remaining_action_names.is_empty() {
-    //       remaining_action_entry_imports.insert(dep.clone(), remaining_action_names);
-    //       remaining_client_imported_actions = true;
-    //     }
-    //   }
-
-    //   if remaining_client_imported_actions {
-    //     self
-    //       .inject_action_entry(
-    //         compilation,
-    //         ActionEntry {
-    //           actions: remaining_action_entry_imports,
-    //           entry_name: entry_name.clone(),
-    //           bundle_path: entry_name.clone(),
-    //           from_client: true,
-    //           created_action_ids: &mut created_action_ids,
-    //         },
-    //       )
-    //       .map(|injected| added_client_action_entry_list.push(injected));
-    //   }
-    // }
+      if remaining_client_imported_actions {
+        self
+          .inject_action_entry(
+            compilation,
+            ActionEntry {
+              actions: remaining_action_entry_imports,
+              entry_name: entry_name.clone(),
+              runtime,
+              from_client: true,
+            },
+            &mut created_action_ids,
+          )
+          .map(|injected| added_client_action_entry_list.push(injected));
+      }
+    }
     // let included_deps: Vec<_> = added_client_action_entry_list
     //   .iter()
     //   .map(|(dep, _)| *dep.id())
@@ -611,7 +589,7 @@ impl ReactServerPlugin {
         resource.to_string(),
         actions
           .iter()
-          .map(|(id, name)| (id.clone(), name.clone()))
+          .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
           .collect(),
       ));
     }

@@ -4706,6 +4706,7 @@ name = "rspack_plugin_rsc"
 version = "0.6.3"
 dependencies = [
  "async-trait",
+ "atomic_refcell",
  "derive_more",
  "form_urlencoded",
  "futures",

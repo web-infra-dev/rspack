@@ -1,10 +1,12 @@
 use once_cell::sync::Lazy;
 use rspack_core::CompilerId;
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 use rustc_hash::FxHashMap;
 use tokio::sync::Mutex;
 
 use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceManifest};
+
+pub type ActionIdNamePair = (Atom, Atom);
 
 #[derive(Debug, Default)]
 pub struct PluginState {
@@ -12,6 +14,7 @@ pub struct PluginState {
   pub injected_client_entries: FxHashMap<String, String>,
   pub client_modules: FxHashMap<String, ManifestExport>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
+  pub client_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>>,
   pub server_actions: ServerReferenceManifest,
   pub entry_css_imports: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
   pub entry_css_files: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
