@@ -58,7 +58,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "10.24.0"
+    "pnpm": "10.26.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
@@ -83,7 +83,7 @@
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.26.1",
   "pnpm": {
     "patchedDependencies": {
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
