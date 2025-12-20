@@ -18,7 +18,7 @@ pub struct ClientEntry {
   ids: Vec<String>,
 }
 
-pub const CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:client-entry-loader";
+pub const CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-client-entry-loader";
 
 #[cacheable]
 #[derive(Debug)]

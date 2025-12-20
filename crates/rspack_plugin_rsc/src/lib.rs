@@ -1,17 +1,17 @@
 mod client_compiler_handle;
+mod client_plugin;
 mod constants;
 mod loaders;
 mod manifest_runtime_module;
 mod plugin_state;
-mod react_client_plugin;
-mod react_server_plugin;
 mod reference_manifest;
+mod server_plugin;
 mod utils;
 
 pub use client_compiler_handle::Coordinator;
+pub use client_plugin::{RscClientPlugin, RscClientPluginOptions};
 pub use loaders::{
   action_entry_loader_plugin::ActionEntryLoaderPlugin,
   client_entry_loader_plugin::ClientEntryLoaderPlugin,
 };
-pub use react_client_plugin::{ReactClientPlugin, ReactClientPluginOptions};
-pub use react_server_plugin::ReactServerPlugin;
+pub use server_plugin::RscServerPlugin;

@@ -4,8 +4,8 @@ import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
 import rspack, { Compiler } from "../..";
 import { Coordinator } from "./coordinator";
 
-export class ReactServerPlugin extends RspackBuiltinPlugin {
-	name = "ReactServerPlugin";
+export class RscServerPlugin extends RspackBuiltinPlugin {
+	name = "RscServerPlugin";
 	logger: any; // TODO: 类型信息
 	coordinator: Coordinator;
 
@@ -30,7 +30,7 @@ export class ReactServerPlugin extends RspackBuiltinPlugin {
 		// 	this.clientCompilerOptions.plugins = [];
 		// }
 		// this.clientCompilerOptions.plugins.push(
-		// 	new ReactClientPlugin(serverCompiler)
+		// 	new RscClientPlugin(serverCompiler)
 		// );
 
 		// const clientCompiler = createCompiler(this.clientCompilerOptions);

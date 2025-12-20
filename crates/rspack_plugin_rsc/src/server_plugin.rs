@@ -28,7 +28,8 @@ use crate::{
   client_compiler_handle::Coordinator,
   constants::LAYERS_NAMES,
   loaders::{
-    action_entry_loader::parse_action_entries, client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
+    action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
+    client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
@@ -81,18 +82,18 @@ struct InjectedActionEntry {
 
 #[plugin]
 #[derive(Debug)]
-pub struct ReactServerPlugin {
+pub struct RscServerPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
 }
 
-impl ReactServerPlugin {
+impl RscServerPlugin {
   pub fn new(coordinator: Arc<Coordinator>) -> Self {
     Self::new_inner(coordinator)
   }
 }
 
-#[plugin_hook(CompilerThisCompilation for ReactServerPlugin)]
+#[plugin_hook(CompilerThisCompilation for RscServerPlugin)]
 async fn this_compilation(
   &self,
   _compilation: &mut Compilation,
@@ -103,9 +104,9 @@ async fn this_compilation(
   Ok(())
 }
 
-#[plugin_hook(CompilerFinishMake for ReactServerPlugin)]
+#[plugin_hook(CompilerFinishMake for RscServerPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ReactServerPlugin");
+  let logger = compilation.get_logger("rspack.RscServerPlugin");
 
   let start = logger.time("create client entries");
   self.create_client_entries(compilation).await?;
@@ -114,7 +115,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationRuntimeRequirementInTree for ReactServerPlugin)]
+#[plugin_hook(CompilationRuntimeRequirementInTree for RscServerPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
@@ -130,9 +131,9 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[plugin_hook(CompilationProcessAssets for ReactServerPlugin)]
+#[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.ReactServerPlugin");
+  let logger = compilation.get_logger("rspack.RscServerPlugin");
 
   let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
   let plugin_state = guard
@@ -152,9 +153,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-impl Plugin for ReactServerPlugin {
+impl Plugin for RscServerPlugin {
   fn name(&self) -> &'static str {
-    "rspack.ReactServerPlugin"
+    "rspack.RscServerPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
@@ -305,7 +306,7 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
   has_client_directive || is_action_layer_entry || is_image
 }
 
-impl ReactServerPlugin {
+impl RscServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
     let mut created_ssr_dependencies_for_entry: FxHashMap<String, Vec<DependencyId>> =
@@ -809,7 +810,11 @@ impl ReactServerPlugin {
     let mut serializer = form_urlencoded::Serializer::new(String::new());
     serializer.append_pair("actions", &serde_json::to_string(&actions).unwrap());
     serializer.append_pair("fromClient", &from_client.to_string());
-    let action_loader = format!("builtin:action-entry-loader?{}!", serializer.finish());
+    let action_entry_loader = format!(
+      "{}?{}!",
+      ACTION_ENTRY_LOADER_IDENTIFIER,
+      serializer.finish()
+    );
 
     // Inject the entry to the server compiler
     let layer = if from_client {
@@ -818,7 +823,7 @@ impl ReactServerPlugin {
       LAYERS_NAMES.react_server_components.to_string()
     };
     let action_entry_dep = EntryDependency::new(
-      action_loader,
+      action_entry_loader,
       compilation.options.context.clone(),
       Some(layer.to_string()),
       false,
@@ -931,7 +936,7 @@ impl ReactServerPlugin {
             let mut individual_actions = vec![];
             for (k, v) in loader_options {
               if k == "actions" {
-                individual_actions = parse_action_entries(v.as_ref())?.unwrap_or_default();
+                individual_actions = parse_action_entries(v.into_owned())?.unwrap_or_default();
               }
             }
             for action in individual_actions {

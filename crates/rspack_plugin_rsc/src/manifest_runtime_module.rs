@@ -6,14 +6,13 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rustc_hash::FxHashMap;
-use serde::Serialize;
 
 use crate::{
   constants::LAYERS_NAMES,
-  loaders::action_entry_loader::parse_action_entries,
+  loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
   plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{ManifestExport, ManifestNode},
-  utils::ChunkModules,
+  utils::{ChunkModules, to_json_string_literal},
 };
 
 #[impl_runtime_module]
@@ -112,15 +111,6 @@ impl RuntimeModule for RscManifestRuntimeModule {
   }
 }
 
-/// Returns a JSON string literal for `value` (i.e. double-encoded), suitable for embedding into JS.
-///
-/// Example:
-/// - input:  `{"a":1}`
-/// - output: "\"{\\\"a\\\":1}\""
-fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
-  serde_json::to_string(&serde_json::to_string(value).to_rspack_result()?).to_rspack_result()
-}
-
 fn build_server_manifest<'a>(
   compilation: &Compilation,
   plugin_state: &'a mut PluginState,
@@ -149,7 +139,7 @@ fn build_server_manifest<'a>(
           continue;
         };
 
-        if request.starts_with("builtin:action-entry-loader") {
+        if request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
           let loader_query = request
             .splitn(2, '?')
             .nth(1)
@@ -161,7 +151,7 @@ fn build_server_manifest<'a>(
           let mut individual_actions = vec![];
           for (k, v) in loader_options {
             if k == "actions" {
-              individual_actions = parse_action_entries(v.as_ref())?.unwrap_or_default();
+              individual_actions = parse_action_entries(v.into_owned())?.unwrap_or_default();
             }
           }
           for action in individual_actions {

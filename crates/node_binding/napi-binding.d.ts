@@ -608,8 +608,8 @@ export declare enum BuiltinPluginName {
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpUriPlugin = 'HttpUriPlugin',
   CssChunkingPlugin = 'CssChunkingPlugin',
-  ReactServerPlugin = 'ReactServerPlugin',
-  ReactClientPlugin = 'ReactClientPlugin'
+  RscServerPlugin = 'RscServerPlugin',
+  RscClientPlugin = 'RscClientPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void

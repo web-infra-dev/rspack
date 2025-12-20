@@ -8,6 +8,7 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+allocative                 = { workspace = true, optional = true }
 async-trait                = { workspace = true }
 atomic_refcell             = { workspace = true }
 derive_more                = { workspace = true }
@@ -39,3 +40,7 @@ ustr                       = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints.rust.unexpected_cfgs]
+check-cfg = ['cfg(allocative)']
+level     = "warn"

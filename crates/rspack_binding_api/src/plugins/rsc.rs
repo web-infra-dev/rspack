@@ -11,7 +11,7 @@ use napi::{
 };
 use rspack_core::{Compiler, CompilerId};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_plugin_rsc::{Coordinator, ReactClientPluginOptions};
+use rspack_plugin_rsc::{Coordinator, RscClientPluginOptions};
 
 use crate::JsCompiler;
 

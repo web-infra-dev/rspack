@@ -4,8 +4,8 @@ import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
 import { Compiler } from "../..";
 import { Coordinator } from "./coordinator";
 
-export class ReactClientPlugin extends RspackBuiltinPlugin {
-	name = "ReactClientPlugin";
+export class RscClientPlugin extends RspackBuiltinPlugin {
+	name = "RscClientPlugin";
 	coordinator: Coordinator;
 
 	constructor(coordinator: Coordinator) {

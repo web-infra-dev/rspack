@@ -14,18 +14,19 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
+  loaders::client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
   utils::{get_module_resource, is_css_mod},
 };
 
-pub struct ReactClientPluginOptions {
+pub struct RscClientPluginOptions {
   pub coordinator: Coordinator,
 }
 
 #[plugin]
 #[derive(Debug)]
-pub struct ReactClientPlugin {
+pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
@@ -327,7 +328,7 @@ fn collect_client_actions_from_dependencies(
   collected_actions
 }
 
-impl ReactClientPlugin {
+impl RscClientPlugin {
   pub fn new(coordinator: Arc<Coordinator>) -> Self {
     Self::new_inner(coordinator, Default::default())
   }
@@ -388,7 +389,7 @@ impl ReactClientPlugin {
         };
         if !normal_module
           .user_request()
-          .starts_with("builtin:client-entry-loader?")
+          .starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER)
         {
           continue;
         }
@@ -425,9 +426,9 @@ impl ReactClientPlugin {
   }
 }
 
-impl Plugin for ReactClientPlugin {
+impl Plugin for RscClientPlugin {
   fn name(&self) -> &'static str {
-    "ReactClientPlugin"
+    "RscClientPlugin"
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
@@ -444,7 +445,7 @@ impl Plugin for ReactClientPlugin {
 
 // Execution must occur after EntryPlugin to ensure base entries are established
 // before injecting client component entries. Stage 100 ensures proper ordering.
-#[plugin_hook(CompilerMake for ReactClientPlugin, stage = 100)]
+#[plugin_hook(CompilerMake for RscClientPlugin, stage = 100)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.coordinator.start_client_entries_compilation().await?;
 
@@ -467,7 +468,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       if compilation.entries.get(entry_name).is_none() {
         return Err(rspack_error::error!(
           "Missing required entry '{}' in client compiler. \
-       ReactClientPlugin requires an entry with the same name as the server compiler \
+       RscClientPlugin requires an entry with the same name as the server compiler \
        for rendering the React application in the browser. \
        Client components will be injected into this entry.",
           entry_name,
@@ -501,7 +502,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationProcessAssets for ReactClientPlugin)]
+#[plugin_hook(CompilationProcessAssets for RscClientPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscClientPlugin");
 

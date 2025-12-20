@@ -15,7 +15,7 @@ pub struct ActionEntry {
   pub exported_name: String,
 }
 
-pub const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:action-entry-loader";
+pub const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-action-entry-loader";
 
 #[cacheable]
 #[derive(Debug)]
@@ -39,10 +39,10 @@ impl ActionEntryLoader {
   }
 }
 
-pub fn parse_action_entries(v: &str) -> Result<Option<Vec<ActionEntry>>> {
+pub fn parse_action_entries(v: String) -> Result<Option<Vec<ActionEntry>>> {
   let mut action_entries = vec![];
 
-  let mut bytes = v.to_string().into_bytes();
+  let mut bytes = v.into_bytes();
   let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
   if let Some(object) = borrowed_value.as_object() {
     for (path, value) in object.iter() {
@@ -95,7 +95,7 @@ impl Loader<RunnerContext> for ActionEntryLoader {
     let mut individual_actions: Vec<ActionEntry> = vec![];
     for (k, v) in loader_options {
       if k == "actions" {
-        individual_actions = parse_action_entries(v.as_ref())?.unwrap_or_default();
+        individual_actions = parse_action_entries(v.into_owned())?.unwrap_or_default();
       }
     }
 
@@ -107,15 +107,15 @@ impl Loader<RunnerContext> for ActionEntryLoader {
            path,
            exported_name,
          }| {
-          format!(
+          Ok(format!(
             "export {{ {} as \"{}\" }} from {}",
             exported_name,
             id,
-            serde_json::to_string(path).unwrap_or_else(|_| format!("\"{}\"", path))
-          )
+            serde_json::to_string(path).to_rspack_result()?
+          ))
         },
       )
-      .collect::<Vec<String>>()
+      .collect::<Result<Vec<String>>>()?
       .join("\n");
 
     loader_context.finish_with(code);

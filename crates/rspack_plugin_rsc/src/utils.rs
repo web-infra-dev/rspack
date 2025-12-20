@@ -7,7 +7,8 @@ use rspack_core::{
   ConcatenatedInnerModule, DependencyId, Module, ModuleGraphRef, ModuleId, ModuleIdentifier,
   ModuleType, NormalModule, RSCModuleType, RuntimeSpec,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
+use serde::Serialize;
 
 use crate::constants::REGEX_CSS;
 pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
@@ -233,3 +234,12 @@ impl<'a> Iterator for ChunkModules<'a> {
 
 pub type GetServerCompilerId =
   Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
+
+/// Returns a JSON string literal for `value` (i.e. double-encoded), suitable for embedding into JS.
+///
+/// Example:
+/// - input:  `{"a":1}`
+/// - output: "\"{\\\"a\\\":1}\""
+pub fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
+  serde_json::to_string(&serde_json::to_string(value).to_rspack_result()?).to_rspack_result()
+}
