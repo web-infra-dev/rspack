@@ -44,8 +44,8 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
       commander:
-        specifier: 13.1.0
-        version: 13.1.0
+        specifier: 14.0.2
+        version: 14.0.2
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
