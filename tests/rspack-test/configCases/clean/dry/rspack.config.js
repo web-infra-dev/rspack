@@ -24,24 +24,24 @@ module.exports = {
 			compiler.hooks.afterEmit.tap("Test", compilation => {
 				const outputPath = compilation.getPath(compiler.outputPath, {});
 				expect(readDir(outputPath)).toMatchInlineSnapshot(`
-			Object {
-			  "directories": Array [
-			    "this",
-			    "this/dir",
-			    "this/dir/should",
-			    "this/dir/should/not",
-			    "this/dir/should/not/be",
-			    "this/dir/should/not/be/removed",
-			    "this/dir/should/be",
-			    "this/dir/should/be/removed",
-			  ],
-			  "files": Array [
-			    "this/dir/should/not/be/removed/file.ext",
-			    "this/dir/should/be/removed/file.ext",
-			    "bundle0.js",
-			  ],
-			}
-		`);
+					Object {
+					  directories: Array [
+					    this,
+					    this/dir,
+					    this/dir/should,
+					    this/dir/should/not,
+					    this/dir/should/not/be,
+					    this/dir/should/not/be/removed,
+					    this/dir/should/be,
+					    this/dir/should/be/removed,
+					  ],
+					  files: Array [
+					    this/dir/should/not/be/removed/file.ext,
+					    this/dir/should/be/removed/file.ext,
+					    bundle0.js,
+					  ],
+					}
+				`);
 			});
 		}
 	]

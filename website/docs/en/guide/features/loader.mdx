@@ -4,7 +4,7 @@ Rspack has built-in support for JavaScript, CSS, JSON, and static assets modules
 
 A loader is a transformer that converts various types of modules into Rspack supported types. By using different kinds of loaders, you can extend Rspack to process additional module types, including JSX, Markdown, Sass, Less, and more.
 
-When Rspack bundles a module, it first pre-processes the module through loaders, transforming it into a Rspack supported module type, and then post-processes the module according to the [Rule.type](/config/module#ruletype).
+When Rspack bundles a module, it first pre-processes the module through loaders, transforming it into a Rspack supported module type, and then post-processes the module according to the [rules[].type](/config/module-rules#rulestype).
 
 ## Compatibility with webpack loaders
 
@@ -44,7 +44,7 @@ export default {
 
 ### Combining multiple loaders
 
-You can chain multiple loaders for a particular [Rule](/config/module#rule) match, with the loaders executed in right-to-left order.
+You can chain multiple loaders for a particular [Rule](/config/module-rules#rules) match, with the loaders executed in right-to-left order.
 
 For example, you can use [less-loader](https://github.com/webpack/less-loader) to do the transformation between Less to CSS types and [postcss-loader](https://github.com/webpack/postcss-loader) for the transformed source code to perform a secondary transformation, which will then get passed to Rspack's CSS post-processor for further processing.
 
@@ -71,7 +71,7 @@ export default {
 
 ### Passing configuration items
 
-You can use [Rule.use](/config/module#ruleuse) to pass the relevant configuration to the loader, for example:
+You can use [rules[].use](/config/module-rules#rulesuse) to pass the relevant configuration to the loader, for example:
 
 ```js title="rspack.config.mjs"
 export default {

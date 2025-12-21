@@ -128,7 +128,7 @@ impl SplitChunksPlugin {
         "ModuleGroup({}) is removed. Reason: empty modules cause by `minSize` checking",
         key,
       );
-      module_group_map.remove(&key);
+      module_group_map.swap_remove(&key);
     });
   }
 

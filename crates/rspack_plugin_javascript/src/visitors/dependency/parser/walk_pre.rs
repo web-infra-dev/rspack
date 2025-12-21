@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use swc_core::{
   common::Spanned,
   ecma::ast::{
-    ArrayPat, AssignExpr, BlockStmt, CatchClause, Decl, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
+    ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
     ForStmt, IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Pat, Stmt,
     SwitchCase, SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
   },
@@ -77,18 +77,6 @@ impl JavascriptParser<'_> {
         };
       },
     );
-  }
-
-  pub fn pre_walk_declaration(&mut self, decl: &Decl) {
-    match decl {
-      Decl::Fn(decl) => self.pre_walk_function_declaration(decl.into()),
-      Decl::Var(decl) => self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl)),
-      Decl::Using(decl) => self.pre_walk_variable_declaration(VariableDeclaration::UsingDecl(decl)),
-      Decl::Class(_) => (),
-      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        unreachable!()
-      }
-    }
   }
 
   fn pre_walk_with_statement(&mut self, stmt: &WithStmt) {

@@ -38,7 +38,7 @@ impl Visit for NestedNewUrlVisitor {
 }
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
-  let chain = parser.extract_member_expression_chain(expr);
+  let chain = parser.extract_member_expression_chain(Expr::Member(expr.clone()));
   chain.object.as_meta_prop().is_some_and(|meta| {
     meta.kind == MetaPropKind::ImportMeta
       && chain.members.len() == 1

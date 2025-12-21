@@ -83,7 +83,19 @@ export const applyRspackOptionsDefaults = (
 	D(options, "watch", false);
 	D(options, "profile", false);
 	// IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
-	D(options, "lazyCompilation", false);
+	F(options, "lazyCompilation", () => {
+		// for 'web' target only
+		if (
+			!!targetProperties &&
+			targetProperties.web &&
+			!targetProperties.electron &&
+			!targetProperties.node &&
+			!targetProperties.nwjs
+		) {
+			return { imports: true, entries: false };
+		}
+		return false;
+	});
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
 
@@ -102,7 +114,9 @@ export const applyRspackOptionsDefaults = (
 	applyOptimizationDefaults(options.optimization, {
 		production,
 		development,
-		css: options.experiments.css!
+		css: options.experiments.css!,
+		deprecatedInline:
+			options.experiments.inlineConst! || options.experiments.inlineEnum!
 	});
 
 	applySnapshotDefaults(options.snapshot, { production });
@@ -114,8 +128,6 @@ export const applyRspackOptionsDefaults = (
 		targetProperties,
 		mode: options.mode,
 		uniqueName: options.output.uniqueName,
-		usedExports: !!options.optimization.usedExports,
-		inlineConst: options.experiments.inlineConst,
 		deferImport: options.experiments.deferImport
 	});
 
@@ -128,9 +140,7 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
-		development,
-		entry: options.entry,
-		futureDefaults: options.experiments.futureDefaults!
+		entry: options.entry
 	});
 	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
 	applybundlerInfoDefaults(
@@ -265,7 +275,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "useInputFileSystem", false);
 
 	// IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
-	D(experiments, "inlineConst", false);
+	D(experiments, "inlineConst", true);
 
 	// IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
 	D(experiments, "inlineEnum", false);
@@ -299,11 +309,7 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions: JavascriptParserOptions,
-	{
-		usedExports,
-		inlineConst,
-		deferImport
-	}: { usedExports: boolean; inlineConst?: boolean; deferImport?: boolean }
+	{ deferImport }: { deferImport?: boolean }
 ) => {
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
@@ -321,7 +327,6 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importDynamic", true);
 	D(parserOptions, "worker", ["..."]);
 	D(parserOptions, "importMeta", true);
-	D(parserOptions, "inlineConst", usedExports && inlineConst);
 	D(parserOptions, "typeReexportsPresence", "no-tolerant");
 	D(parserOptions, "jsx", false);
 	D(parserOptions, "deferImport", deferImport);
@@ -342,8 +347,6 @@ const applyModuleDefaults = (
 		targetProperties,
 		mode,
 		uniqueName,
-		usedExports,
-		inlineConst,
 		deferImport
 	}: {
 		cache: boolean;
@@ -352,8 +355,6 @@ const applyModuleDefaults = (
 		targetProperties: any;
 		mode?: Mode;
 		uniqueName?: string;
-		usedExports: boolean;
-		inlineConst?: boolean;
 		deferImport?: boolean;
 	}
 ) => {
@@ -378,8 +379,6 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript, {
-		usedExports,
-		inlineConst,
 		deferImport
 	});
 
@@ -569,6 +568,10 @@ const applyModuleDefaults = (
 			{
 				with: { type: "json" },
 				type: "json"
+			},
+			{
+				with: { type: "text" },
+				type: "asset/source"
 			}
 		);
 
@@ -583,17 +586,13 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
-		development,
-		entry,
-		futureDefaults
+		entry
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
-		development: boolean;
 		entry: EntryNormalized;
-		futureDefaults: boolean;
 	}
 ) => {
 	const getLibraryName = (library: Library): string => {
@@ -618,7 +617,7 @@ const applyOutputDefaults = (
 	F(output, "uniqueName", () => {
 		const libraryName = getLibraryName(output.library).replace(
 			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
-			(m, a, d1, d2, b, c) => {
+			(_, a, d1, d2, b, c) => {
 				const content = a || b || c;
 				return content.startsWith("\\") && content.endsWith("\\")
 					? `${d2 || ""}[${content.slice(1, -1)}]${d1 || ""}`
@@ -825,9 +824,12 @@ const applyOutputDefaults = (
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
 			if (tp.nodeBuiltins) return "async-node";
-			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-				// return "universal";
-				return false;
+			if (
+				(tp.nodeBuiltins === null || tp.fetchWasm === null) &&
+				output.module &&
+				environment.dynamicImport
+			) {
+				return "universal";
 			}
 		}
 		return false;
@@ -906,11 +908,11 @@ const applyOutputDefaults = (
 		if (output.workerWasmLoading) {
 			enabledWasmLoadingTypes.add(output.workerWasmLoading);
 		}
-		// forEachEntry(desc => {
-		// 	if (desc.wasmLoading) {
-		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
-		// 	}
-		// });
+		forEachEntry(desc => {
+			if (desc.wasmLoading) {
+				enabledWasmLoadingTypes.add(desc.wasmLoading);
+			}
+		});
 		return Array.from(enabledWasmLoadingTypes);
 	});
 };
@@ -1003,8 +1005,14 @@ const applyOptimizationDefaults = (
 	{
 		production,
 		development,
-		css
-	}: { production: boolean; development: boolean; css: boolean }
+		css,
+		deprecatedInline
+	}: {
+		production: boolean;
+		development: boolean;
+		css: boolean;
+		deprecatedInline: boolean;
+	}
 ) => {
 	// IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
 	D(optimization, "removeAvailableModules", true);
@@ -1022,6 +1030,7 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
+	D(optimization, "inlineExports", deprecatedInline && production);
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);

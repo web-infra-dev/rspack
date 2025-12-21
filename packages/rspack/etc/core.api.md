@@ -868,9 +868,14 @@ export class Compilation {
     // (undocumented)
     buildDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     get builtModules(): ReadonlySet<Module>;
@@ -891,9 +896,14 @@ export class Compilation {
     // (undocumented)
     contextDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     createChildCompiler(name: string, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
@@ -917,9 +927,14 @@ export class Compilation {
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     fileSystemInfo: {
@@ -1002,9 +1017,14 @@ export class Compilation {
     // (undocumented)
     missingDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     moduleGraph: ModuleGraph;
@@ -2118,7 +2138,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2148,7 +2168,7 @@ export class EntryOptionPlugin {
     // (undocumented)
     static applyEntryOption(compiler: Compiler, context: string, entry: EntryNormalized): void;
     // (undocumented)
-    static entryDescriptionToOptions(compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
+    static entryDescriptionToOptions(_compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
 }
 
 // @public
@@ -2428,7 +2448,7 @@ interface Experiments_2 {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
@@ -2445,7 +2465,7 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // (undocumented)
+    // @deprecated (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
@@ -2474,13 +2494,13 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineConst?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineEnum?: boolean;
     // @deprecated (undocumented)
     layers?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -3529,7 +3549,6 @@ export type JavascriptParserOptions = {
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
     deferImport?: boolean;
@@ -4247,8 +4266,8 @@ interface LabeledStatement extends Node_4, HasSpan {
 // @public
 export type Layer = string | null;
 
-// @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
+// @public
+export const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -5383,6 +5402,7 @@ export type Optimization = {
     innerGraph?: boolean;
     usedExports?: "global" | boolean;
     mangleExports?: "size" | "deterministic" | boolean;
+    inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
     avoidEntryIife?: boolean;
@@ -6315,9 +6335,9 @@ type ResolveOptionsWithDependencyType = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
+    resolve(_context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
-    resolveSync(context: object, path: string, request: string): string | false;
+    resolveSync(_context: object, path: string, request: string): string | false;
 }
 
 // @public (undocumented)
@@ -6592,7 +6612,9 @@ declare namespace rspackExports {
         LoaderTargetPlugin,
         OutputFileSystem,
         WatchFileSystem,
+        SubresourceIntegrityPlugin,
         web,
+        lazyCompilationMiddleware,
         node,
         electron,
         library,
@@ -7778,7 +7800,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
-class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
     constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;

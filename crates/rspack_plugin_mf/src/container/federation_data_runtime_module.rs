@@ -11,7 +11,7 @@ use rspack_core::{
   compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
-use rspack_plugin_runtime::chunk_has_js;
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 #[impl_runtime_module]
 #[derive(Debug)]

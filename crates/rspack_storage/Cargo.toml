@@ -17,6 +17,7 @@ rayon        = { workspace = true }
 rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_util  = { workspace = true }
 rustc-hash   = { workspace = true }
 tokio        = { workspace = true, features = ["time"] }
 tracing      = { workspace = true }

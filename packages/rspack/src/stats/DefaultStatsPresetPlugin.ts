@@ -291,11 +291,11 @@ const NORMALIZER = {
 		const array = !Array.isArray(value) ? (value ? [value] : []) : value;
 		return array.map(filter => {
 			if (typeof filter === "string") {
-				return (warning: StatsError, warningString: string) =>
+				return (_warning: StatsError, warningString: string) =>
 					warningString.includes(filter);
 			}
 			if (filter instanceof RegExp) {
-				return (warning: StatsError, warningString: string) =>
+				return (_warning: StatsError, warningString: string) =>
 					filter.test(warningString);
 			}
 			if (typeof filter === "function") {

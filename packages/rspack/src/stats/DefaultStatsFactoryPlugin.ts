@@ -954,7 +954,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			options: NormalizedStatsOptions,
+			_options: NormalizedStatsOptions,
 			factory
 		) => {
 			const { type, getStatsCompilation } = context;

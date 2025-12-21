@@ -33,13 +33,6 @@ impl SideEffectOption {
     matches!(self, Self::True)
   }
 
-  /// Returns `true` if the side effect option is [`Flag`].
-  ///
-  /// [`Flag`]: SideEffectOption::Flag
-  pub fn is_flag(&self) -> bool {
-    matches!(self, Self::Flag)
-  }
-
   pub fn is_enable(&self) -> bool {
     matches!(self, Self::Flag | Self::True)
   }
@@ -129,6 +122,7 @@ pub struct Optimization {
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
   pub inner_graph: bool,
+  pub inline_exports: bool,
   pub mangle_exports: MangleExportsOption,
   pub concatenate_modules: bool,
   pub avoid_entry_iife: bool,

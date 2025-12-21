@@ -250,7 +250,7 @@ pub struct Compilation {
   // artifact for infer_async_modules_plugin
   pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: DerefOption<DependenciesDiagnosticsArtifact>,
+  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -389,9 +389,9 @@ impl Compilation {
 
       async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: DerefOption::new(
+      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
         DependenciesDiagnosticsArtifact::default(),
-      ),
+      )),
       side_effects_optimize_artifact: DerefOption::new(Default::default()),
       module_ids_artifact: Default::default(),
       named_chunk_ids_artifact: Default::default(),
@@ -2923,10 +2923,6 @@ impl CompilationAsset {
     self.source.as_ref()
   }
 
-  pub fn get_source_mut(&mut self) -> Option<&mut BoxSource> {
-    self.source.as_mut()
-  }
-
   pub fn set_source(&mut self, source: Option<BoxSource>) {
     self.source = source;
   }
@@ -2991,11 +2987,6 @@ pub struct AssetInfo {
 }
 
 impl AssetInfo {
-  pub fn with_minimized(mut self, v: Option<bool>) -> Self {
-    self.minimized = v;
-    self
-  }
-
   pub fn with_development(mut self, v: Option<bool>) -> Self {
     self.development = v;
     self
@@ -3003,11 +2994,6 @@ impl AssetInfo {
 
   pub fn with_hot_module_replacement(mut self, v: Option<bool>) -> Self {
     self.hot_module_replacement = v;
-    self
-  }
-
-  pub fn with_related(mut self, v: AssetInfoRelated) -> Self {
-    self.related = v;
     self
   }
 
@@ -3125,34 +3111,6 @@ pub fn assign_depths<'a>(
     };
     for con in outgoings.get(&id).expect("should have outgoings").iter() {
       q.push_back((*con, depth + 1));
-    }
-  }
-}
-
-pub fn assign_depth(
-  assign_map: &mut IdentifierMap<usize>,
-  mg: &ModuleGraph,
-  module_id: ModuleIdentifier,
-) {
-  // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
-  let mut q = VecDeque::new();
-  q.push_back(module_id);
-  let mut depth;
-  assign_map.insert(module_id, 0);
-  let process_module = |m: ModuleIdentifier,
-                        depth: usize,
-                        q: &mut VecDeque<ModuleIdentifier>,
-                        assign_map: &mut IdentifierMap<usize>| {
-    if !set_depth_if_lower(m, depth, assign_map) {
-      return;
-    }
-    q.push_back(m);
-  };
-  while let Some(item) = q.pop_front() {
-    depth = assign_map.get(&item).expect("should have depth") + 1;
-
-    for con in mg.get_outgoing_connections(&item) {
-      process_module(*con.module_identifier(), depth, &mut q, assign_map);
     }
   }
 }

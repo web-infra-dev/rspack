@@ -71,6 +71,6 @@ fn run_inner() -> anyhow::Result<()> {
       .map(|e| format!("{e:?}"))
       .collect::<Vec<_>>()
       .join("\n");
-    Err(anyhow::anyhow!("Multiple errors occurred:\n{}", combined))
+    Err(anyhow::anyhow!("Multiple errors occurred:\n{combined}"))
   }
 }

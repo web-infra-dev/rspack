@@ -20,13 +20,17 @@ import "./cjs-chunk.mjs";
 
 // ./index.js
 const cjs = __webpack_require__("./cjs.js");
-var cjs_default = /*#__PURE__*/__webpack_require__.n(cjs);
-var cjs_default_0 = cjs_default();
 
 
 
 
-export { cjs_default_0 as value };
+it('should have correct export', async () => {
+  const { obj } = await import(/*webpackIgnore: true*/ './main.mjs')
+
+  expect(obj).toHaveProperty('value')
+  expect(obj.value).toBe(42)
+})
+export { cjs as obj };
 
 ```
 
@@ -59,32 +63,6 @@ __webpack_require__.m = __webpack_modules__;
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
-};
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 
 export { __webpack_require__ };

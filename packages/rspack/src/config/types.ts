@@ -652,7 +652,13 @@ export type Output = {
 	hashSalt?: HashSalt;
 
 	/**
-	 * Create async chunks that are loaded on demand.
+	 * Controls whether dynamically imported modules are emitted as separate async chunks or bundled into
+	 * existing chunks.
+	 * - `true`: Modules loaded via `import()` are split into independent async chunks. These chunks are
+	 * emitted as separate files and are loaded on demand at runtime. This enables code splitting and keeps
+	 * the initial bundle smaller.
+	 * - `false`: Dynamically imported modules are bundled into existing chunks instead of being emitted as
+	 * separate files. No additional async chunk files are generated.
 	 * @default true
 	 * */
 	asyncChunks?: AsyncChunks;
@@ -1178,9 +1184,6 @@ export type JavascriptParserOptions = {
 	 * Enable magic comments for CommonJS require() expressions.
 	 */
 	commonjsMagicComments?: boolean;
-
-	/** Inline const values in this module */
-	inlineConst?: boolean;
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
@@ -2534,6 +2537,14 @@ export type Optimization = {
 	mangleExports?: "size" | "deterministic" | boolean;
 
 	/**
+	 * Allows to inline exports when possible to reduce code size.
+	 *
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
+	 */
+	inlineExports?: boolean;
+
+	/**
 	 * Tells Rspack to set process.env.NODE_ENV to a given string value.
 	 * @default false
 	 */
@@ -2841,21 +2852,25 @@ export type Experiments = {
 	/**
 	 * Enable inline const feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	inlineConst?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	inlineEnum?: boolean;
 	/**
 	 * Enable type reexports presence feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	typeReexportsPresence?: boolean;
 	/**
 	 * Enable lazy make side effects free barrel file
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	lazyBarrel?: boolean;
 	/**
@@ -3057,7 +3072,18 @@ export type RspackOptions = {
 	 */
 	loader?: Loader;
 	/**
-	 * Warnings to ignore during compilation.
+	 * Tells Rspack to suppress specific compilation warnings by matching their
+	 * message, module, or file, or by using a custom function.
+	 *
+	 * @example
+	 * ```js
+	 * export default {
+	 *   ignoreWarnings: [
+	 *     /warning from compiler/,
+	 *     { file: /node_modules/ },
+	 *   ],
+	 * };
+	 * ```
 	 */
 	ignoreWarnings?: IgnoreWarnings;
 	/**

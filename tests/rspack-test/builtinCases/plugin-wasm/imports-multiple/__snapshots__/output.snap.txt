@@ -62,7 +62,7 @@ __rspack_async_done();
 },
 "./wasm.wasm"(module, exports, __webpack_require__) {
 var __rspack_instantiate__ = function ([rspack_import_0, rspack_import_1]) {
-return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
+return __webpack_require__.v(exports, module.id, "e777786177103fda" , {
 "./module": {
 "getNumber": rspack_import_0.getNumber
 },
@@ -78,7 +78,7 @@ __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack
 
     var __rspack_async_deps = __rspack_load_async_deps([rspack_import_0, rspack_import_1]);
     var [rspack_import_0, rspack_import_1] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;
-    await __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
+    await __webpack_require__.v(exports, module.id, "e777786177103fda" , {
 "./module": {
 "getNumber": rspack_import_0.getNumber
 },

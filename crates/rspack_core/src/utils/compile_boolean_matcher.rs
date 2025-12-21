@@ -1,6 +1,6 @@
-use std::{collections::BTreeSet, sync::LazyLock};
+use std::collections::BTreeSet;
 
-use regex::Regex;
+use rspack_util::quote_meta;
 use rustc_hash::FxHashMap as HashMap;
 
 pub enum BooleanMatcher {
@@ -276,13 +276,6 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   } else {
     format!("({})", conditional.join("|"))
   }
-}
-
-static QUOTE_META_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
-
-fn quote_meta(str: &str) -> String {
-  QUOTE_META_REG.replace_all(str, "\\$0").to_string()
 }
 
 fn pop_common_items<T, F, G>(items_set: &mut BTreeSet<T>, get_key: F, condition: G) -> Vec<Vec<T>>

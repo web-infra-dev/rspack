@@ -20,7 +20,7 @@ impl JavascriptParser<'_> {
       create_traceable_error(
         "JavaScript parse error".into(),
         msg,
-        self.source_file,
+        self.source.to_owned(),
         span.into(),
       )
       .into(),
