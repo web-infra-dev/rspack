@@ -1627,7 +1627,7 @@ impl Compilation {
     } else {
       dependencies_diagnostics
     };
-    return all_modules_diagnostics.into_values().flatten().collect();
+    all_modules_diagnostics.into_values().flatten().collect()
   }
 
   #[instrument("Compilation:seal", skip_all)]
