@@ -102,6 +102,9 @@ fn parse_swcrc(s: &str) -> Result<Rc, anyhow::Error> {
       allow_comments: true,
       allow_trailing_commas: true,
       allow_loose_object_property_names: false,
+      allow_single_quoted_strings: true,
+      allow_hexadecimal_numbers: true,
+      allow_unary_plus_numbers: true,
     },
   )?
   .ok_or_else(|| anyhow::Error::msg("failed to deserialize empty .swcrc (json) file"))?;
