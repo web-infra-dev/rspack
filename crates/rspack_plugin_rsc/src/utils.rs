@@ -11,6 +11,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
 
 use crate::constants::REGEX_CSS;
+
 pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   if let Some(module) = module.as_normal_module() {
     let resource_resolved_data = module.resource_resolved_data();

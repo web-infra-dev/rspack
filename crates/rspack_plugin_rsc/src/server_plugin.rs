@@ -477,7 +477,7 @@ impl RscServerPlugin {
         .get(entry_name)
         .cloned()
         .unwrap_or_default();
-      for (dep, actions) in action_entry_imports {
+      for (dependency, actions) in action_entry_imports {
         let mut remaining_actions: Vec<ActionIdNamePair> = Vec::new();
         for action in actions {
           if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.0)) {
@@ -485,7 +485,7 @@ impl RscServerPlugin {
           }
         }
         if !remaining_actions.is_empty() {
-          remaining_action_entry_imports.insert(dep.clone(), remaining_actions);
+          remaining_action_entry_imports.insert(dependency.clone(), remaining_actions);
           remaining_client_imported_actions = true;
         }
       }
@@ -505,21 +505,24 @@ impl RscServerPlugin {
           .map(|injected| added_client_action_entry_list.push(injected));
       }
     }
-    // let included_deps: Vec<_> = added_client_action_entry_list
-    //   .iter()
-    //   .map(|(dep, _)| *dep.id())
-    //   .collect();
-    // compilation
-    //   .add_include(added_client_action_entry_list)
-    //   .await?;
-    // for dep in included_deps {
-    //   let mut mg = compilation.get_module_graph_mut();
-    //   let Some(m) = mg.get_module_by_dependency_id(&dep) else {
-    //     continue;
-    //   };
-    //   let info = mg.get_exports_info(&m.identifier());
-    //   info.set_used_in_unknown_way(&mut mg, Some(&self.webpack_runtime));
-    // }
+    let included_dependencies: Vec<(DependencyId, Option<RuntimeSpec>)> =
+      added_client_action_entry_list
+        .iter()
+        .map(|action_entry| (*action_entry.add_entry.0.id(), action_entry.runtime.clone()))
+        .collect();
+    let add_include_args: Vec<(BoxDependency, EntryOptions)> = added_client_action_entry_list
+      .into_iter()
+      .map(|action_entry| action_entry.add_entry)
+      .collect();
+    compilation.add_include(add_include_args).await?;
+    for (dependency_id, runtime) in included_dependencies {
+      let mut mg = compilation.get_module_graph_mut();
+      let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&m.identifier());
+      info.set_used_in_unknown_way(&mut mg, runtime.as_ref());
+    }
 
     Ok(())
   }
@@ -697,8 +700,6 @@ impl RscServerPlugin {
       css_imports,
     } = client_entry;
 
-    let mut should_invalidate = false;
-
     let client_browser_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
@@ -753,20 +754,9 @@ impl RscServerPlugin {
 
     // Add for the client compilation
     // Inject the entry to the client compiler.
-    // if self.dev {
-    //   let should_invalidate_cb_ctx = ShouldInvalidateCbCtx {
-    //     entry_name: entry_name.to_string(),
-    //     absolute_page_path,
-    //     bundle_path,
-    //     client_browser_loader: client_browser_loader.to_string(),
-    //   };
-    //   let should_invalidate_cb = &self.should_invalidate_cb;
-    //   should_invalidate = should_invalidate_cb(should_invalidate_cb_ctx);
-    // } else {
     plugin_state
       .injected_client_entries
       .insert(entry_name.to_string(), client_browser_loader);
-    // }
 
     let ssr_entry_dependency = EntryDependency::new(
       client_server_loader.to_string(),
