@@ -26,5 +26,19 @@ pub struct PluginState {
   pub entry_js_files: FxHashMap<String, FxIndexSet<String>>,
 }
 
+impl PluginState {
+  pub fn clear(&mut self) {
+    self.module_loading = None;
+    self.injected_client_entries.clear();
+    self.client_modules.clear();
+    self.ssr_modules.clear();
+    self.client_actions_per_entry.clear();
+    self.server_actions.clear();
+    self.entry_css_imports.clear();
+    self.entry_css_files.clear();
+    self.entry_js_files.clear();
+  }
+}
+
 pub static PLUGIN_STATE_BY_COMPILER_ID: Lazy<Mutex<FxHashMap<CompilerId, PluginState>>> =
   Lazy::new(|| Default::default());

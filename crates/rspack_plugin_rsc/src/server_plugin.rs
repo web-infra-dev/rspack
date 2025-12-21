@@ -96,9 +96,15 @@ impl RscServerPlugin {
 #[plugin_hook(CompilerThisCompilation for RscServerPlugin)]
 async fn this_compilation(
   &self,
-  _compilation: &mut Compilation,
+  compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+  guard
+    .entry(compilation.compiler_id())
+    .or_insert(PluginState::default())
+    .clear();
+
   self.coordinator.start_server_entries_compilation().await?;
 
   Ok(())
