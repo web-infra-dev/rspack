@@ -169,7 +169,14 @@ async fn optimize_dependencies(
               return None;
             }
             let share_key_part = parts[1];
-            let share_key_end = share_key_part.find('@').unwrap_or(share_key_part.len());
+            let share_key_end = if share_key_part.starts_with('@') {
+              share_key_part[1..]
+                .find('@')
+                .map(|i| i + 1)
+                .unwrap_or(share_key_part.len())
+            } else {
+              share_key_part.find('@').unwrap_or(share_key_part.len())
+            };
             let sk: String = share_key_part[..share_key_end].to_string();
             collect_processed_modules(
               &module_graph,
@@ -202,7 +209,14 @@ async fn optimize_dependencies(
               return None;
             }
             let name_part = parts[3];
-            let name_end = name_part.find('@').unwrap_or(name_part.len());
+            let name_end = if name_part.starts_with('@') {
+              name_part[1..]
+                .find('@')
+                .map(|i| i + 1)
+                .unwrap_or(name_part.len())
+            } else {
+              name_part.find('@').unwrap_or(name_part.len())
+            };
             let sk = name_part[..name_end].to_string();
             collect_processed_modules(
               &module_graph,
