@@ -357,11 +357,6 @@ export const getNormalizedRspackOptions = (
 					"`experiments.topLevelAwait` config is deprecated and will be removed in Rspack v2.0. Top-level await will always be enabled. Remove this option from your Rspack configuration."
 				);
 			}
-			if (experiments.parallelCodeSplitting) {
-				deprecate(
-					"`experiments.parallelCodeSplitting` config is deprecated and will be removed in next minor. It has huge regression in some edge cases where the chunk graph has lots of cycles, we'll improve the performance of build_chunk_graph in the future instead"
-				);
-			}
 			if (experiments.lazyBarrel) {
 				deprecate(
 					"`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration."
@@ -421,7 +416,6 @@ export const getNormalizedRspackOptions = (
 				incremental: optionalNestedConfig(experiments.incremental, options =>
 					getNormalizedIncrementalOptions(options)
 				),
-				parallelCodeSplitting: experiments.parallelCodeSplitting,
 				buildHttp: experiments.buildHttp,
 				parallelLoader: experiments.parallelLoader,
 				useInputFileSystem: experiments.useInputFileSystem
@@ -702,10 +696,6 @@ export interface ExperimentsNormalized {
 	 */
 	layers?: boolean;
 	incremental?: false | Incremental;
-	/**
-	 * @deprecated This option is deprecated, as it has a huge regression in some edge cases where the chunk graph has lots of cycles. We will improve performance of build_chunk_graph.
-	 */
-	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 	buildHttp?: HttpUriPluginOptions;
