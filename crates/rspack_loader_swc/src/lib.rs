@@ -3,8 +3,8 @@
 mod collect_ts_info;
 mod options;
 mod plugin;
+mod rsc_transforms;
 mod transformer;
-mod transforms;
 
 use std::{default::Default, path::Path, sync::Arc};
 
@@ -31,7 +31,7 @@ use swc_core::{
 
 use crate::{
   collect_ts_info::collect_typescript_info,
-  transforms::{ActionsMeta, ServerActionsConfig},
+  rsc_transforms::{ActionsMeta, rsc_pass},
 };
 
 #[cacheable]
@@ -152,51 +152,21 @@ impl SwcLoader {
         ));
       },
       |_| {
-        let react_server_components = self
-          .options_with_additional
-          .rspack_experiments
-          .react_server_components;
-
-        let module = &loader_context.context.module;
-
-        let is_react_server_layer = module
-          .get_layer()
-          .is_some_and(|layer| layer == "react-server-components");
-
         (
-          if react_server_components {
-            // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
-            if loader_context
-              .resource_query()
-              .is_some_and(|q| q.contains("skip-rsc-transform"))
-            {
-              swc_core::common::pass::Either::Right(noop_pass())
-            } else {
-              let build_info = loader_context.context.module.build_info_mut();
-              swc_core::common::pass::Either::Left(transforms::server_components(
-                filename,
-                transforms::Config::WithOptions(transforms::Options {
-                  is_react_server_layer,
-                }),
-                &mut build_info.rsc,
-              ))
-            }
-          } else {
+          if self
+            .options_with_additional
+            .rspack_experiments
+            .react_server_components
+          {
             swc_core::common::pass::Either::Right(noop_pass())
-          },
-          if react_server_components {
-            swc_core::common::pass::Either::Left(transforms::server_actions(
-              resource_path.to_string(),
-              ServerActionsConfig {
-                is_react_server_layer,
-                is_development: false,
-                hash_salt: "".to_string(),
-              },
+          } else {
+            swc_core::common::pass::Either::Left(rsc_pass(
+              loader_context,
+              filename,
+              resource_path.as_str(),
               comments,
               &mut actions_meta,
             ))
-          } else {
-            swc_core::common::pass::Either::Right(noop_pass())
           },
           transformer::transform(&self.options_with_additional.rspack_experiments),
         )

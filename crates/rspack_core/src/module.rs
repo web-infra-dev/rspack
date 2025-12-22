@@ -7,6 +7,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use bitflags::bitflags;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -50,11 +51,15 @@ pub struct BuildContext {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RSCModuleType {
-  ServerEntry,
-  Server,
-  Client,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RSCModuleType(u8);
+
+bitflags! {
+    impl RSCModuleType: u8 {
+      const ServerEntry = 1 << 0;
+      const Server = 1 << 1;
+      const Client = 1 << 2;
+  }
 }
 
 #[cacheable]
@@ -64,7 +69,6 @@ pub enum ClientEntryType {
   Auto,
 }
 
-// TODO: 重构为枚举
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RSCMeta {
