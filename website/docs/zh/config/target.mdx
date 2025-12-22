@@ -81,6 +81,16 @@ export default {
 - `browserslist:/path/to/config` - 明确指定 browserslist 配置路径
 - `browserslist:/path/to/config:modern` - 明确指定 browserslist 的配置路径和环境
 
+### 限制说明
+
+Rspack 使用的是 [browserslist-rs](https://github.com/browserslist/browserslist-rs)。这是 Browserslist 的一个 Rust 实现，目前尚未完全支持 Browserslist 的所有特性。
+
+当前不支持的功能：
+
+- Baseline 查询，例如 `baseline widely available`
+- 自定义使用率查询，例如 `> 0.5% in my stats`
+- 基于覆盖率的使用率查询，例如 `cover 99.5% in my stats`
+
 ## Node.js 版本
 
 可以选择指定一个 node 或 electron 的版本。这在上表中用 [[X].Y] 表示。
