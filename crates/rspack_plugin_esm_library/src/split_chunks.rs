@@ -266,7 +266,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     for m in match_group.modules.clone() {
       // merge dependencies
 
-      let mut stack = get_module_deps(m, &module_graph);
+      let mut stack = get_module_deps(m, module_graph);
       while let Some(m) = stack.pop() {
         // if module is already in any group, skip
         if modules_in_group.contains(&m) {
@@ -278,7 +278,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
           continue;
         }
 
-        stack.extend(get_module_deps(m, &module_graph));
+        stack.extend(get_module_deps(m, module_graph));
       }
     }
   });
@@ -383,8 +383,6 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       else {
         unreachable!()
       };
-
-      // chunk.set_filename_template();
 
       orig_chunk.split(chunk, &mut compilation.chunk_group_by_ukey);
     }

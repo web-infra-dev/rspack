@@ -26,7 +26,6 @@ rspack_util                = { workspace = true }
 
 async-trait    = { workspace = true }
 atomic_refcell = { workspace = true }
-derive_more    = { workspace = true }
 futures        = { workspace = true }
 rayon          = { workspace = true }
 regex          = { workspace = true }

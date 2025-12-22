@@ -2,22 +2,15 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
 use rayon::iter::Either;
-use rspack_core::CompilerId;
-use rspack_error::ToStringResultToRspackResultExt;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
-use rspack_plugin_split_chunks::{CacheGroup, SplitChunksPlugin};
+use rspack_plugin_split_chunks::CacheGroup;
 use rspack_regex::RspackRegex;
 
 use crate::{
   module::ModuleObject,
   raw_options::{self, RawSplitChunksOptions},
 };
-
-pub type RawNameGetter = Either<String, ThreadsafeFunction<ModuleObject, Option<String>>>;
-
-pub type RawCacheGroupTest =
-  Either3<String, RspackRegex, ThreadsafeFunction<ModuleObject, Option<bool>>>;
 
 #[napi(object, object_to_js = false)]
 pub struct RawEsmLibraryPlugin<'a> {
