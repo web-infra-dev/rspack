@@ -46,8 +46,8 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
       commander:
-        specifier: 13.1.0
-        version: 13.1.0
+        specifier: 14.0.2
+        version: 14.0.2
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
@@ -136,6 +136,58 @@ importers:
       emnapi:
         specifier: ^1.7.1
         version: 1.7.1(node-addon-api@7.1.1)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  examples/basic:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+
+  examples/react:
+    dependencies:
+      react:
+        specifier: ^19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.2.3(react@19.2.3)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: ^1.5.3
+        version: 1.5.3(react-refresh@0.18.0)
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      react-refresh:
+        specifier: ^0.18.0
+        version: 0.18.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  examples/vanilla:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -468,8 +520,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0
       jest-diff:
-        specifier: ^29.7.0
-        version: 29.7.0
+        specifier: ^30.2.0
+        version: 30.2.0
       jest-snapshot:
         specifier: 29.7.0
         version: 29.7.0
@@ -483,8 +535,8 @@ importers:
         specifier: 0.5.1
         version: 0.5.1
       pretty-format:
-        specifier: 29.7.0
-        version: 29.7.0
+        specifier: 30.2.0
+        version: 30.2.0
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
@@ -689,8 +741,8 @@ importers:
         specifier: 0.5.17
         version: 0.5.17
       '@swc/plugin-remove-console':
-        specifier: ^12.0.1
-        version: 12.0.1
+        specifier: ^12.1.0
+        version: 12.1.0
       '@types/babel__generator':
         specifier: 7.27.0
         version: 7.27.0
@@ -2270,13 +2322,25 @@ packages:
     resolution: {integrity: sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==}
     engines: {node: '>=8'}
 
+  '@jest/diff-sequences@30.0.1':
+    resolution: {integrity: sha512-n5H8QLDJ47QqbCNn5SuFjCRDrOLEZ0h8vAHCK5RL9Ls7Xa8AQLa/YxAc9UjFqoEDM48muwtBGjtMY5cr0PLDCw==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   '@jest/expect-utils@29.7.0':
     resolution: {integrity: sha512-GlsNBWiFQFCVi9QVSx7f5AgMeLxe9YCCs5PuP2O2LdjDAA8Jh9eX7lA1Jq/xdXw3Wb3hyvlFNfZIfcRetSzYcA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  '@jest/get-type@30.1.0':
+    resolution: {integrity: sha512-eMbZE2hUnx1WV0pmURZY9XoXPkUYjpc55mb0CrhtdWLtzMQPFvu/rZkTLZFTsdaVQa+Tr4eWAteqcUzoawq/uA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   '@jest/schemas@29.6.3':
     resolution: {integrity: sha512-mo5j5X+jIZmJQveBKeS/clAueipV7KgiX1vMgCxam1RNYiqE1w62n0/tJJnHtjW8ZHcQco5gY85jA3mi0L+nSA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  '@jest/schemas@30.0.5':
+    resolution: {integrity: sha512-DmdYgtezMkh3cpU8/1uyXakv3tJRcmcXxBOcO0tbaozPwpmh4YMsnWrQm9ZmZMfa5ocbxzbFk6O4bDPEc/iAnA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   '@jest/transform@29.7.0':
     resolution: {integrity: sha512-ok/BTPFzFKVMwO5eOHRrvnBVHdRy9IrsrW1GpMaQ9MCnilNLXQKmAX8s1YXDFaai9xJpac2ySzV0YeRRECr2Vw==}
@@ -3582,6 +3646,9 @@ packages:
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
 
+  '@sinclair/typebox@0.34.41':
+    resolution: {integrity: sha512-6gS8pZzSXdyRHTIqoqSVknxolr1kzfy4/CeDnrzsVz8TTIWUbOBr6gnzOmTYJ3eXQNh4IYHIGi5aIL7sOZ2G/g==}
+
   '@sindresorhus/merge-streams@2.3.0':
     resolution: {integrity: sha512-LtoMMhxAlorcGhmFYI+LhPgbPZCkgP6ra1YL604EeF6U98pLlQ3iWIGMdWSC+vWmPBWBNgmDBAhnAobLROJmwg==}
     engines: {node: '>=18'}
@@ -3595,8 +3662,8 @@ packages:
   '@swc/helpers@0.5.17':
     resolution: {integrity: sha512-5IKx/Y13RsYd+sauPb2x+U/xZikHjolzfuDgTAl/Tdf3Q8rslRvC19NKDLgAJQ6wsqADk10ntlv08nPFw/gO/A==}
 
-  '@swc/plugin-remove-console@12.0.1':
-    resolution: {integrity: sha512-QVjrV14ZsRzI6INbh/89lO4TWWjWOVchnhU0NjVWqzpwq1pTh6zScuXjHu2l6nAWbS38nIcb484Uf8Y/g8j05Q==}
+  '@swc/plugin-remove-console@12.1.0':
+    resolution: {integrity: sha512-GDOrdo/Zjd7UrprCXhffWPaI/uRVy4Yg2OpCOibUZSDlo3KpnzYGWtE2HAhjkJFUXerhLb0Ptj09vI1FTlWTmw==}
 
   '@swc/types@0.1.25':
     resolution: {integrity: sha512-iAoY/qRhNH8a/hBvm3zKj9qQ4oc2+3w1unPJa2XvTK3XjeLXtzcCingVPw/9e5mn1+0yPqxcBGp9Jf0pkfMb1g==}
@@ -6097,6 +6164,10 @@ packages:
     resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  jest-diff@30.2.0:
+    resolution: {integrity: sha512-dQHFo3Pt4/NLlG5z4PxZ/3yZTZ1C7s9hveiOj+GCN+uT109NC2QgsoVZsVOAvbJ3RgKkvyLGXZV9+piDpWbm6A==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   jest-get-type@29.6.3:
     resolution: {integrity: sha512-zrteXnqYxfQh7l5FHyL38jL39di8H8rHoecLH3JNxH3BwOrBsNeabdap5e0I23lD4HHI8W5VFBZqG4Eaq5LNcw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -7129,6 +7200,10 @@ packages:
   pretty-format@29.7.0:
     resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  pretty-format@30.2.0:
+    resolution: {integrity: sha512-9uBdv/B4EefsuAL+pWqueZyZS2Ba+LxfFeQ9DN14HU4bN8bhaxKdkpjpB6fs9+pSjIBu+FXQHImEg8j/Lw0+vA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   process-nextick-args@2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
@@ -9861,13 +9936,21 @@ snapshots:
 
   '@istanbuljs/schema@0.1.3': {}
 
+  '@jest/diff-sequences@30.0.1': {}
+
   '@jest/expect-utils@29.7.0':
     dependencies:
       jest-get-type: 29.6.3
 
+  '@jest/get-type@30.1.0': {}
+
   '@jest/schemas@29.6.3':
     dependencies:
       '@sinclair/typebox': 0.27.8
+
+  '@jest/schemas@30.0.5':
+    dependencies:
+      '@sinclair/typebox': 0.34.41
 
   '@jest/transform@29.7.0':
     dependencies:
@@ -11146,6 +11229,8 @@ snapshots:
 
   '@sinclair/typebox@0.27.8': {}
 
+  '@sinclair/typebox@0.34.41': {}
+
   '@sindresorhus/merge-streams@2.3.0': {}
 
   '@standard-schema/spec@1.0.0': {}
@@ -11156,7 +11241,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swc/plugin-remove-console@12.0.1':
+  '@swc/plugin-remove-console@12.1.0':
     dependencies:
       '@swc/counter': 0.1.3
 
@@ -14059,6 +14144,13 @@ snapshots:
       jest-get-type: 29.6.3
       pretty-format: 29.7.0
 
+  jest-diff@30.2.0:
+    dependencies:
+      '@jest/diff-sequences': 30.0.1
+      '@jest/get-type': 30.1.0
+      chalk: 4.1.2
+      pretty-format: 30.2.0
+
   jest-get-type@29.6.3: {}
 
   jest-haste-map@29.7.0:
@@ -15415,6 +15507,12 @@ snapshots:
   pretty-format@29.7.0:
     dependencies:
       '@jest/schemas': 29.6.3
+      ansi-styles: 5.2.0
+      react-is: 18.3.1
+
+  pretty-format@30.2.0:
+    dependencies:
+      '@jest/schemas': 30.0.5
       ansi-styles: 5.2.0
       react-is: 18.3.1
 

@@ -12,9 +12,7 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use build_chunk_graph::{
-  artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
-};
+use build_chunk_graph::{artifact::use_code_splitting_cache, build_chunk_graph};
 use dashmap::DashSet;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
@@ -1627,7 +1625,7 @@ impl Compilation {
     } else {
       dependencies_diagnostics
     };
-    return all_modules_diagnostics.into_values().flatten().collect();
+    all_modules_diagnostics.into_values().flatten().collect()
   }
 
   #[instrument("Compilation:seal", skip_all)]
@@ -1674,11 +1672,7 @@ impl Compilation {
     self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
-      if compilation.options.experiments.parallel_code_splitting {
-        build_chunk_graph_new(compilation)?;
-      } else {
-        build_chunk_graph(compilation)?;
-      }
+      build_chunk_graph(compilation)?;
       compilation
         .chunk_graph
         .generate_dot(compilation, "after-code-splitting")

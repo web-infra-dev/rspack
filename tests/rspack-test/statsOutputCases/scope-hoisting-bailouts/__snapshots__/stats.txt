@@ -1,0 +1,31 @@
+runtime modules xx KiB 12 modules
+cacheable modules xx bytes
+  code generated modules xx bytes [code generated]
+    ./index.js xx bytes [built] [code generated]
+      Statement with side_effects in source code at ./index.js<LINE_COL>-25
+      ModuleConcatenation bailout: Module is an entry point
+      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/cjs.js: Module is not an ECMAScript module
+      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/eval.js: Module uses eval()
+      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/module-id.js: Module uses module.id
+      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/module-loaded.js: Module uses module.loaded
+    ./entry.js xx bytes [built] [code generated]
+      ModuleConcatenation bailout: Module is an entry point
+    ./cjs.js xx bytes [built] [code generated]
+      Statement with side_effects in source code at ./cjs.js<LINE_COL>-26
+      ModuleConcatenation bailout: Module is not an ECMAScript module
+    ./ref-from-cjs.js xx bytes [built] [code generated]
+    ./eval.js xx bytes [built] [code generated]
+      ExportDefaultExpr with side_effects in source code at ./eval.js<LINE_COL>-34
+      ModuleConcatenation bailout: Module uses eval()
+    ./module-id.js xx bytes [built] [code generated]
+      ExportDefaultExpr with side_effects in source code at ./module-id.js<LINE_COL>-25
+      ModuleConcatenation bailout: Module uses module.id
+    ./module-loaded.js xx bytes [built] [code generated]
+      ExportDefaultExpr with side_effects in source code at ./module-loaded.js<LINE_COL>-29
+      ModuleConcatenation bailout: Module uses module.loaded
+    + 2 modules
+  orphan modules xx bytes [orphan]
+    ./concatenated.js xx bytes [orphan] [built]
+    ./concatenated1.js xx bytes [orphan] [built]
+    ./concatenated2.js xx bytes [orphan] [built]
+Rspack x.x.x compiled successfully in X s
