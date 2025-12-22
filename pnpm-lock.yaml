@@ -138,6 +138,46 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  examples/basic:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+
+  examples/react:
+    dependencies:
+      react:
+        specifier: ^19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: ^19.2.3
+        version: 19.2.3(react@19.2.3)
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: ^1.5.3
+        version: 1.5.3(react-refresh@0.18.0)
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
+      react-refresh:
+        specifier: ^0.18.0
+        version: 0.18.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}

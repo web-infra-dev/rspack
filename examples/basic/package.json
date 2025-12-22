@@ -1,0 +1,13 @@
+{
+  "name": "@rspack/example-basic",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
+  }
+}
