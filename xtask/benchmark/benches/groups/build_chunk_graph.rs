@@ -129,6 +129,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     Compilation::new(
       compiler_id,
       compiler.options.clone(),
+      compiler.platform.clone(),
       compiler.plugin_driver.clone(),
       compiler.buildtime_plugin_driver.clone(),
       compiler.resolver_factory.clone(),

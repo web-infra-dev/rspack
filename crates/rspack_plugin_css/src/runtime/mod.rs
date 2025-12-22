@@ -133,8 +133,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       let environment = &compilation.options.output.environment;
+      let is_neutral_platform = compilation.platform.is_neutral();
       let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-        && environment.supports_document()
+        && (environment.supports_document() || is_neutral_platform)
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Prefetch,
@@ -142,7 +143,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &chunk_has_css,
         );
       let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-        && environment.supports_document()
+        && (environment.supports_document() || is_neutral_platform)
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Preload,
