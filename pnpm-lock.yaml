@@ -146,6 +146,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   examples/react:
     dependencies:

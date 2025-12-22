@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "build": "rspack build",
-    "dev": "rspack dev"
+    "dev": "rspack dev",
+    "preview": "rspack preview"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "typescript": "^5.9.3"
   }
 }
