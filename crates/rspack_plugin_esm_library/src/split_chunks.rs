@@ -259,7 +259,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     }
   }
 
-  // module is guarrented to be exist in only one group
+  // module is guaranteed to be exist in only one group
   // we should merge modules' dependencies into the same group
   let module_graph = compilation.get_module_graph();
   group_modules.par_iter_mut().for_each(|(_, match_group)| {
