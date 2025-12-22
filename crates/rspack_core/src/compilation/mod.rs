@@ -449,11 +449,12 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_build_module_graph_artifact_with_compilation(&mut self, other: &mut Compilation) {
+  pub fn recover_build_module_graph_artifact(&mut self, other: &mut Compilation) {
     std::mem::swap(
       &mut self.build_module_graph_artifact,
       &mut other.build_module_graph_artifact,
     );
+    self.build_module_graph_artifact.module_graph.recover();
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);
@@ -1609,11 +1610,11 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let clone = self.build_module_graph_artifact.module_graph.clone();
+    // a check point for next recover
+    self.build_module_graph_artifact.module_graph.save();
     self.module_graph = Some(mem::take(
       &mut self.build_module_graph_artifact.module_graph,
     ));
-    self.build_module_graph_artifact.module_graph = clone;
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();

@@ -1,3 +1,4 @@
+pub mod snapshot_map;
 use std::{collections::hash_map::Entry, sync::Arc};
 
 use rayon::prelude::*;
@@ -49,10 +50,10 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: IdentifierMap<Option<Arc<BoxModule>>>,
+  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+  dependencies: snapshot_map::SnapshotMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
@@ -89,27 +90,28 @@ pub(crate) struct ModuleGraphData {
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
-impl Clone for ModuleGraphData {
-  fn clone(&self) -> Self {
-    Self {
-      modules: self.modules.clone(),
-      dependencies: self.dependencies.clone(),
-      blocks: self.blocks.clone(),
-      module_graph_modules: self.module_graph_modules.clone(),
-      connections: self.connections.clone(),
-      dependency_id_to_parents: self.dependency_id_to_parents.clone(),
-      exports_info_map: self.exports_info_map.clone(),
-      connection_to_condition: self.connection_to_condition.clone(),
-      dep_meta_map: self.dep_meta_map.clone(),
-    }
+impl ModuleGraphData {
+  fn save(&mut self) {
+    self.dependencies.save();
+  }
+  fn recover(&mut self) {
+    self.dependencies.recover();
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ModuleGraph {
   inner: ModuleGraphData,
 }
-
+impl ModuleGraph {
+  // checkpoint
+  pub fn save(&mut self) {
+    self.inner.save()
+  }
+  pub fn recover(&mut self) {
+    self.inner.recover()
+  }
+}
 /// Type alias for backward compatibility - ModuleGraphRef is now just ModuleGraph
 pub type ModuleGraphRef<'a> = ModuleGraph;
 /// Type alias for backward compatibility - ModuleGraphMut is now just ModuleGraph
@@ -126,15 +128,12 @@ impl ModuleGraph {
 
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    let mut res = IdentifierMap::default();
-    for (k, v) in &self.inner.modules {
-      if let Some(v) = v {
-        res.insert(*k, v.as_ref());
-      } else {
-        res.remove(k);
-      }
-    }
-    res
+    self
+      .inner
+      .modules
+      .iter()
+      .filter_map(|(k, v)| v.as_ref().map(|m| (*k, m)))
+      .collect()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
@@ -244,9 +243,7 @@ impl ModuleGraph {
       if let Some(m_id) = original_module_identifier
         && let Some(Some(module)) = self.inner.modules.get_mut(&m_id)
       {
-        Arc::get_mut(module)
-          .expect("module should have unique reference")
-          .remove_dependency_id(*dep_id);
+        module.remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
         && let Some(Some(block)) = self.inner.blocks.get_mut(&b_id)
@@ -511,11 +508,11 @@ impl ModuleGraph {
     match self.inner.modules.entry(module.identifier()) {
       Entry::Occupied(mut val) => {
         if val.get().is_none() {
-          val.insert(Some(Arc::new(module)));
+          val.insert(Some(module));
         }
       }
       Entry::Vacant(val) => {
-        val.insert(Some(Arc::new(module)));
+        val.insert(Some(module));
       }
     }
   }
@@ -584,7 +581,7 @@ impl ModuleGraph {
 
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
     let mut res = HashMap::default();
-    for (k, v) in &self.inner.dependencies {
+    for (k, v) in self.inner.dependencies.iter() {
       if let Some(v) = v {
         res.insert(*k, v);
       } else {
@@ -636,7 +633,7 @@ impl ModuleGraph {
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
     if let Some(module_id) = self.module_identifier_by_dependency_id(dep_id) {
-      self.inner.modules.get(module_id)?.as_deref()
+      self.inner.modules.get(module_id)?.as_ref()
     } else {
       None
     }
@@ -726,7 +723,8 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    self.inner.modules.get(identifier)?.as_deref()
+    let a = self.inner.modules.get(identifier)?;
+    a.as_ref()
   }
 
   pub fn module_by_identifier_mut(
@@ -734,7 +732,7 @@ impl ModuleGraph {
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
     let module = self.inner.modules.get_mut(identifier)?.as_mut()?;
-    Some(Arc::get_mut(module).unwrap())
+    Some(module)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
