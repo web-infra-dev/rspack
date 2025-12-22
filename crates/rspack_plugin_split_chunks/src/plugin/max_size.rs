@@ -598,7 +598,7 @@ impl SplitChunksPlugin {
           compilation_ref,
           &compilation
             .chunk_graph
-            .get_chunk_modules(chunk, &module_graph),
+            .get_chunk_modules(chunk, module_graph),
           allow_max_size,
           min_size,
           automatic_name_delimiter,

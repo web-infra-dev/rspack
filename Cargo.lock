@@ -4378,7 +4378,6 @@ version = "0.7.0-beta.1"
 dependencies = [
  "async-trait",
  "atomic_refcell",
- "derive_more",
  "futures",
  "rayon",
  "regex",

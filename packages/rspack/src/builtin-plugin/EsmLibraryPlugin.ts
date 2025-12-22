@@ -1,12 +1,22 @@
-import { BuiltinPluginName } from '@rspack/binding';
-import rspack from '..';
-import type { Compiler } from '../Compiler';
-import type { OptimizationSplitChunksOptions, RspackOptionsNormalized } from '../config';
-import type { Logger } from '../logging/Logger';
-import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
+import { BuiltinPluginName } from "@rspack/binding";
+import rspack from "..";
+import type { Compiler } from "../Compiler";
+import type {
+  OptimizationSplitChunksOptions,
+  RspackOptionsNormalized
+} from "../config";
+import type { Logger } from "../logging/Logger";
+import { RemoveDuplicateModulesPlugin } from "./RemoveDuplicateModulesPlugin";
 import { toRawSplitChunksOptions } from "./SplitChunksPlugin";
 
-const NOT_SUPPORTED_CONFIG = ['maxSize', 'minSizeReduction', 'maxAsyncSize', 'maxInitialSize', 'maxAsyncRequests', 'maxInitialRequests'] as const;
+const NOT_SUPPORTED_CONFIG = [
+  "maxSize",
+  "minSizeReduction",
+  "maxAsyncSize",
+  "maxInitialSize",
+  "maxAsyncRequests",
+  "maxInitialRequests"
+] as const;
 
 function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
   // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
@@ -38,7 +48,7 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
 
   let { splitChunks } = options.optimization;
   if (splitChunks === undefined) {
-    splitChunks = false;
+    splitChunks = options.optimization.splitChunks = false;
   }
 
   if (splitChunks !== false) {
@@ -52,7 +62,9 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
     }
 
     if (invalidConfig.length > 0) {
-      logger.warn(`Currently \`${invalidConfig.join(', ')}\` are not supported in esm library mode`);
+      logger.warn(
+        `Currently \`${invalidConfig.join(", ")}\` are not supported in esm library mode`
+      );
     }
 
     splitChunks.cacheGroups ??= {};
@@ -61,10 +73,13 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
   }
 }
 
-function fieldUsed(field: (typeof NOT_SUPPORTED_CONFIG)[number], splitChunks: OptimizationSplitChunksOptions): boolean {
+function fieldUsed(
+  field: (typeof NOT_SUPPORTED_CONFIG)[number],
+  splitChunks: OptimizationSplitChunksOptions
+): boolean {
   if (splitChunks[field] !== undefined) {
     return true;
-  };
+  }
 
   const cacheGroups = splitChunks.cacheGroups;
   if (cacheGroups === undefined) {
@@ -86,8 +101,11 @@ function fieldUsed(field: (typeof NOT_SUPPORTED_CONFIG)[number], splitChunks: Op
 }
 
 export class EsmLibraryPlugin {
-  static PLUGIN_NAME = 'EsmLibraryPlugin';
-  options?: { preserveModules?: string, splitChunks?: OptimizationSplitChunksOptions };
+  static PLUGIN_NAME = "EsmLibraryPlugin";
+  options?: {
+    preserveModules?: string;
+    splitChunks?: OptimizationSplitChunksOptions;
+  };
 
   constructor(options?: { preserveModules?: string }) {
     this.options = options;
@@ -118,7 +136,9 @@ export class EsmLibraryPlugin {
       name: BuiltinPluginName.EsmLibraryPlugin,
       options: {
         preserveModules: this.options?.preserveModules,
-        splitChunks: this.options?.splitChunks && toRawSplitChunksOptions(this.options?.splitChunks, compiler)
+        splitChunks:
+          this.options?.splitChunks &&
+          toRawSplitChunksOptions(this.options?.splitChunks, compiler)
       }
     });
   }
