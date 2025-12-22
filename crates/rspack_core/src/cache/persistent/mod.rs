@@ -67,7 +67,7 @@ impl PersistentCache {
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
-    let context = Arc::new(CacheableContext {});
+    let context = Arc::new(CacheableContext);
     let make_occasion = MakeOccasion::new(storage.clone(), context);
     let meta_occasion = MetaOccasion::new(storage.clone());
     Self {

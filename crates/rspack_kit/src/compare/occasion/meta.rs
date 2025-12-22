@@ -29,7 +29,7 @@ pub async fn compare(
     return Err(rspack_error::error!(
       "Expected exactly one meta entry in storage1, got {}\n{}",
       data1.len(),
-      debug_info.to_string()
+      debug_info
     ));
   }
 
@@ -37,7 +37,7 @@ pub async fn compare(
     return Err(rspack_error::error!(
       "Expected exactly one meta entry in storage2, got {}\n{}",
       data2.len(),
-      debug_info.to_string()
+      debug_info
     ));
   }
 

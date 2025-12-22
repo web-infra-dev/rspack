@@ -29,7 +29,7 @@ pub async fn compare(
   ensure_iter_equal("Make module key", map1.keys(), map2.keys(), &debug_info)?;
 
   // Convert stored data to BuildModuleGraphArtifact using MakeOccasion's recovery ability
-  let context = Arc::new(CacheableContext {});
+  let context = Arc::new(CacheableContext);
   let occasion1 = MakeOccasion::new(storage1.clone(), context.clone());
   let occasion2 = MakeOccasion::new(storage2.clone(), context.clone());
 
@@ -142,7 +142,7 @@ impl<'a> ArtifactComparator<'a> {
         rspack_error::error!(
           "Connection DependencyId {:?} not found in dep_id_map\n{}",
           dep_id1,
-          debug_info.to_string()
+          debug_info
         )
       })?;
 
@@ -152,7 +152,7 @@ impl<'a> ArtifactComparator<'a> {
           dep_id1,
           expected_dep_id2,
           dep_id2,
-          debug_info.to_string()
+          debug_info
         ));
       }
     }
@@ -179,7 +179,7 @@ impl<'a> ArtifactComparator<'a> {
         "Module has different number of dependencies: {} vs {}\n{}",
         deps1.len(),
         deps2.len(),
-        debug_info.to_string()
+        debug_info
       ));
     }
 
@@ -206,7 +206,7 @@ impl<'a> ArtifactComparator<'a> {
           i,
           type1,
           type2,
-          dep_debug_info.to_string()
+          dep_debug_info
         ));
       }
 
@@ -247,24 +247,16 @@ impl<'a> ArtifactComparator<'a> {
     // Serialize and compare the rest of BuildInfo using rspack_cacheable
     let ctx = ();
     let bytes1 = rspack_cacheable::to_bytes(&normalized_info1, &ctx).map_err(|e| {
-      rspack_error::error!(
-        "Failed to serialize BuildInfo 1: {:?}\n{}",
-        e,
-        debug_info.to_string()
-      )
+      rspack_error::error!("Failed to serialize BuildInfo 1: {:?}\n{}", e, debug_info)
     })?;
     let bytes2 = rspack_cacheable::to_bytes(&normalized_info2, &ctx).map_err(|e| {
-      rspack_error::error!(
-        "Failed to serialize BuildInfo 2: {:?}\n{}",
-        e,
-        debug_info.to_string()
-      )
+      rspack_error::error!("Failed to serialize BuildInfo 2: {:?}\n{}", e, debug_info)
     })?;
 
     if bytes1 != bytes2 {
       return Err(rspack_error::error!(
         "BuildInfo mismatch (excluding all_star_exports): serialized bytes differ\n{}",
-        debug_info.to_string()
+        debug_info
       ));
     }
 
@@ -284,7 +276,7 @@ impl<'a> ArtifactComparator<'a> {
         "BuildInfo all_star_exports count mismatch: {} vs {}\n{}",
         exports1.len(),
         exports2.len(),
-        debug_info.to_string()
+        debug_info
       ));
     }
 
@@ -295,7 +287,7 @@ impl<'a> ArtifactComparator<'a> {
           "BuildInfo all_star_exports[{}]: DependencyId {:?} not found in mapping\n{}",
           i,
           dep_id1,
-          debug_info.to_string()
+          debug_info
         )
       })?;
 
@@ -307,7 +299,7 @@ impl<'a> ArtifactComparator<'a> {
           i,
           expected_dep_id2,
           actual_dep_id2,
-          debug_info.to_string()
+          debug_info
         ));
       }
     }

@@ -79,8 +79,8 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
   let cache_paths1 = find_relative_cache_path(&path1);
   let cache_paths2 = find_relative_cache_path(&path2);
   let debug_info = DebugInfo::default()
-    .with_field("path1", &path1.to_string())
-    .with_field("path2", &path2.to_string());
+    .with_field("path1", path1.as_ref())
+    .with_field("path2", path2.as_ref());
 
   // Check if versions are identical
   ensure_iter_equal(
@@ -94,8 +94,8 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
     let cache_path1 = path1.join(cache_relative_path);
     let cache_path2 = path2.join(cache_relative_path);
     let debug_info = DebugInfo::default()
-      .with_field("path1", &cache_path1.to_string())
-      .with_field("path2", &cache_path2.to_string());
+      .with_field("path1", cache_path1.as_ref())
+      .with_field("path2", cache_path2.as_ref());
 
     // Load storages from both paths
     let storages1 = load_storages_from_path(&cache_path1);
@@ -113,7 +113,7 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
     for (version, storage1) in storages1 {
       let cur_debug_info = debug_info.with_field("version", &version);
 
-      let storage2 = storages2.remove(&version).unwrap();
+      let storage2 = storages2.remove(&version).expect("should have storage");
 
       compare_storage(storage1, storage2, cur_debug_info).await?;
     }
@@ -155,8 +155,7 @@ async fn compare_storage(
       _ => {
         return Err(error!(
           "Comparison for unknown scope: {} \n{}",
-          scope,
-          debug_info.to_string()
+          scope, debug_info
         ));
       }
     }

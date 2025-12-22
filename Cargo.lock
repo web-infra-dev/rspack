@@ -3974,10 +3974,7 @@ dependencies = [
 name = "rspack_kit"
 version = "0.7.0-beta.0"
 dependencies = [
- "anyhow",
- "async-trait",
  "clap",
- "futures",
  "itertools 0.14.0",
  "rspack_cacheable",
  "rspack_core",

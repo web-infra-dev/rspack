@@ -1,2 +1,2 @@
 #[derive(Debug)]
-pub struct CacheableContext {}
+pub struct CacheableContext;

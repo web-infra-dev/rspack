@@ -12,10 +12,7 @@ name = "rspack_kit"
 path = "src/main.rs"
 
 [dependencies]
-anyhow           = { workspace = true }
-async-trait      = { workspace = true }
 clap             = { workspace = true, features = ["std", "derive"] }
-futures          = { workspace = true }
 itertools        = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_core      = { workspace = true }

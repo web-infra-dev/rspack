@@ -47,7 +47,7 @@ pub async fn compare(
 
   // Compare strategies for each path
   for (key, strategy1) in &map1 {
-    let strategy2 = map2.get(key).unwrap();
+    let strategy2 = map2.get(key).expect("should have key");
 
     if strategy1 != strategy2 {
       let path_str = String::from_utf8_lossy(key);
