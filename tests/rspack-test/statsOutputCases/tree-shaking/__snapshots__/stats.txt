@@ -1,0 +1,28 @@
+asset bundle.js xx KiB [emitted] (name: main)
+runtime modules xx bytes 3 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+    [no exports]
+    [no exports used]
+  ./reexport-known.js xx bytes [built] [code generated]
+    [exports: a, b]
+    [only some exports used: a]
+  ./reexport-unknown.js xx bytes [built] [code generated]
+    [exports: a, b, c, d]
+    [only some exports used: a, c]
+  ./reexport-star-known.js xx bytes [built] [code generated]
+    [exports: a, b]
+    [only some exports used: a]
+  ./reexport-star-unknown.js xx bytes [built] [code generated]
+    [only some exports used: a, c]
+  ./edge.js xx bytes [built] [code generated]
+    [only some exports used: y]
+  ./a.js xx bytes [built] [code generated]
+    [exports: a]
+    [all exports used]
+  ./unknown.js xx bytes [built] [code generated]
+    [used exports unknown]
+  ./unknown2.js xx bytes [built] [code generated]
+    [used exports unknown]
+Rspack x.x.x compiled successfully in X s
