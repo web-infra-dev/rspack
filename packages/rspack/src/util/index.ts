@@ -60,9 +60,18 @@ export function stringifyLoaderObject(o: LoaderObject): string {
 }
 
 export const unsupported = (name: string, issue?: string) => {
-	let s = `${name} is not supported by rspack.`;
+	let s = `${name} is not supported by Rspack.`;
 	if (issue) {
-		s += ` Please refer to issue ${issue} for more information.`;
+		s += ` Refer to issue ${issue} for more information.`;
 	}
 	throw new Error(s);
 };
+
+const warnedMessages = new Set<string>();
+
+export function deprecate(message: string): void {
+	if (warnedMessages.has(message)) return;
+	warnedMessages.add(message);
+
+	console.warn(`[Rspack Deprecation] ${message}`);
+}
