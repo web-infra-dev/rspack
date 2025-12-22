@@ -135,19 +135,19 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.5", default-features = false }
-swc                 = { version = "48.0.1", default-features = false }
+swc                 = { version = "50.0.0", default-features = false }
 swc_config          = { version = "3.1.2", default-features = false }
-swc_core            = { version = "50.2.3", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "38.0.1", default-features = false }
+swc_core            = { version = "52.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "40.0.0", default-features = false }
 swc_error_reporters = { version = "20.0.0", default-features = false }
 swc_html            = { version = "30.0.0", default-features = false }
-swc_html_minifier   = { version = "38.0.0", default-features = false }
+swc_html_minifier   = { version = "40.0.0", default-features = false }
 swc_node_comments   = { version = "18.0.0", default-features = false }
 swc_plugin_runner   = { version = "23.0.0", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.3.3", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.3.3", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.3.3", default-features = false }
+swc_experimental_ecma_ast      = { version = "0.3.5", default-features = false }
+swc_experimental_ecma_parser   = { version = "0.3.5", default-features = false }
+swc_experimental_ecma_semantic = { version = "0.3.5", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client = { version = "=0.18.3", default-features = false, features = [
