@@ -28,6 +28,7 @@ export class Coordinator {
 									"Call coordinator.applyServerCompiler(serverCompiler) first."
 							);
 						}
+						// @ts-ignore
 						return this.#serverCompiler[GET_COMPILER_ID]();
 					});
 				}

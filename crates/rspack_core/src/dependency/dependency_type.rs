@@ -119,8 +119,6 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
-  // react server component
-  ClientReference,
 }
 
 impl DependencyType {
@@ -197,7 +195,6 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
-      DependencyType::ClientReference => "client reference",
     }
   }
 }

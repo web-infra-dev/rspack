@@ -27,7 +27,6 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
-  layer: Option<ModuleLayer>,
 }
 
 impl ImportEagerDependency {
@@ -35,13 +34,10 @@ impl ImportEagerDependency {
     request: Atom,
     range: DependencyRange,
     referenced_exports: Option<Vec<Vec<Atom>>>,
-    mut attributes: Option<ImportAttributes>,
+    attributes: Option<ImportAttributes>,
   ) -> Self {
-    let layer: Option<ModuleLayer> = attributes.as_mut().and_then(|attrs| attrs.remove("layer"));
-
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
-
     Self {
       request,
       range,
@@ -50,7 +46,6 @@ impl ImportEagerDependency {
       attributes,
       resource_identifier,
       factorize_info: Default::default(),
-      layer,
     }
   }
 
@@ -101,10 +96,6 @@ impl Dependency for ImportEagerDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
-  }
-
-  fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.layer.as_ref()
   }
 }
 

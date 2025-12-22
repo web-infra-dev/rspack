@@ -26,11 +26,6 @@ pub struct RawCollectTypeScriptInfoOptions {
   pub exported_enum: Option<String>,
 }
 
-// #[derive(Default, Deserialize, Debug)]
-// pub struct ServerComponentsOptions {
-//   is_react_server_layer: bool,
-// }
-
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,

@@ -19,7 +19,6 @@ pub enum DependencyCategory {
   Wasm,
   Worker,
   LoaderImport,
-  ClientReference,
 }
 
 impl From<&str> for DependencyCategory {
@@ -36,7 +35,6 @@ impl From<&str> for DependencyCategory {
       "loaderImport" => Self::LoaderImport,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
-      "client-reference" => Self::Unknown,
       _ => Self::Unknown,
     }
   }
@@ -57,7 +55,6 @@ impl DependencyCategory {
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
       DependencyCategory::LoaderImport => "loaderImport",
-      DependencyCategory::ClientReference => "client-reference",
     }
   }
 }

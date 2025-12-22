@@ -254,7 +254,6 @@ impl CompilationRecords {
       .runtime_modules
       .keys()
       .map(|identifier| {
-        println!("record runtime module: {:?}", identifier);
         (
           *identifier,
           compilation

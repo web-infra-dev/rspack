@@ -264,7 +264,7 @@ bitflags! {
     const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 69;
     const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 70;
 
-    // react server component manifest
+    // react server component
     const RSC_MANIFEST = 1 << 71;
     const RSC_HOT_RELOADER = 1 << 72;
   }

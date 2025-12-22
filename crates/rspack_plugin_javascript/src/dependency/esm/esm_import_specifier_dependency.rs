@@ -9,9 +9,9 @@ use rspack_core::{
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleLayer,
-  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
+  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
   create_exports_object_referenced, export_from_import, get_exports_type, property_access,
   to_normal_comment,
 };
@@ -55,7 +55,6 @@ pub struct ESMImportSpecifierDependency {
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   factorize_info: FactorizeInfo,
-  layer: Option<ModuleLayer>,
 }
 
 impl ESMImportSpecifierDependency {
@@ -73,15 +72,12 @@ impl ESMImportSpecifierDependency {
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
-    mut attributes: Option<ImportAttributes>,
+    attributes: Option<ImportAttributes>,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
-    let layer: Option<ModuleLayer> = attributes.as_mut().and_then(|attrs| attrs.remove("layer"));
-
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     let loc = range.to_loc(source_map.as_ref());
-
     Self {
       id: DependencyId::new(),
       request,
@@ -103,7 +99,6 @@ impl ESMImportSpecifierDependency {
       resource_identifier,
       loc,
       factorize_info: Default::default(),
-      layer,
     }
   }
 
