@@ -37,8 +37,49 @@ type ProvidesEnhancedExtraConfig = {
 	singleton?: boolean;
 	strictVersion?: boolean;
 	requiredVersion?: false | string;
+	/**
+	 * Tree shaking strategy for the shared module.
+	 */
+	treeshakeStrategy?: "server" | "infer";
 };
 
+export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
+	options: Provides<Enhanced>,
+	shareScope?: string,
+	enhanced?: boolean
+) {
+	return parseOptions(
+		options,
+		item => {
+			if (Array.isArray(item)) throw new Error("Unexpected array of provides");
+			return {
+				shareKey: item,
+				version: undefined,
+				shareScope: shareScope || "default",
+				eager: false
+			};
+		},
+		item => {
+			const raw = {
+				shareKey: item.shareKey,
+				version: item.version,
+				shareScope: item.shareScope || shareScope || "default",
+				eager: !!item.eager
+			};
+			if (enhanced) {
+				const enhancedItem: ProvidesConfig<true> = item;
+				return {
+					...raw,
+					singleton: enhancedItem.singleton,
+					requiredVersion: enhancedItem.requiredVersion,
+					strictVersion: enhancedItem.strictVersion,
+					treeshakeStrategy: enhancedItem.treeshakeStrategy
+				};
+			}
+			return raw;
+		}
+	);
+}
 export class ProvideSharedPlugin<
 	Enhanced extends boolean = false
 > extends RspackBuiltinPlugin {
@@ -48,36 +89,10 @@ export class ProvideSharedPlugin<
 
 	constructor(options: ProvideSharedPluginOptions<Enhanced>) {
 		super();
-		this._provides = parseOptions(
+		this._provides = normalizeProvideShareOptions(
 			options.provides,
-			item => {
-				if (Array.isArray(item))
-					throw new Error("Unexpected array of provides");
-				return {
-					shareKey: item,
-					version: undefined,
-					shareScope: options.shareScope || "default",
-					eager: false
-				};
-			},
-			item => {
-				const raw = {
-					shareKey: item.shareKey,
-					version: item.version,
-					shareScope: item.shareScope || options.shareScope || "default",
-					eager: !!item.eager
-				};
-				if (options.enhanced) {
-					const enhancedItem: ProvidesConfig<true> = item;
-					return {
-						...raw,
-						singleton: enhancedItem.singleton,
-						requiredVersion: enhancedItem.requiredVersion,
-						strictVersion: enhancedItem.strictVersion
-					};
-				}
-				return raw;
-			}
+			options.shareScope,
+			options.enhanced
 		);
 		this._enhanced = options.enhanced;
 	}
