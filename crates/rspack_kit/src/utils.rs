@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::debug_info::DebugInfo;
 
-/// Compare two iterator and return error if they don't match
+/// Compare two iterators and return error if they don't match
 pub fn ensure_iter_equal<T>(
   compare_name: &str,
   iter1: impl Iterator<Item = T>,

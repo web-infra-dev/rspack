@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-/// CompareTrace tracks the hierarchical context during comparison
+/// DebugInfo tracks the hierarchical context during comparison
 #[derive(Debug, Clone, Default)]
 pub struct DebugInfo(Vec<String>);
 

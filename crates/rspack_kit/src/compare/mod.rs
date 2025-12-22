@@ -25,7 +25,7 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
       relative_paths.insert(
         path
           .strip_prefix(root_path)
-          .expect("should success")
+          .expect("should succeed")
           .to_string(),
       );
       continue;
@@ -122,7 +122,7 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
   Ok(())
 }
 
-/// Compare two storage and return whether they are equal
+/// Compare two storages and return whether they are equal
 async fn compare_storage(
   storage1: Arc<dyn Storage>,
   storage2: Arc<dyn Storage>,
