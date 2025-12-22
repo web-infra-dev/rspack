@@ -1,6 +1,8 @@
 mod client_compiler_handle;
 mod client_plugin;
 mod constants;
+mod hot_reloader;
+mod hot_reloader_runtime_module;
 mod loaders;
 mod manifest_runtime_module;
 mod plugin_state;

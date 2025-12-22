@@ -5,7 +5,7 @@ use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilerId,
   ConcatenatedInnerModule, DependencyId, Module, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  ModuleType, NormalModule, RSCModuleType, RuntimeSpec,
+  ModuleType, NormalModule, RSCModuleType, RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
@@ -43,6 +43,7 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
 }
 
 pub struct ServerEntryModules<'a> {
+  compilation: &'a Compilation,
   entries_iter: indexmap::map::Iter<'a, String, rspack_core::EntryData>,
   module_graph: &'a ModuleGraphRef<'a>,
   entry_name: Option<&'a str>,
@@ -55,6 +56,7 @@ impl<'a> ServerEntryModules<'a> {
   pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraphRef<'a>) -> Self {
     let entries_iter = compilation.entries.iter();
     Self {
+      compilation,
       entries_iter,
       module_graph,
       entry_name: None,
@@ -64,7 +66,7 @@ impl<'a> ServerEntryModules<'a> {
     }
   }
 
-  fn next_server_entry(&mut self) -> Option<(&'a NormalModule, &'a str, Option<RuntimeSpec>)> {
+  fn next_server_entry(&mut self) -> Option<(&'a NormalModule, &'a str, RuntimeSpec)> {
     while let Some(dependency_id) = self.dependency_queue.pop_front() {
       let Some(module_identifier) = self.module_graph.get_resolved_module(&dependency_id) else {
         continue;
@@ -86,7 +88,7 @@ impl<'a> ServerEntryModules<'a> {
         return Some((
           normal_module,
           self.entry_name.unwrap(),
-          self.runtime.clone(),
+          self.runtime.clone().unwrap(),
         ));
       }
 
@@ -103,7 +105,7 @@ impl<'a> ServerEntryModules<'a> {
 }
 
 impl<'a> Iterator for ServerEntryModules<'a> {
-  type Item = (&'a NormalModule, &'a str, Option<RuntimeSpec>);
+  type Item = (&'a NormalModule, &'a str, RuntimeSpec);
 
   fn next(&mut self) -> Option<Self::Item> {
     loop {
@@ -116,7 +118,11 @@ impl<'a> Iterator for ServerEntryModules<'a> {
 
       let (entry_name, entry_data) = self.entries_iter.next()?;
       self.entry_name = Some(entry_name.as_str());
-      self.runtime = RuntimeSpec::from_entry_options(&entry_data.options);
+      self.runtime = Some(get_entry_runtime(
+        entry_name,
+        &entry_data.options,
+        &self.compilation.entries,
+      ));
 
       let entry_dependency = entry_data.dependencies[0];
       self.dependency_queue.push_back(entry_dependency);

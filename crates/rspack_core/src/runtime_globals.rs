@@ -266,6 +266,7 @@ bitflags! {
 
     // react server component manifest
     const RSC_MANIFEST = 1 << 71;
+    const RSC_HOT_RELOADER = 1 << 72;
   }
 }
 
@@ -360,6 +361,7 @@ impl RuntimeGlobals {
 
       R::HAS_FETCH_PRIORITY => "has fetch priority",
       R::RSC_MANIFEST => "__webpack_require__.rscM",
+      R::RSC_HOT_RELOADER => "__webpack_require__.rscH",
       _ => unreachable!(),
     }
   }

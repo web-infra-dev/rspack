@@ -5,8 +5,9 @@ use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
-  CompilerMake, CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
-  ModuleGraphRef, ModuleId, ModuleIdentifier, Plugin,
+  CompilationRuntimeRequirementInTree, CompilerId, CompilerMake, CrossOriginLoading, Dependency,
+  DependencyId, EntryDependency, Logger, ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier,
+  Plugin, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,6 +16,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
+  hot_reloader_runtime_module::RscHotReloaderRuntimeModule,
   loaders::client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
@@ -30,6 +32,7 @@ pub struct RscClientPluginOptions {
 pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
+  server_compiler_id: AtomicRefCell<Option<CompilerId>>,
   client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
 }
 
@@ -335,7 +338,7 @@ fn collect_client_actions_from_dependencies(
 
 impl RscClientPlugin {
   pub fn new(coordinator: Arc<Coordinator>) -> Self {
-    Self::new_inner(coordinator, Default::default())
+    Self::new_inner(coordinator, Default::default(), Default::default())
   }
 
   async fn traverse_modules(
@@ -441,6 +444,11 @@ impl Plugin for RscClientPlugin {
 
     ctx
       .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
+
+    ctx
+      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
 
@@ -455,6 +463,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.coordinator.start_client_entries_compilation().await?;
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
+  *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
   let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
   let Some(plugin_state) = guard.get(&server_compiler_id) else {
@@ -505,6 +514,25 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for RscClientPlugin)]
+async fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  compilation.add_runtime_module(
+    chunk_ukey,
+    Box::new(RscHotReloaderRuntimeModule::new(
+      self.server_compiler_id.borrow().unwrap(),
+    )),
+  )?;
+
+  Ok(None)
 }
 
 #[plugin_hook(CompilationProcessAssets for RscClientPlugin)]

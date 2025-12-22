@@ -59,6 +59,7 @@ const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
 const API_VERSION: &str = "__rspack_version__";
 const API_UNIQUE_ID: &str = "__rspack_unique_id__";
 const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
+const API_RSC_HOT_RELOADER: &str = "__rspack_rsc_hot_reloader__";
 
 pub struct APIPluginOptions {
   module: bool,
@@ -289,6 +290,14 @@ impl JavascriptParserPlugin for APIPlugin {
           ident.span.into(),
           RuntimeGlobals::RSC_MANIFEST.name().into(),
           Some(RuntimeGlobals::RSC_MANIFEST),
+        )));
+        Some(true)
+      }
+      API_RSC_HOT_RELOADER => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          ident.span.into(),
+          RuntimeGlobals::RSC_HOT_RELOADER.name().into(),
+          Some(RuntimeGlobals::RSC_HOT_RELOADER),
         )));
         Some(true)
       }
