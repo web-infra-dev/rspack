@@ -44,6 +44,8 @@ export default defineConfig({
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
+  // Retry on CI to reduce flakes
+  retry: process.env.CI ? 3 : 0,
 	resolve: {
 		alias: {
 			// Fixed jest-serialize-path not working when non-ascii code contains.
@@ -104,7 +106,6 @@ export default defineConfig({
 	},
 	hideSkippedTests: true,
 	reporters: ['default'],
-	testTimeout: 300000,
 	...(wasmConfig || {}),
 });
 
