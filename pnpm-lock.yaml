@@ -4,8 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-packageExtensionsChecksum: sha256-WZ88kqM9JgE9ciYoQKKTOJ0acxww30kcoqLJylVevZo=
-
 patchedDependencies:
   webpack-sources@3.3.3:
     hash: b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee
@@ -367,7 +365,7 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.2
-        version: 1.4.2(@rsbuild/core@1.6.14)
+        version: 1.4.2(@rsbuild/core@1.7.0-beta.0)
       '@rslib/core':
         specifier: 0.18.5
         version: 0.18.5(@microsoft/api-extractor@7.55.2(@types/node@20.19.27))(typescript@5.9.3)
@@ -10700,7 +10698,7 @@ snapshots:
       core-js: 3.47.0
       jiti: 2.6.1
 
-  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.14)':
+  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.7.0-beta.0)':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10726,7 +10724,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 1.6.14
+      '@rsbuild/core': 1.7.0-beta.0
 
   '@rsbuild/plugin-react@1.4.2(@rsbuild/core@1.6.14)':
     dependencies:
