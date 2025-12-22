@@ -233,14 +233,6 @@ pub enum ImportPhase {
 }
 
 impl ImportPhase {
-  pub fn is_evaluation(&self) -> bool {
-    matches!(self, ImportPhase::Evaluation)
-  }
-
-  pub fn is_source(&self) -> bool {
-    matches!(self, ImportPhase::Source)
-  }
-
   pub fn is_defer(&self) -> bool {
     matches!(self, ImportPhase::Defer)
   }

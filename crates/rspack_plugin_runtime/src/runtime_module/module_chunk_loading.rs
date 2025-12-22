@@ -6,8 +6,9 @@ use rspack_core::{
   RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, compile_boolean_matcher,
   impl_runtime_module,
 };
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::utils::get_output_dir;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,

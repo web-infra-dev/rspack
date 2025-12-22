@@ -263,7 +263,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 							position,
 							length
 						},
-						(err, bytesRead, buffer) => {
+						(err, _bytesRead, buffer) => {
 							if (err) {
 								resolve(err);
 							} else {

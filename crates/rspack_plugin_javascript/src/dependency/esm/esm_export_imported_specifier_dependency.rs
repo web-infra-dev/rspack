@@ -718,8 +718,10 @@ impl ESMExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
-            let is_async =
-              ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier);
+            let is_async = ModuleGraph::is_async(
+              &compilation.async_modules_artifact.borrow(),
+              &module_identifier,
+            );
             ctxt
               .init_fragments
               .push(Box::new(ConditionalInitFragment::new(
@@ -793,7 +795,9 @@ impl ESMExportImportedSpecifierDependency {
         }
         content += "__rspack_reexport[__rspack_import_key] =";
 
-        if supports_arrow_function {
+        // Arrow getters capture the loop variable by reference.
+        // They are only correct when the loop binding is block-scoped (const/let), not var.
+        if supports_arrow_function && supports_const {
           content += &format!("() => {import_var}[__rspack_import_key]");
         } else {
           content +=
@@ -807,8 +811,10 @@ impl ESMExportImportedSpecifierDependency {
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async =
-          ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
+        let is_async = ModuleGraph::is_async(
+          &compilation.async_modules_artifact.borrow(),
+          &module.identifier(),
+        );
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(

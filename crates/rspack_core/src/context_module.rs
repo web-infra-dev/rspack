@@ -906,7 +906,14 @@ impl Module for ContextModule {
   }
 
   fn readable_identifier(&self, context: &crate::Context) -> std::borrow::Cow<'_, str> {
-    let identifier = contextify(context, self.options.resource.as_str());
+    let identifier = contextify(
+      context,
+      if self.options.resource.as_str().is_empty() {
+        "false"
+      } else {
+        self.options.resource.as_str()
+      },
+    );
     create_identifier(&self.options, Some(identifier.as_str()))
       .to_string()
       .into()
@@ -927,7 +934,14 @@ impl Module for ContextModule {
       id += layer;
       id += ")/";
     }
-    id += &contextify(options.context, self.options.resource.as_str());
+    id += &contextify(
+      options.context,
+      if self.options.resource.as_str().is_empty() {
+        "false"
+      } else {
+        self.options.resource.as_str()
+      },
+    );
     id += " ";
     id += self.options.context_options.mode.as_str();
     if self.options.context_options.recursive {
@@ -1045,10 +1059,11 @@ impl Module for ContextModule {
         .collect();
     }
 
-    let mut context_dependencies: ArcPathSet = Default::default();
-    context_dependencies.insert(self.options.resource.as_std_path().into());
-
-    self.build_info.context_dependencies = context_dependencies;
+    if !self.options.resource.as_str().is_empty() {
+      let mut context_dependencies: ArcPathSet = Default::default();
+      context_dependencies.insert(self.options.resource.as_std_path().into());
+      self.build_info.context_dependencies = context_dependencies;
+    }
 
     Ok(BuildResult {
       dependencies,
@@ -1139,7 +1154,13 @@ impl Identifiable for ContextModule {
 }
 
 fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
-  let mut id = resource.unwrap_or(options.resource.as_str()).to_owned();
+  let mut id = resource
+    .unwrap_or(if options.resource.as_str().is_empty() {
+      "false"
+    } else {
+      options.resource.as_str()
+    })
+    .to_owned();
   if !options.resource_query.is_empty() {
     id += "|";
     id += &options.resource_query;

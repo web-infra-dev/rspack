@@ -16,5 +16,7 @@ module.exports = {
 	},
 	devServer: {
 		port: 3000
-	}
+	},
+	// for concise assert for assets
+	lazyCompilation: false
 };

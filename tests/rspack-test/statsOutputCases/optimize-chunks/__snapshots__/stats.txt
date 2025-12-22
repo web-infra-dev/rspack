@@ -1,44 +1,44 @@
 asset main.js xx KiB {889} [emitted] (name: main)
-asset cir2 from cir1.js 323 bytes {497} [emitted] (name: cir2 from cir1)
-asset cir1.js 310 bytes {481} [emitted] (name: cir1)
-asset cir2.js 310 bytes {928} [emitted] (name: cir2)
-asset chunk.js 125 bytes {411} [emitted] (name: chunk)
-asset abd.js 112 bytes {504} [emitted] (name: abd)
-asset ab.js 99 bytes {123} [emitted] (name: ab)
-asset ac in ab.js 99 bytes {406} [emitted] (name: ac in ab)
-chunk {123} (runtime: main) ab.js (ab) 2 bytes <{889}> [rendered]
-  > [237] ./index.js 1:0-6:8
-  ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
-  ./modules/b.js [618] 1 bytes {123} {411} {504} [built] [code generated]
-chunk {406} (runtime: main) ac in ab.js (ac in ab) 2 bytes <{889}> [rendered]
-  > [237] ./index.js 2:4-5:18
-  ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
-  ./modules/c.js [494] 1 bytes {406} {411} [built] [code generated]
-chunk {411} (runtime: main) chunk.js (chunk) 4 bytes <{889}> [rendered]
-  > [237] ./index.js 3:8-4:19
-  > [237] ./index.js 9:4-10:15
-  ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
-  ./modules/b.js [618] 1 bytes {123} {411} {504} [built] [code generated]
-  ./modules/c.js [494] 1 bytes {406} {411} [built] [code generated]
-  ./modules/d.js [503] 1 bytes {411} {504} [built] [code generated]
-chunk {481} (runtime: main) cir1.js (cir1) 81 bytes <{497}> <{889}> <{928}> >{497}< [rendered]
-  > [237] ./index.js 13:0-54
-  > [448] ./circular2.js 1:0-79
-  ./circular1.js [985] 81 bytes {481} [built] [code generated]
-chunk {497} (runtime: main) cir2 from cir1.js (cir2 from cir1) 82 bytes <{481}> >{481}< [rendered]
-  > [985] ./circular1.js 1:0-79
-  ./circular2.js [448] 81 bytes {497} {928} [built] [code generated]
-  ./modules/e.js [888] 1 bytes {497} [built] [code generated]
-chunk {504} (runtime: main) abd.js (abd) 3 bytes <{889}> [rendered]
-  > [237] ./index.js 8:0-11:9
-  ./modules/a.js [36] 1 bytes {123} {406} {411} {504} [built] [code generated]
-  ./modules/b.js [618] 1 bytes {123} {411} {504} [built] [code generated]
-  ./modules/d.js [503] 1 bytes {411} {504} [built] [code generated]
-chunk {889} (runtime: main) main.js (main) 524 bytes (javascript) xx KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
+asset cir2 from cir1.js xx bytes {497} [emitted] (name: cir2 from cir1)
+asset cir1.js xx bytes {481} [emitted] (name: cir1)
+asset cir2.js xx bytes {928} [emitted] (name: cir2)
+asset chunk.js xx bytes {411} [emitted] (name: chunk)
+asset abd.js xx bytes {504} [emitted] (name: abd)
+asset ab.js xx bytes {123} [emitted] (name: ab)
+asset ac in ab.js xx bytes {406} [emitted] (name: ac in ab)
+chunk {123} (runtime: main) ab.js (ab) xx bytes <{889}> [rendered]
+  > [237] ./index.js 1:1-6:8
+  ./modules/a.js [36] xx bytes {123} {406} {411} {504} [built] [code generated]
+  ./modules/b.js [618] xx bytes {123} {411} {504} [built] [code generated]
+chunk {406} (runtime: main) ac in ab.js (ac in ab) xx bytes <{889}> [rendered]
+  > [237] ./index.js 2:2-5:15
+  ./modules/a.js [36] xx bytes {123} {406} {411} {504} [built] [code generated]
+  ./modules/c.js [494] xx bytes {406} {411} [built] [code generated]
+chunk {411} (runtime: main) chunk.js (chunk) xx bytes <{889}> [rendered]
+  > [237] ./index.js 3:3-4:13
+  > [237] ./index.js 9:2-10:12
+  ./modules/a.js [36] xx bytes {123} {406} {411} {504} [built] [code generated]
+  ./modules/b.js [618] xx bytes {123} {411} {504} [built] [code generated]
+  ./modules/c.js [494] xx bytes {406} {411} [built] [code generated]
+  ./modules/d.js [503] xx bytes {411} {504} [built] [code generated]
+chunk {481} (runtime: main) cir1.js (cir1) xx bytes <{497}> <{889}> <{928}> >{497}< [rendered]
+  > [237] ./index.js 13:1-54
+  > [448] ./circular2.js 1:1-79
+  ./circular1.js [985] xx bytes {481} [built] [code generated]
+chunk {497} (runtime: main) cir2 from cir1.js (cir2 from cir1) xx bytes <{481}> >{481}< [rendered]
+  > [985] ./circular1.js 1:1-79
+  ./circular2.js [448] xx bytes {497} {928} [built] [code generated]
+  ./modules/e.js [888] xx bytes {497} [built] [code generated]
+chunk {504} (runtime: main) abd.js (abd) xx bytes <{889}> [rendered]
+  > [237] ./index.js 8:1-11:9
+  ./modules/a.js [36] xx bytes {123} {406} {411} {504} [built] [code generated]
+  ./modules/b.js [618] xx bytes {123} {411} {504} [built] [code generated]
+  ./modules/d.js [503] xx bytes {411} {504} [built] [code generated]
+chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{123}< >{406}< >{411}< >{481}< >{504}< >{928}< [entry] [rendered]
   > ./index main
-  ./index.js [237] 523 bytes {889} [built] [code generated]
-  ./modules/f.js [633] 1 bytes {889} [dependent] [built] [code generated]
-chunk {928} (runtime: main) cir2.js (cir2) 81 bytes <{889}> >{481}< [rendered]
-  > [237] ./index.js 14:0-54
-  ./circular2.js [448] 81 bytes {497} {928} [built] [code generated]
+  ./index.js [237] xx bytes {889} [built] [code generated]
+  ./modules/f.js [633] xx bytes {889} [dependent] [built] [code generated]
+chunk {928} (runtime: main) cir2.js (cir2) xx bytes <{889}> >{481}< [rendered]
+  > [237] ./index.js 14:1-54
+  ./circular2.js [448] xx bytes {497} {928} [built] [code generated]
 Rspack x.x.x compiled successfully in X s

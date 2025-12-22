@@ -1,0 +1,40 @@
+asset main.js xx bytes [emitted] (name: main)
+modules by path ./node_modules/pmodule/*.js xx bytes
+  ./node_modules/pmodule/index.js xx bytes [orphan] [built]
+    [only some exports used: default]
+    [inactive] esm import pmodule ./index.js 1:1-33
+    esm import specifier pmodule ./index.js 3:13-15
+  ./node_modules/pmodule/c.js xx bytes [orphan] [built]
+    [only some exports used: z]
+    esm import specifier pmodule ./index.js 3:18 (skipped side-effect-free modules)
+    [inactive] esm export import ./c ./node_modules/pmodule/b.js 5:1-24
+    [inactive] esm export import specifier ./c ./node_modules/pmodule/b.js 5:1-24
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:1-30 (skipped side-effect-free modules)
+  ./node_modules/pmodule/a.js xx bytes [orphan] [built]
+    [module unused]
+    [inactive] esm export import ./a ./node_modules/pmodule/index.js 1:1-20
+    [inactive] esm export import specifier ./a ./node_modules/pmodule/index.js 1:1-20
+  ./node_modules/pmodule/b.js xx bytes [orphan] [built]
+    [module unused]
+    [inactive] esm export import ./b ./node_modules/pmodule/index.js 2:1-30
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:1-30
+    [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:1-30
+modules by path ./*.js xx bytes
+  ./index.js xx bytes [orphan] [built]
+    [no exports used]
+  ./index.js + 2 modules xx bytes [code generated]
+    [no exports used]
+    entry ./index
+    | ./index.js xx bytes [orphan] [built]
+    |   [no exports used]
+    | ./node_modules/pmodule/index.js xx bytes [orphan] [built]
+    |   [only some exports used: default]
+    |   [inactive] esm import pmodule ./index.js 1:1-33
+    |   esm import specifier pmodule ./index.js 3:13-15
+    | ./node_modules/pmodule/c.js xx bytes [orphan] [built]
+    |   [only some exports used: z]
+    |   esm import specifier pmodule ./index.js 3:18 (skipped side-effect-free modules)
+    |   [inactive] esm export import ./c ./node_modules/pmodule/b.js 5:1-24
+    |   [inactive] esm export import specifier ./c ./node_modules/pmodule/b.js 5:1-24
+    |   [inactive] esm export import specifier ./b ./node_modules/pmodule/index.js 2:1-30 (skipped side-effect-free modules)
+Rspack x.x.x compiled successfully in X s

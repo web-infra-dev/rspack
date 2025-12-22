@@ -1,0 +1,21 @@
+./index.js xx bytes [orphan] [built]
+  Statement with side_effects in source code at ./index.js<LINE_COL>-15
+  ModuleConcatenation bailout: Module is an entry point
+./index.js + 1 modules xx bytes [code generated]
+  | ./index.js xx bytes [orphan] [built]
+  |   Statement with side_effects in source code at ./index.js<LINE_COL>-15
+  |   ModuleConcatenation bailout: Module is an entry point
+  | ./node_modules/pmodule/a.js xx bytes [orphan] [built]
+./node_modules/pmodule/a.js xx bytes [orphan] [built]
+./node_modules/pmodule/index.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/aa.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/b.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/c.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/bb.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk
+./node_modules/pmodule/cc.js xx bytes [orphan] [built]
+  ModuleConcatenation bailout: Module is not in any chunk

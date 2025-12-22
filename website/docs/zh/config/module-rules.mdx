@@ -1,0 +1,891 @@
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Module Rules
+
+- **类型：** `(Rule | Falsy)[]`
+- **默认值：** `[]`
+
+`module.rules` 用于定义 Rspack 在构建过程中应如何处理不同类型的模块。
+
+它是一个规则数组。每条规则都会在模块被解析和创建时，与模块的信息进行匹配，例如文件路径、文件类型或查询参数。规则一旦匹配成功，Rspack 就会按照该规则指定的方式来转换或解析该模块。
+
+最常见的用法是为不同类型的模块配置 [Loader](/guide/features/loader)，例如将 TypeScript 代码转换为浏览器可执行的 JavaScript 代码，或对样式、图片等资源进行处理。
+
+通过组合不同的匹配条件和处理逻辑，`module.rules` 可以精细地控制各类模块的构建行为。
+
+例如，使用 [内置 swc-loader](/guide/features/builtin-swc-loader) 处理以 `.ts` 结尾的文件：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: 'builtin:swc-loader',
+        options: {
+          // loader options...
+        },
+      },
+    ],
+  },
+};
+```
+
+## 概念
+
+### Rule
+
+- **类型：** `Rule`
+- **默认值：** `{}`
+
+Rule 定义了一个模块的匹配条件以及处理这些模块的行为。
+
+**Rule 处理行为**
+
+定义了对应匹配的模块的处理行为，例如:
+
+- 将 Loader 的列表应用到这些模块上（`rules[].use`）
+- 定义模块的类型（`rules[].type`）
+- 定义模块的 resolve 配置（`rules[].resolve`）
+
+### Condition
+
+- **类型：**
+
+```ts
+type Condition =
+  | string
+  | RegExp
+  | ((value: string) => boolean)
+  | Conditions
+  | LogicalConditions;
+
+type Conditions = Condition[];
+
+type LogicalConditions = {
+  and?: Conditions;
+  or?: Conditions;
+  not?: Condition;
+};
+```
+
+定义了一个模块的匹配条件，常见的匹配有和 [resource](#rulesresource) 与 [resourceQuery](#rulesresourcequery) 的匹配，以及 [include](#rulesinclude) 与 [exclude](#rulesexclude) 的匹配等。
+
+例如: 当 app.js 导入 `./image.png?inline#foo`：
+
+- `resource` 为 `/path/to/image.png`，会与 [rules[].resource](#rulesresource) 这个 Condition 进行匹配
+- `resourceQuery` 为 `?inline`，会与 [rules[].resourceQuery](#rulesresourcequery) 这个 Condition 进行匹配
+- `resourceFragment` 为 `#foo`，会与 [rules[].resourceFragment](#rulesresourcefragment) 这个 Condition 进行匹配
+
+Condition 代表了匹配一个给定输入的形式，它支持的类型为：
+
+- `String`：给定一个输入，当输入的字符串满足 `startsWith` 时，则匹配成功。注：你可以认为是 `input.startsWith(condition)`。
+- `RegExp`：给定一个输入，当输入的字符串满足正则表达式时，则匹配成功。注：你可以认为是 `condition.test(input)`。
+- `Condition[]`：一系列条件，当有一个条件匹配上时，则匹配成功。
+- `LogicalConditions`：所有属性都匹配上时，则匹配成功。
+  - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
+  - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
+  - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
+- `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
+
+### Nested rule
+
+嵌套 Rule 可以通过 [`rules[].rules`](#rulesrules) 和 [`rules[].oneOf`](#rulesoneof) 定义，这些嵌套 Rule 只有在其上层 Rule 匹配成功时才会进行匹配，它们可以包含自己的 Rule 条件
+
+嵌套 Rule 的匹配顺序：
+
+1. 其上层 Rule
+2. [`rules[].rules`](#rulesrules)
+3. [`rules[].oneOf`](#rulesoneof)
+
+## rules[].exclude
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+排除所有符合这个条件的模块，会和资源的绝对路径（不包含 query 和 fragment）进行匹配。该选项不能和 `rules[].resource` 同时存在。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        exclude: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
+## rules[].include
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个条件的模块，会和资源的绝对路径（不包含 query 和 fragment）进行匹配。该选项不能和 `rules[].resource` 同时存在。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        include: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
+## rules[].resource
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和 Resource（不包含 query 和 fragment 的绝对路径）进行匹配。该选项不能和 `rules[].test` 同时存在。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        resource: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
+## rules[].resourceQuery
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和 Resource 的 query 进行匹配。注：包含 `?`，当 `rules[].resourceQuery` 为 `?raw` 时，会和 `foo?raw` 的资源请求进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        resourceQuery: /inline/,
+        type: 'asset/inline',
+      },
+    ],
+  },
+};
+```
+
+## rules[].resourceFragment
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和 Resource 的 fragment 进行匹配。注：包含 `#`，当 `rules[].resourceFragment` 为 `#abc` 时，会和 `foo#abc` 的资源请求进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        resourceFragment: '#abc',
+      },
+    ],
+  },
+};
+```
+
+## rules[].test
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和 Resource（不包含 query 和 fragment 的绝对路径）进行匹配。该选项不能和 `rules[].resource` 同时存在。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
+## rules[].issuer
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和引入当前模块的模块的 Resource（不包含 query 和 fragment 的绝对路径）进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        issuer: /\.js$/,
+      },
+    ],
+  },
+};
+```
+
+## rules[].issuerLayer
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **Type:** `string`
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
+
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+
+:::warning
+对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
+:::
+
+一个基础示例：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        issuerLayer: 'other-layer',
+      },
+    ],
+  },
+};
+```
+
+一个更复杂的示例是结合 [entry options](/config/entry#entrydescriptionlayer) 来同时构建 modern 和 legacy 产物：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'modern',
+    },
+    'index-legacy': {
+      import: './src/index.js',
+      layer: 'legacy',
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        issuerLayer: 'modern',
+        options: {
+          env: { targets: ['chrome >= 100'] },
+        },
+      },
+      {
+        test: /\.js$/,
+        issuerLayer: 'legacy',
+        options: {
+          env: { targets: ['ie >= 11'] },
+        },
+      },
+    ],
+  },
+};
+```
+
+## rules[].dependency
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和引入当前模块的依赖的类别（category）进行匹配，比如：
+
+- 对于 `import`、`import()` 来说是 `esm`
+- 对于 `require()` 来说是 `cjs`
+- 对于 `new URL()`、`url()` 来说是 `url`
+
+例如，匹配所有 `.js` 文件，但排除 `url` 类型的依赖（比如 `new URL('./path/to/foo.js', import.meta.url)`）：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        dependency: { not: 'url' },
+      },
+    ],
+  },
+};
+```
+
+## rules[].scheme
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+匹配所有符合这个资源的模块，会和 Resource 的 scheme 进行匹配。
+
+比如，你可以通过以下配置将内联的 data uri 资源当作单独的资源处理：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        scheme: 'data',
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+## rules[].mimetype
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+根据 [MIME 类型](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/MIME_types)（而非文件扩展名）匹配模块。主要用于 [data URI 模块](/api/runtime-api/module-methods#data-uri-模块)（例如 `data:text/javascript,...`）。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        mimetype: 'text/javascript',
+        use: [
+          // ...
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].descriptionData
+
+- **类型：** `{ [key: string]: Condition }`
+- **默认值：** `undefined`
+
+`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+
+`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](#condition) 进行关联。
+
+例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: /node_modules/,
+        descriptionData: {
+          name: packageJsonName => packageJsonName.includes('rspack'),
+        },
+        // 其他 rule options...
+      },
+    ],
+  },
+};
+```
+
+## rules[].with
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **类型：** `{ [key: string]: Condition }`
+- **默认值：** `undefined`
+
+`with` 能够与 [import attributes](https://github.com/tc39/proposal-import-attributes) 进行匹配。
+
+例如，以下配置会与 `{ type: "url" }` 匹配，会将匹配到的模块的 [`type`](/config/module-rules#rulestype) 修改为 `"asset/resource"`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+以下引入会命中匹配：
+
+```ts
+import url from './data' with { type: 'url' };
+import('./data', { with: { type: 'url' } });
+```
+
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            experimental: {
++             keepImportAttributes: true,
+            },
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+## rules[].loader
+
+`rules[].loader` 是 `rules[].use: [ { loader } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
+
+## rules[].options
+
+`rules[].options` 是 `rules[].use: [ { options } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
+
+## rules[].parser
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+对于通过规则条件匹配的特定模块的解析器选项，这将覆盖 `module.parser` 中的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        parser: {
+          namedExports: false,
+        },
+        type: 'css/module',
+      },
+    ],
+  },
+};
+```
+
+对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](/config/module#moduleparser)。
+
+## rules[].generator
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+对于通过规则条件匹配的特定模块的生成器选项，这将覆盖 `module.generator` 中的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.png/,
+        generator: {
+          filename: '[contenthash][ext]',
+        },
+        type: 'asset',
+      },
+    ],
+  },
+};
+```
+
+对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](/config/module#modulegenerator)。
+
+## rules[].sideEffects
+
+- **类型：** `boolean`
+
+标记模块是否存在副作用，这会影响 [Tree Shaking](/guide/optimization/tree-shaking) 的结果。
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /foo\.js$/,
+        sideEffects: false,
+      },
+    ],
+  },
+};
+```
+
+## rules[].enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+指定 loader 的类型，未指定时默认为 normal loader。
+
+当指定为 `'pre'` 时，该 loader 会在其他所有 loader 之前执行。
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        enforce: 'pre',
+        loader: 'my-pre-loader',
+      },
+    ],
+  },
+};
+```
+
+当指定为 `'post'` 时，该 loader 会在其他所有 loader 之后执行。
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        enforce: 'post',
+        loader: 'my-post-loader',
+      },
+    ],
+  },
+};
+```
+
+所有 loader 都会进入以下两个阶段：
+
+- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
+- **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
+
+## rules[].type
+
+- **类型：**
+
+```ts
+type RuleType =
+  | 'asset'
+  | 'css'
+  | 'css/auto'
+  | 'css/module'
+  | 'javascript/auto'
+  | 'javascript/dynamic'
+  | 'javascript/esm'
+  | 'json';
+```
+
+用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。
+
+默认情况下，Rspack 会根据文件扩展名来决定模块的类型。例如：
+
+- `.js` 文件会被当作 `javascript/auto` 模块处理。
+- `.mjs` 文件，以及 package.json 中包含 `type="module"` 的 `.js` 文件会被当作 `javascript/esm` 模块处理。
+- `.json` 文件会被当作 `json` 模块处理。
+- `.css` 文件会被当作 `css/auto` 模块处理。
+
+例如，如果你想通过一个自定义 Loader 加载 `.json` 文件，你需要将类型设置为 `javascript/auto` 以绕过 Rspack 内置的 JSON 导入。
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.json$/,
+        type: 'javascript/auto',
+        loader: 'custom-json-loader',
+      },
+    ],
+  },
+};
+```
+
+所有 `type` 的含义如下：
+
+- `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
+- `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
+- `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
+- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
+
+## rules[].layer
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
+
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+
+:::warning
+对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
+
+## rules[].use
+
+- **类型：**
+
+```ts
+type RuleSetUse =
+  | RuleSetUseItem[]
+  | RuleSetUseItem
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+type RuleSetUseItem =
+  | { loader: string; options: Record<string, any>; parallel?: boolean }
+  | string;
+interface RawFuncUseCtx {
+  resource?: string;
+  realResource?: string;
+  resourceQuery?: string;
+  issuer?: string;
+}
+```
+
+用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: [
+          'svgr-loader',
+          {
+            loader: 'svgo-loader',
+            options: {
+              configFile: false,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+也可以使用一个函数：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        type: 'asset',
+        use: info => [
+          {
+            loader: 'svgo-loader',
+            options: {
+              plugins: [
+                {
+                  cleanupIDs: { prefix: basename(info.resource) },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.parallel
+
+<ApiMeta addedVersion="1.3.1" />
+
+- **类型**: `boolean | { maxWorkers?: number }`
+- **默认值:** `false`
+
+用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
+
+- 设置为 `true` 时，loader 会在 worker 中执行，并由 Rspack 自动选择合适的线程数量。
+- 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
+- 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
+
+例如，将 `less-loader` 配置为并行执行：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: true,
+            options: {
+              // loader options
+            },
+          },
+        ],
+      },
+    ],
+  },
+  experiments: {
+    parallelLoader: true,
+  },
+};
+```
+
+当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
+
+:::tip
+
+- 由于当前功能是实验性特性，只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
+- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
+- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
+
+:::
+
+## rules[].resolve
+
+根据匹配的模块设置具体的模块 [resolve](/config/resolve) 选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        resolve: {
+          preferRelative: true,
+        },
+      },
+    ],
+  },
+};
+```
+
+## rules[].rules
+
+- **类型：** [Rule](#rules)[]
+- **默认值：** `undefined`
+
+[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rules) 匹配成功后，会使用这些 Rules 继续进行匹配。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        // 当匹配到 CSS 文件后，继续使用这些嵌套规则
+        rules: [
+          {
+            // 处理带有 "?raw" 参数的 CSS 文件
+            resourceQuery: /raw/,
+            type: 'asset/source',
+          },
+          {
+            // 处理普通 CSS 文件
+            resourceQuery: {
+              not: /raw/,
+            },
+            type: 'css/auto',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].oneOf
+
+- **类型：** ([Rule](#rules) | Falsy)[]
+- **默认值：** `undefined`
+
+[嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(png|jpg)$/i,
+        oneOf: [
+          {
+            // 处理带有 "?raw" 参数的图片
+            resourceQuery: /raw/,
+            type: 'asset/source',
+          },
+          {
+            // 否则作为单独文件输出
+            type: 'asset/resource',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].extractSourceMap
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型**: `boolean`
+- **默认值:** `false`
+
+从文件中的 `//# sourceMappingURL` 注释中提取现有的 source-map 数据，对于保留第三方库的 source-map 非常有用。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.m?js$/,
+        extractSourceMap: true,
+      },
+    ],
+  },
+};
+```

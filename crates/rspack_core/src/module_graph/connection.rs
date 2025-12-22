@@ -50,11 +50,6 @@ impl ModuleGraphConnection {
     }
   }
 
-  pub fn set_active(&mut self, value: bool) {
-    self.conditional = false;
-    self.active = value;
-  }
-
   pub fn is_active(
     &self,
     module_graph: &ModuleGraph,

@@ -52,12 +52,12 @@ export class Resolver {
 		this.#binding = binding;
 	}
 
-	resolveSync(context: object, path: string, request: string): string | false {
+	resolveSync(_context: object, path: string, request: string): string | false {
 		return this.#binding.resolveSync(path, request) ?? false;
 	}
 
 	resolve(
-		context: object,
+		_context: object,
 		path: string,
 		request: string,
 		resolveContext: ResolveContext,

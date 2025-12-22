@@ -1,0 +1,29 @@
+chunk (runtime: e1, e2) y.js (y) xx bytes <{210}> <{263}> [rendered]
+  ./module-y.js xx bytes [built] [code generated]
+    import() ./module-y ./module-x.js
+chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) >{165}< >{341}< [entry] [rendered]
+  ./e1.js xx bytes [built] [code generated]
+    entry ./e1
+  ./module-x.js xx bytes [dependent] [built] [code generated]
+    esm import ./module-x ./e1.js 1:1-20
+    esm import ./module-x ./e2.js 1:1-20
+    import() ./module-x ./module-b.js
+chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) >{165}< >{907}< [entry] [rendered]
+  ./e2.js xx bytes [built] [code generated]
+    entry ./e2
+  ./module-x.js xx bytes [dependent] [built] [code generated]
+    esm import ./module-x ./e1.js 1:1-20
+    esm import ./module-x ./e2.js 1:1-20
+    import() ./module-x ./module-b.js
+chunk (runtime: e1, e2) a.js (a) xx bytes <{210}> <{907}> >{364}< [rendered]
+  ./module-a.js xx bytes [built] [code generated]
+    import() ./module-a ./e1.js
+    import() ./module-a ./module-c.js
+chunk (runtime: e1, e2) b.js (b) xx bytes <{341}> >{907}< [rendered]
+  ./module-b.js xx bytes [built] [code generated]
+    import() ./module-b ./module-a.js
+chunk (runtime: e1, e2) c.js (c) xx bytes <{263}> <{364}> >{341}< [rendered]
+  ./module-c.js xx bytes [built] [code generated]
+    import() ./module-c ./e2.js
+    import() ./module-c ./module-b.js
+Rspack x.x.x compiled successfully

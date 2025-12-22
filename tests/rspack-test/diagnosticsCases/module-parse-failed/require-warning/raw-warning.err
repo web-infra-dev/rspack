@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 1:23-30,
+    loc: 1:24-30,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/require-warning/index.js,
     moduleName: ./index.js,
   },

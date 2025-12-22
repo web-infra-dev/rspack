@@ -184,7 +184,8 @@ impl ExternalInterop {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();
 
-    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, &self.module);
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), &self.module);
 
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
@@ -275,6 +276,8 @@ pub enum ReExportFrom {
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
 
+  pub decl_before_exports: FxIndexSet<String>,
+
   /**
   specifier order doesn't matter, we can sort them based on name
   Map<module_id, Map<local_name, export_name>>
@@ -357,6 +360,7 @@ impl ChunkLinkContext {
       chunk: chunk_ukey,
       hoisted_modules,
       decl_modules,
+      decl_before_exports: Default::default(),
       exports: Default::default(),
       re_exports: Default::default(),
       imports: Default::default(),
@@ -371,21 +375,6 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       raw_star_exports: Default::default(),
     }
-  }
-
-  pub fn add_export(&mut self, local_name: Atom, export_name: Atom) -> &Atom {
-    let exported = if self.exported_symbols.insert(export_name.clone()) {
-      export_name
-    } else {
-      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
-      self.exported_symbols.insert(new_name.clone());
-      self.used_names.insert(new_name.clone());
-      new_name
-    };
-
-    let set = self.exports.entry(local_name.clone()).or_default();
-    set.insert(exported.clone());
-    set.get(&exported).expect("just inserted")
   }
 
   pub fn add_re_export_from_request(

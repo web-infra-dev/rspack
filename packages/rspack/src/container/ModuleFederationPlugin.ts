@@ -14,15 +14,17 @@ import { parseOptions } from "./options";
 
 declare const MF_RUNTIME_CODE: string;
 
-export interface ModuleFederationPluginOptions
-	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+export interface ModuleFederationPluginOptions extends Omit<
+	ModuleFederationPluginV1Options,
+	"enhanced"
+> {
 	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
+	manifest?: ModuleFederationManifestPluginOptions;
 	injectUsedExports?: boolean;
 	independentShareDir?: string;
 	treeshakeSharedExcludedPlugins?: string[];
-	manifest?: ModuleFederationManifestPluginOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 

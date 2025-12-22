@@ -2,8 +2,8 @@ import { expect, test } from "@/fixtures";
 
 test("should compile", async ({ page, fileAction, rspack }) => {
 	// rspack.compiler.__sharedObj is injected by plugin in rspack.config.js
-	await expect(page.getByText("index1")).toBeVisible();
-	await expect(page.getByText("index2")).toBeVisible();
+	await expect(page.locator("#index1")).toHaveText("index1");
+	await expect(page.locator("#index2")).toHaveText("index2");
 
 	rspack.compiler.__sharedObj.useFullEntry = false;
 	fileAction.updateFile("src/index2.js", content =>
@@ -23,6 +23,7 @@ test("should compile", async ({ page, fileAction, rspack }) => {
 		await page.reload();
 		expect(await page.locator("#index1").innerText()).toBe("index1 updated");
 	}).toPass();
+
 	await expect(page.locator("#index2")).toHaveCount(0);
 	await expect(page.locator("#webpack-dev-server-client-overlay")).toHaveCount(
 		0

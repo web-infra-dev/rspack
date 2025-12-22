@@ -868,9 +868,14 @@ export class Compilation {
     // (undocumented)
     buildDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     get builtModules(): ReadonlySet<Module>;
@@ -891,9 +896,14 @@ export class Compilation {
     // (undocumented)
     contextDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     createChildCompiler(name: string, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
@@ -917,9 +927,14 @@ export class Compilation {
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     fileSystemInfo: {
@@ -1002,9 +1017,14 @@ export class Compilation {
     // (undocumented)
     missingDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     moduleGraph: ModuleGraph;
@@ -2120,7 +2140,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2150,7 +2170,7 @@ export class EntryOptionPlugin {
     // (undocumented)
     static applyEntryOption(compiler: Compiler, context: string, entry: EntryNormalized): void;
     // (undocumented)
-    static entryDescriptionToOptions(compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
+    static entryDescriptionToOptions(_compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
 }
 
 // @public
@@ -2430,7 +2450,7 @@ interface Experiments_2 {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
@@ -2447,7 +2467,7 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // (undocumented)
+    // @deprecated (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
@@ -2476,13 +2496,13 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineConst?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineEnum?: boolean;
     // @deprecated (undocumented)
     layers?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -3543,7 +3563,6 @@ export type JavascriptParserOptions = {
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
     deferImport?: boolean;
@@ -4261,8 +4280,8 @@ interface LabeledStatement extends Node_4, HasSpan {
 // @public
 export type Layer = string | null;
 
-// @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
+// @public
+export const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -5397,6 +5416,7 @@ export type Optimization = {
     innerGraph?: boolean;
     usedExports?: "global" | boolean;
     mangleExports?: "size" | "deterministic" | boolean;
+    inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
     avoidEntryIife?: boolean;
@@ -6330,9 +6350,9 @@ type ResolveOptionsWithDependencyType = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
+    resolve(_context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
-    resolveSync(context: object, path: string, request: string): string | false;
+    resolveSync(_context: object, path: string, request: string): string | false;
 }
 
 // @public (undocumented)
@@ -6607,7 +6627,9 @@ declare namespace rspackExports {
         LoaderTargetPlugin,
         OutputFileSystem,
         WatchFileSystem,
+        SubresourceIntegrityPlugin,
         web,
+        lazyCompilationMiddleware,
         node,
         electron,
         library,
@@ -7131,93 +7153,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: typeof RuntimeGlobals_2;
-
-// @public (undocumented)
-enum RuntimeGlobals_2 {
-    amdDefine = 65,
-    amdOptions = 66,
-    asyncModule = 72,
-    // (undocumented)
-    asyncModuleExportSymbol = 73,
-    baseURI = 70,
-    chunkCallback = 49,
-    chunkName = 36,
-    compatGetDefaultExport = 23,
-    createFakeNamespaceObject = 22,
-    createScript = 32,
-    createScriptUrl = 33,
-    currentRemoteGetScope = 58,
-    definePropertyGetters = 20,
-    ensureChunk = 13,
-    ensureChunkHandlers = 14,
-    ensureChunkIncludeEntries = 15,
-    entryModuleId = 9,
-    exports = 2,
-    externalInstallChunk = 53,
-    getChunkCssFilename = 39,
-    getChunkScriptFilename = 38,
-    getChunkUpdateCssFilename = 44,
-    getChunkUpdateScriptFilename = 43,
-    getFullHash = 26,
-    getTrustedTypesPolicy = 34,
-    getUpdateManifestFilename = 59,
-    global = 55,
-    harmonyModuleDecorator = 24,
-    hasCssModules = 41,
-    hasFetchPriority = 35,
-    hasOwnProperty = 68,
-    hmrDownloadManifest = 60,
-    hmrDownloadUpdateHandlers = 61,
-    hmrInvalidateModuleHandlers = 63,
-    hmrModuleData = 62,
-    hmrRuntimeStatePrefix = 64,
-    initializeSharing = 57,
-    instantiateWasm = 28,
-    interceptModuleExecution = 54,
-    loadScript = 31,
-    // (undocumented)
-    makeDeferredNamespaceObject = 74,
-    // (undocumented)
-    makeDeferredNamespaceObjectSymbol = 75,
-    makeNamespaceObject = 21,
-    module = 5,
-    moduleCache = 10,
-    moduleFactories = 11,
-    moduleFactoriesAddOnly = 12,
-    moduleId = 6,
-    moduleLoaded = 7,
-    nodeModuleDecorator = 25,
-    onChunksLoaded = 52,
-    prefetchChunk = 16,
-    prefetchChunkHandlers = 17,
-    preloadChunk = 18,
-    preloadChunkHandlers = 19,
-    publicPath = 8,
-    relativeUrl = 71,
-    require = 0,
-    requireScope = 1,
-    returnExportsFromRuntime = 4,
-    // @internal
-    rspackUniqueId = 42,
-    // @internal
-    rspackVersion = 40,
-    runtimeId = 37,
-    scriptNonce = 30,
-    shareScopeMap = 56,
-    startup = 45,
-    startupChunkDependencies = 51,
-    startupEntrypoint = 50,
-    // @deprecated (undocumented)
-    startupNoDefault = 46,
-    startupOnlyAfter = 47,
-    startupOnlyBefore = 48,
-    system = 67,
-    systemContext = 69,
-    thisAsExports = 3,
-    uncaughtErrorHandler = 29,
-    wasmInstances = 27
-}
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {
@@ -7889,7 +7825,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
-class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
     constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;

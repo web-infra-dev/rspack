@@ -3,7 +3,6 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_core::{
   atoms::Atom,
-  common::SourceFile,
   ecma::ast::{Expr, MemberExpr, OptChainBase},
 };
 
@@ -41,11 +40,11 @@ pub fn parse_order_string(x: &str) -> Option<i32> {
 pub fn create_traceable_error(
   title: String,
   message: String,
-  fm: &SourceFile,
+  source: String,
   span: DependencyRange,
 ) -> Error {
   Error::from_string(
-    Some(fm.src.clone().into_string()),
+    Some(source),
     span.start as usize,
     span.end as usize,
     title,
@@ -76,7 +75,7 @@ pub fn clean_regexp_in_context_module(
       let mut error = create_traceable_error(
         "Critical dependency".into(),
         "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         error_span,
       );
       error.severity = Severity::Warning;

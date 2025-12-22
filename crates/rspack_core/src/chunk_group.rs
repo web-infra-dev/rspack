@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
-  ModuleLayer, PublicPath, compare_chunk_group,
+  ModuleLayer, PublicPath, WasmLoading, compare_chunk_group,
 };
 
 #[derive(Debug, Clone)]
@@ -290,16 +290,6 @@ impl ChunkGroup {
       .join("+")
   }
 
-  pub fn get_parents<'a>(
-    &'a self,
-    chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  ) -> Vec<&'a ChunkGroup> {
-    self
-      .parents_iterable()
-      .map(|ukey| chunk_group_by_ukey.expect_get(ukey))
-      .collect_vec()
-  }
-
   pub fn name(&self) -> Option<&str> {
     match &self.kind {
       ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
@@ -457,6 +447,7 @@ pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
   pub chunk_loading: Option<ChunkLoading>,
+  pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
@@ -482,6 +473,7 @@ impl EntryOptions {
     merge_field!(name);
     merge_field!(runtime);
     merge_field!(chunk_loading);
+    merge_field!(wasm_loading);
     merge_field!(async_chunks);
     merge_field!(public_path);
     merge_field!(base_uri);

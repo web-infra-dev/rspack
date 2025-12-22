@@ -40,43 +40,4 @@ module.exports = [
 			asyncWebAssembly: true
 		}
 	},
-	{
-		target: "web",
-		module: {
-			rules: [
-				{
-					test: /\.wat$/,
-					loader: "wast-loader",
-					type: "webassembly/sync"
-				}
-			]
-		},
-		output: {
-			chunkFilename: "chunks/[name].sync.mjs",
-			webassemblyModuleFilename: "[id].[hash].module.sync.wasm"
-		},
-		experiments: {
-			outputModule: true,
-			syncWebAssembly: true
-		}
-	},
-	{
-		target: "web",
-		module: {
-			rules: [
-				{
-					test: /\.wat$/,
-					loader: "wast-loader",
-					type: "webassembly/sync"
-				}
-			]
-		},
-		output: {
-			chunkFilename: "chunks/[name].sync.js",
-			webassemblyModuleFilename: "[id].[hash].sync.wasm"
-		},
-		experiments: {
-			syncWebAssembly: true
-		}
-	}
 ];

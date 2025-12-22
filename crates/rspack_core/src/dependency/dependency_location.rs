@@ -1,8 +1,6 @@
-use std::{
-  fmt::{self, Debug},
-  sync::Arc,
-};
+use std::fmt::{self, Debug};
 
+use ropey::Rope;
 use rspack_cacheable::cacheable;
 use rspack_location::{DependencyLocation, RealDependencyLocation, SourcePosition};
 use rspack_util::SpanExt;
@@ -65,39 +63,20 @@ impl Debug for dyn SourceLocation {
   }
 }
 
-impl SourceLocation for swc_core::common::SourceMap {
+impl SourceLocation for ropey::Rope {
   fn look_up_range_pos(&self, start: u32, end: u32) -> Option<(SourcePosition, SourcePosition)> {
-    let lo = self.lookup_char_pos(swc_core::common::BytePos(start + 1));
-    let hi = self.lookup_char_pos(swc_core::common::BytePos(end + 1));
+    let start_char_offset = self.try_byte_to_char(start as usize).ok()?;
+    let end_char_offset = self.try_byte_to_char(end as usize).ok()?;
 
-    Some((
-      SourcePosition {
-        line: lo.line,
-        column: lo.col_display,
-      },
-      SourcePosition {
-        line: hi.line,
-        column: hi.col_display,
-      },
-    ))
-  }
-}
-
-impl SourceLocation for &str {
-  fn look_up_range_pos(&self, start: u32, end: u32) -> Option<(SourcePosition, SourcePosition)> {
-    let r = ropey::Rope::from_str(self);
-    let start_char_offset = r.try_byte_to_char(start as usize).ok()?;
-    let end_char_offset = r.try_byte_to_char(end as usize).ok()?;
-
-    let start_line = r.char_to_line(start_char_offset);
-    let start_column = start_char_offset - r.line_to_char(start_line);
-    let end_line = r.char_to_line(end_char_offset);
-    let end_column = end_char_offset - r.line_to_char(end_line);
+    let start_line = self.char_to_line(start_char_offset);
+    let start_column = start_char_offset - self.line_to_char(start_line);
+    let end_line = self.char_to_line(end_char_offset);
+    let end_column = end_char_offset - self.line_to_char(end_line);
 
     Some((
       SourcePosition {
         line: start_line + 1,
-        column: start_column,
+        column: start_column + 1,
       },
       SourcePosition {
         line: end_line + 1,
@@ -107,17 +86,31 @@ impl SourceLocation for &str {
   }
 }
 
+impl SourceLocation for &str {
+  fn look_up_range_pos(&self, start: u32, end: u32) -> Option<(SourcePosition, SourcePosition)> {
+    let r = ropey::Rope::from_str(self);
+    r.look_up_range_pos(start, end)
+  }
+}
+
 /// Type alias for a shared reference to a `SourceLocation` trait object, typically used for source maps.
-pub type SharedSourceMap = Arc<dyn SourceLocation>;
+pub type SharedSourceMap = Rope;
 
 pub trait AsLoc {
   fn as_loc(&self) -> &dyn SourceLocation;
 }
 
-impl AsLoc for &Arc<dyn SourceLocation> {
+impl AsLoc for Rope {
   #[inline]
   fn as_loc(&self) -> &dyn SourceLocation {
-    self.as_ref()
+    self
+  }
+}
+
+impl AsLoc for &Rope {
+  #[inline]
+  fn as_loc(&self) -> &dyn SourceLocation {
+    *self
   }
 }
 

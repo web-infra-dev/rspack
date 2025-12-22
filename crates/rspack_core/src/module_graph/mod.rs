@@ -1,6 +1,5 @@
 use std::{
   collections::hash_map::Entry,
-  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -445,10 +444,10 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
-    let mut async_modules_artifact = mem::take(&mut compilation.async_modules_artifact);
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), source_module);
+    let mut async_modules_artifact = compilation.async_modules_artifact.borrow_mut();
     ModuleGraph::set_async(&mut async_modules_artifact, *target_module, is_async);
-    compilation.async_modules_artifact = async_modules_artifact;
   }
 
   pub fn move_module_connections(
@@ -586,13 +585,6 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.depth)
   }
 
-  pub fn set_depth(&mut self, module_id: ModuleIdentifier, depth: usize) {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(&module_id)
-      .expect("should have module graph module");
-    mgm.depth = Some(depth);
-  }
-
   pub fn set_depth_if_lower(&mut self, module_id: &ModuleIdentifier, depth: usize) -> bool {
     let mgm = self
       .module_graph_module_by_identifier_mut(module_id)
@@ -676,22 +668,6 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.blocks.get(block_id))?
       .as_ref()
       .map(|b| &**b)
-  }
-
-  pub fn block_by_id_mut(
-    &mut self,
-    block_id: &AsyncDependenciesBlockIdentifier,
-  ) -> Option<&mut Box<AsyncDependenciesBlock>> {
-    self
-      .loop_partials_mut(
-        |p| p.blocks.contains_key(block_id),
-        |p, search_result| {
-          p.blocks.insert(*block_id, search_result);
-        },
-        |p| p.blocks.get(block_id).cloned(),
-        |p| p.blocks.get_mut(block_id),
-      )?
-      .as_mut()
   }
 
   pub fn block_by_id_expect(
