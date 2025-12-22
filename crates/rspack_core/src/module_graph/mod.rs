@@ -125,11 +125,9 @@ pub struct ModuleGraph {
 impl ModuleGraph {
   // checkpoint
   pub fn save(&mut self) {
-    eprintln!("ModuleGraph save called");
     self.inner.save()
   }
   pub fn recover(&mut self) {
-    eprintln!("ModuleGraph recover called");
     self.inner.recover()
   }
 }
