@@ -4,19 +4,11 @@ use indoc::formatdoc;
 use rspack_cacheable::with::Skip;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, CompilerId, Module, ModuleGraph, ModuleGraphRef, ModuleId,
-  ModuleIdentifier, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
+  ChunkUkey, Compilation, CompilerId, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rustc_hash::FxHashMap;
+use rspack_error::Result;
 
-use crate::{
-  constants::LAYERS_NAMES,
-  loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
-  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
-  reference_manifest::{ManifestExport, ManifestNode},
-  utils::{ChunkModules, to_json_string_literal},
-};
+use crate::{plugin_state::PLUGIN_STATE_BY_COMPILER_ID, utils::to_json_string_literal};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -87,12 +79,12 @@ impl RuntimeModule for RscHotReloaderRuntimeModule {
     Ok(formatdoc! {
         r#"
           (function() {{
-            if (!__webpack_require__.rscH) {{
+            if (!__webpack_require__.rscHmr) {{
               var listeners = new Set();
-              __webpack_require__.rscH = {{
-                subscribe: function(listener) {{
+              __webpack_require__.rscHmr = {{
+                on: function(listener) {{
                   listeners.add(listener);
-                  return function unsubscribe() {{
+                  return function off() {{
                     listeners.delete(listener);
                   }};
                 }},
@@ -108,8 +100,7 @@ impl RuntimeModule for RscHotReloaderRuntimeModule {
               }};
             }}
           }})();
-          __webpack_require__.rscH._set({hot_index});
-
+          __webpack_require__.rscHmr._set({hot_index});
         "#,
       hot_index = hot_index_literal
     })

@@ -55,8 +55,11 @@ export class Coordinator {
 		});
 
 		// Server owns watch events; on invalid, explicitly invalidate client.
-		serverCompiler.hooks.invalid.tap(PLUGIN_NAME, () => {
-			this.#clientCompiler!.watching!.invalidate();
+		serverCompiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
+			this.#clientCompiler!.watching!.invalidateWithChangesAndRemovals(
+				new Set(this.#serverCompiler!.modifiedFiles),
+				new Set(this.#serverCompiler!.removedFiles)
+			);
 		});
 	}
 
