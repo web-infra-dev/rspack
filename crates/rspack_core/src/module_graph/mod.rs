@@ -50,19 +50,22 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
+  pub(crate) modules: snapshot_map::SnapshotMap<ModuleIdentifier, Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: snapshot_map::SnapshotMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
+  blocks: snapshot_map::SnapshotMap<
+    AsyncDependenciesBlockIdentifier,
+    Option<Box<AsyncDependenciesBlock>>,
+  >,
 
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
-  module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
+  module_graph_modules: snapshot_map::SnapshotMap<ModuleIdentifier, Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: HashMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: snapshot_map::SnapshotMap<DependencyId, Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -82,20 +85,32 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: snapshot_map::SnapshotMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: HashMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  connection_to_condition: snapshot_map::SnapshotMap<DependencyId, DependencyCondition>,
+  dep_meta_map: snapshot_map::SnapshotMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn save(&mut self) {
     self.dependencies.save();
+    self.blocks.save();
+    self.module_graph_modules.save();
+    self.connections.save();
+    self.dependency_id_to_parents.save();
+    self.connection_to_condition.save();
+    self.dep_meta_map.save();
   }
   fn recover(&mut self) {
     self.dependencies.recover();
+    self.blocks.recover();
+    self.module_graph_modules.recover();
+    self.connections.recover();
+    self.dependency_id_to_parents.recover();
+    self.connection_to_condition.recover();
+    self.dep_meta_map.recover();
   }
 }
 
@@ -137,15 +152,12 @@ impl ModuleGraph {
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
-    let mut res = IdentifierMap::default();
-    for (k, v) in &self.inner.module_graph_modules {
-      if let Some(v) = v {
-        res.insert(*k, v);
-      } else {
-        res.remove(k);
-      }
-    }
-    res
+    self
+      .inner
+      .module_graph_modules
+      .iter()
+      .filter_map(|(k, v)| v.as_ref().map(|m| (*k, m)))
+      .collect()
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -239,7 +251,7 @@ impl ModuleGraph {
     if force {
       self.inner.dependencies.insert(*dep_id, None);
       self.inner.dependency_id_to_parents.insert(*dep_id, None);
-      self.inner.connection_to_condition.remove(dep_id);
+      self.inner.connection_to_condition.remove(*dep_id);
       if let Some(m_id) = original_module_identifier
         && let Some(Some(module)) = self.inner.modules.get_mut(&m_id)
       {
@@ -305,20 +317,10 @@ impl ModuleGraph {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
-    match self
-      .inner
-      .module_graph_modules
-      .entry(module_graph_module.module_identifier)
-    {
-      Entry::Occupied(mut val) => {
-        if val.get().is_none() {
-          val.insert(Some(module_graph_module));
-        }
-      }
-      Entry::Vacant(val) => {
-        val.insert(Some(module_graph_module));
-      }
-    }
+    self.inner.module_graph_modules.insert(
+      module_graph_module.module_identifier,
+      Some(module_graph_module),
+    );
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -505,16 +507,7 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    match self.inner.modules.entry(module.identifier()) {
-      Entry::Occupied(mut val) => {
-        if val.get().is_none() {
-          val.insert(Some(module));
-        }
-      }
-      Entry::Vacant(val) => {
-        val.insert(Some(module));
-      }
-    }
+    self.inner.modules.insert(module.identifier(), Some(module));
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {

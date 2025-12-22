@@ -105,6 +105,14 @@ where
   pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
     self.map.borrow().iter()
   }
+  pub fn for_each<F>(&self, mut f: F)
+  where
+    F: FnMut(&K, &V),
+  {
+    for (k, v) in self.map.borrow().iter() {
+      f(k, v);
+    }
+  }
 }
 
 impl<K, V> SnapshotMap<K, V>
