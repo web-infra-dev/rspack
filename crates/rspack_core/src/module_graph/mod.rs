@@ -46,7 +46,7 @@ pub struct DependencyParents {
 }
 
 /// Internal data structure for ModuleGraph
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules: IdentifierMap<Option<Arc<BoxModule>>>,
@@ -88,6 +88,21 @@ pub(crate) struct ModuleGraphData {
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+}
+impl Clone for ModuleGraphData {
+  fn clone(&self) -> Self {
+    Self {
+      modules: self.modules.clone(),
+      dependencies: self.dependencies.clone(),
+      blocks: self.blocks.clone(),
+      module_graph_modules: self.module_graph_modules.clone(),
+      connections: self.connections.clone(),
+      dependency_id_to_parents: self.dependency_id_to_parents.clone(),
+      exports_info_map: self.exports_info_map.clone(),
+      connection_to_condition: self.connection_to_condition.clone(),
+      dep_meta_map: self.dep_meta_map.clone(),
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone)]

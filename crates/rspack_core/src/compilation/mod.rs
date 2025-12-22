@@ -1609,7 +1609,11 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.module_graph = Some(self.build_module_graph_artifact.module_graph.clone());
+    let clone = self.build_module_graph_artifact.module_graph.clone();
+    self.module_graph = Some(mem::take(
+      &mut self.build_module_graph_artifact.module_graph,
+    ));
+    self.build_module_graph_artifact.module_graph = clone;
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
