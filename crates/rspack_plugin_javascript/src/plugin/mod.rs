@@ -401,16 +401,11 @@ var {} = {{}};
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         let module_graph = compilation.get_module_graph();
-        let has_expose_entry = entries.iter().any(|(module, _)| {
-          module_graph
-            .module_by_identifier(module)
-            .map(|module| {
-              module
-                .source_types(&module_graph)
-                .contains(&SourceType::Expose)
-            })
-            .unwrap_or(false)
-        });
+        let has_expose_entry = compilation.chunk_graph.has_chunk_module_by_source_type(
+          chunk_ukey,
+          SourceType::Expose,
+          &module_graph,
+        );
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
