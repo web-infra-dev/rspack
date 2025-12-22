@@ -116,6 +116,35 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: bash .github/actions/codspeed/check-comment.sh
 
+  #  TODO open it after rspack portable cache implementation
+  #  check-cache:
+  #    name: Check Cache Portable
+  #    needs: [test-linux, test-windows]
+  #    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+  #    steps:
+  #      - name: Checkout
+  #        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+  #      - name: Install Rust Toolchain
+  #        uses: ./.github/actions/rustup
+  #        with:
+  #          key: test_cache
+  #          save-if: true
+  #      - name: Download linux cache
+  #        uses: ./.github/actions/artifact/download
+  #        with:
+  #          name: test_cache-linux
+  #          path: ./cache-linux
+  #          force-use-github: true
+  #      - name: Download windows cache
+  #        uses: ./.github/actions/artifact/download
+  #        with:
+  #          name: test_cache-windows
+  #          path: ./cache-windows
+  #          force-use-github: true
+  #      - name: Run compare kit
+  #        run: |
+  #          cargo run -p rspack_kit -- compare ./cache-linux ./cache-windows
+
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
@@ -129,7 +158,8 @@ jobs:
         test-mac,
         test-wasm,
         check-changed,
-        size-limit
+        size-limit,
+        check-cache
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
@@ -139,13 +169,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test
