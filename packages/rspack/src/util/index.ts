@@ -70,8 +70,11 @@ export const unsupported = (name: string, issue?: string) => {
 const warnedMessages = new Set<string>();
 
 export function deprecate(message: string): void {
-	if (warnedMessages.has(message)) return;
-	warnedMessages.add(message);
+	// ensure we only warn once per message
+	if (warnedMessages.has(message)) {
+		return;
+	}
 
+	warnedMessages.add(message);
 	console.warn(`[Rspack Deprecation] ${message}`);
 }
