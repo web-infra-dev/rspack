@@ -146,9 +146,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
 
   examples/react:
     dependencies:
@@ -177,6 +174,18 @@ importers:
       react-refresh:
         specifier: ^0.18.0
         version: 0.18.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  examples/vanilla:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
