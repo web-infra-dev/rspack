@@ -64,7 +64,7 @@ impl ModuleGraph {
       .inner
       .exports_info_map
       .par_iter_mut()
-      .for_each(|(_, exports_info)| {
+      .for_each(|(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
         for export_info in exports_info.exports_mut().values_mut() {
           export_info.set_has_use_info();
         }

@@ -7,12 +7,13 @@ use std::{
   ops,
 };
 
+use rayon::iter::IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator;
 use rustc_hash::FxHashMap;
 pub use undo_log::{Rollback, Snapshot, Snapshots, UndoLogs, VecLog};
 
 pub type SnapshotMapStorage<K, V> = SnapshotMap<K, V, FxHashMap<K, V>, ()>;
 pub type SnapshotMapRef<'a, K, V, L> = SnapshotMap<K, V, &'a mut FxHashMap<K, V>, &'a mut L>;
-
+static SNAPSHOT_MAP_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 #[derive(Clone, Debug)]
 pub struct SnapshotMap<K, V, M = FxHashMap<K, V>, L = VecLog<UndoLog<K, V>>> {
   map: M,
@@ -20,6 +21,7 @@ pub struct SnapshotMap<K, V, M = FxHashMap<K, V>, L = VecLog<UndoLog<K, V>>> {
   _marker: PhantomData<(K, V)>,
   // snapshot stack
   snapshot: Vec<Snapshot>,
+  id: u32,
 }
 
 // HACK(eddyb) manual impl avoids `Default` bounds on `K` and `V`.
@@ -34,6 +36,7 @@ where
       undo_log: Default::default(),
       _marker: PhantomData,
       snapshot: Vec::new(),
+      id: SNAPSHOT_MAP_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
     }
   }
 }
@@ -47,18 +50,6 @@ where
   Inserted(K),
   Overwrite(K, V),
   Purged,
-}
-
-impl<K, V, M, L> SnapshotMap<K, V, M, L> {
-  #[inline]
-  pub fn with_log<L2>(&mut self, undo_log: L2) -> SnapshotMap<K, V, &mut M, L2> {
-    SnapshotMap {
-      map: &mut self.map,
-      undo_log,
-      _marker: PhantomData,
-      snapshot: vec![],
-    }
-  }
 }
 
 impl<K, V, M, L> SnapshotMap<K, V, M, L>
@@ -180,5 +171,20 @@ where
 
       UndoLog::Purged => {}
     }
+  }
+}
+
+impl<'data, K, V, M, L> RayonIntoParallelRefMutIterator<'data> for SnapshotMap<K, V, M, L>
+where
+  K: Eq + Hash + Send + Sync + 'data,
+  V: Send + 'data,
+  M: BorrowMut<FxHashMap<K, V>> + Send + Sync + 'data,
+  L: Send + 'data,
+{
+  type Item = (&'data K, &'data mut V);
+  type Iter = rayon::collections::hash_map::IterMut<'data, K, V>;
+
+  fn par_iter_mut(&'data mut self) -> Self::Iter {
+    self.map.borrow_mut().par_iter_mut()
   }
 }

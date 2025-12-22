@@ -1,8 +1,8 @@
 pub mod snapshot_map;
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -88,27 +88,31 @@ pub(crate) struct ModuleGraphData {
   dependency_id_to_parents: snapshot_map::SnapshotMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: HashMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: snapshot_map::SnapshotMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: snapshot_map::SnapshotMap<DependencyId, DependencyCondition>,
   dep_meta_map: snapshot_map::SnapshotMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn save(&mut self) {
+    self.modules.save();
     self.dependencies.save();
     self.blocks.save();
     self.module_graph_modules.save();
     self.connections.save();
     self.dependency_id_to_parents.save();
+    self.exports_info_map.save();
     self.connection_to_condition.save();
     self.dep_meta_map.save();
   }
   fn recover(&mut self) {
+    self.modules.recover();
     self.dependencies.recover();
     self.blocks.recover();
     self.module_graph_modules.recover();
     self.connections.recover();
     self.dependency_id_to_parents.recover();
+    self.exports_info_map.recover();
     self.connection_to_condition.recover();
     self.dep_meta_map.recover();
   }
@@ -121,9 +125,11 @@ pub struct ModuleGraph {
 impl ModuleGraph {
   // checkpoint
   pub fn save(&mut self) {
+    eprintln!("ModuleGraph save called");
     self.inner.save()
   }
   pub fn recover(&mut self) {
+    eprintln!("ModuleGraph recover called");
     self.inner.recover()
   }
 }

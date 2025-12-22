@@ -86,7 +86,7 @@ impl Compiler {
         // build_module_graph stage used
         self
           .compilation
-          .recover_build_module_graph_artifact(&mut new_compilation);
+          .sync_last_module_graph_artifact_to_new_compilation(&mut new_compilation);
 
         // seal stage used
         new_compilation.build_chunk_graph_artifact =
