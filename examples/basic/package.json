@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/example-basic",
+  "name": "examples-basic",
   "private": true,
   "type": "module",
   "scripts": {

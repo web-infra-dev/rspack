@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/example-react",
+  "name": "examples-react",
   "private": true,
   "type": "module",
   "scripts": {
