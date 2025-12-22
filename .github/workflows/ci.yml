@@ -131,20 +131,20 @@ jobs:
       - name: Download linux cache
         uses: ./.github/actions/artifact/download
         with:
-          name: test_cache-linux
+          name: testCase-persistentCache-linux
           path: ./cache-linux
           force-use-github: true
       - name: Download windows cache
         uses: ./.github/actions/artifact/download
         with:
-          name: test_cache-windows
+          name: testCase-persistentCache-windows
           path: ./cache-windows
           force-use-github: true
       - name: Run compare kit
         run: |
           echo "success"
           #  TODO open it after rspack portable cache implementation
-          # cargo run -p rspack_kit -- compare ./cache-linux ./cache-windows
+          # cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;

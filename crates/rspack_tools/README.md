@@ -1,4 +1,4 @@
-# rspack_kit
+# rspack_tools
 
 A toolkit for debugging and testing rspack internals.
 
@@ -11,5 +11,5 @@ Compare the cache content of two directories to verify they contain identical da
 **Usage:**
 
 ```bash
-rspack_kit compare /path/to/cache1 /path/to/cache2
+rspack_tools compare /path/to/cache1 /path/to/cache2
 ```

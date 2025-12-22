@@ -2,13 +2,13 @@
 description       = "Toolkit for debugging and testing rspack internals"
 edition.workspace = true
 license           = "MIT"
-name              = "rspack_kit"
+name              = "rspack_tools"
 publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [[bin]]
-name = "rspack_kit"
+name = "rspack_tools"
 path = "src/main.rs"
 
 [dependencies]

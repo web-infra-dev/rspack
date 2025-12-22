@@ -1,11 +1,11 @@
 use clap::{Parser, Subcommand};
 use rspack_error::Diagnostic;
-use rspack_kit::compare_cache_dir;
 use rspack_paths::Utf8PathBuf;
+use rspack_tools::compare_cache_dir;
 
 /// Toolkit for debugging and testing rspack internals
 #[derive(Parser, Debug)]
-#[command(name = "rspack_kit")]
+#[command(name = "rspack_tools")]
 #[command(about = "Toolkit for debugging and testing rspack internals", long_about = None)]
 #[command(version)]
 struct Cli {

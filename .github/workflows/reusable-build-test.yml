@@ -117,7 +117,7 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
         uses: ./.github/actions/artifact/upload
         with:
-          name: test_cache-linux
+          name: testCase-persistentCache-linux
           path: tests/rspack-test/js/temp/**/.cache
           force-use-github: true
           include-hidden-files: true
@@ -146,7 +146,7 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && matrix.node == '22' }}
         uses: ./.github/actions/artifact/upload
         with:
-          name: test_cache-windows
+          name: testCase-persistentCache-windows
           path: tests/rspack-test/js/temp/**/.cache
           force-use-github: true
           include-hidden-files: true

@@ -3971,21 +3971,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_kit"
-version = "0.7.0-beta.0"
-dependencies = [
- "clap",
- "itertools 0.14.0",
- "rspack_cacheable",
- "rspack_core",
- "rspack_error",
- "rspack_fs",
- "rspack_paths",
- "rustc-hash",
- "tokio",
-]
-
-[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.7.0-beta.0"
 dependencies = [
@@ -5110,6 +5095,21 @@ dependencies = [
 name = "rspack_tasks"
 version = "0.7.0-beta.0"
 dependencies = [
+ "tokio",
+]
+
+[[package]]
+name = "rspack_tools"
+version = "0.7.0-beta.0"
+dependencies = [
+ "clap",
+ "itertools 0.14.0",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_paths",
+ "rustc-hash",
  "tokio",
 ]
 
