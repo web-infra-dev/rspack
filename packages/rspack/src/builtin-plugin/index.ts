@@ -85,4 +85,4 @@ export * from "./WorkerPlugin";
 export * from "./rsc/RscServerPlugin";
 export * from "./rsc/RscClientPlugin";
 export * from "./rsc/Coordinator";
-export { createRscPlugins } from "./rsc";
+export { createRscPlugins, RSC_LAYERS_NAMES } from "./rsc";
