@@ -4,7 +4,7 @@ use rspack_core::Mode;
 #[tokio::test(flavor = "multi_thread")]
 async fn default_options() {
   let mut builder_context = BuilderContext::default();
-  let options = CompilerOptionsBuilder::default()
+  let (options, _) = CompilerOptionsBuilder::default()
     .mode(Mode::None)
     .build(&mut builder_context)
     .unwrap();

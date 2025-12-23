@@ -128,7 +128,16 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
+    platform: false | {
+        web: boolean | null | undefined;
+        browser: boolean | null | undefined;
+        webworker: boolean | null | undefined;
+        node: boolean | null | undefined;
+        nwjs: boolean | null | undefined;
+        electron: boolean | null | undefined;
+    };
+};
 
 // @public (undocumented)
 interface Argument {
@@ -1179,6 +1188,9 @@ export class Compiler {
     outputPath: string;
     // (undocumented)
     parentCompilation?: Compilation;
+    // (undocumented)
+    get platform(): PlatformTargetProperties;
+    set platform(platform: PlatformTargetProperties);
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
@@ -5823,6 +5835,16 @@ export { Performance_2 as Performance }
 
 // @public (undocumented)
 export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
+
+// @public (undocumented)
+type PlatformTargetProperties = {
+    web?: boolean | null;
+    browser?: boolean | null;
+    webworker?: boolean | null;
+    node?: boolean | null;
+    nwjs?: boolean | null;
+    electron?: boolean | null;
+};
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;

@@ -15,9 +15,9 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
-  Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
+  ContextModuleFactory, Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -93,6 +93,7 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
 }
 
@@ -111,6 +112,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
+    platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -163,6 +165,7 @@ impl Compiler {
       compilation: Compilation::new(
         id,
         options,
+        platform.clone(),
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
         resolver_factory.clone(),
@@ -189,6 +192,7 @@ impl Compiler {
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
+      platform,
       compiler_context,
     }
   }
@@ -220,6 +224,7 @@ impl Compiler {
       Compilation::new(
         self.id,
         self.options.clone(),
+        self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),

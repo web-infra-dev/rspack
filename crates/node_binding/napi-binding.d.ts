@@ -326,7 +326,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -1836,6 +1836,15 @@ export interface RawCircularDependencyRspackPluginOptions {
   onIgnored?: (entrypoint: Module, modules: string[]) => void
   onStart?: () => void
   onEnd?: () => void
+}
+
+export interface RawCompilerPlatform {
+  web?: boolean | null
+  browser?: boolean | null
+  webworker?: boolean | null
+  node?: boolean | null
+  nwjs?: boolean | null
+  electron?: boolean | null
 }
 
 export interface RawConsumeOptions {

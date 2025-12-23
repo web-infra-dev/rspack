@@ -31,6 +31,7 @@ import type {
 } from "./config";
 import { getRawOptions } from "./config";
 import { applyRspackOptionsDefaults, getPnpDefault } from "./config/defaults";
+import type { PlatformTargetProperties } from "./config/target";
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import {
@@ -174,6 +175,7 @@ class Compiler {
 	context: string;
 	cache: Cache;
 	compilerPath: string;
+	#platform: PlatformTargetProperties;
 	options: RspackOptionsNormalized;
 	/**
 	 * Whether to skip dropping Rust compiler instance to improve performance.
@@ -276,6 +278,14 @@ class Compiler {
 		this.idle = false;
 
 		this.watchMode = false;
+		this.#platform = {
+			web: null,
+			browser: null,
+			webworker: null,
+			node: null,
+			nwjs: null,
+			electron: null
+		};
 
 		this.__internal_browser_require = () => {
 			throw new Error(
@@ -325,6 +335,14 @@ class Compiler {
 
 	get _lastCompilation() {
 		return this.#compilation;
+	}
+
+	get platform() {
+		return this.#platform;
+	}
+
+	set platform(platform: PlatformTargetProperties) {
+		this.#platform = platform;
 	}
 
 	/**
@@ -894,7 +912,8 @@ class Compiler {
 					: undefined,
 				inputFileSystem,
 				ResolverFactory.__to_binding(this.resolverFactory),
-				this.unsafeFastDrop
+				this.unsafeFastDrop,
+				this.#platform
 			);
 
 			callback(null, this.#instance);
