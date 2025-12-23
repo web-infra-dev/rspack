@@ -12,9 +12,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{
-  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RscModuleType, RunnerContext,
-};
+use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -29,7 +27,10 @@ use swc_core::{
   ecma::ast::noop_pass,
 };
 
-use crate::{collect_ts_info::collect_typescript_info, rsc_transforms::rsc_pass};
+use crate::{
+  collect_ts_info::collect_typescript_info,
+  rsc_transforms::{rsc_pass, to_module_ref},
+};
 
 #[cacheable]
 #[derive(Debug)]
@@ -169,129 +170,18 @@ impl SwcLoader {
       },
     )?;
 
-    {
-      let module = &mut loader_context.context.module;
-      if module.id().contains("src/Todos.tsx") {
-        println!("module rsc_meta {:#?}", rsc_meta.borrow());
-      }
-      module.build_info_mut().rsc = rsc_meta.borrow_mut().take();
-    }
-
-    let module = &loader_context.context.module;
-    let is_react_server_layer = module
-      .get_layer()
-      .is_some_and(|layer| layer == "react-server-components");
-    if is_react_server_layer && let Some(rsc) = module.build_info().rsc.as_ref() {
-      if rsc.module_type.contains(RscModuleType::ServerEntry) {
-        if rsc
-          .server_refs
-          .iter()
-          .any(|server_ref| server_ref.as_str() == Some("*"))
-        {
-          // TODO: remove panic
-          panic!(
-            r#"It's currently unsupported to use "export *" in a server entry. Please use named exports instead."#
-          );
-        }
-
-        let mut esm_source = r#"import { createServerEntry } from "react-server-dom-rspack/server";
-"#
-        .to_string();
-
-        for server_ref in &rsc.server_refs {
-          match server_ref.as_str() {
-            Some("default") => {
-              // 增加 skip-rsc-transform 查询参数，避免代理模块中导入 server entry 模块，被重复生成为代理代码
-              esm_source.push_str(&format!(
-                r#"import _default from "{}?skip-rsc-transform";
-export default createServerEntry(
-_default,
-"{}",
-)
-"#,
-                loader_context.resource(),
-                loader_context.resource()
-              ));
-            }
-            Some(ident) => {
-              esm_source.push_str(&format!(
-                r#"import {{ {} as _original_{} }} from "{}?skip-rsc-transform";
-export const {} = createServerEntry(
-_original_{},
-"{}",
-)
-"#,
-                ident,
-                ident,
-                loader_context.resource(),
-                ident,
-                ident,
-                loader_context.resource(),
-              ));
-            }
-            _ => {}
-          }
-        }
-
-        loader_context.finish_with(esm_source);
-        return Ok(());
-      }
-
-      if rsc.module_type.contains(RscModuleType::Client) {
-        // TODO 生成代码需要区分 ESM 和 CJS
-        let mut esm_source = format!(
-          r#"import {{ registerClientReference }} from "react-server-dom-rspack/server"
-"#,
-        );
-
-        if rsc
-          .client_refs
-          .iter()
-          .any(|client_ref| client_ref.as_str() == Some("*"))
-        {
-          // TODO: remove panic
-          panic!(
-            r#"It's currently unsupported to use "export *" in a client boundary. Please use named exports instead."#
-          );
-        }
-
-        for client_ref in &rsc.client_refs {
-          match client_ref.as_str() {
-            Some("default") => {
-              esm_source.push_str(&format!(
-                r#"export default registerClientReference(
-function() {{ throw new Error("") }},
-"{}",
-"default",
-)
-"#,
-                loader_context.resource()
-              ));
-            }
-            Some(ident) => {
-              esm_source.push_str(&format!(
-                r#"export const {} = registerClientReference(
-function() {{ throw new Error("") }},
-"{}",
-"{}",
-)
-"#,
-                ident,
-                loader_context.resource(),
-                ident
-              ));
-            }
-            _ => {}
-          }
-        }
-
-        loader_context.finish_with(esm_source);
-        return Ok(());
-      }
-    }
-
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+    }
+
+    if let Some(rsc) = rsc_meta.borrow_mut().take() {
+      let module = &mut loader_context.context.module;
+      module.build_info_mut().rsc = Some(rsc);
+      // TODO: move to_module_ref into rsc transforms
+      if let Some(code) = to_module_ref(module)? {
+        loader_context.finish_with(code);
+        return Ok(());
+      }
     }
 
     if let Some(collected_ts_info) = collected_ts_info {

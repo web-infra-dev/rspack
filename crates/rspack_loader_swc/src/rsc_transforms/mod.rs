@@ -2,6 +2,7 @@ mod cjs_finder;
 mod import_analyzer;
 mod react_server_components;
 mod server_actions;
+mod to_module_ref;
 
 use std::{cell::RefCell, sync::Arc};
 
@@ -12,6 +13,7 @@ use swc_core::{
   common::{FileName, comments::SingleThreadedComments},
   ecma::ast::{Pass, noop_pass},
 };
+pub use to_module_ref::to_module_ref;
 
 pub fn rsc_pass<'a>(
   loader_context: &'a mut LoaderContext<RunnerContext>,
