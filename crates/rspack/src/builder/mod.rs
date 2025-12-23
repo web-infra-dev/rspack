@@ -446,8 +446,9 @@ impl CompilerBuilder {
   /// Build [`Compiler`] from options and plugins.
   pub fn build(&mut self) -> Result<Compiler> {
     let mut builder_context = BuilderContext::default();
-    let (compiler_options, platform) = self.options_builder.build(&mut builder_context)?;
+    let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
+    let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
     let input_filesystem = self.input_filesystem.take();
@@ -890,10 +891,7 @@ impl CompilerOptionsBuilder {
   ///
   /// [`BuilderContext`]: crate::builder::BuilderContext
   /// [`CompilerOptions`]: rspack_core::options::CompilerOptions
-  pub fn build(
-    &mut self,
-    builder_context: &mut BuilderContext,
-  ) -> Result<(CompilerOptions, CompilerPlatform)> {
+  pub fn build(&mut self, builder_context: &mut BuilderContext) -> Result<CompilerOptions> {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
       std::env::current_dir()
@@ -917,6 +915,7 @@ impl CompilerOptionsBuilder {
       vec!["web".to_string()]
     });
     let target_properties = get_targets_properties(&target, &context);
+    builder_context.platform = CompilerPlatform::from(&target_properties);
 
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);
@@ -1259,27 +1258,24 @@ impl CompilerOptionsBuilder {
 
     let amd = self.amd.take();
 
-    Ok((
-      CompilerOptions {
-        name,
-        context,
-        output,
-        mode,
-        resolve,
-        resolve_loader,
-        module,
-        stats,
-        cache,
-        experiments,
-        node,
-        optimization,
-        profile,
-        amd,
-        bail,
-        __references: Default::default(),
-      },
-      target_properties.into(),
-    ))
+    Ok(CompilerOptions {
+      name,
+      context,
+      output,
+      mode,
+      resolve,
+      resolve_loader,
+      module,
+      stats,
+      cache,
+      experiments,
+      node,
+      optimization,
+      profile,
+      amd,
+      bail,
+      __references: Default::default(),
+    })
   }
 }
 
@@ -3836,7 +3832,7 @@ mod test {
   fn builtin_plugin_order() {
     within_compiler_context_for_testing_sync(|| {
       let mut context: BuilderContext = Default::default();
-      let (compiler_options, _) = CompilerOptions::builder()
+      let compiler_options = CompilerOptions::builder()
         .mode(Mode::Production)
         .target(vec!["web".to_string()])
         .build(&mut context)

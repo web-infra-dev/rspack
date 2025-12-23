@@ -128,8 +128,8 @@ impl TargetProperties {
   }
 }
 
-impl From<TargetProperties> for CompilerPlatform {
-  fn from(value: TargetProperties) -> Self {
+impl From<&TargetProperties> for CompilerPlatform {
+  fn from(value: &TargetProperties) -> Self {
     Self {
       web: value.web,
       browser: value.browser,
