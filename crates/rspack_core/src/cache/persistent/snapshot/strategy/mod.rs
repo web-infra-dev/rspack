@@ -14,7 +14,7 @@ use self::{
 
 /// Snapshot check strategy
 #[cacheable]
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Strategy {
   /// Check by package version
   ///
@@ -33,6 +33,17 @@ pub enum Strategy {
   /// This strategy indicates that the current file is in a missing state,
   /// and will return ValidateResult::Modified if it exists.
   Missing,
+}
+
+impl PartialEq for Strategy {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::PackageVersion(v1), Self::PackageVersion(v2)) => v1 == v2,
+      (Self::PathHash { hash: h1, .. }, Self::PathHash { hash: h2, .. }) => h1 == h2,
+      (Self::Missing, Self::Missing) => true,
+      _ => false,
+    }
+  }
 }
 
 /// Validate Result
