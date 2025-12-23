@@ -48,9 +48,9 @@
 						}
 					}
 				};
-				<% if (_is_neutral_platform) { %>if (typeof document !== 'undefined') {<% } %>
+				if (typeof document !== 'undefined') {
 					loadStylesheet(chunkId, url, loadingEnded, undefined, fetchPriority);
-				<% if (_is_neutral_platform) { %>} else { loadingEnded({ type: 'load' }); }<% } %>
+				} else { loadingEnded({ type: 'load' }); }
 			} else installedChunks[chunkId] = 0;
 		}
 	}

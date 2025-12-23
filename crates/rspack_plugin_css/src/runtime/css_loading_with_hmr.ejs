@@ -27,7 +27,7 @@ var cssTextKey = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
-	<% if (_is_neutral_platform) { %>if (typeof document === 'undefined') return;<% } %>
+	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
