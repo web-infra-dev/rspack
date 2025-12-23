@@ -65,15 +65,19 @@ fn record_module(
   required_chunks: &[String],
   plugin_state: &mut PluginState,
 ) {
-  let Some(normal_module) = (client_reference_modules.contains(module_identifier))
+  let Some(module) = (client_reference_modules.contains(module_identifier))
     .then(|| compilation.module_by_identifier(module_identifier))
     .flatten()
-    .and_then(|m| m.as_normal_module())
   else {
     return;
   };
 
-  if is_css_mod(normal_module) {
+  let resource = get_module_resource(module.as_ref());
+  if resource.is_empty() {
+    return;
+  }
+
+  if is_css_mod(module.as_ref()) {
     let (Some(chunk), Some(entry_css_imports)) = (
       compilation.chunk_by_ukey.get(chunk_ukey),
       plugin_state.entry_css_imports.get(entry_name),
@@ -98,7 +102,6 @@ fn record_module(
       .entry(entry_name.to_string())
       .or_default();
 
-    let resource = get_module_resource(normal_module);
     for (server_entry, imports) in entry_css_imports {
       if imports.get(resource.as_ref()).is_some() {
         entry_css_files
@@ -110,20 +113,12 @@ fn record_module(
     return;
   }
 
-  let resource = normal_module
-    .resource_resolved_data()
-    .resource()
-    .to_string();
-  if resource.is_empty() {
-    return;
-  }
-
   let is_async = ModuleGraph::is_async(
     &compilation.async_modules_artifact.borrow(),
     module_identifier,
   );
   plugin_state.client_modules.insert(
-    resource,
+    resource.to_string(),
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
@@ -144,6 +139,7 @@ fn record_chunk_group(
   checked_chunks: &mut FxHashSet<ChunkUkey>,
   plugin_state: &mut PluginState,
 ) {
+  println!("-------- record_chunk_group --------");
   // Ensure recursion is stopped if we've already checked this chunk group.
   if checked_chunk_groups.contains(&chunk_group.ukey) {
     return;
