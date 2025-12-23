@@ -19,7 +19,6 @@ plugin = [
 
 [dependencies]
 async-trait                    = { workspace = true }
-base64                         = { workspace = true }
 either                         = { workspace = true }
 hex                            = { workspace = true }
 indoc                          = { workspace = true }
@@ -28,7 +27,6 @@ regex                          = { workspace = true }
 rspack_cacheable               = { workspace = true }
 rspack_core                    = { workspace = true }
 rspack_error                   = { workspace = true }
-rspack_hash                    = { workspace = true }
 rspack_hook                    = { workspace = true }
 rspack_javascript_compiler     = { workspace = true }
 rspack_loader_runner           = { workspace = true }
@@ -46,7 +44,6 @@ swc_config                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
-urlencoding                    = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }

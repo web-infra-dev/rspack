@@ -8,38 +8,36 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-allocative                 = { workspace = true, optional = true }
-async-trait                = { workspace = true }
-atomic_refcell             = { workspace = true }
-derive_more                = { workspace = true }
-form_urlencoded            = { workspace = true }
-futures                    = { workspace = true }
-indexmap                   = { workspace = true }
-indoc                      = { workspace = true }
-once_cell                  = { workspace = true }
-regex                      = { workspace = true }
-rspack_cacheable           = { workspace = true }
-rspack_collections         = { workspace = true }
-rspack_core                = { workspace = true }
-rspack_error               = { workspace = true }
-rspack_hash                = { workspace = true }
-rspack_hook                = { workspace = true }
-rspack_javascript_compiler = { workspace = true }
-rspack_loader_runner       = { workspace = true }
-rspack_plugin_javascript   = { workspace = true }
-rspack_util                = { workspace = true }
-rustc-hash                 = { workspace = true }
-serde                      = { workspace = true }
-serde_json                 = { workspace = true }
-simd-json                  = { workspace = true }
-sugar_path                 = { workspace = true }
-swc_core                   = { workspace = true }
-tokio                      = { workspace = true }
-tracing                    = { workspace = true }
-ustr                       = { workspace = true }
+allocative               = { workspace = true, optional = true }
+async-trait              = { workspace = true }
+atomic_refcell           = { workspace = true }
+derive_more              = { workspace = true }
+form_urlencoded          = { workspace = true }
+futures                  = { workspace = true }
+indexmap                 = { workspace = true }
+indoc                    = { workspace = true }
+once_cell                = { workspace = true }
+regex                    = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hash              = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_loader_runner     = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_util              = { workspace = true }
+rustc-hash               = { workspace = true }
+serde                    = { workspace = true }
+serde_json               = { workspace = true }
+simd-json                = { workspace = true }
+swc_core                 = { workspace = true }
+tokio                    = { workspace = true }
+tracing                  = { workspace = true }
+ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing"]
+ignored = ["tracing", "rspack_hash", "ustr-fxhash"]
 
 [lints.rust.unexpected_cfgs]
 check-cfg = ['cfg(allocative)']
