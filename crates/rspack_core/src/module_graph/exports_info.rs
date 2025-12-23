@@ -60,16 +60,14 @@ impl ModuleGraph {
   }
 
   pub fn reset_all_exports_info_used(&mut self) {
-    self
-      .inner
-      .exports_info_map
-      .par_iter_mut()
-      .for_each(|(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
+    self.inner.exports_info_map.par_iter_mut().for_each(
+      |(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
         for export_info in exports_info.exports_mut().values_mut() {
           export_info.set_has_use_info();
         }
         exports_info.side_effects_only_info_mut().set_has_use_info();
         exports_info.other_exports_info_mut().set_has_use_info();
-      });
+      },
+    );
   }
 }

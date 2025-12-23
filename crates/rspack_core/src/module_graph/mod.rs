@@ -255,7 +255,7 @@ impl ModuleGraph {
     if force {
       self.inner.dependencies.insert(*dep_id, None);
       self.inner.dependency_id_to_parents.insert(*dep_id, None);
-      self.inner.connection_to_condition.remove(*dep_id);
+      self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
         && let Some(Some(module)) = self.inner.modules.get_mut(&m_id)
       {
