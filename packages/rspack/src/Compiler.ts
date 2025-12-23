@@ -124,6 +124,8 @@ export type CompilerHooks = {
 	additionalPass: liteTapable.AsyncSeriesHook<[]>;
 };
 
+export const GET_COMPILER_ID = Symbol("getCompilerId");
+
 class Compiler {
 	#instance?: binding.JsCompiler;
 	#initial: boolean;
@@ -295,16 +297,14 @@ class Compiler {
 			new TraceHookPlugin().apply(this);
 		}
 
-		// this.hooks.shutdown.tap("rspack:cleanup", () => {
-		// 	// Delayed rspack cleanup to the next tick.
-		// 	// This supports calls to `fn rspack` to do something with `Stats` within the same tick.
-		// 	process.nextTick(() => {
-		// 		if (!this.running) {
-		// 			this.#instance = undefined;
-		// 			this.#compilation && (this.#compilation.__internal__shutdown = true);
-		// 		}
-		// 	});
-		// });
+		Object.defineProperty(this, GET_COMPILER_ID, {
+			writable: false,
+			configurable: false,
+			enumerable: false,
+			value: () => {
+				return this.#instance!.getCompilerId();
+			}
+		});
 	}
 
 	get recordsInputPath() {

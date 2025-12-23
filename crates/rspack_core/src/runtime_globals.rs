@@ -264,6 +264,10 @@ bitflags! {
     const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
     const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
     const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
+
+    // react server component
+    const RSC_MANIFEST = 1 << 72;
+    const RSC_HOT_RELOADER = 1 << 73;
   }
 }
 
@@ -355,6 +359,9 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules".to_string(),
 
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
+
+    RuntimeGlobals::RSC_MANIFEST => format!("{scope_name}.rscM"),
+    RuntimeGlobals::RSC_HOT_RELOADER => format!("{scope_name}.rscH"),
     _ => unreachable!(),
   }
 }

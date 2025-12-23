@@ -1,0 +1,884 @@
+use std::sync::{Arc, LazyLock};
+
+use atomic_refcell::AtomicRefCell;
+use derive_more::Debug;
+use regex::Regex;
+use rspack_collections::{Identifiable, IdentifierMap};
+use rspack_core::{
+  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
+  CompilationRuntimeRequirementInTree, CompilerFinishMake, CompilerThisCompilation, Dependency,
+  DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph,
+  ModuleGraphRef, ModuleId, ModuleIdentifier, NormalModule, Plugin, PrefetchExportsInfoMode,
+  RscMeta, RscModuleType, RuntimeGlobals, RuntimeSpec,
+};
+use rspack_error::Result;
+use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::dependency::{
+  CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
+  ESMImportSpecifierDependency,
+};
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::json;
+use swc_core::atoms::{Atom, Wtf8Atom};
+
+use crate::{
+  client_compiler_handle::Coordinator,
+  constants::LAYERS_NAMES,
+  hot_reloader::track_server_component_changes,
+  loaders::{
+    action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
+    client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
+  },
+  manifest_runtime_module::RscManifestRuntimeModule,
+  plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  reference_manifest::ManifestExport,
+  utils::{ChunkModules, ServerEntryModules, get_module_resource, is_css_mod},
+};
+
+// { [client import path]: [exported names] }
+pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
+// { [server entry path]: [css imports] }
+pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
+
+#[derive(Debug)]
+struct ClientEntry {
+  entry_name: String,
+  runtime: RuntimeSpec,
+  client_imports: ClientComponentImports,
+  css_imports: CssImports,
+}
+
+#[derive(Debug)]
+struct ComponentInfo {
+  css_imports: CssImports,
+  client_component_imports: ClientComponentImports,
+  action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
+}
+
+#[derive(Debug)]
+struct InjectedClientEntry {
+  runtime: RuntimeSpec,
+  add_ssr_entry: (BoxDependency, EntryOptions),
+  ssr_dependency_id: DependencyId,
+}
+
+struct ActionEntry {
+  actions: FxHashMap<String, Vec<ActionIdNamePair>>,
+  entry_name: String,
+  runtime: RuntimeSpec,
+  from_client: bool,
+}
+
+#[derive(Debug)]
+struct InjectedActionEntry {
+  pub runtime: RuntimeSpec,
+  pub add_entry: (BoxDependency, EntryOptions),
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct RscServerPlugin {
+  #[debug(skip)]
+  coordinator: Arc<Coordinator>,
+  prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
+}
+
+impl RscServerPlugin {
+  pub fn new(coordinator: Arc<Coordinator>) -> Self {
+    Self::new_inner(coordinator, Default::default())
+  }
+}
+
+#[plugin_hook(CompilerThisCompilation for RscServerPlugin)]
+async fn this_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+  let plugin_state = guard
+    .entry(compilation.compiler_id())
+    .or_insert(PluginState::default());
+  plugin_state.clear();
+
+  self.coordinator.start_server_entries_compilation().await?;
+
+  Ok(())
+}
+
+#[plugin_hook(CompilerFinishMake for RscServerPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.RscServerPlugin");
+
+  {
+    let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+    let plugin_state = guard
+      .entry(compilation.compiler_id())
+      .or_insert(PluginState::default());
+
+    let start = logger.time("track server component changes");
+    let mut prev_server_component_hashes = self.prev_server_component_hashes.borrow_mut();
+    plugin_state.changed_server_components_per_entry =
+      track_server_component_changes(compilation, &mut prev_server_component_hashes);
+    logger.time_end(start);
+  }
+
+  let start = logger.time("create client entries");
+  self.create_client_entries(compilation).await?;
+  logger.time_end(start);
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for RscServerPlugin)]
+async fn runtime_requirements_in_tree(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::RSC_MANIFEST) {
+    compilation.add_runtime_module(chunk_ukey, Box::new(RscManifestRuntimeModule::new()))?;
+  }
+  Ok(None)
+}
+
+#[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.RscServerPlugin");
+
+  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+  let plugin_state = guard
+    .entry(compilation.compiler_id())
+    .or_insert(PluginState::default());
+
+  let start = logger.time("traverse modules");
+  self.traverse_chunk_modules(compilation, plugin_state);
+  logger.time_end(start);
+
+  self.coordinator.idle().await?;
+
+  Ok(())
+}
+
+impl Plugin for RscServerPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.RscServerPlugin"
+  }
+
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext) -> Result<()> {
+    ctx
+      .compiler_hooks
+      .this_compilation
+      .tap(this_compilation::new(self));
+
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
+
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+
+    Ok(())
+  }
+}
+
+pub fn get_module_rsc_information(module: &dyn Module) -> Option<&RscMeta> {
+  module.build_info().rsc.as_ref()
+}
+
+// Gives { id: name } record of actions from the build info.
+pub fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxIndexMap<Atom, Atom>> {
+  let rsc = get_module_rsc_information(module)?;
+  Some(&rsc.action_ids)
+}
+
+pub fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a str {
+  let rsc = get_module_rsc_information(module);
+  let is_cjs = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
+  let client_refs: &[Wtf8Atom] = rsc
+    .as_ref()
+    .map(|rsc| rsc.client_refs.as_slice())
+    .unwrap_or_default();
+
+  // It's tricky to detect the type of a client boundary, but we should always
+  // use the `module` type when we can, to support `export *` and `export from`
+  // syntax in other modules that import this client boundary.
+
+  if source_type == "auto" {
+    if is_cjs {
+      return "commonjs";
+    } else if client_refs.is_empty() {
+      // If there's zero export detected in the client boundary, and it's the
+      // `auto` type, we can safely assume it's a CJS module because it doesn't
+      // have ESM exports.
+      return "commonjs";
+    } else if !client_refs.iter().any(|e| e == "*") {
+      // Otherwise, we assume it's an ESM module.
+      return "module";
+    }
+  }
+
+  source_type
+}
+
+fn add_client_import(
+  module: &dyn Module,
+  mod_request: &str,
+  client_component_imports: &mut ClientComponentImports,
+  imported_identifiers: &[String],
+  is_first_visit_module: bool,
+) {
+  let rsc = get_module_rsc_information(module);
+  let is_cjs_module = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
+  let assumed_source_type =
+    get_assumed_source_type(module, if is_cjs_module { "commonjs" } else { "auto" });
+
+  let client_imports_set = client_component_imports
+    .entry(mod_request.to_string())
+    .or_default();
+
+  if imported_identifiers
+    .first()
+    .map(|identifier| identifier.as_str())
+    == Some("*")
+  {
+    // If there's collected import path with named import identifiers,
+    // or there's nothing in collected imports are empty.
+    // we should include the whole module.
+    if !is_first_visit_module && !client_imports_set.contains("*") {
+      client_component_imports.insert(
+        mod_request.to_string(),
+        FxHashSet::from_iter(["*".to_string()]),
+      );
+    }
+  } else {
+    let is_auto_module_source_type = assumed_source_type == "auto";
+    if is_auto_module_source_type {
+      client_component_imports.insert(
+        mod_request.to_string(),
+        FxHashSet::from_iter(["*".to_string()]),
+      );
+    } else {
+      // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
+      // We'll include all modules since it's not able to do tree-shaking.
+      for name in imported_identifiers {
+        // For cjs module default import, we include the whole module since
+        let is_cjs_default_import = is_cjs_module && name == "default";
+
+        // Always include __esModule along with cjs module default export,
+        // to make sure it works with client module proxy from React.
+        if is_cjs_default_import {
+          client_imports_set.insert("__esModule".to_string());
+        }
+
+        client_imports_set.insert(name.clone());
+      }
+    }
+  }
+}
+
+// Determine if the whole module is client action, 'use server' in nested closure in the client module
+fn is_action_client_layer_module(module: &dyn Module) -> bool {
+  let rsc = get_module_rsc_information(module);
+  matches!(&rsc, Some(rsc) if !rsc.action_ids.is_empty())
+    && matches!(&rsc, Some(rsc) if rsc.module_type.contains(RscModuleType::Client))
+}
+
+pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  let image_extensions = ["jpg", "jpeg", "png", "webp", "avif", "ico", "svg"];
+  #[allow(clippy::unwrap_used)]
+  Regex::new(&format!(r"\.({})$", image_extensions.join("|"))).unwrap()
+});
+
+pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
+  let rsc = get_module_rsc_information(module);
+  let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RscModuleType::Client);
+  let is_action_layer_entry = is_action_client_layer_module(module);
+  let is_image = if let Some(module) = module.as_normal_module() {
+    IMAGE_REGEX.is_match(module.resource_resolved_data().resource())
+  } else {
+    false
+  };
+  has_client_directive || is_action_layer_entry || is_image
+}
+
+impl RscServerPlugin {
+  async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
+    let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
+    let mut created_ssr_dependencies_per_entry: FxHashMap<String, Vec<DependencyId>> =
+      Default::default();
+    let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
+    let mut server_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>> =
+      Default::default();
+    let mut created_action_ids: FxHashSet<String> = Default::default();
+    let mut runtime_per_entry: FxHashMap<String, RuntimeSpec> = Default::default();
+
+    let module_graph = compilation.get_module_graph();
+    let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
+    for (server_entry_module, entry_name, runtime) in server_entry_modules {
+      let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
+      let mut client_entries_to_inject = Vec::new();
+
+      runtime_per_entry.insert(entry_name.to_string(), runtime.clone());
+
+      let component_info = self.collect_component_info_from_server_entry_dependency(
+        compilation,
+        &runtime,
+        server_entry_module,
+      );
+      for (dep, actions) in component_info.action_imports {
+        action_entry_imports.insert(dep, actions);
+      }
+      if !component_info.client_component_imports.is_empty() {
+        client_entries_to_inject.push(ClientEntry {
+          entry_name: entry_name.to_string(),
+          runtime: runtime.clone(),
+          client_imports: component_info.client_component_imports,
+          css_imports: component_info.css_imports,
+        });
+      }
+
+      {
+        let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+        let plugin_state = guard
+          .entry(compilation.compiler_id())
+          .or_insert(PluginState::default());
+
+        for client_entry_to_inject in client_entries_to_inject {
+          let entry_name = client_entry_to_inject.entry_name.to_string();
+          let injected = self
+            .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject, plugin_state)
+            .await;
+
+          // Track all created SSR dependencies for each entry from the server layer.
+          created_ssr_dependencies_per_entry
+            .entry(entry_name)
+            .or_default()
+            .push(injected.ssr_dependency_id);
+
+          add_client_entry_and_ssr_modules_list.push(injected);
+        }
+      }
+
+      if !action_entry_imports.is_empty() {
+        server_actions_per_entry
+          .entry(entry_name.to_string())
+          .or_default()
+          .extend(action_entry_imports);
+      }
+    }
+
+    for (name, action_entry_imports) in server_actions_per_entry {
+      let runtime = runtime_per_entry.get(&name).cloned().unwrap_or_default();
+      if let Some(injected) = self.inject_action_entry(
+        compilation,
+        ActionEntry {
+          actions: action_entry_imports,
+          entry_name: name.clone(),
+          runtime,
+          from_client: false,
+        },
+        &mut created_action_ids,
+      ) {
+        add_action_entry_list.push(injected);
+      }
+    }
+
+    // Wait for action entries to be added.
+
+    let runtimes = add_client_entry_and_ssr_modules_list
+      .iter()
+      .map(|injected| injected.runtime.clone())
+      .chain(
+        add_action_entry_list
+          .iter()
+          .map(|injected| injected.runtime.clone()),
+      )
+      .collect::<Vec<_>>();
+    let add_include_args: Vec<(BoxDependency, EntryOptions)> =
+      add_client_entry_and_ssr_modules_list
+        .into_iter()
+        .map(|add_client_entry_and_ssr_modules: InjectedClientEntry| {
+          add_client_entry_and_ssr_modules.add_ssr_entry
+        })
+        .chain(
+          add_action_entry_list
+            .into_iter()
+            .map(|add_action_entry| add_action_entry.add_entry),
+        )
+        .collect();
+    let included_dependencies: Vec<_> = add_include_args
+      .iter()
+      .map(|(dependency, _)| *dependency.id())
+      .collect();
+    compilation.add_include(add_include_args).await?;
+    for (idx, dependency_id) in included_dependencies.into_iter().enumerate() {
+      let mut mg =
+        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+      let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&module.identifier());
+      let runtime = &runtimes[idx];
+      info.set_used_in_unknown_way(&mut mg, Some(runtime));
+    }
+
+    // TODO: 避免被前置 error 导致没有走到这里
+    self
+      .coordinator
+      .complete_server_entries_compilation()
+      .await?;
+
+    self.coordinator.start_server_actions_compilation().await?;
+
+    self
+      .coordinator
+      .complete_server_actions_compilation()
+      .await?;
+
+    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
+    let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+    #[allow(clippy::unwrap_used)]
+    let plugin_state = guard.get(&compilation.compiler_id()).unwrap();
+
+    for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
+      // If an action method is already created in the server layer, we don't
+      // need to create it again in the action layer.
+      // This is to avoid duplicate action instances and make sure the module
+      // state is shared.
+      let mut remaining_client_imported_actions = false;
+      let mut remaining_action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> =
+        Default::default();
+      let runtime = runtime_per_entry
+        .get(entry_name)
+        .cloned()
+        .unwrap_or_default();
+      for (dependency, actions) in action_entry_imports {
+        let mut remaining_actions: Vec<ActionIdNamePair> = Vec::new();
+        for action in actions {
+          if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.0)) {
+            remaining_actions.push(action.clone());
+          }
+        }
+        if !remaining_actions.is_empty() {
+          remaining_action_entry_imports.insert(dependency.clone(), remaining_actions);
+          remaining_client_imported_actions = true;
+        }
+      }
+
+      if remaining_client_imported_actions
+        && let Some(injected) = self.inject_action_entry(
+          compilation,
+          ActionEntry {
+            actions: remaining_action_entry_imports,
+            entry_name: entry_name.clone(),
+            runtime,
+            from_client: true,
+          },
+          &mut created_action_ids,
+        )
+      {
+        added_client_action_entry_list.push(injected);
+      }
+    }
+    let included_dependencies: Vec<(DependencyId, RuntimeSpec)> = added_client_action_entry_list
+      .iter()
+      .map(|action_entry| (*action_entry.add_entry.0.id(), action_entry.runtime.clone()))
+      .collect();
+    let add_include_args: Vec<(BoxDependency, EntryOptions)> = added_client_action_entry_list
+      .into_iter()
+      .map(|action_entry| action_entry.add_entry)
+      .collect();
+    compilation.add_include(add_include_args).await?;
+    for (dependency_id, runtime) in included_dependencies {
+      let mut mg = compilation.get_seal_module_graph_mut();
+      let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&m.identifier());
+      info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+    }
+
+    Ok(())
+  }
+
+  fn collect_component_info_from_server_entry_dependency(
+    &self,
+    compilation: &Compilation,
+    runtime: &RuntimeSpec,
+    resolved_module: &NormalModule,
+  ) -> ComponentInfo {
+    // Keep track of checked modules to avoid infinite loops with recursive imports.
+    let mut visited_of_client_components_traverse: FxHashSet<String> = FxHashSet::default();
+
+    // Info to collect.
+    let mut client_component_imports: ClientComponentImports = Default::default();
+    let mut action_imports: Vec<(String, Vec<ActionIdNamePair>)> = Vec::new();
+    let mut css_imports: FxIndexSet<String> = Default::default();
+
+    // Traverse the module graph to find all client components.
+    self.filter_client_components(
+      compilation,
+      resolved_module,
+      runtime,
+      &[],
+      &mut visited_of_client_components_traverse,
+      &mut client_component_imports,
+      &mut action_imports,
+      &mut css_imports,
+    );
+
+    let mut css_imports_map: CssImports = Default::default();
+    let server_entry_resource = get_module_resource(resolved_module);
+    css_imports_map.insert(server_entry_resource.to_string(), css_imports);
+
+    ComponentInfo {
+      css_imports: css_imports_map,
+      client_component_imports,
+      action_imports,
+    }
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  fn filter_client_components(
+    &self,
+    compilation: &Compilation,
+    module: &dyn Module,
+    runtime: &RuntimeSpec,
+    imported_identifiers: &[String],
+    visited: &mut FxHashSet<String>,
+    client_component_imports: &mut ClientComponentImports,
+    action_imports: &mut Vec<(String, Vec<ActionIdNamePair>)>,
+    css_imports: &mut FxIndexSet<String>,
+  ) {
+    let resource = get_module_resource(module);
+    if resource.is_empty() {
+      return;
+    }
+    if visited.contains(resource.as_ref()) {
+      if client_component_imports.contains_key(resource.as_ref()) {
+        add_client_import(
+          module,
+          &resource,
+          client_component_imports,
+          imported_identifiers,
+          false,
+        );
+      }
+      return;
+    }
+    visited.insert(resource.to_string());
+
+    let actions = get_actions_from_build_info(module);
+    if let Some(actions) = actions {
+      action_imports.push((
+        resource.to_string(),
+        actions
+          .iter()
+          .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
+          .collect(),
+      ));
+    }
+
+    let module_graph = compilation.get_module_graph();
+    if is_css_mod(module) {
+      let side_effect_free = module
+        .factory_meta()
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or(false);
+
+      if side_effect_free {
+        let exports_info = module_graph.get_exports_info(&module.identifier());
+        let prefetched_exports_info = ExportsInfoGetter::prefetch(
+          &exports_info,
+          &module_graph,
+          PrefetchExportsInfoMode::Default,
+        );
+        let unused = !prefetched_exports_info.is_module_used(Some(runtime));
+        if unused {
+          return;
+        }
+      }
+
+      css_imports.insert(resource.to_string());
+    } else if is_client_component_entry_module(module) {
+      if !client_component_imports.contains_key(resource.as_ref()) {
+        client_component_imports.insert(resource.to_string(), Default::default());
+      }
+      add_client_import(
+        module,
+        resource.as_ref(),
+        client_component_imports,
+        imported_identifiers,
+        true,
+      );
+      return;
+    }
+
+    for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier()) {
+      let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+        continue;
+      };
+      let mut dependency_ids = Vec::new();
+
+      // `ids` are the identifiers that are imported from the dependency,
+      // if it's present, it's an array of strings.
+      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
+        continue;
+      };
+      let ids =
+        if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
+          Some(dependency.get_ids(&module_graph))
+        } else if let Some(dependency) =
+          dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+        {
+          Some(dependency.get_ids(&module_graph))
+        } else {
+          dependency
+            .downcast_ref::<ESMImportSpecifierDependency>()
+            .map(|dependency| dependency.get_ids(&module_graph))
+        };
+      if let Some(ids) = ids {
+        for id in ids {
+          dependency_ids.push(id.to_string());
+        }
+      } else {
+        dependency_ids.push("*".into());
+      }
+
+      let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
+      else {
+        continue;
+      };
+      self.filter_client_components(
+        compilation,
+        resolved_module.as_ref(),
+        runtime,
+        &dependency_ids,
+        visited,
+        client_component_imports,
+        action_imports,
+        css_imports,
+      );
+    }
+  }
+
+  async fn inject_client_entry_and_ssr_modules(
+    &self,
+    compilation: &Compilation,
+    client_entry: ClientEntry,
+    plugin_state: &mut PluginState,
+  ) -> InjectedClientEntry {
+    let ClientEntry {
+      entry_name,
+      runtime,
+      client_imports,
+      css_imports,
+    } = client_entry;
+
+    let client_browser_loader = {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
+      for request in merged_css_imports {
+        #[allow(clippy::unwrap_used)]
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": []
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+
+      plugin_state
+        .entry_css_imports
+        .entry(entry_name.clone())
+        .or_default()
+        .extend(css_imports.into_iter());
+
+      for (request, ids) in &client_imports {
+        #[allow(clippy::unwrap_used)]
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": ids
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "false");
+      format!(
+        "{}?{}!",
+        CLIENT_ENTRY_LOADER_IDENTIFIER,
+        serializer.finish()
+      )
+    };
+
+    let client_server_loader = {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      for (request, ids) in &client_imports {
+        #[allow(clippy::unwrap_used)]
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": ids
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "true");
+      format!(
+        "{}?{}!",
+        CLIENT_ENTRY_LOADER_IDENTIFIER,
+        serializer.finish()
+      )
+    };
+
+    // Add for the client compilation
+    // Inject the entry to the client compiler.
+    plugin_state
+      .injected_client_entries
+      .insert(entry_name.to_string(), client_browser_loader);
+
+    let ssr_entry_dependency = EntryDependency::new(
+      client_server_loader.to_string(),
+      compilation.options.context.clone(),
+      Some(LAYERS_NAMES.server_side_rendering.to_string()),
+      false,
+    );
+    let ssr_dependency_id = *(ssr_entry_dependency.id());
+
+    InjectedClientEntry {
+      runtime,
+      add_ssr_entry: (
+        Box::new(ssr_entry_dependency),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          ..Default::default()
+        },
+      ),
+      ssr_dependency_id,
+    }
+  }
+
+  fn inject_action_entry(
+    &self,
+    compilation: &Compilation,
+    action_entry: ActionEntry,
+    created_action_ids: &mut FxHashSet<String>,
+  ) -> Option<InjectedActionEntry> {
+    let ActionEntry {
+      actions,
+      entry_name,
+      runtime,
+      from_client,
+    } = action_entry;
+
+    if actions.is_empty() {
+      return None;
+    }
+
+    for actions_from_module in actions.values() {
+      for (id, _) in actions_from_module {
+        created_action_ids.insert(format!("{}@{}", entry_name, id));
+      }
+    }
+
+    let mut serializer = form_urlencoded::Serializer::new(String::new());
+    #[allow(clippy::unwrap_used)]
+    serializer.append_pair("actions", &serde_json::to_string(&actions).unwrap());
+    serializer.append_pair("fromClient", &from_client.to_string());
+    let action_entry_loader = format!(
+      "{}?{}!",
+      ACTION_ENTRY_LOADER_IDENTIFIER,
+      serializer.finish()
+    );
+
+    // Inject the entry to the server compiler
+    let layer = if from_client {
+      LAYERS_NAMES.action_browser.to_string()
+    } else {
+      LAYERS_NAMES.react_server_components.to_string()
+    };
+    let action_entry_dep = EntryDependency::new(
+      action_entry_loader,
+      compilation.options.context.clone(),
+      Some(layer.to_string()),
+      false,
+    );
+
+    Some(InjectedActionEntry {
+      runtime,
+      add_entry: (
+        Box::new(action_entry_dep),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          layer: Some(layer),
+          ..Default::default()
+        },
+      ),
+    })
+  }
+
+  fn record_module(
+    &self,
+    compilation: &Compilation,
+    module_graph: &ModuleGraphRef<'_>,
+    module_idenfitifier: ModuleIdentifier,
+    module_id: ModuleId,
+    plugin_state: &mut PluginState,
+  ) {
+    let Some(normal_module) = module_graph
+      .module_by_identifier(&module_idenfitifier)
+      .and_then(|m| m.as_normal_module())
+    else {
+      return;
+    };
+
+    if normal_module.build_info().rsc.as_ref().is_none()
+      || normal_module
+        .get_layer()
+        .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
+    {
+      return;
+    }
+
+    let resource = get_module_resource(normal_module);
+    if resource.is_empty() {
+      return;
+    }
+
+    let manifest_export = ManifestExport {
+      id: module_id.to_string(),
+      name: "*".to_string(),
+      chunks: vec![],
+      r#async: Some(ModuleGraph::is_async(
+        &compilation.async_modules_artifact.borrow(),
+        &module_idenfitifier,
+      )),
+    };
+    plugin_state
+      .ssr_modules
+      .insert(resource.to_string(), manifest_export);
+  }
+
+  fn traverse_chunk_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {
+    let module_graph = compilation.get_module_graph();
+    let chunk_modules = ChunkModules::new(compilation, &module_graph);
+    for (module_identifier, module_id) in chunk_modules {
+      self.record_module(
+        compilation,
+        &module_graph,
+        module_identifier,
+        module_id,
+        plugin_state,
+      );
+    }
+  }
+}
