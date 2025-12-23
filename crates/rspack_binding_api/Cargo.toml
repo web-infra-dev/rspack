@@ -82,6 +82,7 @@ rspack_loader_testing                  = { workspace = true }
 rspack_napi_macros                     = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
+rspack_plugin_case_sensitive           = { workspace = true }
 rspack_plugin_circular_dependencies    = { workspace = true }
 rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }
@@ -115,7 +116,6 @@ rspack_plugin_size_limits              = { workspace = true }
 rspack_plugin_split_chunks             = { workspace = true }
 rspack_plugin_sri                      = { workspace = true }
 rspack_plugin_swc_js_minimizer         = { workspace = true }
-rspack_plugin_warn_sensitive_module    = { workspace = true }
 rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
