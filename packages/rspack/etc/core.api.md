@@ -7907,6 +7907,7 @@ export type SwcLoaderModuleConfig = ModuleConfig;
 // @public (undocumented)
 export type SwcLoaderOptions = Config_2 & {
     isModule?: boolean | "unknown";
+    collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
         collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
