@@ -59,7 +59,7 @@ This warning indicates that there is a case sensitivity conflict in module names
 `CaseSensitivePlugin` is based on module identifiers rather than the file system to determine case sensitivity differences.
 :::
 
-A warning will also be triggered if the final assets contains two files with names that differ only in case:
+When the build output includes files whose names differ only in letter casing, the plugin will emit a warning to avoid potential conflicts on case-insensitive file systems.
 
 ```bash
 WARNING Prevent writing to file that only differs in casing or query string from already written file.

@@ -59,7 +59,7 @@ WARNING There are multiple modules with names that only differ in casing.
 `CaseSensitivePlugin` 基于模块标识符而非文件系统来判断大小写差异。
 :::
 
-如果最终产物中包含仅大小写不同的两个文件，也会触发警告：
+当构建产物中包含仅大小写不同的文件名时，插件也会输出警告，以避免在大小写不敏感的文件系统上产生潜在的文件冲突。
 
 ```bash
 WARNING Prevent writing to file that only differs in casing or query string from already written file.
