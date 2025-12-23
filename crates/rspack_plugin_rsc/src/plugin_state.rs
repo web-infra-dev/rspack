@@ -44,4 +44,4 @@ impl PluginState {
 }
 
 pub static PLUGIN_STATE_BY_COMPILER_ID: Lazy<Mutex<FxHashMap<CompilerId, PluginState>>> =
-  Lazy::new(|| Default::default());
+  Lazy::new(Default::default);

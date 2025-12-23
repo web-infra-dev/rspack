@@ -11,28 +11,28 @@ fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
     match server_ref.as_str() {
       Some("default") => {
         cjs_source.push_str(&formatdoc! {
-            r#"
-                const _default = require("{}?skip-rsc-transform");
-                module.exports = createServerEntry(
-                    _default,
-                    "{}",
-                );
-            "#,
-            resource,
-            resource
+          r#"
+            const _default = require("{}?skip-rsc-transform");
+            module.exports = createServerEntry(
+              _default,
+              "{}",
+            );
+          "#,
+          resource,
+          resource
         });
       }
       Some(ident) => {
         cjs_source.push_str(&formatdoc! {
-            r#"
-                const _original_{ident} = require("{resource}?skip-rsc-transform").{ident};
-                exports.{ident} = createServerEntry(
-                    _original_{ident},
-                    "{resource}",
-                );
-            "#,
-            ident = ident,
-            resource = resource
+          r#"
+            const _original_{ident} = require("{resource}?skip-rsc-transform").{ident};
+            exports.{ident} = createServerEntry(
+              _original_{ident},
+              "{resource}",
+            );
+          "#,
+          ident = ident,
+          resource = resource
         });
       }
       _ => {}
@@ -49,28 +49,28 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
     match server_ref.as_str() {
       Some("default") => {
         esm_source.push_str(&formatdoc! {
-            r#"
-                import _default from "{}?skip-rsc-transform";
-                export default createServerEntry(
-                    _default,
-                    "{}",
-                )
-            "#,
-            resource,
-            resource
+          r#"
+            import _default from "{}?skip-rsc-transform";
+            export default createServerEntry(
+              _default,
+              "{}",
+            )
+          "#,
+          resource,
+          resource
         });
       }
       Some(ident) => {
         esm_source.push_str(&formatdoc! {
-            r#"
-                import {{ {ident} as _original_{ident} }} from "{resource}?skip-rsc-transform";
-                export const {ident} = createServerEntry(
-                    _original_{ident},
-                    "{resource}",
-                )
-            "#,
-            ident = ident,
-            resource = resource,
+          r#"
+            import {{ {ident} as _original_{ident} }} from "{resource}?skip-rsc-transform";
+            export const {ident} = createServerEntry(
+              _original_{ident},
+              "{resource}",
+            )
+          "#,
+          ident = ident,
+          resource = resource,
         });
       }
       _ => {}
@@ -95,29 +95,29 @@ fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
     match client_ref.as_str() {
       Some("default") => {
         esm_source.push_str(&formatdoc! {
-            r#"
-                export default registerClientReference(
-                function() {{ throw new Error({call_error}) }},
-                    "{resource}",
-                    "default",
-                )
-            "#,
-            resource = resource,
-            call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          r#"
+            export default registerClientReference(
+            function() {{ throw new Error({call_error}) }},
+              "{resource}",
+              "default",
+            )
+          "#,
+          resource = resource,
+          call_error = serde_json::to_string(&call_error).to_rspack_result()?
         });
       }
       Some(ident) => {
         esm_source.push_str(&formatdoc! {
-            r#"
-                export const {ident} = registerClientReference(
-                function() {{ throw new Error({call_error}) }},
-                    "{resource}",
-                    "{ident}",
-                )
-            "#,
-            ident = ident,
-            resource = resource,
-            call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          r#"
+            export const {ident} = registerClientReference(
+            function() {{ throw new Error({call_error}) }},
+              "{resource}",
+              "{ident}",
+            )
+          "#,
+          ident = ident,
+          resource = resource,
+          call_error = serde_json::to_string(&call_error).to_rspack_result()?
         });
       }
       _ => {}
@@ -143,29 +143,29 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
     match client_ref.as_str() {
       Some("default") => {
         cjs_source.push_str(&formatdoc! {
-            r#"
-                module.exports = registerClientReference(
-                  function() {{ throw new Error({call_error}) }},
-                  "{resource}",
-                  "default",
-                );
-            "#,
-            resource = resource,
-            call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          r#"
+            module.exports = registerClientReference(
+              function() {{ throw new Error({call_error}) }},
+              "{resource}",
+              "default",
+            );
+          "#,
+          resource = resource,
+          call_error = serde_json::to_string(&call_error).to_rspack_result()?
         });
       }
       Some(ident) => {
         cjs_source.push_str(&formatdoc! {
-            r#"
-                exports.{ident} = registerClientReference(
-                  function() {{ throw new Error({call_error}) }},
-                  "{resource}",
-                  "{ident}",
-                );
-            "#,
-            ident = ident,
-            resource = resource,
-            call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          r#"
+            exports.{ident} = registerClientReference(
+              function() {{ throw new Error({call_error}) }},
+              "{resource}",
+              "{ident}",
+            );
+          "#,
+          ident = ident,
+          resource = resource,
+          call_error = serde_json::to_string(&call_error).to_rspack_result()?
         });
       }
       _ => {}

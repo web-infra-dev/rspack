@@ -42,7 +42,7 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
     let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
       continue;
     };
-    let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) else {
+    let Some(chunk_id) = chunk.id() else {
       continue;
     };
     for file in chunk.files() {
@@ -54,6 +54,7 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
   required_chunks
 }
 
+#[allow(clippy::too_many_arguments)]
 fn record_module(
   entry_name: &str,
   module_id: &ModuleId,
@@ -61,7 +62,7 @@ fn record_module(
   client_reference_modules: &FxHashSet<ModuleIdentifier>,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
-  required_chunks: &Vec<String>,
+  required_chunks: &[String],
   plugin_state: &mut PluginState,
 ) {
   let Some(normal_module) = (client_reference_modules.contains(module_identifier))
@@ -80,6 +81,7 @@ fn record_module(
       return;
     };
 
+    #[allow(clippy::unwrap_used)]
     let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
     let css_files: Vec<String> = chunk
       .files()
@@ -116,18 +118,22 @@ fn record_module(
     return;
   }
 
-  let is_async = ModuleGraph::is_async(compilation, module_identifier);
+  let is_async = ModuleGraph::is_async(
+    &compilation.async_modules_artifact.borrow(),
+    module_identifier,
+  );
   plugin_state.client_modules.insert(
     resource,
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
-      chunks: required_chunks.clone(),
+      chunks: required_chunks.to_vec(),
       r#async: Some(is_async),
     },
   );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
   entry_name: &str,
   client_reference_modules: &FxHashSet<ModuleIdentifier>,
@@ -166,7 +172,7 @@ fn record_chunk_group(
       else {
         continue;
       };
-      let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
         continue;
       };
       if let Some(concatenated_module) = module.as_concatenated_module() {
@@ -186,7 +192,7 @@ fn record_chunk_group(
         record_module(
           entry_name,
           module_id,
-          &module_identifier,
+          module_identifier,
           client_reference_modules,
           chunk_ukey,
           compilation,
@@ -231,6 +237,7 @@ async fn collect_entry_js_files(
       .entry_js_files
       .entry(entry_name.to_string())
       .or_default();
+    #[allow(clippy::unwrap_used)]
     let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
 
     *entry_js_files = chunk_group
@@ -253,13 +260,12 @@ async fn collect_entry_js_files(
 }
 
 fn collect_actions(
-  compilation: &Compilation,
   module_graph: &ModuleGraphRef<'_>,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
   visited_modules: &mut FxHashSet<ModuleIdentifier>,
 ) {
-  let module = match module_graph.module_by_identifier(&module_identifier) {
+  let module = match module_graph.module_by_identifier(module_identifier) {
     Some(m) => m,
     None => return,
   };
@@ -289,7 +295,6 @@ fn collect_actions(
       continue;
     };
     collect_actions(
-      compilation,
       module_graph,
       resolved_module,
       collected_actions,
@@ -319,7 +324,6 @@ fn collect_client_actions_from_dependencies(
         continue;
       };
       collect_actions(
-        compilation,
         &module_graph,
         module_identifier,
         &mut collected_actions,
@@ -384,7 +388,7 @@ impl RscClientPlugin {
         else {
           continue;
         };
-        let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+        let Some(module) = module_graph.module_by_identifier(module_identifier) else {
           continue;
         };
         let Some(normal_module) = module.as_normal_module() else {
@@ -497,15 +501,15 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .or_default()
         .insert(*dependency.id());
       include_dependencies.push(*dependency.id());
-      compilation
-        .get_module_graph_mut()
+      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact)
         .add_dependency(dependency);
     }
 
+    #[allow(clippy::unwrap_used)]
     let entry_data = compilation.entries.get_mut(entry_name).unwrap();
     entry_data
       .include_dependencies
-      .extend(include_dependencies.drain(..));
+      .append(&mut include_dependencies);
   }
 
   Ok(())
@@ -523,6 +527,7 @@ async fn runtime_requirements_in_tree(
   // TODO
   compilation.add_runtime_module(
     chunk_ukey,
+    #[allow(clippy::unwrap_used)]
     Box::new(RscHotReloaderRuntimeModule::new(
       self.server_compiler_id.borrow().unwrap(),
     )),

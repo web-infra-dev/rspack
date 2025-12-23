@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::{Compilation, Module, ModuleGraphRef, RscModuleType, RuntimeSpec};
+use rspack_core::{Compilation, Module, ModuleGraphRef, RscModuleType};
 use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::utils::ServerEntryModules;
@@ -18,22 +18,21 @@ pub fn track_server_component_changes(
     Default::default();
   let mut cur_server_component_hashs = Default::default();
 
-  for (server_entry_module, entry_name, runtime) in server_entry_modules {
+  for (server_entry_module, entry_name, _runtime) in server_entry_modules {
     visited_modules.clear();
 
-    let mut changed_server_components = changed_server_components_per_entry
+    let changed_server_components = changed_server_components_per_entry
       .entry(entry_name.to_string())
-      .or_insert_with(IdentifierSet::default);
+      .or_default();
 
     traverse_server_components(
       compilation,
       &module_graph,
       server_entry_module,
-      &runtime,
       prev_server_component_hashs,
       &mut visited_modules,
       &mut cur_server_component_hashs,
-      &mut changed_server_components,
+      changed_server_components,
     )
   }
 
@@ -42,11 +41,11 @@ pub fn track_server_component_changes(
   changed_server_components_per_entry
 }
 
+#[allow(clippy::too_many_arguments)]
 fn traverse_server_components(
   compilation: &Compilation,
   module_graph: &ModuleGraphRef<'_>,
   module: &dyn Module,
-  runtime: &RuntimeSpec,
   prev_server_component_hashs: &IdentifierMap<u64>,
   visited_modules: &mut IdentifierSet,
   cur_server_component_hashs: &mut IdentifierMap<u64>,
@@ -93,7 +92,6 @@ fn traverse_server_components(
       compilation,
       module_graph,
       resolved_module.as_ref(),
-      runtime,
       prev_server_component_hashs,
       visited_modules,
       cur_server_component_hashs,

@@ -6,7 +6,7 @@ mod plugin;
 mod rsc_transforms;
 mod transformer;
 
-use std::{cell::RefCell, default::Default, path::Path, sync::Arc};
+use std::{cell::RefCell, default::Default, path::Path, rc::Rc, sync::Arc};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
@@ -113,7 +113,7 @@ impl SwcLoader {
 
     let javascript_compiler = JavaScriptCompiler::new();
     let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
-    let comments = Arc::new(SingleThreadedComments::default());
+    let comments = Rc::new(SingleThreadedComments::default());
 
     let source = content.into_string_lossy();
     let is_typescript =

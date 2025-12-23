@@ -54,11 +54,12 @@ use super::{
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
+  #[allow(clippy::too_many_arguments)]
   pub fn transform<'a, S, P>(
     &self,
     source: S,
     filename: Option<Arc<FileName>>,
-    comments: Arc<SingleThreadedComments>,
+    comments: std::rc::Rc<SingleThreadedComments>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
@@ -249,7 +250,7 @@ fn read_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, any
 struct JavaScriptTransformer<'a> {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
-  comments: Arc<SingleThreadedComments>,
+  comments: std::rc::Rc<SingleThreadedComments>,
   options: SwcOptions,
   javascript_compiler: &'a JavaScriptCompiler,
   helpers: Helpers,
@@ -262,7 +263,7 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn new(
     cm: Arc<SourceMap>,
     fm: Arc<SourceFile>,
-    comments: Arc<SingleThreadedComments>,
+    comments: std::rc::Rc<SingleThreadedComments>,
     compiler: &'a JavaScriptCompiler,
     mut options: SwcOptions,
   ) -> Result<Self> {

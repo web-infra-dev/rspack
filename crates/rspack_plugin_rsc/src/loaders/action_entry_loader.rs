@@ -54,7 +54,7 @@ pub fn parse_action_entries(v: String) -> Result<Option<Vec<ActionEntry>>> {
         let Some(tuple) = tuple.as_array() else {
           return Ok(None);
         };
-        let id = match tuple.get(0).and_then(|v| v.as_str()) {
+        let id = match tuple.first().and_then(|v| v.as_str()) {
           Some(id) => id,
           None => continue,
         };
@@ -91,7 +91,7 @@ impl Loader<RunnerContext> for ActionEntryLoader {
       return Ok(());
     };
 
-    let loader_options = form_urlencoded::parse(loader_query[1..].as_bytes());
+    let loader_options = form_urlencoded::parse(&loader_query.as_bytes()[1..]);
     let mut individual_actions: Vec<ActionEntry> = vec![];
     for (k, v) in loader_options {
       if k == "actions" {

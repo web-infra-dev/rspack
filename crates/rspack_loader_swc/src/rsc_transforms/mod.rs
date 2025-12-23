@@ -4,7 +4,7 @@ mod react_server_components;
 mod server_actions;
 mod to_module_ref;
 
-use std::{cell::RefCell, sync::Arc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 pub use react_server_components::{Config, Options, server_components};
 use rspack_core::{LoaderContext, Module, RscMeta, RunnerContext};
@@ -15,11 +15,11 @@ use swc_core::{
 };
 pub use to_module_ref::to_module_ref;
 
-pub fn rsc_pass<'a>(
-  loader_context: &'a mut LoaderContext<RunnerContext>,
+pub fn rsc_pass(
+  loader_context: &mut LoaderContext<RunnerContext>,
   filename: Arc<FileName>,
   resource_path: &str,
-  comments: Arc<SingleThreadedComments>,
+  comments: Rc<SingleThreadedComments>,
   rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass {
   let module = &loader_context.context.module;
@@ -40,7 +40,7 @@ pub fn rsc_pass<'a>(
         Config::WithOptions(Options {
           is_react_server_layer,
         }),
-        &rsc_meta,
+        rsc_meta,
       ))
     },
     server_actions(
@@ -51,7 +51,7 @@ pub fn rsc_pass<'a>(
         hash_salt: "".to_string(),
       },
       comments,
-      &rsc_meta,
+      rsc_meta,
     ),
   )
 }

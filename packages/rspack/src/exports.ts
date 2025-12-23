@@ -337,6 +337,7 @@ export type {
 export {
 	CircularDependencyRspackPlugin,
 	ContextReplacementPlugin,
+	Coordinator, 
 	CopyRspackPlugin,
 	CssExtractRspackPlugin,
 	EvalDevToolModulePlugin,
@@ -344,11 +345,10 @@ export {
 	HtmlRspackPlugin,
 	LightningCssMinimizerRspackPlugin,
 	NormalModuleReplacementPlugin,
-	SourceMapDevToolPlugin,
-	SwcJsMinimizerRspackPlugin,
-	RscServerPlugin,
 	RscClientPlugin,
-	Coordinator
+	RscServerPlugin,
+	SourceMapDevToolPlugin,
+	SwcJsMinimizerRspackPlugin
 } from "./builtin-plugin";
 
 ///// Experiments Stuff /////

@@ -216,16 +216,14 @@ pub fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) ->
   if source_type == "auto" {
     if is_cjs {
       return "commonjs";
-    } else {
-      if client_refs.is_empty() {
-        // If there's zero export detected in the client boundary, and it's the
-        // `auto` type, we can safely assume it's a CJS module because it doesn't
-        // have ESM exports.
-        return "commonjs";
-      } else if !client_refs.iter().any(|e| e == "*") {
-        // Otherwise, we assume it's an ESM module.
-        return "module";
-      }
+    } else if client_refs.is_empty() {
+      // If there's zero export detected in the client boundary, and it's the
+      // `auto` type, we can safely assume it's a CJS module because it doesn't
+      // have ESM exports.
+      return "commonjs";
+    } else if !client_refs.iter().any(|e| e == "*") {
+      // Otherwise, we assume it's an ESM module.
+      return "module";
     }
   }
 
@@ -246,10 +244,10 @@ fn add_client_import(
 
   let client_imports_set = client_component_imports
     .entry(mod_request.to_string())
-    .or_insert_with(FxHashSet::default);
+    .or_default();
 
   if imported_identifiers
-    .get(0)
+    .first()
     .map(|identifier| identifier.as_str())
     == Some("*")
   {
@@ -296,7 +294,8 @@ fn is_action_client_layer_module(module: &dyn Module) -> bool {
 }
 
 pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  let image_extensions = vec!["jpg", "jpeg", "png", "webp", "avif", "ico", "svg"];
+  let image_extensions = ["jpg", "jpeg", "png", "webp", "avif", "ico", "svg"];
+  #[allow(clippy::unwrap_used)]
   Regex::new(&format!(r"\.({})$", image_extensions.join("|"))).unwrap()
 });
 
@@ -332,7 +331,7 @@ impl RscServerPlugin {
       runtime_per_entry.insert(entry_name.to_string(), runtime.clone());
 
       let component_info = self.collect_component_info_from_server_entry_dependency(
-        &compilation,
+        compilation,
         &runtime,
         server_entry_module,
       );
@@ -363,7 +362,7 @@ impl RscServerPlugin {
           // Track all created SSR dependencies for each entry from the server layer.
           created_ssr_dependencies_per_entry
             .entry(entry_name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(injected.ssr_dependency_id);
 
           add_client_entry_and_ssr_modules_list.push(injected);
@@ -380,18 +379,18 @@ impl RscServerPlugin {
 
     for (name, action_entry_imports) in server_actions_per_entry {
       let runtime = runtime_per_entry.get(&name).cloned().unwrap_or_default();
-      self
-        .inject_action_entry(
-          compilation,
-          ActionEntry {
-            actions: action_entry_imports,
-            entry_name: name.clone(),
-            runtime,
-            from_client: false,
-          },
-          &mut created_action_ids,
-        )
-        .map(|injected| add_action_entry_list.push(injected));
+      if let Some(injected) = self.inject_action_entry(
+        compilation,
+        ActionEntry {
+          actions: action_entry_imports,
+          entry_name: name.clone(),
+          runtime,
+          from_client: false,
+        },
+        &mut created_action_ids,
+      ) {
+        add_action_entry_list.push(injected);
+      }
     }
 
     // Wait for action entries to be added.
@@ -423,7 +422,8 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (idx, dependency_id) in included_dependencies.into_iter().enumerate() {
-      let mut mg = compilation.get_module_graph_mut();
+      let mut mg =
+        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
       let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
@@ -447,6 +447,7 @@ impl RscServerPlugin {
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+    #[allow(clippy::unwrap_used)]
     let plugin_state = guard.get(&compilation.compiler_id()).unwrap();
 
     for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
@@ -474,19 +475,19 @@ impl RscServerPlugin {
         }
       }
 
-      if remaining_client_imported_actions {
-        self
-          .inject_action_entry(
-            compilation,
-            ActionEntry {
-              actions: remaining_action_entry_imports,
-              entry_name: entry_name.clone(),
-              runtime,
-              from_client: true,
-            },
-            &mut created_action_ids,
-          )
-          .map(|injected| added_client_action_entry_list.push(injected));
+      if remaining_client_imported_actions
+        && let Some(injected) = self.inject_action_entry(
+          compilation,
+          ActionEntry {
+            actions: remaining_action_entry_imports,
+            entry_name: entry_name.clone(),
+            runtime,
+            from_client: true,
+          },
+          &mut created_action_ids,
+        )
+      {
+        added_client_action_entry_list.push(injected);
       }
     }
     let included_dependencies: Vec<(DependencyId, RuntimeSpec)> = added_client_action_entry_list
@@ -499,7 +500,7 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mut mg = compilation.get_module_graph_mut();
+      let mut mg = compilation.get_seal_module_graph_mut();
       let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
@@ -547,6 +548,7 @@ impl RscServerPlugin {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn filter_client_components(
     &self,
     compilation: &Compilation,
@@ -640,10 +642,10 @@ impl RscServerPlugin {
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
           Some(dependency.get_ids(&module_graph))
-        } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          Some(dependency.get_ids(&module_graph))
         } else {
-          None
+          dependency
+            .downcast_ref::<ESMImportSpecifierDependency>()
+            .map(|dependency| dependency.get_ids(&module_graph))
         };
       if let Some(ids) = ids {
         for id in ids {
@@ -687,6 +689,7 @@ impl RscServerPlugin {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
       for request in merged_css_imports {
+        #[allow(clippy::unwrap_used)]
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": []
@@ -702,6 +705,7 @@ impl RscServerPlugin {
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {
+        #[allow(clippy::unwrap_used)]
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": ids
@@ -720,6 +724,7 @@ impl RscServerPlugin {
     let client_server_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       for (request, ids) in &client_imports {
+        #[allow(clippy::unwrap_used)]
         let module_json = serde_json::to_string(&json!({
             "request": request,
             "ids": ids
@@ -779,13 +784,14 @@ impl RscServerPlugin {
       return None;
     }
 
-    for (_, actions_from_module) in &actions {
+    for actions_from_module in actions.values() {
       for (id, _) in actions_from_module {
         created_action_ids.insert(format!("{}@{}", entry_name, id));
       }
     }
 
     let mut serializer = form_urlencoded::Serializer::new(String::new());
+    #[allow(clippy::unwrap_used)]
     serializer.append_pair("actions", &serde_json::to_string(&actions).unwrap());
     serializer.append_pair("fromClient", &from_client.to_string());
     let action_entry_loader = format!(
@@ -822,7 +828,7 @@ impl RscServerPlugin {
 
   fn record_module(
     &self,
-    compilaiton: &Compilation,
+    compilation: &Compilation,
     module_graph: &ModuleGraphRef<'_>,
     module_idenfitifier: ModuleIdentifier,
     module_id: ModuleId,
@@ -836,9 +842,9 @@ impl RscServerPlugin {
     };
 
     if normal_module.build_info().rsc.as_ref().is_none()
-      || !normal_module
+      || normal_module
         .get_layer()
-        .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
+        .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
     {
       return;
     }
@@ -852,7 +858,10 @@ impl RscServerPlugin {
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: vec![],
-      r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
+      r#async: Some(ModuleGraph::is_async(
+        &compilation.async_modules_artifact.borrow(),
+        &module_idenfitifier,
+      )),
     };
     plugin_state
       .ssr_modules

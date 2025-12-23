@@ -22,17 +22,8 @@ use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap};
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Config {
-  All(bool),
+  All,
   WithOptions(Options),
-}
-
-impl Config {
-  pub fn truthy(&self) -> bool {
-    match self {
-      Config::All(b) => *b,
-      Config::WithOptions(_) => true,
-    }
-  }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -84,6 +75,7 @@ impl VisitMut for ReactServerComponents<'_> {
     module.visit_with(&mut validator);
     self.directive_import_collection = validator.directive_import_collection;
 
+    #[allow(clippy::unwrap_used)]
     let directive_import_collection = self.directive_import_collection.as_ref().unwrap();
 
     let is_server_entry = directive_import_collection.is_server_entry;
@@ -111,21 +103,20 @@ impl ReactServerComponents<'_> {
   /// removes specific directive from the AST.
   fn remove_top_level_directive(&mut self, module: &mut Module) {
     module.body.retain(|item| {
-      if let ModuleItem::Stmt(stmt) = item {
-        if let Some(expr_stmt) = stmt.as_expr() {
-          if let Expr::Lit(Lit::Str(Str { value, .. })) = &*expr_stmt.expr {
-            if &**value == "use client" {
-              // Remove the directive.
-              return false;
-            }
-          }
-        }
+      if let ModuleItem::Stmt(stmt) = item
+        && let Some(expr_stmt) = stmt.as_expr()
+        && let Expr::Lit(Lit::Str(Str { value, .. })) = &*expr_stmt.expr
+        && &**value == "use client"
+      {
+        // Remove the directive.
+        return false;
       }
       true
     });
   }
 
   fn set_server_entry_metadata(&mut self, is_cjs: bool) {
+    #[allow(clippy::unwrap_used)]
     let export_names = &self
       .directive_import_collection
       .as_ref()
@@ -135,7 +126,7 @@ impl ReactServerComponents<'_> {
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {
       Some(rsc_meta) => {
-        rsc_meta.module_type = rsc_meta.module_type | RscModuleType::ServerEntry;
+        rsc_meta.module_type |= RscModuleType::ServerEntry;
         rsc_meta.server_refs = export_names.clone();
         rsc_meta.is_cjs = is_cjs;
       }
@@ -152,6 +143,7 @@ impl ReactServerComponents<'_> {
   }
 
   fn set_client_metadata(&mut self, is_cjs: bool) {
+    #[allow(clippy::unwrap_used)]
     let export_names = &self
       .directive_import_collection
       .as_ref()
@@ -161,7 +153,7 @@ impl ReactServerComponents<'_> {
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {
       Some(rsc_meta) => {
-        rsc_meta.module_type = rsc_meta.module_type | RscModuleType::Client;
+        rsc_meta.module_type |= RscModuleType::Client;
         rsc_meta.client_refs = export_names.clone();
         rsc_meta.is_cjs = is_cjs;
       }
@@ -258,10 +250,10 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
               // an exception because they are not valid directives.
               Expr::Paren(ParenExpr { expr, .. }) => {
                 finished_directives = true;
-                if let Expr::Lit(Lit::Str(Str { value, .. })) = &**expr {
-                  if &**value == "use client" {
-                    report_error(RSCErrorKind::ErrClientDirective(expr_stmt.span));
-                  }
+                if let Expr::Lit(Lit::Str(Str { value, .. })) = &**expr
+                  && &**value == "use client"
+                {
+                  report_error(RSCErrorKind::ErrClientDirective(expr_stmt.span));
                 }
               }
               _ => {
@@ -437,7 +429,10 @@ impl ReactServerComponentValidator {
   }
 
   fn is_from_node_modules(&self, filepath: &str) -> bool {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"node_modules[\\/]").unwrap());
+    static RE: Lazy<Regex> = Lazy::new(|| {
+      #[allow(clippy::unwrap_used)]
+      Regex::new(r"node_modules[\\/]").unwrap()
+    });
     RE.is_match(filepath)
   }
 
@@ -490,15 +485,13 @@ impl Visit for ReactServerComponentValidator {
 
     let directive_import_collection = collect_top_level_directives_and_imports(module);
 
-    if self.is_react_server_layer {
-      if !directive_import_collection.is_client_entry {
-        // Only assert server graph if file's bundle target is "server", e.g.
-        // * server components pages
-        // * pages bundles on SSR layer
-        // * middleware
-        // * app/pages api routes
-        self.assert_server_graph(&directive_import_collection.imports);
-      }
+    if self.is_react_server_layer && !directive_import_collection.is_client_entry {
+      // Only assert server graph if file's bundle target is "server", e.g.
+      // * server components pages
+      // * pages bundles on SSR layer
+      // * middleware
+      // * app/pages api routes
+      self.assert_server_graph(&directive_import_collection.imports)
     }
     self.directive_import_collection = Some(directive_import_collection);
 

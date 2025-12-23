@@ -1,6 +1,6 @@
 import { JsCoordinator } from "@rspack/binding";
-import { Compiler, GET_COMPILER_ID } from "../../Compiler";
-import { Compilation } from "../../exports";
+import { type Compiler, GET_COMPILER_ID } from "../../Compiler";
+import type { Compilation } from "../../exports";
 
 const PLUGIN_NAME = "RscPlugin";
 

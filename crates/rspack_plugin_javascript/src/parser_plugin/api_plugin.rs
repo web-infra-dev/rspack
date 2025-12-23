@@ -340,7 +340,10 @@ impl JavascriptParserPlugin for APIPlugin {
       API_RSC_MANIFEST => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          RuntimeGlobals::RSC_MANIFEST.name().into(),
+          parser
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST)
+            .into(),
           Some(RuntimeGlobals::RSC_MANIFEST),
         )));
         Some(true)
@@ -348,7 +351,10 @@ impl JavascriptParserPlugin for APIPlugin {
       API_RSC_HOT_RELOADER => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          RuntimeGlobals::RSC_HOT_RELOADER.name().into(),
+          parser
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::RSC_HOT_RELOADER)
+            .into(),
           Some(RuntimeGlobals::RSC_HOT_RELOADER),
         )));
         Some(true)

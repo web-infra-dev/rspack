@@ -1,8 +1,7 @@
-import binding from "@rspack/binding";
-
+import type binding from "@rspack/binding";
+import type { Compiler } from "../..";
 import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
-import { Compiler } from "../..";
-import { Coordinator, GET_OR_INIT_BINDING } from "./Coordinator";
+import { type Coordinator, GET_OR_INIT_BINDING } from "./Coordinator";
 
 export class RscServerPlugin extends RspackBuiltinPlugin {
 	name = "RscServerPlugin";

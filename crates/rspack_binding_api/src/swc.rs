@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
@@ -56,7 +56,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   }
 
   let compiler = JavaScriptCompiler::new();
-  let comments = Arc::new(SingleThreadedComments::default());
+  let comments = Rc::new(SingleThreadedComments::default());
   let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
 
   compiler

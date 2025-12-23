@@ -141,11 +141,11 @@ fn build_server_manifest<'a>(
 
         if request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
           let loader_query = request
-            .splitn(2, '?')
-            .nth(1)
+            .split_once('?')
+            .map(|x| x.1)
             .unwrap_or_default()
-            .rsplitn(2, '!')
-            .nth(1)
+            .rsplit_once('!')
+            .map(|x| x.0)
             .unwrap_or_default();
           let loader_options = form_urlencoded::parse(loader_query.as_bytes());
           let mut individual_actions = vec![];
@@ -161,7 +161,10 @@ fn build_server_manifest<'a>(
                 id: module_id.to_string(),
                 name: action.id.to_string(),
                 chunks: vec![],
-                r#async: Some(ModuleGraph::is_async(&compilation, module_identifier)),
+                r#async: Some(ModuleGraph::is_async(
+                  &compilation.async_modules_artifact.borrow(),
+                  module_identifier,
+                )),
               },
             );
           }
@@ -174,7 +177,7 @@ fn build_server_manifest<'a>(
 }
 
 fn record_module(
-  compilaiton: &Compilation,
+  compilation: &Compilation,
   client_modules: &FxHashMap<String, ManifestExport>,
   module_graph: &ModuleGraphRef<'_>,
   module_idenfitifier: ModuleIdentifier,
@@ -189,9 +192,9 @@ fn record_module(
   };
 
   if normal_module.build_info().rsc.as_ref().is_none()
-    || !normal_module
+    || normal_module
       .get_layer()
-      .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
+      .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
   {
     return;
   }
@@ -221,7 +224,10 @@ fn record_module(
     id: module_id.to_string(),
     name: "*".to_string(),
     chunks: vec![],
-    r#async: Some(ModuleGraph::is_async(&compilaiton, &module_idenfitifier)),
+    r#async: Some(ModuleGraph::is_async(
+      &compilation.async_modules_artifact.borrow(),
+      &module_idenfitifier,
+    )),
   };
   let mut node = FxHashMap::default();
   node.insert("*".to_string(), manifest_export);

@@ -71,7 +71,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
       return Ok(());
     };
 
-    let loader_options = form_urlencoded::parse(loader_query[1..].as_bytes());
+    let loader_options = form_urlencoded::parse(&loader_query.as_bytes()[1..]);
     let mut modules: Vec<ClientEntry> = vec![];
     let mut is_server: bool = false;
     for (k, v) in loader_options {
@@ -92,10 +92,8 @@ impl Loader<RunnerContext> for ClientEntryLoader {
             }
           }
         }
-      } else if k == "server" {
-        if v == "true" {
-          is_server = true;
-        }
+      } else if k == "server" && v == "true" {
+        is_server = true;
       }
     }
 
@@ -112,30 +110,32 @@ impl Loader<RunnerContext> for ClientEntryLoader {
         // When we cannot determine the export names, we use eager mode to include the whole module.
         // Otherwise, we use eager mode with webpackExports to only include the necessary exports.
         // If we have '*' in the ids, we include all the imports
-        let import_path = simd_json::to_string(&client_component.request).unwrap();
-        if client_component.ids.len() == 0 || client_component.ids.iter().any(|id| id == "*") {
-          if is_server {
-            format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
+        let import_path = simd_json::to_string(&client_component.request).to_rspack_result()?;
+        Ok(
+          if client_component.ids.is_empty() || client_component.ids.iter().any(|id| id == "*") {
+            if is_server {
+              format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
+            } else {
+              format!("import({});\n", import_path)
+            }
           } else {
-            format!("import({});\n", import_path)
-          }
-        } else {
-          let webpack_exports = simd_json::to_string(&client_component.ids).unwrap();
+            let webpack_exports = simd_json::to_string(&client_component.ids).to_rspack_result()?;
 
-          if is_server {
-            format!(
-              "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
-              webpack_exports, import_path
-            )
-          } else {
-            format!(
-              "import(/* webpackExports: {} */ {});\n",
-              webpack_exports, import_path
-            )
-          }
-        }
+            if is_server {
+              format!(
+                "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
+                webpack_exports, import_path
+              )
+            } else {
+              format!(
+                "import(/* webpackExports: {} */ {});\n",
+                webpack_exports, import_path
+              )
+            }
+          },
+        )
       })
-      .collect::<Vec<String>>()
+      .collect::<Result<Vec<String>>>()?
       .join("\n");
 
     loader_context.finish_with(code);

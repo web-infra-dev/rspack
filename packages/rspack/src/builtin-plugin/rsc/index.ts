@@ -1,4 +1,4 @@
-import { RspackPluginInstance } from "../..";
+import type { RspackPluginInstance } from "../..";
 import { Coordinator } from "./Coordinator";
 import { RscClientPlugin } from "./RscClientPlugin";
 import { RscServerPlugin } from "./RscServerPlugin";

@@ -87,7 +87,9 @@ impl<'a> ServerEntryModules<'a> {
       {
         return Some((
           normal_module,
+          #[allow(clippy::unwrap_used)]
           self.entry_name.unwrap(),
+          #[allow(clippy::unwrap_used)]
           self.runtime.clone().unwrap(),
         ));
       }
@@ -214,7 +216,7 @@ impl<'a> Iterator for ChunkModules<'a> {
             .get_chunk_modules_identifier(chunk_ukey);
 
           if !chunk_modules.is_empty() {
-            self.modules_iter = Some(chunk_modules.into_iter());
+            self.modules_iter = Some(chunk_modules.iter());
             continue;
           }
           continue;
