@@ -60,6 +60,7 @@ impl Compiler {
       let mut new_compilation = Compilation::new(
         self.id,
         self.options.clone(),
+        self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),

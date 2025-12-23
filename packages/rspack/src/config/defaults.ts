@@ -197,6 +197,20 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
+
+	return {
+		platform:
+			targetProperties === false
+				? targetProperties
+				: {
+						web: targetProperties.web,
+						browser: targetProperties.browser,
+						webworker: targetProperties.webworker,
+						node: targetProperties.node,
+						nwjs: targetProperties.nwjs,
+						electron: targetProperties.electron
+					}
+	};
 };
 
 export const applyRspackOptionsBaseDefaults = (
