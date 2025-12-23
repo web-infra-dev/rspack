@@ -1,5 +1,5 @@
 use rspack_browserslist::load_browserslist;
-use rspack_core::Context;
+use rspack_core::{CompilerPlatform, Context};
 
 /// Targets type.
 pub type Targets = Vec<String>;
@@ -125,6 +125,19 @@ impl TargetProperties {
   }
   pub fn async_function(&self) -> bool {
     self.async_function.unwrap_or(false)
+  }
+}
+
+impl From<TargetProperties> for CompilerPlatform {
+  fn from(value: TargetProperties) -> Self {
+    Self {
+      web: value.web,
+      browser: value.browser,
+      webworker: value.webworker,
+      node: value.node,
+      nwjs: value.nwjs,
+      electron: value.electron,
+    }
   }
 }
 

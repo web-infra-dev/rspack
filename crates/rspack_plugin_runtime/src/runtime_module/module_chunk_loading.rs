@@ -292,6 +292,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_link_prefetch": &res.code,
             "_js_matcher": &js_matcher,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
 
@@ -325,6 +326,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
             "_link_preload": &res.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
 

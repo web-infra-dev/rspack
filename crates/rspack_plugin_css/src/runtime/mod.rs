@@ -266,6 +266,7 @@ installedChunks[chunkId] = 0;
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_loading);
@@ -298,6 +299,7 @@ installedChunks[chunkId] = 0;
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
             "_create_prefetch_link": &link_prefetch.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_prefetch);
@@ -330,15 +332,19 @@ installedChunks[chunkId] = 0;
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
             "_create_preload_link": &link_preload.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_preload);
       }
 
       if with_hmr {
-        let source_with_hmr = compilation
-          .runtime_template
-          .render(&self.template_id(TemplateId::WithHmr), None)?;
+        let source_with_hmr = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithHmr),
+          Some(serde_json::json!({
+            "_is_neutral_platform": is_neutral_platform
+          })),
+        )?;
         source.push_str(&source_with_hmr);
       }
 

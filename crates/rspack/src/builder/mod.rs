@@ -38,10 +38,10 @@ use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
+  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
   GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
@@ -446,7 +446,7 @@ impl CompilerBuilder {
   /// Build [`Compiler`] from options and plugins.
   pub fn build(&mut self) -> Result<Compiler> {
     let mut builder_context = BuilderContext::default();
-    let compiler_options = self.options_builder.build(&mut builder_context)?;
+    let (compiler_options, platform) = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
     plugins.append(&mut self.plugins);
 
@@ -465,6 +465,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      Arc::new(platform),
     ))
   }
 }
@@ -889,7 +890,10 @@ impl CompilerOptionsBuilder {
   ///
   /// [`BuilderContext`]: crate::builder::BuilderContext
   /// [`CompilerOptions`]: rspack_core::options::CompilerOptions
-  pub fn build(&mut self, builder_context: &mut BuilderContext) -> Result<CompilerOptions> {
+  pub fn build(
+    &mut self,
+    builder_context: &mut BuilderContext,
+  ) -> Result<(CompilerOptions, CompilerPlatform)> {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
       std::env::current_dir()
@@ -1255,24 +1259,27 @@ impl CompilerOptionsBuilder {
 
     let amd = self.amd.take();
 
-    Ok(CompilerOptions {
-      name,
-      context,
-      output,
-      mode,
-      resolve,
-      resolve_loader,
-      module,
-      stats,
-      cache,
-      experiments,
-      node,
-      optimization,
-      profile,
-      amd,
-      bail,
-      __references: Default::default(),
-    })
+    Ok((
+      CompilerOptions {
+        name,
+        context,
+        output,
+        mode,
+        resolve,
+        resolve_loader,
+        module,
+        stats,
+        cache,
+        experiments,
+        node,
+        optimization,
+        profile,
+        amd,
+        bail,
+        __references: Default::default(),
+      },
+      target_properties.into(),
+    ))
   }
 }
 
@@ -3829,7 +3836,7 @@ mod test {
   fn builtin_plugin_order() {
     within_compiler_context_for_testing_sync(|| {
       let mut context: BuilderContext = Default::default();
-      let compiler_options = CompilerOptions::builder()
+      let (compiler_options, _) = CompilerOptions::builder()
         .mode(Mode::Production)
         .target(vec!["web".to_string()])
         .build(&mut context)
