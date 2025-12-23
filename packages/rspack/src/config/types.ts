@@ -2789,6 +2789,7 @@ export type Experiments = {
 	outputModule?: boolean;
 	/**
 	 * Enable top-level await.
+	 * @deprecated This option is deprecated, top-level await is enabled by default.
 	 * @default true
 	 */
 	topLevelAwait?: boolean;
