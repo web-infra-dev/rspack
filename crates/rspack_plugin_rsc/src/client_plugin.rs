@@ -274,12 +274,7 @@ fn collect_actions(
   }
   visited_modules.insert(*module_identifier);
 
-  if let Some(action_ids) = module
-    .build_info()
-    .rsc
-    .as_ref()
-    .and_then(|rsc| rsc.action_ids.as_ref())
-  {
+  if let Some(action_ids) = module.build_info().rsc.as_ref().map(|rsc| &rsc.action_ids) {
     let pairs = action_ids
       .into_iter()
       .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
@@ -522,9 +517,10 @@ async fn runtime_requirements_in_tree(
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
-  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
+  // TODO
   compilation.add_runtime_module(
     chunk_ukey,
     Box::new(RscHotReloaderRuntimeModule::new(

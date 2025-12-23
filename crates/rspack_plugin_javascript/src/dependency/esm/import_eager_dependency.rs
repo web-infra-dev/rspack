@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
+  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
   TemplateContext, TemplateReplaceSource, module_namespace_promise,
 };
 use swc_core::ecma::atoms::Atom;

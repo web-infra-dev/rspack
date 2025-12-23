@@ -52,32 +52,31 @@ pub struct BuildContext {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RSCModuleType(u8);
+pub struct RscModuleType(u8);
 
 bitflags! {
-    impl RSCModuleType: u8 {
-      const ServerEntry = 1 << 0;
-      const Server = 1 << 1;
-      const Client = 1 << 2;
+    impl RscModuleType: u8 {
+      const None = 1 << 0;
+      const ServerEntry = 1 << 1;
+      const Server = 1 << 2;
+      const Client = 1 << 3;
   }
 }
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub enum ClientEntryType {
-  Cjs,
-  Auto,
-}
+pub struct RscMeta {
+  pub module_type: RscModuleType,
 
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct RSCMeta {
-  pub module_type: RSCModuleType,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub server_refs: Vec<Wtf8Atom>,
+
   #[cacheable(with=AsVec<AsPreset>)]
   pub client_refs: Vec<Wtf8Atom>,
-  pub client_entry_type: Option<ClientEntryType>,
-  #[cacheable(with=AsOption<AsMap<AsPreset, AsPreset>>)]
-  pub action_ids: Option<FxIndexMap<Atom, Atom>>,
+  pub is_cjs: bool,
+
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub action_ids: FxIndexMap<Atom, Atom>,
 }
 
 #[cacheable]
@@ -106,7 +105,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
-  pub rsc: Option<RSCMeta>,
+  pub rsc: Option<RscMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]

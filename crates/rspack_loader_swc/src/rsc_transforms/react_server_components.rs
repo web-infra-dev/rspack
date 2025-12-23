@@ -1,16 +1,15 @@
-use std::{iter::FromIterator, sync::Arc};
+use std::{cell::RefCell, iter::FromIterator, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{ClientEntryType, RSCMeta, RSCModuleType};
+use rspack_core::{RscMeta, RscModuleType};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use swc::atoms::{Atom, Wtf8Atom};
+use swc::atoms::Wtf8Atom;
 use swc_core::{
-  common::{DUMMY_SP, FileName, Span, SyntaxContext, errors::HANDLER, util::take::Take},
+  common::{FileName, Span, errors::HANDLER, util::take::Take},
   ecma::{
     ast::*,
-    utils::{ExprFactory, prepend_stmts, quote_ident, quote_str},
     visit::{
       Visit, VisitMut, VisitMutWith, VisitWith, noop_visit_mut_type, noop_visit_type,
       visit_mut_pass,
@@ -56,7 +55,7 @@ struct DirectiveImportCollection {
 struct ReactServerComponents<'a> {
   is_react_server_layer: bool,
   filepath: String,
-  rsc_meta: &'a mut Option<RSCMeta>,
+  rsc_meta: &'a RefCell<Option<RscMeta>>,
   directive_import_collection: Option<DirectiveImportCollection>,
 }
 
@@ -97,10 +96,9 @@ impl VisitMut for ReactServerComponents<'_> {
     if self.is_react_server_layer {
       if is_client_entry {
         self.set_client_metadata(is_cjs);
-        return;
-      } else if is_server_entry {
-        self.set_server_entry_metadata();
-        return;
+      }
+      if is_server_entry {
+        self.set_server_entry_metadata(is_cjs);
       }
     } else if is_client_entry {
       self.set_client_metadata(is_cjs);
@@ -127,38 +125,56 @@ impl ReactServerComponents<'_> {
     });
   }
 
-  fn set_server_entry_metadata(&mut self) {
+  fn set_server_entry_metadata(&mut self, is_cjs: bool) {
     let export_names = &self
       .directive_import_collection
       .as_ref()
-      .expect("directive_import_collection must be set")
+      .unwrap()
       .export_names;
 
-    *self.rsc_meta = Some(RSCMeta {
-      module_type: RSCModuleType::ServerEntry,
-      client_refs: export_names.to_vec(), // TODO: 暂时使用 client_refs
-      client_entry_type: None,
-      action_ids: None,
-    });
+    let mut rsc_meta = self.rsc_meta.borrow_mut();
+    match rsc_meta.as_mut() {
+      Some(rsc_meta) => {
+        rsc_meta.module_type = rsc_meta.module_type | RscModuleType::ServerEntry;
+        rsc_meta.server_refs = export_names.clone();
+        rsc_meta.is_cjs = is_cjs;
+      }
+      None => {
+        *rsc_meta = Some(RscMeta {
+          module_type: RscModuleType::ServerEntry,
+          server_refs: export_names.clone(),
+          client_refs: Default::default(),
+          is_cjs,
+          action_ids: Default::default(),
+        });
+      }
+    }
   }
 
   fn set_client_metadata(&mut self, is_cjs: bool) {
     let export_names = &self
       .directive_import_collection
       .as_ref()
-      .expect("directive_import_collection must be set")
+      .unwrap()
       .export_names;
 
-    *self.rsc_meta = Some(RSCMeta {
-      module_type: RSCModuleType::Client,
-      client_refs: export_names.to_vec(),
-      client_entry_type: if is_cjs {
-        Some(ClientEntryType::Cjs)
-      } else {
-        Some(ClientEntryType::Auto)
-      },
-      action_ids: None,
-    });
+    let mut rsc_meta = self.rsc_meta.borrow_mut();
+    match rsc_meta.as_mut() {
+      Some(rsc_meta) => {
+        rsc_meta.module_type = rsc_meta.module_type | RscModuleType::Client;
+        rsc_meta.client_refs = export_names.clone();
+        rsc_meta.is_cjs = is_cjs;
+      }
+      None => {
+        *rsc_meta = Some(RscMeta {
+          module_type: RscModuleType::Client,
+          server_refs: Default::default(),
+          client_refs: export_names.clone(),
+          is_cjs,
+          action_ids: Default::default(),
+        });
+      }
+    }
   }
 }
 
@@ -495,7 +511,7 @@ impl Visit for ReactServerComponentValidator {
 pub fn server_components(
   filename: Arc<FileName>,
   config: Config,
-  rsc_meta: &mut Option<RSCMeta>,
+  rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass + VisitMut {
   let is_react_server_layer: bool = match &config {
     Config::WithOptions(x) => x.is_react_server_layer,

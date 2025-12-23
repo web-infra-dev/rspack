@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::{Compilation, Module, ModuleGraphRef, RSCModuleType, RuntimeSpec};
+use rspack_core::{Compilation, Module, ModuleGraphRef, RscModuleType, RuntimeSpec};
 use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::utils::ServerEntryModules;
@@ -53,7 +53,7 @@ fn traverse_server_components(
   changed_server_components: &mut IdentifierSet,
 ) {
   if let Some(rsc) = module.build_info().rsc.as_ref()
-    && rsc.module_type == RSCModuleType::Client
+    && rsc.module_type.contains(RscModuleType::Client)
   {
     return;
   }

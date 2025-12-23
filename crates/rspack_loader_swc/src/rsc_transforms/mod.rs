@@ -3,11 +3,11 @@ mod import_analyzer;
 mod react_server_components;
 mod server_actions;
 
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
 
 pub use react_server_components::{Config, Options, server_components};
-use rspack_core::{LoaderContext, Module, RunnerContext};
-pub use server_actions::{ActionsMeta, Config as ServerActionsConfig, server_actions};
+use rspack_core::{LoaderContext, Module, RscMeta, RunnerContext};
+pub use server_actions::{Config as ServerActionsConfig, server_actions};
 use swc_core::{
   common::{FileName, comments::SingleThreadedComments},
   ecma::ast::{Pass, noop_pass},
@@ -18,10 +18,9 @@ pub fn rsc_pass<'a>(
   filename: Arc<FileName>,
   resource_path: &str,
   comments: Arc<SingleThreadedComments>,
-  actions_meta: &'a mut Option<ActionsMeta>,
+  rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass {
   let module = &loader_context.context.module;
-
   let is_react_server_layer = module
     .get_layer()
     .is_some_and(|layer| layer == "react-server-components");
@@ -34,13 +33,12 @@ pub fn rsc_pass<'a>(
     {
       swc_core::common::pass::Either::Right(noop_pass())
     } else {
-      let build_info = loader_context.context.module.build_info_mut();
       swc_core::common::pass::Either::Left(server_components(
         filename,
         Config::WithOptions(Options {
           is_react_server_layer,
         }),
-        &mut build_info.rsc,
+        &rsc_meta,
       ))
     },
     server_actions(
@@ -51,7 +49,7 @@ pub fn rsc_pass<'a>(
         hash_salt: "".to_string(),
       },
       comments,
-      actions_meta,
+      &rsc_meta,
     ),
   )
 }

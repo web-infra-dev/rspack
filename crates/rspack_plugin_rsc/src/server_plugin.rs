@@ -3,14 +3,13 @@ use std::sync::{Arc, LazyLock};
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use regex::Regex;
-use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkUkey, ClientEntryType, Compilation, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerFinishMake,
-  CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions,
-  ExportsInfoGetter, Logger, Module, ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  NormalModule, Plugin, PrefetchExportsInfoMode, RSCMeta, RSCModuleType, RuntimeGlobals,
-  RuntimeSpec,
+  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
+  CompilationRuntimeRequirementInTree, CompilerFinishMake, CompilerThisCompilation, Dependency,
+  DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph,
+  ModuleGraphRef, ModuleId, ModuleIdentifier, NormalModule, Plugin, PrefetchExportsInfoMode,
+  RscMeta, RscModuleType, RuntimeGlobals, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -192,20 +191,19 @@ impl Plugin for RscServerPlugin {
   }
 }
 
-pub fn get_module_rsc_information(module: &dyn Module) -> Option<&RSCMeta> {
+pub fn get_module_rsc_information(module: &dyn Module) -> Option<&RscMeta> {
   module.build_info().rsc.as_ref()
 }
 
 // Gives { id: name } record of actions from the build info.
 pub fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxIndexMap<Atom, Atom>> {
   let rsc = get_module_rsc_information(module)?;
-  rsc.action_ids.as_ref()
+  Some(&rsc.action_ids)
 }
 
 pub fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a str {
   let rsc = get_module_rsc_information(module);
-  let detected_client_entry_type: Option<&ClientEntryType> =
-    rsc.as_ref().and_then(|rsc| rsc.client_entry_type.as_ref());
+  let is_cjs = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
   let client_refs: &[Wtf8Atom] = rsc
     .as_ref()
     .map(|rsc| rsc.client_refs.as_slice())
@@ -216,7 +214,9 @@ pub fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) ->
   // syntax in other modules that import this client boundary.
 
   if source_type == "auto" {
-    if matches!(detected_client_entry_type, Some(ClientEntryType::Auto)) {
+    if is_cjs {
+      return "commonjs";
+    } else {
       if client_refs.is_empty() {
         // If there's zero export detected in the client boundary, and it's the
         // `auto` type, we can safely assume it's a CJS module because it doesn't
@@ -226,8 +226,6 @@ pub fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) ->
         // Otherwise, we assume it's an ESM module.
         return "module";
       }
-    } else if matches!(detected_client_entry_type, Some(ClientEntryType::Cjs)) {
-      return "commonjs";
     }
   }
 
@@ -242,9 +240,7 @@ fn add_client_import(
   is_first_visit_module: bool,
 ) {
   let rsc = get_module_rsc_information(module);
-  let client_entry_type: Option<&ClientEntryType> =
-    rsc.as_ref().and_then(|rsc| rsc.client_entry_type.as_ref());
-  let is_cjs_module = matches!(client_entry_type, Some(ClientEntryType::Cjs));
+  let is_cjs_module = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
   let assumed_source_type =
     get_assumed_source_type(module, if is_cjs_module { "commonjs" } else { "auto" });
 
@@ -295,8 +291,8 @@ fn add_client_import(
 // Determine if the whole module is client action, 'use server' in nested closure in the client module
 fn is_action_client_layer_module(module: &dyn Module) -> bool {
   let rsc = get_module_rsc_information(module);
-  matches!(&rsc, Some(rsc) if rsc.action_ids.is_some())
-    && matches!(&rsc, Some(rsc) if rsc.module_type == RSCModuleType::Client)
+  matches!(&rsc, Some(rsc) if !rsc.action_ids.is_empty())
+    && matches!(&rsc, Some(rsc) if rsc.module_type.contains(RscModuleType::Client))
 }
 
 pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -306,7 +302,7 @@ pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 
 pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
   let rsc = get_module_rsc_information(module);
-  let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RSCModuleType::Client);
+  let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RscModuleType::Client);
   let is_action_layer_entry = is_action_client_layer_module(module);
   let is_image = if let Some(module) = module.as_normal_module() {
     IMAGE_REGEX.is_match(module.resource_resolved_data().resource())

@@ -1,10 +1,11 @@
 use std::{
-  collections::BTreeMap,
+  cell::RefCell,
   convert::{TryFrom, TryInto},
   mem::{replace, take},
 };
 
 use indoc::formatdoc;
+use rspack_core::{RscMeta, RscModuleType};
 use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
@@ -12,11 +13,8 @@ use sha2::{Digest, Sha256};
 use swc_core::{
   atoms::{Atom, Wtf8Atom, atom},
   common::{
-    BytePos, DUMMY_SP, Mark, Span, SyntaxContext,
-    comments::{Comment, CommentKind, Comments},
-    errors::HANDLER,
-    source_map::PURE_SP,
-    util::take::Take,
+    BytePos, DUMMY_SP, Mark, Span, SyntaxContext, comments::Comments, errors::HANDLER,
+    source_map::PURE_SP, util::take::Take,
   },
   ecma::{
     ast::*,
@@ -24,12 +22,6 @@ use swc_core::{
     visit::{VisitMut, VisitMutWith, noop_visit_mut_type, visit_mut_pass},
   },
 };
-
-// TODO: 移动到 RSCMeta 中
-#[derive(Debug, Default)]
-pub struct ActionsMeta {
-  pub action_ids: FxIndexMap<Atom, Atom>,
-}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -62,16 +54,12 @@ struct ServerReferenceExport {
 enum ServerActionsErrorKind {
   ExportedSyncFunction {
     span: Span,
-    in_action_file: bool,
   },
   ForbiddenExpression {
     span: Span,
     expr: String,
   },
   InlineSyncFunction {
-    span: Span,
-  },
-  InlineUseCacheInClassInstanceMethod {
     span: Span,
   },
   InlineUseServerInClassInstanceMethod {
@@ -109,12 +97,12 @@ pub fn server_actions<C: Comments>(
   file_name: String,
   config: Config,
   comments: C,
-  actions_meta: &mut Option<ActionsMeta>,
+  rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass {
   visit_mut_pass(ServerActions {
     config,
     comments,
-    actions_meta,
+    rsc_meta,
     file_name,
     start_pos: BytePos(0),
     in_action_file: false,
@@ -151,23 +139,12 @@ pub fn server_actions<C: Comments>(
   })
 }
 
-fn set_server_metadata(
-  export_names_ordered_by_reference_id: &FxIndexMap<&Atom, &ModuleExportName>,
-  actions_meta: &mut Option<ActionsMeta>,
-) {
-  let actions_meta = actions_meta.get_or_insert_default();
-  actions_meta.action_ids = export_names_ordered_by_reference_id
-    .iter()
-    .map(|(ref_id, export_name)| ((**ref_id).clone(), export_name.atom().into_owned()))
-    .collect::<FxIndexMap<_, _>>();
-}
-
 struct ServerActions<'a, C: Comments> {
   #[allow(unused)]
   config: Config,
   file_name: String,
   comments: C,
-  actions_meta: &'a mut Option<ActionsMeta>,
+  rsc_meta: &'a RefCell<Option<RscMeta>>,
 
   start_pos: BytePos,
   in_action_file: bool,
@@ -778,6 +755,32 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       }
     }
   }
+
+  fn set_action_ids(
+    &self,
+    export_names_ordered_by_reference_id: &FxIndexMap<&Atom, &ModuleExportName>,
+  ) {
+    let action_ids = export_names_ordered_by_reference_id
+      .iter()
+      .map(|(ref_id, export_name)| ((**ref_id).clone(), export_name.atom().into_owned()))
+      .collect::<FxIndexMap<_, _>>();
+
+    let mut rsc_meta = self.rsc_meta.borrow_mut();
+    match rsc_meta.as_mut() {
+      Some(rsc_meta) => {
+        rsc_meta.action_ids = action_ids;
+      }
+      None => {
+        *rsc_meta = Some(RscMeta {
+          module_type: RscModuleType::None,
+          server_refs: Default::default(),
+          client_refs: Default::default(),
+          is_cjs: false,
+          action_ids,
+        });
+      }
+    }
+  }
 }
 
 impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
@@ -802,7 +805,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     expr.expr.visit_mut_with(self);
     self.current_export_name = old_current_export_name;
 
-    // For 'use server' or 'use cache' files with call expressions as default exports,
+    // For 'use server' files with call expressions as default exports,
     // hoist the call expression to a const declarator.
     if matches!(&*expr.expr, Expr::Call(_)) {
       if self.in_action_file {
@@ -1219,12 +1222,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     if n.is_static {
       n.visit_mut_children_with(self);
     } else {
-      let (is_action_fn, is_cache_fn) = has_body_directive(&n.function.body);
-
-      if is_action_fn {
+      if is_action_fn(&n.function.body) {
         emit_error(ServerActionsErrorKind::InlineUseServerInClassInstanceMethod { span: n.span });
-      } else if is_cache_fn {
-        emit_error(ServerActionsErrorKind::InlineUseCacheInClassInstanceMethod { span: n.span });
       } else {
         n.visit_mut_children_with(self);
       }
@@ -1503,7 +1502,6 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         if disallowed_export_span != DUMMY_SP {
           emit_error(ServerActionsErrorKind::ExportedSyncFunction {
             span: disallowed_export_span,
-            in_action_file,
           });
           return;
         }
@@ -1830,9 +1828,9 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         .collect::<FxIndexMap<_, _>>();
 
       if self.config.is_react_server_layer {
-        set_server_metadata(&export_names_ordered_by_reference_id, self.actions_meta);
+        self.set_action_ids(&export_names_ordered_by_reference_id);
       } else {
-        set_server_metadata(&export_names_ordered_by_reference_id, self.actions_meta);
+        self.set_action_ids(&export_names_ordered_by_reference_id);
         new.push(client_layer_import.unwrap());
         new.rotate_right(1);
         new.extend(
@@ -2182,14 +2180,12 @@ fn detect_similar_strings(a: &str, b: &str) -> bool {
   }
 }
 
-// Check if the function or arrow function has any action or cache directives,
+// Check if the function or arrow function has action,
 // without mutating the function body or erroring out.
 // This is used to quickly determine if we need to use the module-level
 // directives for this function or not.
-fn has_body_directive(maybe_body: &Option<BlockStmt>) -> (bool, bool) {
-  let mut is_action_fn = false;
-  let mut is_cache_fn = false;
-
+fn is_action_fn(maybe_body: &Option<BlockStmt>) -> bool {
+  let mut result = false;
   if let Some(body) = maybe_body {
     for stmt in body.stmts.iter() {
       match stmt {
@@ -2198,10 +2194,7 @@ fn has_body_directive(maybe_body: &Option<BlockStmt>) -> (bool, bool) {
           ..
         }) => {
           if value == "use server" {
-            is_action_fn = true;
-            break;
-          } else if value == "use cache" || value.starts_with("use cache: ") {
-            is_cache_fn = true;
+            result = true;
             break;
           }
         }
@@ -2209,8 +2202,7 @@ fn has_body_directive(maybe_body: &Option<BlockStmt>) -> (bool, bool) {
       }
     }
   }
-
-  (is_action_fn, is_cache_fn)
+  result
 }
 
 fn collect_idents_in_array_pat(elems: &[Option<Pat>], idents: &mut Vec<Ident>) {
@@ -2387,21 +2379,6 @@ impl DirectiveVisitor<'_> {
               location: self.location.clone(),
             });
           }
-        } else if value == "use cache"
-          || detect_similar_strings(&value.to_string_lossy(), "use cache")
-        {
-          if self.is_allowed_position {
-            emit_error(ServerActionsErrorKind::WrappedDirective {
-              span: *span,
-              directive: "use cache".to_string(),
-            });
-          } else {
-            emit_error(ServerActionsErrorKind::MisplacedWrappedDirective {
-              span: *span,
-              directive: "use cache".to_string(),
-              location: self.location.clone(),
-            });
-          }
         }
       }
       _ => {
@@ -2568,37 +2545,20 @@ impl From<Name> for Box<Expr> {
 
 fn emit_error(error_kind: ServerActionsErrorKind) {
   let (span, msg) = match error_kind {
-    ServerActionsErrorKind::ExportedSyncFunction {
-      span,
-      in_action_file,
-    } => (
+    ServerActionsErrorKind::ExportedSyncFunction { span } => (
       span,
       formatdoc! {
         r#"
-          Only async functions are allowed to be exported in a {directive} file.
+          Only async functions are allowed to be exported in a \"use server\" file.
         "#,
-        directive = if in_action_file {
-          "\"use server\""
-        } else {
-          "\"use cache\""
-        }
       },
     ),
     ServerActionsErrorKind::ForbiddenExpression { span, expr } => (
       span,
       formatdoc! {
           r#"
-                    Server Actions cannot use `{expr}`.
-                "#,
-      },
-    ),
-    ServerActionsErrorKind::InlineUseCacheInClassInstanceMethod { span } => (
-      span,
-      formatdoc! {
-        r#"
-          It is not allowed to define inline "use cache" annotated class instance methods.
-          To define cached functions, use functions, object method properties, or static class methods instead.
-        "#
+            Server Actions cannot use `{expr}`.
+          "#,
       },
     ),
     ServerActionsErrorKind::InlineUseServerInClassInstanceMethod { span } => (
@@ -2677,11 +2637,11 @@ fn emit_error(error_kind: ServerActionsErrorKind) {
       span,
       formatdoc! {
         r#"
-          Conflicting directives "use server" and "use cache" found in the same {location}. You cannot place both directives at the top of a {location}. Please remove one of them.
+          Conflicting directives "use server" found in the same {location}. You cannot place both directives at the top of a {location}. Please remove one of them.
         "#,
         location = match location {
-            DirectiveLocation::Module => "file",
-            DirectiveLocation::FunctionBody => "function body",
+          DirectiveLocation::Module => "file",
+          DirectiveLocation::FunctionBody => "function body",
         }
       },
     ),

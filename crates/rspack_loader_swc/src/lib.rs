@@ -6,14 +6,14 @@ mod plugin;
 mod rsc_transforms;
 mod transformer;
 
-use std::{default::Default, path::Path, sync::Arc};
+use std::{cell::RefCell, default::Default, path::Path, sync::Arc};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RSCMeta, RSCModuleType, RunnerContext,
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RscModuleType, RunnerContext,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
@@ -29,10 +29,7 @@ use swc_core::{
   ecma::ast::noop_pass,
 };
 
-use crate::{
-  collect_ts_info::collect_typescript_info,
-  rsc_transforms::{ActionsMeta, rsc_pass},
-};
+use crate::{collect_ts_info::collect_typescript_info, rsc_transforms::rsc_pass};
 
 #[cacheable]
 #[derive(Debug)]
@@ -121,8 +118,7 @@ impl SwcLoader {
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
-
-    let mut actions_meta: Option<ActionsMeta> = None;
+    let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
 
     let TransformOutput {
       code,
@@ -158,15 +154,15 @@ impl SwcLoader {
             .rspack_experiments
             .react_server_components
           {
-            swc_core::common::pass::Either::Right(noop_pass())
-          } else {
             swc_core::common::pass::Either::Left(rsc_pass(
               loader_context,
               filename,
               resource_path.as_str(),
               comments,
-              &mut actions_meta,
+              &rsc_meta,
             ))
+          } else {
+            swc_core::common::pass::Either::Right(noop_pass())
           },
           transformer::transform(&self.options_with_additional.rspack_experiments),
         )
@@ -175,14 +171,10 @@ impl SwcLoader {
 
     {
       let module = &mut loader_context.context.module;
-      if let Some(actions_meta) = actions_meta {
-        module.build_info_mut().rsc = Some(RSCMeta {
-          module_type: RSCModuleType::Server,
-          client_refs: vec![],
-          client_entry_type: None,
-          action_ids: Some(actions_meta.action_ids),
-        })
+      if module.id().contains("src/Todos.tsx") {
+        println!("module rsc_meta {:#?}", rsc_meta.borrow());
       }
+      module.build_info_mut().rsc = rsc_meta.borrow_mut().take();
     }
 
     let module = &loader_context.context.module;
@@ -190,11 +182,11 @@ impl SwcLoader {
       .get_layer()
       .is_some_and(|layer| layer == "react-server-components");
     if is_react_server_layer && let Some(rsc) = module.build_info().rsc.as_ref() {
-      if rsc.module_type == RSCModuleType::ServerEntry {
+      if rsc.module_type.contains(RscModuleType::ServerEntry) {
         if rsc
-          .client_refs
+          .server_refs
           .iter()
-          .any(|client_ref| client_ref.as_str() == Some("*"))
+          .any(|server_ref| server_ref.as_str() == Some("*"))
         {
           // TODO: remove panic
           panic!(
@@ -206,8 +198,8 @@ impl SwcLoader {
 "#
         .to_string();
 
-        for client_ref in &rsc.client_refs {
-          match client_ref.as_str() {
+        for server_ref in &rsc.server_refs {
+          match server_ref.as_str() {
             Some("default") => {
               // 增加 skip-rsc-transform 查询参数，避免代理模块中导入 server entry 模块，被重复生成为代理代码
               esm_source.push_str(&format!(
@@ -245,7 +237,7 @@ _original_{},
         return Ok(());
       }
 
-      if rsc.module_type == RSCModuleType::Client {
+      if rsc.module_type.contains(RscModuleType::Client) {
         // TODO 生成代码需要区分 ESM 和 CJS
         let mut esm_source = format!(
           r#"import {{ registerClientReference }} from "react-server-dom-rspack/server"

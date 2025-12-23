@@ -5,7 +5,7 @@ use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilerId,
   ConcatenatedInnerModule, DependencyId, Module, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  ModuleType, NormalModule, RSCModuleType, RuntimeSpec, get_entry_runtime,
+  ModuleType, NormalModule, RscModuleType, RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
@@ -83,7 +83,7 @@ impl<'a> ServerEntryModules<'a> {
       };
 
       if let Some(rsc) = &normal_module.build_info().rsc
-        && rsc.module_type == RSCModuleType::ServerEntry
+        && rsc.module_type.contains(RscModuleType::ServerEntry)
       {
         return Some((
           normal_module,
