@@ -1,6 +1,6 @@
 import { ApiMeta } from '@components/ApiMeta.tsx';
 
-# WarnCaseSensitiveModulesPlugin
+# CaseSensitivePlugin
 
 <ApiMeta addedVersion={'1.2.0'} />
 
@@ -9,7 +9,7 @@ Detect case sensitivity conflicts in referenced module names and emit warnings.
 Different operating systems may handle case sensitivity in file systems differently. When code references module names that differ only in case, this can lead to unexpected errors during cross-platform compilation. This plugin helps to avoid such situations.
 
 ```js
-new rspack.WarnCaseSensitiveModulesPlugin();
+new rspack.CaseSensitivePlugin();
 ```
 
 ## Register
@@ -18,7 +18,7 @@ new rspack.WarnCaseSensitiveModulesPlugin();
 import { rspack } from '@rspack/core';
 
 export default {
-  plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+  plugins: [new rspack.CaseSensitivePlugin()],
 };
 ```
 
@@ -52,5 +52,14 @@ WARNING There are multiple modules with names that only differ in casing.
 This warning indicates that there is a case sensitivity conflict in module names, ensuring that the same module is used with consistent case sensitivity in the project.
 
 :::tip
-`WarnCaseSensitiveModulesPlugin` is based on module identifiers rather than the file system to determine case sensitivity differences.
+`CaseSensitivePlugin` is based on module identifiers rather than the file system to determine case sensitivity differences.
 :::
+
+A warning will also be triggered if the final assets contains two files with names that differ only in case:
+
+```bash
+WARNING Prevent writing to file that only differs in casing or query string from already written file.
+This will lead to a race-condition and corrupted files on case-insensitive file systems.
+  - main.js
+  - MAIN.js
+```
