@@ -18,11 +18,9 @@ import { defineConfig } from '@rspack/cli';
 import { VueLoaderPlugin } from 'vue-loader';
 
 export default defineConfig({
-  // ...
   plugins: [new VueLoaderPlugin()],
   module: {
     rules: [
-      // ...
       {
         test: /\.vue$/,
         loader: 'vue-loader',
