@@ -1,4 +1,4 @@
-runtime modules xx KiB 14 modules
+runtime modules xx KiB 13 modules
 cacheable modules xx bytes
   ./index.js xx bytes [built] [code generated]
   ./chunk.js xx bytes [built] [code generated] [2 warnings]
