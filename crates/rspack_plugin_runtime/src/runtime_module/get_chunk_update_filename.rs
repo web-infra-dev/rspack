@@ -1,6 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 
 // TODO workaround for get_chunk_update_filename
@@ -11,10 +12,13 @@ pub struct GetChunkUpdateFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for GetChunkUpdateFilenameRuntimeModule {
-  fn default() -> Self {
+impl GetChunkUpdateFilenameRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/get_chunk_update_filename"),
+      Identifier::from(format!(
+        "{}get_chunk_update_filename",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }
@@ -44,13 +48,21 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .chunk_name_optional(chunk.name_for_filename_template())
             .content_hash_optional(chunk.rendered_content_hash_by_source_type(
               &compilation.chunk_hashes_artifact,
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             ))
-            .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+            .hash(
+              format!(
+                "' + {}() + '",
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+              )
+              .as_str(),
+            )
             .id("' + chunkId + '")
             .runtime(chunk.runtime().as_str()),
         )

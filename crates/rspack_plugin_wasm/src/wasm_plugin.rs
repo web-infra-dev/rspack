@@ -1,20 +1,18 @@
 use std::fmt::Debug;
 
-use rayon::prelude::*;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  DependencyType, ModuleType, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  ChunkGraph, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
+  CompilerCompilation, DependencyType, ManifestAssetType, ModuleType, ParserAndGenerator, PathData,
+  Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::{ModuleIdToFileName, parser_and_generator::AsyncWasmParserAndGenerator};
+use crate::parser_and_generator::AsyncWasmParserAndGenerator;
 
 #[plugin]
 #[derive(Debug, Default)]
-pub struct AsyncWasmPlugin {
-  pub module_id_to_filename_without_ext: ModuleIdToFileName,
-}
+pub struct AsyncWasmPlugin {}
 
 #[plugin_hook(CompilerCompilation for AsyncWasmPlugin)]
 async fn compilation(
@@ -41,6 +39,7 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
+  let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = &compilation.get_module_graph();
 
@@ -48,37 +47,38 @@ async fn render_manifest(
     .chunk_graph
     .get_chunk_modules(chunk_ukey, module_graph);
 
-  let files = ordered_modules
-    .par_iter()
-    .filter(|m| *m.module_type() == ModuleType::WasmAsync)
-    .map(|m| {
-      let code_gen_result = compilation
-        .code_generation_results
-        .get(&m.identifier(), Some(chunk.runtime()));
+  for m in ordered_modules {
+    if m.module_type() != &ModuleType::WasmAsync {
+      continue;
+    }
+    let Some(source) = compilation
+      .code_generation_results
+      .get(&m.identifier(), Some(chunk.runtime()))
+      .get(&SourceType::Wasm)
+    else {
+      continue;
+    };
 
-      let result = code_gen_result.get(&SourceType::Wasm).map(|source| {
-        let (output_path, asset_info) = self
-          .module_id_to_filename_without_ext
-          .get(&m.identifier())
-          .map(|s| s.clone())
-          .expect("should have wasm_filename");
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
+      .map(|s| PathData::prepare_id(s.as_str()));
+    let mut path_data = PathData::default().module_id_optional(module_id.as_deref());
+    if let Some(hash) = &m.build_info().hash {
+      let hash = hash.rendered(16);
+      path_data = path_data.content_hash(hash).hash(hash);
+    }
+    let (output_path, asset_info) = compilation
+      .get_asset_path_with_info(wasm_filename_template, path_data)
+      .await?;
 
-        RenderManifestEntry {
-          source: source.clone(),
-          filename: output_path,
-          has_filename: true,
-          info: asset_info,
-          auxiliary: false,
-        }
-      });
-
-      Ok(result)
+    let asset_info = asset_info.with_asset_type(ManifestAssetType::Wasm);
+    manifest.push(RenderManifestEntry {
+      source: source.clone(),
+      filename: output_path,
+      has_filename: true,
+      info: asset_info,
+      auxiliary: false,
     })
-    .collect::<Result<Vec<Option<RenderManifestEntry>>>>()?
-    .into_iter()
-    .flatten()
-    .collect::<Vec<RenderManifestEntry>>();
-  manifest.extend(files);
+  }
 
   Ok(())
 }
@@ -95,17 +95,9 @@ impl Plugin for AsyncWasmPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
-
     ctx.register_parser_and_generator_builder(
       ModuleType::WasmAsync,
-      Box::new(move |_, _| {
-        Box::new({
-          AsyncWasmParserAndGenerator {
-            module_id_to_filename: module_id_to_filename_without_ext.clone(),
-          }
-        }) as Box<dyn ParserAndGenerator>
-      }),
+      Box::new(move |_, _| Box::new(AsyncWasmParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
 
     Ok(())

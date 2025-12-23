@@ -10,12 +10,13 @@ use winnow::prelude::*;
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
+  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -326,13 +327,30 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{resource} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
+            let mut raw_module = if matches!(
+              dependency_type,
+              DependencyType::CssUrl | DependencyType::NewUrl
+            ) {
+              // use RawModule instead of RawDataUrlModule
+              RawModule::new(
+                r#"/* (ignored-asset) */
+module.exports = "data:,";
+"#
+                .to_owned(),
+                module_identifier,
+                format!("{} (ignored-asset)", data.request),
+                RuntimeGlobals::MODULE,
+              )
+              .boxed()
+            } else {
+              RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{} (ignored)", data.request),
+                Default::default(),
+              )
+              .boxed()
+            };
 
             raw_module.set_factory_meta(FactoryMeta {
               side_effect_free: Some(true),
@@ -917,13 +935,16 @@ fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
 
 fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   use winnow::{
-    combinator::{delimited, eof, preceded, terminated},
+    combinator::{alt, delimited, eof, preceded, terminated},
     token::take_until,
   };
 
   let parser = (
-    take_until(0.., ".webpack"),
-    preceded(".webpack", delimited('[', take_until(1.., ']'), ']')),
+    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
+    preceded(
+      alt((".rspack", ".webpack")),
+      delimited('[', take_until(1.., ']'), ']'),
+    ),
   );
 
   terminated(parser, eof).parse_next(&mut input)
@@ -945,6 +966,17 @@ fn test_match_ext() {
 
   assert_eq!(
     match_ext("foo.css.webpack[javascript/auto]"),
+    Ok(("foo.css", "javascript/auto"))
+  );
+
+  // Test .rspack support
+  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  let cap = match_ext("foo.rspack[type/javascript]").unwrap();
+
+  assert_eq!(cap, ("foo", "type/javascript"));
+
+  assert_eq!(
+    match_ext("foo.css.rspack[javascript/auto]"),
     Ok(("foo.css", "javascript/auto"))
   );
 }

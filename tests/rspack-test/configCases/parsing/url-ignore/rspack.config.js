@@ -6,5 +6,5 @@ module.exports = {
 	experiments: {
 		outputModule: true
 	},
-	target: ["web", "es2020"]
+	target: "web"
 };

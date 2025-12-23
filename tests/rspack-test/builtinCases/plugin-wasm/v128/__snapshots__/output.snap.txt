@@ -1,23 +1,23 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+"./index.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _v128_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./v128.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_v128_wasm__WEBPACK_IMPORTED_MODULE_0__]);
-_v128_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+/* import */ var _v128_wasm__rspack_import_0 = __webpack_require__("./v128.wasm");
+var __rspack_async_deps = __rspack_load_async_deps([_v128_wasm__rspack_import_0]);
+_v128_wasm__rspack_import_0 = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];
 
-console.log(_v128_wasm__WEBPACK_IMPORTED_MODULE_0__["default"].x);
+console.log(_v128_wasm__rspack_import_0["default"].x);
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } });
 
-}),
-"./v128.wasm": (function (module, exports, __webpack_require__) {
-module.exports = __webpack_require__.v(exports, module.id, "a92a2e151ead6e03" );
+},
+"./v128.wasm"(module, exports, __webpack_require__) {
+module.exports = __webpack_require__.v(exports, module.id, "80508a12102fcf23" );
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

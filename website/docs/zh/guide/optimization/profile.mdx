@@ -34,7 +34,7 @@ RSPACK_PROFILE=ALL rspack build
 
 [babel-loader](https://github.com/babel/babel-loader) 基于 Babel 来编译 JavaScript 和 TypeScript 代码，可以将 Babel 替换为更快的 SWC。Rspack 内置了 [builtin:swc-loader](/guide/features/builtin-swc-loader)，它是 `swc-loader` 的 Rust 版本，旨在提供更优的性能。
 
-如果你需要使用 Babel 插件实现自定义的转换逻辑，可以在配置 babel-loader 时使用 [Rule.include](/config/module#ruleinclude) 来匹配尽可能少的文件，以减少 Babel 编译的开销。
+如果你需要使用 Babel 插件实现自定义的转换逻辑，可以在配置 babel-loader 时使用 [rules[].include](/config/module-rules#rulesinclude) 来匹配尽可能少的文件，以减少 Babel 编译的开销。
 
 ### postcss-loader
 
@@ -56,7 +56,7 @@ RSPACK_PROFILE=ALL rspack build
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
 
-## 线程池大小
+## 阻塞线程池大小
 
 Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻塞操作，以避免阻塞主线程。
 
@@ -72,3 +72,16 @@ cross-env RSPACK_BLOCKING_THREADS=8 rspack build
 设置环境变量后，可以观察构建时间的变化，以找到最合适的配置。
 
 在较慢或延迟较高的文件系统中，建议保留默认值甚至更低，以避免线程争用。
+
+## 工作线程池大小
+
+Rspack 在内部使用 Tokio 线程池和 Rayon 线程池来处理 CPU 密集型任务（Tokio 用于异步任务，Rayon 用于同步任务）。默认情况下，Tokio 和 Rayon 会根据可用的 CPU 核心数自动确定工作线程的数量。
+
+如果在构建过程中消耗了过多的 CPU 资源，可以通过设置 `TOKIO_WORKER_THREADS` and `RAYON_NUM_THREADS` 环境变量来限制工作线程的数量，例如：
+
+```bash
+# 需要安装 cross-env 包来设置环境变量
+cross-env TOKIO_WORKER_THREADS=4 RAYON_NUM_THREADS=4 rspack build
+```
+
+请注意，设置过低的值可能会导致构建时间延长。设置环境变量后，可以观察构建时间的变化，以找到最合适的配置。

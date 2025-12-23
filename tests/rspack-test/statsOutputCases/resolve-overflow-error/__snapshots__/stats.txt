@@ -1,7 +1,7 @@
-assets by status 328 bytes [cached] 1 asset
-./index.js 51 bytes [built] [code generated] [1 error]
+assets by status xx bytes [cached] 1 asset
+./index.js xx bytes [built] [code generated] [1 error]
 
-ERROR in ./index.js 1:0-34
+ERROR in ./index.js 1:1-34
   × Module not found: Can't resolve 'cycle-alias/a' in '<TEST_ROOT>/statsOutputCases/resolve-overflow-error'
    ╭─[1:0]
  1 │ import { a } from "cycle-alias/a";

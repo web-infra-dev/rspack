@@ -1,21 +1,21 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (abc)
 });
-/* import */var _dep_a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?a");
+/* import */ var _dep_a__rspack_import_0 = __webpack_require__("./dep.js?a");
 
 
 function abc() {
-	return _dep_a__WEBPACK_IMPORTED_MODULE_0__.x;
+	return _dep_a__rspack_import_0.x;
 }
 
 
-}),
-"./b.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _dep_b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?b");
+},
+"./b.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _dep_b__rspack_import_0 = __webpack_require__("./dep.js?b");
 
 
 function abc() {
@@ -23,100 +23,100 @@ function abc() {
 }
 
 
-}),
-"./c.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _dep_c__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?c");
+},
+"./c.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _dep_c__rspack_import_0 = __webpack_require__("./dep.js?c");
 
 
 function abc() {
-	return _dep_c__WEBPACK_IMPORTED_MODULE_0__.x;
+	return _dep_c__rspack_import_0.x;
 }
 
 abc();
 
 
-}),
-"./d.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./d.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (def)
 });
-/* import */var _dep_d__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?d");
+/* import */ var _dep_d__rspack_import_0 = __webpack_require__("./dep.js?d");
 
 
 class def {
 	method() {
-		return _dep_d__WEBPACK_IMPORTED_MODULE_0__.x;
+		return _dep_d__rspack_import_0.x;
 	}
 }
 
 
-}),
-"./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?a"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
-}),
-"./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?b"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
+/* export default */ const __rspack_default_export = (false);
 
 
-}),
-"./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?c"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
-}),
-"./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?d"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
-}),
-"./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?e"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (false);
+/* export default */ const __rspack_default_export = (false);
 
 
-}),
-"./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./dep.js?f"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  "default": () => (__rspack_default_export),
   x: () => (x)
 });
 const x = "x";
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (true);
+/* export default */ const __rspack_default_export = (true);
 
 
-}),
-"./e.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _dep_e__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?e");
+},
+"./e.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _dep_e__rspack_import_0 = __webpack_require__("./dep.js?e");
 
 
 class def {
@@ -126,34 +126,34 @@ class def {
 }
 
 
-}),
-"./f.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _dep_f__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?f");
+},
+"./f.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _dep_f__rspack_import_0 = __webpack_require__("./dep.js?f");
 
 
 class def {
 	method() {
-		return _dep_f__WEBPACK_IMPORTED_MODULE_0__.x;
+		return _dep_f__rspack_import_0.x;
 	}
 }
 
 new def().method();
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
-/* import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");
-/* import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./c.js");
-/* import */var _d__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("./d.js");
-/* import */var _e__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("./e.js");
-/* import */var _f__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__("./f.js");
-/* import */var _dep_a__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__("./dep.js?a");
-/* import */var _dep_b__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__("./dep.js?b");
-/* import */var _dep_c__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__("./dep.js?c");
-/* import */var _dep_d__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__("./dep.js?d");
-/* import */var _dep_e__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__("./dep.js?e");
-/* import */var _dep_f__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__("./dep.js?f");
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _a__rspack_import_0 = __webpack_require__("./a.js");
+/* import */ var _b__rspack_import_1 = __webpack_require__("./b.js");
+/* import */ var _c__rspack_import_2 = __webpack_require__("./c.js");
+/* import */ var _d__rspack_import_3 = __webpack_require__("./d.js");
+/* import */ var _e__rspack_import_4 = __webpack_require__("./e.js");
+/* import */ var _f__rspack_import_5 = __webpack_require__("./f.js");
+/* import */ var _dep_a__rspack_import_6 = __webpack_require__("./dep.js?a");
+/* import */ var _dep_b__rspack_import_7 = __webpack_require__("./dep.js?b");
+/* import */ var _dep_c__rspack_import_8 = __webpack_require__("./dep.js?c");
+/* import */ var _dep_d__rspack_import_9 = __webpack_require__("./dep.js?d");
+/* import */ var _dep_e__rspack_import_10 = __webpack_require__("./dep.js?e");
+/* import */ var _dep_f__rspack_import_11 = __webpack_require__("./dep.js?f");
 
 
 
@@ -169,40 +169,40 @@ new def().method();
 
 
 it("should generate valid code", () => {
-	expect((0,_a__WEBPACK_IMPORTED_MODULE_0__["default"])()).toBe("x");
-	expect(new _d__WEBPACK_IMPORTED_MODULE_3__["default"]().method()).toBe("x");
+	expect((0,_a__rspack_import_0["default"])()).toBe("x");
+	expect(new _d__rspack_import_3["default"]().method()).toBe("x");
 });
 
 it("a should be used", () => {
-	expect(_dep_a__WEBPACK_IMPORTED_MODULE_6__["default"]).toBe(true);
+	expect(_dep_a__rspack_import_6["default"]).toBe(true);
 });
 
 if (true) {
 	it("b should be unused", () => {
-		expect(_dep_b__WEBPACK_IMPORTED_MODULE_7__["default"]).toBe(false);
+		expect(_dep_b__rspack_import_7["default"]).toBe(false);
 	});
 }
 
 it("c should be used", () => {
-	expect(_dep_c__WEBPACK_IMPORTED_MODULE_8__["default"]).toBe(true);
+	expect(_dep_c__rspack_import_8["default"]).toBe(true);
 });
 
 if (true) {
 	it("d should be used", () => {
-		expect(_dep_d__WEBPACK_IMPORTED_MODULE_9__["default"]).toBe(true);
+		expect(_dep_d__rspack_import_9["default"]).toBe(true);
 	});
 
 	it("e should be unused", () => {
-		expect(_dep_e__WEBPACK_IMPORTED_MODULE_10__["default"]).toBe(false);
+		expect(_dep_e__rspack_import_10["default"]).toBe(false);
 	});
 }
 
 it("f should be used", () => {
-	expect(_dep_f__WEBPACK_IMPORTED_MODULE_11__["default"]).toBe(true);
+	expect(_dep_f__rspack_import_11["default"]).toBe(true);
 });
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

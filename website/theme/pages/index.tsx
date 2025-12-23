@@ -1,4 +1,3 @@
-import { HomeBackground } from '@rspress/core/theme';
 import { HomeFooter } from '../components/HomeFooter/index';
 import LandingPage from '../components/Landingpage';
 
@@ -21,8 +20,6 @@ const CopyRight = () => {
 export function HomeLayout() {
   return (
     <>
-      {/* For transparent nav at top */}
-      <HomeBackground style={{ background: 'none' }} />
       <LandingPage />
       <HomeFooter />
       <CopyRight />

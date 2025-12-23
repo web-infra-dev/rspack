@@ -12,6 +12,24 @@ new webpack.EvalSourceMapDevToolPlugin(options);
 
 ## 选项
 
+### test
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+根据模块扩展名，匹配的生成 source map（默认是 `.js`、`.mjs` 和 `.css`）。
+
+### include
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使路径与该值匹配的模块生成 source map。
+
+### exclude
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使匹配该值的模块不生成 source map。
+
 ### append
 
 - **类型：** `string | function`
@@ -40,7 +58,6 @@ new webpack.EvalSourceMapDevToolPlugin(options);
 import { rspack } from '@rspack/core';
 
 export default {
-  // ...
   devtool: false,
   plugins: [new rspack.EvalSourceMapDevToolPlugin({})],
 };

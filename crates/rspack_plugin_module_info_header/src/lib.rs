@@ -158,7 +158,13 @@ impl ModuleInfoHeaderPlugin {
 
     let req_stars_str = "*".repeat(req.len());
 
-    format!("\n/*!****{req_stars_str}****!*\\\n  !*** {req} ***!\n  \\****{req_stars_str}****/\n")
+    format!(
+      r#"
+/*!****{req_stars_str}****!*\
+  !*** {req} ***!
+  \****{req_stars_str}****/
+"#
+    )
   }
 }
 
@@ -276,7 +282,7 @@ async fn render_js_module_package(
       let reqs = {
         let mut rr = runtime_requirements
           .iter()
-          .map(|v| v.name().to_string())
+          .map(|v| compilation.runtime_template.render_runtime_globals(&v))
           .collect::<Vec<_>>();
         rr.sort_by(|a, b| b.cmp(a));
         rr.join(", ")

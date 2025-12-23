@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -8,9 +10,15 @@ pub struct ChunkNameRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for ChunkNameRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/chunk_name"), None)
+impl ChunkNameRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}chunk_name",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 
@@ -29,7 +37,9 @@ impl RuntimeModule for ChunkNameRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       Ok(format!(
         "{} = {};",
-        RuntimeGlobals::CHUNK_NAME,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
         serde_json::to_string(&chunk.name()).expect("Invalid json string")
       ))
     } else {

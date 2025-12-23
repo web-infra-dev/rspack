@@ -42,7 +42,7 @@ pub use module::*;
 pub use parser_and_generator::*;
 mod runtime_globals;
 pub use normal_module::*;
-pub use runtime_globals::RuntimeGlobals;
+pub use runtime_globals::{RuntimeGlobals, RuntimeVariable};
 mod plugin;
 pub use plugin::*;
 mod context_module;
@@ -207,10 +207,6 @@ pub enum ModuleType {
 }
 
 impl ModuleType {
-  pub fn is_css_like(&self) -> bool {
-    matches!(self, Self::Css | Self::CssModule | Self::CssAuto)
-  }
-
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,

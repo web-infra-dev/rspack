@@ -1,7 +1,7 @@
-assets by status 774 bytes [cached] 1 asset
-./index.js 25 bytes [built] [code generated] [1 error]
+assets by status xx bytes [cached] 1 asset
+./index.js xx bytes [built] [code generated] [1 error]
 
-ERROR in ./index.js 1:8-24
+ERROR in ./index.js 1:9-24
   × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/preset-none-error'
    ╭────
  1 │ require('does-not-exist')

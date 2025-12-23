@@ -1,13 +1,11 @@
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, impl_runtime_module,
+  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
-use super::{
-  generate_javascript_hmr_runtime,
-  utils::{chunk_has_js, get_output_dir},
-};
+use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
@@ -20,10 +18,13 @@ pub struct ReadFileChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for ReadFileChunkLoadingRuntimeModule {
-  fn default() -> Self {
+impl ReadFileChunkLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/readfile_chunk_loading"),
+      Identifier::from(format!(
+        "{}readfile_chunk_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }
@@ -54,7 +55,13 @@ impl ReadFileChunkLoadingRuntimeModule {
           }
         )
       });
-    format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)
+    format!(
+      "{} = {};\n",
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      base_uri
+    )
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -67,6 +74,7 @@ impl ReadFileChunkLoadingRuntimeModule {
       TemplateId::WithExternalInstallChunk => format!("{base_id}_with_external_install_chunk"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 }
@@ -79,6 +87,7 @@ enum TemplateId {
   WithExternalInstallChunk,
   WithHmr,
   WithHmrManifest,
+  HmrRuntime,
 }
 
 #[async_trait::async_trait]
@@ -113,6 +122,10 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         self.template_id(TemplateId::WithHmrManifest),
         include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs").to_string(),
       ),
+      (
+        self.template_id(TemplateId::HmrRuntime),
+        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
+      ),
     ]
   }
 
@@ -145,7 +158,12 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let state_expression = format!("{}_readFileVm", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+      let state_expression = format!(
+        "{}_readFileVm",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      );
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,
@@ -172,7 +190,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_with_on_chunk_loaded": match with_on_chunk_load {
-            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            true => format!("{}();", compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => "".to_string(),
           }
         })),
@@ -202,10 +220,13 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       source.push_str(&format!(
         r#"
         // ReadFile + VM.run chunk loading for javascript"
-        __webpack_require__.f.readFileVm = function (chunkId, promises) {{
+        {}.readFileVm = function (chunkId, promises) {{
           {body}
         }};
-        "#
+        "#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       ));
     }
 
@@ -223,7 +244,12 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         .runtime_template
         .render(&self.template_id(TemplateId::WithHmr), None)?;
       source.push_str(&source_with_hmr);
-      source.push_str(&generate_javascript_hmr_runtime("readFileVm"));
+      let hmr_runtime = generate_javascript_hmr_runtime(
+        &self.template_id(TemplateId::HmrRuntime),
+        "readFileVm",
+        &compilation.runtime_template,
+      )?;
+      source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {

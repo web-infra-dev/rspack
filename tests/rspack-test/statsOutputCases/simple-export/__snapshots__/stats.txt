@@ -1,4 +1,4 @@
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 647 bytes 3 modules
-./index.js 26 bytes [built] [code generated]
+runtime modules xx bytes 3 modules
+./index.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

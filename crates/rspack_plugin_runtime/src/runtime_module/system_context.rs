@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,9 +9,12 @@ pub struct SystemContextRuntimeModule {
   id: Identifier,
 }
 
-impl Default for SystemContextRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/start_entry_point"))
+impl SystemContextRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}system_context",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -19,10 +24,12 @@ impl RuntimeModule for SystemContextRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = __system_context__",
-      RuntimeGlobals::SYSTEM_CONTEXT
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SYSTEM_CONTEXT)
     ))
   }
 }

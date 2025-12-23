@@ -1,12 +1,12 @@
 ```mjs title=main.mjs
-import * as __WEBPACK_EXTERNAL_MODULE_fs__ from "fs";
+import * as __rspack_external_fs from "fs";
 import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./externals.js
 var externals_namespaceObject = {};
 __webpack_require__.r(externals_namespaceObject);
 __webpack_require__.d(externals_namespaceObject, { 
-  "default": () => (__WEBPACK_EXTERNAL_MODULE_fs__["default"]),
-  readFile: () => (__WEBPACK_EXTERNAL_MODULE_fs__.readFile) });
+  "default": () => (__rspack_external_fs["default"]),
+  readFile: () => (__rspack_external_fs.readFile) });
 
 
 // fs
@@ -30,8 +30,12 @@ it('should have exports', async () => {
 	expect(externalsNs).toBeDefined();
 });
 
-export { externals_namespaceObject as externalsNs };
-export { default, default as externals, readFile } from "fs";
+var default_0 = __rspack_external_fs["default"];
+var externals_0 = __rspack_external_fs["default"];
+var readFile_0 = __rspack_external_fs.readFile;
+export { externals_0 as externals, externals_namespaceObject as externalsNs, readFile_0 as readFile };
+export * from "fs";
+export default default_0;
 
 ```
 

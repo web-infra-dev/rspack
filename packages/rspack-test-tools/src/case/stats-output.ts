@@ -99,8 +99,7 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 }
@@ -206,9 +205,15 @@ async function check(
 			// CHANGE: The time unit display in Rspack is second
 			.replace(/[.0-9]+(\s?s)/g, "X$1")
 			// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
-			.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB")
-			.replace(/[0-9]+ ms/g, "xx ms");
+			.replace(/[0-9]+(\.[0-9]+)? KiB/g, "xx KiB")
+			.replace(/[0-9]+(\.[0-9]+)? bytes/g, "xx bytes")
+			.replace(/[0-9]+(\.[0-9]+)? ms/g, "xx ms");
 	}
+
+	actual = actual
+		.split("\n")
+		.filter(line => !line.includes("@rstest/core/dist"))
+		.join("\n");
 
 	const snapshotPath = path.isAbsolute(snapshot)
 		? snapshot

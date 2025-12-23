@@ -173,7 +173,7 @@ export default {
 
 注意事项：
 
-- 请确保通过 [exclude](/config/module#ruleexclude) 来排除 `core-js` 包，因为 `core-js` 如果被 SWC 编译，将无法正常工作。
+- 请确保通过 [exclude](/config/module-rules#rulesexclude) 来排除 `core-js` 包，因为 `core-js` 如果被 SWC 编译，将无法正常工作。
 - 当需要引用非 ES modules 的模块时，需要添加 [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule)，以便 SWC 能够正确识别模块类型。
 
 ## 类型声明
@@ -361,7 +361,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -398,7 +397,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -432,7 +430,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {

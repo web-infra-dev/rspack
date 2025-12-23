@@ -1,6 +1,6 @@
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 (async function () {
 	return __webpack_require__.e(/* import() */ "wasm_wasm").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(function (mod) {
 		if (mod.result !== 42) throw new Error("panic");
@@ -8,7 +8,7 @@
 })();
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
@@ -21,79 +21,79 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```js title=wasm_wasm.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["wasm_wasm"], {
-"./module.js": (function (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+"./module.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber),
   result: () => (result)
 });
-/* import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
-_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+/* import */ var _wasm_wasm__rspack_import_0 = __webpack_require__("./wasm.wasm");
+var __rspack_async_deps = __rspack_load_async_deps([_wasm_wasm__rspack_import_0]);
+_wasm_wasm__rspack_import_0 = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];
 
-var result = (0,_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getResult)(1);
+var result = (0,_wasm_wasm__rspack_import_0.getResult)(1);
 
 function getNumber() {
 	return 20;
 }
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } });
 
-}),
-"./module2.js": (function (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
+},
+"./module2.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getNumber: () => (getNumber)
 });
-/* import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./wasm.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__]);
-_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__ = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];
+/* import */ var _wasm_wasm__rspack_import_0 = __webpack_require__("./wasm.wasm");
+var __rspack_async_deps = __rspack_load_async_deps([_wasm_wasm__rspack_import_0]);
+_wasm_wasm__rspack_import_0 = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];
 
 function getNumber() {
-	return (0,_wasm_wasm__WEBPACK_IMPORTED_MODULE_0__.getNumber)();
+	return (0,_wasm_wasm__rspack_import_0.getNumber)();
 }
 
-__webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });
+__rspack_async_done();
+} catch(e) { __rspack_async_done(e); } });
 
-}),
-"./wasm.wasm": (function (module, exports, __webpack_require__) {
-var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
-return __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
+},
+"./wasm.wasm"(module, exports, __webpack_require__) {
+var __rspack_instantiate__ = function ([rspack_import_0, rspack_import_1]) {
+return __webpack_require__.v(exports, module.id, "e777786177103fda" , {
 "./module": {
-"getNumber": WEBPACK_IMPORTED_MODULE_0.getNumber
+"getNumber": rspack_import_0.getNumber
 },
 "./module2": {
-"getNumber": WEBPACK_IMPORTED_MODULE_1.getNumber
+"getNumber": rspack_import_1.getNumber
 }
 });
 }
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {
+__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) {
   try {
-/* import */var WEBPACK_IMPORTED_MODULE_0 = __webpack_require__("./module.js");
-/* import */var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
+/* import */ var rspack_import_0 = __webpack_require__("./module.js");
+/* import */ var rspack_import_1 = __webpack_require__("./module2.js");
 
-    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]);
-    var [WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-    await __webpack_require__.v(exports, module.id, "e7320130ff8b397e" , {
+    var __rspack_async_deps = __rspack_load_async_deps([rspack_import_0, rspack_import_1]);
+    var [rspack_import_0, rspack_import_1] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;
+    await __webpack_require__.v(exports, module.id, "e777786177103fda" , {
 "./module": {
-"getNumber": WEBPACK_IMPORTED_MODULE_0.getNumber
+"getNumber": rspack_import_0.getNumber
 },
 "./module2": {
-"getNumber": WEBPACK_IMPORTED_MODULE_1.getNumber
+"getNumber": rspack_import_1.getNumber
 }
 });
 
-  __webpack_async_result__();
+  __rspack_async_done();
 
-  } catch(e) { __webpack_async_result__(e); }
+  } catch(e) { __rspack_async_done(e); }
 }, 1);
 
 
-}),
+},
 
 }]);
 ```

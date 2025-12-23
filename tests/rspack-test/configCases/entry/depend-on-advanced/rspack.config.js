@@ -32,7 +32,7 @@ module.exports = {
 			 * @returns {void}
 			 */
 			const handler = compilation => {
-				compilation.hooks.afterSeal.tap("testcase", () => {
+				compilation.hooks.processAssets.tap("testcase", () => {
 					const { chunkGraph } = compilation;
 					const chunkModules = {};
 					for (const chunk of compilation.chunks) {

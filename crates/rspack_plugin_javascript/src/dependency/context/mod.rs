@@ -4,6 +4,7 @@ mod import_context_dependency;
 mod import_meta_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
+mod url_context_dependency;
 
 pub use amd_require_context_dependency::{
   AMDRequireContextDependency, AMDRequireContextDependencyTemplate,
@@ -22,8 +23,9 @@ pub use require_resolve_context_dependency::{
 };
 use rspack_core::{
   ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource, module_raw,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
+pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 
 fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
@@ -92,7 +94,13 @@ fn context_dependency_template_as_require_call(
   } = code_generatable_context;
   let id = dep.id();
 
-  let mut expr = module_raw(compilation, runtime_requirements, id, dep.request(), false);
+  let mut expr = compilation.runtime_template.module_raw(
+    compilation,
+    runtime_requirements,
+    id,
+    dep.request(),
+    false,
+  );
 
   if compilation
     .get_module_graph()
@@ -124,7 +132,7 @@ fn context_dependency_template_as_id(
   } = code_generatable_context;
   let id = dep.id();
 
-  let expr = module_raw(
+  let expr = compilation.runtime_template.module_raw(
     compilation,
     runtime_requirements,
     id,

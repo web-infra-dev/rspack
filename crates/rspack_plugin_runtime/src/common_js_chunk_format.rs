@@ -118,7 +118,7 @@ async fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "exports.ids = [{}];\n",
-    json_stringify(chunk.expect_id(&compilation.chunk_ids_artifact))
+    json_stringify(chunk.expect_id())
   )));
   sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
@@ -135,8 +135,12 @@ async fn render_chunk(
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
-      "// load runtime\nvar {} = require({});\n",
-      RuntimeGlobals::REQUIRE,
+      r#"// load runtime
+var {} = require({});
+"#,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       json_stringify(&get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
@@ -146,7 +150,9 @@ async fn render_chunk(
     )));
     sources.add(RawStringSource::from(format!(
       "{}(exports)\n",
-      RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK),
     )));
 
     let entries = compilation

@@ -159,14 +159,6 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn expect_get_mut_variable(&mut self, id: VariableInfoId) -> &mut VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .get_mut(&id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
-  }
-
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
     self
       .tag_info_db
@@ -378,10 +370,6 @@ pub struct ScopeInfo {
 }
 
 impl ScopeInfo {
-  pub fn variable_map(&self) -> &FxHashMap<Atom, VariableInfoId> {
-    &self.map
-  }
-
   pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
     self
       .map

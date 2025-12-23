@@ -1,6 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, SharedSourceMap,
+  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, RuntimeGlobals,
+  SharedSourceMap,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -86,14 +87,15 @@ impl RstestParserPlugin {
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
-            Some(parser.source_map.clone()),
+            Some(parser.source_rope().clone()),
           );
           parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
+          let source_rope = parser.source_rope().clone();
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             range,
-            Some(parser.source_map.clone()),
+            Some(source_rope),
           )));
 
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -110,7 +112,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.requireActual` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -150,7 +152,7 @@ impl RstestParserPlugin {
             ),
           ));
 
-          let source_map: SharedSourceMap = parser.source_map.clone();
+          let source_map: SharedSourceMap = parser.source_rope().clone();
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
             Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
@@ -168,7 +170,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importActual` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -181,14 +183,9 @@ impl RstestParserPlugin {
 
   fn calc_mocked_target(&self, value: &str) -> Utf8PathBuf {
     // node:foo will be mocked to `__mocks__/foo`.
-    let path_buf = Utf8PathBuf::from(
-      value
-        .to_string()
-        .strip_prefix("node:")
-        .unwrap_or(value.as_ref())
-        .to_string(),
-    );
-    let is_relative_request = path_buf.to_string().starts_with("."); // TODO: consider alias?
+    let stripped = value.strip_prefix("node:").unwrap_or(value);
+    let path_buf = Utf8PathBuf::from(stripped);
+    let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
       // Mock relative request to alongside `__mocks__` directory.
@@ -350,7 +347,7 @@ impl RstestParserPlugin {
             create_traceable_error(
               "Invalid function call".into(),
               "`rs.mock` function expects a string literal as the first argument".into(),
-              parser.source_file(),
+              parser.source().to_owned(),
               call_expr.span.into(),
             )
             .into(),
@@ -362,7 +359,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.mock` function expects 1 or 2 arguments".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -371,27 +368,46 @@ impl RstestParserPlugin {
     }
   }
 
-  fn hoisted(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  fn hoisted(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    statement_span: Option<Span>,
+  ) -> Option<bool> {
     match call_expr.args.len() {
       1 => {
-        parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-          call_expr.span(),
-          call_expr.callee.span(),
-          call_expr.span().real_lo().to_string(),
-          true,
-          MockMethod::Hoisted,
-        )));
+        let dep = if let Some(stmt_span) = statement_span {
+          MockMethodDependency::new_with_statement_span(
+            call_expr.span(),
+            call_expr.callee.span(),
+            stmt_span,
+            call_expr.span().real_lo().to_string(),
+            true,
+            MockMethod::Hoisted,
+          )
+        } else {
+          MockMethodDependency::new(
+            call_expr.span(),
+            call_expr.callee.span(),
+            call_expr.span().real_lo().to_string(),
+            true,
+            MockMethod::Hoisted,
+          )
+        };
+        parser.add_presentational_dependency(Box::new(dep));
+        Some(false)
       }
       _ => {
         parser.add_error(
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.hoisted` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
         );
+        Some(false)
       }
     }
   }
@@ -401,7 +417,13 @@ impl RstestParserPlugin {
       0 => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           call_expr.callee.span().into(),
-          "__webpack_require__.rstest_reset_modules".into(),
+          format!(
+            "{}.rstest_reset_modules",
+            parser
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          )
+          .into(),
           None,
         )));
         Some(true)
@@ -411,7 +433,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.resetModules` function expects 0 arguments".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -455,7 +477,7 @@ impl RstestParserPlugin {
                   ),
                 ));
 
-                let source_map: SharedSourceMap = parser.source_map.clone();
+                let source_map: SharedSourceMap = parser.source_rope().clone();
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
                   Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
@@ -473,13 +495,14 @@ impl RstestParserPlugin {
                   first_arg.span().into(),
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  Some(parser.source_map.clone()),
+                  Some(parser.source_rope().clone()),
                 );
 
                 let range: DependencyRange = call_expr.callee.span().into();
+                let source_rope = parser.source_rope().clone();
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
                   range,
-                  Some(parser.source_map.clone()),
+                  Some(source_rope),
                 )));
 
                 parser.add_dependency(Box::new(dep));
@@ -498,7 +521,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
-            parser.source_file(),
+            parser.source().to_owned(),
             call_expr.span.into(),
           )
           .into(),
@@ -540,6 +563,7 @@ impl RstestParserPlugin {
     call_expr: &CallExpr,
     ident: &Ident,
     prop: &swc_core::ecma::ast::IdentName,
+    statement_span: Option<Span>,
   ) -> Option<bool> {
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
@@ -595,10 +619,7 @@ impl RstestParserPlugin {
       // rs.resetModules
       ("rs", "resetModules") | ("rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
-      ("rs", "hoisted") | ("rstest", "hoisted") => {
-        self.hoisted(parser, call_expr);
-        Some(true)
-      }
+      ("rs", "hoisted") | ("rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
       _ => {
         // Not a mock module, continue.
         None
@@ -629,7 +650,13 @@ impl JavascriptParserPlugin for RstestParserPlugin {
           && let Some(obj_ident) = member_expr.obj.as_ident()
           && let Some(prop_ident) = member_expr.prop.as_ident()
         {
-          return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+          return self.handle_rstest_method_call(
+            parser,
+            call_expr,
+            obj_ident,
+            prop_ident,
+            Some(stmt.span()),
+          );
         }
       }
     }
@@ -655,7 +682,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       && let Some(obj_ident) = member_expr.obj.as_ident()
       && let Some(prop_ident) = member_expr.prop.as_ident()
     {
-      return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident);
+      return self.handle_rstest_method_call(parser, call_expr, obj_ident, prop_ident, None);
     }
 
     None

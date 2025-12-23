@@ -192,7 +192,7 @@ impl CodeSplitter {
         // try to remove runtime chunk, runtime chunk is also included by chunk_group.chunks
         self.runtime_chunks.remove(chunk_ukey);
 
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
         }
       }

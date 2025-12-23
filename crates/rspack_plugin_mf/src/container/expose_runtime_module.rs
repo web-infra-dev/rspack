@@ -1,6 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
@@ -15,8 +16,14 @@ pub struct ExposeRuntimeModule {
 
 impl ExposeRuntimeModule {
   #[allow(clippy::new_without_default)]
-  pub fn new() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/initialize_exposes"), None)
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}initialize_exposes",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 
@@ -64,9 +71,12 @@ impl RuntimeModule for ExposeRuntimeModule {
       return Ok("".to_string());
     };
     let module_map = data.module_map.render(compilation);
+    let require_name = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
-__webpack_require__.initializeExposesData = {{
+    {require_name}.initializeExposesData = {{
   moduleMap: {},
   shareScope: {},
 }};
@@ -74,8 +84,14 @@ __webpack_require__.initializeExposesData = {{
       module_map,
       json_stringify(&data.share_scope)
     );
-    source += "__webpack_require__.getContainer = __webpack_require__.getContainer || function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
-    source += "__webpack_require__.initContainer = __webpack_require__.initContainer || function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
+    source += &format!(
+      "{require_name}.getContainer = {require_name}.getContainer || function() {{ throw new Error(\"should have {require_name}.getContainer\") }};",
+      require_name = require_name,
+    );
+    source += &format!(
+      "{require_name}.initContainer = {require_name}.initContainer || function() {{ throw new Error(\"should have {require_name}.initContainer\") }};",
+      require_name = require_name,
+    );
     Ok(source)
   }
 

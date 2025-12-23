@@ -141,6 +141,8 @@ import {
 	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
 
+export { SubresourceIntegrityPlugin };
+
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
@@ -158,6 +160,8 @@ interface Node {
 	NodeTemplatePlugin: typeof NodeTemplatePlugin;
 	NodeEnvironmentPlugin: typeof NodeEnvironmentPlugin;
 }
+
+export { lazyCompilationMiddleware };
 
 export const node: Node = {
 	NodeTargetPlugin,
@@ -374,11 +378,17 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	/**
+	 * @deprecated Use `rspack.SubresourceIntegrityPlugin` instead
+	 */
+	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 	EsmLibraryPlugin: typeof EsmLibraryPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	RstestPlugin: typeof RstestPlugin;
 	RslibPlugin: typeof RslibPlugin;
-	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+	/**
+	 * @deprecated Use `rspack.lazyCompilationMiddleware` instead
+	 */
 	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 	swc: {
 		transform: typeof transform;
@@ -414,6 +424,7 @@ export const experiments: Experiments = {
 		}
 	},
 	RemoveDuplicateModulesPlugin,
+	SubresourceIntegrityPlugin,
 	EsmLibraryPlugin,
 	/**
 	 * Note: This plugin is unstable yet
@@ -433,7 +444,6 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RslibPlugin,
-	SubresourceIntegrityPlugin,
 	lazyCompilationMiddleware,
 	swc: {
 		minify,

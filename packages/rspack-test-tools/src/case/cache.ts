@@ -19,8 +19,6 @@ import { cachedStats } from "./runner";
 
 type TTarget = RspackOptions["target"];
 
-const MAX_COMPILER_INDEX = 100;
-
 function createCacheProcessor(
 	name: string,
 	src: string,
@@ -35,16 +33,12 @@ function createCacheProcessor(
 		},
 		config: async (context: ITestContext) => {
 			const compiler = context.getCompiler();
-			let options = defaultOptions(context, temp, target);
-			options = await config(
+			const options = await generateOptions(
 				context,
-				name,
-				["rspack.config.js", "webpack.config.js"].map(i =>
-					path.resolve(temp, i)
-				),
-				options
+				temp,
+				target,
+				updatePlugin
 			);
-			overrideOptions(options, temp, target, updatePlugin);
 			compiler.setOptions(options);
 		},
 		compiler: async (context: ITestContext) => {
@@ -111,12 +105,13 @@ export function createCacheCase(
 
 const creators: Map<TTarget, BasicCaseCreator> = new Map();
 
-function defaultOptions(
+async function generateOptions(
 	context: ITestContext,
 	temp: string,
-	target: TTarget
-): RspackOptions {
-	const options = {
+	target: TTarget,
+	updatePlugin: HotUpdatePlugin
+): Promise<RspackOptions> {
+	let options = {
 		context: temp,
 		mode: "production",
 		cache: true,
@@ -139,23 +134,21 @@ function defaultOptions(
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 
 	options.plugins ??= [];
 	options.plugins.push(new rspack.HotModuleReplacementPlugin());
 
-	return options;
-}
+	options = await config(
+		context,
+		"cacheCase",
+		["rspack.config.js", "webpack.config.js"].map(i => path.resolve(temp, i)),
+		options
+	);
 
-function overrideOptions(
-	options: RspackOptions,
-	temp: string,
-	target: TTarget,
-	updatePlugin: HotUpdatePlugin
-): void {
+	// overwrite
 	if (!options.entry) {
 		options.entry = "./index.js";
 	}
@@ -176,6 +169,8 @@ function overrideOptions(
 			level: "error"
 		};
 	}
+
+	return options;
 }
 
 function findBundle(
@@ -245,6 +240,7 @@ function createRunner(
 					moduleScope.COMPILER_INDEX = compilerIndex;
 					moduleScope.NEXT_HMR = nextHmr;
 					moduleScope.NEXT_START = nextStart;
+					moduleScope.NEXT_MOVE_DIR_START = nextMoveDirStart;
 					return moduleScope;
 				}
 			},
@@ -253,21 +249,13 @@ function createRunner(
 			compilerOptions: options
 		});
 	};
-	const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
-		await updatePlugin.goNext();
-		const stats = await compiler.build();
-		if (!stats) {
-			throw new Error("Should generate stats during build");
-		}
-		const jsonStats = stats.toJson({
-			// errorDetails: true
-		});
-		const compilerOptions = compiler.getOptions();
 
+	const checkStats = async (stats: StatsCompilation) => {
+		const compilerOptions = compiler.getOptions();
 		const updateIndex = updatePlugin.getUpdateIndex();
 		await checkArrayExpectation(
 			source,
-			jsonStats,
+			stats,
 			"error",
 			`errors${updateIndex}`,
 			"Error",
@@ -275,12 +263,21 @@ function createRunner(
 		);
 		await checkArrayExpectation(
 			source,
-			jsonStats,
+			stats,
 			"warning",
 			`warnings${updateIndex}`,
 			"Warning",
 			compilerOptions
 		);
+	};
+
+	const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
+		await updatePlugin.goNext();
+		const stats = await compiler.build();
+		const jsonStats = stats.toJson({
+			// errorDetails: true
+		});
+		await checkStats(jsonStats);
 
 		const updatedModules = await m.hot.check(options || true);
 		if (!updatedModules) {
@@ -292,43 +289,48 @@ function createRunner(
 
 	const nextStart = async (): Promise<StatsCompilation> => {
 		await compiler.close();
-		compiler.createCompiler();
+
 		await updatePlugin.goNext();
+		compilerIndex++;
+
+		compiler.createCompiler();
 		const stats = await compiler.build();
-		if (!stats) {
-			throw new Error("Should generate stats during build");
-		}
 		const jsonStats = stats.toJson({
 			// errorDetails: true
 		});
-		const compilerOptions = compiler.getOptions();
+		await checkStats(jsonStats);
 
-		const updateIndex = updatePlugin.getUpdateIndex();
-		await checkArrayExpectation(
-			source,
-			jsonStats,
-			"error",
-			`errors${updateIndex}`,
-			"Error",
-			compilerOptions
+		env.it(`NEXT_START run with compilerIndex==${compilerIndex}`, async () => {
+			return getWebRunner().run(file);
+		});
+		return jsonStats;
+	};
+
+	const nextMoveDirStart = async (): Promise<StatsCompilation> => {
+		await compiler.close();
+
+		const tempDir = await updatePlugin.moveTempDir();
+		const options = await generateOptions(
+			context,
+			tempDir,
+			compiler.getOptions().target,
+			updatePlugin
 		);
-		await checkArrayExpectation(
-			source,
-			jsonStats,
-			"warning",
-			`warnings${updateIndex}`,
-			"Warning",
-			compilerOptions
-		);
+		compiler.setOptions(options);
+		await updatePlugin.goNext();
+		compilerIndex++;
+
+		compiler.createCompiler();
+		const stats = await compiler.build();
+		const jsonStats = stats.toJson({
+			// errorDetails: true
+		});
+
+		await checkStats(jsonStats);
+
 		env.it(
-			`NEXT_START run with compilerIndex==${compilerIndex + 1}`,
+			`NEXT_MOVE_DIR_START run with compilerIndex==${compilerIndex}`,
 			async () => {
-				if (compilerIndex > MAX_COMPILER_INDEX) {
-					throw new Error(
-						"NEXT_START has been called more than the maximum times"
-					);
-				}
-				compilerIndex++;
 				return getWebRunner().run(file);
 			}
 		);

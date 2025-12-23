@@ -1,7 +1,6 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
-use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_util::test::is_hot_test;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -9,9 +8,12 @@ pub struct HotModuleReplacementRuntimeModule {
   id: Identifier,
 }
 
-impl Default for HotModuleReplacementRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/hot_module_replacement"))
+impl HotModuleReplacementRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}hot_module_replacement",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -21,12 +23,21 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     self.id
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(
-      include_str!("runtime/hot_module_replacement.js")
-        .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
-        .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)
-        .into_owned(),
-    )
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/hot_module_replacement.ejs").to_string(),
+    )]
+  }
+
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+    let content = compilation.runtime_template.render(
+      self.id.as_str(),
+      Some(serde_json::json!({
+        "_is_hot_test": is_hot_test(),
+      })),
+    )?;
+
+    Ok(content)
   }
 }

@@ -8,9 +8,9 @@ use rspack_core::{
   AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  DependencyType, Filename, GenerateContext, GeneratorOptions, Module, ModuleGraph,
-  NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyType, Filename, GenerateContext, GeneratorOptions, ManifestAssetType, Module,
+  ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData,
+  Plugin, PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
@@ -604,7 +604,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .insert(RuntimeGlobals::PUBLIC_PATH);
             format!(
               r#"{} + "{}""#,
-              RuntimeGlobals::PUBLIC_PATH,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
               original_filename
             )
           };
@@ -824,12 +826,14 @@ async fn render_manifest(
           .data
           .get::<CodeGenerationDataAssetInfo>()
           .expect("should have asset_info")
-          .inner();
+          .inner()
+          .to_owned()
+          .with_asset_type(ManifestAssetType::Asset);
         RenderManifestEntry {
           source: source.clone(),
           filename: asset_filename.to_owned(),
           has_filename: true,
-          info: asset_info.to_owned(),
+          info: asset_info,
           auxiliary: true,
         }
       });

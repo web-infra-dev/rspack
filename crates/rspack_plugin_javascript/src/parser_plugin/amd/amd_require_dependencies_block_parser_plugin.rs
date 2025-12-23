@@ -77,7 +77,9 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for request in array.iter() {
         if request == "require" {
           deps.push(AMDRequireArrayItem::String(
-            RuntimeGlobals::REQUIRE.name().into(),
+            parser
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           ));
         } else if request == "exports" || request == "module" {
           deps.push(AMDRequireArrayItem::String(request.into()));
@@ -126,7 +128,10 @@ impl AMDRequireDependenciesBlockParserPlugin {
       if param_str == "require" {
         let dep = Box::new(ConstDependency::new(
           range.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
+          parser
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            .into(),
           Some(RuntimeGlobals::REQUIRE),
         ));
         parser.add_presentational_dependency(dep);
@@ -305,7 +310,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
-    let source_map: SharedSourceMap = parser.source_map.clone();
+    let source_map: SharedSourceMap = parser.source_rope().clone();
     let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map));
 
     if call_expr.args.len() == 1 {
@@ -346,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
-          parser.source_file,
+          parser.source.to_owned(),
           call_expr.span.into(),
         );
         error.severity = Severity::Warning;

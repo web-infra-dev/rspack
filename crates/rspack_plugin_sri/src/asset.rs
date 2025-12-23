@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
-  CompilationProcessAssets, CrossOriginLoading,
+  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
 };
@@ -60,11 +60,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     let results = chunks
       .into_par_iter()
       .flat_map(|c| {
-        let mut files = c
-          .files()
-          .iter()
-          .map(|f| (c.id(&compilation.chunk_ids_artifact), f))
-          .collect::<Vec<_>>();
+        let mut files = c.files().iter().map(|f| (c.id(), f)).collect::<Vec<_>>();
         files.sort_by(|a, b| {
           let a_file = a.1.split("?").next().expect("should have a file name");
           let b_file = b.1.split("?").next().expect("should have a file name");
@@ -79,10 +75,15 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
         files
       })
       .map(|(chunk_id, file)| {
-        if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source()) {
+        if let Some((source, asset_type)) = compilation
+          .assets()
+          .get(file)
+          .and_then(|a| a.get_source().map(|s| (s, a.get_info().asset_type)))
+        {
           process_chunk_source(
             file,
             source.clone(),
+            asset_type,
             chunk_id,
             hash_funcs,
             &hash_by_placeholders,
@@ -155,6 +156,7 @@ Use [contenthash] and ensure "optimization.realContentHash" option is enabled."#
 fn process_chunk_source(
   file: &str,
   source: Arc<dyn Source>,
+  asset_type: ManifestAssetType,
   chunk_id: Option<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   hash_by_placeholders: &HashMap<String, String>,
@@ -181,7 +183,7 @@ fn process_chunk_source(
 
   // compute self integrity and placeholder
   let integrity = compute_integrity(hash_funcs, new_source.source().into_string_lossy().as_ref());
-  let placeholder = chunk_id.map(|id| make_placeholder(hash_funcs, id.as_str()));
+  let placeholder = chunk_id.map(|id| make_placeholder(asset_type, hash_funcs, id.as_str()));
 
   ProcessChunkResult {
     file: file.to_string(),

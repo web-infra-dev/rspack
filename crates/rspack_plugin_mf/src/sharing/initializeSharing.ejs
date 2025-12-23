@@ -1,0 +1,67 @@
+var initPromises = {};
+var initTokens = {};
+<%- INITIALIZE_SHARING %> = function(name, initScope) {
+	if (!initScope) initScope = [];
+	// handling circular init calls
+	var initToken = initTokens[name];
+	if (!initToken) initToken = initTokens[name] = {};
+	if (initScope.indexOf(initToken) >= 0) return;
+	initScope.push(initToken);
+	// only runs once
+	if (initPromises[name]) return initPromises[name];
+	// creates a new share scope if needed
+	if (!<%- HAS_OWN_PROPERTY %>(<%- SHARE_SCOPE_MAP %>, name))
+		<%- SHARE_SCOPE_MAP %>[name] = {};
+	// runs all init snippets from all modules reachable
+	var scope = <%- SHARE_SCOPE_MAP %>[name];
+	var warn = function (msg) {
+		if (typeof console !== "undefined" && console.warn) console.warn(msg);
+	};
+	var uniqueName = <%- REQUIRE %>.initializeSharingData.uniqueName;
+	var register = function (name, version, factory, eager) {
+		var versions = (scope[name] = scope[name] || {});
+		var activeVersion = versions[version];
+		if (
+			!activeVersion ||
+			(!activeVersion.loaded &&
+				(!eager != !activeVersion.eager
+					? eager
+					: uniqueName > activeVersion.from))
+		)
+			versions[version] = { get: factory, from: uniqueName, eager: !!eager };
+	};
+	var initExternal = function (id) {
+		var handleError = function (err) {
+			warn("Initialization of sharing external failed: " + err);
+		};
+		try {
+			var module = <%- REQUIRE %>(id);
+			if (!module) return;
+			var initFn = function (module) {
+				return (
+					module &&
+					module.init &&
+					module.init(<%- SHARE_SCOPE_MAP %>[name], initScope)
+				);
+			};
+			if (module.then) return promises.push(module.then(initFn, handleError));
+			var initResult = initFn(module);
+			if (initResult && initResult.then)
+				return promises.push(initResult["catch"](handleError));
+		} catch (err) {
+			handleError(err);
+		}
+	};
+	var promises = [];
+	var scopeToSharingDataMapping = <%- REQUIRE %>.initializeSharingData.scopeToSharingDataMapping;
+	if (scopeToSharingDataMapping[name]) {
+		scopeToSharingDataMapping[name].forEach(function (stage) {
+			if (typeof stage === "object") register(stage.name, stage.version, stage.factory, stage.eager);
+			else initExternal(stage)
+		});
+	}
+	if (!promises.length) return (initPromises[name] = 1);
+	return (initPromises[name] = Promise.all(promises).then(function () {
+		return (initPromises[name] = 1);
+	}));
+};

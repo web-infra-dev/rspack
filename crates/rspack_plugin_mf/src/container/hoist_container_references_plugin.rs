@@ -250,7 +250,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           compilation.named_chunks.remove(name);
         }
         // Record mutation
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk });
         }
       }

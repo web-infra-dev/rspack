@@ -93,7 +93,7 @@ it("should remove the module if all enum members are inlined and side effects fr
     })
   } else {
     inlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(false);
+      expect(generated.includes(`"${m}"(`)).toBe(false);
     })
   }
 })
@@ -106,7 +106,7 @@ it("should keep the module if all enum members are inlined but have side effects
     })
   } else {
     inlinedSideEffectsNotFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })
@@ -119,7 +119,7 @@ it("should keep the module if part of the enum members are inlined and side effe
     })
   } else {
     partialInlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })

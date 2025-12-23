@@ -2,18 +2,16 @@ use std::{
   borrow::Cow,
   cmp::Ordering,
   hash::{Hash, Hasher},
-  sync::LazyLock,
 };
 
 use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use regex::Regex;
-use rspack_collections::{DatabaseItem, UkeyMap};
+use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
+  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -179,21 +177,15 @@ pub fn assign_ascending_module_ids(
 
 pub fn compare_modules_by_pre_order_index_or_identifier(
   module_graph: &ModuleGraph,
-  a: &BoxModule,
-  b: &BoxModule,
-) -> Ordering {
-  let cmp = compare_numbers(
-    module_graph
-      .get_pre_order_index(&a.identifier())
-      .unwrap_or_default(),
-    module_graph
-      .get_pre_order_index(&b.identifier())
-      .unwrap_or_default(),
-  );
-  if cmp == Ordering::Equal {
-    compare_ids(&a.identifier(), &b.identifier())
+  a: &Identifier,
+  b: &Identifier,
+) -> std::cmp::Ordering {
+  if let Some(a) = module_graph.get_pre_order_index(a)
+    && let Some(b) = module_graph.get_pre_order_index(b)
+  {
+    compare_numbers(a, b)
   } else {
-    cmp
+    compare_ids(a, b)
   }
 }
 
@@ -204,7 +196,15 @@ pub fn get_short_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  named_chunk_ids_artifact: &ChunkNamedIdArtifact,
 ) -> String {
+  if let Some(name) = named_chunk_ids_artifact
+    .chunk_short_names
+    .get(&chunk.ukey())
+  {
+    return name.clone();
+  }
+
   let modules = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
@@ -254,7 +254,12 @@ pub fn get_long_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  named_chunk_ids_artifact: &ChunkNamedIdArtifact,
 ) -> String {
+  if let Some(name) = named_chunk_ids_artifact.chunk_long_names.get(&chunk.ukey()) {
+    return name.clone();
+  }
+
   let modules = chunk_graph
     .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
     .iter()
@@ -307,21 +312,12 @@ pub fn get_full_chunk_name(
   full_module_names.join(",")
 }
 
-static REGEX1: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
-static REGEX2: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
-
-pub fn request_to_id(request: &str) -> String {
-  REGEX2
-    .replace_all(&REGEX1.replace(request, ""), "_")
-    .to_string()
-}
+pub use rspack_util::identifier::request_to_id;
 
 pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
   let mut used_ids = FxHashSet::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    if let Some(id) = chunk.id(&compilation.chunk_ids_artifact) {
+    if let Some(id) = chunk.id() {
       used_ids.insert(id.to_string());
     }
   }
@@ -335,19 +331,19 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   if !used_ids.is_empty() {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
+      if chunk.id().is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }
   } else {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
-        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
+      if chunk.id().is_none() {
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }

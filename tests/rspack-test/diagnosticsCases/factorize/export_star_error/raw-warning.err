@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 4:1-28,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/export_star_error/bar.js,
+    moduleName: ./bar.js,
+  },
+]

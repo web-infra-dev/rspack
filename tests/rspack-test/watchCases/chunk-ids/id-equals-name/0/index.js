@@ -17,7 +17,6 @@ it("should have correct log when incremental enabled", async () => {
   const incrementalLog = /LOG from rspack\.incremental\.chunkIds[\s\S]*?LOG/.exec(statsString);
   if (incrementalLog) {
     const content = incrementalLog[0];
-    expect(content.includes("3 chunks are affected, 3 in total")).toBe(true);
     expect(content.includes("3 chunks are updated by set_chunk_id, with 2 chunks using name as id, and 0 unnamed chunks")).toBe(true);
   }
 });

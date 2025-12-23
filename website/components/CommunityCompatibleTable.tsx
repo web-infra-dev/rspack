@@ -1,9 +1,9 @@
 import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import Markdown from 'markdown-to-jsx';
 import type React from 'react';
 import * as i18n from './i18n';
-import S from './PluginSupportStatusTable.module.scss';
 
 export enum CompatibleStatus {
   NotCompatible = 0,
@@ -379,7 +379,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
   return (
     <Table
-      className={S.PluginSupportStatusTable}
       header={[
         {
           name: lang === 'zh' ? '插件' : 'Plugin',
@@ -404,11 +403,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
           return {
-            name: (
-              <a href={url} target="_blank" rel="noreferrer">
-                {name}
-              </a>
-            ),
+            name: <Link href={url}>{name}</Link>,
             status: statusText,
             notes: getNotesText(lang, description, status),
           };

@@ -4,11 +4,12 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeGlobals, RuntimeVariable, SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -155,18 +156,12 @@ impl AssignLibraryPlugin {
           .get_path(
             &Filename::from(v),
             PathData::default()
-              .chunk_id_optional(
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| id.as_str()),
-              )
+              .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
                 compilation.options.output.hash_digest_length,
               ))
-              .chunk_name_optional(
-                chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-              )
+              .chunk_name_optional(chunk.name_for_filename_template())
               .content_hash_optional(chunk.rendered_content_hash_by_source_type(
                 &compilation.chunk_hashes_artifact,
                 &SourceType::JavaScript,
@@ -263,12 +258,18 @@ async fn render_startup(
     .export
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
     let exports_info =
       module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
+    let exports_name = compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::Exports);
     for (_, export_info) in exports_info.exports() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
@@ -277,29 +278,30 @@ async fn render_startup(
       provided.push(export_info_name.clone());
       let name_access = property_access([export_info_name], 0);
       source.add(RawStringSource::from(format!(
-        "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n"
+        "{export_target}{name_access} = {exports_name}{export_access}{name_access};\n"
       )));
     }
 
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) {{\n"
+      "for(var __rspack_i in {exports}) {{\n"
     )));
     let has_provided = !provided.is_empty();
     if has_provided {
       source.add(RawStringSource::from(format!(
-        "  if({}.indexOf(__webpack_i__) === -1) {{\n",
+        "  if({}.indexOf(__rspack_i) === -1) {{\n",
         serde_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
-      "{}  {export_target}[__webpack_i__] = {exports}[__webpack_i__];\n",
+      "{}  {export_target}[__rspack_i] = {exports}[__rspack_i];\n",
       match has_provided {
         true => "  ",
         false => "",
@@ -316,26 +318,28 @@ async fn render_startup(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
   } else if self.is_copy(&options) {
+    let exports_assign = "__rspack_exports_target";
     source.add(RawStringSource::from(format!(
-      "var __webpack_export_target__ = {};\n",
+      "var {exports_assign} = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) __webpack_export_target__[__webpack_i__] = {exports}[__webpack_i__];\n"
+      "for(var __rspack_i in {exports}) {exports_assign}[__rspack_i] = {exports}[__rspack_i];\n"
     )));
     source.add(RawStringSource::from(format!(
-      "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
+      "if({exports}.__esModule) Object.defineProperty({exports_assign}, '__esModule', {{ value: true }});\n"
     )));
   } else {
     source.add(RawStringSource::from(format!(
-      "{} = __webpack_exports__{export_access};\n",
+      "{} = {exports_name}{export_access};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), false)
     )));
   }
@@ -429,7 +433,11 @@ async fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -468,7 +476,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph =
+      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
     if let Some(export) = export {
       let export_info = module_graph
         .get_exports_info(&module_identifier)

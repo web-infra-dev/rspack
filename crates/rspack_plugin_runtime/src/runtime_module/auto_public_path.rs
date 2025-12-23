@@ -1,8 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
-  impl_runtime_module,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeModule, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -12,9 +11,15 @@ pub struct AutoPublicPathRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for AutoPublicPathRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/auto_public_path"), None)
+impl AutoPublicPathRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}auto_public_path",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
   }
 }
 
@@ -51,16 +56,12 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .get_path(
         &filename,
         PathData::default()
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,
           ))
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
@@ -85,22 +86,14 @@ fn auto_public_path_template(
 ) -> rspack_error::Result<String> {
   let output_path = output.path.as_str().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
-  let assign = if undo_path.is_empty() {
-    format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)
-  } else {
-    format!(
-      "{} = scriptUrl + '{undo_path}'",
-      RuntimeGlobals::PUBLIC_PATH
-    )
-  };
   let import_meta_name = output.import_meta_name.clone();
 
   runtime_template.render(
     id,
     Some(serde_json::json!({
-      "script_type": output.script_type,
-      "import_meta_name": import_meta_name,
-      "assign": assign
+      "_script_type": output.script_type,
+      "_import_meta_name": import_meta_name,
+      "_undo_path": undo_path
     })),
   )
 }

@@ -13,7 +13,6 @@ mod factorize_info;
 mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
-mod runtime_template;
 mod static_exports_dependency;
 
 use std::sync::Arc;
@@ -35,7 +34,6 @@ pub use module_dependency::*;
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
-pub use runtime_template::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
@@ -229,14 +227,6 @@ pub enum ImportPhase {
 }
 
 impl ImportPhase {
-  pub fn is_evaluation(&self) -> bool {
-    matches!(self, ImportPhase::Evaluation)
-  }
-
-  pub fn is_source(&self) -> bool {
-    matches!(self, ImportPhase::Source)
-  }
-
   pub fn is_defer(&self) -> bool {
     matches!(self, ImportPhase::Defer)
   }

@@ -387,7 +387,7 @@ impl CodeSplitter {
       &mut compilation.chunk_by_ukey,
       &mut compilation.named_chunks,
     );
-    if created && let Some(mutations) = compilation.incremental.mutations_write() {
+    if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
     }
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -640,7 +640,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );
-          if created && let Some(mutations) = compilation.incremental.mutations_write() {
+          if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
           }
           self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
@@ -707,7 +707,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
+        compilation
+          .get_seal_module_graph_mut()
+          .set_depth_if_lower(&k, v);
       }
     }
 
@@ -1163,7 +1165,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let mut module_graph = compilation.get_module_graph_mut();
+      let mut module_graph = compilation.get_seal_module_graph_mut();
       let module = module_graph
         .module_graph_module_by_identifier_mut(&item.module)
         .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
@@ -1208,7 +1210,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let module = module_graph
       .module_graph_module_by_identifier_mut(&item.module)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
@@ -1427,6 +1429,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       cgi.ukey
+    } else if !item_chunk_group_info.async_chunks || !item_chunk_group_info.chunk_loading {
+      self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
+        block: block_id.into(),
+        module: module_id,
+        chunk_group_info: item_chunk_group_info.ukey,
+        chunk: item_chunk_ukey,
+      }));
+      return;
     } else {
       let chunk_ukey = if let Some(chunk_name) = compilation
         .get_module_graph()
@@ -1440,13 +1450,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
-        if created && let Some(mutations) = compilation.incremental.mutations_write() {
+        if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey
       } else {
         let chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
         }
         chunk_ukey
@@ -1547,14 +1557,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             chunk: chunk_ukey,
           }));
         cgi.ukey
-      } else if !item_chunk_group_info.async_chunks || !item_chunk_group_info.chunk_loading {
-        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
-          block: block_id.into(),
-          module: module_id,
-          chunk_group_info: item_chunk_group_info.ukey,
-          chunk: item_chunk_ukey,
-        }));
-        return;
       } else {
         let cgi = if let Some(chunk_name) = chunk_name
           && let Some(cgi) = self.named_chunk_groups.get(chunk_name)
@@ -2045,14 +2047,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let mut connection_map =
           IndexMap::<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>::default();
 
-        for dep_id in mg.get_outgoing_deps_in_order(module) {
-          let dep = mg.dependency_by_id(dep_id).expect("should have dep");
-          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
-            continue;
-          }
-          if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
-            continue;
-          }
+        let mut deps = mg
+          .get_outgoing_deps_in_order(module)
+          .filter_map(|dep_id| mg.dependency_by_id(dep_id))
+          .filter(|dep| {
+            dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
+          })
+          .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
+          .collect::<Vec<_>>();
+        deps.sort_by_key(|a| a.source_order());
+
+        for dep in deps {
+          let dep_id = dep.id();
+
           // Dependency created but no module is available.
           // This could happen when module factorization is failed, but `options.bail` set to `false`
           let Some(module_identifier) = mg.module_identifier_by_dependency_id(dep_id) else {
@@ -2063,6 +2070,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           } else {
             (*module).into()
           };
+
           connection_map
             .entry((block_id, *module_identifier))
             .and_modify(|e| e.push(*dep_id))

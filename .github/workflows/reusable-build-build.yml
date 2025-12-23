@@ -35,7 +35,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -44,9 +44,9 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         shell: bash # Use bash for curl and unzip commands
         run: |
-          curl -L https://github.com/facebook/zstd/releases/download/v1.5.5/zstd-v1.5.5-win64.zip --output zstd.zip
+          curl -L https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-v1.5.7-win64.zip --output zstd.zip
           unzip zstd.zip
-          mv zstd-v1.5.5-win64/zstd.exe C:/Windows/System32/
+          mv zstd-v1.5.7-win64/zstd.exe C:/Windows/System32/
           # Verify installation
           zstd --version
 

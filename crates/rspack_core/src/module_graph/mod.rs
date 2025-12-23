@@ -11,9 +11,9 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
-  Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact,
-  RuntimeSpec, UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
+  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -424,7 +424,7 @@ impl<'a> ModuleGraph<'a> {
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let mut module_graph = compilation.get_module_graph_mut();
+    let mut module_graph = compilation.get_seal_module_graph_mut();
     let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");
@@ -444,8 +444,10 @@ impl<'a> ModuleGraph<'a> {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async = ModuleGraph::is_async(compilation, source_module);
-    ModuleGraph::set_async(compilation, *target_module, is_async);
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), source_module);
+    let mut async_modules_artifact = compilation.async_modules_artifact.borrow_mut();
+    ModuleGraph::set_async(&mut async_modules_artifact, *target_module, is_async);
   }
 
   pub fn move_module_connections(
@@ -583,13 +585,6 @@ impl<'a> ModuleGraph<'a> {
       .and_then(|mgm| mgm.depth)
   }
 
-  pub fn set_depth(&mut self, module_id: ModuleIdentifier, depth: usize) {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(&module_id)
-      .expect("should have module graph module");
-    mgm.depth = Some(depth);
-  }
-
   pub fn set_depth_if_lower(&mut self, module_id: &ModuleIdentifier, depth: usize) -> bool {
     let mgm = self
       .module_graph_module_by_identifier_mut(module_id)
@@ -673,22 +668,6 @@ impl<'a> ModuleGraph<'a> {
       .loop_partials(|p| p.blocks.get(block_id))?
       .as_ref()
       .map(|b| &**b)
-  }
-
-  pub fn block_by_id_mut(
-    &mut self,
-    block_id: &AsyncDependenciesBlockIdentifier,
-  ) -> Option<&mut Box<AsyncDependenciesBlock>> {
-    self
-      .loop_partials_mut(
-        |p| p.blocks.contains_key(block_id),
-        |p, search_result| {
-          p.blocks.insert(*block_id, search_result);
-        },
-        |p| p.blocks.get(block_id).cloned(),
-        |p| p.blocks.get_mut(block_id),
-      )?
-      .as_mut()
   }
 
   pub fn block_by_id_expect(
@@ -1017,8 +996,11 @@ impl<'a> ModuleGraph<'a> {
     has_connections
   }
 
-  pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules_artifact.contains(module_id)
+  pub fn is_async(
+    async_modules_artifact: &AsyncModulesArtifact,
+    module_id: &ModuleIdentifier,
+  ) -> bool {
+    async_modules_artifact.contains(module_id)
   }
 
   pub fn is_deferred(
@@ -1037,18 +1019,18 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn set_async(
-    compilation: &mut Compilation,
+    async_modules_artifact: &mut AsyncModulesArtifact,
     module_id: ModuleIdentifier,
     is_async: bool,
   ) -> bool {
-    let original = Self::is_async(compilation, &module_id);
+    let original = Self::is_async(async_modules_artifact, &module_id);
     if original == is_async {
       return false;
     }
     if original {
-      compilation.async_modules_artifact.remove(&module_id)
+      async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules_artifact.insert(module_id)
+      async_modules_artifact.insert(module_id)
     }
   }
 

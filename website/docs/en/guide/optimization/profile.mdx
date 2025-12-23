@@ -32,7 +32,7 @@ Here are some common cases:
 
 [babel-loader](https://github.com/babel/babel-loader) compiles JavaScript and TypeScript code using Babel. You can replace Babel with the faster SWC. Rspack comes with a built-in [builtin:swc-loader](/guide/features/builtin-swc-loader), which is the Rust version of `swc-loader` and is intended to provide better performance.
 
-If you need to use some Babel plugins for custom transformations, configure babel-loader with [Rule.include](/config/module#ruleinclude) to match as few files as possible to reduce the Babel compilation overhead.
+If you need to use some Babel plugins for custom transformations, configure babel-loader with [rules[].include](/config/module-rules#rulesinclude) to match as few files as possible to reduce the Babel compilation overhead.
 
 ### postcss-loader
 
@@ -54,7 +54,7 @@ If you need to use some Babel plugins for custom transformations, configure babe
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
 
-## Thread pool size
+## Blocking thread pool size
 
 Rspack internally uses a dedicated thread pool to handle blocking operations such as file system reads and writes, preventing the main thread from being blocked.
 
@@ -70,3 +70,16 @@ cross-env RSPACK_BLOCKING_THREADS=8 rspack build
 After setting the variable, observe the build time to find the most suitable configuration.
 
 On slower or high-latency file systems, it's recommended to keep the default value or even lower it to avoid thread contention.
+
+## Working thread pool size
+
+Rspack internally uses a Tokio thread pool and Rayon thread pool to handle CPU bound tasks (Tokio for async tasks and Rayon for sync tasks). By default, Tokio and Rayon automatically determines the number of worker threads based on the number of CPU cores available.
+
+If it consumes too much CPU resources during the build process, you can limit the number of worker threads by setting the `TOKIO_WORKER_THREADS` and `RAYON_NUM_THREADS` environment variable, for example:
+
+```bash
+# Need to install cross-env package to set environment variables
+cross-env TOKIO_WORKER_THREADS=4 RAYON_NUM_THREADS=4 rspack build
+```
+
+Be aware that setting this value too low may lead to longer build times. After setting the variable, observe the build time to find the most suitable configuration.

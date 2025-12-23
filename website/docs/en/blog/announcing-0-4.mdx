@@ -21,7 +21,7 @@ Rspack no longer supports Node.js 14, Node.js 16+ is now required.
 
 `experiments.rspackFuture.disableTransformByDefault` is enabled by default in v0.4.0. For people that still need the legacy behavior, you may manually set this option to `false`.
 
-This feature primarily addresses three categories of problems: [builtins](https://v0.rspack.rs/config/builtins) code transformation features, [target](/config/target), and custom [Rule.type](/config/module#ruletype).
+This feature primarily addresses three categories of problems: [builtins](https://v0.rspack.rs/config/builtins) code transformation features, [target](/config/target), and custom [rules[].type](/config/module-rules#rulestype).
 
 1. Removal of support for some [builtins](https://v0.rspack.rs/config/builtins) features:
 
@@ -96,7 +96,7 @@ export default {
 };
 ```
 
-3. Removed non-webpack compatible [Rule.type](/config/module#ruletype)
+3. Removed non-webpack compatible [rules[].type](/config/module-rules#rulestype)
 
 These types have been removed:
 
@@ -124,7 +124,6 @@ With `experiments.rspackFuture.disableTransformByDefault` is enabled by default 
 const isDev = process.env.NODE_ENV === 'development';
 
 export default {
-  // ...
   mode: isDev ? 'development' : 'production',
   module: {
     rules: [

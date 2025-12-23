@@ -23,12 +23,10 @@ it("should have correct log when incremental enabled", async () => {
     const content = incrementalLog[0];
     switch (WATCH_STEP) {
       case "0":
-        expect(content.includes("6 chunks are affected, 6 in total")).toBe(true);
-        expect(content.includes("6 chunks are updated by set_chunk_id, with 1 chunks using name as id, and 0 unnamed chunks")).toBe(true);
+        expect(content).toContain("6 chunks are updated by set_chunk_id, with 1 chunks using name as id, and 0 unnamed chunks");
         break;
       case "1":
-        expect(content.includes("2 chunks are affected, 6 in total")).toBe(true);
-        expect(content.includes("2 chunks are updated by set_chunk_id, with 0 chunks using name as id, and 0 unnamed chunks")).toBe(true);
+        expect(content).toContain("2 chunks are updated by set_chunk_id, with 1 chunks using name as id, and 0 unnamed chunks");
         break;
     }
   }

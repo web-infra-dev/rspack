@@ -163,14 +163,15 @@ struct MockFlagPos {
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut files = vec![];
+  let mut files = Vec::with_capacity(compilation.chunk_by_ukey.len());
 
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       files.push(file.clone());
     }
   }
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE)_(.*?):(.*?) \*\/")
+
+  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
     .expect("should initialize `Regex`");
 
   for file in files {

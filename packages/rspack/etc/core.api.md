@@ -33,7 +33,7 @@ import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
 import { HookMap } from '@rspack/lite-tapable';
-import type http from 'http';
+import type * as http from 'node:http';
 import { IncomingMessage } from 'http';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -60,7 +60,7 @@ import type { JsStatsError } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Module } from '@rspack/binding';
 import type { ModuleGraphConnection } from '@rspack/binding';
-import type net from 'net';
+import type * as net from 'node:net';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
@@ -86,14 +86,14 @@ import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
-import type stream from 'stream';
+import type * as stream from 'node:stream';
 import { sync } from '@rspack/binding';
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import type { TransformOutput } from '@rspack/binding';
 import { Url } from 'url';
-import type url from 'url';
+import type * as url from 'node:url';
 
 // @public (undocumented)
 type Accessibility = "public" | "protected" | "private";
@@ -868,9 +868,14 @@ export class Compilation {
     // (undocumented)
     buildDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     get builtModules(): ReadonlySet<Module>;
@@ -891,9 +896,14 @@ export class Compilation {
     // (undocumented)
     contextDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     createChildCompiler(name: string, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
@@ -917,9 +927,14 @@ export class Compilation {
     // (undocumented)
     fileDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     fileSystemInfo: {
@@ -1002,9 +1017,14 @@ export class Compilation {
     // (undocumented)
     missingDependencies: {
         [Symbol.iterator](): Generator<string, void, unknown>;
-        has(dep: string): boolean;
+        has: (dep: string) => boolean;
         add: (dep: string) => void;
         addAll: (deps: Iterable<string>) => void;
+        delete: (dep: string) => boolean;
+        keys(): SetIterator<string>;
+        values(): SetIterator<string>;
+        entries(): SetIterator<[string, string]>;
+        readonly size: number;
     };
     // (undocumented)
     moduleGraph: ModuleGraph;
@@ -2118,7 +2138,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2148,7 +2168,7 @@ export class EntryOptionPlugin {
     // (undocumented)
     static applyEntryOption(compiler: Compiler, context: string, entry: EntryNormalized): void;
     // (undocumented)
-    static entryDescriptionToOptions(compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
+    static entryDescriptionToOptions(_compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
 }
 
 // @public
@@ -2221,6 +2241,7 @@ export type Environment = {
     dynamicImportInWorker?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
+    methodShorthand?: boolean;
     module?: boolean;
     nodePrefixForCoreModules?: boolean;
     optionalChaining?: boolean;
@@ -2348,7 +2369,7 @@ interface ExecuteModuleArgument {
 // @public (undocumented)
 interface ExecuteModuleContext {
     // (undocumented)
-    __webpack_require__: (id: string) => any;
+    [key: string]: (id: string) => any;
 }
 
 // @public (undocumented)
@@ -2397,7 +2418,6 @@ export type Experiments = {
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
-    parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
@@ -2427,7 +2447,7 @@ interface Experiments_2 {
         register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
@@ -2444,7 +2464,7 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // (undocumented)
+    // @deprecated (undocumented)
     SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
@@ -2473,13 +2493,13 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineConst?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     inlineEnum?: boolean;
     // @deprecated (undocumented)
     layers?: boolean;
-    // (undocumented)
+    // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // @deprecated (undocumented)
     lazyCompilation?: false | LazyCompilationOptions;
@@ -2487,8 +2507,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // @deprecated (undocumented)
-    parallelCodeSplitting?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
     // (undocumented)
@@ -3528,7 +3546,6 @@ export type JavascriptParserOptions = {
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    inlineConst?: boolean;
     typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
     jsx?: boolean;
     deferImport?: boolean;
@@ -4246,8 +4263,8 @@ interface LabeledStatement extends Node_4, HasSpan {
 // @public
 export type Layer = string | null;
 
-// @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
+// @public
+export const lazyCompilationMiddleware: (compiler: Compiler | MultiCompiler) => MiddlewareHandler;
 
 // @public
 export type LazyCompilationOptions = {
@@ -4509,7 +4526,9 @@ class LoaderObject {
     // (undocumented)
     options?: string | object;
     // (undocumented)
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     // (undocumented)
     path: string;
     // (undocumented)
@@ -5380,6 +5399,7 @@ export type Optimization = {
     innerGraph?: boolean;
     usedExports?: "global" | boolean;
     mangleExports?: "size" | "deterministic" | boolean;
+    inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
     avoidEntryIife?: boolean;
@@ -6312,9 +6332,9 @@ type ResolveOptionsWithDependencyType = Resolve & {
 class Resolver {
     constructor(binding: binding.JsResolver);
     // (undocumented)
-    resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
+    resolve(_context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
-    resolveSync(context: object, path: string, request: string): string | false;
+    resolveSync(_context: object, path: string, request: string): string | false;
 }
 
 // @public (undocumented)
@@ -6589,7 +6609,9 @@ declare namespace rspackExports {
         LoaderTargetPlugin,
         OutputFileSystem,
         WatchFileSystem,
+        SubresourceIntegrityPlugin,
         web,
+        lazyCompilationMiddleware,
         node,
         electron,
         library,
@@ -7048,7 +7070,9 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 export type RuleSetLoaderWithOptions = {
     ident?: string;
     loader: RuleSetLoader;
-    parallel?: boolean;
+    parallel?: boolean | {
+        maxWorkers?: number;
+    };
     options?: RuleSetLoaderOptions;
 };
 
@@ -7110,81 +7134,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: {
-    readonly require: "__webpack_require__";
-    readonly requireScope: "__webpack_require__.*";
-    readonly exports: "__webpack_exports__";
-    readonly thisAsExports: "top-level-this-exports";
-    readonly returnExportsFromRuntime: "return-exports-from-runtime";
-    readonly module: "module";
-    readonly moduleId: "module.id";
-    readonly moduleLoaded: "module.loaded";
-    readonly publicPath: "__webpack_require__.p";
-    readonly entryModuleId: "__webpack_require__.s";
-    readonly moduleCache: "__webpack_require__.c";
-    readonly moduleFactories: "__webpack_require__.m";
-    readonly moduleFactoriesAddOnly: "__webpack_require__.m (add only)";
-    readonly ensureChunk: "__webpack_require__.e";
-    readonly ensureChunkHandlers: "__webpack_require__.f";
-    readonly ensureChunkIncludeEntries: "__webpack_require__.f (include entries)";
-    readonly prefetchChunk: "__webpack_require__.E";
-    readonly prefetchChunkHandlers: "__webpack_require__.F";
-    readonly preloadChunk: "__webpack_require__.G";
-    readonly preloadChunkHandlers: "__webpack_require__.H";
-    readonly definePropertyGetters: "__webpack_require__.d";
-    readonly makeNamespaceObject: "__webpack_require__.r";
-    readonly createFakeNamespaceObject: "__webpack_require__.t";
-    readonly compatGetDefaultExport: "__webpack_require__.n";
-    readonly harmonyModuleDecorator: "__webpack_require__.hmd";
-    readonly nodeModuleDecorator: "__webpack_require__.nmd";
-    readonly getFullHash: "__webpack_require__.h";
-    readonly wasmInstances: "__webpack_require__.w";
-    readonly instantiateWasm: "__webpack_require__.v";
-    readonly uncaughtErrorHandler: "__webpack_require__.oe";
-    readonly scriptNonce: "__webpack_require__.nc";
-    readonly loadScript: "__webpack_require__.l";
-    readonly createScript: "__webpack_require__.ts";
-    readonly createScriptUrl: "__webpack_require__.tu";
-    readonly getTrustedTypesPolicy: "__webpack_require__.tt";
-    readonly hasFetchPriority: "has fetch priority";
-    readonly chunkName: "__webpack_require__.cn";
-    readonly runtimeId: "__webpack_require__.j";
-    readonly getChunkScriptFilename: "__webpack_require__.u";
-    readonly getChunkCssFilename: "__webpack_require__.k";
-    readonly hasCssModules: "has css modules";
-    readonly getChunkUpdateScriptFilename: "__webpack_require__.hu";
-    readonly getChunkUpdateCssFilename: "__webpack_require__.hk";
-    readonly startup: "__webpack_require__.x";
-    readonly startupNoDefault: "__webpack_require__.x (no default handler)";
-    readonly startupOnlyAfter: "__webpack_require__.x (only after)";
-    readonly startupOnlyBefore: "__webpack_require__.x (only before)";
-    readonly chunkCallback: "webpackChunk";
-    readonly startupEntrypoint: "__webpack_require__.X";
-    readonly onChunksLoaded: "__webpack_require__.O";
-    readonly externalInstallChunk: "__webpack_require__.C";
-    readonly interceptModuleExecution: "__webpack_require__.i";
-    readonly global: "__webpack_require__.g";
-    readonly shareScopeMap: "__webpack_require__.S";
-    readonly initializeSharing: "__webpack_require__.I";
-    readonly currentRemoteGetScope: "__webpack_require__.R";
-    readonly getUpdateManifestFilename: "__webpack_require__.hmrF";
-    readonly hmrDownloadManifest: "__webpack_require__.hmrM";
-    readonly hmrDownloadUpdateHandlers: "__webpack_require__.hmrC";
-    readonly hmrModuleData: "__webpack_require__.hmrD";
-    readonly hmrInvalidateModuleHandlers: "__webpack_require__.hmrI";
-    readonly hmrRuntimeStatePrefix: "__webpack_require__.hmrS";
-    readonly amdDefine: "__webpack_require__.amdD";
-    readonly amdOptions: "__webpack_require__.amdO";
-    readonly system: "__webpack_require__.System";
-    readonly hasOwnProperty: "__webpack_require__.o";
-    readonly systemContext: "__webpack_require__.y";
-    readonly baseURI: "__webpack_require__.b";
-    readonly relativeUrl: "__webpack_require__.U";
-    readonly asyncModule: "__webpack_require__.a";
-    readonly asyncModuleExportSymbol: "__webpack_require__.aE";
-    readonly makeDeferredNamespaceObject: "__webpack_require__.z";
-    readonly makeDeferredNamespaceObjectSymbol: "__webpack_require__.zS";
-};
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {
@@ -7246,6 +7196,7 @@ export const RuntimePlugin: typeof RuntimePluginImpl & {
 // @public (undocumented)
 type RuntimePluginHooks = {
     createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    createLink: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
     linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
 };
@@ -7846,7 +7797,7 @@ type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string 
 type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
 
 // @public (undocumented)
-class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
     constructor(options?: SubresourceIntegrityPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
@@ -9374,7 +9325,7 @@ class Watchpack extends EventEmitter {
     // (undocumented)
     aggregatedRemovals: Set<string>;
     // (undocumented)
-    aggregateTimeout: NodeJS.Timer;
+    aggregateTimeout: number;
     close(): void;
     collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
     // (undocumented)

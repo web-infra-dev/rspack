@@ -49,9 +49,9 @@ self["webpackHotUpdate"]("main", {
 (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (() => Promise.resolve(42));
+/* ESM default export */ const __rspack_default_export = (() => Promise.resolve(42));
 
 
 }),

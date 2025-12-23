@@ -10,7 +10,7 @@
 		if (installedChunkData) {
 			promises.push(installedChunkData[2]);
 		} else {
-			if (<%- __CSS_MATCHER__ %>) {
+			if (<%- _css_matcher %>) {
 				// setup Promise in chunk cache
 				var promise = new Promise(function (resolve, reject) {
 					installedChunkData = installedChunks[chunkId] = [resolve, reject];

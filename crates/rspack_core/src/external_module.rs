@@ -19,7 +19,7 @@ use crate::{
   StaticExportsSpec, UsedExports, extract_url_and_global, impl_module_meta_info,
   module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  throw_missing_module_error_block, to_identifier,
+  to_identifier,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -361,7 +361,7 @@ impl ExternalModule {
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n{} __WEBPACK_EXTERNAL_createRequire_require = __WEBPACK_EXTERNAL_createRequire({}.url);\n",
+                "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
                 if need_prefix { "node:module" } else { "module" },
                 if compilation.options.output.environment.supports_const() {
                   "const"
@@ -386,7 +386,7 @@ impl ExternalModule {
             ("undefined".to_string(), String::new())
           };
           format!(
-            "{} = __WEBPACK_EXTERNAL_createRequire_require({}){};",
+            "{} = __rspack_createRequire_require({}){};",
             get_namespace_object_export(concatenation_scope, supports_const),
             request,
             specifiers
@@ -403,12 +403,14 @@ impl ExternalModule {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())
           .expect("should have module id");
-        let external_variable = format!("__WEBPACK_EXTERNAL_MODULE_{}__", to_identifier(id));
+        let external_variable = format!("__rspack_external_{}", to_identifier(id));
         let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&self.user_request)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&self.user_request)
           )
         } else {
           String::new()
@@ -437,7 +439,9 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            throw_missing_module_error_block(&get_request_string(request))
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&get_request_string(request))
           )
         } else {
           String::new()
@@ -552,7 +556,7 @@ impl ExternalModule {
                 chunk_init_fragments.push(
                   NormalInitFragment::new(
                     format!(
-                      "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                      "import * as __rspack_external_{} from {}{};\n",
                       id.clone(),
                       json_stringify(request.primary()),
                       attributes.unwrap_or_default()
@@ -569,7 +573,7 @@ impl ExternalModule {
                   )
                   .boxed(),
                 );
-                let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                let external_module_id = format!("__rspack_external_{id}");
                 let namespace_export_with_name = format!(
                   "{}{}{}",
                   NAMESPACE_OBJECT_EXPORT,
@@ -603,7 +607,7 @@ impl ExternalModule {
                   chunk_init_fragments.push(
                     NormalInitFragment::new(
                       format!(
-                        "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                        "import * as __rspack_external_{} from {}{};\n",
                         id.clone(),
                         json_stringify(request.primary()),
                         attributes.clone().unwrap_or_default()
@@ -620,7 +624,7 @@ impl ExternalModule {
                     )
                     .boxed(),
                   );
-                  let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
+                  let external_module_id = format!("__rspack_external_{id}");
                   let namespace_export_with_name = format!(
                     "{}{}{}",
                     NAMESPACE_OBJECT_EXPORT,
@@ -651,7 +655,7 @@ impl ExternalModule {
             chunk_init_fragments.push(
               NormalInitFragment::new(
                 format!(
-                  "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
+                  "import * as __rspack_external_{} from {}{};\n",
                   id.clone(),
                   json_stringify(request.primary()),
                   {
@@ -678,7 +682,7 @@ impl ExternalModule {
             );
             format!(
               r#"
-{} = __WEBPACK_EXTERNAL_MODULE_{}__;
+{} = __rspack_external_{};
 "#,
               get_namespace_object_export(concatenation_scope, supports_const),
               id.clone()
@@ -698,18 +702,18 @@ impl ExternalModule {
         runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
           r#"
-var __webpack_error__ = new Error();
+var __rspack_error = new Error();
 {export} = new Promise(function(resolve, reject) {{
 if(typeof {global} !== "undefined") return resolve();
 {load_script}({url_str}, function(event) {{
   if(typeof {global} !== "undefined") return resolve();
   var errorType = event && (event.type === 'load' ? 'missing' : event.type);
   var realSrc = event && event.target && event.target.src;
-  __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
-  __webpack_error__.name = 'ScriptExternalLoadError';
-  __webpack_error__.type = errorType;
-  __webpack_error__.request = realSrc;
-  reject(__webpack_error__);
+  __rspack_error.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
+  __rspack_error.name = 'ScriptExternalLoadError';
+  __rspack_error.type = errorType;
+  __rspack_error.request = realSrc;
+  reject(__rspack_error);
 }}, {global_str});
 }}).then(function() {{ return {global}; }});
 "#,
@@ -717,7 +721,9 @@ if(typeof {global} !== "undefined") return resolve();
           global = url_and_global.global,
           global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
           url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
-          load_script = RuntimeGlobals::LOAD_SCRIPT.name()
+          load_script = compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
       _ => {
@@ -730,7 +736,9 @@ if(typeof {global} !== "undefined") return resolve();
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
-            throw_missing_module_error_block(&external_variable)
+            compilation
+              .runtime_template
+              .throw_missing_module_error_block(&external_variable)
           )
         } else {
           String::new()

@@ -92,6 +92,9 @@ export class NodeRunner implements ITestRunner {
 				? file
 				: `./${file}`
 		);
+		if (this.globalContext!.WAITING.length) {
+			return Promise.all(this.globalContext!.WAITING).then(() => res);
+		}
 		if (typeof res === "object" && "then" in res) {
 			return res;
 		}
@@ -162,6 +165,7 @@ export class NodeRunner implements ITestRunner {
 					console.clear();
 				}
 			},
+			WAITING: [],
 			setTimeout: ((
 				cb: (...args: any[]) => void,
 				ms: number | undefined,
@@ -185,6 +189,7 @@ export class NodeRunner implements ITestRunner {
 				});
 				return m;
 			},
+			WAITING: this.globalContext!.WAITING,
 			process,
 			URL,
 			Blob,
@@ -193,6 +198,8 @@ export class NodeRunner implements ITestRunner {
 			setImmediate,
 			self: this.globalContext,
 			__TEST_PATH__: __TEST_PATH__,
+			__TEST_SOURCE_PATH__: this._options.source,
+			__TEST_DIST_PATH__: this._options.dist,
 			__MODE__: this._options.compilerOptions.mode,
 			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			Worker: createFakeWorker(this._options.env, {
@@ -395,6 +402,21 @@ export class NodeRunner implements ITestRunner {
 				if (typeof statsIndex === "number") {
 					currentModuleScope.__STATS_I__ = statsIndex;
 				}
+			}
+			if (file.content.includes("webpack/runtime/startup_chunk_dependencies")) {
+				currentModuleScope.__AFTER_CHUNK_LOADED__ = (next: () => void) => {
+					let done;
+					const task = new Promise(resolve => (done = resolve));
+					currentModuleScope.WAITING.push(task);
+					return () => {
+						next();
+						done!();
+					};
+				};
+				file.content = file.content.replace(
+					"var next = __webpack_require__.x",
+					"var next = __AFTER_CHUNK_LOADED__(__webpack_require__.x)"
+				);
 			}
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);

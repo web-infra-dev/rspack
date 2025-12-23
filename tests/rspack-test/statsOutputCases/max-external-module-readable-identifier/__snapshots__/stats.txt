@@ -1,4 +1,4 @@
-asset main.js 927 bytes [emitted] (name: main)
-./index.js 17 bytes [built] [code generated]
-external "very-very-very-very-long-external-module-readable-identifier-it-should-be-truncated" 42 bytes [built] [code generated]
+asset main.js xx bytes [emitted] (name: main)
+./index.js xx bytes [built] [code generated]
+external "very-very-very-very-long-external-module-readable-identifier-it-should-be-truncated" xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

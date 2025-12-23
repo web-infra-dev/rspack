@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleIdentifier,
-  RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
+  ModuleIdentifier, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -182,12 +182,19 @@ impl ExternalInterop {
 
   pub fn render(&self, compilation: &Compilation) -> ConcatSource {
     let mut source = ConcatSource::default();
-
     let name = self.required_symbol.as_ref();
+
+    let is_async =
+      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), &self.module);
+
     if let Some(name) = name {
       source.add(RawStringSource::from(format!(
-        "const {name} = {}({});\n",
-        RuntimeGlobals::REQUIRE,
+        // this render only happens at top level scope of the chunk
+        "const {name} = {}{}({});\n",
+        if is_async { "await " } else { "" },
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
@@ -200,7 +207,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({}, 2);\n",
           namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -209,7 +218,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           namespace_object,
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -218,7 +229,9 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           default_access,
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name
         )));
 
@@ -237,7 +250,9 @@ impl ExternalInterop {
     } else {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
-        RuntimeGlobals::REQUIRE,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
@@ -260,6 +275,8 @@ pub enum ReExportFrom {
 #[derive(Debug, Clone)]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
+
+  pub decl_before_exports: FxIndexSet<String>,
 
   /**
   specifier order doesn't matter, we can sort them based on name
@@ -343,6 +360,7 @@ impl ChunkLinkContext {
       chunk: chunk_ukey,
       hoisted_modules,
       decl_modules,
+      decl_before_exports: Default::default(),
       exports: Default::default(),
       re_exports: Default::default(),
       imports: Default::default(),
@@ -357,21 +375,6 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       raw_star_exports: Default::default(),
     }
-  }
-
-  pub fn add_export(&mut self, local_name: Atom, export_name: Atom) -> &Atom {
-    let exported = if self.exported_symbols.insert(export_name.clone()) {
-      export_name
-    } else {
-      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
-      self.exported_symbols.insert(new_name.clone());
-      self.used_names.insert(new_name.clone());
-      new_name
-    };
-
-    let set = self.exports.entry(local_name.clone()).or_default();
-    set.insert(exported.clone());
-    set.get(&exported).expect("just inserted")
   }
 
   pub fn add_re_export_from_request(

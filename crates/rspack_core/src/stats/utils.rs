@@ -115,7 +115,7 @@ pub fn get_chunk_relations<'a>(
         if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = compilation.chunk_by_ukey.get(c)
-              && let Some(id) = c.id(&compilation.chunk_ids_artifact)
+              && let Some(id) = c.id()
             {
               parents.insert(id.as_str());
             }
@@ -127,7 +127,7 @@ pub fn get_chunk_relations<'a>(
         if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = compilation.chunk_by_ukey.get(c)
-              && let Some(id) = c.id(&compilation.chunk_ids_artifact)
+              && let Some(id) = c.id()
             {
               children.insert(id.as_str());
             }
@@ -137,8 +137,8 @@ pub fn get_chunk_relations<'a>(
 
       for c in &cg.chunks {
         if let Some(c) = compilation.chunk_by_ukey.get(c)
-          && c.id(&compilation.chunk_ids_artifact) != chunk.id(&compilation.chunk_ids_artifact)
-          && let Some(id) = c.id(&compilation.chunk_ids_artifact)
+          && c.id() != chunk.id()
+          && let Some(id) = c.id()
         {
           siblings.insert(id.as_str());
         }

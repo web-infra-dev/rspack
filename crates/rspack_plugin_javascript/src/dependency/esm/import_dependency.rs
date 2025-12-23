@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced, module_namespace_promise,
+  TemplateReplaceSource, create_exports_object_referenced,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -207,15 +207,18 @@ impl DependencyTemplate for ImportDependencyTemplate {
     source.replace(
       range.start,
       range.end,
-      module_namespace_promise(
-        code_generatable_context,
-        dep.id(),
-        block,
-        dep.request(),
-        dep.dependency_type().as_str(),
-        false,
-      )
-      .as_str(),
+      code_generatable_context
+        .compilation
+        .runtime_template
+        .module_namespace_promise(
+          code_generatable_context,
+          dep.id(),
+          block,
+          dep.request(),
+          dep.dependency_type().as_str(),
+          false,
+        )
+        .as_str(),
       None,
     );
   }

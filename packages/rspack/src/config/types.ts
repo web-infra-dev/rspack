@@ -421,6 +421,9 @@ export type Environment = {
 	/** The environment supports 'globalThis'. */
 	globalThis?: boolean;
 
+	/** The environment supports { fn() {} } */
+	methodShorthand?: boolean;
+
 	/** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
 	module?: boolean;
 
@@ -445,8 +448,15 @@ export type Output = {
 	path?: Path;
 
 	/**
-	 * Tells Rspack to include comments in bundles with information about the contained modules.
-	 * @default true
+	 * Controls whether Rspack adds module-related comments to the generated bundle.
+	 * These comments are useful for debugging, inspecting build output, and understanding
+	 * tree-shaking behavior.
+	 * - `true`: Enables basic comments, including module path information.
+	 * - `false`: Disables all comments, which is the default behavior.
+	 * - `'verbose'`: Outputs detailed comments, such as module exports, runtime details,
+	 * tree-shaking information, and bailout reasons. This mode is helpful when diagnosing
+	 * build issues or performing in-depth bundle analysis.
+	 * @default false
 	 */
 	pathinfo?: Pathinfo;
 
@@ -642,7 +652,13 @@ export type Output = {
 	hashSalt?: HashSalt;
 
 	/**
-	 * Create async chunks that are loaded on demand.
+	 * Controls whether dynamically imported modules are emitted as separate async chunks or bundled into
+	 * existing chunks.
+	 * - `true`: Modules loaded via `import()` are split into independent async chunks. These chunks are
+	 * emitted as separate files and are loaded on demand at runtime. This enables code splitting and keeps
+	 * the initial bundle smaller.
+	 * - `false`: Dynamically imported modules are bundled into existing chunks instead of being emitted as
+	 * separate files. No additional async chunk files are generated.
 	 * @default true
 	 * */
 	asyncChunks?: AsyncChunks;
@@ -872,7 +888,16 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
-	parallel?: boolean;
+	/**
+	 * Controls whether a given loader should run in worker threads for parallel execution. Loaders marked
+	 * with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving
+	 * overall build performance.
+	 * - When set to `true`, the loader runs in a worker. Rspack automatically selects an appropriate number of
+	 * worker threads.
+	 * - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
+	 * - When set to `false` or omitted, the loader runs on the main thread.
+	 */
+	parallel?: boolean | { maxWorkers?: number };
 
 	options?: RuleSetLoaderOptions;
 };
@@ -1159,9 +1184,6 @@ export type JavascriptParserOptions = {
 	 * Enable magic comments for CommonJS require() expressions.
 	 */
 	commonjsMagicComments?: boolean;
-
-	/** Inline const values in this module */
-	inlineConst?: boolean;
 
 	/** Whether to tolerant exportsPresence for type reexport */
 	typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
@@ -2515,6 +2537,14 @@ export type Optimization = {
 	mangleExports?: "size" | "deterministic" | boolean;
 
 	/**
+	 * Allows to inline exports when possible to reduce code size.
+	 *
+	 * The value is `true` in production mode.
+	 * The value is `false` in development mode.
+	 */
+	inlineExports?: boolean;
+
+	/**
 	 * Tells Rspack to set process.env.NODE_ENV to a given string value.
 	 * @default false
 	 */
@@ -2786,11 +2816,6 @@ export type Experiments = {
 	 */
 	incremental?: IncrementalPresets | Incremental;
 	/**
-	 * Enable multi-threaded code splitting algorithm.
-	 * @deprecated This option is deprecated, it has a huge regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead
-	 */
-	parallelCodeSplitting?: boolean;
-	/**
 	 * Enable future default options.
 	 * @default false
 	 */
@@ -2822,21 +2847,25 @@ export type Experiments = {
 	/**
 	 * Enable inline const feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	inlineConst?: boolean;
 	/**
 	 * Enable inline enum feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	inlineEnum?: boolean;
 	/**
 	 * Enable type reexports presence feature
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
 	 */
 	typeReexportsPresence?: boolean;
 	/**
 	 * Enable lazy make side effects free barrel file
 	 * @default false
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
 	 */
 	lazyBarrel?: boolean;
 	/**
@@ -3038,7 +3067,18 @@ export type RspackOptions = {
 	 */
 	loader?: Loader;
 	/**
-	 * Warnings to ignore during compilation.
+	 * Tells Rspack to suppress specific compilation warnings by matching their
+	 * message, module, or file, or by using a custom function.
+	 *
+	 * @example
+	 * ```js
+	 * export default {
+	 *   ignoreWarnings: [
+	 *     /warning from compiler/,
+	 *     { file: /node_modules/ },
+	 *   ],
+	 * };
+	 * ```
 	 */
 	ignoreWarnings?: IgnoreWarnings;
 	/**

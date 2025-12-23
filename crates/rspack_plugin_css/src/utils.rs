@@ -189,43 +189,52 @@ pub fn stringified_exports<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&ident),
-        Some(from_name) => {
-          let from = module
-            .get_dependencies()
-            .iter()
-            .find_map(|id| {
-              let dependency = module_graph.dependency_by_id(id);
-              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-                Some(d.request())
-              } else {
-                dependency
-                  .and_then(|d| d.as_context_dependency())
-                  .map(|d| d.request())
-              };
-              if let Some(request) = request
-                && request == from_name
-              {
-                return module_graph.module_graph_module_by_dependency_id(id);
-              }
-              None
-            })
-            .expect("should have css from module");
+      .map(
+        |CssExport {
+           ident,
+           from,
+           id: _,
+           orig_name: _,
+         }| match from {
+          None => json_stringify(&ident),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                  Some(d.request())
+                } else {
+                  dependency
+                    .and_then(|d| d.as_context_dependency())
+                    .map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-          let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-              .expect("should have module"),
-          )
-          .expect("should json stringify module id");
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-          format!(
-            "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
-            json_stringify(&unescape(ident))
-          )
-        }
-      })
+            let from = serde_json::to_string(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            )
+            .expect("should json stringify module id");
+            runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+            format!(
+              "{}({from})[{}]",
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              json_stringify(&unescape(ident))
+            )
+          }
+        },
+      )
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
     writeln!(
@@ -263,42 +272,51 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&ident),
-        Some(from_name) => {
-          let from = module
-            .get_dependencies()
-            .iter()
-            .find_map(|id| {
-              let dependency = module_graph.dependency_by_id(id);
-              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-                Some(d.request())
-              } else {
-                dependency
-                  .and_then(|d| d.as_context_dependency())
-                  .map(|d| d.request())
-              };
-              if let Some(request) = request
-                && request == from_name
-              {
-                return module_graph.module_graph_module_by_dependency_id(id);
-              }
-              None
-            })
-            .expect("should have css from module");
+      .map(
+        |CssExport {
+           ident,
+           from,
+           id: _,
+           orig_name: _,
+         }| match from {
+          None => json_stringify(&ident),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                  Some(d.request())
+                } else {
+                  dependency
+                    .and_then(|d| d.as_context_dependency())
+                    .map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-          let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-              .expect("should have module"),
-          )
-          .expect("should json stringify module id");
-          format!(
-            "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
-            json_stringify(&ident)
-          )
-        }
-      })
+            let from = serde_json::to_string(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            )
+            .expect("should json stringify module id");
+            format!(
+              "{}({from})[{}]",
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              json_stringify(&ident)
+            )
+          }
+        },
+      )
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
     let mut identifier = to_identifier(key);

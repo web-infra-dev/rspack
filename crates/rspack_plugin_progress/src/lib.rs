@@ -12,15 +12,16 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  BoxModule, Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
-  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
-  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
-  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
-  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, Plugin,
+  AsyncModulesArtifact, BoxModule, Compilation, CompilationAfterOptimizeModules,
+  CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
+  CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies,
+  CompilationOptimizeModules, CompilationOptimizeTree, CompilationParams, CompilationProcessAssets,
+  CompilationSeal, CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation,
+  CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
+  ModuleIdentifier, Plugin, SideEffectsOptimizeArtifact,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use tokio::sync::Mutex;
 
@@ -422,7 +423,11 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
-async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  _compilation: &mut Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }
 
@@ -432,7 +437,12 @@ async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
-async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  _compilation: &mut Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   self.sealing_hooks_report("dependencies", 2).await?;
   Ok(None)
 }

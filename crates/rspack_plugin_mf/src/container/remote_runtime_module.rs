@@ -1,7 +1,7 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
-  RuntimeModuleStage, SourceType, impl_runtime_module,
+  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -18,9 +18,12 @@ pub struct RemoteRuntimeModule {
 }
 
 impl RemoteRuntimeModule {
-  pub fn new(enhanced: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/remotes_loading"),
+      Identifier::from(format!(
+        "{}remotes_loading",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       enhanced,
     )
@@ -35,6 +38,13 @@ impl RuntimeModule for RemoteRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("./remotesLoading.ejs").to_string(),
+    )]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -86,21 +96,32 @@ impl RuntimeModule for RemoteRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk
-          .id(&compilation.chunk_ids_artifact)
+          .id()
           .expect("should have chunkId at <RemoteRuntimeModule as RuntimeModule>::generate"),
         remotes,
       );
     }
+
     let remotes_loading_impl = if self.enhanced {
-      "__webpack_require__.f.remotes = __webpack_require__.f.remotes || function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+      format!(
+        "{ensure_chunk_handlers}.remotes = {ensure_chunk_handlers}.remotes || function() {{ throw new Error(\"should have {ensure_chunk_handlers}.remotes\"); }}",
+        ensure_chunk_handlers = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+      )
     } else {
-      include_str!("./remotesLoading.js")
+      compilation
+        .runtime_template
+        .render(self.id.as_str(), None)?
     };
     Ok(format!(
       r#"
-__webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
+{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
 "#,
+      require_name = compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,

@@ -15,8 +15,10 @@ import { parseOptions } from "./options";
 
 declare const MF_RUNTIME_CODE: string;
 
-export interface ModuleFederationPluginOptions
-	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+export interface ModuleFederationPluginOptions extends Omit<
+	ModuleFederationPluginV1Options,
+	"enhanced"
+> {
 	runtimePlugins?: RuntimePlugins;
 	implementation?: string;
 	shareStrategy?: "version-first" | "loaded-first";
@@ -123,7 +125,7 @@ function collectManifestExposes(
 	type ExposesConfigInput = { import: string | string[]; name?: string };
 	const parsed = parseOptions<ExposesConfigInput, NormalizedExpose>(
 		exposes,
-		(value, key) => ({
+		value => ({
 			import: Array.isArray(value) ? value : [value],
 			name: undefined
 		}),

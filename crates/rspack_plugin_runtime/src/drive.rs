@@ -12,6 +12,12 @@ pub struct CreateScriptData {
 }
 
 #[derive(Debug, Clone)]
+pub struct CreateLinkData {
+  pub code: String,
+  pub chunk: RuntimeModuleChunkWrapper,
+}
+
+#[derive(Debug, Clone)]
 pub struct LinkPreloadData {
   pub code: String,
   pub chunk: RuntimeModuleChunkWrapper,
@@ -33,6 +39,7 @@ pub struct RuntimeModuleChunkWrapper {
 unsafe impl Send for RuntimeModuleChunkWrapper {}
 
 define_hook!(RuntimePluginCreateScript: SeriesWaterfall(data: CreateScriptData) -> CreateScriptData);
+define_hook!(RuntimePluginCreateLink: SeriesWaterfall(data: CreateLinkData) -> CreateLinkData);
 define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(data: LinkPreloadData) -> LinkPreloadData);
 define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
 
@@ -41,6 +48,8 @@ define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) 
 pub struct RuntimePluginHooks {
   #[cfg_attr(allocative, allocative(skip))]
   pub create_script: RuntimePluginCreateScriptHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub create_link: RuntimePluginCreateLinkHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub link_preload: RuntimePluginLinkPreloadHook,
   #[cfg_attr(allocative, allocative(skip))]

@@ -79,7 +79,11 @@ async fn runtime_requirements_in_tree(
       }
       compilation.add_runtime_module(
         chunk_ukey,
-        ImportScriptsChunkLoadingRuntimeModule::new(with_create_script_url).boxed(),
+        ImportScriptsChunkLoadingRuntimeModule::new(
+          &compilation.runtime_template,
+          with_create_script_url,
+        )
+        .boxed(),
       )?;
     }
   }

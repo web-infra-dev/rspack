@@ -142,7 +142,9 @@ impl AMDDefineDependencyParserPlugin {
         if request == "require" {
           identifiers.insert(i, REQUIRE.into());
           deps.push(AMDRequireArrayItem::String(
-            RuntimeGlobals::REQUIRE.name().into(),
+            parser
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           ));
         } else if request == "exports" {
           identifiers.insert(i, EXPORTS.into());
@@ -194,7 +196,10 @@ impl AMDDefineDependencyParserPlugin {
       let dep = if param_str == "require" {
         Box::new(ConstDependency::new(
           range.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
+          parser
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            .into(),
           Some(RuntimeGlobals::REQUIRE),
         ))
       } else if param_str == "exports" {

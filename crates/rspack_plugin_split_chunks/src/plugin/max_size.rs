@@ -7,8 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
@@ -125,18 +124,7 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPLACE_RELATIVE_PREFIX_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
-static REPLACE_ILLEGEL_LETTER_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
-
-fn request_to_id(req: &str) -> String {
-  let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
-  res = REPLACE_ILLEGEL_LETTER_REG
-    .replace_all(&res, "_")
-    .to_string();
-  res
-}
+use rspack_util::identifier::request_to_id;
 
 fn get_too_small_types(
   size: &SplitChunkSizes,
@@ -279,17 +267,22 @@ fn deterministic_grouping_for_modules(
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
 
-  let nodes = items.into_iter().map(|module| {
-    let module: &dyn Module = module.as_ref();
+  let mut nodes = items
+    .into_iter()
+    .map(|module| {
+      let module: &dyn Module = module.as_ref();
 
-    GroupItem {
-      module: module.identifier(),
-      size: get_size(module, compilation),
-      key: get_key(module, delimiter, compilation),
-    }
-  });
+      GroupItem {
+        module: module.identifier(),
+        size: get_size(module, compilation),
+        key: get_key(module, delimiter, compilation),
+      }
+    })
+    .collect::<Vec<_>>();
 
-  let mut initial_nodes = nodes
+  nodes.sort_by(|a, b| a.key.cmp(&b.key));
+
+  let initial_nodes = nodes
     .into_iter()
     .filter_map(|node| {
       // The Module itself is already bigger than `allow_max_size`, we will create a chunk
@@ -311,7 +304,6 @@ fn deterministic_grouping_for_modules(
     .collect::<Vec<_>>();
 
   if !initial_nodes.is_empty() {
-    initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
     let similarities = get_similarities(&initial_nodes);
     let initial_group = Group::new(initial_nodes, None, similarities);
 
@@ -663,7 +655,7 @@ impl SplitChunksPlugin {
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             );
-            if created && let Some(mutations) = compilation.incremental.mutations_write() {
+            if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
@@ -671,7 +663,7 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           } else {
             let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
+            if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
@@ -691,7 +683,7 @@ impl SplitChunksPlugin {
           if chunk.filename_template().is_some() {
             new_part.set_filename_template(chunk.filename_template().cloned());
           }
-          if let Some(mutations) = compilation.incremental.mutations_write() {
+          if let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
               from: old_chunk,
               to: new_chunk_ukey,

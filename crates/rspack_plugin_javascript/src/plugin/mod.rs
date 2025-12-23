@@ -22,7 +22,6 @@ pub mod url_plugin;
 pub use drive::*;
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
-use indoc::indoc;
 pub use inline_exports_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
@@ -30,7 +29,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, SourceType, basic_function,
+  ExportsArgument, IdentCollector, Module, RuntimeGlobals, RuntimeVariable, SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -145,10 +144,14 @@ impl JsPlugin {
     let mut sources: Vec<Cow<str>> = Vec::new();
 
     sources.push(
-      indoc! {r#"
-        // Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {"#}
+      format!(
+        r#"// Check if module is in cache
+var cachedModule = {}[moduleId];
+if (cachedModule !== undefined) {{"#,
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )
       .into(),
     );
 
@@ -157,11 +160,15 @@ impl JsPlugin {
     }
 
     sources.push(
-      indoc! {r#"
-        return cachedModule.exports;
-        }
-        // Create a new module (and put it into the cache)
-        var module = (__webpack_module_cache__[moduleId] = {"#}
+      format!(
+        r#"return cachedModule.exports;
+}}
+// Create a new module (and put it into the cache)
+var module = ({}[moduleId] = {{"#,
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )
       .into(),
     );
 
@@ -174,44 +181,73 @@ impl JsPlugin {
     }
 
     if need_module_defer {
-      sources.push("exports: __webpack_module_deferred_exports__[moduleId] || {}".into());
+      sources.push("exports: __rspack_deferred_exports[moduleId] || {}".into());
     } else {
       sources.push("exports: {}".into());
     }
     sources.push("});\n// Execute the module function".into());
 
-    let module_execution = if runtime_requirements
-      .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-    {
-      indoc!{r#"
-        var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+    let module_execution =
+      if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+        format!(
+          r#"
+        var execOptions = {{ id: moduleId, module: module, factory: {}[moduleId], require: {} }};
+        {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        if (!execOptions.factory) {
+        if (!execOptions.factory) {{
           console.error("undefined factory", moduleId);
           throw Error("RuntimeError: factory is undefined (" + moduleId + ")");
-        }
+        }}
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
-      "#}.into()
-    } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
-      "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n".into()
-    } else {
-      "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n".into()
-    };
+      "#,
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        )
+        .into()
+      } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+        format!(
+          "{}[moduleId].call(module.exports, module, module.exports, {});\n",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        )
+        .into()
+      } else {
+        format!(
+          "{}[moduleId](module, module.exports, {});\n",
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules),
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        )
+        .into()
+      };
 
     if strict_module_error_handling {
       sources.push("try {\n".into());
       sources.push(module_execution);
       sources.push("} catch (e) {".into());
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
       sources.push("module.error = e;\nthrow e;".into());
       sources.push("}".into());
     } else {
       sources.push(module_execution);
       if need_module_defer {
-        sources.push("delete __webpack_module_deferred_exports__[moduleId];".into());
+        sources.push("delete __rspack_deferred_exports[moduleId];".into());
       }
     }
 
@@ -230,6 +266,7 @@ impl JsPlugin {
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let runtime_template = &compilation.runtime_template;
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
@@ -263,7 +300,15 @@ impl JsPlugin {
     }
 
     if use_require || module_cache {
-      header.push("// The module cache\nvar __webpack_module_cache__ = {};\n".into());
+      header.push(
+        format!(
+          r#"// The module cache
+var {} = {{}};
+"#,
+          runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
+        )
+        .into(),
+      );
     }
 
     if need_module_defer {
@@ -272,25 +317,37 @@ impl JsPlugin {
       // This requires all deferred imports to a module can get the module export object before the module
       // is evaluated.
       header.push(
-        "// The deferred module cache\nvar __webpack_module_deferred_exports__ = {};\n".into(),
+        r#"// The deferred module cache
+var __rspack_deferred_exports = {};
+"#
+        .into(),
       );
     }
 
     if use_require {
       header.push(
         format!(
-          "// The require function\nfunction {}(moduleId) {{\n",
-          RuntimeGlobals::REQUIRE
+          r#"// The require function
+function {}(moduleId) {{
+"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into(),
       );
       header.extend(Self::render_require(chunk_ukey, compilation));
-      header.push("\n}\n".into());
+      header.push(
+        r#"
+}
+"#
+        .into(),
+      );
     } else if require_scope_used {
       header.push(
         format!(
-          "// The require scope\nvar {} = {{}};\n",
-          RuntimeGlobals::REQUIRE
+          r#"// The require scope
+var {} = {{}};
+"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into(),
       );
@@ -300,8 +357,12 @@ impl JsPlugin {
     {
       header.push(
         format!(
-          "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
-          RuntimeGlobals::MODULE_FACTORIES
+          r#"// expose the modules object ({modules})
+{module_factories} = {modules};
+"#,
+          modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          module_factories =
+            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         )
         .into(),
       );
@@ -310,8 +371,11 @@ impl JsPlugin {
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       header.push(
         format!(
-          "// expose the module cache\n{} = __webpack_module_cache__;\n",
-          RuntimeGlobals::MODULE_CACHE
+          r#"// expose the module cache
+{} = {};
+"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+          runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         )
         .into(),
       );
@@ -320,8 +384,10 @@ impl JsPlugin {
     if intercept_module_execution {
       header.push(
         format!(
-          "// expose the module execution interceptor\n{} = [];\n",
-          RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+          r#"// expose the module execution interceptor
+{} = [];
+"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
         )
         .into(),
       );
@@ -344,7 +410,7 @@ impl JsPlugin {
               compilation
                 .chunk_by_ukey
                 .expect_get(chunk_ukey)
-                .expect_id(&compilation.chunk_ids_artifact)
+                .expect_id()
                 .to_string()
             })
             .collect::<Vec<_>>();
@@ -420,27 +486,36 @@ impl JsPlugin {
             .expect("should have module id");
           let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
-            module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+            module_id_expr = format!(
+              "{} = {module_id_expr}",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
+            );
           }
 
           if !chunk_ids.is_empty() {
             let on_chunks_loaded_callback = if supports_arrow_function {
-              format!("() => {}({module_id_expr})", RuntimeGlobals::REQUIRE)
+              format!(
+                "() => {}({module_id_expr})",
+                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+              )
             } else {
               format!(
                 "function() {{ return {}({module_id_expr}) }}",
-                RuntimeGlobals::REQUIRE
+                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
             };
             buf2.push(
               format!(
                 "{}{}(undefined, {}, {});",
                 if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
+                  format!(
+                    "var {} = ",
+                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
+                  )
                 } else {
                   "".to_string()
                 },
-                RuntimeGlobals::ON_CHUNKS_LOADED,
+                runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED),
                 stringify_array(&chunk_ids),
                 on_chunks_loaded_callback
               )
@@ -451,29 +526,39 @@ impl JsPlugin {
               format!(
                 "{}{}({module_id_expr});",
                 if i + 1 == entries.len() {
-                  format!("var {} = ", RuntimeGlobals::EXPORTS)
+                  format!(
+                    "var {} = ",
+                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
+                  )
                 } else {
                   "".to_string()
                 },
-                RuntimeGlobals::REQUIRE
+                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
               .into(),
             )
           } else {
             let should_exec = i + 1 == entries.len();
             if should_exec {
-              buf2.push(format!("var {} = {{}}", RuntimeGlobals::EXPORTS).into());
+              buf2.push(
+                format!(
+                  "var {} = {{}}",
+                  runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
+                )
+                .into(),
+              );
             }
             if require_scope_used {
               buf2.push(
                 format!(
-                  "__webpack_modules__[{module_id_expr}](0, {}, {});",
+                  "{}[{module_id_expr}](0, {}, {});",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
                   if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
+                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   } else {
-                    "{}"
+                    "{}".to_string()
                   },
-                  RuntimeGlobals::REQUIRE
+                  runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
                 )
                 .into(),
               );
@@ -482,25 +567,34 @@ impl JsPlugin {
             {
               buf2.push(
                 format!(
-                  "__webpack_modules__[{module_id_expr}](0, {});",
+                  "{}[{module_id_expr}](0, {});",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
                   if should_exec {
-                    RuntimeGlobals::EXPORTS.name()
+                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   } else {
-                    "{}"
+                    "{}".to_string()
                   }
                 )
                 .into(),
               );
             } else {
-              buf2.push(format!("__webpack_modules__[{module_id_expr}]();").into());
+              buf2.push(
+                format!(
+                  "{}[{module_id_expr}]();",
+                  runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
+                )
+                .into(),
+              );
             }
           }
         }
         if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
           buf2.push(
             format!(
-              "__webpack_exports__ = {}(__webpack_exports__);",
-              RuntimeGlobals::ON_CHUNKS_LOADED
+              "{exports} = {on_chunks_loaded}({exports});",
+              exports = runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
+              on_chunks_loaded =
+                runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
             )
             .into(),
           );
@@ -509,12 +603,17 @@ impl JsPlugin {
           allow_inline_startup = false;
           header.push(
             format!(
-              "// the startup function\n{} = {};\n",
-              RuntimeGlobals::STARTUP,
-              basic_function(
-                &compilation.options.output.environment,
+              r#"// the startup function
+{} = {};
+"#,
+              runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
+              compilation.runtime_template.basic_function(
                 "",
-                &format!("{}\nreturn {}", buf2.join("\n"), RuntimeGlobals::EXPORTS)
+                &format!(
+                  "{}\nreturn {}",
+                  buf2.join("\n"),
+                  runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
+                )
               )
             )
             .into(),
@@ -523,8 +622,8 @@ impl JsPlugin {
           startup.push(
             format!(
               "var {} = {}();",
-              RuntimeGlobals::EXPORTS,
-              RuntimeGlobals::STARTUP
+              runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
             )
             .into(),
           );
@@ -535,8 +634,10 @@ impl JsPlugin {
       } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
         header.push(
           format!(
-            "// the startup function\n// It's empty as no entry modules are in this chunk\n{} = function(){{}};",
-            RuntimeGlobals::STARTUP
+            r#"// the startup function
+// It's empty as no entry modules are in this chunk
+{} = function(){{}};"#,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
           )
           .into(),
         );
@@ -544,13 +645,22 @@ impl JsPlugin {
     } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
       header.push(
         format!(
-          "// the startup function\n// It's empty as some runtime module handles the default behavior\n{} = function(){{}};",
-          RuntimeGlobals::STARTUP
+          r#"// the startup function
+// It's empty as some runtime module handles the default behavior
+{} = function(){{}};"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
         )
         .into(),
       );
       startup.push("// run startup".into());
-      startup.push(format!("var __webpack_exports__ = {}();", RuntimeGlobals::STARTUP).into());
+      startup.push(
+        format!(
+          "var {} = {}();",
+          runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
+        )
+        .into(),
+      );
     }
 
     Ok(RenderBootstrapResult {
@@ -566,6 +676,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
+    let runtime_template = &compilation.runtime_template;
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
       .try_read()
@@ -656,7 +767,10 @@ impl JsPlugin {
         } else {
           RawStringSource::from_static("{}").boxed()
         };
-      sources.add(RawStringSource::from_static("var __webpack_modules__ = ("));
+      sources.add(RawStringSource::from(format!(
+        "var {} = (",
+        runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
+      )));
       sources.add(chunk_modules_source);
       sources.add(RawStringSource::from_static(");\n"));
     }
@@ -682,7 +796,7 @@ impl JsPlugin {
       if runtime_requirements.contains(RuntimeGlobals::EXPORTS) {
         startup_sources.add(RawStringSource::from(format!(
           "var {} = {{}};\n",
-          RuntimeGlobals::EXPORTS
+          runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
         )));
       }
 
@@ -746,7 +860,13 @@ impl JsPlugin {
         } else if has_chunk_modules_result && renamed_inline_modules.is_none() {
           Some("it needs to be isolated against other modules in the chunk.".into())
         } else if exports && !rspack_exports {
-          Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
+          Some(
+            format!(
+              "it uses a non-standard name for the exports ({}).",
+              runtime_template.render_exports_argument(exports_argument)
+            )
+            .into(),
+          )
         } else {
           hooks
             .embed_in_runtime_bailout
@@ -773,6 +893,7 @@ impl JsPlugin {
           footer = "\n";
         }
         if exports {
+          let exports_argument = runtime_template.render_exports_argument(exports_argument);
           if m_identifier != last_entry_module {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {{}};\n"
@@ -780,7 +901,7 @@ impl JsPlugin {
           } else if !rspack_exports_argument {
             startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {};\n",
-              RuntimeGlobals::EXPORTS
+              runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
             )));
           }
         }
@@ -790,9 +911,9 @@ impl JsPlugin {
       if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
         startup_sources.add(RawStringSource::from(format!(
           "{} = {}({});\n",
-          RuntimeGlobals::EXPORTS,
-          RuntimeGlobals::ON_CHUNKS_LOADED,
-          RuntimeGlobals::EXPORTS,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
         )));
       }
       let mut render_source = RenderSource {
@@ -831,9 +952,12 @@ impl JsPlugin {
     if has_entry_modules
       && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
     {
-      sources.add(RawStringSource::from_static(
-        "return __webpack_exports__;\n",
-      ));
+      sources.add(RawStringSource::from(format!(
+        "return {};\n",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::Exports)
+      )));
     }
     if iife {
       sources.add(RawStringSource::from_static("})()\n"));

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -13,9 +13,15 @@ pub struct ChunkPrefetchStartupRuntimeModule {
 }
 
 impl ChunkPrefetchStartupRuntimeModule {
-  pub fn new(startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/chunk_prefetch_startup"),
+      Identifier::from(format!(
+        "{}chunk_prefetch_startup",
+        runtime_template.runtime_module_prefix()
+      )),
       startup_chunks,
       None,
     )
@@ -43,60 +49,45 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     let chunk_ukey = self.chunk.expect("chunk do not attached");
 
     let source = self
-          .startup_chunks
+      .startup_chunks
+      .iter()
+      .map(|(group_chunks, child_chunks)| {
+        let group_chunk_ids = group_chunks
           .iter()
-          .map(|(group_chunks, child_chunks)| {
-            let group_chunk_ids = group_chunks
-              .iter()
-              .filter_map(|c| {
-                if c.to_owned().eq(&chunk_ukey) {
-                  compilation
-                    .chunk_by_ukey
-                    .expect_get(c)
-                    .id(&compilation.chunk_ids_artifact)
-                } else {
-                  None
-                }
-              })
-              .collect_vec();
+          .filter_map(|c| {
+            if c.to_owned().eq(&chunk_ukey) {
+              compilation
+                .chunk_by_ukey
+                .expect_get(c)
+                .id()
+            } else {
+              None
+            }
+          })
+          .collect_vec();
 
-            let child_chunk_ids = child_chunks
-              .iter()
-              .filter_map(|c| {
-                compilation
-                  .chunk_by_ukey
-                  .expect_get(c)
-                  .id(&compilation.chunk_ids_artifact)
-              })
-              .collect_vec();
+        let child_chunk_ids = child_chunks
+          .iter()
+          .filter_map(|c| {
+            compilation
+              .chunk_by_ukey
+              .expect_get(c)
+              .id()
+          })
+          .collect_vec();
 
-            let body = match child_chunks.len() {
-              x if x < 3 => child_chunk_ids
-                .iter()
-                .map(|id| {
-                  format!(
-                    "{}({});",
-                    RuntimeGlobals::PREFETCH_CHUNK,
-                    serde_json::to_string(&id).expect("invalid json tostring")
-                  )
-                })
-                .join("\n"),
-              _ => {
-                format!(
-                  "{}.map({})",
-                  serde_json::to_string(&child_chunk_ids).expect("invalid json tostring"),
-                  RuntimeGlobals::PREFETCH_CHUNK
-                )
-              }
-            };
+        let source = compilation.runtime_template.render(
+          &self.id,
+          Some(serde_json::json!({
+            "_chunk_ids": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
+            "_child_chunk_ids": serde_json::to_string(&child_chunk_ids).expect("invalid json tostring"),
+          })),
+        )?;
 
-            let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
-              "GROUP_CHUNK_IDS": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
-              "BODY": body,
-            })))?;
-
-            Ok(source)
-          }).collect::<rspack_error::Result<Vec<String>>>()?.join("\n");
+        Ok(source)
+      })
+      .collect::<rspack_error::Result<Vec<String>>>()?
+      .join("\n");
 
     Ok(source)
   }

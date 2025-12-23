@@ -135,7 +135,7 @@ ignored = ["parking_lot", "rspack_tracing_perfetto"]
 [target.'cfg(target_family = "wasm")'.dependencies]
 # Pin parking_lot version to the same version within the workspace
 # Explicitly adding features `nightly` to turn on wasm atomic support
-parking_lot = { version = "=0.12.3", features = ["nightly"] }
+parking_lot = { version = "=0.12.5", features = ["nightly"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }

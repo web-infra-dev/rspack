@@ -1,13 +1,13 @@
 asset main.js xx KiB [emitted] (name: main)
-asset 266.js 128 bytes [emitted]
-asset 327.js 128 bytes [emitted]
+asset 266.js xx bytes [emitted]
+asset 327.js xx bytes [emitted]
 Entrypoint main xx KiB = main.js
 runtime modules xx KiB 12 modules
 cacheable modules xx KiB
-  ./index.js 49 bytes [built] [code generated]
+  ./index.js xx bytes [built] [code generated]
   ./a.js xx KiB [built] [code generated]
-  ./b.js 22 bytes [built] [code generated]
-  ./c.js 28 bytes [built] [code generated]
-  ./d.js 22 bytes [built] [code generated]
-  ./e.js 22 bytes [built] [code generated]
+  ./b.js xx bytes [built] [code generated]
+  ./c.js xx bytes [built] [code generated]
+  ./d.js xx bytes [built] [code generated]
+  ./e.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

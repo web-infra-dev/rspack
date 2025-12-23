@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeGlobals, SourceType, get_js_chunk_filename_template,
+  RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -40,7 +40,7 @@ pub fn update_hash_for_entry_startup(
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          chunk.id(&compilation.chunk_ids_artifact).hash(hasher);
+          chunk.id().hash(hasher);
         }
       }
     }
@@ -221,7 +221,7 @@ pub fn generate_entry_startup(
           .iter()
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id(&compilation.chunk_ids_artifact).clone()
+            chunk.expect_id().clone()
           })
           .collect::<HashSet<_>>(),
       );
@@ -230,41 +230,66 @@ pub fn generate_entry_startup(
 
   let mut source = String::default();
   source.push_str(&format!(
-    "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
-    RuntimeGlobals::ENTRY_MODULE_ID
+    "var {} = function(moduleId) {{ return {}({} = moduleId) }}\n",
+    compilation
+      .runtime_template
+      .render_runtime_variable(&RuntimeVariable::StartupExec),
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
   ));
+
+  let exports_name = compilation
+    .runtime_template
+    .render_runtime_variable(&RuntimeVariable::Exports);
 
   let module_ids_code = &module_id_exprs
     .iter()
-    .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
+    .map(|module_id_expr| {
+      format!(
+        "{}({module_id_expr})",
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::StartupExec)
+      )
+    })
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {
     if !module_ids_code.is_empty() {
-      source.push_str("var __webpack_exports__ = (");
+      source.push_str(&format!("var {exports_name} = ("));
       source.push_str(module_ids_code);
       source.push_str(");\n");
     }
   } else {
     if !passive {
-      source.push_str("var __webpack_exports__ = ");
+      source.push_str(&format!("var {exports_name} = "));
     }
     source.push_str(&format!(
       "{}(0, {}, function() {{
         return {};
       }});\n",
       if passive {
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       } else {
-        RuntimeGlobals::STARTUP_ENTRYPOINT
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
       },
       stringify_chunks_to_array(&chunks_ids),
       module_ids_code
     ));
     if passive {
       source.push_str(&format!(
-        "var __webpack_exports__ = {}();\n",
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        "var {exports_name} = {}();\n",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     }
   }
@@ -308,16 +333,12 @@ pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> 
     .get_path(
       &filename,
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,

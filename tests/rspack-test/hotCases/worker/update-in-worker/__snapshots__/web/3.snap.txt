@@ -9,7 +9,7 @@
 - Manifest: [runtime of worker_js].LAST_HASH.hot-update.json, size: 33
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: worker_js.LAST_HASH.hot-update.js, size: 568
+- Update: worker_js.LAST_HASH.hot-update.js, size: 473
 
 ## Manifest
 
@@ -66,19 +66,15 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["webpackHotUpdate"]("worker_js", {
-"./module.js": 
-/*!*******************!*\
-  !*** ./module.js ***!
-  \*******************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (42);
+/* export default */ const __rspack_default_export = (42);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash

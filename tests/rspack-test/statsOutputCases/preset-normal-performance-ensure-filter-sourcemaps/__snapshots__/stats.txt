@@ -1,9 +1,9 @@
 asset main.js xx KiB [emitted] [big] (name: main)
-runtime modules 88 bytes 1 module
+runtime modules xx bytes 1 module
 modules by path ./*.js xx KiB
-  ./index.js 52 bytes [built] [code generated] [2 warnings]
+  ./index.js xx bytes [built] [code generated] [2 warnings]
   ./a.js xx KiB [built] [code generated]
-./.|sync 160 bytes [built] [code generated]
+./.|sync xx bytes [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:
   │   main.js (xx KiB)
@@ -18,7 +18,7 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
   │ For more info visit https://rspack.rs/guide/optimization/code-splitting
 
 
-WARNING in ./index.js 2:0-16
+WARNING in ./index.js 2:1-16
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[2:8]
  1 │ require("./a");
@@ -28,7 +28,7 @@ WARNING in ./index.js 2:0-16
    ╰────
 
 
-WARNING in ./index.js 3:0-16
+WARNING in ./index.js 3:1-16
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[3:8]
  1 │ require("./a");

@@ -1,6 +1,6 @@
-asset bundle.js 593 bytes [emitted] [minimized] (name: main)
-./index.js 128 bytes [built] [code generated]
+asset bundle.js xx bytes [emitted] [minimized] (name: main)
+./index.js xx bytes [built] [code generated]
   [no exports used]
-./a.js 49 bytes [built] [code generated]
+./a.js xx bytes [built] [code generated]
   [used exports unknown]
 Rspack x.x.x compiled successfully in X s

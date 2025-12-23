@@ -156,7 +156,6 @@ export default {
 
 ```diff title="rspack.config.mjs"
 export default {
-   // ...
 +  module: {
 +    generator: {
 +      "css/auto": {
@@ -189,7 +188,7 @@ export default {
 }
 ```
 
-如需要对部分模块进行配置，可使用 `module.rules` 中的 [`rule.parser`](/config/module#ruleparser) 和 [`rule.generator`](/config/module#rulegenerator) 选项进行配置。
+如需要对部分模块进行配置，可使用 `module.rules` 中的 [`rules[].parser`](/config/module-rules#rulesparser) 和 [`rules[].generator`](/config/module-rules#rulesgenerator) 选项进行配置。
 
 ### 调用 compiler.run 执行构建
 

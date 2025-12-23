@@ -1,13 +1,13 @@
 asset entry.js xx KiB [emitted] (name: entry)
-asset 870.js 401 bytes [emitted]
-asset 897.js 401 bytes [emitted]
-asset 985.js 399 bytes [emitted]
+asset 870.js xx bytes [emitted]
+asset 897.js xx bytes [emitted]
+asset 985.js xx bytes [emitted]
 runtime modules xx KiB 11 modules
-cacheable modules 724 bytes
-  modules by path ./templates/*.js 114 bytes
-    ./templates/bar.js 38 bytes [built] [code generated]
-    ./templates/baz.js 38 bytes [built] [code generated]
-    ./templates/foo.js 38 bytes [built] [code generated]
-  ./entry.js 450 bytes [built] [code generated]
-  ./templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object 160 bytes [built] [code generated]
+cacheable modules xx bytes
+  modules by path ./templates/*.js xx bytes
+    ./templates/bar.js xx bytes [built] [code generated]
+    ./templates/baz.js xx bytes [built] [code generated]
+    ./templates/foo.js xx bytes [built] [code generated]
+  ./entry.js xx bytes [built] [code generated]
+  ./templates|lazy|/^\.\/.*$/|include: /\.js$/|exclude: /\.noimport\.js$/|referencedExports: |groupOptions: {}|namespace object xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

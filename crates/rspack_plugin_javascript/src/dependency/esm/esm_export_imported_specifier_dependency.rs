@@ -531,7 +531,7 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::Unused(ExportModeUnused { name }) => ctxt.init_fragments.push(
         NormalInitFragment::new(
-          to_normal_comment(&format!("unused ESM reexport {name}")),
+          to_normal_comment(&format!("unused reexport {name}")),
           InitFragmentStage::StageESMExports,
           1,
           InitFragmentKey::unique(),
@@ -701,8 +701,7 @@ impl ESMExportImportedSpecifierDependency {
           let key = render_used_name(used_name.as_ref());
 
           if checked {
-            let key =
-              InitFragmentKey::ESMImport(format!("ESM reexport (checked) {import_var} {name}"));
+            let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
             let runtime_condition = if self.weak() {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
@@ -719,7 +718,10 @@ impl ESMExportImportedSpecifierDependency {
               ids[0].clone(),
               ValueKey::UsedName(UsedName::Normal(ids)),
             );
-            let is_async = ModuleGraph::is_async(compilation, &module_identifier);
+            let is_async = ModuleGraph::is_async(
+              &compilation.async_modules_artifact.borrow(),
+              &module_identifier,
+            );
             ctxt
               .init_fragments
               .push(Box::new(ConditionalInitFragment::new(
@@ -769,28 +771,39 @@ impl ESMExportImportedSpecifierDependency {
           ignored.extend(hidden);
         }
 
-        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
+        let environment = compilation.options.output.environment;
+        let supports_arrow_function = environment.supports_arrow_function();
+        let supports_const = environment.supports_const();
+
         let mut content = format!(
           r"
-/* ESM reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
-/* ESM reexport (unknown) */ for( var __WEBPACK_IMPORT_KEY__ in {import_var}) "
+/* reexport */ var __rspack_reexport = {{}};
+/* reexport */ for( {} __rspack_import_key in {import_var}) ",
+          if supports_const { "const" } else { "var" }
         );
 
         if ignored.len() > 1 {
           content += &format!(
-            "if({}.indexOf(__WEBPACK_IMPORT_KEY__) < 0) ",
+            "if({}.indexOf(__rspack_import_key) < 0) ",
             serde_json::to_string(&ignored).expect("should serialize to array")
           );
         } else if let Some(item) = ignored.iter().next() {
           content += &format!(
-            "if(__WEBPACK_IMPORT_KEY__ !== {}) ",
+            "if(__rspack_import_key !== {}) ",
             serde_json::to_string(item).expect("should serialize to string")
           );
         }
-        content += "__WEBPACK_REEXPORT_OBJECT__[__WEBPACK_IMPORT_KEY__] =";
-        // TODO should decide if `modern` is true
-        content +=
-          &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __WEBPACK_IMPORT_KEY__)");
+        content += "__rspack_reexport[__rspack_import_key] =";
+
+        // Arrow getters capture the loop variable by reference.
+        // They are only correct when the loop binding is block-scoped (const/let), not var.
+        if supports_arrow_function && supports_const {
+          content += &format!("() => {import_var}[__rspack_import_key]");
+        } else {
+          content +=
+            &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
+        }
+
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
@@ -798,13 +811,22 @@ impl ESMExportImportedSpecifierDependency {
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
-        let is_async = ModuleGraph::is_async(compilation, &module.identifier());
+        let is_async = ModuleGraph::is_async(
+          &compilation.async_modules_artifact.borrow(),
+          &module.identifier(),
+        );
         ctxt.init_fragments.push(
           NormalInitFragment::new(
             format!(
-              "{content}\n/* ESM reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
-              RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-              exports_name
+              r#"{content}
+/* reexport */ {}({}, __rspack_reexport);
+"#,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              compilation
+                .runtime_template
+                .render_exports_argument(exports_name),
             ),
             if is_async {
               InitFragmentStage::StageAsyncESMImports
@@ -841,7 +863,9 @@ impl ESMExportImportedSpecifierDependency {
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
     let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT, json_stringify(&module_id), mode).into()));
+    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT), json_stringify(&module_id), mode).into()));
     let cache_var = format!("var {name}_deferred_namespace_cache;\n");
 
     (
@@ -887,6 +911,7 @@ impl ESMExportImportedSpecifierDependency {
     let TemplateContext {
       runtime_requirements,
       module,
+      compilation,
       ..
     } = ctxt;
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -895,7 +920,9 @@ impl ESMExportImportedSpecifierDependency {
     let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       if fake_type == 0 {
         "".to_string()
       } else {
@@ -943,6 +970,7 @@ impl ESMExportImportedSpecifierDependency {
     let TemplateContext {
       module,
       runtime_requirements,
+      compilation,
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
@@ -952,11 +980,17 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
-      RuntimeGlobals::HAS_OWN_PROPERTY,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
       serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
-      RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      exports_name,
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+      compilation
+        .runtime_template
+        .render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
       return_value
     )

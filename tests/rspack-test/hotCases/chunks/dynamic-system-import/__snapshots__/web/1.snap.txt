@@ -8,8 +8,8 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Bundle: chunk2_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 52
-- Update: chunk1_js.LAST_HASH.hot-update.js, size: 357
-- Update: chunk2_js.LAST_HASH.hot-update.js, size: 357
+- Update: chunk1_js.LAST_HASH.hot-update.js, size: 274
+- Update: chunk2_js.LAST_HASH.hot-update.js, size: 274
 - Update: main.LAST_HASH.hot-update.js, size: 182
 
 ## Manifest
@@ -36,11 +36,7 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("chunk1_js", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -48,7 +44,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 2;
 
 
-}),
+},
 
 });
 ```
@@ -67,11 +63,7 @@ var value = 2;
 ```js
 "use strict";
 self["webpackHotUpdate"]("chunk2_js", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   value: () => (value)
@@ -79,7 +71,7 @@ __webpack_require__.d(__webpack_exports__, {
 var value = 2;
 
 
-}),
+},
 
 });
 ```

@@ -1,0 +1,9 @@
+asset main.js xx bytes [emitted] (name: main)
+orphan modules xx bytes [orphan] 3 modules
+cacheable modules xx bytes
+  ./index.js + 2 modules xx bytes [code generated]
+    entry ./index
+  ./c.js xx bytes [built] [code generated]
+    cjs require ./c ./a.js 1:9-13
+    cjs require ./c ./b.js 1:9-13
+Rspack x.x.x compiled successfully in X s

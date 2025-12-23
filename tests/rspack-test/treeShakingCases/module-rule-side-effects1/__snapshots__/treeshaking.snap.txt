@@ -1,30 +1,30 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
 const a = 3;
 
 
-}),
-"./c.js": (function () {
+},
+"./c.js"() {
 const c = 300;
 
 
-}),
-"./index.js": (function (__unused_webpack_module, __unused_webpack___webpack_exports__, __webpack_require__) {
-/* import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
-/* import */var _c_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./c.js");
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
+/* import */ var _c_js__rspack_import_1 = __webpack_require__("./c.js");
 
 
 
 
-_a_js__WEBPACK_IMPORTED_MODULE_0__.a;
+_a_js__rspack_import_0.a;
 
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -43,6 +43,8 @@ pub enum DependencyType {
   AmdRequireItem,
   // new URL("./foo", import.meta.url)
   NewUrl,
+  // new URL() context
+  NewUrlContext,
   // new Worker()
   NewWorker,
   // create script url
@@ -73,6 +75,8 @@ pub enum DependencyType {
   ImportContext,
   // import.meta.webpackContext
   ImportMetaContext,
+  // import.meta.resolve
+  ImportMetaResolve,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -145,6 +149,7 @@ impl DependencyType {
       DependencyType::AmdRequire => "amd",
       DependencyType::AmdRequireItem => "amd require",
       DependencyType::NewUrl => "new URL()",
+      DependencyType::NewUrlContext => "new URL() context",
       DependencyType::NewWorker => "new Worker()",
       DependencyType::CreateScriptUrl => "create script url",
       DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
@@ -177,6 +182,7 @@ impl DependencyType {
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
       DependencyType::DllEntry => "dll entry",

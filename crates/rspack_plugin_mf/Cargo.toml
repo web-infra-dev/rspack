@@ -17,7 +17,6 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_loader_runner     = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
-rspack_plugin_runtime    = { workspace = true }
 rspack_sources           = { workspace = true }
 rspack_util              = { workspace = true }
 
@@ -36,5 +35,5 @@ tracing     = { workspace = true }
 ignored = ["tracing", "rspack_hash"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

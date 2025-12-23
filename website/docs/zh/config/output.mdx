@@ -19,11 +19,11 @@ import { Tabs, Tab } from '@theme';
 
 `[name]`、`[file]`、`[query]`、`[fragment]`、`[base]` 和 `[path]` 在使用数据 URI 替换构建的资源中被设置为空字符串。
 
-Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename](/config/module#rulegenerator) 覆盖。
+Asset module 输出的文件名称。这个值可以被 [rules[].generator.filename](/config/module-rules#rulesgenerator) 覆盖。
 
 :::info Asset module 作为一个单独的文件输出的情况
 
-- 模块类型为 `'asset'` 且 asset 满足 [`Rule.parser.dataUrlCondition`](/config/module#ruleparserdataurlcondition) 设定值
+- 模块类型为 `'asset'` 且 asset 满足 [`rules[].parser.dataUrlCondition`](/config/module-rules#rulesparserdataurlcondition) 设定值
 - 模块类型为 `'asset/resource'`
 
 :::
@@ -33,7 +33,18 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 - **类型：** `boolean`
 - **默认值：** `true`
 
-是否创建按需加载的异步 chunk。
+用于控制通过动态导入加载的模块，是被输出为独立的异步 chunk，还是被打包进已有的 chunk 中。
+
+- `true`：通过 `import()` 加载的模块会被拆分为独立的异步 chunk。这些 chunk 会作为单独的文件输出，并在运行时按需加载。这样可以启用代码拆分，减小初始包体积。
+- `false`：通过动态导入加载的模块不会生成单独的文件，而是被直接打包进现有的 chunk 中。此时不会额外生成异步 chunk 文件。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    asyncChunks: false,
+  },
+};
+```
 
 ## output.charset
 
@@ -44,7 +55,7 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 ## output.chunkFilename
 
-- **类型：** `string = '[id].js' | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **默认值：** 当 [`output.filename`](/config/output#outputfilename) 不为函数时，推断 [`output.filename`](/config/output#outputfilename) 推断；否则为 `'[id].js'`。
 
 这个选项决定了非初始块文件的名称。有关可能值的详细信息，请参见 [`output.filename`](/config/output#outputfilename) 选项。
@@ -55,19 +66,20 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
     chunkFilename: '[id].js',
   },
 };
 ```
 
+:::tip
+查看 [文件名占位符](/config/filename-placeholders) 了解更多信息。
+:::
+
 使用函数：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     chunkFilename: pathData => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
@@ -307,6 +319,7 @@ export default {
 | 模板                     | 描述                                                                       |
 | ------------------------ | -------------------------------------------------------------------------- |
 | [absolute-resource-path] | 绝对路径文件名                                                             |
+| [relative-resource-path] | 模块资源相对于 source map 文件所在目录的相对路径（不支持内联 source map）  |
 | [all-loaders]            | 自动和显式的 loader，并且参数取决于第一个 loader 名称                      |
 | [hash]                   | 模块标识符的 hash                                                          |
 | [id]                     | 模块标识符                                                                 |
@@ -389,41 +402,71 @@ export default {
 
 ## output.environment
 
-指示 Rspack 可以在生成的运行时代码中使用哪种 ES 特性。
+- **类型：**
+
+```ts
+type Environment = {
+  /** The environment supports arrow functions ('() => { ... }'). */
+  arrowFunction?: boolean;
+  /** The environment supports async function and await ('async function () { await ... }'). */
+  asyncFunction?: boolean;
+  /** The environment supports BigInt as literal (123n). */
+  bigIntLiteral?: boolean;
+  /** The environment supports const and let for variable declarations. */
+  const?: boolean;
+  /** The environment supports destructuring ('{ a, b } = obj'). */
+  destructuring?: boolean;
+  /** The environment supports 'document' variable. */
+  document?: boolean;
+  /** The environment supports an async import() function to import EcmaScript modules. */
+  dynamicImport?: boolean;
+  /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
+  dynamicImportInWorker?: boolean;
+  /** The environment supports 'for of' iteration ('for (const x of array) { ... }'). */
+  forOf?: boolean;
+  /** The environment supports 'globalThis'. */
+  globalThis?: boolean;
+  /** The environment supports { fn() {} } */
+  methodShorthand?: boolean;
+  /** The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...'). */
+  module?: boolean;
+  /**
+   * Determines if the node: prefix is generated for core module imports in environments that support it.
+   * This is only applicable to Webpack runtime code.
+   * */
+  nodePrefixForCoreModules?: boolean;
+  /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
+  optionalChaining?: boolean;
+  /** The environment supports template literals. */
+  templateLiteral?: boolean;
+};
+```
+
+`output.environment` 定义 Rspack 在生成运行时代码时可以使用的 ECMAScript 语言特性和宿主环境特性。
+
+该选项仅影响 Rspack 生成的 runtime 代码和辅助函数，不会影响源代码的语法降级。
+
+### 默认值
+
+`output.environment` 的默认值由 [target](/config/target) 自动推断。
+
+Rspack 会基于 `target` 识别目标环境支持的语言能力，例如：
+
+- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 runtime 代码
+- 若 `target` 指向特定 Node 版本，Rspack 会根据该版本的语法能力推断对应字段
+
+通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 runtime 代码的输出形式。
+
+### 示例
+
+例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 runtime 代码。
 
 ```js title="rspack.config.mjs"
 export default {
+  target: ['web', 'es2018'],
   output: {
     environment: {
-      // The environment supports arrow functions ('() => { ... }').
-      arrowFunction: true,
-      // The environment supports async function and await ('async function () { await ... }').
-      asyncFunction: true,
-      // The environment supports BigInt as literal (123n).
-      bigIntLiteral: false,
-      // The environment supports const and let for variable declarations.
-      const: true,
-      // The environment supports destructuring ('{ a, b } = obj').
-      destructuring: true,
-      // The environment supports 'document' variable.
-      document: true,
-      // The environment supports an async import() function to import ECMAScript modules.
-      dynamicImport: false,
-      // The environment supports an async import() when creating a worker, only for web targets at the moment.
-      dynamicImportInWorker: false,
-      // The environment supports 'for of' iteration ('for (const x of array) { ... }').
-      forOf: true,
-      // The environment supports 'globalThis'.
-      globalThis: true,
-      // The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...').
-      module: false,
-      // Determines if the node: prefix is generated for core module imports in environments that support it.
-      // This is only applicable to webpack runtime code.
-      nodePrefixForCoreModules: false,
-      // The environment supports optional chaining ('obj?.a' or 'obj?.()').
-      optionalChaining: true,
-      // The environment supports template literals.
-      templateLiteral: true,
+      const: false,
     },
   },
 };
@@ -453,17 +496,12 @@ export default {
 Rspack 会对用户输入的代码进行代码分割优化，这些优化可能包括但不限于：code splitting、bundle splitting，或通过其他插件实现的代码分割等。
 这些代码分割的行为会导致生成多个 bundle，因此 bundle 的文件名需要动态生成。
 
-{
-// TODO: 补充 Glossary link
-}
-
 :::
 
 使用 [Entry](/config/entry.html) 名称：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[name].bundle.js',
   },
@@ -474,7 +512,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[id].bundle.js',
   },
@@ -503,6 +540,10 @@ export default {
 };
 ```
 
+:::tip
+查看 [文件名占位符](/config/filename-placeholders) 了解更多信息。
+:::
+
 使用函数返回文件名：
 
 ```js title="rspack.config.mjs"
@@ -520,108 +561,6 @@ export default {
 
 请注意，此选项不会影响到按需加载块的输出文件。它只影响最初加载的输出文件。对于按需加载的块文件，使用的是 [`output.chunkFilename`](#outputchunkfilename) 选项。由加载器创建的文件也不会受到影响。在这种情况下，你可能需要尝试特定加载器提供的可用选项。
 
-## Template string
-
-可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
-
-### Compilation context
-
-可在 compilation 层面替换的内容
-
-| 模板         | 描述                    |
-| ------------ | ----------------------- |
-| `[fullhash]` | compilation 的完整 hash |
-
-### Chunk context
-
-可在 chunk 层面替换的内容：
-
-| 模板            | 描述                                                                                                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `[id]`          | 当前 chunk id                                                                                                                                  |
-| `[name]`        | 当 chunk name 存在则使用名称，否则使用 chunk id                                                                                                |
-| `[chunkhash]`   | chunk 的 hash 值，通过当前 chunk 中所有类型的元素计算所得                                                                                      |
-| `[contenthash]` | chunk 的 hash 值，通过只包含该类型内容的元素计算所得。如：生成 JavaScript 类型的文件则只会使用当前 chunk 中所有 JavaScript 模块计算所得的 hash |
-
-### Module context
-
-可在 module 层面替换的内容：
-
-| 模板            | 描述            |
-| --------------- | --------------- |
-| `[id]`          | 模块的 id       |
-| `[hash]`        | 模块的 hash     |
-| `[contenthash]` | 模块内容的 hash |
-
-### File context
-
-可在 file 层面替换的内容：
-
-| 模板         | 描述                                                                                          |
-| ------------ | --------------------------------------------------------------------------------------------- |
-| `[file]`     | 文件名和路径，不包括查询或片段                                                                |
-| `[query]`    | 文件 query，包含 `?`                                                                          |
-| `[fragment]` | 以 `#` 开头的片段名                                                                           |
-| `[base]`     | 只翻译文件名（包括扩展名），不包括路径名                                                      |
-| `[path]`     | 文件路径，不包含文件名                                                                        |
-| `[name]`     | 文件名，不包含扩展名和文件路径                                                                |
-| `[ext]`      | 扩展名，包含 `.` （仅支持在 [output.assetModuleFilename](#outputassetmodulefilename) 里使用） |
-
-在 URL 级别上可用的替换：
-
-| 模板    | 描述 |
-| ------- | ---- |
-| `[url]` | URL  |
-
-:::tip
-
-`[file]` 等于 `[path][base]`。`[base]` 等于 `[name][ext]`。完整路径是 `[path][name][ext][query][fragment]` 或 `[path][base][query][fragment]` 或 `[file][query][fragment]`。
-
-:::
-
-Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16），或使用 `[hash:base64:8]` 来同时指定 digest（目前仅支持 base64）和长度。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
-
-当你想在实际文件名中使用占位符时，可以过滤掉占位符替换。例如，要输出一个文件 `[name].js`，你必须通过在括号之间添加反斜杠来转义 `[name]` 占位符。这样 `[\name\]` 会生成 `[name]` 而不是被替换为资源的名称。
-
-示例：`[\id\]` 会生成 `[id]` 而不是被替换为 id。
-
-如果使用函数来设置这个选项，函数将会接收一个包含上表中替换数据的对象。替换也会应用到返回的字符串中。传递的对象将具有这种类型：（属性取决于上下文）
-
-```ts
-type PathData = {
-  hash: string;
-  hashWithLength: (number) => string;
-  chunk: Chunk | ChunkPathData;
-  module: Module | ModulePathData;
-  contentHashType: string;
-  contentHash: string;
-  contentHashWithLength: (number) => string;
-  filename: string;
-  url: string;
-  runtime: string | SortableSet<string>;
-  chunkGraph: ChunkGraph;
-};
-type ChunkPathData = {
-  id: string | number;
-  name: string;
-  hash: string;
-  hashWithLength: (number) => string;
-  contentHash: Record<string, string>;
-  contentHashWithLength: Record<string, (number) => string>;
-};
-type ModulePathData = {
-  id: string | number;
-  hash: string;
-  hashWithLength: (number) => string;
-};
-```
-
-:::warning
-在进行本地开发时，建议避免在文件名中使用 hash 值。
-
-这是因为入口文件以及被 [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) 拆分出的 chunks 都会通过 HTML 文件中的 `<script>` 标签进行加载。此时若文件名内包含 hash 值，则会由于 HTML 无法被动态加载而使得热更新失效。
-:::
-
 ## output.globalObject
 
 - **类型：** `string`
@@ -635,7 +574,6 @@ type ModulePathData = {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   output: {
     library: 'myLib',
     libraryTarget: 'umd',
@@ -657,7 +595,15 @@ export default {
 - **类型：** `number`
 - **默认值：** `16`
 
-要使用的哈希摘要的长度。
+要使用的 hash 摘要的长度，详见 [Hash 长度](/config/filename-placeholders#hash-长度)。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    hashDigestLength: 8,
+  },
+};
+```
 
 ## output.hashFunction
 
@@ -1630,25 +1576,34 @@ module.exports = {
 ## output.pathinfo
 
 - **类型：** `boolean | 'verbose'`
-- **默认值：** `true`
+- **默认值：** `false`
 
-让 Rspack 在 bundle 中通过注释输出模块的信息。此选项在 [mode](/config/mode) 为 `'development'` 下默认为 `true`，为 `'production'` 下默认为 `false`。`'verbose'` 会打印更多信息，例如模块导出、运行时信息和 `bailout` 原因。
+控制是否在生成的 bundle 中插入与模块相关的注释。这些注释有助于调试、分析打包结果以及理解 tree shaking 行为。
 
-:::warning
-在开发过程中分析生成的代码时，这些注释提供的信息很有用，但不应在生产环境中使用。
-:::
+- `true`: 启用基础的注释输出，包括模块路径信息。
+- `false`: 不输出任何注释，这是默认行为。
+- `'verbose'`：输出更详细的信息，例如模块导出、运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
+
+例如将 `pathinfo` 设置为 `true`：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     pathinfo: true,
   },
 };
 ```
 
-:::tip
-它还在生成的 bundle 中添加了一些关于 tree shaking 的信息。
+生成的代码中会包含类似的注释：
+
+```js
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+```
+
+:::warning
+pathinfo 主要用于开发调试。这些注释会增加 bundle 体积，同时可能泄露源文件结构，请避免在生产环境中启用。
 :::
 
 ## output.publicPath
@@ -1695,7 +1650,7 @@ export default {
 
 配置 source map 文件的命名方式。仅当 [`devtool`](/config/devtool) 设置为 `'source-map'` 时生效，此时会输出文件。
 
-可以使用 [`output.filename`](#outputfilename) 中的 `[name]`、`[id]`、`[fullhash]` 和 `[chunkhash]` 替换符。此外，还可以使用 [Template strings](#template-string) 中在文件级别列出的替换符。
+可以使用 [`output.filename`](#outputfilename) 中的 `[name]`、`[id]`、`[fullhash]` 和 `[chunkhash]` 替换符。此外，还可以使用 [文件名占位符](/config/filename-placeholders) 中在文件级别列出的替换符。
 
 ## output.strictModuleErrorHandling
 
@@ -1816,10 +1771,14 @@ export default {
 export default {
   //...
   output: {
-    webassemblyModuleFilename: '[id].[hash].wasm',
+    webassemblyModuleFilename: '[contenthash:8].wasm',
   },
 };
 ```
+
+:::tip
+查看 [文件名占位符](/config/filename-placeholders) 了解更多信息。
+:::
 
 ## output.workerChunkLoading
 

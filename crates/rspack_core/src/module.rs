@@ -35,8 +35,8 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate,
+  SelfModule, SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -46,6 +46,7 @@ pub struct BuildContext {
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub runtime_template: Arc<RuntimeTemplate>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
@@ -104,6 +105,7 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
@@ -133,6 +135,7 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      inline_exports: false,
       collected_typescript_info: None,
       rsc: None,
       extras: Default::default(),
@@ -199,15 +202,6 @@ pub enum ModuleArgument {
   RspackModule,
 }
 
-impl Display for ModuleArgument {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ModuleArgument::Module => write!(f, "module"),
-      ModuleArgument::RspackModule => write!(f, "__webpack_module__"),
-    }
-  }
-}
-
 #[cacheable]
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -215,15 +209,6 @@ pub enum ExportsArgument {
   #[default]
   Exports,
   RspackExports,
-}
-
-impl Display for ExportsArgument {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ExportsArgument::Exports => write!(f, "exports"),
-      ExportsArgument::RspackExports => write!(f, "__webpack_exports__"),
-    }
-  }
 }
 
 #[cacheable]

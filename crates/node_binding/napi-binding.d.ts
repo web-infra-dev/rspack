@@ -779,6 +779,11 @@ export interface JsCreateData {
   resource: string
 }
 
+export interface JsCreateLinkData {
+  code: string
+  chunk: Chunk
+}
+
 export interface JsCreateScriptData {
   code: string
   chunk: Chunk
@@ -818,6 +823,7 @@ export interface JsEntryOptions {
   name?: string
   runtime?: false | string
   chunkLoading?: false | string
+  wasmLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
@@ -1519,6 +1525,8 @@ export interface KnownAssetInfo {
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */
   isOverSizeLimit?: boolean
+  /** the asset type */
+  assetType?: string
 }
 
 export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
@@ -2086,6 +2094,7 @@ export interface RawEntryDynamicResult {
 
 export interface RawEnvironment {
   const?: boolean
+  methodShorthand?: boolean
   arrowFunction?: boolean
   nodePrefixForCoreModules?: boolean
   asyncFunction?: boolean
@@ -2099,6 +2108,7 @@ export interface RawEnvironment {
   optionalChaining?: boolean
   templateLiteral?: boolean
   dynamicImportInWorker?: boolean
+  importMetaDirnameAndFilename?: boolean
 }
 
 export interface RawEsmLibraryPlugin {
@@ -2121,14 +2131,10 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
-parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
-inlineConst: boolean
-inlineEnum: boolean
-typeReexportsPresence: boolean
 lazyBarrel: boolean
 deferImport: boolean
 }
@@ -2356,11 +2362,6 @@ commonjsMagicComments?: boolean
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
  */
-inlineConst?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
 typeReexportsPresence?: string
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
@@ -2580,6 +2581,7 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   realContentHash: boolean
   mangleExports: boolean | string
+  inlineExports: boolean
   concatenateModules: boolean
   avoidEntryIife: boolean
 }
@@ -2971,13 +2973,14 @@ export declare enum RegisterJsTapKind {
   HtmlPluginBeforeEmit = 39,
   HtmlPluginAfterEmit = 40,
   RuntimePluginCreateScript = 41,
-  RuntimePluginLinkPreload = 42,
-  RuntimePluginLinkPrefetch = 43,
-  RsdoctorPluginModuleGraph = 44,
-  RsdoctorPluginChunkGraph = 45,
-  RsdoctorPluginModuleIds = 46,
-  RsdoctorPluginModuleSources = 47,
-  RsdoctorPluginAssets = 48
+  RuntimePluginCreateLink = 42,
+  RuntimePluginLinkPreload = 43,
+  RuntimePluginLinkPrefetch = 44,
+  RsdoctorPluginModuleGraph = 45,
+  RsdoctorPluginChunkGraph = 46,
+  RsdoctorPluginModuleIds = 47,
+  RsdoctorPluginModuleSources = 48,
+  RsdoctorPluginAssets = 49
 }
 
 export interface RegisterJsTaps {
@@ -3023,7 +3026,8 @@ export interface RegisterJsTaps {
   registerHtmlPluginBeforeEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>
   registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
   registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>
-  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
+  registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
+  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>

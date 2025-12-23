@@ -3,20 +3,25 @@ import path from "node:path";
 import type { Tinypool } from "tinypool" with { "resolution-mode": "import" };
 
 let pool: Promise<Tinypool> | undefined;
-const ensureLoaderWorkerPool = async () => {
+const ensureLoaderWorkerPool = async (workerOptions?: {
+	maxWorkers?: number;
+}) => {
 	if (pool) {
 		return pool;
 	}
 	return (pool = import("tinypool").then(({ Tinypool }) => {
 		const cpus = require("node:os").cpus().length;
 		const availableThreads = Math.max(cpus - 1, 1);
+		const maxWorkers = workerOptions?.maxWorkers
+			? Math.max(workerOptions.maxWorkers, 1)
+			: undefined;
 
 		const pool = new Tinypool({
 			filename: path.resolve(__dirname, "worker.js"),
 			useAtomics: false,
 
-			maxThreads: availableThreads,
-			minThreads: availableThreads,
+			maxThreads: maxWorkers || availableThreads,
+			minThreads: maxWorkers || availableThreads,
 			concurrentTasksPerWorker: 1
 		});
 
@@ -199,9 +204,10 @@ export const run = async (
 	task: any,
 	options: RunOptions & {
 		handleIncomingRequest: HandleIncomingRequest;
-	}
+	},
+	workerOptions?: { maxWorkers?: number }
 ) =>
-	ensureLoaderWorkerPool().then(async pool => {
+	ensureLoaderWorkerPool(workerOptions).then(async pool => {
 		const { MessageChannel } = await import("node:worker_threads");
 		const { port1: mainPort, port2: workerPort } = new MessageChannel();
 		// Create message channel for processing sync API requests from worker

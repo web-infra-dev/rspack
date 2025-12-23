@@ -1,11 +1,14 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ptr::NonNull};
 
 use rspack_collections::Identifier;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, basic_function, compile_boolean_matcher, impl_runtime_module,
+  RuntimeModule, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
-use rspack_plugin_runtime::{chunk_has_css, get_chunk_runtime_requirements, stringify_chunks};
+use rspack_plugin_runtime::{
+  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
+  chunk_has_css, get_chunk_runtime_requirements, stringify_chunks,
+};
 use rustc_hash::FxHashSet as HashSet;
 
 #[impl_runtime_module]
@@ -15,32 +18,42 @@ pub struct CssLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for CssLoadingRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/css_loading"), None)
-  }
-}
-
 impl CssLoadingRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}css_loading",
+        runtime_template.runtime_module_prefix()
+      )),
+      None,
+    )
+  }
+
   fn template_id(&self, id: TemplateId) -> String {
     let base_id = self.id.to_string();
 
     match id {
       TemplateId::Raw => base_id,
+      TemplateId::CreateLink => format!("{base_id}_create_link"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithLoading => format!("{base_id}_with_loading"),
       TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPrefetchLink => format!("{base_id}_with_prefetch_link"),
       TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithPreloadLink => format!("{base_id}_with_preload_link"),
     }
   }
 }
 
 enum TemplateId {
   Raw,
+  CreateLink,
   WithHmr,
   WithLoading,
   WithPrefetch,
+  WithPrefetchLink,
   WithPreload,
+  WithPreloadLink,
 }
 
 #[async_trait::async_trait]
@@ -56,6 +69,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         include_str!("./css_loading.ejs").to_string(),
       ),
       (
+        self.template_id(TemplateId::CreateLink),
+        include_str!("./css_loading_create_link.ejs").to_string(),
+      ),
+      (
         self.template_id(TemplateId::WithHmr),
         include_str!("./css_loading_with_hmr.ejs").to_string(),
       ),
@@ -68,14 +85,23 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         include_str!("./css_loading_with_prefetch.ejs").to_string(),
       ),
       (
+        self.template_id(TemplateId::WithPrefetchLink),
+        include_str!("./css_loading_with_prefetch_link.ejs").to_string(),
+      ),
+      (
         self.template_id(TemplateId::WithPreload),
         include_str!("./css_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreloadLink),
+        include_str!("./css_loading_with_preload_link.ejs").to_string(),
       ),
     ]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
+      let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
@@ -90,6 +116,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
         && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
+      let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
       let mut initial_chunk_ids = HashSet::default();
@@ -98,7 +125,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let id = compilation
           .chunk_by_ukey
           .expect_get(chunk_ukey)
-          .expect_id(&compilation.chunk_ids_artifact)
+          .expect_id()
           .clone();
         if chunk_has_css(chunk_ukey, compilation) {
           initial_chunk_ids.insert(id);
@@ -139,28 +166,35 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids, 0)
       ));
 
-      let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
-        &compilation.options.output.cross_origin_loading
-      {
-        if cross_origin == "use-credentials" {
-          "link.crossOrigin = \"use-credentials\";".to_string()
-        } else {
-          format!(
-            r#"
-            if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-              link.crossOrigin = "{cross_origin}";
-            }}
-            "#
-          )
-        }
-      } else {
-        "".to_string()
-      };
+      let create_link_raw = compilation.runtime_template.render(
+        &self.template_id(TemplateId::CreateLink),
+        Some(serde_json::json!({
+          "_with_fetch_priority": with_fetch_priority,
+          "_charset": compilation.options.output.charset,
+          "_cross_origin": match &compilation.options.output.cross_origin_loading {
+            CrossOriginLoading::Disable => "".to_string(),
+            CrossOriginLoading::Enable(cross_origin) => cross_origin.to_string(),
+          },
+          "_unique_name": unique_name,
+        })),
+      )?;
+
+      let create_link = runtime_hooks
+        .borrow()
+        .create_link
+        .call(CreateLinkData {
+          code: create_link_raw,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
 
-      let load_css_chunk_data = basic_function(
-        environment,
+      let load_css_chunk_data = compilation.runtime_template.basic_function(
         "target, chunkId",
         &format!(
           r#"{}
@@ -169,7 +203,9 @@ installedChunks[chunkId] = 0;
           with_hmr
             .then_some(format!(
               "var moduleIds = [];\nif(target == {})",
-              RuntimeGlobals::MODULE_FACTORIES
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -187,7 +223,9 @@ installedChunks[chunkId] = 0;
             .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
             .collect::<Vec<_>>()
             .join(","),
-          RuntimeGlobals::MODULE_FACTORIES
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
         Cow::Owned(
@@ -197,7 +235,9 @@ installedChunks[chunkId] = 0;
               let id = serde_json::to_string(id).expect("should ok to convert to string");
               format!(
                 "loadCssChunkData({}, 0, {});",
-                RuntimeGlobals::MODULE_FACTORIES,
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
                 id
               )
             })
@@ -211,11 +251,11 @@ installedChunks[chunkId] = 0;
       let raw_source = compilation.runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
-          "__CROSS_ORIGIN_LOADING_PLACEHOLDER__": &cross_origin_content,
-          "__CSS_CHUNK_DATA__": &load_css_chunk_data,
-          "__CHUNK_LOAD_TIMEOUT_PLACEHOLDER__": &chunk_load_timeout,
-          "__UNIQUE_NAME__": unique_name,
-          "__INITIAL_CSS_CHUNK_DATA__": &load_initial_chunk_data,
+          "_unique_name": unique_name,
+          "_css_chunk_data": &load_css_chunk_data,
+          "_create_link": &create_link.code,
+          "_chunk_load_timeout": &chunk_load_timeout,
+          "_initial_css_chunk_data": &load_initial_chunk_data,
         })),
       )?;
       source.push_str(&raw_source);
@@ -224,63 +264,71 @@ installedChunks[chunkId] = 0;
         let source_with_loading = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
-            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
+            "_css_matcher": &has_css_matcher.render("chunkId"),
           })),
         )?;
         source.push_str(&source_with_loading);
       }
 
-      let charset_content = if compilation.options.output.charset {
-        "link.charset = 'utf-8';"
-      } else {
-        ""
-      };
-
       if with_prefetch && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
-        let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
-          &compilation.options.output.cross_origin_loading
-        {
-          format!("link.crossOrigin = '{cross_origin}';")
-        } else {
-          "".to_string()
-        };
+        let link_prefetch_raw = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithPrefetchLink),
+          Some(serde_json::json!({
+            "_charset": compilation.options.output.charset,
+            "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          })),
+        )?;
+
+        let link_prefetch = runtime_hooks
+          .borrow()
+          .link_prefetch
+          .call(LinkPrefetchData {
+            code: link_prefetch_raw,
+            chunk: RuntimeModuleChunkWrapper {
+              chunk_ukey,
+              compilation_id: compilation.id(),
+              compilation: NonNull::from(compilation),
+            },
+          })
+          .await?;
+
         let source_with_prefetch = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithPrefetch),
           Some(serde_json::json!({
-            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
-            "__CHARSET_PLACEHOLDER__": charset_content,
-            "__CROSS_ORIGIN_PLACEHOLDER__": cross_origin_content,
+            "_css_matcher": &has_css_matcher.render("chunkId"),
+            "_create_prefetch_link": &link_prefetch.code,
           })),
         )?;
         source.push_str(&source_with_prefetch);
       }
 
       if with_preload && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
-        let cross_origin_content = if let CrossOriginLoading::Enable(cross_origin) =
-          &compilation.options.output.cross_origin_loading
-        {
-          if cross_origin == "use-credentials" {
-            format!("link.crossOrigin = '{}';", &cross_origin)
-          } else {
-            format!(
-              r#"
-    if (link.href.indexOf(window.location.origin + '/') !== 0) {{
-      link.crossOrigin = '{}';
-    }}
-    "#,
-              &cross_origin
-            )
-          }
-        } else {
-          "".to_string()
-        };
+        let link_preload_raw = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithPreloadLink),
+          Some(serde_json::json!({
+            "_charset": compilation.options.output.charset,
+            "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
+          })),
+        )?;
+
+        let link_preload = runtime_hooks
+          .borrow()
+          .link_preload
+          .call(LinkPreloadData {
+            code: link_preload_raw,
+            chunk: RuntimeModuleChunkWrapper {
+              chunk_ukey,
+              compilation_id: compilation.id(),
+              compilation: NonNull::from(compilation),
+            },
+          })
+          .await?;
 
         let source_with_preload = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithPreload),
           Some(serde_json::json!({
-            "__CSS_MATCHER__": &has_css_matcher.render("chunkId"),
-            "__CHARSET_PLACEHOLDER__": charset_content,
-            "__CROSS_ORIGIN_PLACEHOLDER__": cross_origin_content,
+            "_css_matcher": &has_css_matcher.render("chunkId"),
+            "_create_preload_link": &link_preload.code,
           })),
         )?;
         source.push_str(&source_with_preload);

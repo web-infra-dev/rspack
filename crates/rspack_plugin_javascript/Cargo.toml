@@ -14,9 +14,7 @@ cow-utils = { workspace = true }
 either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
-indoc = { workspace = true }
 itertools = { workspace = true }
-linked_hash_set = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
@@ -61,5 +59,5 @@ winnow = { workspace = true }
 ignored = ["tracing"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

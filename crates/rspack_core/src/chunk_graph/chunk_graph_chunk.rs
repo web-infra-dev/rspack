@@ -12,8 +12,8 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkIdsArtifact, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
+  ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -94,10 +94,6 @@ impl ChunkGraphChunk {
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
-
-  pub fn modules_mut(&mut self) -> &mut IdentifierSet {
-    &mut self.modules
-  }
 }
 
 fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
@@ -121,15 +117,6 @@ impl ChunkGraph {
 
   pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
     self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
-  }
-
-  pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
-    debug_assert!(
-      !self
-        .chunk_graph_chunk_by_chunk_ukey
-        .contains_key(&chunk_ukey)
-    );
-    self.chunk_graph_chunk_by_chunk_ukey.insert(chunk_ukey, cgc);
   }
 
   pub fn replace_module(
@@ -239,17 +226,6 @@ impl ChunkGraph {
       .chunk_graph_chunk_by_chunk_ukey
       .get(chunk_ukey)
       .expect("Chunk should be added before")
-  }
-
-  pub fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> Option<&ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.get(chunk_ukey)
-  }
-
-  pub fn get_chunk_graph_chunk_mut(
-    &mut self,
-    chunk_ukey: &ChunkUkey,
-  ) -> Option<&mut ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.get_mut(chunk_ukey)
   }
 
   pub fn connect_chunk_and_entry_module(
@@ -719,10 +695,7 @@ impl ChunkGraph {
       .iter()
     {
       let chunk = compilation.chunk_by_ukey.expect_get(c);
-      map.insert(
-        chunk.expect_id(&compilation.chunk_ids_artifact).to_string(),
-        filter(c, compilation),
-      );
+      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
     map
@@ -1153,24 +1126,5 @@ impl ChunkGraph {
         None
       })
       .unwrap_or(module.source_types(module_graph).iter().copied().collect())
-  }
-
-  pub fn get_chunk_id<'a>(
-    chunk_ids: &'a ChunkIdsArtifact,
-    chunk_ukey: &ChunkUkey,
-  ) -> Option<&'a ChunkId> {
-    chunk_ids.get(chunk_ukey)
-  }
-
-  pub fn set_chunk_id(
-    chunk_ids: &mut ChunkIdsArtifact,
-    chunk_ukey: ChunkUkey,
-    id: ChunkId,
-  ) -> bool {
-    if let Some(old_id) = chunk_ids.insert(chunk_ukey, id.clone()) {
-      old_id != id
-    } else {
-      true
-    }
   }
 }

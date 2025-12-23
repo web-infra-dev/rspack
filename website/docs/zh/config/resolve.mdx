@@ -47,6 +47,59 @@ import WebpackLicense from '@components/WebpackLicense';
 
 定义一个字段，例如 `browser`，以依照[此规范](https://github.com/defunctzombie/package-browser-field-spec)进行解析。
 
+## resolve.byDependency
+
+- **类型：** `Record<string, ResolveOptions>`
+
+根据依赖类型来配置解析选项。依赖类型表示模块在源代码中的引用方式，例如 ES 模块的 `import`、CommonJS 的 `require`，或基于 `URL` 的资源请求。
+
+当不同的依赖类型需要采用不同的解析策略时，这个配置会非常有用。
+
+每一个 key 表示一种依赖类型，对应的 value 是一组标准的 `resolve` 选项，这些选项只会应用于该类型的请求。
+
+### 依赖类型
+
+Rspack 支持以下依赖类型：
+
+- `esm`：通过 `import` 语句或动态 `import()` 引用的模块。
+- `commonjs`：通过 CommonJS 的 `require()` 引用的模块。
+- `amd`：使用 AMD 风格定义（如 `define()`）引用的模块。
+- `url`：通过 URL 形式引用的模块，例如 `new URL('./asset.png', import.meta.url)`。
+- `wasm`：以 ES 模块语义引用的 WebAssembly 模块。
+- `worker`：通过 `new Worker(new URL('./worker.js', import.meta.url))` 引用的模块。
+- `css-import`：通过 `@import` 引用的 CSS 模块。
+- `unknown`：当无法确定依赖类型时使用的兜底类型。
+
+### 示例
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        mainFields: ['browser', 'module'],
+      },
+      commonjs: {
+        aliasFields: ['browser'],
+      },
+      url: {
+        preferRelative: true,
+      },
+    },
+  },
+};
+```
+
+在这个示例中：
+
+- ES 模块引用会优先使用 `browser` 和 `module` 字段。
+- CommonJS 引用会从 `browser` 字段中读取别名配置。
+- 基于 URL 的引用在解析时会优先使用相对路径。
+
+:::tip
+在 `resolve.byDependency` 中定义的选项会与顶层的 `resolve` 配置进行合并，`resolve.byDependency` 的优先级更高。
+:::
+
 ## resolve.conditionNames
 
 - **类型：** `string[]`
@@ -304,7 +357,6 @@ Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
 export default {
-  // ...
   plugins: [new NodePolyfillPlugin()],
 };
 ```
@@ -533,12 +585,6 @@ export default {
 
 启用时，符号链接的资源，将解析为其**真实**路径，而不是其符号链接的位置。注意，当使用创建符号链接包的工具（如 `npm link`）时，这种方式可能会导致模块解析失败。
 
-## resolve.byDependency
-
-- **类型：** `Record<string, Resolve>`.
-
-依据模块类型自定义 Resolve 配置。
-
 ## resolve.pnp
 
 - **类型:** `boolean`
@@ -550,7 +596,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   resolve: {
     pnp: true,
   },

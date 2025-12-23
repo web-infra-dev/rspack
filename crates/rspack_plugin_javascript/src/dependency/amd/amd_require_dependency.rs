@@ -3,7 +3,6 @@ use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  block_promise,
 };
 
 #[cacheable]
@@ -98,13 +97,17 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&dep.id);
+    let runtime_template = &code_generatable_context.compilation.runtime_template;
 
-    let promise = block_promise(
-      block,
-      code_generatable_context.runtime_requirements,
-      code_generatable_context.compilation,
-      "AMD require",
-    );
+    let promise = code_generatable_context
+      .compilation
+      .runtime_template
+      .block_promise(
+        block,
+        code_generatable_context.runtime_requirements,
+        code_generatable_context.compilation,
+        "AMD require",
+      );
 
     // has array range but no function range
     if let Some(array_range) = &dep.array_range
@@ -113,7 +116,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       let start_block = promise + ".then(function() {";
       let end_block = format!(
         ";}})['catch']({})",
-        RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name()
+        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
         .runtime_requirements
@@ -130,8 +133,8 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       let start_block = promise + ".then((";
       let end_block = format!(
         ").bind(exports, {}, exports, module))['catch']({})",
-        RuntimeGlobals::REQUIRE.name(),
-        RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name()
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
         .runtime_requirements
@@ -165,17 +168,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
-      source.insert(
-        array_range.start,
-        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
-        None,
-      );
+      source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
       source.replace(array_range.end, function_range.start, "; (", None);
 
       source.insert(
         function_range.end,
-        ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
+        ").apply(null, __rspack_amd_require_deps);",
         None,
       );
 
@@ -208,7 +207,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
         } else {
           ""
         },
-        RuntimeGlobals::UNCAUGHT_ERROR_HANDLER.name()
+        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
         .runtime_requirements
@@ -216,17 +215,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
-      source.insert(
-        array_range.start,
-        "var __WEBPACK_AMD_REQUIRE_ARRAY__ = ",
-        None,
-      );
+      source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
       source.replace(array_range.end, function_range.start, "; (", None);
 
       source.insert(
         function_range.end,
-        ").apply(null, __WEBPACK_AMD_REQUIRE_ARRAY__);",
+        ").apply(null, __rspack_amd_require_deps);",
         None,
       );
 

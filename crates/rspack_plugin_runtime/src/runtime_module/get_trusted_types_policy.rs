@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
   impl_runtime_module,
 };
 
@@ -13,10 +13,13 @@ pub struct GetTrustedTypesPolicyRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for GetTrustedTypesPolicyRuntimeModule {
-  fn default() -> Self {
+impl GetTrustedTypesPolicyRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      Identifier::from(format!(
+        "{}get_trusted_types_policy",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
     )
   }
@@ -44,59 +47,17 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       .expect("should have trusted_types");
     let runtime_requirements =
       get_chunk_runtime_requirements(compilation, &self.chunk.expect("should have chunk"));
-    let create_script = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT);
-    let create_script_url = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL);
     let wrap_policy_creation_in_try_catch = matches!(
       trusted_types.on_policy_creation_failure,
       OnPolicyCreationFailure::Continue
     );
 
-    let mut policy_content: Vec<String> = Vec::new();
-    if create_script {
-      policy_content.push(
-        r#"
-        createScript: function (script) {
-          return script;
-        }
-        "#
-        .to_string(),
-      );
-    }
-    if create_script_url {
-      policy_content.push(
-        r#"
-        createScriptURL: function (url) {
-          return url;
-        }
-        "#
-        .to_string(),
-      );
-    }
-    let wrap_policy_creation_try_catch_start = if wrap_policy_creation_in_try_catch {
-      "try {"
-    } else {
-      ""
-    };
-    let wrap_policy_creation_try_catch_end = if wrap_policy_creation_in_try_catch {
-      format!(
-        r#"
-          }} catch (e) {{
-            console.warn('Could not create trusted-types policy {}');
-          }}
-        "#,
-        serde_json::to_string(&trusted_types.policy_name.clone().unwrap_or_default())
-          .expect("invalid json to_string"),
-      )
-    } else {
-      "".to_string()
-    };
-
     let source = compilation.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_policy_content": policy_content.join(",\n"),
-        "_wrap_policy_creation_try_catch_start": wrap_policy_creation_try_catch_start,
-        "_warp_policy_creation_try_catch_end": wrap_policy_creation_try_catch_end,
+        "_create_script": runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT),
+        "_create_script_url": runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL),
+        "_wrap_try_catch": wrap_policy_creation_in_try_catch,
         "_policy_name": &trusted_types.policy_name.clone().unwrap_or_default(),
       })),
     )?;

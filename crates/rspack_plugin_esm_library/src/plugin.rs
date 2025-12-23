@@ -7,14 +7,14 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
-  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
-  ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, get_target, is_esm_dep_like,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
+  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
+  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -23,6 +23,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
@@ -46,12 +47,14 @@ pub struct EsmLibraryPlugin {
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
   pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
   pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
+  pub(crate) chunk_ids_to_ukey: AtomicRefCell<FxHashMap<String, ChunkUkey>>,
 }
 
 impl EsmLibraryPlugin {
   pub fn new(preserve_modules: Option<PathBuf>) -> Self {
     Self::new_inner(
       preserve_modules,
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -90,7 +93,11 @@ async fn render_chunk_content(
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  async_modules_artifact: &mut AsyncModulesArtifact,
+) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
@@ -109,7 +116,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
         "module {module_identifier} has bailout reason: {reason}",
       ));
       should_scope_hoisting = false;
-    } else if ModuleGraph::is_async(compilation, module_identifier) {
+    } else if ModuleGraph::is_async(async_modules_artifact, module_identifier) {
       logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
     }
@@ -251,13 +258,12 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     );
   }
 
-  let mut module_graph = compilation.get_module_graph_mut();
+  let mut module_graph =
+    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
   for m in entry_modules {
-    let exports_info = module_graph
-      .get_exports_info(&m)
-      .as_data_mut(&mut module_graph);
+    let exports_info = module_graph.get_exports_info(&m);
 
-    exports_info.set_all_known_exports_used(None);
+    exports_info.set_used_in_unknown_way(&mut module_graph, None);
   }
 
   Ok(())
@@ -287,6 +293,18 @@ async fn concatenation_scope(
 
 #[plugin_hook(CompilationAfterCodeGeneration for EsmLibraryPlugin)]
 async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+  let mut chunk_ids_to_ukey = FxHashMap::default();
+
+  for chunk_ukey in compilation.chunk_by_ukey.keys() {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+
+    if let Some(id) = chunk.id() {
+      chunk_ids_to_ukey.insert(id.as_str().to_string(), *chunk_ukey);
+    }
+  }
+
+  *self.chunk_ids_to_ukey.borrow_mut() = chunk_ids_to_ukey;
+
   self.link(compilation).await?;
   Ok(())
 }
@@ -354,7 +372,7 @@ async fn additional_tree_runtime_requirements(
 }
 
 static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"__RSPACK_ESM_CHUNK_(\d*)").expect("should have regex"));
+  LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
@@ -387,19 +405,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // only use the path, pop filename
       self_path.pop();
 
+      let chunk_ids_to_ukey = self.chunk_ids_to_ukey.borrow();
       for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
-        let whole_str = captures.as_str();
-        let chunk_ukey = whole_str
+        let chunk_id = captures
+          .as_str()
           .strip_prefix("__RSPACK_ESM_CHUNK_")
           .expect("should have correct prefix");
-        let chunk_ukey =
-          ChunkUkey::from(chunk_ukey.parse::<u32>().expect("should have chunk ukey"));
         let start = captures.range().start as u32;
         let end = captures.range().end as u32;
-        let chunk = compilation
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-          .expect("should have chunk");
+        let Some(chunk) = chunk_ids_to_ukey.get(chunk_id).map(|chunk_ukey| {
+          compilation
+            .chunk_by_ukey
+            .get(chunk_ukey)
+            .expect("should have chunk for chunk ukey")
+        }) else {
+          unreachable!("This should happen, please file an issue");
+        };
 
         let js_files = chunk
           .files()
@@ -418,9 +439,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .unwrap_or_else(|| {
               panic!(
                 "at least one path for chunk: {:?}",
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| { id.as_str() })
+                chunk.id().map(|id| { id.as_str() })
               )
             })
             .as_str(),
@@ -438,6 +457,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
         replace_source.replace(start, end, &import_str, None);
       }
+      drop(chunk_ids_to_ukey);
 
       replaced.push((asset_name.clone(), replace_source));
     }

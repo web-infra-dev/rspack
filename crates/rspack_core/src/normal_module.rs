@@ -301,24 +301,12 @@ impl NormalModule {
     &*self.inner().parser_and_generator
   }
 
-  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
-    &mut self.inner_mut().parser_and_generator
-  }
-
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.inner().code_generation_dependencies
   }
 
-  pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
-    &mut self.inner_mut().code_generation_dependencies
-  }
-
   pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
     &self.inner().presentational_dependencies
-  }
-
-  pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
-    &mut self.inner_mut().presentational_dependencies
   }
 
   #[tracing::instrument(
@@ -510,7 +498,17 @@ impl Module for NormalModule {
         .collect();
 
       inner.source = None;
-      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(err)));
+
+      let current_loader = loader_result.current_loader.map(|current_loader| {
+        contextify(
+          build_context.compiler_options.context.as_path(),
+          current_loader.as_str(),
+        )
+      });
+      let diagnostic = Diagnostic::from(rspack_error::Error::from(ModuleBuildError::new(
+        err,
+        current_loader,
+      )));
       inner.diagnostics.push(diagnostic);
 
       self.inner_mut().build_info.hash = Some(self.init_build_hash(
@@ -622,6 +620,7 @@ impl Module for NormalModule {
         build_info: &mut inner.build_info,
         build_meta: &mut inner.build_meta,
         parse_meta: loader_result.parse_meta,
+        runtime_template: &build_context.runtime_template,
       })
       .await?
       .split_into_parts();
@@ -751,7 +750,10 @@ impl Module for NormalModule {
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
-    let resource = self.inner().resource_data.resource();
+    let resource = self
+      .match_resource()
+      .unwrap_or_else(|| &self.inner().resource_data)
+      .resource();
     let idx = resource.find('?');
     if let Some(idx) = idx {
       Some(resource[..idx].into())

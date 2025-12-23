@@ -27,13 +27,13 @@ _2024 年 1 月 9 日_
 
 ### 移除默认转换
 
-之前默认转换是内置的，它将源文件（如 TypeScript）内部转换为兼容的源文件（如 JavaScript）。为了使转换更加可定制，我们通过使用 `builtin:swc-loader` 将此功能交给用户控制，并放弃了对几个 [rule.type](/config/module#ruletype) 的支持。这些 `rule.type` 已被删除：
+之前默认转换是内置的，它将源文件（如 TypeScript）内部转换为兼容的源文件（如 JavaScript）。为了使转换更加可定制，我们通过使用 `builtin:swc-loader` 将此功能交给用户控制，并放弃了对几个 [rules[].type](/config/module-rules#rulestype) 的支持。这些 `rules[].type` 已被删除：
 
 - `"typescript"` 或 `"ts"`
 - `"tsx"`
 - `"jsx"`
 
-为了实现旧有的行为，请删除 `rule.type` 或将其更改为 `"javascript/auto"` 并应用你的自定义加载器配置。
+为了实现旧有的行为，请删除 `rules[].type` 或将其更改为 `"javascript/auto"` 并应用你的自定义加载器配置。
 
 转译 `.jsx` 文件：
 
@@ -198,7 +198,6 @@ v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四
 
 ```diff
 const configuration = {
-  // ...
   resolve: {
 +   extensions: ['...', '.tsx', '.ts', '.jsx'],
   },
@@ -229,7 +228,6 @@ const configuration = {
 
 ```diff
 class CustomDevServer {
-  // ...
   enableHMR(compiler) {
 -   compiler.options.devServer ??= {};
 -   compiler.options.devServer.hot = true;

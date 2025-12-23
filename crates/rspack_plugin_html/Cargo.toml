@@ -20,6 +20,7 @@ rayon             = { workspace = true }
 rspack_core       = { workspace = true }
 rspack_dojang     = { workspace = true }
 rspack_error      = { workspace = true }
+rspack_hash       = { workspace = true }
 rspack_hook       = { workspace = true }
 rspack_paths      = { workspace = true }
 rspack_util       = { workspace = true }
@@ -37,5 +38,5 @@ urlencoding       = { workspace = true }
 ignored = ["tracing"]
 
 [lints.rust.unexpected_cfgs]
-level = "warn"
 check-cfg = ['cfg(allocative)']
+level     = "warn"

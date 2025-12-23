@@ -1,24 +1,24 @@
 ```js title=main.js
 "use strict";
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */var _json_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./json.json");
-/* import */var _string_json__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./string.json");
+/* import */ var _json_json__rspack_import_0 = __webpack_require__("./json.json");
+/* import */ var _string_json__rspack_import_1 = __webpack_require__("./string.json");
 
 
-console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__,_string_json__WEBPACK_IMPORTED_MODULE_1__)
+console.log(_json_json__rspack_import_0,_string_json__rspack_import_1)
 
 
-}),
-"./json.json": (function (module) {
+},
+"./json.json"(module) {
 module.exports = JSON.parse('{"hello":"world is better \'","b":"\\\\"}')
 
-}),
-"./string.json": (function (module) {
+},
+"./string.json"(module) {
 module.exports = "hello world"
 
-}),
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

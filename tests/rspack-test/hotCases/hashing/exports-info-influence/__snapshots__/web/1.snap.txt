@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1484
+- Update: main.LAST_HASH.hot-update.js, size: 1253
 
 ## Manifest
 
@@ -33,25 +33,21 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"./referencer.js": 
-/*!***********************!*\
-  !*** ./referencer.js ***!
-  \***********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./referencer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */ "./module.js");
-/* import */var _module__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_module__WEBPACK_IMPORTED_MODULE_0__);
-/* import */var external__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! external */ "external");
-/* import */var external__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(external__WEBPACK_IMPORTED_MODULE_1__);
+/* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
+/* import */ var _module__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_module__rspack_import_0);
+/* import */ var external__rspack_import_1 = __webpack_require__("external");
+/* import */ var external__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(external__rspack_import_1);
 
 
-/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (`${_module__WEBPACK_IMPORTED_MODULE_0__.test} ${external__WEBPACK_IMPORTED_MODULE_1__.test}`);
+/* export default */ const __rspack_default_export = (`${_module__rspack_import_0.test} ${external__rspack_import_1.test}`);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/compat_get_default_export

@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -9,8 +9,14 @@ pub struct RspackVersionRuntimeModule {
 }
 
 impl RspackVersionRuntimeModule {
-  pub fn new(version: String) -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/rspack_version"), version)
+  pub fn new(runtime_template: &RuntimeTemplate, version: String) -> Self {
+    Self::with_default(
+      Identifier::from(format!(
+        "{}rspack_version",
+        runtime_template.runtime_module_prefix()
+      )),
+      version,
+    )
   }
 }
 

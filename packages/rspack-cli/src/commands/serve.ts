@@ -1,6 +1,7 @@
-import type { Compiler, DevServer } from "@rspack/core";
+import type { Compiler } from "@rspack/core";
 import type { RspackDevServer as RspackDevServerType } from "@rspack/dev-server";
 import type { RspackCLI } from "../cli";
+import { DEFAULT_SERVER_HOT } from "../constants";
 import type { RspackCommand } from "../types";
 import {
 	type CommonOptionsForBuildAndServe,
@@ -17,14 +18,16 @@ type ServerOptions = CommonOptionsForBuildAndServe & {
 	host?: string;
 };
 
-function normalizeHotOption(value: unknown): ServerOptions["hot"] {
-	if (typeof value === "boolean" || value === "only") {
-		return value;
-	}
+function normalizeHotOption(
+	value: boolean | "true" | "false" | "only" | undefined
+): ServerOptions["hot"] {
 	if (value === "false") {
 		return false;
 	}
-	return true;
+	if (value === "true") {
+		return true;
+	}
+	return value;
 }
 
 export class ServeCommand implements RspackCommand {
@@ -40,15 +43,15 @@ export class ServeCommand implements RspackCommand {
 			.option("--port <port>", "allows to specify a port to use")
 			.option("--host <host>", "allows to specify a hostname to use");
 
-		command.action(async (options: ServerOptions) => {
-			setDefaultNodeEnv(options, "development");
-			normalizeCommonOptions(options, "serve");
-			options.hot = normalizeHotOption(options.hot);
+		command.action(async (cliOptions: ServerOptions) => {
+			setDefaultNodeEnv(cliOptions, "development");
+			normalizeCommonOptions(cliOptions, "serve");
+			cliOptions.hot = normalizeHotOption(cliOptions.hot);
 
 			// Lazy import @rspack/dev-server to avoid loading it on build mode
 			const { RspackDevServer } = await import("@rspack/dev-server");
 
-			const compiler = await cli.createCompiler(options, "serve");
+			const compiler = await cli.createCompiler(cliOptions, "serve");
 			if (!compiler) {
 				return;
 			}
@@ -65,7 +68,7 @@ export class ServeCommand implements RspackCommand {
 			const servers: RspackDevServerType[] = [];
 
 			/**
-			 * Webpack uses an Array of compilerForDevServer,
+			 * webpack uses an Array of compilerForDevServer,
 			 * however according to it's doc https://webpack.js.org/configuration/dev-server/#devserverhot
 			 * It should use only the first one
 			 *
@@ -79,7 +82,9 @@ export class ServeCommand implements RspackCommand {
 			 */
 			for (const compiler of compilers) {
 				const devServer = (compiler.options.devServer ??= {});
-				devServer.hot = options.hot ?? devServer.hot ?? true;
+
+				devServer.hot = cliOptions.hot ?? devServer.hot ?? DEFAULT_SERVER_HOT;
+
 				if (devServer.client !== false) {
 					if (devServer.client === true || devServer.client == null) {
 						devServer.client = {};
@@ -94,12 +99,12 @@ export class ServeCommand implements RspackCommand {
 				}
 			}
 
-			const result = (compilerForDevServer.options.devServer ??= {});
-			const { setupMiddlewares } = result;
+			const devServerOptions = (compilerForDevServer.options.devServer ??= {});
+			const { setupMiddlewares } = devServerOptions;
 
-			const lazyCompileMiddleware =
-				rspack.experiments.lazyCompilationMiddleware(compiler);
-			result.setupMiddlewares = (middlewares, server) => {
+			const lazyCompileMiddleware = rspack.lazyCompilationMiddleware(compiler);
+
+			devServerOptions.setupMiddlewares = (middlewares, server) => {
 				let finalMiddlewares = middlewares;
 				if (setupMiddlewares) {
 					finalMiddlewares = setupMiddlewares(finalMiddlewares, server);
@@ -110,23 +115,26 @@ export class ServeCommand implements RspackCommand {
 			/**
 			 * Enable this to tell Rspack that we need to enable React Refresh by default
 			 */
-			result.hot = options.hot ?? result.hot ?? true;
-			result.host = options.host || result.host;
-			result.port = options.port ?? result.port;
-			if (result.client !== false) {
-				if (result.client === true || result.client == null) {
-					result.client = {};
+			devServerOptions.hot =
+				cliOptions.hot ?? devServerOptions.hot ?? DEFAULT_SERVER_HOT;
+			devServerOptions.host = cliOptions.host || devServerOptions.host;
+			devServerOptions.port = cliOptions.port ?? devServerOptions.port;
+			if (devServerOptions.client !== false) {
+				if (
+					devServerOptions.client === true ||
+					devServerOptions.client == null
+				) {
+					devServerOptions.client = {};
 				}
-				result.client = {
+				devServerOptions.client = {
 					overlay: {
 						errors: true,
 						warnings: false
 					},
-					...result.client
+					...devServerOptions.client
 				};
 			}
 
-			const devServerOptions = result as DevServer;
 			if (devServerOptions.port) {
 				const portNumber = Number(devServerOptions.port);
 
@@ -143,9 +151,7 @@ export class ServeCommand implements RspackCommand {
 
 			try {
 				const server = new RspackDevServer(devServerOptions, compiler);
-
 				await server.start();
-
 				servers.push(server);
 			} catch (error) {
 				const logger = cli.getLogger();

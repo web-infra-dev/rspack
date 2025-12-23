@@ -1,11 +1,11 @@
 runtime modules xx KiB 14 modules
-cacheable modules 559 bytes
-  ./index.js 50 bytes [built] [code generated]
-  ./chunk.js 401 bytes [built] [code generated] [2 warnings]
-  ./chunk-a.js 27 bytes [built] [code generated]
-  ./chunk-b.js 27 bytes [built] [code generated]
-  ./chunk-c.js 27 bytes [built] [code generated]
-  ./chunk-d.js 27 bytes [built] [code generated]
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./chunk.js xx bytes [built] [code generated] [2 warnings]
+  ./chunk-a.js xx bytes [built] [code generated]
+  ./chunk-b.js xx bytes [built] [code generated]
+  ./chunk-c.js xx bytes [built] [code generated]
+  ./chunk-d.js xx bytes [built] [code generated]
 
 WARNING in ./chunk.js
   ⚠ Module parse warning:

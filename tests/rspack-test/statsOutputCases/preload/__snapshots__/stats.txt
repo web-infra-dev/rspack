@@ -1,16 +1,16 @@
 asset main.js xx KiB [emitted] (name: main)
-asset preloaded.js 551 bytes [emitted] (name: preloaded)
-asset inner2.js 126 bytes [emitted] (name: inner2)
-asset inner.js 100 bytes [emitted] (name: inner)
-asset normal.js 100 bytes [emitted] (name: normal)
-asset preloaded3.js 100 bytes [emitted] (name: preloaded3)
-asset preloaded2.js 99 bytes [emitted] (name: preloaded2)
+asset preloaded.js xx bytes [emitted] (name: preloaded)
+asset inner2.js xx bytes [emitted] (name: inner2)
+asset inner.js xx bytes [emitted] (name: inner)
+asset normal.js xx bytes [emitted] (name: normal)
+asset preloaded3.js xx bytes [emitted] (name: preloaded3)
+asset preloaded2.js xx bytes [emitted] (name: preloaded2)
 Entrypoint main xx KiB = main.js
   preload: preloaded.js {70} (name: preloaded), preloaded3.js {101} (name: preloaded3), preloaded2.js {206} (name: preloaded2)
-chunk (runtime: main) preloaded3.js (preloaded3) 1 bytes [rendered]
-chunk (runtime: main) preloaded2.js (preloaded2) 1 bytes [rendered]
-chunk (runtime: main) inner.js (inner) 1 bytes [rendered]
-chunk (runtime: main) normal.js (normal) 1 bytes [rendered]
-chunk (runtime: main) preloaded.js (preloaded) 226 bytes (preload: {750} {222}) [rendered]
-chunk (runtime: main) inner2.js (inner2) 2 bytes [rendered]
-chunk (runtime: main) main.js (main) 424 bytes (javascript) xx KiB (runtime) (preload: {70} {101} {206}) [entry] [rendered]
+chunk (runtime: main) preloaded3.js (preloaded3) xx bytes [rendered]
+chunk (runtime: main) preloaded2.js (preloaded2) xx bytes [rendered]
+chunk (runtime: main) inner.js (inner) xx bytes [rendered]
+chunk (runtime: main) normal.js (normal) xx bytes [rendered]
+chunk (runtime: main) preloaded.js (preloaded) xx bytes (preload: {750} {222}) [rendered]
+chunk (runtime: main) inner2.js (inner2) xx bytes [rendered]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) (preload: {70} {101} {206}) [entry] [rendered]

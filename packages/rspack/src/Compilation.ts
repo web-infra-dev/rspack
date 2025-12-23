@@ -124,7 +124,7 @@ export interface ExecuteModuleArgument {
 }
 
 export interface ExecuteModuleContext {
-	__webpack_require__: (id: string) => any;
+	[key: string]: (id: string) => any;
 }
 
 export interface KnownNormalizedStatsOptions {
@@ -325,7 +325,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					options: liteTapable.Options,
 					fn: liteTapable.FnAsync<T, void>
 				) => {
-					processAssetsHook.tapAsync(getOptions(options), (assets, callback) =>
+					processAssetsHook.tapAsync(getOptions(options), (_assets, callback) =>
 						(fn as any)(...getArgs(), callback)
 					);
 				},

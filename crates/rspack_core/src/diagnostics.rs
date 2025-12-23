@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_error::{Diagnostic, Error, Label};
+use rspack_error::{Diagnostic, Error, Label, dim};
 
 use crate::{BoxLoader, DependencyRange};
 
@@ -31,20 +31,28 @@ impl From<EmptyDependency> for Error {
 
 ///////////////////// Module /////////////////////
 
-#[derive(Debug)]
-pub struct ModuleBuildError(pub Error);
+#[derive(Debug, Clone)]
+pub struct ModuleBuildError {
+  error: Error,
+  from: Option<String>,
+}
 
 impl ModuleBuildError {
-  pub fn new(error: Error) -> Self {
-    Self(error)
+  pub fn new(error: Error, from: Option<String>) -> Self {
+    Self { error, from }
   }
 }
 
 impl From<ModuleBuildError> for Error {
   fn from(value: ModuleBuildError) -> Error {
-    let source = value.0;
+    let source = value.error;
 
-    let mut err = Error::error("Module build failed:".into());
+    let message = if let Some(from) = value.from {
+      format!("Module build failed {}:", dim(&format!("(from {from})")))
+    } else {
+      "Module build failed:".to_string()
+    };
+    let mut err = Error::error(message);
     let details = source
       .hide_stack
       .unwrap_or(false)

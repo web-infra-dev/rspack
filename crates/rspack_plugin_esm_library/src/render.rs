@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeGlobals, SourceType, get_js_chunk_filename_template, get_undo_path,
-  render_init_fragments,
+  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
+  get_module_directives, get_module_hashbang, get_undo_path, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -85,6 +85,49 @@ impl EsmLibraryPlugin {
 
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
       chunk_link.init_fragments.clone();
+
+    // NOTE: Similar hashbang and directives handling logic.
+    // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
+    let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+    for entry_module_id in &entry_modules {
+      let hashbang = get_module_hashbang(&module_graph, entry_module_id);
+      let directives = get_module_directives(&module_graph, entry_module_id);
+
+      if hashbang.is_none() && directives.is_none() {
+        continue;
+      }
+
+      if let Some(hashbang) = &hashbang {
+        chunk_init_fragments.insert(
+          0,
+          Box::new(rspack_core::NormalInitFragment::new(
+            format!("{hashbang}\n"),
+            rspack_core::InitFragmentStage::StageConstants,
+            i32::MIN,
+            rspack_core::InitFragmentKey::unique(),
+            None,
+          )),
+        );
+      }
+
+      if let Some(directives) = directives {
+        for (idx, directive) in directives.iter().enumerate() {
+          let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
+          chunk_init_fragments.insert(
+            insert_pos,
+            Box::new(rspack_core::NormalInitFragment::new(
+              format!("{directive}\n"),
+              rspack_core::InitFragmentStage::StageConstants,
+              i32::MIN + 1 + idx as i32,
+              rspack_core::InitFragmentKey::unique(),
+              None,
+            )),
+          );
+        }
+      }
+      break; // Only process the first entry module with hashbang/directives
+    }
+
     let mut replace_auto_public_path = false;
     let mut replace_static_url = false;
 
@@ -108,12 +151,8 @@ impl EsmLibraryPlugin {
             &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,
           ))
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+          .chunk_name_optional(chunk.name_for_filename_template())
           .content_hash_optional(chunk.rendered_content_hash_by_source_type(
             &compilation.chunk_hashes_artifact,
             &SourceType::JavaScript,
@@ -161,7 +200,7 @@ impl EsmLibraryPlugin {
         // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
         decl_source.add(RawStringSource::from(format!(
           "{}({{\n",
-          RegisterModuleRuntime::runtime_id()
+          RegisterModuleRuntime::runtime_id(&compilation.runtime_template)
         )));
         decl_source.add(decl_inner);
         decl_source.add(RawStringSource::from_static("});\n"));
@@ -176,6 +215,7 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut runtime_source = ConcatSource::default();
+    let mut import_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
@@ -192,9 +232,14 @@ impl EsmLibraryPlugin {
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
       if tree_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
-        runtime_source.add(RawStringSource::from_static(
-          "\nvar __webpack_modules__ = {};\n",
-        ));
+        runtime_source.add(RawStringSource::from(format!(
+          r#"
+var {} = {{}};
+"#,
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::Modules)
+        )));
       }
       let runtimes =
         Self::render_runtime(chunk_ukey, compilation, *tree_runtime_requirements).await?;
@@ -208,10 +253,14 @@ impl EsmLibraryPlugin {
       if !compilation
         .chunk_graph
         .get_chunk_runtime_modules_iterable(chunk_ukey)
-        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID.as_str()))
+        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
         && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
       {
-        export_specifiers.insert(Cow::Borrowed(RuntimeGlobals::REQUIRE.name()));
+        export_specifiers.insert(Cow::Owned(
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        ));
       }
     }
 
@@ -269,12 +318,14 @@ impl EsmLibraryPlugin {
 
       if info.interop_namespace_object_used {
         render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({}, 2);",
+          "var {} = /*#__PURE__*/{}({}, 2);\n",
           info
             .interop_namespace_object_name
             .clone()
             .expect("should have interop_namespace_object_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           info
             .namespace_object_name
             .as_ref()
@@ -284,12 +335,14 @@ impl EsmLibraryPlugin {
 
       if info.interop_namespace_object2_used {
         render_source.add(RawStringSource::from(format!(
-          "\nvar {} = /*#__PURE__*/{}({});",
+          "var {} = /*#__PURE__*/{}({});\n",
           info
             .interop_namespace_object2_name
             .clone()
             .expect("should have interop_namespace_object2_name"),
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           info
             .namespace_object_name
             .as_ref()
@@ -304,7 +357,9 @@ impl EsmLibraryPlugin {
             .interop_default_access_name
             .clone()
             .expect("should have interop_default_access_name"),
-          RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           info
             .namespace_object_name
             .as_ref()
@@ -322,8 +377,6 @@ impl EsmLibraryPlugin {
     }
 
     // render imports and exports to other chunks
-    let mut final_source = ConcatSource::default();
-
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       let target_chunk = Self::get_module_chunk(required_module, compilation);
@@ -335,10 +388,14 @@ impl EsmLibraryPlugin {
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
       if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-        final_source.add(RawStringSource::from(format!(
+        let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk);
+
+        import_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-          RuntimeGlobals::REQUIRE,
-          runtime_chunk.as_u32()
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          runtime_chunk.expect_id().as_str()
         )));
       }
     }
@@ -381,7 +438,7 @@ impl EsmLibraryPlugin {
           }
         )
       };
-      final_source.add(RawStringSource::from(import_str));
+      import_source.add(RawStringSource::from(import_str));
     }
 
     for (id, imports) in &chunk_link.imports {
@@ -409,8 +466,9 @@ impl EsmLibraryPlugin {
       {
         continue;
       }
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
-      final_source.add(RawStringSource::from(format!(
+      import_source.add(RawStringSource::from(format!(
         "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
         if imported.is_empty() {
           String::new()
@@ -430,28 +488,34 @@ impl EsmLibraryPlugin {
               .join(", ")
           )
         },
-        chunk.as_u32()
+        chunk.expect_id().as_str()
       )));
     }
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
-      final_source.add(RawStringSource::from_static("\n"));
+      import_source.add(RawStringSource::from_static("\n"));
     }
 
     // render init fragments
     let mut final_source = ConcatSource::new([
       render_init_fragments(
-        final_source.boxed(),
+        import_source.boxed(),
         chunk_init_fragments,
         &mut ChunkRenderContext {},
       )?,
-      Arc::new(runtime_source),
-      Arc::new(decl_source),
-      Arc::new(render_source),
+      ConcatSource::new([
+        runtime_source.boxed(),
+        decl_source.boxed(),
+        render_source.boxed(),
+      ])
+      .boxed(),
     ]);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
+    for decl_before_export in chunk_link.decl_before_exports.iter() {
+      final_source.add(RawStringSource::from(decl_before_export.clone()));
+    }
 
     for (raw_symbol, exports) in exports {
       let mut exports = exports.iter().collect::<Vec<_>>();
@@ -526,7 +590,8 @@ impl EsmLibraryPlugin {
           .join(", "),
         match re_export_from {
           crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk_ukey.as_u32()))
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
           }
           crate::chunk_link::ReExportFrom::Request(request) => {
             Cow::Borrowed(request)
@@ -605,6 +670,7 @@ impl EsmLibraryPlugin {
       source: final_source,
     }))
   }
+
   pub async fn render_runtime(
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -621,45 +687,80 @@ impl EsmLibraryPlugin {
     let mut source = ConcatSource::default();
 
     if use_require || module_cache {
-      source.add(RawStringSource::from_static(
-        "// The module cache\nvar __webpack_module_cache__ = {};\n",
-      ));
+      source.add(RawStringSource::from(format!(
+        r#"// The module cache
+var {} = {{}};
+"#,
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+      )));
     }
 
     if use_require {
       source.add(RawStringSource::from(format!(
-        "// The require function\nfunction {}(moduleId) {{\n",
-        RuntimeGlobals::REQUIRE
+        r#"// The require function
+function {}(moduleId) {{
+"#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
       source.add(RawStringSource::from(
         JsPlugin::render_require(chunk_ukey, compilation).join("\n"),
       ));
-      source.add(RawStringSource::from_static("\n}\n"));
+      source.add(RawStringSource::from_static(
+        r#"
+}
+"#,
+      ));
     } else if require_scope_used {
       source.add(RawStringSource::from(format!(
-        "// The require scope\nvar {} = {{}};\n",
-        RuntimeGlobals::REQUIRE
+        r#"// The require scope
+var {} = {{}};
+"#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
     }
 
     if module_factories {
       source.add(RawStringSource::from(format!(
-        "// expose the modules object (__webpack_modules__)\n{} = __webpack_modules__;\n",
-        RuntimeGlobals::MODULE_FACTORIES
+        r#"// expose the modules object ({modules})
+{module_factories} = {modules};
+"#,
+        module_factories = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        modules = compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::Modules),
       )));
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       source.add(RawStringSource::from(format!(
-        "// expose the module cache\n{} = __webpack_module_cache__;\n",
-        RuntimeGlobals::MODULE_CACHE
+        r#"// expose the module cache
+{} = {};
+"#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+        compilation
+          .runtime_template
+          .render_runtime_variable(&RuntimeVariable::ModuleCache),
       )));
     }
 
     if intercept_module_execution {
       source.add(RawStringSource::from(format!(
-        "// expose the module execution interceptor\n{} = [];\n",
-        RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+        r#"// expose the module execution interceptor
+{} = [];
+"#,
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )));
     }
 

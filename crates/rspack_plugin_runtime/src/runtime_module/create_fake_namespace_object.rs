@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -7,11 +7,12 @@ pub struct CreateFakeNamespaceObjectRuntimeModule {
   id: Identifier,
 }
 
-impl Default for CreateFakeNamespaceObjectRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from(
-      "webpack/runtime/create_fake_namespace_object",
-    ))
+impl CreateFakeNamespaceObjectRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(Identifier::from(format!(
+      "{}create_fake_namespace_object",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 

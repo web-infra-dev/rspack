@@ -272,7 +272,7 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 
 ### getPath
 
-Generate path string based on the Filename template, see [Template String](/config/output#template-string) for the template rules.
+Generate path string based on the Filename template, see [Filename placeholders](/config/filename-placeholders) for the template rules.
 
 ```ts
 getPath(
@@ -310,7 +310,7 @@ console.log(path); // "some1-some2.js"
 
 ### getPathWithInfo
 
-Generate path string and asset info based on the Filename template, see [Template String](/config/output#template-string).
+Generate path string and asset info based on the Filename template, see [Filename placeholders](/config/filename-placeholders).
 
 ```ts
 getPathWithInfo(

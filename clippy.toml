@@ -12,5 +12,6 @@ disallowed-methods = [
   { path = "std::mem::forget", reason = "future::scope is unsafe when used with forget" },
   { path = "futures::executor::block_on", reason = "block_on can cause deadlock easily" },
   { path = "async_std::task::block_on", reason = "block_on can cause deadlock easily" },
-  { path = "pollster::block_on", reason = "block_on can cause deadlock easily" }
+  { path = "pollster::block_on", reason = "block_on can cause deadlock easily" },
+  { path = "napi::tokio_runtime::block_on", reason = "block_on can cause deadlock easily" }
 ]

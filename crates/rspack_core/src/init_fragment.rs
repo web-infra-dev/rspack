@@ -15,8 +15,8 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, merge_runtime, property_name,
-  runtime_condition_expression,
+  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, RuntimeTemplate,
+  merge_runtime, property_name,
 };
 
 static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
@@ -160,7 +160,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn returning_function(&self, return_value: &str, args: &str) -> String;
+  fn runtime_template(&self) -> &RuntimeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -266,19 +266,19 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
   }
 
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
-    runtime_condition_expression(
-      &self.compilation.chunk_graph,
-      Some(runtime_condition),
-      self.runtime,
-      self.runtime_requirements,
-    )
-  }
-
-  fn returning_function(&self, return_value: &str, args: &str) -> String {
     self
       .compilation
       .runtime_template
-      .returning_function(return_value, args)
+      .runtime_condition_expression(
+        &self.compilation.chunk_graph,
+        Some(runtime_condition),
+        self.runtime,
+        self.runtime_requirements,
+      )
+  }
+
+  fn runtime_template(&self) -> &RuntimeTemplate {
+    &self.compilation.runtime_template
   }
 }
 
@@ -293,8 +293,8 @@ impl InitFragmentRenderContext for ChunkRenderContext {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn returning_function(&self, _return_value: &str, _args: &str) -> String {
-    unreachable!("should not call returning function in chunk render context")
+  fn runtime_template(&self) -> &RuntimeTemplate {
+    unreachable!("should not call runtime template in chunk render context")
   }
 }
 
@@ -377,7 +377,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
           Ok(format!(
             "{}: {}",
             prop,
-            context.returning_function(&s.1, "")
+            context.runtime_template().returning_function(&s.1, "")
           ))
         })
         .collect::<Result<Vec<_>>>()?
@@ -387,8 +387,12 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     Ok(InitFragmentContents {
       start: format!(
         "{}({}, {});\n",
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-        self.exports_argument,
+        context
+          .runtime_template()
+          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        context
+          .runtime_template()
+          .render_exports_argument(self.exports_argument),
         exports
       ),
       end: None,
@@ -437,7 +441,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = self.promises.front().expect("at least have one");
       Ok(InitFragmentContents {
         start: format!(
-          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n{sep} = (__webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__)[0];"
+          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n{sep} = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];"
         ),
         end: None,
       })
@@ -445,7 +449,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
       let sep = Vec::from_iter(self.promises).join(", ");
       Ok(InitFragmentContents {
         start: format!(
-          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n([{sep}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
+          "var __rspack_async_deps = __rspack_load_async_deps([{sep}]);\n([{sep}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);"
         ),
         end: None,
       })
@@ -492,6 +496,10 @@ impl ConditionalInitFragment {
       end_content,
       runtime_condition,
     }
+  }
+
+  pub fn content(&self) -> &str {
+    &self.content
   }
 
   pub fn merge(

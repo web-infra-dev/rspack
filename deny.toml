@@ -223,8 +223,6 @@ skip = [
     { crate = "path-clean", reason = "external dependency"},
     { crate = "ptr_meta", reason = "external dependency"},
     { crate = "ptr_meta_derive", reason = "external dependency"},
-    { crate = "regex-automata", reason = "external dependency"},
-    { crate = "regex-syntax", reason = "external dependency"},
     { crate = "rkyv", reason = "FIXME: need to be fixed"},
     { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
     { crate = "syn", reason = "external dependency"},
@@ -246,14 +244,13 @@ skip = [
     { crate = "foldhash", reason = "external dependency" },
     { crate = "wasmparser", reason = "external dependency"},
     { crate = "windows_i686_gnullvm", reason = "external dependency"},
-
+    { crate = "hermit-abi", reason = "external dependency"},
+    { crate = "supports-color", reason = "external dependency"},
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "linux-raw-sys", reason = "external dependency"},
     { crate = "rustix", reason = "external dependency"},
-
-    { crate = "winnow", reason = "external dependency"},
-    { crate = "heck", reason = "external dependency"},
     { crate = "ctor", reason = "external dependency"},
+    { crate = "windows-link", reason = "external dependency"},
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

@@ -11,18 +11,16 @@ Rspack 提供两种方案来支持 Vue：
 
 ## Vue 3
 
-目前，Rspack 已经完成了对 Vue3 的支持，请确保你的 [vue-loader](https://github.com/vuejs/vue-loader) 版本 >= 17.2.2，并进行如下配置：
+目前，Rspack 已经完成了对 Vue 3 的支持，请确保你的 [vue-loader](https://github.com/vuejs/vue-loader) 版本 >= 17.2.2，并进行如下配置：
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
 import { VueLoaderPlugin } from 'vue-loader';
 
 export default defineConfig({
-  // ...
   plugins: [new VueLoaderPlugin()],
   module: {
     rules: [
-      // ...
       {
         test: /\.vue$/,
         loader: 'vue-loader',
@@ -87,9 +85,9 @@ export default {
 
 ## Vue 2
 
-Rspack 已经完成对 Vue2（使用 vue-loader@15）的兼容。
+Rspack 已经完成对 Vue 2（使用 vue-loader@15）的兼容。
 
-请确保在配置 Vue2 项目时关闭 `experiments.css` 或在 CSS 相关的规则中使用 `Rule.type = "javascript/auto"`：
+请确保在配置 Vue 2 项目时关闭 `experiments.css` 或在 CSS 相关的规则中使用 `rules[].type = "javascript/auto"`：
 
 ```js title="rspack.config.mjs"
 export default {

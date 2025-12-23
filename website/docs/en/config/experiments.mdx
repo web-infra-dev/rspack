@@ -155,7 +155,7 @@ Starting from v1.4.0, Rspack enables incremental builds for all phases by defaul
 - **Type**: `boolean`
 - **Default:** `false`
 
-Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`Rule.use.parallel`](/config/module#ruleuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
+Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`rules[].use.parallel`](/config/module-rules#rulesuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -358,7 +358,7 @@ An array of paths to immutable files, changes to these paths will be ignored dur
 
 - **Type:** `(RegExp | string)[]`
 
-- **Default:** `[/\/node_modules\//]`
+- **Default:** `[/[\\/]node_modules[\\/][^.]/]`
 
 An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
 
@@ -686,58 +686,6 @@ export default {
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
 
-## experiments.inlineConst
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Whether to enable the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst), which will perform cross-module inline optimization for constant exports in leaf modules of the module graph.
-
-A common optimization case is `constants.js`, for example:
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// Bundled by Rspack: output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A will be inlined at the usage sites.
-    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-## experiments.inlineEnum
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
-
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
-
-## experiments.typeReexportsPresence
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
-
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
@@ -764,48 +712,6 @@ export default {
 };
 ```
 
-## experiments.lazyBarrel
-
-<ApiMeta addedVersion="1.5.0" />
-
-- **Type:** `boolean`
-- **Default:** `true` (enabled by default after v1.6.0)
-
-Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyBarrel: true,
-  },
-};
-```
-
-A side-effect-free module is a module that meets one of the following conditions:
-
-- The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
-- Modules explicitly marked as `false` through the [module.rule.sideEffects](/config/optimization#optimizationsideeffects) option
-
-:::info FAQ
-
-1. Can this also supports CommonJS?
-
-   Yes, theoretically this can also support CommonJS, but before that we need to improve Rspack's CJS tree shaking first, the static analyze part specifically, so currently we will only support ESM, and support CJS in the future PR.
-
-2. Why depend on `"sideEffects": false` in package.json, can Rspack automatically analyze a module is side effects free or not?
-
-   Rspack has the ability to analyze a module is side effects free or not of course, it's already used by `optimization.sideEffects` to tree shaking side effects free modules. But these analyzed modules still require checking whether their dependencies have side effects - only when all dependencies are also side effects free can the module be considered truly side effects free. However, during the make phase, dependencies must first be built before their side effects can be analyzed, and the `lazyBarrel` is intend to avoid to build those dependencies. `"sideEffects": false` in package.json or `module.rule.sideEffects` doesn't require dependency checking, as it signifies the entire package is side effects free. Therefore, `lazyBarrel` can only rely on this marker rather than automatic analysis.
-
-3. So `export * from "./x"` is not a problem any more?
-
-   No, `export * from "./x"` is still a bad practice for your build performance, `lazyBarrel` won't build the star re-export only when you import a specifier, and the side effects free barrel file's named exports contains the specifier (`export { x as A } from "./a";`, `export * as A from "./a"`, `export { a, b }`, `export const A`, `export default A (the name is default)`), which means the star re-export is not used. So Rspack will still build the star re-export if:
-   1. barrel file is not side effects free
-   2. the star re-export is used
-
-:::
-
-> For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
-
 ## experiments.deferImport
 
 <ApiMeta addedVersion="1.6.0" />
@@ -822,93 +728,3 @@ export default {
   },
 };
 ```
-
-## experiments.topLevelAwait
-
-:::warning
-
-This option has been deprecated and will be removed in Rspack v2.0.
-
-Top-level await will always be enabled in the future. Remove this option from your Rspack configuration.
-
-:::
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module#ruletype) set to `javascript/esm`.
-
-Enabled by default. Can be disabled with this configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-:::warning
-This option is deprecated. Layers are now always enabled. Remove this option from your Rspack configuration.
-:::
-
-Controls whether to enable the layer feature. Layers add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
-
-The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
-
-By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta deprecatedVersion="1.6.2" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
-
-:::warning
-This option is deprecated, it has a huge performance regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
-
-This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
-:::

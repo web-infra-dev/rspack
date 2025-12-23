@@ -35,7 +35,7 @@ export default {
 
 ### 2. Specify via loader rules
 
-You can use the [`rule.layer`](/config/module#rulelayer) option to specify a layer for all modules that match the rule:
+You can use the [`rules[].layer`](/config/module-rules#ruleslayer) option to specify a layer for all modules that match the rule:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -50,7 +50,7 @@ export default {
 };
 ```
 
-The layer assigned by [`rule.layer`](/config/module#rulelayer) will override the module's own layer. For example, if a module has been assigned a layer through Entry configuration, the layer assigned through Rule will override the layer specified by Entry.
+The layer assigned by [`rules[].layer`](/config/module-rules#ruleslayer) will override the module's own layer. For example, if a module has been assigned a layer through Entry configuration, the layer assigned through Rule will override the layer specified by Entry.
 
 ## Layer inheritance
 
@@ -78,7 +78,7 @@ When a regular module is depended upon by multiple modules with different layers
 
 ## Applying different processing rules to different layers
 
-You can use [`issuerLayer`](/config/module#ruleissuerlayer) to filter modules from specific layers and apply different processing rules to them. The following example shows how to use different compilation targets for different layers:
+You can use [`issuerLayer`](/config/module-rules#rulesissuerlayer) to filter modules from specific layers and apply different processing rules to them. The following example shows how to use different compilation targets for different layers:
 
 ```js title="rspack.config.mjs"
 export default {

@@ -6,11 +6,11 @@ it("should build dependencies resolve work", async () => {
 		await NEXT_START();
 	}
 	if (COMPILER_INDEX == 1) {
-		expect(value).toBe(1);
+		expect(value).toBe(2);
 		await NEXT_START();
 	}
 	if (COMPILER_INDEX == 2) {
-		expect(value).toBe(1);
+		expect(value).toBe(2);
 		await NEXT_START();
 	}
 	if (COMPILER_INDEX == 3) {
@@ -19,5 +19,13 @@ it("should build dependencies resolve work", async () => {
 	}
 	if (COMPILER_INDEX == 4) {
 		expect(value).toBe(4);
+		await NEXT_START();
+	}
+	if (COMPILER_INDEX == 5) {
+		expect(value).toBe(6);
+		await NEXT_START();
+	}
+	if (COMPILER_INDEX == 6) {
+		expect(value).toBe(6);
 	}
 });

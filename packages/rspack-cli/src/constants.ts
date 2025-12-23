@@ -8,3 +8,5 @@ export const DEFAULT_EXTENSIONS = [
 	".cjs",
 	".cts"
 ] as const;
+
+export const DEFAULT_SERVER_HOT = true;

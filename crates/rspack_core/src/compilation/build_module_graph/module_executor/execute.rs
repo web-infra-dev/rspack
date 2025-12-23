@@ -224,7 +224,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
 
     if let Some(name) = chunk.name() {
-      chunk.set_id(&mut compilation.chunk_ids_artifact, name);
+      let name = name.to_string();
+      chunk.set_id(name);
     }
     let runtime: RuntimeSpec = once("build time".into()).collect();
 
@@ -236,6 +237,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),
+        wasm_loading: Some(crate::WasmLoading::Disable),
         async_chunks: Some(false),
         public_path,
         base_uri,
@@ -381,7 +383,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         let identifier = runtime_module.identifier();
         ExecutedRuntimeModule {
           identifier,
-          name: runtime_module.name().to_string(),
+          name: runtime_module
+            .readable_identifier(&compilation.options.context)
+            .into(),
           name_for_condition: runtime_module.name_for_condition().map(|n| n.to_string()),
           module_type: *runtime_module.module_type(),
           cacheable: !(runtime_module.full_hash() || runtime_module.dependent_hash()),

@@ -123,6 +123,7 @@ function getRawOutputEnvironment(
 ): RawEnvironment {
 	return {
 		const: Boolean(environment.const),
+		methodShorthand: Boolean(environment.methodShorthand),
 		arrowFunction: Boolean(environment.arrowFunction),
 		nodePrefixForCoreModules: Boolean(environment.nodePrefixForCoreModules),
 		asyncFunction: Boolean(environment.asyncFunction),
@@ -471,7 +472,7 @@ function getRawParserOptionsMap(
 	return Object.fromEntries(
 		Object.entries(parser)
 			.map(([k, v]) => [k, getRawParserOptions(v, k)])
-			.filter(([k, v]) => v !== undefined)
+			.filter(([_, v]) => v !== undefined)
 	);
 }
 
@@ -481,7 +482,7 @@ function getRawGeneratorOptionsMap(
 	return Object.fromEntries(
 		Object.entries(generator)
 			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
-			.filter(([k, v]) => v !== undefined)
+			.filter(([_, v]) => v !== undefined)
 	);
 }
 
@@ -587,7 +588,6 @@ function getRawJavascriptParserOptions(
 		commonjs: parser.commonjs,
 		importDynamic: parser.importDynamic,
 		commonjsMagicComments: parser.commonjsMagicComments,
-		inlineConst: parser.inlineConst,
 		typeReexportsPresence: parser.typeReexportsPresence,
 		jsx: parser.jsx,
 		deferImport: parser.deferImport

@@ -1,29 +1,33 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, chunk_graph_chunk::ChunkId, impl_runtime_module,
+  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeTemplate, SourceType,
+  chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPreloadData, RuntimePluginCreateScript, RuntimePluginLinkPreload,
+  CreateLinkData, CreateScriptData, LinkPreloadData, RuntimePluginCreateLink,
+  RuntimePluginCreateScript, RuntimePluginLinkPreload,
 };
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
-  util::{SRI_HASH_VARIABLE_REFERENCE, find_chunks, make_placeholder},
+  util::{find_chunks, get_hash_variable, make_placeholder},
 };
 
-fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
+fn add_attribute(
+  tag: &str,
+  variable_ref: &str,
+  code: &str,
+  cross_origin_loading: &CrossOriginLoading,
+) -> String {
   format!(
-    "{}\n{tag}.integrity = {}[chunkId];\n{tag}.crossOrigin = {};",
-    code,
-    SRI_HASH_VARIABLE_REFERENCE,
-    match cross_origin_loading {
-      CrossOriginLoading::Disable => "false".to_string(),
-      CrossOriginLoading::Enable(v) => format!("'{v}'"),
-    }
+    r#"{}
+{tag}.integrity = {}[chunkId];
+{tag}.crossOrigin = '{}';"#,
+    code, variable_ref, cross_origin_loading
   )
 }
 
@@ -36,9 +40,16 @@ struct SRIHashVariableRuntimeModule {
 }
 
 impl SRIHashVariableRuntimeModule {
-  pub fn new(chunk: ChunkUkey, hash_funcs: Vec<SubresourceIntegrityHashFunction>) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    chunk: ChunkUkey,
+    hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+  ) -> Self {
     Self::with_default(
-      Identifier::from("rspack/runtime/sri_hash_variable"),
+      Identifier::from(format!(
+        "{}sri_hash_variable",
+        runtime_template.runtime_module_prefix()
+      )),
       chunk,
       hash_funcs,
     )
@@ -63,7 +74,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .iter()
       .filter_map(|c| {
         let chunk = compilation.chunk_by_ukey.get(c)?;
-        let id = chunk.id(&compilation.chunk_ids_artifact)?;
+        let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
@@ -73,36 +84,81 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .collect::<HashMap<_, _>>();
 
     let module_graph = compilation.get_module_graph();
+
+    let source_types = vec![
+      (
+        SourceType::JavaScript,
+        get_hash_variable(&compilation.runtime_template, SourceType::JavaScript),
+      ),
+      (
+        SourceType::Css,
+        get_hash_variable(&compilation.runtime_template, SourceType::Css),
+      ),
+      (
+        SourceType::Custom("css/mini-extract".into()),
+        get_hash_variable(
+          &compilation.runtime_template,
+          SourceType::Custom("css/mini-extract".into()),
+        ),
+      ),
+    ];
+
     let all_chunks = find_chunks(&self.chunk, compilation)
       .into_iter()
-      .filter_map(|c| {
-        let chunk = compilation.chunk_by_ukey.get(&c)?;
-        let id = chunk.id(&compilation.chunk_ids_artifact)?;
-        let has_modules = compilation
+      .filter(|c| {
+        compilation
           .chunk_graph
-          .get_chunk_modules(&c, &module_graph)
+          .get_chunk_modules(c, &module_graph)
           .iter()
-          .any(|m| m.source().is_some());
-
-        if has_modules && include_chunks.contains_key(id) {
-          Some(id)
-        } else {
-          None
-        }
+          .any(|m| {
+            let result = compilation.code_generation_results.get_one(&m.identifier());
+            result.inner.values().any(|v| v.size() != 0)
+          })
       })
       .collect::<Vec<_>>();
 
-    Ok(format!(
-      r#"
-        {} = {};
-        "#,
-      SRI_HASH_VARIABLE_REFERENCE,
-      generate_sri_hash_placeholders(all_chunks, &self.hash_funcs, compilation),
-    ))
+    let mut code = vec![];
+
+    for (source_type, variable_ref) in source_types {
+      let chunk_with_source_type = all_chunks
+        .iter()
+        .filter(|c| {
+          compilation
+            .chunk_graph
+            .has_chunk_module_by_source_type(c, source_type, &module_graph)
+        })
+        .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
+        .filter(|c| include_chunks.contains_key(c))
+        .collect::<Vec<_>>();
+
+      if !chunk_with_source_type.is_empty() {
+        code.push(format!(
+          r#"
+          {} = {};
+          "#,
+          variable_ref,
+          generate_sri_hash_placeholders(
+            match source_type {
+              SourceType::JavaScript => ManifestAssetType::JavaScript,
+              SourceType::Css => ManifestAssetType::Css,
+              SourceType::Custom(name) if name == "css/mini-extract" =>
+                ManifestAssetType::Custom("extract-css".into()),
+              _ => ManifestAssetType::Unknown,
+            },
+            chunk_with_source_type,
+            &self.hash_funcs,
+            compilation
+          ),
+        ));
+      }
+    }
+
+    Ok(code.join("\n"))
   }
 }
 
 fn generate_sri_hash_placeholders(
+  asset_type: ManifestAssetType,
   chunks: Vec<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   _compilation: &Compilation,
@@ -113,7 +169,8 @@ fn generate_sri_hash_placeholders(
       .into_iter()
       .filter_map(|c| {
         let chunk_id = serde_json::to_string(c.as_str()).ok()?;
-        let placeholder = serde_json::to_string(&make_placeholder(hash_funcs, c.as_str())).ok()?;
+        let placeholder =
+          serde_json::to_string(&make_placeholder(asset_type, hash_funcs, c.as_str())).ok()?;
         Some(format!("{chunk_id}: {placeholder}"))
       })
       .collect::<Vec<_>>()
@@ -124,14 +181,67 @@ fn generate_sri_hash_placeholders(
 #[plugin_hook(RuntimePluginCreateScript for SubresourceIntegrityPlugin)]
 pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateScriptData> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
-  data.code = add_attribute("script", &data.code, &ctx.cross_origin_loading);
+  data.code = add_attribute(
+    "script",
+    &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
+    &data.code,
+    &ctx.cross_origin_loading,
+  );
+  Ok(data)
+}
+
+#[plugin_hook(RuntimePluginCreateLink for SubresourceIntegrityPlugin)]
+pub async fn create_link(&self, mut data: CreateLinkData) -> Result<CreateLinkData> {
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+  if data.code.contains("loadingAttribute") {
+    data.code = add_attribute(
+      "link",
+      &get_hash_variable(&ctx.runtime_template, SourceType::Css),
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  } else {
+    data.code = add_attribute(
+      "linkTag",
+      &get_hash_variable(
+        &ctx.runtime_template,
+        SourceType::Custom("css/mini-extract".into()),
+      ),
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  }
+
   Ok(data)
 }
 
 #[plugin_hook(RuntimePluginLinkPreload for SubresourceIntegrityPlugin)]
 pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloadData> {
   let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
-  data.code = add_attribute("link", &data.code, &ctx.cross_origin_loading);
+  if data.code.contains(".as = \"style\"") {
+    data.code = add_attribute(
+      "link",
+      (if data.code.contains(".miniCssF") {
+        get_hash_variable(
+          &ctx.runtime_template,
+          SourceType::Custom("css/mini-extract".into()),
+        )
+      } else {
+        get_hash_variable(&ctx.runtime_template, SourceType::Css)
+      })
+      .as_str(),
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  } else {
+    data.code = add_attribute(
+      "link",
+      &get_hash_variable(&ctx.runtime_template, SourceType::JavaScript),
+      &data.code,
+      &ctx.cross_origin_loading,
+    );
+  }
+
   Ok(data)
 }
 
@@ -145,7 +255,12 @@ pub async fn handle_runtime(
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   compilation.add_runtime_module(
     chunk_ukey,
-    SRIHashVariableRuntimeModule::new(*chunk_ukey, self.options.hash_func_names.clone()).boxed(),
+    SRIHashVariableRuntimeModule::new(
+      &compilation.runtime_template,
+      *chunk_ukey,
+      self.options.hash_func_names.clone(),
+    )
+    .boxed(),
   )?;
   Ok(())
 }

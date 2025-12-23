@@ -1,1 +1,1 @@
-module.exports = () => "NOPLAN: support manifest plugin";
+module.exports = () => "TODO: support manifest plugin";

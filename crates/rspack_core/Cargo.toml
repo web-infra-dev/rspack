@@ -10,6 +10,7 @@ version.workspace = true
 anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
+atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
@@ -80,6 +81,10 @@ tracing = { workspace = true }
 urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
+
+swc_experimental_ecma_ast      = { workspace = true }
+swc_experimental_ecma_parser   = { workspace = true }
+swc_experimental_ecma_semantic = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

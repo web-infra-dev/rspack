@@ -1,0 +1,26 @@
+PublicPath: auto
+asset bundle.js xx KiB {main} [emitted] (name: main)
+Entrypoint main xx KiB = bundle.js
+chunk {main} (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
+  > ./index.js main
+  ./index.js xx bytes {main} [depth 0] [built] [code generated]
+    [no exports]
+    [used exports unknown]
+    entry ./index.js
+  data:text/plain;base64,szsaAAdsadasdfaf.. xx bytes {main} [depth 1] [dependent] [built] [code generated]
+    [exports: default]
+    [used exports unknown]
+    esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:1-81
+./index.js xx bytes {main} [depth 0] [built] [code generated]
+  [no exports]
+  [used exports unknown]
+  entry ./index.js
+data:text/plain;base64,szsaAAdsadasdfaf.. xx bytes {main} [depth 1] [built] [code generated]
+  [exports: default]
+  [used exports unknown]
+  esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:1-81
+webpack/runtime/make_namespace_object xx bytes {main} [code generated]
+  [no exports]
+  [used exports unknown]
+  
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled successfully in X s (9063a2ee4721fbd4)

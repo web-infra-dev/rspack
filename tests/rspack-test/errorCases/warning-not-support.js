@@ -8,21 +8,21 @@ module.exports = [{
 	},
 	async check(diagnostics) {
 		expect(diagnostics).toMatchInlineSnapshot(`
-		Object {
-		  "errors": Array [],
-		  "warnings": Array [
-		    Object {
-		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: module.parent.require() is not supported by Rspack.         ╭────       1 │ module.parent.require('./file');         · ───────────────────────────────         ╰────      ",
-		      "moduleId": "./module.parent.require.js",
-		      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/module.parent.require.js",
-		      "moduleName": "./module.parent.require.js",
-		      "moduleTrace": Array [],
-		      "stack": undefined,
-		    },
-		  ],
-		}
-	`);
+			Object {
+			  "errors": Array [],
+			  "warnings": Array [
+			    Object {
+			      "code": "ModuleParseWarning",
+			      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: module.parent.require() is not supported by Rspack.         ╭────       1 │ module.parent.require('./file');         · ───────────────────────────────         ╰────      ",
+			      "moduleId": "./module.parent.require.js",
+			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/module.parent.require.js",
+			      "moduleName": "./module.parent.require.js",
+			      "moduleTrace": Array [],
+			      "stack": undefined,
+			    },
+			  ],
+			}
+		`);
 	}
 }, {
 	description: "should emit warning for require.extensions",
@@ -33,21 +33,21 @@ module.exports = [{
 	},
 	async check(diagnostics) {
 		expect(diagnostics).toMatchInlineSnapshot(`
-		Object {
-		  "errors": Array [],
-		  "warnings": Array [
-		    Object {
-		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.extensions is not supported by Rspack.         ╭────       1 │ require.extensions[\\".js\\"] = function() {};         · ──────────────────         ╰────      ",
-		      "moduleId": "./require.extensions.js",
-		      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/require.extensions.js",
-		      "moduleName": "./require.extensions.js",
-		      "moduleTrace": Array [],
-		      "stack": undefined,
-		    },
-		  ],
-		}
-	`);
+			Object {
+			  "errors": Array [],
+			  "warnings": Array [
+			    Object {
+			      "code": "ModuleParseWarning",
+			      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.extensions is not supported by Rspack.         ╭────       1 │ require.extensions[\\".js\\"] = function() {};         · ──────────────────         ╰────      ",
+			      "moduleId": "./require.extensions.js",
+			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/require.extensions.js",
+			      "moduleName": "./require.extensions.js",
+			      "moduleTrace": Array [],
+			      "stack": undefined,
+			    },
+			  ],
+			}
+		`);
 	}
 }, {
 	description: "should emit warning for require.main.require",
@@ -58,20 +58,20 @@ module.exports = [{
 	},
 	async check(diagnostics) {
 		expect(diagnostics).toMatchInlineSnapshot(`
-		Object {
-		  "errors": Array [],
-		  "warnings": Array [
-		    Object {
-		      "code": "ModuleParseWarning",
-		      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.         ╭────       1 │ require.main.require('./file');         · ──────────────────────────────         ╰────      ",
-		      "moduleId": "./require.main.require.js",
-		      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/require.main.require.js",
-		      "moduleName": "./require.main.require.js",
-		      "moduleTrace": Array [],
-		      "stack": undefined,
-		    },
-		  ],
-		}
-	`);
+			Object {
+			  "errors": Array [],
+			  "warnings": Array [
+			    Object {
+			      "code": "ModuleParseWarning",
+			      "message": "  ⚠ Module parse warning:  ╰─▶   ⚠ Unsupported feature: require.main.require() is not supported by Rspack.         ╭────       1 │ require.main.require('./file');         · ──────────────────────────────         ╰────      ",
+			      "moduleId": "./require.main.require.js",
+			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/require.main.require.js",
+			      "moduleName": "./require.main.require.js",
+			      "moduleTrace": Array [],
+			      "stack": undefined,
+			    },
+			  ],
+			}
+		`);
 	}
 }];

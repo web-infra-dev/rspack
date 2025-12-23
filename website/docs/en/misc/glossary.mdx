@@ -37,7 +37,7 @@ In Rspack, built-in module types refer to module types that can be supported wit
 - [Asset modules](/guide/features/asset-module)
 - [CSS](/guide/tech/css)
 - [JSON](/guide/tech/json)
-- [Rule.type](/config/module#ruletype)
+- [rules[].type](/config/module-rules#rulestype)
 
 ## chunk
 
@@ -75,7 +75,7 @@ An application can be split into multiple files called modules, which may be Jav
 
 A module's type determines how it will be parsed and handled by the bundler. For example, we can tell Rspack that the module is a JavaScript module by specifying the module type as JavaScript, and Rspack will use the JavaScript parser to parse the module. If the specified module type is CSS, then Rspack will use a CSS parser to parse the module.
 
-- [Rule.type](/config/module#ruletype)
+- [rules[].type](/config/module-rules#rulestype)
 
 ## module specifier
 

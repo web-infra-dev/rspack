@@ -16,7 +16,7 @@ module.exports = {
 			// 	return ["chunks/260.sync.js", "bundle3.js"];
 		}
 	},
-	moduleScope(scope, options) {
+	moduleScope(scope, _, options) {
 		scope.fetch = resource =>
 			new Promise((resolve, reject) => {
 				const file = /^file:/i.test(resource)

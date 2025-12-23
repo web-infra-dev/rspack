@@ -39,7 +39,10 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
         has_chunk_loading = true;
 
-        compilation.add_runtime_module(chunk_ukey, ExportRequireRuntimeModule::new().boxed())?;
+        compilation.add_runtime_module(
+          chunk_ukey,
+          ExportRequireRuntimeModule::new(&compilation.runtime_template).boxed(),
+        )?;
       }
 
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS if is_enabled_for_chunk => {
@@ -79,7 +82,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     compilation.add_runtime_module(
       chunk_ukey,
-      Box::<ModuleChunkLoadingRuntimeModule>::default(),
+      ModuleChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
     )?;
   }
 

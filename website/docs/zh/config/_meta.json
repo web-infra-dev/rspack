@@ -1,11 +1,21 @@
 [
+  {
+    "type": "section-header",
+    "label": "介绍"
+  },
   "index",
+  "filename-placeholders",
+  {
+    "type": "section-header",
+    "label": "配置项"
+  },
   "extends",
   "entry",
   "context",
   "mode",
   "output",
   "module",
+  "module-rules",
   "resolve",
   "resolve-loader",
   "node",
@@ -22,5 +32,6 @@
   "stats",
   "experiments",
   "infrastructure-logging",
-  "other-options"
+  "other-options",
+  "deprecated-options"
 ]

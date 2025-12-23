@@ -53,6 +53,7 @@ impl JsResolver {
 impl JsResolver {
   #[napi]
   pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, ()>> {
+    #[allow(clippy::disallowed_methods)]
     block_on(async {
       match self.resolver.resolve(Path::new(&path), &request).await {
         Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),

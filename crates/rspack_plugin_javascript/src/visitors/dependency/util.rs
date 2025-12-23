@@ -3,7 +3,6 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_core::{
   atoms::Atom,
-  common::SourceFile,
   ecma::ast::{Expr, MemberExpr, OptChainBase},
 };
 
@@ -19,7 +18,10 @@ pub mod expr_name {
   pub const REQUIRE_RESOLVE: &str = "require.resolve";
   pub const REQUIRE_RESOLVE_WEAK: &str = "require.resolveWeak";
   pub const IMPORT_META: &str = "import.meta";
+  pub const IMPORT_META_FILENAME: &str = "import.meta.filename";
+  pub const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
   pub const IMPORT_META_URL: &str = "import.meta.url";
+  pub const IMPORT_META_RESOLVE: &str = "import.meta.resolve";
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";
   pub const IMPORT_META_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
@@ -38,11 +40,11 @@ pub fn parse_order_string(x: &str) -> Option<i32> {
 pub fn create_traceable_error(
   title: String,
   message: String,
-  fm: &SourceFile,
+  source: String,
   span: DependencyRange,
 ) -> Error {
   Error::from_string(
-    Some(fm.src.clone().into_string()),
+    Some(source),
     span.start as usize,
     span.end as usize,
     title,
@@ -73,7 +75,7 @@ pub fn clean_regexp_in_context_module(
       let mut error = create_traceable_error(
         "Critical dependency".into(),
         "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         error_span,
       );
       error.severity = Severity::Warning;

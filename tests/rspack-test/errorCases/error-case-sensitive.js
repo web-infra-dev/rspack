@@ -18,18 +18,18 @@ module.exports = isCaseInsensitiveFilesystem
 		},
 		async check(diagnostics) {
 			expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [],
-			  "warnings": Array [
-			    Object {
-			      "code": "Sensitive Modules Warn",
-			      "message": "  ⚠ There are multiple modules with names that only differ in casing.  │   - <TEST_ROOT>/fixtures/errors/FILE.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │   - <TEST_ROOT>/fixtures/errors/file.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │ ",
-			      "moduleTrace": Array [],
-			      "stack": undefined,
-			    },
-			  ],
-			}
-		`);
+				Object {
+				  "errors": Array [],
+				  "warnings": Array [
+				    Object {
+				      "code": "Sensitive Modules Warn",
+				      "message": "  ⚠ There are multiple modules with names that only differ in casing.  │   - <TEST_ROOT>/fixtures/errors/FILE.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │   - <TEST_ROOT>/fixtures/errors/file.js  │     - used by <TEST_ROOT>/fixtures/errors/case-sensitive.js  │ ",
+				      "moduleTrace": Array [],
+				      "stack": undefined,
+				    },
+				  ],
+				}
+			`);
 		}
 	}
 	: {
@@ -45,7 +45,7 @@ module.exports = isCaseInsensitiveFilesystem
 			Object {
 			  "errors": Array [
 			    Object {
-			      "loc": "2:8-16",
+			      "loc": "2:9-16",
 			      "message": "  × Module not found: Can't resolve './FILE' in '<TEST_ROOT>/fixtures/errors'   ╭─[2:0] 1 │ require(\\"./file\\"); 2 │ require(\\"./FILE\\");   · ─────────────────   ╰────",
 			      "moduleId": "./case-sensitive.js",
 			      "moduleIdentifier": "<TEST_ROOT>/fixtures/errors/case-sensitive.js",

@@ -1,11 +1,11 @@
 assets by status xx KiB [cached] 1 asset
-modules with errors 53 bytes [errors]
-  ./not-existing.js 26 bytes [built] [code generated] [1 error]
-  ./parse-error.js 27 bytes [built] [code generated] [1 error]
-./index.js 19 bytes [built] [code generated]
-./inner.js 53 bytes [built] [code generated]
+modules with errors xx bytes [errors]
+  ./not-existing.js xx bytes [built] [code generated] [1 error]
+  ./parse-error.js xx bytes [built] [code generated] [1 error]
+./index.js xx bytes [built] [code generated]
+./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-existing.js 1:8-24
+ERROR in ./not-existing.js 1:9-24
   × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/module-trace-disabled-in-error'
    ╭────
  1 │ require('does-not-exist')

@@ -88,22 +88,22 @@ export default defineConfig({
 
 ![image](https://assets.rspack.rs/rspack/assets/lazy-proxy-module.png)
 
-只有当执行对应的入口或时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
+只有当执行对应的入口和模块时，Rspack 才会编译对应的入口和 Module 以及他们的所有依赖。
 
 ## 与自定义的服务器集成
 
-当你使用 Rspack CLI 时，`experiments.lazyCompilation` 选项实际上会由 `@rspack/cli` 消费，并向开发服务器中添加一个 [Express 风格的中间件](https://expressjs.com/en/guide/using-middleware.html)，来处理客户端发起的 lazy compilation 请求。
+当你使用 Rspack CLI 时，`lazyCompilation` 选项实际上会由 `@rspack/cli` 消费，并向开发服务器中添加一个 [Express 风格的中间件](https://expressjs.com/en/guide/using-middleware.html)，来处理客户端发起的 lazy compilation 请求。
 
-如果你使用自己的开发服务器，你需要手动将 `rspack.experiments.lazyCompilationMiddleware` 集成到你的开发服务器中：
+如果你使用自己的开发服务器，你需要手动将 `rspack.lazyCompilationMiddleware` 集成到你的开发服务器中：
 
 ```js title="start.mjs"
-import { experiments, rspack } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import config from './rspack.config.mjs';
-import DevServer from 'webpack-dev-server';
+import DevServer from '@rspack/dev-server';
 
 const compiler = rspack(config);
 
-const middleware = experiments.lazyCompilationMiddleware(compiler);
+const middleware = rspack.lazyCompilationMiddleware(compiler);
 
 const server = new DevServer(
   {
@@ -120,7 +120,11 @@ server.start();
 
 `lazyCompilationMiddleware` 接受 1 个参数：
 
-- `compiler`: 当前的 [Compiler](/api/javascript-api/compiler)，使用该 Compiler 对应的 `experiments.lazyCompilation` 配置。
+- `compiler`: 当前的 [Compiler](/api/javascript-api/compiler)，使用该 Compiler 对应的 `lazyCompilation` 配置。
+
+:::tip
+在 Rspack 1.7 版本之前，该中间件需要通过 `rspack.experiments.lazyCompilationMiddleware` 来获取。
+:::
 
 ## 自定义懒编译端点
 

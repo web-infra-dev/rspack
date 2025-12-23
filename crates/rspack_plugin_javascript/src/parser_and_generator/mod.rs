@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, input::SourceFileInput},
+  common::{BytePos, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -131,6 +131,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_layer,
       resource_data,
       compiler_options,
+      runtime_template,
       factory_meta,
       build_info,
       build_meta,
@@ -167,16 +168,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let cm: Arc<swc_core::common::SourceMap> = Default::default();
-    let fm = cm.new_source_file(
-      Arc::new(FileName::Custom(
-        resource_data
-          .path()
-          .map(|p| p.as_str().to_string())
-          .unwrap_or_default(),
-      )),
-      source.source().into_string_lossy().into_owned(),
-    );
+    let source_string = source.source().into_string_lossy().into_owned();
+
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
 
@@ -197,14 +190,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..Default::default()
       }),
       target,
-      SourceFileInput::from(&*fm),
+      SourceFileInput::new(
+        &source_string,
+        BytePos(1),
+        BytePos(source_string.len() as u32 + 1),
+      ),
       Some(&comments),
     );
 
     let javascript_compiler = JavaScriptCompiler::new();
 
     let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
-      &fm,
+      &source_string,
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
@@ -243,8 +240,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        cm.clone(),
-        &fm,
+        &source_string,
         program,
         resource_data,
         compiler_options,
@@ -259,6 +255,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         parse_meta,
+        runtime_template,
       )
     }) {
       Ok(result) => result,

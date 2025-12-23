@@ -2,7 +2,9 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -13,9 +15,12 @@ pub struct StartupChunkDependenciesRuntimeModule {
 }
 
 impl StartupChunkDependenciesRuntimeModule {
-  pub fn new(async_chunk_loading: bool) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
     Self::with_default(
-      Identifier::from("webpack/runtime/startup_chunk_dependencies"),
+      Identifier::from(format!(
+        "{}startup_chunk_dependencies",
+        runtime_template.runtime_module_prefix()
+      )),
       async_chunk_loading,
       None,
     )
@@ -48,7 +53,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           compilation
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
-            .expect_id(&compilation.chunk_ids_artifact)
+            .expect_id()
             .to_string()
         })
         .collect::<Vec<_>>();
@@ -57,27 +62,47 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
         match chunk_ids.len() {
           1 => format!(
             r#"return {}("{}").then(next);"#,
-            RuntimeGlobals::ENSURE_CHUNK,
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             chunk_ids.first().expect("Should has at least one chunk")
           ),
           2 => format!(
             r#"return Promise.all([{}]).then(next);"#,
             chunk_ids
               .iter()
-              .map(|cid| format!(r#"{}("{}")"#, RuntimeGlobals::ENSURE_CHUNK, cid))
+              .map(|cid| format!(
+                r#"{}("{}")"#,
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+                cid
+              ))
               .join(",\n")
           ),
           _ => format!(
             r#"return Promise.all({}.map({}, {})).then(next);"#,
             serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
-            RuntimeGlobals::ENSURE_CHUNK,
-            RuntimeGlobals::REQUIRE
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+            compilation
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),
         }
       } else {
         chunk_ids
           .iter()
-          .map(|cid| format!(r#"{}("{}");"#, RuntimeGlobals::ENSURE_CHUNK, cid))
+          .map(|cid| {
+            format!(
+              r#"{}("{}");"#,
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+              cid
+            )
+          })
           .chain(iter::once("return next();".to_string()))
           .join("\n")
       };

@@ -1,10 +1,14 @@
 #[cfg(feature = "noop")]
-pub use rspack_macros::{disable_cacheable as cacheable, disable_cacheable_dyn as cacheable_dyn};
-pub use rspack_macros::{
+pub use rspack_cacheable_macros::{
+  disable_cacheable as cacheable, disable_cacheable_dyn as cacheable_dyn,
+};
+pub use rspack_cacheable_macros::{
   disable_cacheable, disable_cacheable_dyn, enable_cacheable, enable_cacheable_dyn,
 };
 #[cfg(not(feature = "noop"))]
-pub use rspack_macros::{enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn};
+pub use rspack_cacheable_macros::{
+  enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn,
+};
 pub mod r#dyn;
 pub mod utils;
 pub mod with;

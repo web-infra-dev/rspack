@@ -274,8 +274,7 @@ function defaultOptions(
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 	if (custom) {

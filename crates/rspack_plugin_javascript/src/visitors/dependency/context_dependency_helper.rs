@@ -1,10 +1,9 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use itertools::Itertools;
-use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
-use rspack_util::json_stringify;
+use rspack_util::{json_stringify, quote_meta};
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
@@ -102,7 +101,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -170,7 +169,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -199,7 +198,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -222,6 +221,7 @@ pub fn create_context_dependency(
   }
 }
 
+#[derive(Debug)]
 pub struct ContextModuleScanResult {
   pub context: String,
   pub reg: String,
@@ -237,12 +237,4 @@ pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
   } else {
     (".".to_string(), prefix)
   }
-}
-
-static META_REG: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
-});
-
-pub fn quote_meta(str: &str) -> Cow<'_, str> {
-  META_REG.replace_all(str, "\\$0")
 }

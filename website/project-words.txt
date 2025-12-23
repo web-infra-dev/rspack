@@ -35,6 +35,7 @@ CRACO
 cssextractrspackplugin
 dail
 darwin
+deconflict
 devongovett
 devserverdevmiddleware
 devserverhot
@@ -147,6 +148,7 @@ proxying
 px2rem
 pxtorem
 quininer
+qwertyui
 recognise
 resolvepnp
 Rollup

@@ -322,7 +322,6 @@ import fs from 'fs-extra';
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'commonjs',
   externals: {
     'fs-extra': 'fs-extra',
@@ -351,7 +350,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'global',
   externals: {
     jquery: '$',
@@ -397,9 +395,9 @@ export default {
 将会转换为类似下面的代码：
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import * as __rspack_external_jquery from 'jquery';
 
-const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
+const jq = __rspack_external_jquery['default'];
 jq('.my-element').animate(/* ... */);
 ```
 
@@ -475,8 +473,8 @@ export default {
 将会转换为类似下面的代码：
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
-const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+import * as __rspack_external_lodash from 'lodash';
+const lodash = __rspack_external_jquery;
 
 var __webpack_modules__ = {
   jquery: module => {
@@ -557,13 +555,13 @@ var __webpack_modules__ = {
   },
 };
 
-// webpack runtime...
+// Rspack runtime...
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
     __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
-  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+  (0, lodash__rspack_import_0__.attempt)(() =>
     jq('.my-element').animate(/* ... */),
   );
 }
@@ -615,7 +613,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'promise',
   externals: {
     jquery: '$',
@@ -641,7 +638,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'self',
   externals: {
     jquery: '$',
@@ -695,7 +691,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: ['https://cdn.jsdelivr.net/npm/lodash@4.17.19/lodash.min.js', '_'],
@@ -714,7 +709,6 @@ console.log(_.head([1, 2, 3]));
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: [
@@ -735,7 +729,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 ```
 
 :::tip
-当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-webpack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-webpack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
+当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-rspack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-rspack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
 :::
 
 ### externalsType.this
@@ -751,7 +745,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'this',
   externals: {
     jquery: '$',
@@ -779,7 +772,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'var',
   externals: {
     jquery: '$',
@@ -807,7 +799,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'window',
   externals: {
     jquery: '$',
@@ -884,7 +875,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsPresets: {
     node: true,
   },

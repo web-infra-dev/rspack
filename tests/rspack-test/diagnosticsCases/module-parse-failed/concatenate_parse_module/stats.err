@@ -1,8 +1,8 @@
 ERROR in ./index.js + 1 modules
   × JavaScript parse error:
-  │ : Expected ',', got 'numeric literal (2, 2)'
+  │ : Expected ',', got 'numeric literal'
    ╭─[1:14]
  1 │ console.log(1 2 3)
    ·               ─
- 2 │ /* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (1);
+ 2 │ /* export default */ const __rspack_default_export = (1);
    ╰────

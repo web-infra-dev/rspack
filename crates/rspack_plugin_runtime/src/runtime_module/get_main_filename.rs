@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
-  impl_runtime_module,
+  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
+  SourceType, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,9 +14,17 @@ pub struct GetMainFilenameRuntimeModule {
 }
 
 impl GetMainFilenameRuntimeModule {
-  pub fn new(content_type: &'static str, global: RuntimeGlobals, filename: Filename) -> Self {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    content_type: &'static str,
+    global: RuntimeGlobals,
+    filename: Filename,
+  ) -> Self {
     Self::with_default(
-      Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
+      Identifier::from(format!(
+        "{}get_main_filename/{content_type}",
+        runtime_template.runtime_module_prefix()
+      )),
       None,
       global,
       filename,
@@ -37,31 +45,39 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .get_path(
           &self.filename,
           PathData::default()
-            .chunk_id_optional(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .map(|id| id.as_str()),
-            )
+            .chunk_id_optional(chunk.id().map(|id| id.as_str()))
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+            .chunk_name_optional(chunk.name_for_filename_template())
             .content_hash_optional(chunk.rendered_content_hash_by_source_type(
               &compilation.chunk_hashes_artifact,
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             ))
-            .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
+            .hash(
+              format!(
+                "\" + {}() + \"",
+                compilation
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+              )
+              .as_str(),
+            )
             .runtime(chunk.runtime().as_str()),
         )
         .await?;
+
       Ok(format!(
         "{} = function () {{
             return \"{}\";
          }};
         ",
-        self.global, filename
+        compilation
+          .runtime_template
+          .render_runtime_globals(&self.global),
+        filename,
       ))
     } else {
       unreachable!("should attach chunk for get_main_filename")
