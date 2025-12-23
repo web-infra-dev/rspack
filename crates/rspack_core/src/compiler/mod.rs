@@ -2,7 +2,6 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
-use itertools::Itertools;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -10,7 +9,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
@@ -385,34 +384,6 @@ impl Compiler {
       .emit
       .call(&mut self.compilation)
       .await?;
-
-    // Check for case-sensitive conflicts before emitting assets
-    // Only check for filenames that differ in casing (not query strings)
-    // Only report conflict if filenames have same lowercase but different casing
-    let mut case_map: HashMap<String, HashSet<String>> = HashMap::default();
-    for filename in self.compilation.assets().keys() {
-      let (target_file, _query) = filename.split_once('?').unwrap_or((filename, ""));
-      let lower_key = cow_utils::CowUtils::cow_to_lowercase(target_file);
-      case_map
-        .entry(lower_key.to_string())
-        .or_default()
-        .insert(target_file.to_string());
-    }
-
-    // Found conflict: multiple filenames with same lowercase representation but different casing
-    for (_lower_key, filenames) in case_map.iter() {
-      // Only report conflict if there are multiple unique filenames (different casing)
-      if filenames.len() > 1 {
-        let filenames_str = filenames.iter().map(|f| format!("  - {f}")).join("\n");
-        self.compilation.push_diagnostic(
-          rspack_error::error!(
-            "Prevent writing to file that only differs in casing or query string from already written file.\nThis will lead to a race-condition and corrupted files on case-insensitive file systems.\n{}",
-            filenames_str
-          )
-          .into(),
-        );
-      }
-    }
 
     let mut new_emitted_asset_versions = HashMap::default();
 

@@ -556,7 +556,7 @@ export declare enum BuiltinPluginName {
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
   EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
-  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
+  CaseSensitivePlugin = 'CaseSensitivePlugin',
   DataUriPlugin = 'DataUriPlugin',
   FileUriPlugin = 'FileUriPlugin',
   RuntimePlugin = 'RuntimePlugin',

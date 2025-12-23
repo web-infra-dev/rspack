@@ -618,6 +618,19 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
+const CaseSensitivePlugin: {
+    new (): {
+        name: string;
+        _args: [];
+        affectedHooks: keyof CompilerHooks | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+export { CaseSensitivePlugin }
+export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
+
+// @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
     // (undocumented)
     body: BlockStatement;
@@ -6595,7 +6608,8 @@ declare namespace rspackExports {
         ProgressPlugin,
         ProvidePlugin,
         RuntimePlugin,
-        WarnCaseSensitiveModulesPlugin,
+        CaseSensitivePlugin,
+        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DllPlugin,
         DllPluginOptions,
         DllReferencePlugin,
@@ -9147,17 +9161,6 @@ class VirtualModulesPlugin {
     // (undocumented)
     writeModule(filePath: string, contents: string): void;
 }
-
-// @public (undocumented)
-export const WarnCaseSensitiveModulesPlugin: {
-    new (): {
-        name: string;
-        _args: [];
-        affectedHooks: keyof CompilerHooks | undefined;
-        raw(compiler: Compiler): BuiltinPlugin;
-        apply(compiler: Compiler): void;
-    };
-};
 
 // @public (undocumented)
 interface Wasm {
