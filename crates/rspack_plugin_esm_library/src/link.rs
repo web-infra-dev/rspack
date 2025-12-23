@@ -1064,6 +1064,10 @@ var {} = {{}};
 
               let export_name = if let Some(id) = symbol_binding.ids.first() {
                 required_info.property_access(id, &mut chunk_link.used_names)
+              } else if let Some(default_access) = &required_info.default_access
+                && default_access == &symbol_binding.symbol
+              {
+                required_info.default_exported(&mut chunk_link.used_names)
               } else {
                 symbol_binding.symbol
               };
@@ -1590,6 +1594,11 @@ var {} = {{}};
 
       let mut removed_import_stmts = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
+        if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
+          // import 'externals'
+          continue;
+        }
+
         if key.1.is_some() {
           // TODO: optimize import attributes
           continue;
