@@ -105,7 +105,8 @@ export type {
 } from "./builtin-plugin";
 export {
 	BannerPlugin,
-	CaseSensitivePlugin, CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin, 
+	CaseSensitivePlugin,
+	CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
 	DefinePlugin,
 	DynamicEntryPlugin,
 	EntryPlugin,
@@ -116,7 +117,7 @@ export {
 	NoEmitOnErrorsPlugin,
 	ProgressPlugin,
 	ProvidePlugin,
-	RuntimePlugin 
+	RuntimePlugin
 } from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
