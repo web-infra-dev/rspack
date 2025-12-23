@@ -357,7 +357,6 @@ Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
 export default {
-  // ...
   plugins: [new NodePolyfillPlugin()],
 };
 ```
@@ -597,7 +596,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   resolve: {
     pnp: true,
   },

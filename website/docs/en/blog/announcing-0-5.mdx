@@ -198,7 +198,6 @@ After you upgrade `@rspack/core` to v0.5.0, if you build failed with error: `Can
 
 ```diff
 const configuration = {
-  // ...
   resolve: {
 +   extensions: ['...', '.tsx', '.ts', '.jsx'],
   },
@@ -229,7 +228,6 @@ Before enabling HMR in Rspack is setting `devServer.hot` to `true`, but now you 
 
 ```diff
 class CustomDevServer {
-  // ...
   enableHMR(compiler) {
 -   compiler.options.devServer ??= {};
 -   compiler.options.devServer.hot = true;
