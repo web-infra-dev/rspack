@@ -1,6 +1,6 @@
-mod build_dependencies;
+pub mod build_dependencies;
 mod cacheable_context;
-mod occasion;
+pub mod occasion;
 pub mod snapshot;
 pub mod storage;
 
@@ -9,7 +9,7 @@ use std::{
   sync::Arc,
 };
 
-pub use cacheable_context::{CacheableContext, FromContext};
+pub use cacheable_context::CacheableContext;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
@@ -67,10 +67,7 @@ impl PersistentCache {
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
-    let context = Arc::new(CacheableContext {
-      options: compiler_options,
-      input_filesystem: input_filesystem.clone(),
-    });
+    let context = Arc::new(CacheableContext);
     let make_occasion = MakeOccasion::new(storage.clone(), context);
     let meta_occasion = MetaOccasion::new(storage.clone());
     Self {

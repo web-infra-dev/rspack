@@ -9,10 +9,10 @@
  */
 
 import path from "node:path";
-import util from "node:util";
 import type { HttpUriPluginOptions } from "../builtin-plugin";
 import type { Compilation } from "../Compilation";
 import type WebpackError from "../lib/WebpackError";
+import { deprecate } from "../util";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -153,10 +153,9 @@ export const getNormalizedRspackOptions = (
 					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			if ("cssHeadDataCompression" in output) {
-				util.deprecate(
-					() => {},
+				deprecate(
 					"cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future"
-				)();
+				);
 			}
 
 			const { library } = output;
@@ -349,40 +348,34 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => {
 			if (experiments.layers) {
-				util.deprecate(
-					() => {},
-					"`experiments.layers` config has been deprecated and will be removed in Rspack v2.0. Feature layers will be always enabled. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.layers` config is deprecated and will be removed in Rspack v2.0. Feature layers will always be enabled. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.topLevelAwait === false) {
-				util.deprecate(
-					() => {},
-					"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.topLevelAwait` config is deprecated and will be removed in Rspack v2.0. Top-level await will always be enabled. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.lazyBarrel) {
-				util.deprecate(
-					() => {},
-					"`experiments.lazyBarrel` config has been deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.inlineConst) {
-				util.deprecate(
-					() => {},
-					"`experiments.inlineConst` config has been deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.inlineConst` config is deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.inlineEnum) {
-				util.deprecate(
-					() => {},
-					"`experiments.inlineEnum` config has been deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.inlineEnum` config is deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.typeReexportsPresence) {
-				util.deprecate(
-					() => {},
-					"`experiments.typeReexportsPresence` config has been deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.typeReexportsPresence` config is deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Remove this option from your Rspack configuration."
+				);
 			}
 			return {
 				...experiments,

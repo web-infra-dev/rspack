@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import util from "node:util";
 import type { Callback } from "@rspack/lite-tapable";
 import { Compiler } from "./Compiler";
 import {
@@ -26,7 +25,7 @@ import MultiStats from "./MultiStats";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import { Stats } from "./Stats";
-import { isNil } from "./util";
+import { deprecate, isNil } from "./util";
 import { validateRspackConfig } from "./util/validateConfig";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
@@ -153,10 +152,9 @@ function rspack(
 	} else {
 		const { compiler, watch } = create();
 		if (watch) {
-			util.deprecate(
-				() => {},
+			deprecate(
 				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback."
-			)();
+			);
 		}
 		return compiler;
 	}

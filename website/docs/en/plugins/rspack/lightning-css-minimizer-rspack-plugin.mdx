@@ -10,7 +10,6 @@ This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets.
 import { rspack } from '@rspack/core';
 
 export default {
-  // ...
   optimization: {
     minimizer: [new rspack.LightningCssMinimizerRspackPlugin(options)],
   },

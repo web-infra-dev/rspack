@@ -5098,6 +5098,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_tools"
+version = "0.7.0-beta.0"
+dependencies = [
+ "clap",
+ "itertools 0.14.0",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_paths",
+ "rustc-hash",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_tracing"
 version = "0.7.0-beta.0"
 dependencies = [

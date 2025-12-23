@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { type Compiler, MultiCompiler } from "../..";
 import type { LazyCompilationOptions } from "../../config";
 import type { MiddlewareHandler } from "../../config/devServer";
+import { deprecate } from "../../util";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
@@ -57,28 +58,25 @@ export const lazyCompilationMiddleware = (
 		const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
 
 		let i = 0;
-		let isReportDeprecatedWarned = false;
-		let isReportRepeatWarned = false;
+
 		for (const c of compiler.compilers) {
 			if (c.options.experiments.lazyCompilation) {
 				if (c.name) {
-					console.warn(
+					deprecate(
 						`The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`
 					);
-				} else if (!isReportDeprecatedWarned) {
-					console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-					isReportDeprecatedWarned = true;
+				} else {
+					deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
 				}
 			}
 
 			if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
 				if (c.name) {
-					console.warn(
+					deprecate(
 						`The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`
 					);
-				} else if (!isReportRepeatWarned) {
-					console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-					isReportRepeatWarned = true;
+				} else {
+					deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
 				}
 			}
 
@@ -125,9 +123,9 @@ export const lazyCompilationMiddleware = (
 	}
 
 	if (compiler.options.experiments.lazyCompilation) {
-		console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+		deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
 		if (compiler.options.lazyCompilation) {
-			console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
+			deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
 		}
 	}
 

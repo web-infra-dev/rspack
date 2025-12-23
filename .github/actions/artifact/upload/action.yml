@@ -13,6 +13,10 @@ inputs:
     description: "Force upload to github"
     default: false
     require: false
+  include-hidden-files:
+    description: "Allow upload hidden files"
+    default: false
+    require: false
 
 runs:
   using: composite
@@ -23,6 +27,7 @@ runs:
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
+        include-hidden-files: ${{ inputs.include-hidden-files }}
         if-no-files-found: error
         overwrite: true
 
@@ -31,5 +36,6 @@ runs:
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
+        include-hidden-files: ${{ inputs.include-hidden-files }}
         if-no-files-found: error
         overwrite: true

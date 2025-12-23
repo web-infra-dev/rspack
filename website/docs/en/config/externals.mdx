@@ -322,7 +322,6 @@ import fs from 'fs-extra';
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'commonjs',
   externals: {
     'fs-extra': 'fs-extra',
@@ -351,7 +350,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'global',
   externals: {
     jquery: '$',
@@ -621,7 +619,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'promise',
   externals: {
     jquery: '$',
@@ -649,7 +646,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'self',
   externals: {
     jquery: '$',
@@ -703,7 +699,6 @@ Let's load a `lodash` from CDN:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: ['https://cdn.jsdelivr.net/npm/lodash@4.17.19/lodash.min.js', '_'],
@@ -722,7 +717,6 @@ Here's how we specify properties for the above example:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: [
@@ -761,7 +755,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'this',
   externals: {
     jquery: '$',
@@ -789,7 +782,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'var',
   externals: {
     jquery: '$',
@@ -817,7 +809,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'window',
   externals: {
     jquery: '$',
@@ -894,7 +885,6 @@ Using `node` preset will not bundle built-in modules and treats them as external
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsPresets: {
     node: true,
   },
