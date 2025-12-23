@@ -81,7 +81,7 @@ struct InjectedActionEntry {
 pub struct RscServerPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
-  prev_server_component_hashs: AtomicRefCell<IdentifierMap<u64>>,
+  prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
 }
 
 impl RscServerPlugin {
@@ -118,9 +118,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       .or_insert(PluginState::default());
 
     let start = logger.time("track server component changes");
-    let mut prev_server_component_hashs = self.prev_server_component_hashs.borrow_mut();
+    let mut prev_server_component_hashes = self.prev_server_component_hashes.borrow_mut();
     plugin_state.changed_server_components_per_entry =
-      track_server_component_changes(compilation, &mut prev_server_component_hashs);
+      track_server_component_changes(compilation, &mut prev_server_component_hashes);
     logger.time_end(start);
   }
 

@@ -337,7 +337,7 @@ export type {
 export {
 	CircularDependencyRspackPlugin,
 	ContextReplacementPlugin,
-	Coordinator, 
+	Coordinator,
 	CopyRspackPlugin,
 	CssExtractRspackPlugin,
 	EvalDevToolModulePlugin,
