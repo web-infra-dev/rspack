@@ -1,3 +1,3 @@
-	import("remote").then(() => {
-		console.log("remote loaded");
-	});
+import("remote").then(() => {
+	console.log("remote loaded");
+});

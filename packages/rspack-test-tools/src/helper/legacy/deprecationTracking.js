@@ -11,7 +11,11 @@ let interception = undefined;
 const originalWarn = console.warn;
 
 console.warn = (message, ...args) => {
-	if (interception && typeof message === 'string' && message.includes('[Rspack Deprecation]')) {
+	if (
+		interception &&
+		typeof message === "string" &&
+		message.includes("[Rspack Deprecation]")
+	) {
 		interception.set(message, {
 			message,
 			stack: new Error(message).stack

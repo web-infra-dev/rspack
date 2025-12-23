@@ -27,12 +27,12 @@ module.exports = {
 									react: {
 										runtime: "automatic",
 										development: true,
-										refresh: true,
+										refresh: true
 									}
-								},
-							},
+								}
+							}
 						}
-					},
+					}
 				]
 			}
 		]
@@ -40,7 +40,7 @@ module.exports = {
 	optimization: {
 		splitChunks: {
 			chunks: "all",
-			minSize: 0, // ensure dev server and hmr client is splitted into vendor chunk
+			minSize: 0 // ensure dev server and hmr client is splitted into vendor chunk
 		}
 	},
 	plugins: [
@@ -51,23 +51,23 @@ module.exports = {
 				name: "remote",
 				filename: "remoteEntry.js",
 				exposes: {
-					"./Component": "./src/RemoteComponent.jsx",
+					"./Component": "./src/RemoteComponent.jsx"
 				},
 				remotes: {
 					remote: `remote@http://localhost:${compiler.options.devServer.port}/remoteEntry.js`
 				},
 				shared: {
 					react: {},
-					'react-dom': {}
-				},
+					"react-dom": {}
+				}
 			}).apply(compiler);
-		},
+		}
 	],
 	devServer: {
 		hot: true,
 		port: 8080,
 		devMiddleware: {
-			writeToDisk: true,
+			writeToDisk: true
 		}
 	}
 };

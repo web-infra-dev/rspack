@@ -24,6 +24,14 @@ module.exports = {
 				trailingComma: "all",
 				useTabs: false
 			}
+		},
+		{
+			files: "website/**",
+			options: {
+				singleQuote: true,
+				trailingComma: "all",
+				useTabs: false
+			}
 		}
 	]
 };

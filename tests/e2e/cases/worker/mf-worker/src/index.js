@@ -9,12 +9,12 @@ workerResult.id = "worker-result";
 root.appendChild(workerResult);
 
 // Listen for messages from worker
-worker.addEventListener("message", (e) => {
+worker.addEventListener("message", e => {
 	workerResult.textContent = `Worker: ${e.data}`;
 });
 
 // Listen for errors from worker
-worker.addEventListener("error", (e) => {
+worker.addEventListener("error", e => {
 	workerResult.textContent = `Error: ${e.message}`;
 	console.error("Worker error:", e);
 });
