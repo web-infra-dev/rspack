@@ -452,17 +452,21 @@ import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
 
-### rspackExperiments.collectTypeScriptInfo
+### collectTypeScriptInfo
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 从 TypeScript 的 AST 中收集信息，以供 Rspack 后续过程进行消费，提供对 TypeScript 更好的开发体验和更小的产物体积。
 
 为了保证收集到的信息的准确性，用户需要确保 `builtin:swc-loader` 后续的 Normal Loader 不会去修改这些已经被收集到的相关信息对应的 AST，以免导致收集到的信息和实际的代码不一致的情况。
 
-#### rspackExperiments.collectTypeScriptInfo.typeExports
+:::warning 已废弃
+`rspackExperiments.collectTypeScriptInfo` 已废弃，请使用顶层的 `collectTypeScriptInfo` 选项。
+:::
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+#### collectTypeScriptInfo.typeExports
+
+<ApiMeta addedVersion="1.7.0" />
 
 - **类型：** `boolean`
 - **默认值：** `false`
@@ -471,9 +475,9 @@ import 'antd/es/button/style';
 
 详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
 
-#### rspackExperiments.collectTypeScriptInfo.exportedEnum
+#### collectTypeScriptInfo.exportedEnum
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 - **类型：** `boolean | 'const-only'`
 - **默认值：** `false`
@@ -504,10 +508,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  exportedEnum: isProduction,
-                },
+              collectTypeScriptInfo: {
+                exportedEnum: isProduction,
               },
             },
           },

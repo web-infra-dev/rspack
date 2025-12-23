@@ -6,6 +6,32 @@ This page lists configuration options that have been deprecated in Rspack.
 
 These options are kept for backward compatibility only and should not be used in new projects.
 
+## builtin:swc-loader rspackExperiments.collectTypeScriptInfo
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+Used to collect information from TypeScript's AST for consumption by subsequent Rspack processes.
+
+:::warning
+This configuration has been deprecated. Use top-level [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) instead.
+
+```diff
+{
+  loader: 'builtin:swc-loader',
+  options: {
+-   rspackExperiments: {
+-     collectTypeScriptInfo: {
+-       exportedEnum: true,
+-     },
+-   },
++   collectTypeScriptInfo: {
++     exportedEnum: true,
++   },
+  },
+}
+```
+:::
+
 ## experiments.topLevelAwait
 
 - **Type:** `boolean`
@@ -125,7 +151,7 @@ This configuration has been deprecated and is no longer required. The inline exp
 Used to enable inline optimization for TypeScript enums.
 
 :::warning
-This configuration has been deprecated and is no longer required. Inline enum optimization is now controlled by [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) and [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum).
+This configuration has been deprecated and is no longer required. Inline enum optimization is now controlled by [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) and [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum).
 
 Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
 :::
@@ -159,7 +185,7 @@ For more details, see the [Lazy barrel guide](/guide/optimization/lazy-barrel).
 Used to enable error tolerance for type re-exports.
 
 :::warning
-This configuration has been deprecated and is no longer required. Type re-exports presence checking is now controlled by [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) and [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports).
+This configuration has been deprecated and is no longer required. Type re-exports presence checking is now controlled by [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) and [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports).
 
 Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 :::

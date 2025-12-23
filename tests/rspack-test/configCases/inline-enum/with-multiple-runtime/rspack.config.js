@@ -24,10 +24,8 @@ module.exports = {
 								},
 								target: "esnext"
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									exportedEnum: true
-								}
+							collectTypeScriptInfo: {
+								exportedEnum: true
 							}
 						}
 					}
