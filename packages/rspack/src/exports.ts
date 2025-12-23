@@ -105,6 +105,11 @@ export type {
 } from "./builtin-plugin";
 export {
 	BannerPlugin,
+	CaseSensitivePlugin,
+	/**
+	 * @deprecated Use `rspack.CaseSensitivePlugin` instead
+	 */
+	CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
 	DefinePlugin,
 	DynamicEntryPlugin,
 	EntryPlugin,
@@ -115,8 +120,7 @@ export {
 	NoEmitOnErrorsPlugin,
 	ProgressPlugin,
 	ProvidePlugin,
-	RuntimePlugin,
-	WarnCaseSensitiveModulesPlugin
+	RuntimePlugin
 } from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {

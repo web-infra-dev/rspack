@@ -31,3 +31,5 @@ mod filename;
 pub use filename::*;
 mod clean_options;
 pub use clean_options::*;
+mod platform;
+pub use platform::*;

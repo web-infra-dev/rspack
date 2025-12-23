@@ -3610,6 +3610,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
+ "rspack_plugin_case_sensitive",
  "rspack_plugin_circular_dependencies",
  "rspack_plugin_copy",
  "rspack_plugin_css",
@@ -3650,7 +3651,6 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_plugin_sri",
  "rspack_plugin_swc_js_minimizer",
- "rspack_plugin_warn_sensitive_module",
  "rspack_plugin_wasm",
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
@@ -4186,6 +4186,20 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_util",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_case_sensitive"
+version = "0.7.0-beta.1"
+dependencies = [
+ "cow-utils",
+ "itertools 0.14.0",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rustc-hash",
  "tracing",
 ]
 
@@ -4946,19 +4960,6 @@ dependencies = [
  "swc_core",
  "swc_ecma_minifier",
  "thread_local",
- "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_warn_sensitive_module"
-version = "0.7.0-beta.1"
-dependencies = [
- "cow-utils",
- "rspack_collections",
- "rspack_core",
- "rspack_error",
- "rspack_hook",
- "rustc-hash",
  "tracing",
 ]
 

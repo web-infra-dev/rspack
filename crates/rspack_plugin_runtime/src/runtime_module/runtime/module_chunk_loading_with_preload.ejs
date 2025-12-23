@@ -1,5 +1,5 @@
 <%- PRELOAD_CHUNK_HANDLERS %>.j = <%- basicFunction("chunkId") %> {
-    if (typeof document === 'undefined') return;
+    <% if (_is_neutral_platform) { %>if (typeof document === 'undefined') return;<% } %>
     if((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _js_matcher %>) {
         installedChunks[chunkId] = null;
         <%- _link_preload %>

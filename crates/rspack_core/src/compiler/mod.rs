@@ -2,7 +2,6 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
-use itertools::Itertools;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -10,14 +9,14 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
-  Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
+  ContextModuleFactory, Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -93,6 +92,7 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
 }
 
@@ -111,6 +111,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
+    platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -163,6 +164,7 @@ impl Compiler {
       compilation: Compilation::new(
         id,
         options,
+        platform.clone(),
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
         resolver_factory.clone(),
@@ -189,6 +191,7 @@ impl Compiler {
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
+      platform,
       compiler_context,
     }
   }
@@ -220,6 +223,7 @@ impl Compiler {
       Compilation::new(
         self.id,
         self.options.clone(),
+        self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -385,34 +389,6 @@ impl Compiler {
       .emit
       .call(&mut self.compilation)
       .await?;
-
-    // Check for case-sensitive conflicts before emitting assets
-    // Only check for filenames that differ in casing (not query strings)
-    // Only report conflict if filenames have same lowercase but different casing
-    let mut case_map: HashMap<String, HashSet<String>> = HashMap::default();
-    for filename in self.compilation.assets().keys() {
-      let (target_file, _query) = filename.split_once('?').unwrap_or((filename, ""));
-      let lower_key = cow_utils::CowUtils::cow_to_lowercase(target_file);
-      case_map
-        .entry(lower_key.to_string())
-        .or_default()
-        .insert(target_file.to_string());
-    }
-
-    // Found conflict: multiple filenames with same lowercase representation but different casing
-    for (_lower_key, filenames) in case_map.iter() {
-      // Only report conflict if there are multiple unique filenames (different casing)
-      if filenames.len() > 1 {
-        let filenames_str = filenames.iter().map(|f| format!("  - {f}")).join("\n");
-        self.compilation.push_diagnostic(
-          rspack_error::error!(
-            "Prevent writing to file that only differs in casing or query string from already written file.\nThis will lead to a race-condition and corrupted files on case-insensitive file systems.\n{}",
-            filenames_str
-          )
-          .into(),
-        );
-      }
-    }
 
     let mut new_emitted_asset_versions = HashMap::default();
 

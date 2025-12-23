@@ -38,10 +38,10 @@ use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
+  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
   GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
@@ -448,6 +448,7 @@ impl CompilerBuilder {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
+    let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
     let input_filesystem = self.input_filesystem.take();
@@ -465,6 +466,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      Arc::new(platform),
     ))
   }
 }
@@ -913,6 +915,7 @@ impl CompilerOptionsBuilder {
       vec!["web".to_string()]
     });
     let target_properties = get_targets_properties(&target, &context);
+    builder_context.platform = CompilerPlatform::from(&target_properties);
 
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);

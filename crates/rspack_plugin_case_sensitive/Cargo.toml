@@ -1,13 +1,14 @@
 [package]
-description       = "rspack sensitive module plugin"
+description       = "rspack case sensitive plugin"
 edition.workspace = true
 license           = "MIT"
-name              = "rspack_plugin_warn_sensitive_module"
+name              = "rspack_plugin_case_sensitive"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
 cow-utils          = { workspace = true }
+itertools          = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }

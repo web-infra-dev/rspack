@@ -45,7 +45,7 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ConcatenationScope,
+  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
@@ -218,6 +218,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
+  pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
   // module graph partial used in seal phase
@@ -337,6 +338,7 @@ impl Compilation {
   pub fn new(
     compiler_id: CompilerId,
     options: Arc<CompilerOptions>,
+    platform: Arc<CompilerPlatform>,
     plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -360,6 +362,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
+      platform,
       seal_module_graph_partial: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),

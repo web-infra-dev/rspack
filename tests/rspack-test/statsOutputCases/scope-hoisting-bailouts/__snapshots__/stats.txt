@@ -1,4 +1,4 @@
-runtime modules xx KiB 12 modules
+runtime modules xx KiB 11 modules
 cacheable modules xx bytes
   code generated modules xx bytes [code generated]
     ./index.js xx bytes [built] [code generated]

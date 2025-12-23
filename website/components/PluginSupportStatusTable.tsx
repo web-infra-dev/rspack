@@ -446,8 +446,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
     status: SupportStatus.NotSupported,
   },
   {
-    name: 'WarnCaseSensitiveModulesPlugin',
-    url: '/plugins/webpack/warn-case-sensitive-modules-plugin',
+    name: 'CaseSensitivePlugin',
+    url: '/plugins/webpack/case-sensitive-plugin',
     status: SupportStatus.FullySupported,
   },
 ].sort((a, b) => {
