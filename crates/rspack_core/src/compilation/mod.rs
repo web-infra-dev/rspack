@@ -458,13 +458,9 @@ impl Compilation {
       &mut new_compilation.build_module_graph_artifact,
     );
     std::mem::swap(&mut self.module_graph, &mut new_compilation.module_graph);
-    
+
     let module_graph = new_compilation.module_graph.take();
     new_compilation.build_module_graph_artifact.module_graph = module_graph.unwrap_or_default();
-    new_compilation
-      .build_module_graph_artifact
-      .module_graph
-      .recover();
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);

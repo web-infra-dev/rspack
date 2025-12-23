@@ -248,7 +248,7 @@ impl Compiler {
     self.old_cache.begin_idle();
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-
+    self.compilation.module_graph.as_mut().unwrap().recover();
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("build");
 
