@@ -70,11 +70,14 @@ module.exports = async function checkArrayExpectation(
 	filename,
 	upperCaseKind,
 	options,
-	done,
+	done
 ) {
-	done = typeof done === "function" ? done : error => {
-		throw error
-	};
+	done =
+		typeof done === "function"
+			? done
+			: error => {
+					throw error;
+				};
 	let array = object[`${kind}s`];
 	if (Array.isArray(array) && kind === "warning") {
 		array = array.filter(item => !/from Terser/.test(item));
@@ -144,13 +147,12 @@ module.exports = async function checkArrayExpectation(
 			}
 		}
 
-
 		const unused = [];
 		for (let j = 0; j < expected.length; j++) {
 			if (!usedExpected[j]) {
 				unused.push(
 					Array.isArray(expected[j])
-						? expected[j].map(explain).join(' | ')
+						? expected[j].map(explain).join(" | ")
 						: explain(expected[j])
 				);
 			}
@@ -160,7 +162,7 @@ module.exports = async function checkArrayExpectation(
 				new Error(
 					`The following expected ${kind}s were not matched:\n${unused
 						.map(u => `  ${u}`)
-						.join('\n')}`
+						.join("\n")}`
 				)
 			);
 			return true;

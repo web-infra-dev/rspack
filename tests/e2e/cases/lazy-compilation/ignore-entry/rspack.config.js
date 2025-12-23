@@ -23,7 +23,7 @@ module.exports = {
 	},
 	plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
 	experiments: {
-		css: false,
+		css: false
 	},
 	lazyCompilation: true,
 	devServer: {

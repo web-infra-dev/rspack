@@ -35,5 +35,5 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
-	lazyCompilation: false,
+	lazyCompilation: false
 };

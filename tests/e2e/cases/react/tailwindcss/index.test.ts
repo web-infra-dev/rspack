@@ -5,7 +5,6 @@ test("tailwindcss should work when modify js file", async ({
 	fileAction,
 	rspack
 }) => {
-
 	await expect(page.locator("#app")).toHaveClass(/text-2xl/);
 
 	// update

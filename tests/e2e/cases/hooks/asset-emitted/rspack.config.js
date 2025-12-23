@@ -23,5 +23,5 @@ module.exports = {
 		chunkIds: "named"
 	},
 	output: { clean: true },
-	lazyCompilation: false,
+	lazyCompilation: false
 };
