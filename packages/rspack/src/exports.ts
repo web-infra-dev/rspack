@@ -106,6 +106,9 @@ export type {
 export {
 	BannerPlugin,
 	CaseSensitivePlugin,
+	/**
+	 * @deprecated Use `rspack.CaseSensitivePlugin` instead
+	 */
 	CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
 	DefinePlugin,
 	DynamicEntryPlugin,
