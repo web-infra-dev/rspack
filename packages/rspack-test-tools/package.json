@@ -42,7 +42,7 @@
     "@babel/types": "7.28.5",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.2",
+    "fs-extra": "^11.3.3",
     "iconv-lite": "^0.7.1",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.2.0",
