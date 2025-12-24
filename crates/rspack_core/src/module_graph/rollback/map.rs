@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use rayon::iter::IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator;
 use rustc_hash::FxHashMap;
@@ -8,14 +8,14 @@ pub enum Action<K, V> {
   Removed { key: K, value: V },
 }
 
-#[derive(Debug)]
-pub struct SnapshotMap<K, V> {
-  map: FxHashMap<K, V>,
+#[derive(Debug, Clone)]
+pub struct RollbackMap<K, V> {
+  map: HashMap<K, V>,
   undo_stack: Vec<Action<K, V>>,
   checkpoint: Option<usize>,
 }
 
-impl<K, V> Default for SnapshotMap<K, V>
+impl<K, V> Default for RollbackMap<K, V>
 where
   K: Eq + Hash + Clone + Debug,
   V: Debug,
@@ -28,7 +28,7 @@ where
     }
   }
 }
-impl<K, V> SnapshotMap<K, V>
+impl<K, V> RollbackMap<K, V>
 where
   K: Eq + Hash + Clone + Debug,
   V: Debug,
@@ -124,7 +124,7 @@ where
   }
 }
 
-impl<'data, K, V> RayonIntoParallelRefMutIterator<'data> for SnapshotMap<K, V>
+impl<'data, K, V> RayonIntoParallelRefMutIterator<'data> for RollbackMap<K, V>
 where
   K: Eq + Hash + Send + Sync + 'data,
   V: Send + 'data,
@@ -139,11 +139,11 @@ where
 
 #[cfg(test)]
 mod tests {
-  use super::SnapshotMap;
+  use super::RollbackMap;
 
   #[test]
   fn test_snapshot_map() {
-    let mut snapshot_map: SnapshotMap<String, i32> = SnapshotMap::default();
+    let mut snapshot_map: RollbackMap<String, i32> = RollbackMap::default();
 
     snapshot_map.insert("a".to_string(), 1);
     snapshot_map.insert("b".to_string(), 2);

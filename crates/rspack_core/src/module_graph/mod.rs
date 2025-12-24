@@ -1,8 +1,8 @@
-pub mod snapshot_map;
-use std::collections::hash_map::Entry;
+pub mod rollback;
+use std::{collections::hash_map::Entry, hash::BuildHasherDefault};
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, UkeyHasher, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -11,7 +11,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, rollback::RollbackSingle,
 };
 mod module;
 pub use module::*;
@@ -50,22 +50,20 @@ pub struct DependencyParents {
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: snapshot_map::SnapshotMap<ModuleIdentifier, Option<BoxModule>>,
+  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: snapshot_map::SnapshotMap<DependencyId, Option<BoxDependency>>,
+  dependencies: rollback::RollbackMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: snapshot_map::SnapshotMap<
-    AsyncDependenciesBlockIdentifier,
-    Option<Box<AsyncDependenciesBlock>>,
-  >,
+  blocks:
+    rollback::RollbackMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
 
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
-  module_graph_modules: snapshot_map::SnapshotMap<ModuleIdentifier, Option<ModuleGraphModule>>,
+  module_graph_modules: rollback::RollbackMap<ModuleIdentifier, Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: snapshot_map::SnapshotMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: rollback::RollbackMap<DependencyId, Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -85,12 +83,12 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: snapshot_map::SnapshotMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: rollback::RollbackMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: snapshot_map::SnapshotMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: RollbackSingle<UkeyMap<ExportsInfo, ExportsInfoData>>,
   // TODO try move condition as connection field
-  connection_to_condition: snapshot_map::SnapshotMap<DependencyId, DependencyCondition>,
+  connection_to_condition: rollback::RollbackMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
@@ -101,8 +99,11 @@ impl ModuleGraphData {
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
     self.dependency_id_to_parents.checkpoint();
-    self.exports_info_map.checkpoint();
+
     self.connection_to_condition.checkpoint();
+    // we modify exports_info by get_mut in seal phase, which can't be easily rollback,
+    // we need to clone the whole map for checkpoint
+    self.exports_info_map.checkpoint();
   }
   fn recover(&mut self) {
     self.modules.recover_from_last_checkpoint();
