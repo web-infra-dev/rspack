@@ -2,14 +2,14 @@ use std::{
   fmt::Debug,
   ops::{Deref, DerefMut},
 };
-
+// A simple rollback atom that can checkpoint and recover its state.
 #[derive(Debug)]
-pub struct RollbackSingle<T: Debug> {
+pub struct RollbackAtom<T: Debug> {
   current: T,
   backup: Option<T>,
 }
 
-impl<T> Default for RollbackSingle<T>
+impl<T> Default for RollbackAtom<T>
 where
   T: Clone + Debug + Default,
 {
@@ -20,7 +20,7 @@ where
     }
   }
 }
-impl<T> RollbackSingle<T>
+impl<T> RollbackAtom<T>
 where
   T: Clone + Debug + Default,
 {
@@ -42,7 +42,7 @@ where
   }
 }
 
-impl<T> Deref for RollbackSingle<T>
+impl<T> Deref for RollbackAtom<T>
 where
   T: Clone + Debug + Default,
 {
@@ -52,7 +52,7 @@ where
     &self.current
   }
 }
-impl<T> DerefMut for RollbackSingle<T>
+impl<T> DerefMut for RollbackAtom<T>
 where
   T: Clone + Debug + Default,
 {

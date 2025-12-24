@@ -2,7 +2,7 @@ pub mod rollback;
 use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -11,7 +11,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, rollback::RollbackSingle,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, rollback::OverlayMap,
 };
 mod module;
 pub use module::*;
@@ -86,7 +86,7 @@ pub(crate) struct ModuleGraphData {
   dependency_id_to_parents: rollback::RollbackMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: RollbackSingle<UkeyMap<ExportsInfo, ExportsInfoData>>,
+  exports_info_map: OverlayMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: rollback::RollbackMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
