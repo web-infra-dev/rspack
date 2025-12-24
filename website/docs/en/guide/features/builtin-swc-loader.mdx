@@ -326,7 +326,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -359,7 +358,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -396,7 +394,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -430,7 +427,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -453,17 +449,21 @@ import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
 
-### rspackExperiments.collectTypeScriptInfo
+### collectTypeScriptInfo
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 Collects information from TypeScript's AST for consumption by subsequent Rspack processes, providing better TypeScript development experience and smaller output bundle size.
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-#### rspackExperiments.collectTypeScriptInfo.typeExports
+:::tip
+Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) option could be used.
+:::
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+#### collectTypeScriptInfo.typeExports
+
+<ApiMeta addedVersion="1.7.0" />
 
 - **Type:** `boolean`
 - **Default:** `false`
@@ -472,9 +472,9 @@ Whether to collect type exports information for [`typeReexportsPresence`](/confi
 
 Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
-#### rspackExperiments.collectTypeScriptInfo.exportedEnum
+#### collectTypeScriptInfo.exportedEnum
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 - **Type:** `boolean | 'const-only'`
 - **Default:** `false`
@@ -505,10 +505,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  exportedEnum: isProduction,
-                },
+              collectTypeScriptInfo: {
+                exportedEnum: isProduction,
               },
             },
           },

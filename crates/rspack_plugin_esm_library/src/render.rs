@@ -215,6 +215,7 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut runtime_source = ConcatSource::default();
+    let mut import_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
@@ -376,8 +377,6 @@ var {} = {{}};
     }
 
     // render imports and exports to other chunks
-    let mut final_source = ConcatSource::default();
-
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       let target_chunk = Self::get_module_chunk(required_module, compilation);
@@ -391,7 +390,7 @@ var {} = {{}};
       if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
         let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk);
 
-        final_source.add(RawStringSource::from(format!(
+        import_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
           compilation
             .runtime_template
@@ -439,7 +438,7 @@ var {} = {{}};
           }
         )
       };
-      final_source.add(RawStringSource::from(import_str));
+      import_source.add(RawStringSource::from(import_str));
     }
 
     for (id, imports) in &chunk_link.imports {
@@ -469,7 +468,7 @@ var {} = {{}};
       }
       let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
-      final_source.add(RawStringSource::from(format!(
+      import_source.add(RawStringSource::from(format!(
         "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
         if imported.is_empty() {
           String::new()
@@ -494,23 +493,29 @@ var {} = {{}};
     }
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
-      final_source.add(RawStringSource::from_static("\n"));
+      import_source.add(RawStringSource::from_static("\n"));
     }
 
     // render init fragments
     let mut final_source = ConcatSource::new([
       render_init_fragments(
-        final_source.boxed(),
+        import_source.boxed(),
         chunk_init_fragments,
         &mut ChunkRenderContext {},
       )?,
-      Arc::new(runtime_source),
-      Arc::new(decl_source),
-      Arc::new(render_source),
+      ConcatSource::new([
+        runtime_source.boxed(),
+        decl_source.boxed(),
+        render_source.boxed(),
+      ])
+      .boxed(),
     ]);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
+    for decl_before_export in chunk_link.decl_before_exports.iter() {
+      final_source.add(RawStringSource::from(decl_before_export.clone()));
+    }
 
     for (raw_symbol, exports) in exports {
       let mut exports = exports.iter().collect::<Vec<_>>();

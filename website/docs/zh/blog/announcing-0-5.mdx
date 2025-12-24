@@ -198,7 +198,6 @@ v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四
 
 ```diff
 const configuration = {
-  // ...
   resolve: {
 +   extensions: ['...', '.tsx', '.ts', '.jsx'],
   },
@@ -229,7 +228,6 @@ const configuration = {
 
 ```diff
 class CustomDevServer {
-  // ...
   enableHMR(compiler) {
 -   compiler.options.devServer ??= {};
 -   compiler.options.devServer.hot = true;

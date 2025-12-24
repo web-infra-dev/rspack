@@ -18,11 +18,11 @@ module.exports = (env, { outputDirectory }) =>
 			const file = isFileURL
 				? resource
 				: path.resolve(
-					outputDirectory,
-					isBlobURL
-						? options.originalURL.pathname.slice(6)
-						: resource.pathname.slice(6)
-				);
+						outputDirectory,
+						isBlobURL
+							? options.originalURL.pathname.slice(6)
+							: resource.pathname.slice(6)
+					);
 
 			const workerBootstrap = `
 const { parentPort } = require("worker_threads");
@@ -42,10 +42,11 @@ const urlToPath = url => {
 	return path.resolve(${JSON.stringify(outputDirectory)}, \`./\${url}\`);
 };
 self.importScripts = url => {
-	${options.type === "module"
-					? 'throw new Error("importScripts is not supported in module workers")'
-					: "require(urlToPath(url))"
-				};
+	${
+		options.type === "module"
+			? 'throw new Error("importScripts is not supported in module workers")'
+			: "require(urlToPath(url))"
+	};
 };
 self.fetch = async url => {
 	if (typeof url === "string" ? url.endsWith(".wasm") : url.toString().endsWith(".wasm")) {
@@ -122,7 +123,7 @@ if (${options.type === "module"}) {
 			if (this._onmessage) this.worker.off("message", this._onmessage);
 			this.worker.on(
 				"message",
-				(this._onmessage = (data) => {
+				(this._onmessage = data => {
 					value({
 						data
 					});

@@ -652,7 +652,13 @@ export type Output = {
 	hashSalt?: HashSalt;
 
 	/**
-	 * Create async chunks that are loaded on demand.
+	 * Controls whether dynamically imported modules are emitted as separate async chunks or bundled into
+	 * existing chunks.
+	 * - `true`: Modules loaded via `import()` are split into independent async chunks. These chunks are
+	 * emitted as separate files and are loaded on demand at runtime. This enables code splitting and keeps
+	 * the initial bundle smaller.
+	 * - `false`: Dynamically imported modules are bundled into existing chunks instead of being emitted as
+	 * separate files. No additional async chunk files are generated.
 	 * @default true
 	 * */
 	asyncChunks?: AsyncChunks;
@@ -2783,6 +2789,7 @@ export type Experiments = {
 	outputModule?: boolean;
 	/**
 	 * Enable top-level await.
+	 * @deprecated This option is deprecated, top-level await is enabled by default.
 	 * @default true
 	 */
 	topLevelAwait?: boolean;
@@ -2809,11 +2816,6 @@ export type Experiments = {
 	 * Enable incremental builds.
 	 */
 	incremental?: IncrementalPresets | Incremental;
-	/**
-	 * Enable multi-threaded code splitting algorithm.
-	 * @deprecated This option is deprecated, it has a huge regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead
-	 */
-	parallelCodeSplitting?: boolean;
 	/**
 	 * Enable future default options.
 	 * @default false

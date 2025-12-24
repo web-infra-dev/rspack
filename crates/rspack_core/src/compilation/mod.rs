@@ -12,9 +12,7 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use build_chunk_graph::{
-  artifact::use_code_splitting_cache, build_chunk_graph, build_chunk_graph_new,
-};
+use build_chunk_graph::{artifact::use_code_splitting_cache, build_chunk_graph};
 use dashmap::DashSet;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
@@ -47,7 +45,7 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ConcatenationScope,
+  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
@@ -220,6 +218,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
+  pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
@@ -337,6 +336,7 @@ impl Compilation {
   pub fn new(
     compiler_id: CompilerId,
     options: Arc<CompilerOptions>,
+    platform: Arc<CompilerPlatform>,
     plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -360,6 +360,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
+      platform,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -1591,7 +1592,7 @@ impl Compilation {
     } else {
       dependencies_diagnostics
     };
-    return all_modules_diagnostics.into_values().flatten().collect();
+    all_modules_diagnostics.into_values().flatten().collect()
   }
 
   #[instrument("Compilation:seal", skip_all)]
@@ -1642,11 +1643,7 @@ impl Compilation {
     self.module_graph_cache_artifact.freeze();
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
-      if compilation.options.experiments.parallel_code_splitting {
-        build_chunk_graph_new(compilation)?;
-      } else {
-        build_chunk_graph(compilation)?;
-      }
+      build_chunk_graph(compilation)?;
       compilation
         .chunk_graph
         .generate_dot(compilation, "after-code-splitting")

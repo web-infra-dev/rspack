@@ -346,7 +346,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
           let members = parser
-            .get_member_expression_info(expr, AllowedMemberTypes::Expression)
+            .get_member_expression_info(Expr::Member(expr.clone()), AllowedMemberTypes::Expression)
             .and_then(|info| match info {
               MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,

@@ -4,7 +4,7 @@ import {
 	type Compiler,
 	type Configuration,
 	rspack,
-	type RspackOptions as RspackConfig,
+	type RspackOptions as RspackConfig
 } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import type { PathInfoFixtures } from "./pathInfo";

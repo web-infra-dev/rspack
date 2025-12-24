@@ -14,10 +14,6 @@ it("verify importing css js source map", async () => {
 	expect(map.sources.sort()).toEqual([
 		"webpack:///./a.js",
 		"webpack:///./index.js",
-		"webpack:///webpack/runtime/auto_public_path",
-		"webpack:///webpack/runtime/get css chunk filename",
-		"webpack:///webpack/runtime/global",
-		"webpack:///webpack/runtime/has_own_property",
 		"webpack:///webpack/runtime/make_namespace_object",
 	]);
 	expect(map.file).toEqual("bundle0.js");

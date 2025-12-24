@@ -6,26 +6,22 @@
 
 "use strict";
 
-const util = require("util");
-
 let interception = undefined;
 
-const originalDeprecate = util.deprecate;
-util.deprecate = (fn, message, code) => {
-	const original = originalDeprecate(fn, message, code);
+const originalWarn = console.warn;
 
-	return function (...args) {
-		if (interception) {
-			interception.set(`${code}: ${message}`, {
-				code,
-				message,
-				stack: new Error(message).stack
-			});
-			return fn.apply(this, args);
-		} else {
-			return original.apply(this, args);
-		}
-	};
+console.warn = (message, ...args) => {
+	if (
+		interception &&
+		typeof message === "string" &&
+		message.includes("[Rspack Deprecation]")
+	) {
+		interception.set(message, {
+			message,
+			stack: new Error(message).stack
+		});
+	}
+	return originalWarn.apply(console, [message, ...args]);
 };
 
 exports.start = handler => {

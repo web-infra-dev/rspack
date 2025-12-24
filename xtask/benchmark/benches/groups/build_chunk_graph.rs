@@ -128,6 +128,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     Compilation::new(
       compiler_id,
       compiler.options.clone(),
+      compiler.platform.clone(),
       compiler.plugin_driver.clone(),
       compiler.buildtime_plugin_driver.clone(),
       compiler.resolver_factory.clone(),
@@ -227,16 +228,6 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {
         build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
-        assert_eq!(compiler.compilation.chunk_by_ukey.len(), NUM_MODULES / 10);
-      });
-    });
-  });
-
-  c.bench_function("rust@build_chunk_graph_parallel", |b| {
-    b.iter_with_setup_wrapper(|runner| {
-      reset_chunk_graph_state(&mut compiler.compilation);
-      runner.run(|| {
-        build_chunk_graph::build_chunk_graph_new(&mut compiler.compilation).unwrap();
         assert_eq!(compiler.compilation.chunk_by_ukey.len(), NUM_MODULES / 10);
       });
     });

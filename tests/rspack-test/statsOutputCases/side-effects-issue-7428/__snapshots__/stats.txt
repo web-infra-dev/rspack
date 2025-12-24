@@ -1,6 +1,6 @@
 asset main.js xx KiB [emitted] (name: main)
 asset 0.js xx bytes [emitted]
-runtime modules xx KiB 11 modules
+runtime modules xx KiB 10 modules
 cacheable modules xx bytes
   modules by path ./components/src/ xx bytes
     orphan modules xx bytes [orphan]

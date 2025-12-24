@@ -6,9 +6,10 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ModuleGraph, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, old_cache::Cache as OldCache,
+  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
+  SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  old_cache::Cache as OldCache,
 };
 
 #[derive(Debug)]
@@ -22,6 +23,7 @@ pub struct TaskContext {
   pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
   pub output_fs: Arc<dyn WritableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
+  pub platform: Arc<CompilerPlatform>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub old_cache: Arc<OldCache>,
@@ -40,6 +42,7 @@ impl TaskContext {
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
+      platform: compilation.platform.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       old_cache: compilation.old_cache.clone(),
@@ -64,6 +67,7 @@ impl TaskContext {
     let mut compilation = Compilation::new(
       self.compiler_id,
       self.compiler_options.clone(),
+      self.platform.clone(),
       self.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),
       self.resolver_factory.clone(),

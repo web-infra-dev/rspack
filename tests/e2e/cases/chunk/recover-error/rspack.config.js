@@ -28,19 +28,19 @@ module.exports = {
 									react: {
 										runtime: "automatic",
 										development: true,
-										refresh: true,
+										refresh: true
 									}
-								},
-							},
+								}
+							}
 						}
-					},
+					}
 				]
 			}
 		]
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
-		new ReactRefreshPlugin(),
+		new ReactRefreshPlugin()
 	],
 	optimization: {
 		runtimeChunk: {
@@ -54,7 +54,7 @@ module.exports = {
 					name: "lib-react",
 					test: /node_modules[\\/](?:react|react-dom|scheduler|react-refresh|@rspack[\\/]plugin-react-refresh)[\\/]/,
 					priority: 0
-				},
+				}
 			}
 		}
 	},
@@ -64,4 +64,4 @@ module.exports = {
 			writeToDisk: true
 		}
 	}
-}
+};

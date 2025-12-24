@@ -7,6 +7,6 @@ const workerResult = document.createElement("div");
 workerResult.id = "worker-result";
 root.appendChild(workerResult);
 
-worker.addEventListener("message", (e) => {
+worker.addEventListener("message", e => {
 	workerResult.textContent = `Worker: ${e.data}`;
 });

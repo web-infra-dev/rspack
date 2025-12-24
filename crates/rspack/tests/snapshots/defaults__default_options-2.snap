@@ -52,4 +52,24 @@ BuilderContext {
         EnsureChunkConditionsPlugin,
         WorkerPlugin,
     ],
+    platform: CompilerPlatform {
+        web: Some(
+            true,
+        ),
+        browser: Some(
+            true,
+        ),
+        webworker: Some(
+            false,
+        ),
+        node: Some(
+            false,
+        ),
+        nwjs: Some(
+            false,
+        ),
+        electron: Some(
+            false,
+        ),
+    },
 }

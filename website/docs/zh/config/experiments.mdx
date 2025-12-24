@@ -360,7 +360,7 @@ export default {
 
 - **类型：** `(RegExp | string)[]`
 
-- **默认值：** `[/\/node_modules\//]`
+- **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
 
 由包管理器管理的路径数组，热启动时会通过 package.json 中的版本来判断是否修改。
 
@@ -688,58 +688,6 @@ export default {
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
 
-## experiments.inlineConst
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后会将位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
-
-常见的优化场景为 `constants.js`，比如：
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// 经过打包后的结果 output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A 会被内联到使用的地方。
-    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-详细示例可参考：[inline const 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-## experiments.inlineEnum
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
-
-详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
-
-## experiments.typeReexportsPresence
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
-
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
@@ -764,48 +712,6 @@ export default {
   },
 };
 ```
-
-## experiments.lazyBarrel
-
-<ApiMeta addedVersion="1.5.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true` (v1.6.0 后默认开启)
-
-是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyBarrel: true,
-  },
-};
-```
-
-无副作用模块是指满足以下条件之一的模块：
-
-- 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
-- 通过 [rules[].sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
-
-:::info FAQ
-
-1. `lazyBarrel` 是否支持 CommonJS？
-
-   是的，理论上这个功能也可以支持 CommonJS，但在那之前我们需要先改进 Rspack 对 CJS 的 tree shaking 能力，特别是静态分析部分。所以目前我们只会支持 ESM，后续 PR 再支持 CJS。
-
-2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
-
-   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `rules[].sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
-
-3. 所以 `export * from "./x"` 不再是问题了？
-
-   不，`export * from "./x"` 对构建性能来说仍然是个不好的实践。`lazyBarrel` 只会在以下情况不构建 star re-export：当你导入一个 specifier 时，且这个无副作用的重导出模块（barrel file）的具名导出中包含该 specifier（`export { x as A } from "./a";`、`export * as A from "./a"`、`export { a, b }`、`export const A`、`export default A (the name is default)`），这意味着 star re-export 没有被使用。所以 Rspack 在以下情况仍然会构建 star re-export：
-   1. 重导出模块（barrel file）不是无副作用的
-   2. star re-export 被使用了
-
-:::
-
-> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
 
 ## experiments.deferImport
 

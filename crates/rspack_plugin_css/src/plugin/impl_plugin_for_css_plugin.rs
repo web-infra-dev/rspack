@@ -319,20 +319,34 @@ async fn runtime_requirements_in_tree(
     compilation,
   );
 
-  if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+  if !is_enabled_for_chunk {
+    return Ok(None);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
-    && is_enabled_for_chunk
+    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
   {
-    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES) {
     compilation.add_runtime_module(
       chunk_ukey,
       CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
     )?;
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
   }
 
   Ok(None)

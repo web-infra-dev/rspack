@@ -111,9 +111,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           .get_chunk_modules(c, module_graph)
           .iter()
           .any(|m| {
-            let result = compilation
-              .code_generation_results
-              .get(&m.identifier(), None);
+            let result = compilation.code_generation_results.get_one(&m.identifier());
             result.inner.values().any(|v| v.size() != 0)
           })
       })

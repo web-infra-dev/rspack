@@ -358,7 +358,7 @@ An array of paths to immutable files, changes to these paths will be ignored dur
 
 - **Type:** `(RegExp | string)[]`
 
-- **Default:** `[/\/node_modules\//]`
+- **Default:** `[/[\\/]node_modules[\\/][^.]/]`
 
 An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
 
@@ -686,58 +686,6 @@ export default {
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
 
-## experiments.inlineConst
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Whether to enable the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst), which will perform cross-module inline optimization for constant exports in leaf modules of the module graph.
-
-A common optimization case is `constants.js`, for example:
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// Bundled by Rspack: output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A will be inlined at the usage sites.
-    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-## experiments.inlineEnum
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
-
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
-
-## experiments.typeReexportsPresence
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
-
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
@@ -763,48 +711,6 @@ export default {
   },
 };
 ```
-
-## experiments.lazyBarrel
-
-<ApiMeta addedVersion="1.5.0" />
-
-- **Type:** `boolean`
-- **Default:** `true` (enabled by default after v1.6.0)
-
-Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyBarrel: true,
-  },
-};
-```
-
-A side-effect-free module is a module that meets one of the following conditions:
-
-- The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
-- Modules explicitly marked as `false` through the [rules[].sideEffects](/config/optimization#optimizationsideeffects) option
-
-:::info FAQ
-
-1. Can this also supports CommonJS?
-
-   Yes, theoretically this can also support CommonJS, but before that we need to improve Rspack's CJS tree shaking first, the static analyze part specifically, so currently we will only support ESM, and support CJS in the future PR.
-
-2. Why depend on `"sideEffects": false` in package.json, can Rspack automatically analyze a module is side effects free or not?
-
-   Rspack has the ability to analyze a module is side effects free or not of course, it's already used by `optimization.sideEffects` to tree shaking side effects free modules. But these analyzed modules still require checking whether their dependencies have side effects - only when all dependencies are also side effects free can the module be considered truly side effects free. However, during the make phase, dependencies must first be built before their side effects can be analyzed, and the `lazyBarrel` is intend to avoid to build those dependencies. `"sideEffects": false` in package.json or `rules[].sideEffects` doesn't require dependency checking, as it signifies the entire package is side effects free. Therefore, `lazyBarrel` can only rely on this marker rather than automatic analysis.
-
-3. So `export * from "./x"` is not a problem any more?
-
-   No, `export * from "./x"` is still a bad practice for your build performance, `lazyBarrel` won't build the star re-export only when you import a specifier, and the side effects free barrel file's named exports contains the specifier (`export { x as A } from "./a";`, `export * as A from "./a"`, `export { a, b }`, `export const A`, `export default A (the name is default)`), which means the star re-export is not used. So Rspack will still build the star re-export if:
-   1. barrel file is not side effects free
-   2. the star re-export is used
-
-:::
-
-> For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
 
 ## experiments.deferImport
 

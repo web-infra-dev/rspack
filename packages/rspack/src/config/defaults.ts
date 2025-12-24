@@ -197,6 +197,20 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
+
+	return {
+		platform:
+			targetProperties === false
+				? targetProperties
+				: {
+						web: targetProperties.web,
+						browser: targetProperties.browser,
+						webworker: targetProperties.webworker,
+						node: targetProperties.node,
+						nwjs: targetProperties.nwjs,
+						electron: targetProperties.electron
+					}
+	};
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -263,9 +277,6 @@ const applyExperimentsDefaults = (
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
-
-	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
-	D(experiments, "parallelCodeSplitting", false);
 
 	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
 	D(experiments, "parallelLoader", false);

@@ -128,7 +128,16 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
+    platform: false | {
+        web: boolean | null | undefined;
+        browser: boolean | null | undefined;
+        webworker: boolean | null | undefined;
+        node: boolean | null | undefined;
+        nwjs: boolean | null | undefined;
+        electron: boolean | null | undefined;
+    };
+};
 
 // @public (undocumented)
 interface Argument {
@@ -616,6 +625,19 @@ interface CallExpression extends ExpressionBase {
 
 // @public (undocumented)
 type CallFn = (...args: any[]) => any;
+
+// @public (undocumented)
+const CaseSensitivePlugin: {
+    new (): {
+        name: string;
+        _args: [];
+        affectedHooks: keyof CompilerHooks | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+export { CaseSensitivePlugin }
+export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
@@ -1179,6 +1201,9 @@ export class Compiler {
     outputPath: string;
     // (undocumented)
     parentCompilation?: Compilation;
+    // (undocumented)
+    get platform(): PlatformTargetProperties;
+    set platform(platform: PlatformTargetProperties);
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
@@ -2418,7 +2443,6 @@ export type Experiments = {
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
-    parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
@@ -2508,8 +2532,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // @deprecated (undocumented)
-    parallelCodeSplitting?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
     // (undocumented)
@@ -5828,6 +5850,16 @@ export { Performance_2 as Performance }
 export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
 
 // @public (undocumented)
+type PlatformTargetProperties = {
+    web?: boolean | null;
+    browser?: boolean | null;
+    webworker?: boolean | null;
+    node?: boolean | null;
+    nwjs?: boolean | null;
+    electron?: boolean | null;
+};
+
+// @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
 export { Plugin_2 as Plugin }
 
@@ -6587,6 +6619,8 @@ declare namespace rspackExports {
         ProgressPluginArgument,
         ProvidePluginOptions,
         BannerPlugin,
+        CaseSensitivePlugin,
+        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
@@ -6598,7 +6632,6 @@ declare namespace rspackExports {
         ProgressPlugin,
         ProvidePlugin,
         RuntimePlugin,
-        WarnCaseSensitiveModulesPlugin,
         DllPlugin,
         DllPluginOptions,
         DllReferencePlugin,
@@ -7874,6 +7907,7 @@ export type SwcLoaderModuleConfig = ModuleConfig;
 // @public (undocumented)
 export type SwcLoaderOptions = Config_2 & {
     isModule?: boolean | "unknown";
+    collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
         collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
@@ -9150,17 +9184,6 @@ class VirtualModulesPlugin {
     // (undocumented)
     writeModule(filePath: string, contents: string): void;
 }
-
-// @public (undocumented)
-export const WarnCaseSensitiveModulesPlugin: {
-    new (): {
-        name: string;
-        _args: [];
-        affectedHooks: keyof CompilerHooks | undefined;
-        raw(compiler: Compiler): BuiltinPlugin;
-        apply(compiler: Compiler): void;
-    };
-};
 
 // @public (undocumented)
 interface Wasm {
