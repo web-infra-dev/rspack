@@ -583,6 +583,10 @@ const applyModuleDefaults = (
 			{
 				with: { type: "text" },
 				type: "asset/source"
+			},
+			{
+				with: { type: "bytes" },
+				type: "asset/bytes"
 			}
 		);
 
