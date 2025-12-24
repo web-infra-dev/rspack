@@ -222,8 +222,6 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  /// Module graph used in seal phase, cloned from build_module_graph_artifact.module_graph
-  pub module_graph: Option<ModuleGraph>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -362,7 +360,6 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      module_graph: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -454,30 +451,17 @@ impl Compilation {
       &mut self.build_module_graph_artifact,
       &mut new_compilation.build_module_graph_artifact,
     );
-    std::mem::swap(&mut self.module_graph, &mut new_compilation.module_graph);
-
-    let module_graph = new_compilation.module_graph.take();
-    new_compilation.build_module_graph_artifact.module_graph = module_graph.unwrap_or_default();
-    new_compilation
-      .build_module_graph_artifact
-      .module_graph
-      .recover();
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
-
   pub fn get_module_graph(&self) -> &ModuleGraph {
-    if let Some(mg) = self.module_graph.as_ref() {
-      mg
-    } else {
-      self.build_module_graph_artifact.get_module_graph()
-    }
+    self.build_module_graph_artifact.get_module_graph()
   }
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(module_graph) = &self.module_graph
+    if let module_graph = self.get_module_graph()
       && let Some(module) = module_graph.module_by_identifier(identifier)
     {
       return Some(module);
@@ -494,10 +478,7 @@ impl Compilation {
     build_module_graph_artifact.get_module_graph_mut()
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
-    self
-      .module_graph
-      .as_mut()
-      .expect("module_graph should be initialized in seal phase")
+    self.build_module_graph_artifact.get_module_graph_mut()
   }
 
   pub fn file_dependencies(
@@ -1619,9 +1600,6 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     // a check point for next recover
     self.build_module_graph_artifact.module_graph.save();
-    self.module_graph = Some(mem::take(
-      &mut self.build_module_graph_artifact.module_graph,
-    ));
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
