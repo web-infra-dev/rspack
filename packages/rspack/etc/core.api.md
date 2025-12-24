@@ -2987,9 +2987,9 @@ export type HashFunction = "md4" | "xxhash64" | "sha256";
 
 // @public (undocumented)
 interface HashLike {
-     digest: (encoding?: string) => string | Buffer_2;
+    	digest: (encoding?: string) => string | Buffer_2;
 
-     update: (data: string | Buffer_2, inputEncoding?: string) => HashLike;
+    	update: (data: string | Buffer_2, inputEncoding?: string) => HashLike;
 }
 
 // @public
@@ -4762,9 +4762,9 @@ type ManifestSharedOption = {
 
 // @public (undocumented)
 interface MapOptions {
-     columns?: boolean;
+    	columns?: boolean;
 
-     module?: boolean;
+    	module?: boolean;
 }
 
 // @public
@@ -6065,23 +6065,23 @@ export interface RawSourceMap {
 
 // @public (undocumented)
 interface RawSourceMap_2 {
-     debugId?: string;
+    	debugId?: string;
 
-     file: string;
+    	file: string;
 
-     ignoreList?: number[];
+    	ignoreList?: number[];
 
-     mappings: string;
+    	mappings: string;
 
-     names: string[];
+    	names: string[];
 
-     sourceRoot?: string;
+    	sourceRoot?: string;
 
-     sources: string[];
+    	sources: string[];
 
-     sourcesContent?: string[];
+    	sourcesContent?: string[];
 
-     version: number;
+    	version: number;
 }
 
 // @public (undocumented)
@@ -7415,26 +7415,26 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 class Source {
-     constructor();
-     // (undocumented)
+    	constructor();
+    	// (undocumented)
     buffer(): Buffer_2;
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): null | RawSourceMap_2;
-     // (undocumented)
+    	// (undocumented)
     size(): number;
-     // (undocumented)
+    	// (undocumented)
     source(): SourceValue;
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): SourceAndMap;
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: HashLike): void;
 }
 
 // @public (undocumented)
 interface SourceAndMap {
-     map: null | RawSourceMap_2;
+    	map: null | RawSourceMap_2;
 
-     source: SourceValue;
+    	source: SourceValue;
 }
 
 // @public (undocumented)

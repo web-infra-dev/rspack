@@ -70,8 +70,7 @@ export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		const { failOnError, exclude, ignoredConnections } =
-			this._options;
+		const { failOnError, exclude, ignoredConnections } = this._options;
 
 		const rawOptions: RawCircularDependencyRspackPluginOptions = {
 			failOnError,
@@ -79,31 +78,31 @@ export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 			ignoredConnections,
 			onDetected: this._options.onDetected
 				? (entripoint: Module, modules: string[]) => {
-					const compilation: Compilation =
-						compiler.__internal__get_compilation()!;
-					this._options.onDetected!(entripoint, modules, compilation);
-				}
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onDetected!(entripoint, modules, compilation);
+					}
 				: undefined,
 			onIgnored: this._options.onIgnored
 				? (entripoint: Module, modules: string[]) => {
-					const compilation: Compilation =
-						compiler.__internal__get_compilation()!;
-					this._options.onIgnored!(entripoint, modules, compilation);
-				}
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onIgnored!(entripoint, modules, compilation);
+					}
 				: undefined,
 			onStart: this._options.onStart
 				? () => {
-					const compilation: Compilation =
-						compiler.__internal__get_compilation()!;
-					this._options.onStart!(compilation);
-				}
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onStart!(compilation);
+					}
 				: undefined,
 			onEnd: this._options.onEnd
 				? () => {
-					const compilation: Compilation =
-						compiler.__internal__get_compilation()!;
-					this._options.onEnd!(compilation);
-				}
+						const compilation: Compilation =
+							compiler.__internal__get_compilation()!;
+						this._options.onEnd!(compilation);
+					}
 				: undefined
 		};
 
