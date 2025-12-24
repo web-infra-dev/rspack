@@ -102,7 +102,7 @@
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],
-			excludePackageNames: ["typescript", "@playwright/test"],
+			excludePackageNames: ["typescript", "@playwright/test", "@rslint/core"],
 			// bump major and minor in a separate PR
 			matchUpdateTypes: ["patch"]
 		},
