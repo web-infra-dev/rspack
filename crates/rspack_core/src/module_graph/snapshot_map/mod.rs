@@ -66,7 +66,7 @@ where
   }
 
   /// Start recording undo operations from this point to save memory.
-  pub fn save(&mut self) {
+  pub fn checkpoint(&mut self) {
     self.undo_stack.clear();
     self.checkpoint = Some(0);
   }
@@ -101,7 +101,7 @@ where
   }
 
   /// Undo everything recorded since the last checkpoint. Returns how many actions were undone.
-  pub fn recover(&mut self) -> usize {
+  pub fn recover_from_last_checkpoint(&mut self) -> usize {
     let mut undone = 0;
     while self.undo() {
       undone += 1;
@@ -148,7 +148,7 @@ mod tests {
     snapshot_map.insert("a".to_string(), 1);
     snapshot_map.insert("b".to_string(), 2);
 
-    snapshot_map.save();
+    snapshot_map.checkpoint();
 
     snapshot_map.insert("c".to_string(), 3);
     snapshot_map.remove(&"a".to_string());
@@ -157,7 +157,7 @@ mod tests {
     assert_eq!(snapshot_map.get(&"b".to_string()), Some(&2));
     assert_eq!(snapshot_map.get(&"c".to_string()), Some(&3));
 
-    let undone = snapshot_map.recover();
+    let undone = snapshot_map.recover_from_last_checkpoint();
     assert_eq!(undone, 2);
 
     assert_eq!(snapshot_map.get(&"a".to_string()), Some(&1));

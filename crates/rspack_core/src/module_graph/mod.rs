@@ -94,37 +94,27 @@ pub(crate) struct ModuleGraphData {
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
-  fn save(&mut self) {
-    self.modules.save();
-    self.dependencies.save();
-    self.blocks.save();
-    self.module_graph_modules.save();
-    self.connections.save();
-    self.dependency_id_to_parents.save();
-    self.exports_info_map.save();
-    self.connection_to_condition.save();
+  fn checkpoint(&mut self) {
+    self.modules.checkpoint();
+    self.dependencies.checkpoint();
+    self.blocks.checkpoint();
+    self.module_graph_modules.checkpoint();
+    self.connections.checkpoint();
+    self.dependency_id_to_parents.checkpoint();
+    self.exports_info_map.checkpoint();
+    self.connection_to_condition.checkpoint();
   }
   fn recover(&mut self) {
-    dbg!(self.modules.mutations_len());
-    dbg!(self.dependencies.mutations_len());
-    dbg!(self.blocks.mutations_len());
-    dbg!(self.module_graph_modules.mutations_len());
-    dbg!(self.connections.mutations_len());
-    dbg!(self.dependency_id_to_parents.mutations_len());
-    dbg!(self.exports_info_map.mutations_len());
-    dbg!(self.connection_to_condition.mutations_len());
-    let start = std::time::Instant::now();
-    self.modules.recover();
-    self.dependencies.recover();
-    self.blocks.recover();
-    self.module_graph_modules.recover();
-    self.connections.recover();
-    self.dependency_id_to_parents.recover();
-    self.exports_info_map.recover();
-    self.connection_to_condition.recover();
+    self.modules.recover_from_last_checkpoint();
+    self.dependencies.recover_from_last_checkpoint();
+    self.blocks.recover_from_last_checkpoint();
+    self.module_graph_modules.recover_from_last_checkpoint();
+    self.connections.recover_from_last_checkpoint();
+    self.dependency_id_to_parents.recover_from_last_checkpoint();
+    self.exports_info_map.recover_from_last_checkpoint();
+    self.connection_to_condition.recover_from_last_checkpoint();
+    // not used for build_module_graph
     self.dep_meta_map.clear();
-    let duration = start.elapsed();
-    eprintln!("ModuleGraph recover took: {:?}", duration);
   }
 }
 
@@ -134,10 +124,10 @@ pub struct ModuleGraph {
 }
 impl ModuleGraph {
   // checkpoint
-  pub fn save(&mut self) {
-    self.inner.save()
+  pub fn checkpoint(&mut self) {
+    self.inner.checkpoint()
   }
-  pub fn recover(&mut self) {
+  pub fn recover_from_last_checkpoint(&mut self) {
     self.inner.recover()
   }
 }

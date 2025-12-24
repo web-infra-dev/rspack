@@ -461,9 +461,7 @@ impl Compilation {
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let module_graph = self.get_module_graph()
-      && let Some(module) = module_graph.module_by_identifier(identifier)
-    {
+    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
       return Some(module);
     };
 
@@ -1598,8 +1596,11 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    // a check point for next recover
-    self.build_module_graph_artifact.module_graph.save();
+    // add a checkpoint here since we may modify module graph later in incremental compilation
+    // and we can recover to this checkpoint in the future
+    if self.incremental.mutations_readable(IncrementalPasses::MAKE) {
+      self.build_module_graph_artifact.module_graph.checkpoint();
+    }
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
