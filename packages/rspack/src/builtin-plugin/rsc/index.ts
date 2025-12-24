@@ -26,13 +26,13 @@ export const RSC_LAYERS_NAMES = {
 	/**
 	 * The layer for server-only runtime and picking up `react-server` export conditions.
 	 */
-	reactServerComponents: "react-server-components",
+	REACT_SERVER_COMPONENTS: "react-server-components",
 	/**
 	 * Server Side Rendering layer for app.
 	 */
-	serverSideRendering: "server-side-rendering",
+	SERVER_SIDE_RENDERING: "server-side-rendering",
 	/**
 	 * The browser client bundle layer for actions.
 	 */
-	actionBrowser: "action-browser"
+	ACTION_BROWSER: "action-browser"
 };

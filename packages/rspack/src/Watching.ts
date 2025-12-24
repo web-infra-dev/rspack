@@ -374,48 +374,48 @@ export class Watching {
 		compilation.endTime = Date.now();
 		const cbs = this.callbacks;
 		this.callbacks = [];
-		const fileDependencies = new Set([
-			...compilation.fileDependencies
-		]) as unknown as Iterable<string> & {
-			added?: Iterable<string>;
-			removed?: Iterable<string>;
-		};
-		fileDependencies.added = new Set(
-			compilation.__internal__addedFileDependencies
-		);
-		fileDependencies.removed = new Set(
-			compilation.__internal__removedFileDependencies
-		);
-
-		const contextDependencies = new Set([
-			...compilation.contextDependencies
-		]) as unknown as Iterable<string> & {
-			added?: Iterable<string>;
-			removed?: Iterable<string>;
-		};
-		contextDependencies.added = new Set(
-			compilation.__internal__addedContextDependencies
-		);
-		contextDependencies.removed = new Set(
-			compilation.__internal__removedContextDependencies
-		);
-
-		const missingDependencies = new Set([
-			...compilation.missingDependencies
-		]) as unknown as Iterable<string> & {
-			added?: Iterable<string>;
-			removed?: Iterable<string>;
-		};
-		missingDependencies.added = new Set(
-			compilation.__internal__addedMissingDependencies
-		);
-		missingDependencies.removed = new Set(
-			compilation.__internal__removedMissingDependencies
-		);
-
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			this.handler(null, stats);
+
+			const fileDependencies = new Set([
+				...compilation.fileDependencies
+			]) as unknown as Iterable<string> & {
+				added?: Iterable<string>;
+				removed?: Iterable<string>;
+			};
+			fileDependencies.added = new Set(
+				compilation.__internal__addedFileDependencies
+			);
+			fileDependencies.removed = new Set(
+				compilation.__internal__removedFileDependencies
+			);
+
+			const contextDependencies = new Set([
+				...compilation.contextDependencies
+			]) as unknown as Iterable<string> & {
+				added?: Iterable<string>;
+				removed?: Iterable<string>;
+			};
+			contextDependencies.added = new Set(
+				compilation.__internal__addedContextDependencies
+			);
+			contextDependencies.removed = new Set(
+				compilation.__internal__removedContextDependencies
+			);
+
+			const missingDependencies = new Set([
+				...compilation.missingDependencies
+			]) as unknown as Iterable<string> & {
+				added?: Iterable<string>;
+				removed?: Iterable<string>;
+			};
+			missingDependencies.added = new Set(
+				compilation.__internal__addedMissingDependencies
+			);
+			missingDependencies.removed = new Set(
+				compilation.__internal__removedMissingDependencies
+			);
 
 			process.nextTick(() => {
 				if (!this.#closed) {

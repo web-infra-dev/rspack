@@ -139,7 +139,6 @@ fn record_chunk_group(
   checked_chunks: &mut FxHashSet<ChunkUkey>,
   plugin_state: &mut PluginState,
 ) {
-  println!("-------- record_chunk_group --------");
   // Ensure recursion is stopped if we've already checked this chunk group.
   if checked_chunk_groups.contains(&chunk_group.ukey) {
     return;
