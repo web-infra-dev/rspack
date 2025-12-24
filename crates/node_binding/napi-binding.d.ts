@@ -1829,7 +1829,6 @@ export interface RawCacheOptions {
 
 export interface RawCircularDependencyRspackPluginOptions {
   failOnError?: boolean
-  allowAsyncCycles?: boolean
   exclude?: RegExp
   ignoredConnections?: Array<[string | RegExp, string | RegExp]>
   onDetected?: (entrypoint: Module, modules: string[]) => void
