@@ -447,7 +447,11 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn recover_module_graph_from_new_compilation(&mut self, new_compilation: &mut Compilation) {
+  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
+    self
+      .build_module_graph_artifact
+      .get_module_graph_mut()
+      .recover_from_last_checkpoint();
     std::mem::swap(
       &mut self.build_module_graph_artifact,
       &mut new_compilation.build_module_graph_artifact,
@@ -1599,7 +1603,7 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     // add a checkpoint here since we may modify module graph later in incremental compilation
     // and we can recover to this checkpoint in the future
-    if self.incremental.mutations_readable(IncrementalPasses::MAKE) {
+    if self.incremental.passes_enabled(IncrementalPasses::MAKE) {
       self.build_module_graph_artifact.module_graph.checkpoint();
     }
 
