@@ -17,9 +17,9 @@ See [the Node.js documentation](https://nodejs.org/api/globals.html#globals_glob
 
 Available values:
 
-- `true`: Rspack injects a polyfill so that `global` is available in the bundle. This ensures compatibility with code that relies on Node.js globals in non-Node runtimes.
-- `false`: No polyfill is provided. References to `global` remain untouched. If your target environment does not define `global`, accessing it will throw a `ReferenceError` at runtime.
-- `'warn'`: Inject a polyfill like `true`, but also emit a warning when `global` is used.
+- `true`: Rspack injects a polyfill so that `global` is available in the bundle. This ensures compatibility with code that relies on Node.js globals in non-Node runtimes
+- `false`: No polyfill is provided. References to `global` remain untouched. If your target environment does not define `global`, accessing it will throw a `ReferenceError` at runtime
+- `'warn'`: Inject a polyfill like `true`, but also emit a warning when `global` is used
 
 For example, to disable `global` polyfill:
 
@@ -40,12 +40,12 @@ Controls how Rspack handles the Node.js [`__filename`](https://nodejs.org/api/mo
 
 Available values:
 
-- `true`: Replace with the source file path, relative to the [`context`](/config/context) option.
-- `false`: Do nothing and keep the native behavior.
-- `'mock'`: Replace with `/index.js`.
-- `'warn-mock'`: Replace with `/index.js`, and emit a warning to indicate a potential Node.js dependency in the code.
-- `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__filename` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output.
-- `'eval-only'`: Equivalent to `false`.
+- `true`: Replace with the source file path, relative to the [`context`](/config/context) option
+- `false`: Do nothing and keep the native behavior
+- `'mock'`: Replace with `/index.js`
+- `'warn-mock'`: Replace with `/index.js`, and emit a warning to indicate a potential Node.js dependency in the code
+- `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__filename` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output
+- `'eval-only'`: Equivalent to `false`
 
 For example, to leave `__filename` and `import.meta.filename` as it is:
 
@@ -79,12 +79,12 @@ Controls how Rspack handles the Node.js [`__dirname`](https://nodejs.org/api/mod
 
 Available values:
 
-- `true`: Replace with the directory path of the source file, relative to the [`context`](/config/context) option.
-- `false`: Do nothing and keep the native behavior.
-- `'mock'`: Replace with `'/'`.
-- `'warn-mock'`: Replace with `'/'`, and emit a warning to indicate a potential Node.js dependency in the code.
-- `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__dirname` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output.
-- `'eval-only'`: Equivalent to `false`.
+- `true`: Replace with the directory path of the source file, relative to the [`context`](/config/context) option
+- `false`: Do nothing and keep the native behavior
+- `'mock'`: Replace with `'/'`
+- `'warn-mock'`: Replace with `'/'`, and emit a warning to indicate a potential Node.js dependency in the code
+- `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__dirname` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output
+- `'eval-only'`: Equivalent to `false`
 
 For example, to leave `__dirname` and `import.meta.dirname` as it is:
 

@@ -17,9 +17,9 @@ import WebpackLicense from '@components/WebpackLicense';
 
 可选值有：
 
-- `true`：Rspack 会注入 polyfill，使打包产物中能够使用 `global`。适用于依赖 Node.js 全局变量、但运行在非 Node 环境的代码。
-- `false`：不注入 polyfill。对 `global` 的引用将保持原样。如果目标环境不支持 `global`，运行时会抛出 `ReferenceError`。
-- `'warn'`：行为与 `true` 相同，会注入 polyfill，同时在使用 `global` 时额外打印警告。
+- `true`：Rspack 会注入 polyfill，使打包产物中能够使用 `global`。适用于依赖 Node.js 全局变量、但运行在非 Node 环境的代码
+- `false`：不注入 polyfill。对 `global` 的引用将保持原样。如果目标环境不支持 `global`，运行时会抛出 `ReferenceError`
+- `'warn'`：行为与 `true` 相同，会注入 polyfill，同时在使用 `global` 时额外打印警告
 
 例如，禁用 `global` polyfill：
 
@@ -43,9 +43,9 @@ export default {
 - `true`：替换为源文件的文件路径，相对于 [`context`](/config/context) 选项
 - `false`：不做任何处理，保持原生行为
 - `'mock'`：替换为 '/index.js'
-- `'warn-mock'`：替换为 '/index.js'，并输出警告，用于提醒代码中存在潜在的 Node 依赖。
-- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__filename` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物。
-- `'eval-only'`：等同于 `false`。
+- `'warn-mock'`：替换为 '/index.js'，并输出警告，用于提醒代码中存在潜在的 Node 依赖
+- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__filename` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物
+- `'eval-only'`：等同于 `false`
 
 例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理：
 
@@ -82,9 +82,9 @@ export default {
 - `true`：替换为源文件的目录路径，相对于 [`context`](/config/context) 选项
 - `false`：不做任何处理，保持原生行为
 - `'mock'`：替换为 `'/'`
-- `'warn-mock'`：替换为 `'/'`，并输出警告，用于提醒代码中存在潜在的 Node 依赖。
-- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__dirname` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物。
-- `'eval-only'`：等同于 `false`。
+- `'warn-mock'`：替换为 `'/'`，并输出警告，用于提醒代码中存在潜在的 Node 依赖
+- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__dirname` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物
+- `'eval-only'`：等同于 `false`
 
 例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理：
 
