@@ -27,6 +27,8 @@ pub struct StatsBuildInfo {
 #[derive(Debug, Serialize, Clone)]
 pub struct StatsExpose {
   pub path: String,
+  #[serde(default)]
+  pub file: String,
   pub id: String,
   pub name: String,
   #[serde(default)]
