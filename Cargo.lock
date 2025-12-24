@@ -4647,7 +4647,6 @@ dependencies = [
  "rspack_hook",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
- "rspack_sources",
  "rspack_util",
  "rustc-hash",
  "serde",

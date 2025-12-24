@@ -10,11 +10,11 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
   RuntimeGlobals,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -23,6 +23,7 @@ use super::{
   },
   federation_modules_plugin::{AddFederationRuntimeDependencyHook, FederationModulesPlugin},
   federation_runtime_dependency::FederationRuntimeDependency,
+  module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions,
 };
 
 struct FederationRuntimeDependencyCollector {
@@ -44,12 +45,13 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[plugin]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
+  experiments: ModuleFederationRuntimeExperimentsOptions,
   collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
-  pub fn new() -> Self {
-    Self::new_inner(Arc::new(Mutex::new(FxHashSet::default())))
+  pub fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
+    Self::new_inner(experiments, Arc::new(Mutex::new(FxHashSet::default())))
   }
 }
 
@@ -78,8 +80,16 @@ async fn additional_chunk_runtime_requirements_tree(
   let is_enabled = has_runtime || has_entry_modules;
 
   if is_enabled {
-    // Add STARTUP requirement
-    runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    // Add STARTUP (sync) so the runtime wrapper can always hook __webpack_require__.x,
+    // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
+    if self.experiments.async_startup {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP);
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
+      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    } else {
+      runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    }
   }
 
   Ok(())
@@ -115,6 +125,7 @@ async fn runtime_requirement_in_tree(
 
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
+      experiments: self.experiments.clone(),
     };
 
     // Inject EmbedFederationRuntimeModule
@@ -188,13 +199,15 @@ async fn render_startup(
     return Ok(());
   }
 
+  // Ensure the synchronous startup global exists even in async startup mode so the
+  // embedded federation runtime wrapper has a stable hook point.
   let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
   let has_entry_modules = compilation
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
 
-  // Runtime chunks with entry modules: JavaScript plugin handles startup naturally
+  // Runtime chunks with entry modules
   if has_runtime && has_entry_modules {
     return Ok(());
   }
@@ -207,12 +220,16 @@ async fn render_startup(
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    startup_with_call.add(RawStringSource::from(format!(
-      "{}();\n",
+    let startup_global = if self.experiments.async_startup {
       compilation
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP),
-    )));
+        .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
+    } else {
+      compilation
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::STARTUP)
+    };
+    startup_with_call.add(RawStringSource::from(format!("{startup_global}();\n",)));
 
     startup_with_call.add(render_source.source.clone());
     render_source.source = startup_with_call.boxed();
@@ -242,6 +259,6 @@ impl Plugin for EmbedFederationRuntimePlugin {
 
 impl Default for EmbedFederationRuntimePlugin {
   fn default() -> Self {
-    Self::new()
+    Self::new(ModuleFederationRuntimeExperimentsOptions::default())
   }
 }

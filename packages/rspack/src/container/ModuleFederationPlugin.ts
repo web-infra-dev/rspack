@@ -10,7 +10,10 @@ import {
 	type RemoteAliasMap
 } from "./ModuleFederationManifestPlugin";
 import type { ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
-import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
+import {
+	type ModuleFederationRuntimeExperimentsOptions,
+	ModuleFederationRuntimePlugin
+} from "./ModuleFederationRuntimePlugin";
 import { parseOptions } from "./options";
 
 declare const MF_RUNTIME_CODE: string;
@@ -28,6 +31,7 @@ export interface ModuleFederationPluginOptions extends Omit<
 				ModuleFederationManifestPluginOptions,
 				"remoteAliasMap" | "globalName" | "name" | "exposes" | "shared"
 		  >;
+	experiments?: ModuleFederationRuntimeExperimentsOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -46,15 +50,30 @@ export class ModuleFederationPlugin {
 		// Generate the runtime entry content
 		const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
 
+		const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
+			asyncStartup: this._options.experiments?.asyncStartup ?? false
+		};
+
 		// Pass only the entry runtime to the Rust-side plugin
 		new ModuleFederationRuntimePlugin({
-			entryRuntime
+			entryRuntime,
+			experiments: runtimeExperiments
 		}).apply(compiler);
 
-		new webpack.container.ModuleFederationPluginV1({
-			...this._options,
+		// Async startup is supported by the v2/v1.5 stack only; keep v1 options isolated.
+		const v1Options: ModuleFederationPluginV1Options = {
+			name: this._options.name,
+			exposes: this._options.exposes,
+			filename: this._options.filename,
+			library: this._options.library,
+			remoteType: this._options.remoteType,
+			remotes: this._options.remotes,
+			runtime: this._options.runtime,
+			shareScope: this._options.shareScope,
+			shared: this._options.shared,
 			enhanced: true
-		}).apply(compiler);
+		};
+		new webpack.container.ModuleFederationPluginV1(v1Options).apply(compiler);
 
 		if (this._options.manifest) {
 			const manifestOptions: ModuleFederationManifestPluginOptions =
