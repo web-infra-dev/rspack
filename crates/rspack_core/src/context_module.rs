@@ -1217,6 +1217,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     ContextNameSpaceObject::Bool(true) => "|namespace object",
     _ => "",
   };
+  if let Some(attributes) = &options.context_options.attributes {
+    id += "|importAttributes: ";
+    id += &serde_json::to_string(attributes).expect("json stringify failed");
+  }
   if let Some(layer) = &options.layer {
     id += "|layer: ";
     id += layer;
