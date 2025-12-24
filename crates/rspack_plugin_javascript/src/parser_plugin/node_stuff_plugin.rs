@@ -20,6 +20,8 @@ const FILENAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
 const GLOBAL: &str = "global";
+const MOCK_DIRNAME: &str = "/";
+const MOCK_FILENAME: &str = "/index.js";
 
 /// Represents the type of import.meta property being handled (filename or dirname)
 #[derive(Clone, Copy)]
@@ -32,8 +34,8 @@ impl NodeMetaProperty {
   /// Returns the mock value for this property
   fn mock_value(&self) -> &'static str {
     match self {
-      NodeMetaProperty::Filename => "/index.js",
-      NodeMetaProperty::Dirname => "/",
+      NodeMetaProperty::Filename => MOCK_FILENAME,
+      NodeMetaProperty::Dirname => MOCK_DIRNAME,
     }
   }
 
@@ -233,6 +235,21 @@ impl NodeStuffPlugin {
     }
   }
 
+  fn add_cjs_node_module_dependency(
+    parser: &mut JavascriptParser,
+    ident_span: swc_core::common::Span,
+    name: &str,
+    property: NodeMetaProperty,
+  ) {
+    Self::add_node_module_dependencies(parser, property);
+    let const_dep = CachedConstDependency::new(
+      ident_span.into(),
+      name.into(),
+      property.node_module_runtime_expr().into(),
+    );
+    parser.add_presentational_dependency(Box::new(const_dep));
+  }
+
   /// Get the evaluated value for import.meta.filename/dirname
   fn get_import_meta_eval_value(
     parser: &JavascriptParser,
@@ -400,41 +417,23 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     };
     if for_name == DIRNAME {
       let dirname = match node_option.dirname {
-        NodeDirnameOption::Mock => Some("/".to_string()),
+        NodeDirnameOption::Mock => Some(MOCK_DIRNAME.to_string()),
         NodeDirnameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_DIRNAME".to_string(),
             format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&DIRNAME), cyan(&"node.__dirname")),
           ));
-          Some("/".to_string())
+          Some(MOCK_DIRNAME.to_string())
         }
         NodeDirnameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          let external_url_dep = ExternalModuleDependency::new(
-            "url".to_string(),
-            vec![(
-              "fileURLToPath".to_string(),
-              "__rspack_fileURLToPath".to_string(),
-            )],
-            None,
+          Self::add_cjs_node_module_dependency(
+            parser,
+            ident.span,
+            DIRNAME,
+            NodeMetaProperty::Dirname,
           );
-
-          let external_path_dep = ExternalModuleDependency::new(
-            "path".to_string(),
-            vec![("dirname".to_string(), "__rspack_dirname".to_string())],
-            None,
-          );
-
-          let const_dep = CachedConstDependency::new(
-            ident.span.into(),
-            DIRNAME.into(),
-            "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))".into(),
-          );
-
-          parser.add_presentational_dependency(Box::new(external_url_dep));
-          parser.add_presentational_dependency(Box::new(external_path_dep));
-          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeDirnameOption::EvalOnly => {
@@ -442,33 +441,12 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-
-          let external_url_dep = ExternalModuleDependency::new(
-            "url".to_string(),
-            vec![(
-              "fileURLToPath".to_string(),
-              "__rspack_fileURLToPath".to_string(),
-            )],
-            None,
+          Self::add_cjs_node_module_dependency(
+            parser,
+            ident.span,
+            DIRNAME,
+            NodeMetaProperty::Dirname,
           );
-
-          let external_path_dep = ExternalModuleDependency::new(
-            "path".to_string(),
-            vec![("dirname".to_string(), "__rspack_dirname".to_string())],
-            None,
-          );
-
-          let const_dep = CachedConstDependency::new(
-            ident.span.into(),
-            DIRNAME.into(),
-            "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))"
-              .to_string()
-              .into(),
-          );
-
-          parser.add_presentational_dependency(Box::new(external_url_dep));
-          parser.add_presentational_dependency(Box::new(external_path_dep));
-          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeDirnameOption::True => Some(
@@ -495,34 +473,23 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       }
     } else if for_name == FILENAME {
       let filename = match node_option.filename {
-        NodeFilenameOption::Mock => Some("/index.js".to_string()),
+        NodeFilenameOption::Mock => Some(MOCK_FILENAME.to_string()),
         NodeFilenameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_FILENAME".to_string(),
             format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&FILENAME), cyan(&"node.__filename")),
           ));
-          Some("/index.js".to_string())
+          Some(MOCK_FILENAME.to_string())
         }
         NodeFilenameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          let external_dep = ExternalModuleDependency::new(
-            "url".to_string(),
-            vec![(
-              "fileURLToPath".to_string(),
-              "__rspack_fileURLToPath".to_string(),
-            )],
-            None,
+          Self::add_cjs_node_module_dependency(
+            parser,
+            ident.span,
+            FILENAME,
+            NodeMetaProperty::Filename,
           );
-
-          let const_dep = CachedConstDependency::new(
-            ident.span.into(),
-            FILENAME.into(),
-            "__rspack_fileURLToPath(import.meta.url)".into(),
-          );
-
-          parser.add_presentational_dependency(Box::new(external_dep));
-          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeFilenameOption::EvalOnly => {
@@ -530,23 +497,12 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-          let external_dep = ExternalModuleDependency::new(
-            "url".to_string(),
-            vec![(
-              "fileURLToPath".to_string(),
-              "__rspack_fileURLToPath".to_string(),
-            )],
-            None,
+          Self::add_cjs_node_module_dependency(
+            parser,
+            ident.span,
+            FILENAME,
+            NodeMetaProperty::Filename,
           );
-
-          let const_dep = CachedConstDependency::new(
-            ident.span.into(),
-            FILENAME.into(),
-            "__rspack_fileURLToPath(import.meta.url)".to_string().into(),
-          );
-
-          parser.add_presentational_dependency(Box::new(external_dep));
-          parser.add_presentational_dependency(Box::new(const_dep));
           return Some(true);
         }
         NodeFilenameOption::True => Some(
