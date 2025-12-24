@@ -2884,6 +2884,8 @@ export interface RawSplitChunksOptions {
 export interface RawStatsBuildInfo {
   buildVersion: string
   buildName?: string
+  target?: Array<string>
+  plugins?: Array<string>
 }
 
 export interface RawStatsOptions {

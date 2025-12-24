@@ -22,6 +22,10 @@ pub struct StatsBuildInfo {
   pub build_version: String,
   #[serde(rename = "buildName", skip_serializing_if = "Option::is_none")]
   pub build_name: Option<String>,
+  #[serde(rename = "target", skip_serializing_if = "Option::is_none")]
+  pub target: Option<Vec<String>>,
+  #[serde(rename = "plugins", skip_serializing_if = "Option::is_none")]
+  pub plugins: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

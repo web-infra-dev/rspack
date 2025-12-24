@@ -351,6 +351,9 @@ pub struct RawManifestSharedOption {
 pub struct RawStatsBuildInfo {
   pub build_version: String,
   pub build_name: Option<String>,
+  // only appear when enable treeshake
+  pub target: Option<Vec<String>>,
+  pub plugins: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
@@ -414,6 +417,8 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
       build_info: value.build_info.map(|info| StatsBuildInfo {
         build_version: info.build_version,
         build_name: info.build_name,
+        target: info.target,
+        plugins: info.plugins,
       }),
     }
   }

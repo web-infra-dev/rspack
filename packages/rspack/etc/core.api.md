@@ -8405,7 +8405,7 @@ class TreeShakeSharedPlugin {
     // (undocumented)
     plugins?: Plugins;
     // (undocumented)
-    reshake?: boolean;
+    reShake?: boolean;
 }
 
 // @public (undocumented)
@@ -8415,7 +8415,7 @@ export interface TreeshakeSharedPluginOptions {
     // (undocumented)
     plugins?: Plugins;
     // (undocumented)
-    reshake?: boolean;
+    reShake?: boolean;
 }
 
 // @public (undocumented)

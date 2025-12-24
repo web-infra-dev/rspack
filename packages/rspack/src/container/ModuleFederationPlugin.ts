@@ -49,7 +49,7 @@ export class ModuleFederationPlugin {
 		if (treeshakeEntries.length > 0) {
 			this._treeShakeSharedPlugin = new TreeShakeSharedPlugin({
 				mfConfig: this._options,
-				reshake: false
+				reShake: false
 			});
 			this._treeShakeSharedPlugin.apply(compiler);
 		}

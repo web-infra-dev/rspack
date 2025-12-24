@@ -10,7 +10,10 @@ import {
 	RspackBuiltinPlugin
 } from "../builtin-plugin/base";
 import type { Compiler } from "../Compiler";
-import type { SharedConfig } from "../sharing/SharePlugin";
+import {
+	normalizeSharedOptions,
+	type SharedConfig
+} from "../sharing/SharePlugin";
 import { isRequiredVersion } from "../sharing/utils";
 import {
 	getRemoteInfos,
@@ -65,20 +68,40 @@ function readPKGJson(root?: string): Record<string, string> {
 	return {};
 }
 
-function getBuildInfo(isDev: boolean, root?: string): StatsBuildInfo {
-	const rootPath = root || process.cwd();
+function getBuildInfo(
+	isDev: boolean,
+	compiler: Compiler,
+	mfConfig: ModuleFederationPluginOptions
+): StatsBuildInfo {
+	const rootPath = compiler.options.context || process.cwd();
 	const pkg = readPKGJson(rootPath);
 	const buildVersion = isDev ? LOCAL_BUILD_VERSION : pkg?.version;
 
-	return {
+	const statsBuildInfo: StatsBuildInfo = {
 		buildVersion: process.env.MF_BUILD_VERSION || buildVersion || "UNKNOWN",
 		buildName: process.env.MF_BUILD_NAME || pkg?.name || "UNKNOWN"
 	};
+
+	const normalizedShared = normalizeSharedOptions(mfConfig.shared || {});
+	const enableTreeshake = Object.values(normalizedShared).some(
+		config => config[1].treeshake
+	);
+	if (enableTreeshake) {
+		statsBuildInfo.target = Array.isArray(compiler.options.target)
+			? compiler.options.target
+			: [];
+		statsBuildInfo.plugins = mfConfig.treeshakeSharedExcludedPlugins || [];
+	}
+
+	return statsBuildInfo;
 }
 
 interface StatsBuildInfo {
 	buildVersion: string;
 	buildName?: string;
+	// only appear when enable treeshake
+	target?: string[];
+	plugins?: string[];
 }
 
 export type RemoteAliasMap = Record<string, { name: string; entry?: string }>;
@@ -288,13 +311,14 @@ function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
  */
 export class ModuleFederationManifestPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ModuleFederationManifestPlugin;
-	private opts: InternalManifestPluginOptions;
+	private rawOpts: ModuleFederationPluginOptions;
 	constructor(opts: ModuleFederationPluginOptions) {
 		super();
-		this.opts = normalizeManifestOptions(opts);
+		this.rawOpts = opts;
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
+		const opts = normalizeManifestOptions(this.rawOpts);
 		const {
 			fileName,
 			filePath,
@@ -302,12 +326,12 @@ export class ModuleFederationManifestPlugin extends RspackBuiltinPlugin {
 			remoteAliasMap,
 			exposes,
 			shared
-		} = this.opts;
-		const { statsFileName, manifestFileName } = getFileName(this.opts);
+		} = opts;
+		const { statsFileName, manifestFileName } = getFileName(opts);
 
 		const rawOptions: RawModuleFederationManifestPluginOptions = {
-			name: this.opts.name,
-			globalName: this.opts.globalName,
+			name: opts.name,
+			globalName: opts.globalName,
 			fileName,
 			filePath,
 			manifestFileName,
@@ -318,7 +342,8 @@ export class ModuleFederationManifestPlugin extends RspackBuiltinPlugin {
 			shared,
 			buildInfo: getBuildInfo(
 				compiler.options.mode === "development",
-				compiler.context
+				compiler,
+				this.rawOpts
 			)
 		};
 		return createBuiltinPlugin(this.name, rawOptions);

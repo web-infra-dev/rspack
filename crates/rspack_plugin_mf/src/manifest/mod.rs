@@ -528,10 +528,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     ),
   );
   // Build manifest from stats
+  let mut manifest_meta = stats_root.metaData.clone();
+  if let Some(build_info) = &mut manifest_meta.build_info {
+    build_info.target = None;
+    build_info.plugins = None;
+  }
   let manifest = ManifestRoot {
     id: stats_root.id.clone(),
     name: stats_root.name.clone(),
-    metaData: stats_root.metaData.clone(),
+    metaData: manifest_meta,
     exposes: exposes
       .into_iter()
       .map(|e| ManifestExpose {

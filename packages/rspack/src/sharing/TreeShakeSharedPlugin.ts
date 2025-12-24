@@ -8,27 +8,27 @@ import { normalizeSharedOptions } from "./SharePlugin";
 export interface TreeshakeSharedPluginOptions {
 	mfConfig: ModuleFederationPluginOptions;
 	plugins?: Plugins;
-	reshake?: boolean;
+	reShake?: boolean;
 }
 
 export class TreeShakeSharedPlugin {
 	mfConfig: ModuleFederationPluginOptions;
 	outputDir: string;
 	plugins?: Plugins;
-	reshake?: boolean;
+	reShake?: boolean;
 	private _independentSharePlugin?: IndependentSharedPlugin;
 
 	name = "TreeShakeSharedPlugin";
 	constructor(options: TreeshakeSharedPluginOptions) {
-		const { mfConfig, plugins, reshake } = options;
+		const { mfConfig, plugins, reShake } = options;
 		this.mfConfig = mfConfig;
 		this.outputDir = mfConfig.independentShareDir || "independent-packages";
 		this.plugins = plugins;
-		this.reshake = Boolean(reshake);
+		this.reShake = Boolean(reShake);
 	}
 
 	apply(compiler: Compiler) {
-		const { mfConfig, outputDir, plugins, reshake } = this;
+		const { mfConfig, outputDir, plugins, reShake } = this;
 		const { name, shared, library } = mfConfig;
 		if (!shared) {
 			return;
@@ -43,7 +43,7 @@ export class TreeShakeSharedPlugin {
 				([_, config]) => config.treeshake && config.import !== false
 			)
 		) {
-			if (!reshake) {
+			if (!reShake) {
 				new SharedUsedExportsOptimizerPlugin(
 					sharedOptions,
 					mfConfig.injectUsedExports,
@@ -55,7 +55,7 @@ export class TreeShakeSharedPlugin {
 				shared: shared,
 				outputDir,
 				plugins,
-				treeshake: reshake,
+				treeshake: reShake,
 				library,
 				manifest: mfConfig.manifest,
 				treeshakeSharedExcludedPlugins: mfConfig.treeshakeSharedExcludedPlugins
