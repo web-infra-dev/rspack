@@ -46,9 +46,9 @@ export default {
 
 - `true`：替换为源文件的文件路径，相对于 [`context`](/config/context) 选项
 - `false`：不做任何处理，保持原生行为
-- `'mock'`：替换为 '/index.js'
+- `'mock'`：替换为 `'/index.js'`
 - `'eval-only'`：等同于 `false`
-- `'warn-mock'`：替换为 '/index.js'，并输出警告，用于提醒代码中存在潜在的 Node 依赖
+- `'warn-mock'`：替换为 `'/index.js'`，并输出警告，用于提醒代码中存在潜在的 Node 依赖
 - `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__filename` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物
 
 ### 示例
