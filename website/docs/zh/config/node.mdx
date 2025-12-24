@@ -63,7 +63,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__filename` 替换 `fileURLToPath(import.meta.url)`：
+将 ESM 产物中的 `__filename` 替换为 `fileURLToPath(import.meta.url)`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -107,7 +107,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__dirname` 替换 `fileURLToPath(import.meta.url + "/..")`：
+将 ESM 产物中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
 
 ```js title="rspack.config.mjs"
 export default {

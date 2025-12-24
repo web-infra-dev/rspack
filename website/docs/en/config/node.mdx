@@ -47,8 +47,8 @@ Controls how Rspack handles the Node.js [`__filename`](https://nodejs.org/api/mo
 - `true`: Replace with the source file path, relative to the [`context`](/config/context) option
 - `false`: Do nothing and keep the native behavior
 - `'mock'`: Replace with `/index.js`
-- `'eval-only'`: Equivalent to `false`
-- `'warn-mock'`: Replace with `/index.js`, and emit a warning to indicate a potential Node.js dependency in the code
+- `'mock'`: Replace with `'/index.js'`
+- `'warn-mock'`: Replace with `'/index.js'`, and emit a warning to indicate a potential Node.js dependency in the code
 - `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__filename` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output
 
 ### Examples
