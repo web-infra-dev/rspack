@@ -1,7 +1,7 @@
 use std::{any::Any, path::PathBuf};
 
 use rspack_cacheable::{
-  DeserializeError, SerializeError, enable_cacheable as cacheable,
+  Error, enable_cacheable as cacheable,
   with::{As, AsConverter},
 };
 
@@ -12,10 +12,10 @@ struct UnCacheableData(PathBuf);
 struct CacheableData(String);
 
 impl AsConverter<UnCacheableData> for CacheableData {
-  fn serialize(data: &UnCacheableData, _ctx: &dyn Any) -> Result<Self, SerializeError> {
+  fn serialize(data: &UnCacheableData, _ctx: &dyn Any) -> Result<Self, Error> {
     Ok(Self(data.0.to_string_lossy().to_string()))
   }
-  fn deserialize(self, _ctx: &dyn Any) -> Result<UnCacheableData, DeserializeError> {
+  fn deserialize(self, _ctx: &dyn Any) -> Result<UnCacheableData, Error> {
     Ok(UnCacheableData(PathBuf::from(&self.0)))
   }
 }

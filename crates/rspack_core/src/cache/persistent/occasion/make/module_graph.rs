@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::{SerializeError, cacheable, from_bytes, to_bytes, utils::OwnedOrRef};
+use rspack_cacheable::{
+  Error as CacheableError, cacheable, from_bytes, to_bytes, utils::OwnedOrRef,
+};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
@@ -97,7 +99,7 @@ pub fn save_module_graph(
       };
       match to_bytes(&node, context) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
-        Err(err @ SerializeError::UnsupportedField) => {
+        Err(err @ CacheableError::UnsupportedField) => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
           node.module = TempModule::transform_from(node.module);
