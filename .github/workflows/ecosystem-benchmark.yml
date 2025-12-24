@@ -24,6 +24,9 @@ permissions:
   # Allow commenting on pull requests
   pull-requests: write
 
+env:
+  # we are going to build release profile for benchmark
+  CARGO_INCREMENTAL: 1
 jobs:
   build:
     name: Test Linux
