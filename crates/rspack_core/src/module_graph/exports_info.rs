@@ -63,9 +63,7 @@ impl ModuleGraph {
     self
       .inner
       .exports_info_map
-      .overlay
-      .as_mut()
-      .unwrap()
+      .get_active()
       .par_iter_mut()
       .for_each(|(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
         for export_info in exports_info.exports_mut().values_mut() {

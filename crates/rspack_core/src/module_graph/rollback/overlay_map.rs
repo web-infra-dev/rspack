@@ -107,4 +107,11 @@ where
   pub fn has_overlay(&self) -> bool {
     self.overlay.is_some()
   }
+  pub fn get_active(&mut self) -> &mut HashMap<K, V> {
+    if self.overlay.is_some() {
+      self.overlay.as_mut().expect("overlay checked above")
+    } else {
+      &mut self.base
+    }
+  }
 }
