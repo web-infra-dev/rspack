@@ -32,13 +32,18 @@ impl ImportContextDependency {
     value_range: DependencyRange,
     optional: bool,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+    let mut resource_identifier =
+      create_resource_identifier_for_context_dependency(None, &options).to_string();
+    if let Some(attributes) = &options.attributes {
+      resource_identifier
+        .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
+    }
     Self {
       options,
       range,
       value_range,
       id: DependencyId::new(),
-      resource_identifier,
+      resource_identifier: resource_identifier.into(),
       optional,
       critical: None,
       factorize_info: Default::default(),
