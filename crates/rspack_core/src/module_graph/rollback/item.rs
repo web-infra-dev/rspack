@@ -32,7 +32,6 @@ where
   }
 
   pub fn checkpoint(&mut self) {
-    assert!(self.backup.is_none());
     self.backup = Some(self.current.clone());
   }
 

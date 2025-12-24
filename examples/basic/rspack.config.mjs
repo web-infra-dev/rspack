@@ -1,5 +1,5 @@
-import { defineConfig } from "@rspack/cli";
 import path from "node:path";
+import { defineConfig } from "@rspack/cli";
 
 export default defineConfig({
 	context: import.meta.dirname,
