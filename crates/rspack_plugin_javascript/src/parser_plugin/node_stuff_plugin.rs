@@ -2,7 +2,7 @@ use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
   RuntimeGlobals, get_context, parse_resource,
 };
-use rspack_error::Diagnostic;
+use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_core::{common::Spanned, ecma::ast::Expr};
@@ -15,8 +15,10 @@ use crate::{
   visitors::{DestructuringAssignmentProperty, JavascriptParser},
 };
 
-const DIR_NAME: &str = "__dirname";
-const FILE_NAME: &str = "__filename";
+const DIRNAME: &str = "__dirname";
+const FILENAME: &str = "__filename";
+const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
+const IMPORT_META_FILENAME: &str = "import.meta.filename";
 const GLOBAL: &str = "global";
 
 /// Represents the type of import.meta property being handled (filename or dirname)
@@ -60,10 +62,18 @@ impl NodeMetaProperty {
   }
 
   /// Returns the warning message for this property
-  fn warning_message(&self) -> &'static str {
+  fn warning_message(&self) -> String {
     match self {
-      NodeMetaProperty::Filename => "\"import.meta.filename\" has been used, it will be mocked.",
-      NodeMetaProperty::Dirname => "\"import.meta.dirname\" has been used, it will be mocked.",
+      NodeMetaProperty::Filename => format!(
+        "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
+        yellow(&IMPORT_META_FILENAME),
+        cyan(&"node.__filename")
+      ),
+      NodeMetaProperty::Dirname => format!(
+        "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
+        yellow(&IMPORT_META_DIRNAME),
+        cyan(&"node.__dirname")
+      ),
     }
   }
 
@@ -275,7 +285,7 @@ impl NodeStuffPlugin {
     if property.is_warn_mock(node_option) {
       parser.add_warning(Diagnostic::warn(
         property.warning_code().to_string(),
-        property.warning_message().to_string(),
+        property.warning_message(),
       ));
       return Some(format!("'{}'", property.mock_value()));
     }
@@ -334,7 +344,7 @@ impl NodeStuffPlugin {
     if property.is_warn_mock(node_option) {
       parser.add_warning(Diagnostic::warn(
         property.warning_code().to_string(),
-        property.warning_message().to_string(),
+        property.warning_message(),
       ));
       return Some(format!("\"{}\"", property.mock_value()));
     }
@@ -388,13 +398,13 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       // When node: false, this plugin is not registered for CJS modules
       return None;
     };
-    if for_name == DIR_NAME {
+    if for_name == DIRNAME {
       let dirname = match node_option.dirname {
         NodeDirnameOption::Mock => Some("/".to_string()),
         NodeDirnameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_DIRNAME".to_string(),
-            format!("\"{DIR_NAME}\" has been used, it will be mocked."),
+            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&DIRNAME), cyan(&"node.__dirname")),
           ));
           Some("/".to_string())
         }
@@ -418,7 +428,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
-            DIR_NAME.into(),
+            DIRNAME.into(),
             "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))".into(),
           );
 
@@ -450,7 +460,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
-            DIR_NAME.into(),
+            DIRNAME.into(),
             "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))"
               .to_string()
               .into(),
@@ -483,13 +493,13 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         )));
         return Some(true);
       }
-    } else if for_name == FILE_NAME {
+    } else if for_name == FILENAME {
       let filename = match node_option.filename {
         NodeFilenameOption::Mock => Some("/index.js".to_string()),
         NodeFilenameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_FILENAME".to_string(),
-            format!("\"{FILE_NAME}\" has been used, it will be mocked."),
+            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&FILENAME), cyan(&"node.__filename")),
           ));
           Some("/index.js".to_string())
         }
@@ -507,7 +517,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
-            FILE_NAME.into(),
+            FILENAME.into(),
             "__rspack_fileURLToPath(import.meta.url)".into(),
           );
 
@@ -531,7 +541,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
           let const_dep = CachedConstDependency::new(
             ident.span.into(),
-            FILE_NAME.into(),
+            FILENAME.into(),
             "__rspack_fileURLToPath(import.meta.url)".to_string().into(),
           );
 
@@ -614,7 +624,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     use crate::visitors::expr_name;
 
     match for_name {
-      FILE_NAME => {
+      FILENAME => {
         // Skip CJS __filename if not handling CJS
         if !self.handle_cjs {
           return None;
@@ -650,7 +660,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           return None;
         }
       }
-      DIR_NAME => {
+      DIRNAME => {
         // Skip CJS __dirname if not handling CJS
         if !self.handle_cjs {
           return None;
@@ -761,7 +771,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     use crate::visitors::expr_name;
 
-    if for_name == DIR_NAME {
+    if for_name == DIRNAME {
       // Skip CJS handling if not enabled
       if !self.handle_cjs {
         return None;
@@ -781,7 +791,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         start,
         end,
       ))
-    } else if for_name == FILE_NAME {
+    } else if for_name == FILENAME {
       // Skip CJS handling if not enabled
       if !self.handle_cjs {
         return None;
