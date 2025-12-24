@@ -1,8 +1,8 @@
 pub mod rollback;
-use std::{collections::hash_map::Entry, hash::BuildHasherDefault};
+use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyHasher, UkeyMap};
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use rayon::iter::IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator;
-use rustc_hash::FxHashMap;
 #[derive(Debug, Clone)]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },

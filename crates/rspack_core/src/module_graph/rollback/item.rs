@@ -37,7 +37,6 @@ where
   }
 
   pub fn recover_from_last_checkpoint(&mut self) {
-    assert!(self.backup.is_some());
     if let Some(backup) = self.backup.take() {
       self.current = backup;
     }
