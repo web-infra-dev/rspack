@@ -1,4 +1,4 @@
-import { Link } from '@rspress/core/theme';
+import { Link } from '@rspress/core/theme-original';
 import { BuiltWithRspack } from '@rstack-dev/doc-ui/built-with-rspack';
 import {
   containerStyle,

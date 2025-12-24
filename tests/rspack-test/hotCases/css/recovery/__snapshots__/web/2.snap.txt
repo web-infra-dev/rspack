@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6692
+- Update: main.hot-update.js, size: 6674
 
 ## Manifest
 
@@ -42,7 +42,7 @@ __nested_rspack_require_18_37__.d = (exports1, definition)=>{
         get: definition[key]
     });
 }, __nested_rspack_require_18_37__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __nested_rspack_require_18_37__.r = (exports1)=>{
-    'undefined' != typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
+    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
         value: 'Module'
     }), Object.defineProperty(exports1, '__esModule', {
         value: !0
@@ -70,7 +70,7 @@ __nested_rspack_require_18_37__.r(__nested_rspack_exports__), __nested_rspack_re
     cssReload: ()=>cssReload,
     normalizeUrl: ()=>normalizeUrl
 });
-const srcByModuleId = Object.create(null), noDocument = "undefined" == typeof document, { forEach } = Array.prototype;
+const srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
     let normalizedUrl;

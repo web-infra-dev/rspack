@@ -30,9 +30,9 @@ use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
-use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, FromNodeId, Ident, NodeKind};
+use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, Ident, NodeIdTrait, NodeKind};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
-use swc_experimental_ecma_semantic::resolver::{Semantic, UNRESOLVED_SCOPE_ID, resolver};
+use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_node_comments::SwcComments;
 
 use crate::{
@@ -292,10 +292,6 @@ pub enum ModuleInfo {
 impl ModuleInfo {
   pub fn is_external(&self) -> bool {
     matches!(self, ModuleInfo::External(_))
-  }
-
-  pub fn is_concatenated(&self) -> bool {
-    matches!(self, ModuleInfo::Concatenated(_))
   }
 
   pub fn try_as_concatenated_mut(&mut self) -> Option<&mut ConcatenatedModuleInfo> {
@@ -687,10 +683,8 @@ impl Module for ConcatenatedModule {
       .module_by_identifier(&self.root_module_ctxt.id)
       .expect("should have root module");
 
-    // populate root collected_typescript_info
-    if let Some(collected_typescript_info) = &root_module.build_info().collected_typescript_info {
-      self.build_info.collected_typescript_info = Some(collected_typescript_info.clone());
-    }
+    // populate root inline_exports
+    self.build_info.inline_exports = root_module.build_info().inline_exports;
 
     for m in self.modules.iter() {
       let module = module_graph
@@ -2353,10 +2347,10 @@ impl ConcatenatedModule {
       let semantic = resolver(ret.root, ast);
       let ids = collect_ident(ast, &semantic);
 
-      module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-      module_info.global_ctxt = SyntaxContext::from_u32(UNRESOLVED_SCOPE_ID.raw());
+      module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
+      module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
       for ident in ids {
-        if semantic.node_scope(ident.id) == UNRESOLVED_SCOPE_ID {
+        if semantic.node_scope(ident.id).to_ctxt() == module_info.global_ctxt {
           module_info
             .global_scope_ident
             .push(ident.to_legacy(ast, &semantic));
@@ -2920,10 +2914,7 @@ impl ConcatenatedModule {
           crate::FindTargetResult::ValidTarget(reexport) => {
             if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
-              let build_meta = mg
-                .module_by_identifier(&ref_info.id())
-                .expect("should have module")
-                .build_meta();
+
               return Self::get_final_binding(
                 mg,
                 mg_cache,
@@ -2937,7 +2928,7 @@ impl ConcatenatedModule {
                 runtime,
                 as_call,
                 reexport.defer,
-                build_meta.strict_esm_module,
+                module.build_meta().strict_esm_module,
                 asi_safe,
                 already_visited,
               );
@@ -3068,14 +3059,6 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
       | DependencyType::EsmImport
       | DependencyType::EsmExportImport
   )
-}
-
-/// Mark boxed errors as [crate::diagnostics::ModuleParseError],
-/// then, map it to diagnostics
-pub fn map_box_diagnostics_to_module_parse_diagnostics(
-  errors: Vec<Error>,
-) -> Vec<rspack_error::Diagnostic> {
-  errors.into_iter().map(|e| e.into()).collect()
 }
 
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
@@ -3229,7 +3212,7 @@ impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = self.id.span(ast);
     let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
-    let ctxt = SyntaxContext::from_u32(semantic.node_scope(self.id).raw());
+    let ctxt = semantic.node_scope(self.id).to_ctxt();
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),
       is_class_expr_with_ident: self.is_class_expr_with_ident,
@@ -3241,14 +3224,14 @@ impl NewConcatenatedModuleIdent {
 fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
   let mut ids = Vec::new();
   for (node_id, node) in ast.nodes() {
-    if node.kind == NodeKind::Ident {
+    if node.kind() == NodeKind::Ident {
       let ident = Ident::from_node_id(node_id, ast);
       let parent_id = semantic.parent_node(node_id);
-      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind {
+      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind() {
         NodeKind::BindingIdent => {
           let parent_id = semantic.parent_node(parent_id);
           (
-            ast.get_node(parent_id).kind == NodeKind::AssignPatProp,
+            ast.get_node(parent_id).kind() == NodeKind::AssignPatProp,
             false,
           )
         }

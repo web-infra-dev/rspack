@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyLocation, DependencyRange,
+  DependencyCategory, DependencyRange,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -52,7 +52,9 @@ fn create_commonjs_require_context_dependency(
   };
   let mut dep = CommonJsRequireContextDependency::new(
     options,
-    DependencyLocation::from_span(&span, &parser.source_map),
+    DependencyRange::from(span)
+      .to_loc(Some(parser.source_rope()))
+      .expect("Should get correct loc"),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
     parser.in_try,
@@ -159,7 +161,7 @@ impl CommonJsImportsParserPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
     ));
 
     if param.is_conditional() {
@@ -237,7 +239,7 @@ impl CommonJsImportsParserPlugin {
         is_call,
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope().clone()),
       )
     })
   }
@@ -255,7 +257,7 @@ impl CommonJsImportsParserPlugin {
         range_expr,
         Some(span.into()),
         parser.in_try,
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope().clone()),
       );
       parser.add_dependency(Box::new(dep));
       true
@@ -303,9 +305,10 @@ impl CommonJsImportsParserPlugin {
       }
       if !is_expression {
         let range: DependencyRange = callee.span().into();
+        let source_rope = parser.source_rope().clone();
         parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
           range,
-          Some(parser.source_map.clone()),
+          Some(source_rope),
         )));
         return Some(true);
       }
@@ -336,9 +339,10 @@ impl CommonJsImportsParserPlugin {
       self.process_require_context(parser, call_expr, &param);
     } else {
       let range: DependencyRange = callee.span().into();
+      let source_rope = parser.source_rope().clone();
       parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
         range,
-        Some(parser.source_map.clone()),
+        Some(source_rope),
       )));
     }
     Some(true)
@@ -374,7 +378,9 @@ impl CommonJsImportsParserPlugin {
         referenced_exports: None,
         attributes: None,
       },
-      DependencyLocation::from_span(&span, &parser.source_map),
+      DependencyRange::from(span)
+        .to_loc(Some(parser.source_rope()))
+        .expect("Should get correct loc"),
       ident.span().into(),
       None,
       parser.in_try,
@@ -384,7 +390,7 @@ impl CommonJsImportsParserPlugin {
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
           .to_string(),
-        parser.source_file,
+        parser.source.to_owned(),
         ident.span().into(),
       );
       error.severity = Severity::Warning;

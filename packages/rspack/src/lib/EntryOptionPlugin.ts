@@ -65,7 +65,7 @@ export class EntryOptionPlugin {
 	 * @returns options for the entry
 	 */
 	static entryDescriptionToOptions(
-		compiler: Compiler,
+		_compiler: Compiler,
 		name: string,
 		desc: EntryDescriptionNormalized
 	): EntryOptions {

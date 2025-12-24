@@ -8,12 +8,15 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet};
 
-pub use self::option::{PathMatcher, SnapshotOptions};
-use self::strategy::{Strategy, StrategyHelper, ValidateResult};
+use self::strategy::{StrategyHelper, ValidateResult};
+pub use self::{
+  option::{PathMatcher, SnapshotOptions},
+  strategy::Strategy,
+};
 use super::storage::Storage;
 use crate::FutureConsumer;
 
-const SCOPE: &str = "snapshot";
+pub const SCOPE: &str = "snapshot";
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///

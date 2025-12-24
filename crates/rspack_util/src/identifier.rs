@@ -143,3 +143,17 @@ fn split_keep<'a>(r: &Regex, text: &'a str) -> Vec<&'a str> {
   }
   result
 }
+
+static REQUEST_TO_ID_REGEX1: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Failed to initialize REQUEST_TO_ID_REGEX1"));
+static REQUEST_TO_ID_REGEX2: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Failed to initialize REQUEST_TO_ID_REGEX2")
+});
+
+/// Convert a request string to a valid identifier by removing relative path prefixes
+/// and replacing illegal characters with underscores
+pub fn request_to_id(request: &str) -> String {
+  REQUEST_TO_ID_REGEX2
+    .replace_all(&REQUEST_TO_ID_REGEX1.replace(request, ""), "_")
+    .to_string()
+}

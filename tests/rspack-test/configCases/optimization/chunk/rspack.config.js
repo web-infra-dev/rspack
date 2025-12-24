@@ -2,7 +2,6 @@ const webpack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
-		chunkIds: false
+		chunkIds: "deterministic"
 	},
-	plugins: [new webpack.ids.DeterministicChunkIdsPlugin()]
 };

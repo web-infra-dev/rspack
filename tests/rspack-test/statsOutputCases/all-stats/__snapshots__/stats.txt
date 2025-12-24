@@ -10,7 +10,7 @@ chunk {main} (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (ru
   data:text/plain;base64,szsaAAdsadasdfaf.. xx bytes {main} [depth 1] [dependent] [built] [code generated]
     [exports: default]
     [used exports unknown]
-    esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:0-81
+    esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:1-81
 ./index.js xx bytes {main} [depth 0] [built] [code generated]
   [no exports]
   [used exports unknown]
@@ -18,7 +18,7 @@ chunk {main} (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (ru
 data:text/plain;base64,szsaAAdsadasdfaf.. xx bytes {main} [depth 1] [built] [code generated]
   [exports: default]
   [used exports unknown]
-  esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:0-81
+  esm import data:text/plain;base64,szsaAAdsadasdfaf.. [./index.js] ./index.js 1:1-81
 webpack/runtime/make_namespace_object xx bytes {main} [code generated]
   [no exports]
   [used exports unknown]

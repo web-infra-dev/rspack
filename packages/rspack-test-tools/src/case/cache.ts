@@ -134,8 +134,7 @@ async function generateOptions(
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 

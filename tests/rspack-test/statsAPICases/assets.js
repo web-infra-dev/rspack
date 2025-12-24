@@ -39,7 +39,7 @@ module.exports = {
 			        related: Object {},
 			      },
 			      name: entryB.js,
-			      size: 3201,
+			      size: 3192,
 			      type: asset,
 			    },
 			    Object {

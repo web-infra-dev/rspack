@@ -279,8 +279,7 @@ export class RspackOptionsApply {
 		if (options.optimization.concatenateModules) {
 			new ModuleConcatenationPlugin().apply(compiler);
 		}
-		// Move inlineConst and inlineEnum to optimization.inlineExports once them are stable
-		if (options.experiments.inlineConst || options.experiments.inlineEnum) {
+		if (options.optimization.inlineExports) {
 			new InlineExportsPlugin().apply(compiler);
 		}
 		if (options.optimization.mangleExports) {

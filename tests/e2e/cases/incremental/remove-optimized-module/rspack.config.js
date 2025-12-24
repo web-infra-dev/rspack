@@ -5,7 +5,7 @@ module.exports = {
 	entry: "./index.js",
 	cache: true,
 	experiments: {
-		cache: true,
+		cache: true
 	},
 	plugins: [new rspack.HtmlRspackPlugin()]
 };

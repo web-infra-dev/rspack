@@ -25,10 +25,6 @@ impl LocalModuleDependency {
       call_new,
     }
   }
-
-  pub fn get_variable_name(&self) -> String {
-    self.local_module.variable_name()
-  }
 }
 
 #[cacheable_dyn]

@@ -21,12 +21,18 @@ export type SwcLoaderTransformConfig = TransformConfig;
 export type SwcLoaderOptions = Config & {
 	isModule?: boolean | "unknown";
 	/**
+	 * Collects information from TypeScript's AST for consumption by subsequent Rspack processes,
+	 * providing better TypeScript development experience and smaller output bundle size.
+	 */
+	collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
+	/**
 	 * Experimental features provided by Rspack.
 	 * @experimental
 	 */
 	rspackExperiments?: {
 		import?: PluginImportOptions;
 		/**
+		 * @deprecated Use top-level `collectTypeScriptInfo` instead.
 		 * Collects information from TypeScript's AST for consumption by subsequent Rspack processes,
 		 * providing better TypeScript development experience and smaller output bundle size.
 		 */

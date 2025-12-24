@@ -1,0 +1,16 @@
+PublicPath: auto
+asset a.js xx bytes [emitted] (name: a)
+asset c.js xx bytes [emitted] (name: b)
+chunk (runtime: a) a.js (a) xx bytes [entry] [rendered]
+  > ./a.js a
+  ./a.js xx bytes [built] [code generated]
+    entry ./a.js
+    cjs self exports reference self ./a.js
+    xx ms (resolving: xx ms, building: xx ms)
+chunk (runtime: b) c.js (b) xx bytes [entry] [rendered]
+  > ./b.js b
+  ./b.js xx bytes [built] [code generated]
+    entry ./b.js
+    cjs self exports reference self ./b.js
+    xx ms (resolving: xx ms, building: xx ms)
+Rspack x.x.x compiled successfully in X s

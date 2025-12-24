@@ -1,4 +1,4 @@
-WARNING in ./index.js 2:12-30
+WARNING in ./index.js 2:10-27
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_ROOT>/statsOutputCases/try-require-module'
    ╭─[2:4]
  1 │ try {

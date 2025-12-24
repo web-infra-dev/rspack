@@ -1,17 +1,35 @@
 import * as path from "path";
-import { type Chunk, type ChunkGroup, type Compilation, ExternalItemFunctionData, Module, ModuleGraph, NormalModule, rspack } from "@rspack/core";
-import { beforeAll, bench as vitestBench, describe, type BenchmarkAPI } from "vitest";
+import {
+	type Chunk,
+	type ChunkGroup,
+	type Compilation,
+	ExternalItemFunctionData,
+	Module,
+	ModuleGraph,
+	NormalModule,
+	rspack
+} from "@rspack/core";
+import {
+	beforeAll,
+	bench as vitestBench,
+	describe,
+	type BenchmarkAPI
+} from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
-const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
+const BARREL_OPTIMIZATION_PREFIX = "__barrel_optimize__";
 
 let context: string;
 let theCompilation: Compilation;
 let externalContexts: ExternalItemFunctionData[] = [];
 
 // Mark benchmarks on JavaScript files with `js@` prefix
-const bench = ((name, ...args) => vitestBench(typeof name === "function" ? name : `js@${name}`, ...args)) as BenchmarkAPI;
-bench.fn = vitestBench.fn
+const bench = ((name, ...args) =>
+	vitestBench(
+		typeof name === "function" ? name : `js@${name}`,
+		...args
+	)) as BenchmarkAPI;
+bench.fn = vitestBench.fn;
 bench.todo = vitestBench.todo;
 bench.only = vitestBench.only;
 bench.skip = vitestBench.skip;
@@ -126,15 +144,18 @@ describe("TypeScript React project", () => {
 			const entryDependency = entry.dependencies?.[0];
 			if (!entryDependency || !entryDependency.request) continue;
 
-			const entryModule = theCompilation.moduleGraph.getResolvedModule(entryDependency);
+			const entryModule =
+				theCompilation.moduleGraph.getResolvedModule(entryDependency);
 			if (!entryModule) continue;
 
-			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(entryModule)) {
-				let importedIdentifiers: string[] = []
+			for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(
+				entryModule
+			)) {
+				let importedIdentifiers: string[] = [];
 				if (connection.dependency?.ids) {
-					importedIdentifiers.push(...connection.dependency.ids)
+					importedIdentifiers.push(...connection.dependency.ids);
 				} else {
-					importedIdentifiers = ['*']
+					importedIdentifiers = ["*"];
 				}
 			}
 		}
@@ -143,12 +164,12 @@ describe("TypeScript React project", () => {
 	bench("record module", () => {
 		function recordModule(mod: NormalModule) {
 			const resource =
-				mod.type === 'css/mini-extract'
-					? mod.identifier().slice(mod.identifier().lastIndexOf('!') + 1)
-					: mod.resource
+				mod.type === "css/mini-extract"
+					? mod.identifier().slice(mod.identifier().lastIndexOf("!") + 1)
+					: mod.resource;
 
 			if (!resource) {
-				return
+				return;
 			}
 
 			const ssrNamedModuleId = path.relative(
@@ -163,10 +184,10 @@ describe("TypeScript React project", () => {
 
 			const esmResource = /[\\/]next[\\/]dist[\\/]/.test(resource)
 				? resource.replace(
-					/[\\/]next[\\/]dist[\\/]/,
-					'/next/dist/esm/'.replace(/\//g, path.sep)
-				)
-				: null
+						/[\\/]next[\\/]dist[\\/]/,
+						"/next/dist/esm/".replace(/\//g, path.sep)
+					)
+				: null;
 
 			if (mod.matchResource?.startsWith(BARREL_OPTIMIZATION_PREFIX)) {
 			}
@@ -183,20 +204,20 @@ describe("TypeScript React project", () => {
 		const regexCSS = /\.(css|scss|sass)(\?.*)?$/;
 
 		function isCSSMod(mod: {
-			resource: string
-			type?: string
-			loaders?: { loader: string }[]
+			resource: string;
+			type?: string;
+			loaders?: { loader: string }[];
 		}): boolean {
 			return !!(
-				mod.type === 'css/mini-extract' ||
+				mod.type === "css/mini-extract" ||
 				(mod.resource && regexCSS.test(mod.resource)) ||
 				mod.loaders?.some(
 					({ loader }) =>
-						loader.includes('next-style-loader/index.js') ||
-						loader.includes('rspack.CssExtractRspackPlugin.loader') ||
-						loader.includes('@vanilla-extract/webpack-plugin/loader/')
+						loader.includes("next-style-loader/index.js") ||
+						loader.includes("rspack.CssExtractRspackPlugin.loader") ||
+						loader.includes("@vanilla-extract/webpack-plugin/loader/")
 				)
-			)
+			);
 		}
 
 		for (const module of theCompilation.modules) {
@@ -207,39 +228,42 @@ describe("TypeScript React project", () => {
 	});
 
 	bench("record chunk group", () => {
-		const checkedChunkGroups = new Set()
-		const checkedChunks = new Set()
+		const checkedChunkGroups = new Set();
+		const checkedChunks = new Set();
 
 		for (const [_entryName, entrypoint] of theCompilation.entrypoints) {
-			recordChunkGroup(entrypoint)
+			recordChunkGroup(entrypoint);
 		}
 
 		function recordChunkGroup(chunkGroup: ChunkGroup) {
-			if (checkedChunkGroups.has(chunkGroup)) return
-			checkedChunkGroups.add(chunkGroup)
+			if (checkedChunkGroups.has(chunkGroup)) return;
+			checkedChunkGroups.add(chunkGroup);
 
 			chunkGroup.chunks.forEach((chunk: Chunk) => {
-				if (checkedChunks.has(chunk)) return
-				checkedChunks.add(chunk)
-				const entryMods = theCompilation.chunkGraph.getChunkEntryModulesIterable(chunk)
+				if (checkedChunks.has(chunk)) return;
+				checkedChunks.add(chunk);
+				const entryMods =
+					theCompilation.chunkGraph.getChunkEntryModulesIterable(chunk);
 
 				for (const mod of entryMods) {
-					for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(mod)) {
-						const dependency = connection.dependency
-						if (!dependency) continue
+					for (const connection of theCompilation.moduleGraph.getOutgoingConnectionsInOrder(
+						mod
+					)) {
+						const dependency = connection.dependency;
+						if (!dependency) continue;
 						const clientEntryMod = theCompilation.moduleGraph.getResolvedModule(
 							dependency
-						) as NormalModule
+						) as NormalModule;
 						const modId = theCompilation.chunkGraph.getModuleId(
 							clientEntryMod
-						) as string | number | null
+						) as string | number | null;
 					}
 				}
-			})
+			});
 
 			// Walk through all children chunk groups too.
 			for (const child of chunkGroup.childrenIterable) {
-				recordChunkGroup(child)
+				recordChunkGroup(child);
 			}
 		}
 	});
@@ -247,7 +271,10 @@ describe("TypeScript React project", () => {
 	bench("external getResolve", async () => {
 		const values: Promise<string>[] = [];
 		for (const { context, request, getResolve } of externalContexts) {
-			const resolve = getResolve!() as ((context: string, request: string) => Promise<string>);
+			const resolve = getResolve!() as (
+				context: string,
+				request: string
+			) => Promise<string>;
 			const result = resolve(context!, request!);
 			values.push(result);
 		}

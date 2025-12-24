@@ -157,7 +157,6 @@ Add the following configuration to maintain the original default behavior of `bu
 
 ```diff title="rspack.config.mjs"
 export default {
-   // ...
 +  module: {
 +    generator: {
 +      "css/auto": {
@@ -190,7 +189,7 @@ export default {
 }
 ```
 
-If it is necessary to configure some modules separately, you can use the [`rule.parser`](/config/module#ruleparser) and [`rule.generator`](/config/module#rulegenerator) options in `module.rules`.
+If it is necessary to configure some modules separately, you can use the [`rules[].parser`](/config/module-rules#rulesparser) and [`rules[].generator`](/config/module-rules#rulesgenerator) options in `module.rules`.
 
 ### Migrate to compiler.run
 

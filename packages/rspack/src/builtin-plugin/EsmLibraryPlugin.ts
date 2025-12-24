@@ -9,8 +9,14 @@ function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
 	// concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
 	options.optimization.concatenateModules = false;
 
+	// esm library won't have useless empty chunk, the empty chunk for esm lib is to re-exports
+	options.optimization.removeEmptyChunks = false;
+
 	// chunk rendering is handled by EsmLibraryPlugin
 	options.output.chunkFormat = false;
+
+	// mark output is module
+	options.output.module = true;
 
 	if (options.output.chunkLoading && options.output.chunkLoading !== "import") {
 		logger.warn(

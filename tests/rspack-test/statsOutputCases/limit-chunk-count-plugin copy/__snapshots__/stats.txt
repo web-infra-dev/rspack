@@ -8,7 +8,7 @@
     ./e.js xx bytes [dependent] [built] [code generated]
     ./index.js xx bytes [built] [code generated] [1 warning]
 
-  WARNING in ./index.js 2:0-16
+  WARNING in ./index.js 2:1-16
     ⚠ Critical dependency: the request of a dependency is an expression
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
@@ -32,7 +32,7 @@
     ./a.js xx bytes [built] [code generated]
     ./c.js xx bytes [built] [code generated]
 
-  WARNING in ./index.js 2:0-16
+  WARNING in ./index.js 2:1-16
     ⚠ Critical dependency: the request of a dependency is an expression
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
@@ -57,7 +57,7 @@
   chunk (runtime: main) 907.bundle3.js (c) xx bytes <{889}> >{874}< [rendered]
     ./c.js xx bytes [built] [code generated]
 
-  WARNING in ./index.js 2:0-16
+  WARNING in ./index.js 2:1-16
     ⚠ Critical dependency: the request of a dependency is an expression
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
@@ -84,7 +84,7 @@
   chunk (runtime: main) 907.bundle4.js (c) xx bytes <{889}> >{719}< [rendered]
     ./c.js xx bytes [built] [code generated]
 
-  WARNING in ./index.js 2:0-16
+  WARNING in ./index.js 2:1-16
     ⚠ Critical dependency: the request of a dependency is an expression
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});

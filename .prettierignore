@@ -13,11 +13,9 @@ gitignore
 *.svg
 
 # Ignore test related
-tests/**/*
+tests/rspack-test/**/*
 packages/**/etc/**/*
-packages/rspack-test-tools/template/**/*
-packages/rspack-test-tools/src/helper/legacy/**/*
-!tests/**/test.filter.js
+tests/e2e/cases/make/rewrite-factorize-request/file.js
 
 # Crates
 crates/**

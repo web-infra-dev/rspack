@@ -9,7 +9,7 @@ it("should add all modules headers info above modules", () => {
   \\****************/
 /*! namespace exports */
 /*! runtime requirements: __webpack_require__ */
-/*! Statement with side_effects in source code at ./sut.js:3:0-28 */    
+/*! Statement with side_effects in source code at ./sut.js:3:1-28 */    
     `.trim())
 
     expect(content).toContain(`
@@ -18,7 +18,7 @@ it("should add all modules headers info above modules", () => {
   \\****************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! Statement with side_effects in source code at ./cjs.js:1:0-3:1 */    
+/*! Statement with side_effects in source code at ./cjs.js:1:1-3:1 */    
     `.trim())
 
     expect(content).toContain(`

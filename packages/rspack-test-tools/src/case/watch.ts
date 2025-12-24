@@ -1,6 +1,6 @@
-import fs from "node:fs";
 import path from "node:path";
 import type { RspackOptions, StatsCompilation } from "@rspack/core";
+import fs from "fs-extra";
 import merge from "webpack-merge";
 import { ECompilerEvent } from "../compiler";
 import { readConfigFile } from "../helper";
@@ -97,6 +97,17 @@ export function createWatchInitialProcessor(
 				watchContext.tempDir,
 				true
 			);
+
+			const pkgJsonFile = path.join(watchContext.tempDir, "package.json");
+			if (!fs.existsSync(pkgJsonFile)) {
+				fs.writeJsonSync(pkgJsonFile, { name, version: "0.0.1" });
+				const longTimeAgo = Date.now() - 1000 * 60 * 60 * 24;
+				fs.utimesSync(
+					pkgJsonFile,
+					Date.now() - longTimeAgo,
+					Date.now() - longTimeAgo
+				);
+			}
 			const task = new Promise((resolve, reject) => {
 				compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 					if (e) return reject(e);

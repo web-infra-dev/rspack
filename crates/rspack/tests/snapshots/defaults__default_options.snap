@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 16
 expression: options
 ---
 CompilerOptions {
@@ -1477,9 +1476,6 @@ CompilerOptions {
                             commonjs_magic_comments: Some(
                                 false,
                             ),
-                            inline_const: Some(
-                                false,
-                            ),
                             jsx: Some(
                                 false,
                             ),
@@ -1516,15 +1512,11 @@ CompilerOptions {
                 MAKE | EMIT_ASSETS,
             ),
         },
-        parallel_code_splitting: false,
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,
         css: false,
-        inline_const: false,
-        inline_enum: false,
-        type_reexports_presence: false,
-        lazy_barrel: false,
+        lazy_barrel: true,
         defer_import: false,
     },
     node: Some(
@@ -1540,6 +1532,7 @@ CompilerOptions {
         provided_exports: true,
         used_exports: False,
         inner_graph: false,
+        inline_exports: false,
         mangle_exports: False,
         concatenate_modules: false,
         avoid_entry_iife: false,

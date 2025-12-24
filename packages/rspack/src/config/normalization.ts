@@ -9,10 +9,10 @@
  */
 
 import path from "node:path";
-import util from "node:util";
 import type { HttpUriPluginOptions } from "../builtin-plugin";
 import type { Compilation } from "../Compilation";
 import type WebpackError from "../lib/WebpackError";
+import { deprecate } from "../util";
 import type {
 	Amd,
 	AssetModuleFilename,
@@ -50,6 +50,7 @@ import type {
 	HotUpdateChunkFilename,
 	HotUpdateGlobal,
 	HotUpdateMainFilename,
+	IgnoreWarnings,
 	Iife,
 	ImportFunctionName,
 	ImportMetaName,
@@ -91,33 +92,52 @@ import type {
 	WorkerPublicPath
 } from "./types";
 
+/**
+ * Normalize the `ignoreWarnings` option into an array of predicate functions.
+ */
+const normalizeIgnoreWarnings = (ignoreWarnings?: IgnoreWarnings) => {
+	if (!ignoreWarnings) {
+		return undefined;
+	}
+
+	return ignoreWarnings.map(ignore => {
+		if (typeof ignore === "function") {
+			return ignore;
+		}
+
+		const rule = ignore instanceof RegExp ? { message: ignore } : ignore;
+
+		return (warning: WebpackError) => {
+			if (!rule.message && !rule.module && !rule.file) {
+				return false;
+			}
+
+			if (rule.message && !rule.message.test(warning.message)) {
+				return false;
+			}
+
+			if (
+				rule.module &&
+				(!warning.module ||
+					!rule.module.test(warning.module.readableIdentifier()))
+			) {
+				return false;
+			}
+
+			if (rule.file && (!warning.file || !rule.file.test(warning.file))) {
+				return false;
+			}
+
+			return true;
+		};
+	});
+};
+
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
-		ignoreWarnings: config.ignoreWarnings
-			? config.ignoreWarnings.map(ignore => {
-					if (typeof ignore === "function") return ignore;
-					const i = ignore instanceof RegExp ? { message: ignore } : ignore;
-					return (warning: WebpackError) => {
-						if (!i.message && !i.module && !i.file) return false;
-						if (i.message && !i.message.test(warning.message)) {
-							return false;
-						}
-						if (
-							i.module &&
-							(!warning.module ||
-								!i.module.test(warning.module.readableIdentifier()))
-						) {
-							return false;
-						}
-						if (i.file && (!warning.file || !i.file.test(warning.file))) {
-							return false;
-						}
-						return true;
-					};
-				})
-			: undefined,
+		ignoreWarnings: normalizeIgnoreWarnings(config.ignoreWarnings),
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
@@ -133,10 +153,9 @@ export const getNormalizedRspackOptions = (
 					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			if ("cssHeadDataCompression" in output) {
-				util.deprecate(
-					() => {},
+				deprecate(
 					"cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future"
-				)();
+				);
 			}
 
 			const { library } = output;
@@ -329,22 +348,34 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => {
 			if (experiments.layers) {
-				util.deprecate(
-					() => {},
-					"`experiments.layers` config has been deprecated and will be removed in Rspack v2.0. Feature layers will be always enabled. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.layers` config is deprecated and will be removed in Rspack v2.0. Feature layers will always be enabled. Remove this option from your Rspack configuration."
+				);
 			}
 			if (experiments.topLevelAwait === false) {
-				util.deprecate(
-					() => {},
-					"`experiments.topLevelAwait` config has been deprecated and will be removed in Rspack v2.0. Top-level await will be always enabled. Please remove this option from your Rspack configuration."
-				)();
+				deprecate(
+					"`experiments.topLevelAwait` config is deprecated and will be removed in Rspack v2.0. Top-level await will always be enabled. Remove this option from your Rspack configuration."
+				);
 			}
-			if (experiments.parallelCodeSplitting) {
-				util.deprecate(
-					() => {},
-					"`experiments.parallelCodeSplitting` config has been deprecated and will be removed in next minor. It has huge regression in some edge cases where the chunk graph has lots of cycles, we'll improve the performance of build_chunk_graph in the future instead"
-				)();
+			if (experiments.lazyBarrel) {
+				deprecate(
+					"`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration."
+				);
+			}
+			if (experiments.inlineConst) {
+				deprecate(
+					"`experiments.inlineConst` config is deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Remove this option from your Rspack configuration."
+				);
+			}
+			if (experiments.inlineEnum) {
+				deprecate(
+					"`experiments.inlineEnum` config is deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Remove this option from your Rspack configuration."
+				);
+			}
+			if (experiments.typeReexportsPresence) {
+				deprecate(
+					"`experiments.typeReexportsPresence` config is deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Remove this option from your Rspack configuration."
+				);
 			}
 			return {
 				...experiments,
@@ -367,7 +398,7 @@ export const getNormalizedRspackOptions = (
 							unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
 							managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
 								...p
-							]) || [/\/node_modules\//]
+							]) || [/[\\/]node_modules[\\/][^.]/]
 						},
 						storage: {
 							type: "filesystem",
@@ -385,7 +416,6 @@ export const getNormalizedRspackOptions = (
 				incremental: optionalNestedConfig(experiments.incremental, options =>
 					getNormalizedIncrementalOptions(options)
 				),
-				parallelCodeSplitting: experiments.parallelCodeSplitting,
 				buildHttp: experiments.buildHttp,
 				parallelLoader: experiments.parallelLoader,
 				useInputFileSystem: experiments.useInputFileSystem
@@ -558,6 +588,7 @@ export type EntryDescriptionNormalized = Pick<
 	EntryDescription,
 	| "runtime"
 	| "chunkLoading"
+	| "wasmLoading"
 	| "asyncChunks"
 	| "publicPath"
 	| "baseUri"
@@ -665,18 +696,23 @@ export interface ExperimentsNormalized {
 	 */
 	layers?: boolean;
 	incremental?: false | Incremental;
-	/**
-	 * @deprecated This option is deprecated, as it has a huge regression in some edge cases where the chunk graph has lots of cycles. We will improve performance of build_chunk_graph.
-	 */
-	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 	buildHttp?: HttpUriPluginOptions;
 	parallelLoader?: boolean;
 	useInputFileSystem?: false | RegExp[];
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	inlineConst?: boolean;
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	inlineEnum?: boolean;
 	typeReexportsPresence?: boolean;
+	/**
+	 * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+	 */
 	lazyBarrel?: boolean;
 	nativeWatcher?: boolean;
 	deferImport?: boolean;

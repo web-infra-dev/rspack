@@ -1,4 +1,4 @@
-ERROR in ./node_modules/some-module/a.ts 1:0-23
+ERROR in ./node_modules/some-module/a.ts 1:1-23
   × Module not found: Can't resolve './b.js' in '<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module'
    ╭─[1:0]
  1 │ export * from "./b.js";
@@ -6,7 +6,7 @@ ERROR in ./node_modules/some-module/a.ts 1:0-23
  2 │ export * from "./c.js";
    ╰────
 
-ERROR in ./node_modules/some-module/a.ts 2:0-23
+ERROR in ./node_modules/some-module/a.ts 2:1-23
   × Module not found: Can't resolve './c.js' in '<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module'
    ╭─[2:0]
  1 │ export * from "./b.js";

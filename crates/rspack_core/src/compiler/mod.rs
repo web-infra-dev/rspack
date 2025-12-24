@@ -1,8 +1,5 @@
 mod rebuild;
-use std::{
-  mem,
-  sync::{Arc, atomic::AtomicU32},
-};
+use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
 use rspack_error::Result;
@@ -17,9 +14,9 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, ContextModuleFactory,
-  Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
+  ContextModuleFactory, Filename, KeepPattern, Logger, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -95,6 +92,7 @@ pub struct Compiler {
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
+  pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
 }
 
@@ -113,6 +111,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
     compiler_context: Option<Arc<CompilerContext>>,
+    platform: Arc<CompilerPlatform>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -165,6 +164,7 @@ impl Compiler {
       compilation: Compilation::new(
         id,
         options,
+        platform.clone(),
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
         resolver_factory.clone(),
@@ -191,6 +191,7 @@ impl Compiler {
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
+      platform,
       compiler_context,
     }
   }
@@ -222,6 +223,7 @@ impl Compiler {
       Compilation::new(
         self.id,
         self.options.clone(),
+        self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -323,18 +325,17 @@ impl Compiler {
       wait_for_signal("seal compilation");
     }
     self.build_module_graph().await?;
-    let mut dependencies_diagnostics_artifact =
-      mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
+    let dependencies_diagnostics_artifact =
+      self.compilation.dependencies_diagnostics_artifact.clone();
     let async_modules_artifact = self.compilation.async_modules_artifact.clone();
     let diagnostics = self
       .compilation
       .collect_build_module_graph_effects(
-        &mut dependencies_diagnostics_artifact,
+        &mut dependencies_diagnostics_artifact.borrow_mut(),
         &mut async_modules_artifact.borrow_mut(),
       )
       .await?;
     self.compilation.extend_diagnostics(diagnostics);
-    self.compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact;
     self.compilation.seal(self.plugin_driver.clone()).await?;
     logger.time_end(start);
 

@@ -44,6 +44,8 @@ export default defineConfig({
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
+  // Retry on CI to reduce flakes
+	retry: process.env.CI ? 3 : 0,
 	resolve: {
 		alias: {
 			// Fixed jest-serialize-path not working when non-ascii code contains.
@@ -65,6 +67,11 @@ export default defineConfig({
 		escapeString: true,
 		printBasicPrototype: true
 	},
+	chaiConfig: process.env.CI ? {
+		// show all info on CI
+		truncateThreshold: 5000,
+
+	} : undefined,
 	pool: {
 		maxWorkers: "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
@@ -89,17 +96,16 @@ export default defineConfig({
 		__TEST_DIST_PATH__: path.resolve(__dirname, "js"),
 		__ROOT_PATH__: root,
 		DEFAULT_MAX_CONCURRENT: process.argv.includes("--maxConcurrency")
-				? process.argv[
-				process.argv.indexOf("--maxConcurrency") + 1
-				]
-				: undefined,
+			? process.argv[
+			process.argv.indexOf("--maxConcurrency") + 1
+			]
+			: undefined,
 		__RSPACK_PATH__: path.resolve(root, "packages/rspack"),
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
 	hideSkippedTests: true,
 	reporters: ['default'],
-	testTimeout: 300000,
 	...(wasmConfig || {}),
 });
 

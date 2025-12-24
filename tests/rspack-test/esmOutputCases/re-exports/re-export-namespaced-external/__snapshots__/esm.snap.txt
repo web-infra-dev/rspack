@@ -2,16 +2,6 @@
 import * as __rspack_external_fs from "fs";
 // fs
 
-// ./lib.js
-const named = 42
-
-/* should not exported */
-const namedUnused = 42
-
-
-// ./lib2.js
-const starExports = 42
-
 // ./index.js
 
 // reexport named default
@@ -46,9 +36,14 @@ it('should compile and import success', async () => {
 	expect(readFile).toBeDefined()
 })
 
-export { named, starExports };
-export * as fsNs from "fs";
+var default_0 = __rspack_external_fs["default"];
+var fs_0 = __rspack_external_fs["default"];
+var index_named = /* inlined export .named */(42);
+var r_0 = __rspack_external_fs.readFile;
+var readFile_0 = __rspack_external_fs.readFile;
+var index_starExports = /* inlined export .starExports */(42);
+export { __rspack_external_fs as fsNs, fs_0 as fs, index_named as named, index_starExports as starExports, r_0 as r, readFile_0 as readFile };
 export * from "fs";
-export { default, default as fs, readFile as r, readFile } from "fs";
+export default default_0;
 
 ```

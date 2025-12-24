@@ -3,7 +3,7 @@ LOG from LogTestPlugin
 <e> Error
 + 14 hidden lines
 
-ERROR in ./index.js 1:8-24
+ERROR in ./index.js 1:9-24
   × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/preset-errors-only-error'
    ╭────
  1 │ require('does-not-exist')

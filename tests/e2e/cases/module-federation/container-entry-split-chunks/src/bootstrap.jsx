@@ -7,4 +7,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 		<RemoteComponent />
 	</React.StrictMode>
 );
-

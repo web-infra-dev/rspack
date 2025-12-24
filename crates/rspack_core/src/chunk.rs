@@ -14,7 +14,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
-  Compilation, EntryOptions, Filename, ModuleGraph, RenderManifestEntry, RuntimeSpec, SourceType,
+  Compilation, EntryOptions, Filename, RenderManifestEntry, RuntimeSpec, SourceType,
   chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index,
 };
 
@@ -104,10 +104,6 @@ impl Chunk {
 
   pub fn css_filename_template(&self) -> Option<&Filename> {
     self.css_filename_template.as_ref()
-  }
-
-  pub fn set_css_filename_template(&mut self, filename_template: Option<Filename>) {
-    self.css_filename_template = filename_template;
   }
 
   pub fn id(&self) -> Option<&ChunkId> {
@@ -950,18 +946,4 @@ impl Chunk {
     let map = self.get_child_ids_by_orders_map(include_direct_children, compilation, filter_fn);
     map.get(r#type).is_some_and(|map| !map.is_empty())
   }
-}
-
-pub fn chunk_hash_js<'a>(
-  chunk: &ChunkUkey,
-  chunk_graph: &'a ChunkGraph,
-  module_graph: &'a ModuleGraph,
-) -> bool {
-  if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
-    return true;
-  }
-  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
-    return true;
-  }
-  false
 }

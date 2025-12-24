@@ -7,7 +7,7 @@ use rspack_error::{BatchErrors, Error, error};
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
-  SourceFile, SourceMap, Span, Spanned,
+  SourceMap, Span, Spanned,
   errors::{Emitter, HANDLER, Handler},
 };
 
@@ -52,10 +52,10 @@ pub trait DedupEcmaErrors {
 
 pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
-  fm: &SourceFile,
+  source: String,
 ) -> Error {
   Error::from_string(
-    Some(fm.src.clone().into_string()),
+    Some(source),
     span.real_lo() as usize,
     span.real_hi() as usize,
     "JavaScript parse error".into(),

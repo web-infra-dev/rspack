@@ -13,7 +13,7 @@ module.exports = [
 			]
 		},
 		output: {
-			webassemblyModuleFilename: "[id].[hash].wasm"
+			webassemblyModuleFilename: "[id].[hash].wasm",
 		},
 		experiments: {
 			outputModule: true,
@@ -33,7 +33,7 @@ module.exports = [
 			]
 		},
 		output: {
-			webassemblyModuleFilename: "[id].[hash].wasm"
+			webassemblyModuleFilename: "[id].[hash].wasm",
 		},
 		experiments: {
 			outputModule: true,

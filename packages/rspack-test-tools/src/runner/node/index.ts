@@ -191,6 +191,7 @@ export class NodeRunner implements ITestRunner {
 			},
 			WAITING: this.globalContext!.WAITING,
 			process,
+			TextDecoder,
 			URL,
 			Blob,
 			Symbol,

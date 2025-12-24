@@ -1,8 +1,6 @@
 "use strict";
 let rspack = require("@rspack/core");
 
-
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
@@ -17,7 +15,10 @@ module.exports = {
 	},
 	devtool: false,
 	plugins: [
-		new rspack.HtmlRspackPlugin({ template: "./src/index.html" , scriptLoading: "module"}),
+		new rspack.HtmlRspackPlugin({
+			template: "./src/index.html",
+			scriptLoading: "module"
+		})
 	],
 	optimization: {
 		minimize: false,

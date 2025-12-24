@@ -1,0 +1,69 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CaseSensitivePlugin
+
+<ApiMeta addedVersion={'1.2.0'} />
+
+:::tip
+该插件在 v1.7.0 中更名为 `CaseSensitivePlugin`。`WarnCaseSensitiveModulesPlugin` 已被废弃，并将在未来的版本中移除。
+:::
+
+检测引用的模块名称的大小写冲突，并发出警告。
+
+在不同操作系统中，文件系统对大小写的处理方式可能不同。当代码中引用仅大小写不同的模块名称时，可能会导致跨系统编译时出现意外的错误，这个插件用于预防这种情况。
+
+```js
+new rspack.CaseSensitivePlugin();
+```
+
+## 注册
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CaseSensitivePlugin()],
+};
+```
+
+## 示例
+
+假设项目中存在 `utils.js` 文件：
+
+```text
+src/
+  ├── a.js
+  ├── b.js
+  └── utils.js
+```
+
+当在 `a.js` 和 `b.js` 中引入 `utils.js` 时，如果引用路径中的大小写不一致，插件将会发出警告。
+
+```js title="src/a.js"
+import { helper } from './utils';
+```
+
+```js title="src/b.js"
+import { helper } from './Utils';
+```
+
+警告如下：
+
+```bash
+WARNING There are multiple modules with names that only differ in casing.
+```
+
+这个警告提示开发者存在模块命名的大小写冲突，确保相同模块在项目中使用统一的大小写形式。
+
+:::tip
+`CaseSensitivePlugin` 基于模块标识符而非文件系统来判断大小写差异。
+:::
+
+当构建产物中包含仅大小写不同的文件名时，插件也会输出警告，以避免在大小写不敏感的文件系统上产生潜在的文件冲突。
+
+```bash
+WARNING Prevent writing to file that only differs in casing or query string from already written file.
+This will lead to a race-condition and corrupted files on case-insensitive file systems.
+  - main.js
+  - MAIN.js
+```

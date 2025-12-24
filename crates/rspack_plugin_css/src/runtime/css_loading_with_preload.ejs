@@ -1,7 +1,7 @@
 <%- PRELOAD_CHUNK_HANDLERS %>.s = <%- basicFunction("chunkId") %> {
   if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _css_matcher %>) {
     installedChunks[chunkId] = null;
-    if (typeof document === 'undefined') return;
+    <% if (_is_neutral_platform) { %>if (typeof document === 'undefined') return;<% } %>
 
     <%- _create_preload_link %>
     document.head.appendChild(link);

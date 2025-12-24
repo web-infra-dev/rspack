@@ -1,5 +1,7 @@
 export * from './lib2'
 
-export const lib = 42
+const v = 42
 
-eval('')
+export { v as lib }
+
+

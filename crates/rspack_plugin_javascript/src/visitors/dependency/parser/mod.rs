@@ -10,11 +10,12 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
-  sync::Arc,
 };
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
+use once_cell::unsync::OnceCell;
+use ropey::Rope;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -23,16 +24,14 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  RuntimeTemplate, SideEffectsBailoutItemWithSpan, TypeReexportPresenceMode,
+  RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{
-    BytePos, Mark, SourceFile, SourceMap, Span, Spanned, comments::Comments, util::take::Take,
-  },
+  common::{BytePos, Mark, Span, Spanned, comments::Comments, util::take::Take},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -315,8 +314,8 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  pub source_map: Arc<SourceMap>,
-  pub(crate) source_file: &'parser SourceFile,
+  source_rope: OnceCell<Rope>,
+  pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -357,8 +356,7 @@ pub struct JavascriptParser<'parser> {
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_map: Arc<SourceMap>,
-    source_file: &'parser SourceFile,
+    source: &'parser str,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
@@ -376,7 +374,7 @@ impl<'parser> JavascriptParser<'parser> {
     runtime_template: &'parser RuntimeTemplate,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
-    let mut errors = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
     let dependencies = Vec::with_capacity(64);
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
@@ -468,13 +466,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    // disabled by default for now, it's still experimental
-    if javascript_options.inline_const.unwrap_or_default() {
-      if !compiler_options.experiments.inline_const {
-        errors.push(rspack_error::error!("inlineConst is still an experimental feature. To continue using it, please enable 'experiments.inlineConst'.").into());
-      } else {
-        plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-      }
+    if compiler_options.optimization.inline_exports {
+      build_info.inline_exports = true;
+      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
@@ -488,16 +482,6 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
-    if !matches!(
-      javascript_options
-        .type_reexports_presence
-        .unwrap_or_default(),
-      TypeReexportPresenceMode::NoTolerant
-    ) && !compiler_options.experiments.type_reexports_presence
-    {
-      errors.push(rspack_error::error!("typeReexportsPresence is still an experimental feature. To continue using it, please enable 'experiments.typeReexportsPresence'.").into());
-    }
-
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
 
@@ -505,8 +489,8 @@ impl<'parser> JavascriptParser<'parser> {
       last_esm_import_order: 0,
       comments,
       javascript_options,
-      source_map,
-      source_file,
+      source_rope: OnceCell::new(),
+      source,
       errors,
       warning_diagnostics,
       dependencies,
@@ -631,10 +615,6 @@ impl<'parser> JavascriptParser<'parser> {
     self.errors.push(error);
   }
 
-  pub fn add_errors(&mut self, errors: impl IntoIterator<Item = Diagnostic>) {
-    self.errors.extend(errors);
-  }
-
   pub fn add_warning(&mut self, warning: Diagnostic) {
     self.warning_diagnostics.push(warning);
   }
@@ -643,8 +623,12 @@ impl<'parser> JavascriptParser<'parser> {
     self.warning_diagnostics.extend(warnings);
   }
 
-  pub fn source_file(&self) -> &SourceFile {
-    self.source_file
+  pub fn source(&self) -> &str {
+    self.source
+  }
+
+  pub fn source_rope(&mut self) -> &Rope {
+    self.source_rope.get_or_init(|| Rope::from_str(self.source))
   }
 
   pub fn is_top_level_scope(&self) -> bool {
@@ -900,7 +884,7 @@ impl<'parser> JavascriptParser<'parser> {
         }
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(member);
+          let extracted = self.extract_member_expression_chain(Expr::Member(member.clone()));
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
@@ -959,17 +943,17 @@ impl<'parser> JavascriptParser<'parser> {
     expr: &Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
-    expr
-      .as_member()
-      .and_then(|member| self.get_member_expression_info(member, allowed_types))
-      .or_else(|| {
-        self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types)
-      })
+    match expr {
+      Expr::Member(_) | Expr::OptChain(_) => {
+        self.get_member_expression_info(expr.clone(), allowed_types)
+      }
+      _ => self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types),
+    }
   }
 
   pub fn get_member_expression_info(
     &mut self,
-    expr: &MemberExpr,
+    expr: Expr,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo> {
     let ExtractedMemberExpressionChainData {
@@ -987,11 +971,8 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain(
-    &self,
-    expr: &MemberExpr,
-  ) -> ExtractedMemberExpressionChainData {
-    let mut object = Expr::Member(expr.clone());
+  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
+    let mut object = expr;
     let mut members = Vec::new();
     let mut members_optionals = Vec::new();
     let mut member_ranges = Vec::new();

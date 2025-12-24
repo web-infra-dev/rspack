@@ -1,6 +1,6 @@
 asset 889.xxxx.js xx KiB [emitted] (name: main)
 asset 769.xxxx.js xx bytes [emitted]
-runtime modules xx KiB 11 modules
+runtime modules xx KiB 10 modules
 cacheable modules xx bytes
   ./index.js xx bytes [built] [code generated]
   ./dynamic.js xx bytes [built] [code generated]

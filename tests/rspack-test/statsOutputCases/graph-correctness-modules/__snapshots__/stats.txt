@@ -5,15 +5,15 @@ chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) >{165}< >{
   ./e1.js xx bytes [built] [code generated]
     entry ./e1
   ./module-x.js xx bytes [dependent] [built] [code generated]
-    esm import ./module-x ./e1.js 1:0-20
-    esm import ./module-x ./e2.js 1:0-20
+    esm import ./module-x ./e1.js 1:1-20
+    esm import ./module-x ./e2.js 1:1-20
     import() ./module-x ./module-b.js
 chunk (runtime: e2) e2.js (e2) xx bytes (javascript) xx KiB (runtime) >{165}< >{907}< [entry] [rendered]
   ./e2.js xx bytes [built] [code generated]
     entry ./e2
   ./module-x.js xx bytes [dependent] [built] [code generated]
-    esm import ./module-x ./e1.js 1:0-20
-    esm import ./module-x ./e2.js 1:0-20
+    esm import ./module-x ./e1.js 1:1-20
+    esm import ./module-x ./e2.js 1:1-20
     import() ./module-x ./module-b.js
 chunk (runtime: e1, e2) a.js (a) xx bytes <{210}> <{907}> >{364}< [rendered]
   ./module-a.js xx bytes [built] [code generated]

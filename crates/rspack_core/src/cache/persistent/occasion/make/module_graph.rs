@@ -18,7 +18,7 @@ use crate::{
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
-const SCOPE: &str = "occasion_make_module_graph";
+pub const SCOPE: &str = "occasion_make_module_graph";
 
 /// The value struct of current storage scope
 #[cacheable]

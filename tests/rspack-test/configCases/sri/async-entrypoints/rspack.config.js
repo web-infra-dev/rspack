@@ -11,6 +11,6 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin(),
-		new rspack.experiments.SubresourceIntegrityPlugin()
+		new rspack.SubresourceIntegrityPlugin()
 	]
 };

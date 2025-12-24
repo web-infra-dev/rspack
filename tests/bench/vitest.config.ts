@@ -8,7 +8,7 @@ export default defineConfig({
 		poolOptions: {
 			forks: {
 				minForks: 1,
-				maxForks: 8,
+				maxForks: 8
 			}
 		}
 	}

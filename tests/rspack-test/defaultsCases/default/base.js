@@ -44,11 +44,10 @@ module.exports = {
 			      sideEffects: true,
 			      silent: true,
 			    },
-			    inlineConst: false,
+			    inlineConst: true,
 			    inlineEnum: false,
 			    lazyBarrel: true,
 			    lazyCompilation: false,
-			    parallelCodeSplitting: false,
 			    parallelLoader: false,
 			    rspackFuture: Object {
 			      bundlerInfo: Object {
@@ -74,7 +73,10 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  infrastructureLogging: Object {},
-			  lazyCompilation: false,
+			  lazyCompilation: Object {
+			    entries: false,
+			    imports: true,
+			  },
 			  loader: Object {
 			    environment: Object {
 			      arrowFunction: true,
@@ -180,6 +182,18 @@ module.exports = {
 			          type: json,
 			        },
 			      },
+			      Object {
+			        type: asset/source,
+			        with: Object {
+			          type: text,
+			        },
+			      },
+			      Object {
+			        type: asset/bytes,
+			        with: Object {
+			          type: bytes,
+			        },
+			      },
 			    ],
 			    generator: Object {
 			      json: Object {
@@ -202,7 +216,6 @@ module.exports = {
 			        exprContextCritical: true,
 			        importDynamic: true,
 			        importMeta: true,
-			        inlineConst: false,
 			        jsx: false,
 			        requireAsExpression: true,
 			        requireDynamic: true,
@@ -235,6 +248,7 @@ module.exports = {
 			    chunkIds: natural,
 			    concatenateModules: false,
 			    emitOnErrors: true,
+			    inlineExports: false,
 			    innerGraph: false,
 			    mangleExports: false,
 			    mergeDuplicateChunks: true,

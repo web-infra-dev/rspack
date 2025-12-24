@@ -14,7 +14,9 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
+use rspack_plugin_javascript::{
+  JavascriptModulesChunkHash, JsPlugin, impl_plugin_for_js_plugin::chunk_has_js,
+};
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
@@ -33,7 +35,7 @@ use crate::{
     LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
     OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-    RuntimeIdRuntimeModule, SystemContextRuntimeModule, chunk_has_css, chunk_has_js,
+    RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css,
     is_enabled_for_chunk,
   },
 };
@@ -598,6 +600,12 @@ async fn runtime_requirements_in_tree(
           chunk_ukey,
           MakeDeferredNamespaceObjectRuntimeModule::new(&compilation.runtime_template, *chunk_ukey)
             .boxed(),
+        )?;
+      }
+      RuntimeGlobals::TO_BINARY => {
+        compilation.add_runtime_module(
+          chunk_ukey,
+          ToBinaryRuntimeModule::new(&compilation.runtime_template).boxed(),
         )?;
       }
       _ => {}

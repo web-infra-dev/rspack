@@ -154,17 +154,8 @@ impl Ast {
     self
   }
 
-  pub fn with_program(mut self, program: Program) -> Self {
-    self.program = program;
-    self
-  }
-
   pub fn get_context(&self) -> &Context {
     &self.context
-  }
-
-  pub fn into_program(self) -> Program {
-    self.program
   }
 
   pub fn transform<F, R>(&mut self, f: F) -> R

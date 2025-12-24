@@ -5,7 +5,9 @@ use std::cmp::{self, Reverse};
 
 pub use drive::*;
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_core::{Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier};
+use rspack_core::{
+  Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier, compare_modules_by_identifier,
+};
 use rspack_hook::plugin;
 
 #[plugin]
@@ -224,15 +226,5 @@ fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
       &a.last().expect("Must have a module").identifier(),
       &b.last().expect("Must have a module").identifier(),
     )
-  }
-}
-
-fn compare_modules_by_identifier(a_id: &str, b_id: &str) -> cmp::Ordering {
-  if a_id < b_id {
-    cmp::Ordering::Less
-  } else if a_id > b_id {
-    cmp::Ordering::Greater
-  } else {
-    cmp::Ordering::Equal
   }
 }

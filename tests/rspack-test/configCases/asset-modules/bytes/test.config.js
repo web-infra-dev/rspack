@@ -10,7 +10,7 @@ module.exports = {
 
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";
-		link.href = `bundle${run === 0 ? "0" : "2"}.css`;
+		link.href = `bundle0.css`;
 		scope.window.document.head.appendChild(link);
 
 		run++;

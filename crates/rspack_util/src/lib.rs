@@ -23,11 +23,16 @@ pub mod swc;
 pub mod test;
 pub mod tracing_preset;
 
-use std::future::Future;
+use std::{
+  future::Future,
+  sync::LazyLock,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 #[cfg(allocative)]
 pub use allocative;
 pub use merge::{MergeFrom, merge_from_optional_with};
+use regex::Regex;
 pub use span::SpanExt;
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
@@ -38,19 +43,6 @@ where
   let it = it.into_iter();
   for i in it {
     if f(i).await? {
-      return Ok(true);
-    }
-  }
-  Ok(false)
-}
-
-pub fn try_any_sync<T, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
-where
-  F: Fn(T) -> Result<bool, E>,
-{
-  let it = it.into_iter();
-  for i in it {
-    if f(i)? {
       return Ok(true);
     }
   }
@@ -74,4 +66,21 @@ where
 pub fn json_stringify<T: ?Sized + serde::Serialize + std::fmt::Debug>(v: &T) -> String {
   serde_json::to_string_pretty(v)
     .unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+}
+
+/// Get current time in milliseconds since Unix epoch
+pub fn current_time() -> u64 {
+  SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .expect("should get current time")
+    .as_millis() as u64
+}
+
+static QUOTE_META_REG: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize QUOTE_META_REG")
+});
+
+/// Escape special regex characters in a string
+pub fn quote_meta(str: &str) -> String {
+  QUOTE_META_REG.replace_all(str, "\\$0").to_string()
 }

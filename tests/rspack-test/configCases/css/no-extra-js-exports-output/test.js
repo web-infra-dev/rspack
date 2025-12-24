@@ -13,9 +13,7 @@ it("should work", () => {
 		// and it still output two runtime module:
 		// 	 'webpack/runtime/make namespace object'
 		// 	 'webpack/runtime/css loading'
-		// DIFF: rspack generate extra js modules for css modules
-		// expect(stats.modules.length).toBe(4);
-		expect(stats.modules.length).toBe(8);
+		expect(stats.modules.length).toBe(4);
 	} else if (__STATS_I__ === 1) {
 		stats.modules
 			.filter(module => module.moduleType === "css/auto")

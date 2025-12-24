@@ -1,4 +1,5 @@
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import type { FC } from 'react';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
@@ -26,7 +27,7 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
           <ul>
             {links.map(link => (
               <li key={link}>
-                <a href={link}>{link}</a>
+                <Link href={link}>{link}</Link>
               </li>
             ))}
           </ul>
@@ -49,9 +50,9 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
         <ul>
           {links.map(link => (
             <li key={link}>
-              <a key={link} href={link}>
+              <Link key={link} href={link}>
                 {link}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

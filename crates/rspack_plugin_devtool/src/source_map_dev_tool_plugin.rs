@@ -24,7 +24,10 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
-  asset_condition::AssetConditions, base64, identifier::make_paths_absolute, node_path::NodePath,
+  asset_condition::{AssetConditions, AssetConditionsObject, match_object},
+  base64,
+  identifier::make_paths_absolute,
+  node_path::NodePath,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
@@ -144,25 +147,6 @@ pub struct SourceMapDevToolPlugin {
   mapped_assets_cache: MappedAssetsCache,
 }
 
-fn match_object(obj: &SourceMapDevToolPlugin, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.include
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.exclude
-    && condition.try_match(str)
-  {
-    return false;
-  }
-  true
-}
-
 impl SourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
     let source_mapping_url_comment = match options.append {
@@ -247,13 +231,18 @@ impl SourceMapDevToolPlugin {
   ) -> Result<Vec<SourceMapTask>> {
     let map_options = MapOptions::new(self.columns);
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
+    let condition_object = AssetConditionsObject {
+      test: self.test.as_ref(),
+      include: self.include.as_ref(),
+      exclude: self.exclude.as_ref(),
+    };
 
     let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
     let tasks = compilation_assets
       .into_par_iter()
       .filter_map(|(asset_filename, asset)| {
         let is_match = if need_match {
-          match_object(self, &asset_filename)
+          match_object(&condition_object, &asset_filename)
         } else {
           true
         };

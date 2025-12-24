@@ -5,12 +5,13 @@ use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
-  runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
+  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
 #[impl_runtime_module]

@@ -6,7 +6,7 @@ module.exports = {
 	context: __dirname,
 	entry: "./src/index.jsx",
 	mode: "development",
-	devtool:false,
+	devtool: false,
 	resolve: {
 		extensions: ["...", ".jsx"]
 	},
@@ -27,12 +27,12 @@ module.exports = {
 									react: {
 										runtime: "automatic",
 										development: true,
-										refresh: true,
+										refresh: true
 									}
-								},
-							},
+								}
+							}
 						}
-					},
+					}
 				]
 			}
 		]
@@ -40,21 +40,21 @@ module.exports = {
 	plugins: [
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
 		new rspack.container.ModuleFederationPlugin({
-			name:"host",
+			name: "host",
 			remotes: {
 				remote: "remote@http://localhost:5679/remoteEntry.js"
 			},
 			// prevent init remote entry
-			shareStrategy: 'loaded-first',
+			shareStrategy: "loaded-first",
 			shared: {
 				react: {},
-				'react-dom': {}
+				"react-dom": {}
 			},
-			runtimePlugins: [require.resolve('./runtime-plugin.js')]
+			runtimePlugins: [require.resolve("./runtime-plugin.js")]
 		}),
-		new ReactRefreshPlugin(),
+		new ReactRefreshPlugin()
 	],
-	lazyCompilation:true,
+	lazyCompilation: true,
 	devServer: {
 		hot: true,
 		port: 5678,

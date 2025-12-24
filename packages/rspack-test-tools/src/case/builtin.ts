@@ -121,6 +121,7 @@ export function defaultOptions(context: ITestContext): RspackOptions {
 			chunkIds: "named",
 			sideEffects: false,
 			mangleExports: false,
+			inlineExports: false,
 			usedExports: false,
 			concatenateModules: false,
 			nodeEnv: false

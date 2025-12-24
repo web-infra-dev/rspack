@@ -198,7 +198,7 @@ export default {
 
 ### 提取 source map
 
-Rspack 现在支持通过 [Rule.extractSourceMap](/config/module#ruleextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
+Rspack 现在支持通过 [rules[].extractSourceMap](/config/module-rules#rulesextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
 
 这个功能可以作为 [source-map-loader](https://github.com/webpack-contrib/source-map-loader) 的内置替代方案，提供了更好的性能和与构建过程更紧密的集成。
 

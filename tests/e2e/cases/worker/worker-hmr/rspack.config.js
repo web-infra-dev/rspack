@@ -8,10 +8,8 @@ module.exports = {
 	},
 	devtool: false,
 	mode: "development",
-	plugins: [
-		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
-	],
+	plugins: [new rspack.HtmlRspackPlugin({ template: "./src/index.html" })],
 	devServer: {
 		hot: true
-	},
-}
+	}
+};

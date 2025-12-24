@@ -2,7 +2,7 @@ asset main.js xx KiB [emitted] (name: main)
 asset 266.js xx bytes [emitted]
 asset 327.js xx bytes [emitted]
 Entrypoint main xx KiB = main.js
-runtime modules xx KiB 12 modules
+runtime modules xx KiB 11 modules
 cacheable modules xx KiB
   ./index.js xx bytes [built] [code generated]
   ./a.js xx KiB [built] [code generated]

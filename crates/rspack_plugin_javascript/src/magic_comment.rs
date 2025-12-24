@@ -8,7 +8,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::{
-  SourceFile, Span,
+  Span,
   comments::{Comment, CommentKind, Comments},
 };
 
@@ -120,7 +120,7 @@ impl RspackCommentMap {
 }
 
 fn add_magic_comment_warning(
-  source_file: &SourceFile,
+  source: &str,
   comment_name: &str,
   comment_type: &str,
   captures: &Captures,
@@ -133,7 +133,7 @@ fn add_magic_comment_warning(
       "`{comment_name}` expected {comment_type}, but received: {}.",
       captures.get(2).map_or("", |m| m.as_str())
     ),
-    source_file,
+    source.to_owned(),
     span,
   );
   error.severity = Severity::Warning;
@@ -169,7 +169,7 @@ pub fn try_extract_magic_comment(
   let mut warning_diagnostics = Vec::new();
   parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
-      parser.source_file,
+      parser.source,
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -178,7 +178,7 @@ pub fn try_extract_magic_comment(
   });
   parser.comments.with_trailing(span.hi, |comments| {
     analyze_comments(
-      parser.source_file,
+      parser.source,
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -271,7 +271,7 @@ fn match_item_to_error_span(
 }
 
 fn analyze_comments(
-  source_file: &SourceFile,
+  source: &str,
   comments: &[Comment],
   error_span: Span,
   warning_diagnostics: &mut Vec<Diagnostic>,
@@ -296,7 +296,7 @@ fn analyze_comments(
             .name("_9")
             .map(|item| {
               match_item_to_error_span(
-                &source_file.src,
+                source,
                 comment.span,
                 &comment.text,
                 item.start(),
@@ -319,7 +319,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               "a string",
               &captures,
@@ -336,7 +336,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               "true or a number",
               &captures,
@@ -353,7 +353,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               "true or a number",
               &captures,
@@ -367,7 +367,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               "a boolean",
               &captures,
@@ -385,7 +385,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               "a string",
               &captures,
@@ -406,7 +406,7 @@ fn analyze_comments(
               }
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               r#""low", "high" or "auto""#,
               &captures,
@@ -426,7 +426,7 @@ fn analyze_comments(
               }
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               r#"a regular expression"#,
               &captures,
@@ -446,7 +446,7 @@ fn analyze_comments(
               }
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               r#"a regular expression"#,
               &captures,
@@ -482,7 +482,7 @@ fn analyze_comments(
               continue;
             }
             add_magic_comment_warning(
-              source_file,
+              source,
               item_name,
               r#"a string or an array of strings"#,
               &captures,

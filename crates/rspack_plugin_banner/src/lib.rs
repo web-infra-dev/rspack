@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
+use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 
 #[derive(Debug)]
 pub struct BannerPluginOptions {
@@ -57,25 +57,6 @@ impl fmt::Debug for BannerContent {
       Self::Fn(_) => f.debug_tuple("Fn").finish(),
     }
   }
-}
-
-fn match_object(obj: &BannerPluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.include
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.exclude
-    && condition.try_match(str)
-  {
-    return false;
-  }
-  true
 }
 
 static TRIALING_WHITESPACE: LazyLock<Regex> =
@@ -148,6 +129,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];
+  let condition_object = AssetConditionsObject {
+    test: self.config.test.as_ref(),
+    include: self.config.include.as_ref(),
+    exclude: self.config.exclude.as_ref(),
+  };
 
   // filter file
   for chunk in compilation.chunk_by_ukey.values() {
@@ -161,7 +147,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for file in chunk.files() {
-      let is_match = match_object(&self.config, file);
+      let is_match = match_object(&condition_object, file);
 
       if !is_match {
         continue;

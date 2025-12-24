@@ -1,6 +1,5 @@
 const rspack = require("@rspack/core");
-const { experiments } = rspack;
-const { SubresourceIntegrityPlugin } = experiments;
+const { SubresourceIntegrityPlugin } = rspack;
 
 const createConfig = (runtimeChunk, mfPlugin) => ({
   mode: "production",

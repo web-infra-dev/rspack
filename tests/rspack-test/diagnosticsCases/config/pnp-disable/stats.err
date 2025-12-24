@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:0-32
+ERROR in ./index.js 1:1-32
   × Module not found: Can't resolve 'the-answer' in '<TEST_ROOT>/diagnosticsCases/config/pnp-disable'
    ╭─[1:0]
  1 │ import answer from 'the-answer';

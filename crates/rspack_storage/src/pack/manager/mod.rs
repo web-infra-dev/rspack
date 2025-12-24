@@ -210,6 +210,30 @@ impl ScopeManager {
     self.scopes.lock().await.clear();
     *self.root_meta.lock().await = RootMetaState::Pending;
   }
+
+  /// Get list of all available scopes in the storage
+  pub async fn scopes(&self) -> Result<Vec<String>> {
+    // only check lock file and root meta for the first time
+    if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
+      match self.strategy.before_load().await {
+        Ok(()) => {
+          let loaded = self.strategy.read_root_meta().await?;
+          *self.root_meta.lock().await = RootMetaState::Value(loaded);
+        }
+        Err(_) => {
+          *self.root_meta.lock().await = RootMetaState::Value(None);
+          return Ok(vec![]);
+        }
+      }
+    }
+
+    let root_meta_guard = self.root_meta.lock().await;
+    let Some(root_meta) = root_meta_guard.expect_value() else {
+      return Ok(vec![]);
+    };
+
+    Ok(root_meta.scopes.iter().cloned().collect())
+  }
 }
 
 #[tracing::instrument("Cache::Storage::update_scopes", skip_all)]
@@ -388,6 +412,7 @@ mod tests {
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
+    assert_eq!(manager.scopes().await?.len(), 2);
     assert!(fs.exists(root.join("scope1/scope_meta").as_path()).await?);
     assert!(fs.exists(root.join("scope2/scope_meta").as_path()).await?);
 
@@ -447,6 +472,7 @@ mod tests {
     rx.await.unwrap_or_else(|e| panic!("save failed: {e:?}"))?;
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 50);
+    assert_eq!(manager.scopes().await?.len(), 2);
     assert_ne!(
       fs.metadata(root.join("scope1/scope_meta").as_path())
         .await?
@@ -536,8 +562,10 @@ mod tests {
 
     // read from files
     assert_eq!(manager.load("scope1").await?.len(), 100);
+    assert_eq!(manager.scopes().await?.len(), 1);
     manager.reset().await;
     assert_eq!(manager.load("scope1").await?.len(), 0);
+    assert_eq!(manager.scopes().await?.len(), 0);
     Ok(())
   }
 

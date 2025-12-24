@@ -18,39 +18,39 @@ class Plugin {
 				}
 				res.sort((a, b) => a.request.localeCompare(b.request));
 				expect(res).toMatchInlineSnapshot(`
-			Array [
-			  Object {
-			    loc: Object {
-			      end: Object {
-			        column: 13,
-			        line: 1,
-			      },
-			      start: Object {
-			        column: 0,
-			        line: 1,
-			      },
-			    },
-			    request: ./a,
-			  },
-			  Object {
-			    loc: Object {
-			      end: Object {
-			        column: 13,
-			        line: 2,
-			      },
-			      start: Object {
-			        column: 0,
-			        line: 2,
-			      },
-			    },
-			    request: ./b,
-			  },
-			  Object {
-			    loc: main,
-			    request: ./index.js,
-			  },
-			]
-		`);
+					Array [
+					  Object {
+					    loc: Object {
+					      end: Object {
+					        column: 13,
+					        line: 1,
+					      },
+					      start: Object {
+					        column: 1,
+					        line: 1,
+					      },
+					    },
+					    request: ./a,
+					  },
+					  Object {
+					    loc: Object {
+					      end: Object {
+					        column: 13,
+					        line: 2,
+					      },
+					      start: Object {
+					        column: 1,
+					        line: 2,
+					      },
+					    },
+					    request: ./b,
+					  },
+					  Object {
+					    loc: main,
+					    request: ./index.js,
+					  },
+					]
+				`);
 			});
 		});
 	}

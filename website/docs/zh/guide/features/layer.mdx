@@ -31,7 +31,7 @@ export default {
 
 ### 2. 通过 Loader 规则指定
 
-你可以使用 [`rule.layer`](/config/module#rulelayer) 选项为所有匹配规则的模块指定 layer：
+你可以使用 [`rules[].layer`](/config/module-rules#ruleslayer) 选项为所有匹配规则的模块指定 layer：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -46,7 +46,7 @@ export default {
 };
 ```
 
-使用 [`rule.layer`](/config/module#rulelayer) 分配的 layer 将覆盖模块本身的 layer，例如某个模块被 Entry 指定了 layer，通过 Rule 分配的 layer 会覆盖 Entry 指定的 layer。
+使用 [`rules[].layer`](/config/module-rules#ruleslayer) 分配的 layer 将覆盖模块本身的 layer，例如某个模块被 Entry 指定了 layer，通过 Rule 分配的 layer 会覆盖 Entry 指定的 layer。
 
 ## Layer 的传递性
 
@@ -74,7 +74,7 @@ Layer 模块的所有依赖模块都会继承相同的 layer。例如，当你�
 
 ## 给不同的 Layer 应用不同的处理规则
 
-你可以使用 [`issuerLayer`](/config/module#ruleissuerlayer) 来筛选特定 layer 的模块，并为它们应用不同的处理规则。以下示例展示了如何为不同 layer 使用不同的编译目标：
+你可以使用 [`issuerLayer`](/config/module-rules#rulesissuerlayer) 来筛选特定 layer 的模块，并为它们应用不同的处理规则。以下示例展示了如何为不同 layer 使用不同的编译目标：
 
 ```js title="rspack.config.mjs"
 export default {

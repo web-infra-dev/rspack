@@ -13,7 +13,7 @@ import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
 import type { Module } from "../Module";
 import type { ResolveRequest } from "../Resolver";
-import { isNil } from "../util";
+import { deprecate, isNil } from "../util";
 import type Hash from "../util/hash";
 import type { RspackOptionsNormalized } from "./normalization";
 import type {
@@ -499,6 +499,13 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
 		options.jsc.experimental ??= {};
 		options.jsc.experimental.disableAllLints ??= true;
 
+		// resolve top-level `collectTypeScriptInfo` options (stable API)
+		if (options.collectTypeScriptInfo) {
+			options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
+				options.collectTypeScriptInfo
+			);
+		}
+
 		// resolve `rspackExperiments.import` options
 		const { rspackExperiments } = options;
 		if (rspackExperiments) {
@@ -508,9 +515,17 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
 				);
 			}
 			if (rspackExperiments.collectTypeScriptInfo) {
-				rspackExperiments.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
-					rspackExperiments.collectTypeScriptInfo
+				deprecate(
+					"`rspackExperiments.collectTypeScriptInfo` is deprecated and will be removed in Rspack v2.0. Use top-level `collectTypeScriptInfo` instead."
 				);
+				// If top-level is not set, use rspackExperiments config
+				if (!options.collectTypeScriptInfo) {
+					options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
+						rspackExperiments.collectTypeScriptInfo
+					);
+				}
+				// Remove from rspackExperiments to avoid duplication
+				delete rspackExperiments.collectTypeScriptInfo;
 			}
 		}
 	}

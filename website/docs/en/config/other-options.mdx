@@ -87,17 +87,52 @@ export default [
 
 ## ignoreWarnings
 
-<PropertyType
-  type="(RegExp | ((warning: Error, Compilation: Compilation) => boolean))[]"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+- **Type:**
 
-Tells Rspack to ignore specific warnings.
+```ts
+type IgnoreWarnings = (
+  | RegExp
+  | {
+      file?: RegExp;
+      message?: RegExp;
+      module?: RegExp;
+    }
+  | ((warning: WebpackError, compilation: Compilation) => boolean)
+)[];
+```
+
+- **Default:** `undefined`
+
+Tells Rspack to suppress specific compilation warnings by matching their message, module, or file, or by using a custom function.
+
+Use a RegExp to match the warning message:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
-  ignoreWarnings: [/warning from compiler/, warning => true],
+  ignoreWarnings: [/warning from compiler/, /other warning/],
+};
+```
+
+Use an object to match the warning via `message`, `file`, or `module`:
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    { message: /warning from compiler/ },
+    { file: /node_modules/ },
+  ],
+};
+```
+
+Use a function for full control. Return `true` to ignore the warning:
+
+```js title="rspack.config.mjs"
+export default {
+  ignoreWarnings: [
+    (warning, compilation) => {
+      return /warning from compiler/.test(warning.message || '');
+    },
+  ],
 };
 ```
 
@@ -130,7 +165,6 @@ For example, you can define a new variable in the loader context:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   loader: {
     answer: 42,
   },

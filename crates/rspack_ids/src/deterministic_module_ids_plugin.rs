@@ -58,7 +58,13 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
         .expect("should have generated full module name")
         .to_string()
     },
-    |a, b| compare_modules_by_pre_order_index_or_identifier(&module_graph, a, b),
+    |a, b| {
+      compare_modules_by_pre_order_index_or_identifier(
+        &module_graph,
+        &a.identifier(),
+        &b.identifier(),
+      )
+    },
     |module, id| {
       if !used_ids.insert(id.to_string()) {
         conflicts += 1;

@@ -94,6 +94,9 @@ jobs:
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
 
+      - name: Prettier
+        run: pnpm run format-ci:js
+
       - name: Run
         run: |
           cd website

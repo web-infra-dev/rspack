@@ -9,4 +9,3 @@ version.workspace = true
 [dependencies]
 itoa             = { workspace = true }
 rspack_cacheable = { workspace = true }
-swc_core         = { workspace = true, features = ["common"] }

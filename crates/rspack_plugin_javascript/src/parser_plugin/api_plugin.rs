@@ -2,7 +2,7 @@ use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
-  common::{SourceFile, Span, Spanned},
+  common::{Span, Spanned},
   ecma::ast::{CallExpr, Ident, UnaryExpr},
 };
 
@@ -14,7 +14,7 @@ use crate::{
 };
 
 fn expression_not_supported(
-  file: &SourceFile,
+  source: &str,
   name: &str,
   is_call: bool,
   expr_span: Span,
@@ -25,7 +25,7 @@ fn expression_not_supported(
       "{name}{} is not supported by Rspack.",
       if is_call { "()" } else { "" }
     ),
-    file,
+    source.to_owned(),
     expr_span.into(),
   );
   error.severity = Severity::Warning;
@@ -198,10 +198,11 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_MODULE => {
+        let source_rope = parser.source_rope().clone();
         parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
           None,
           ident.span.into(),
-          Some(parser.source_map.clone()),
+          Some(source_rope),
         )));
         Some(true)
       }
@@ -370,7 +371,7 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source_file, for_name, false, member_expr.span());
+        expression_not_supported(parser.source, for_name, false, member_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);
@@ -413,10 +414,12 @@ impl JavascriptParserPlugin for APIPlugin {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_ID,
       )));
+
+      let source_rope = parser.source_rope().clone();
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
         member_expr.span().into(),
-        Some(parser.source_map.clone()),
+        Some(source_rope),
       )));
       return Some(true);
     }
@@ -437,7 +440,7 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source_file, for_name, true, call_expr.span());
+        expression_not_supported(parser.source, for_name, true, call_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

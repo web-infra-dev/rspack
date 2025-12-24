@@ -28,17 +28,17 @@ export const getDefaultTarget = (context: string): "browserslist" | "web" => {
 
 export type PlatformTargetProperties = {
 	/** web platform, importing of http(s) and std: is available */
-	web: boolean | null;
+	web?: boolean | null;
 	/** browser platform, running in a normal web browser */
-	browser: boolean | null;
+	browser?: boolean | null;
 	/** (Web)Worker platform, running in a web/shared/service worker */
-	webworker: boolean | null;
+	webworker?: boolean | null;
 	/** node platform, require of node built-in modules is available */
-	node: boolean | null;
+	node?: boolean | null;
 	/** nwjs platform, require of legacy nw.gui is available */
-	nwjs: boolean | null;
+	nwjs?: boolean | null;
 	/** electron platform, require of some electron built-in modules is available */
-	electron: boolean | null;
+	electron?: boolean | null;
 };
 
 export type ElectronContextTargetProperties = {

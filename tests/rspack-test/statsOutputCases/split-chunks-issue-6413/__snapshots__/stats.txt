@@ -1,23 +1,23 @@
 default:
   Entrypoint main xx KiB = main.js
   chunk (runtime: main) 501.js (id hint: ) xx bytes <{889}> ={701}= ={724}= ={742}= ={773}= [rendered] split chunk (cache group: default)
-    > ./a ./index.js 1:0-47
-    > ./b ./index.js 2:0-47
-    > ./c ./index.js 3:0-47
+    > ./a ./index.js 1:1-47
+    > ./b ./index.js 2:1-47
+    > ./c ./index.js 3:1-47
     ./common.js xx bytes [built] [code generated]
   chunk (runtime: main) async-b.js (async-b) xx bytes <{889}> ={501}= ={773}= [rendered]
-    > ./b ./index.js 2:0-47
+    > ./b ./index.js 2:1-47
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) async-a.js (async-a) xx bytes <{889}> ={501}= ={773}= [rendered]
-    > ./a ./index.js 1:0-47
+    > ./a ./index.js 1:1-47
     ./a.js xx bytes [built] [code generated]
   chunk (runtime: main) async-c.js (async-c) xx bytes <{889}> ={501}= ={773}= [rendered]
-    > ./c ./index.js 3:0-47
+    > ./c ./index.js 3:1-47
     ./c.js xx bytes [built] [code generated]
   chunk (runtime: main) 773.js (id hint: vendors) xx bytes <{889}> ={501}= ={701}= ={724}= ={742}= [rendered] split chunk (cache group: defaultVendors)
-    > ./a ./index.js 1:0-47
-    > ./b ./index.js 2:0-47
-    > ./c ./index.js 3:0-47
+    > ./a ./index.js 1:1-47
+    > ./b ./index.js 2:1-47
+    > ./c ./index.js 3:1-47
     ./node_modules/x.js xx bytes [built] [code generated]
   chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{501}< >{701}< >{724}< >{742}< >{773}< [entry] [rendered]
     > ./ main

@@ -196,7 +196,7 @@ export default {
 
 ### Extract source map
 
-Rspack now supports extracting existing source map data from files (from their `//# sourceMappingURL` comments) through [Rule.extractSourceMap](/config/module#ruleextractsourcemap). This feature is particularly useful for preserving source maps provided by third-party libraries, ensuring that debugging information remains accurate even when these libraries are bundled or transformed.
+Rspack now supports extracting existing source map data from files (from their `//# sourceMappingURL` comments) through [rules[].extractSourceMap](/config/module-rules#rulesextractsourcemap). This feature is particularly useful for preserving source maps provided by third-party libraries, ensuring that debugging information remains accurate even when these libraries are bundled or transformed.
 
 This feature was introduced as a built-in alternative to [source-map-loader](https://github.com/webpack-contrib/source-map-loader), providing better performance and tighter integration with the build process.
 

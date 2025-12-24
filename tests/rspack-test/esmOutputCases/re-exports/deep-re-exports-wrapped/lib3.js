@@ -1,1 +1,3 @@
-export const lib3 = 42
+const v = 42
+export { v as lib3 }
+export * from 'fs'

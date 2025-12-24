@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["./rstest.d.ts"]
+    "types": ["./rstest.d.ts"],
+    "noUnusedParameters": false
   },
   "include": ["src"],
   "exclude": ["viewer"],

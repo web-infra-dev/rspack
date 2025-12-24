@@ -120,6 +120,6 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		},
 		/** @type {import('@rstest/core').Expect} */
 		expect,
-		rstest,
+		rstest
 	};
 };

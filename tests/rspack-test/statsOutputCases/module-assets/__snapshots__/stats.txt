@@ -14,7 +14,7 @@ chunk (runtime: main) b.js (b) xx bytes [rendered]
   ./node_modules/b/index.js xx bytes [built] [code generated]
 chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   ./index.js xx bytes [built] [code generated]
-runtime modules xx KiB 10 modules
+runtime modules xx KiB 9 modules
 orphan modules xx bytes [orphan] 2 modules
 modules with assets xx bytes
   ./index.js xx bytes [built] [code generated]

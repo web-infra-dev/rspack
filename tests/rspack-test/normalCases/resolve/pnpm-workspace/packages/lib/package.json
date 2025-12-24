@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "react": "^19.2.1"
+    "react": "^19.2.3"
   }
 }

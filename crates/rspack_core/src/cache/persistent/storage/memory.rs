@@ -45,6 +45,17 @@ impl Storage for MemoryStorage {
   async fn reset(&self) {
     self.inner.lock().expect("should get lock").clear();
   }
+  async fn scopes(&self) -> Result<Vec<String>> {
+    Ok(
+      self
+        .inner
+        .lock()
+        .expect("should get lock")
+        .keys()
+        .cloned()
+        .collect(),
+    )
+  }
 }
 
 #[cfg(test)]

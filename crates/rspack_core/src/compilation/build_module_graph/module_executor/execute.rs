@@ -237,6 +237,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),
+        wasm_loading: Some(crate::WasmLoading::Disable),
         async_chunks: Some(false),
         public_path,
         base_uri,

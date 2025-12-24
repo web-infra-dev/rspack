@@ -203,10 +203,6 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
   RuntimeSpec::new(set)
 }
 
-pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
-  format!("{runtime}")
-}
-
 pub fn filter_runtime(
   runtime: Option<&RuntimeSpec>,
   filter: impl Fn(Option<&RuntimeSpec>) -> bool,

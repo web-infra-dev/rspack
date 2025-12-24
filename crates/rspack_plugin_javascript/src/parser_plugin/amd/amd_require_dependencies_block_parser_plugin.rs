@@ -310,7 +310,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
-    let source_map: SharedSourceMap = parser.source_map.clone();
+    let source_map: SharedSourceMap = parser.source_rope().clone();
     let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map));
 
     if call_expr.args.len() == 1 {
@@ -351,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
-          parser.source_file,
+          parser.source.to_owned(),
           call_expr.span.into(),
         );
         error.severity = Severity::Warning;

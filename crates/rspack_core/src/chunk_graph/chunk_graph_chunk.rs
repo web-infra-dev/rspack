@@ -94,10 +94,6 @@ impl ChunkGraphChunk {
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
-
-  pub fn modules_mut(&mut self) -> &mut IdentifierSet {
-    &mut self.modules
-  }
 }
 
 fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
@@ -121,15 +117,6 @@ impl ChunkGraph {
 
   pub fn remove_chunk(&mut self, chunk_ukey: &ChunkUkey) -> Option<ChunkGraphChunk> {
     self.chunk_graph_chunk_by_chunk_ukey.remove(chunk_ukey)
-  }
-
-  pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
-    debug_assert!(
-      !self
-        .chunk_graph_chunk_by_chunk_ukey
-        .contains_key(&chunk_ukey)
-    );
-    self.chunk_graph_chunk_by_chunk_ukey.insert(chunk_ukey, cgc);
   }
 
   pub fn replace_module(
@@ -239,17 +226,6 @@ impl ChunkGraph {
       .chunk_graph_chunk_by_chunk_ukey
       .get(chunk_ukey)
       .expect("Chunk should be added before")
-  }
-
-  pub fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> Option<&ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.get(chunk_ukey)
-  }
-
-  pub fn get_chunk_graph_chunk_mut(
-    &mut self,
-    chunk_ukey: &ChunkUkey,
-  ) -> Option<&mut ChunkGraphChunk> {
-    self.chunk_graph_chunk_by_chunk_ukey.get_mut(chunk_ukey)
   }
 
   pub fn connect_chunk_and_entry_module(

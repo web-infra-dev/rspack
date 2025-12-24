@@ -16,17 +16,14 @@ module.exports = {
 			inject: "body"
 		}),
 		new rspack.CssExtractRspackPlugin({
-			filename: "static/style.css",
+			filename: "static/style.css"
 		})
 	],
 	module: {
 		rules: [
 			{
 				test: /\.css$/,
-				use: [
-					rspack.CssExtractRspackPlugin.loader,
-					"css-loader",
-				]
+				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"]
 			}
 		]
 	},

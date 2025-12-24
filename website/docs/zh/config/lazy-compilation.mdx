@@ -14,7 +14,7 @@ import { ApiMeta } from '@components/ApiMeta';
 ## lazyCompilation
 
 - **类型：** `boolean | LazyCompilationOptions`
-- **默认值：** `false`
+- **默认值：** 当 [`Target`](/config/target) 仅为 `'web'` 应用时 `{ entries: false, imports: true }`，其他情况 `false`.
 
 ```ts
 type LazyCompilationOptions =
@@ -56,7 +56,7 @@ type LazyCompilationOptions =
 
 如果你有二十个入口，当开启懒编译时，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
 
-如果设置为 true，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
+如果设置为 `true`，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';

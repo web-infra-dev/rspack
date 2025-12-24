@@ -33,7 +33,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let dep = ESMExportHeaderDependency::new(
       statement.span().into(),
       statement.declaration_span().map(|span| span.into()),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
     );
     parser.add_presentational_dependency(Box::new(dep));
     Some(true)
@@ -55,7 +55,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       DependencyType::EsmExportImport,
       ImportPhase::Evaluation,
       statement.get_with_obj().map(get_attributes),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
       statement.is_star_export(),
     );
     if parser.compiler_options.experiments.lazy_barrel
@@ -92,7 +92,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         create_traceable_error(
           "JavaScript parse error".into(),
           format!("Duplicate export of '{export_name}'"),
-          parser.source_file,
+          parser.source.to_owned(),
           export_name_span.into(),
         )
         .into(),
@@ -112,7 +112,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         ),
         settings.phase,
         settings.attributes,
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope().clone()),
       );
       if parser.compiler_options.experiments.lazy_barrel
         && parser
@@ -133,9 +133,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
-        parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
-      }
       let variable = parser.get_tag_data(local_id, NESTED_IDENTIFIER_TAG);
 
       Box::new(ESMExportSpecifierDependency::new(
@@ -149,7 +146,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         inlinable,
         enum_value,
         statement.span().into(),
-        Some(parser.source_map.clone()),
+        Some(parser.source_rope().clone()),
       ))
     };
     let is_asi_safe = !parser.is_asi_position(statement.span_lo());
@@ -179,7 +176,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
           create_traceable_error(
             "JavaScript parse error".into(),
             format!("Duplicate export of '{export_name}'"),
-            parser.source_file,
+            parser.source.to_owned(),
             export_name_span.expect("should exist").into(),
           )
           .into(),
@@ -199,7 +196,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       ImportPhase::Evaluation,
       statement.get_with_obj().map(get_attributes),
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);
@@ -277,7 +274,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
           .map(|ident| DeclarationId::Id(ident.sym.to_string())),
         ExportDefaultExpression::Expr(_) => None,
       },
-      Some(parser.source_map.clone()),
+      Some(parser.source_rope().clone()),
     );
     parser.add_dependency(Box::new(dep));
     InnerGraphPlugin::add_variable_usage(

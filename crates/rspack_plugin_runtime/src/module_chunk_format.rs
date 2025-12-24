@@ -11,15 +11,16 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
-  JsPlugin, RenderSource, runtime::render_chunk_runtime_modules,
+  JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
+  runtime::render_chunk_runtime_modules,
 };
 use rspack_util::{itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
-  get_runtime_chunk_output_name, runtime_chunk_has_hash,
+  get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  runtime_chunk_has_hash,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";

@@ -21,7 +21,7 @@ Rspack 不再支持 Node.js 14，现在需要 Node.js 16+。
 
 `experiments.rspackFuture.disableTransformByDefault` 在 v0.4.0 中默认启用。对于仍需要旧行为的用户，可以手动将此选项设置为 `false`。
 
-此功能主要解决三类问题：[内置](https://v0.rspack.rs/config/builtins) 代码转换功能，[目标](/config/target)，和自定义 [Rule.type](/config/module#ruletype)。
+此功能主要解决三类问题：[内置](https://v0.rspack.rs/config/builtins) 代码转换功能，[目标](/config/target)，和自定义 [rules[].type](/config/module-rules#rulestype)。
 
 1. 移除对一些 [内置](https://v0.rspack.rs/config/builtins) 功能的支持：
 
@@ -96,7 +96,7 @@ export default {
 };
 ```
 
-3. 移除非 webpack 兼容的 [Rule.type](/config/module#ruletype)
+3. 移除非 webpack 兼容的 [rules[].type](/config/module-rules#rulestype)
 
 ### 废弃 builtin.react.refresh
 
@@ -108,7 +108,6 @@ export default {
 const isDev = process.env.NODE_ENV === 'development';
 
 export default {
-  // ...
   mode: isDev ? 'development' : 'production',
   module: {
     rules: [

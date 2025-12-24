@@ -1,11 +1,11 @@
-use rspack_core::{
-  CompilationModuleIds, Plugin, compare_modules_by_pre_order_index_or_identifier,
-  incremental::IncrementalPasses,
-};
+use rspack_core::{CompilationModuleIds, Plugin, incremental::IncrementalPasses};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::id_helpers::{assign_ascending_module_ids, get_used_module_ids_and_modules};
+use crate::id_helpers::{
+  assign_ascending_module_ids, compare_modules_by_pre_order_index_or_identifier,
+  get_used_module_ids_and_modules,
+};
 
 #[plugin]
 #[derive(Debug, Default)]

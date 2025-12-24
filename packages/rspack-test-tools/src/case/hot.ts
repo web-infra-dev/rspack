@@ -151,8 +151,7 @@ function defaultOptions(context: ITestContext, target: TTarget) {
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 

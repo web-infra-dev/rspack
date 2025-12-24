@@ -1,3 +1,3 @@
 // import("./blue.css");
 
-module.hot.accept()
+module.hot.accept();

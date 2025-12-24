@@ -101,8 +101,7 @@ export function defaultOptions(
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	};
 }

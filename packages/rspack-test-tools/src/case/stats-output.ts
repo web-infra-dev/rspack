@@ -99,8 +99,7 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
 				bundlerInfo: {
 					force: false
 				}
-			},
-			inlineConst: true
+			}
 		}
 	} as RspackOptions;
 }

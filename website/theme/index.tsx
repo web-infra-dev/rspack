@@ -2,7 +2,7 @@ import { NoSSR, useLang, usePageData } from '@rspress/core/runtime';
 import {
   Layout as BaseLayout,
   getCustomMDXComponent as basicGetCustomMDXComponent,
-} from '@rspress/core/theme';
+} from '@rspress/core/theme-original';
 import {
   Search as PluginAlgoliaSearch,
   ZH_LOCALES,
@@ -103,4 +103,4 @@ function getCustomMDXComponent() {
 
 export { Layout, HomeLayout, Search, getCustomMDXComponent };
 
-export * from '@rspress/core/theme';
+export * from '@rspress/core/theme-original';

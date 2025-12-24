@@ -13,7 +13,7 @@ Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files 
 
 - `.mjs` or `.js` with `"type": "module"` in package.json
   - No CommonJS allowed, for example, you can't use `require`, `module.exports` or `exports`
-  - File extensions are required when importing, e.g, you should use import './src/App.mjs' instead of import './src/App' (you can disable this enforcement with Rule.resolve.fullySpecified)
+  - File extensions are required when importing, e.g, you should use import './src/App.mjs' instead of import './src/App' (you can disable this enforcement with [rules[].resolve.fullySpecified](/config/module-rules#rulesresolve))
 - `.cjs` or `.js` with "type": "commonjs" in package.json
   - Neither import nor export is available
 
@@ -466,7 +466,7 @@ const defaultMimeRules = [
 
 ### Custom rules
 
-You can also use [Rule.mimetype](/config/module#rulemimetype) to extend the matching rules for Data URI modules, for example, to add custom loaders for `text/javascript`:
+You can also use [rules[].mimetype](/config/module-rules#rulesmimetype) to extend the matching rules for Data URI modules, for example, to add custom loaders for `text/javascript`:
 
 ```js title="rspack.config.mjs"
 export default {

@@ -43,7 +43,7 @@ impl CheckVarDeclaratorIdent {
           create_traceable_error(
             "JavaScript parse error".into(),
             format!("The keyword '{}' is reserved in strict mode", ident.sym),
-            parser.source_file,
+            parser.source.to_owned(),
             ident.span().into(),
           )
           .into(),
@@ -53,7 +53,7 @@ impl CheckVarDeclaratorIdent {
           create_traceable_error(
             "JavaScript parse error".into(),
             format!("{} is disallowed as a lexically bound name", ident.sym),
-            parser.source_file,
+            parser.source.to_owned(),
             ident.span().into(),
           )
           .into(),

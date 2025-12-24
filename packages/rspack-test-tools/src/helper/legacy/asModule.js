@@ -16,7 +16,8 @@ module.exports = async (something, context, unlinked) => {
 	const code = [...new Set(["default", ...Object.keys(something)])]
 		.map(
 			name =>
-				`const _${name} = ${SYNTHETIC_MODULES_STORE}[${i}]${name === "default" ? "" : `[${JSON.stringify(name)}]`
+				`const _${name} = ${SYNTHETIC_MODULES_STORE}[${i}]${
+					name === "default" ? "" : `[${JSON.stringify(name)}]`
 				}; export { _${name} as ${name}};`
 		)
 		.join("\n");
@@ -24,7 +25,7 @@ module.exports = async (something, context, unlinked) => {
 		context
 	});
 	if (unlinked) return m;
-	await m.link(() => { });
+	await m.link(() => {});
 	await m.evaluate();
 	return m;
 };
