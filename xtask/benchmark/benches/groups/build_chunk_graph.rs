@@ -176,13 +176,6 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .await
       .unwrap();
     compiler.compilation.build_module_graph().await.unwrap();
-    compiler.compilation.module_graph = Some(
-      compiler
-        .compilation
-        .build_module_graph_artifact
-        .module_graph
-        .clone(),
-    );
 
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();
@@ -215,13 +208,6 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());
-  compiler.compilation.module_graph = Some(
-    compiler
-      .compilation
-      .build_module_graph_artifact
-      .module_graph
-      .clone(),
-  );
 
   c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
@@ -244,5 +230,4 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.async_entrypoints = Default::default();
   compilation.named_chunk_groups = Default::default();
   compilation.named_chunks = Default::default();
-  compilation.module_graph = Some(compilation.build_module_graph_artifact.module_graph.clone());
 }
