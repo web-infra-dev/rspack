@@ -2,7 +2,7 @@ pub mod rollback;
 use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -11,7 +11,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, rollback::OverlayMap,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -86,7 +86,7 @@ pub(crate) struct ModuleGraphData {
   dependency_id_to_parents: rollback::RollbackMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: OverlayMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: rollback::RollbackMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
@@ -101,9 +101,7 @@ impl ModuleGraphData {
     self.dependency_id_to_parents.checkpoint();
 
     self.connection_to_condition.checkpoint();
-    // we modify exports_info by get_mut in seal phase, which can't be easily rollback,
-    // we need to clone the whole map for checkpoint
-    self.exports_info_map.checkpoint();
+    // exports_info_map and dep_meta_map are not used for build_module_graph
   }
   fn recover(&mut self) {
     self.modules.recover_from_last_checkpoint();
@@ -112,10 +110,10 @@ impl ModuleGraphData {
     self.module_graph_modules.recover_from_last_checkpoint();
     self.connections.recover_from_last_checkpoint();
     self.dependency_id_to_parents.recover_from_last_checkpoint();
-    self.exports_info_map.recover_from_last_checkpoint();
     self.connection_to_condition.recover_from_last_checkpoint();
     // not used for build_module_graph
     self.dep_meta_map.clear();
+    self.exports_info_map.clear();
   }
 }
 
