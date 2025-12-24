@@ -1,5 +1,5 @@
 pub mod snapshot_map;
-use std::{collections::hash_map::Entry, hash::Hash};
+use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
@@ -141,20 +141,8 @@ impl ModuleGraph {
     self.inner.recover()
   }
 }
-/// Type alias for backward compatibility - ModuleGraphRef is now just ModuleGraph
-pub type ModuleGraphRef<'a> = ModuleGraph;
-/// Type alias for backward compatibility - ModuleGraphMut is now just ModuleGraph
-pub type ModuleGraphMut<'a> = ModuleGraph;
 
 impl ModuleGraph {
-  pub(crate) fn new(inner: ModuleGraphData) -> Self {
-    Self { inner }
-  }
-
-  pub(crate) fn into_inner(self) -> ModuleGraphData {
-    self.inner
-  }
-
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
     self

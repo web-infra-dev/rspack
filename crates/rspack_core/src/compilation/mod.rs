@@ -64,7 +64,7 @@ use crate::{
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
   incremental::{self, Incremental, IncrementalPasses, Mutation},
-  is_source_equal, module,
+  is_source_equal,
   old_cache::Cache as OldCache,
   to_identifier,
 };
@@ -449,10 +449,7 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn sync_last_module_graph_artifact_to_new_compilation(
-    &mut self,
-    new_compilation: &mut Compilation,
-  ) {
+  pub fn recover_module_graph_from_new_compilation(&mut self, new_compilation: &mut Compilation) {
     std::mem::swap(
       &mut self.build_module_graph_artifact,
       &mut new_compilation.build_module_graph_artifact,
@@ -461,6 +458,10 @@ impl Compilation {
 
     let module_graph = new_compilation.module_graph.take();
     new_compilation.build_module_graph_artifact.module_graph = module_graph.unwrap_or_default();
+    new_compilation
+      .build_module_graph_artifact
+      .module_graph
+      .recover();
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);

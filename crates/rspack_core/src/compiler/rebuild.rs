@@ -86,7 +86,7 @@ impl Compiler {
         // build_module_graph stage used
         self
           .compilation
-          .sync_last_module_graph_artifact_to_new_compilation(&mut new_compilation);
+          .recover_module_graph_from_new_compilation(&mut new_compilation);
 
         // seal stage used
         new_compilation.build_chunk_graph_artifact =
@@ -189,7 +189,6 @@ impl Compiler {
 
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
-    self.compilation.module_graph.as_mut().unwrap().recover();
 
     #[cfg(allocative)]
     crate::utils::snapshot_allocative("rebuild");
