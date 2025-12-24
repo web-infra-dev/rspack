@@ -1,5 +1,5 @@
 pub mod snapshot_map;
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, hash::Hash};
 
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
@@ -91,7 +91,7 @@ pub(crate) struct ModuleGraphData {
   exports_info_map: snapshot_map::SnapshotMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: snapshot_map::SnapshotMap<DependencyId, DependencyCondition>,
-  dep_meta_map: snapshot_map::SnapshotMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn save(&mut self) {
@@ -103,9 +103,17 @@ impl ModuleGraphData {
     self.dependency_id_to_parents.save();
     self.exports_info_map.save();
     self.connection_to_condition.save();
-    self.dep_meta_map.save();
   }
   fn recover(&mut self) {
+    dbg!(self.modules.mutations_len());
+    dbg!(self.dependencies.mutations_len());
+    dbg!(self.blocks.mutations_len());
+    dbg!(self.module_graph_modules.mutations_len());
+    dbg!(self.connections.mutations_len());
+    dbg!(self.dependency_id_to_parents.mutations_len());
+    dbg!(self.exports_info_map.mutations_len());
+    dbg!(self.connection_to_condition.mutations_len());
+    let start = std::time::Instant::now();
     self.modules.recover();
     self.dependencies.recover();
     self.blocks.recover();
@@ -114,7 +122,9 @@ impl ModuleGraphData {
     self.dependency_id_to_parents.recover();
     self.exports_info_map.recover();
     self.connection_to_condition.recover();
-    self.dep_meta_map.recover();
+    self.dep_meta_map.clear();
+    let duration = start.elapsed();
+    eprintln!("ModuleGraph recover took: {:?}", duration);
   }
 }
 

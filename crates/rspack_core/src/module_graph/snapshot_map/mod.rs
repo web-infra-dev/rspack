@@ -3,7 +3,7 @@ use std::{fmt::Debug, hash::Hash};
 use rayon::iter::IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator;
 use rustc_hash::FxHashMap;
 #[derive(Debug, Clone)]
-enum Action<K, V> {
+pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
   Removed { key: K, value: V },
 }
@@ -117,6 +117,10 @@ where
   }
   pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
     self.map.iter()
+  }
+  // check the length of mutations for debug performance purpose
+  pub fn mutations_len(&self) -> usize {
+    self.undo_stack.len()
   }
 }
 
