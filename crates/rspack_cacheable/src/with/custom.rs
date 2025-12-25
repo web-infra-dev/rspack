@@ -5,8 +5,9 @@ use rkyv::{
   ser::Sharing,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
+use rspack_cacheable_macros::enable_cacheable as cacheable;
 
-use crate::{ContextGuard, Error, Result, cacheable};
+use crate::{ContextGuard, Error, Result};
 
 /// A trait for writing custom serialization and deserialization.
 ///
