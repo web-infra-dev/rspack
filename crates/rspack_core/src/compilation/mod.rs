@@ -451,7 +451,7 @@ impl Compilation {
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
-      .recover_from_last_checkpoint();
+      .reset();
     std::mem::swap(
       &mut self.build_module_graph_artifact,
       &mut new_compilation.build_module_graph_artifact,

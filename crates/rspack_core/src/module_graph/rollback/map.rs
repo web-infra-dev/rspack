@@ -101,7 +101,7 @@ where
   }
 
   /// Undo everything recorded since the last checkpoint. Returns how many actions were undone.
-  pub fn recover_from_last_checkpoint(&mut self) -> usize {
+  pub fn reset(&mut self) -> usize {
     let mut undone = 0;
     while self.undo() {
       undone += 1;
@@ -157,7 +157,7 @@ mod tests {
     assert_eq!(snapshot_map.get(&"b".to_string()), Some(&2));
     assert_eq!(snapshot_map.get(&"c".to_string()), Some(&3));
 
-    let undone = snapshot_map.recover_from_last_checkpoint();
+    let undone = snapshot_map.reset();
     assert_eq!(undone, 2);
 
     assert_eq!(snapshot_map.get(&"a".to_string()), Some(&1));

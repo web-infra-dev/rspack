@@ -104,13 +104,13 @@ impl ModuleGraphData {
     // exports_info_map and dep_meta_map are not used for build_module_graph
   }
   fn recover(&mut self) {
-    self.modules.recover_from_last_checkpoint();
-    self.dependencies.recover_from_last_checkpoint();
-    self.blocks.recover_from_last_checkpoint();
-    self.module_graph_modules.recover_from_last_checkpoint();
-    self.connections.recover_from_last_checkpoint();
-    self.dependency_id_to_parents.recover_from_last_checkpoint();
-    self.connection_to_condition.recover_from_last_checkpoint();
+    self.modules.reset();
+    self.dependencies.reset();
+    self.blocks.reset();
+    self.module_graph_modules.reset();
+    self.connections.reset();
+    self.dependency_id_to_parents.reset();
+    self.connection_to_condition.reset();
     // reset data to save memory
     self.dep_meta_map.clear();
     // similar as https://github.com/web-infra-dev/rspack/blob/c1fdcab1dc3cfc5e52255e1670bc4ced8263049e/crates/rspack_core/src/cache/persistent/occasion/make/module_graph.rs#L175
@@ -129,7 +129,8 @@ impl ModuleGraph {
   pub fn checkpoint(&mut self) {
     self.inner.checkpoint()
   }
-  pub fn recover_from_last_checkpoint(&mut self) {
+  // reset to last checkpoint
+  pub fn reset(&mut self) {
     self.inner.recover()
   }
 }

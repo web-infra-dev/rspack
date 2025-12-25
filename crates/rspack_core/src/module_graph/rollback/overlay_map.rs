@@ -37,7 +37,7 @@ where
   }
 
   /// Drop the overlay without applying its changes.
-  pub fn recover_from_last_checkpoint(&mut self) {
+  pub fn reset(&mut self) {
     self.overlay = None;
   }
 
