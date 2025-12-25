@@ -1,9 +1,9 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { BuiltinPluginName } from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export const InlineExportsPlugin = create(
-	BuiltinPluginName.InlineExportsPlugin,
-	() => {},
-	"compilation"
+  BuiltinPluginName.InlineExportsPlugin,
+  () => {},
+  'compilation',
 );

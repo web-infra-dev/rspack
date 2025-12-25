@@ -60,7 +60,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: "release"
+      profile: 'release'
       test: false
 
   publish:

@@ -638,7 +638,7 @@ export default {
   },
   plugins: [
     {
-      apply: compiler => {
+      apply: (compiler) => {
         compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
           compiler.inputFileSystem = {
             readFile(path, cb) {

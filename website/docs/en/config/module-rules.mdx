@@ -390,7 +390,7 @@ export default {
         test: /\.js$/,
         include: /node_modules/,
         descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
+          name: (packageJsonName) => packageJsonName.includes('rspack'),
         },
         // additional rule options...
       },
@@ -713,7 +713,7 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => [
+        use: (info) => [
           {
             loader: 'svgo-loader',
             options: {

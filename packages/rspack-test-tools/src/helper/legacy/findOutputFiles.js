@@ -1,8 +1,8 @@
 // @ts-nocheck
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 /**
  * @param {{output: {path: string}}} options options
@@ -11,9 +11,9 @@ const path = require("path");
  * @returns {string[]} files
  */
 module.exports = function findOutputFiles(options, regexp, subpath) {
-	const files = fs.readdirSync(
-		subpath ? path.join(options.output.path, subpath) : options.output.path
-	);
+  const files = fs.readdirSync(
+    subpath ? path.join(options.output.path, subpath) : options.output.path,
+  );
 
-	return files.filter(file => regexp.test(file));
+  return files.filter((file) => regexp.test(file));
 };

@@ -1,3 +1,3 @@
 export default function RemoteComponent() {
-	return <p>Remote Component</p>;
+  return <p>Remote Component</p>;
 }

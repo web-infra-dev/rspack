@@ -1,84 +1,84 @@
 {
-	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-	"formatter": {
-		"enabled": false
-	},
-	"json": {
-		"parser": {
-			"allowComments": true,
-			"allowTrailingCommas": true
-		}
-	},
-	"assist": {
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"a11y": {
-				"useKeyWithClickEvents": "off"
-			},
-			"complexity": {
-				"useArrowFunction": "off",
-				"noStaticOnlyClass": "off",
-				"noThisInStatic": "off",
-				"noBannedTypes": "off",
-				"noArguments": "off"
-			},
-			"correctness": {
-				"noConstructorReturn": "off",
-				"noVoidTypeReturn": "off",
-				"noUnusedPrivateClassMembers": "off",
-				"noUnusedFunctionParameters": "off"
-			},
-			"style": {
-				"noNonNullAssertion": "off"
-			},
-			"performance": {
-				"noDelete": "off",
-				"noDynamicNamespaceImportAccess": "off"
-			},
-			"suspicious": {
-				"noConfusingVoidType": "off",
-				"noPrototypeBuiltins": "off",
-				"noAssignInExpressions": "off",
-				"noControlCharactersInRegex": "off",
-				"noExplicitAny": "off",
-				"noImplicitAnyLet": "off",
-				"noUnknownAtRules": "off",
-				"useIterableCallbackReturn": "off",
-				"noTsIgnore": "off"
-			}
-		}
-	},
-	"files": {
-		"includes": [
-			"**/packages/**/*",
-			"**/examples/**/*",
-			"**/scripts/**/*",
-			"**/website/**/*",
-			"**/npm/**/*",
-			"!**/tests/**/*",
-			"!**/*.d.ts",
-			"!**/*.vue",
-			"!**/packages/rspack-test-tools/template",
-			"!**/packages/rspack-test-tools/src/helper/legacy/**/*",
-			"!**/packages/rspack-test-tools/template/*",
-			// --- ignore runtime code in browser
-			"!**/packages/rspack/hot",
-			"!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
-		],
-		"ignoreUnknown": true
-	},
-	"vcs": {
-		"enabled": true,
-		"defaultBranch": "main",
-		"clientKind": "git",
-		"useIgnoreFile": true
-	}
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "formatter": {
+    "enabled": false,
+  },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true,
+    },
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+      },
+    },
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+      },
+      "complexity": {
+        "useArrowFunction": "off",
+        "noStaticOnlyClass": "off",
+        "noThisInStatic": "off",
+        "noBannedTypes": "off",
+        "noArguments": "off",
+      },
+      "correctness": {
+        "noConstructorReturn": "off",
+        "noVoidTypeReturn": "off",
+        "noUnusedPrivateClassMembers": "off",
+        "noUnusedFunctionParameters": "off",
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+      },
+      "performance": {
+        "noDelete": "off",
+        "noDynamicNamespaceImportAccess": "off",
+      },
+      "suspicious": {
+        "noConfusingVoidType": "off",
+        "noPrototypeBuiltins": "off",
+        "noAssignInExpressions": "off",
+        "noControlCharactersInRegex": "off",
+        "noExplicitAny": "off",
+        "noImplicitAnyLet": "off",
+        "noUnknownAtRules": "off",
+        "useIterableCallbackReturn": "off",
+        "noTsIgnore": "off",
+      },
+    },
+  },
+  "files": {
+    "includes": [
+      "**/packages/**/*",
+      "**/examples/**/*",
+      "**/scripts/**/*",
+      "**/website/**/*",
+      "**/npm/**/*",
+      "!**/tests/**/*",
+      "!**/*.d.ts",
+      "!**/*.vue",
+      "!**/packages/rspack-test-tools/template",
+      "!**/packages/rspack-test-tools/src/helper/legacy/**/*",
+      "!**/packages/rspack-test-tools/template/*",
+      // --- ignore runtime code in browser
+      "!**/packages/rspack/hot",
+      "!**/packages/rspack/src/runtime/moduleFederationDefaultRuntime.js",
+    ],
+    "ignoreUnknown": true,
+  },
+  "vcs": {
+    "enabled": true,
+    "defaultBranch": "main",
+    "clientKind": "git",
+    "useIgnoreFile": true,
+  },
 }

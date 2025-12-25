@@ -207,7 +207,7 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };

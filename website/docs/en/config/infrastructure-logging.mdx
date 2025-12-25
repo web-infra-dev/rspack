@@ -20,7 +20,7 @@ export default {
     level: 'verbose',
   },
   plugins: [
-    compiler => {
+    (compiler) => {
       const logger = compiler.getInfrastructureLogger('MyPlugin');
       logger.status('first output'); // this line won't be overridden with `appendOnly` enabled
       logger.status('second output');
@@ -43,7 +43,7 @@ export default {
     level: 'verbose',
   },
   plugins: [
-    compiler => {
+    (compiler) => {
       const logger = compiler.getInfrastructureLogger('MyPlugin');
       logger.log('this output will be colorful');
     },
@@ -79,7 +79,7 @@ export default {
   //...
   infrastructureLogging: {
     level: 'info',
-    debug: ['MyPlugin', /MyPlugin/, name => name.contains('MyPlugin')],
+    debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
   },
 };
 ```

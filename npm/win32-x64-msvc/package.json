@@ -13,8 +13,14 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": ["win32"],
-    "cpu": ["x64"]
+    "os": [
+      "win32"
+    ],
+    "cpu": [
+      "x64"
+    ]
   },
-  "files": ["rspack.win32-x64-msvc.node"]
+  "files": [
+    "rspack.win32-x64-msvc.node"
+  ]
 }

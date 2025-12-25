@@ -569,7 +569,7 @@ HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标
 ```js title="rspack.config.mjs"
 const HtmlModifyPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
+    compiler.hooks.compilation.tap('HtmlModifyPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       // hooks.beforeAssetTagGeneration.tapPromise()
       // hooks.alterAssetTags.tapPromise()
@@ -618,11 +618,11 @@ export default {
 ```js title="rspack.config.mjs"
 const AddScriptPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
+    compiler.hooks.compilation.tap('AddScriptPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       hooks.beforeAssetTagGeneration.tapPromise(
         'AddScriptPlugin',
-        async data => {
+        async (data) => {
           data.assets.js.push('extra-script.js');
         },
       );
@@ -677,10 +677,10 @@ export default {
 ```js title="rspack.config.mjs"
 const AddAttributePlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+    compiler.hooks.compilation.tap('AddAttributePlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.alterAssetTags.tapPromise('AddAttributePlugin', async data => {
-        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+      hooks.alterAssetTags.tapPromise('AddAttributePlugin', async (data) => {
+        data.assetTags.scripts = data.assetTags.scripts.map((tag) => {
           if (tag.tagName === 'script') {
             tag.attributes.specialAttribute = true;
           }
@@ -722,11 +722,11 @@ export default {
 ```js title="rspack.config.mjs"
 const MoveTagsPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
+    compiler.hooks.compilation.tap('MoveTagsPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.alterAssetTagGroups.tapPromise('MoveTagsPlugin', async data => {
-        data.headTags.push(data.headTags.bodyTags.filter(i => i.async));
-        data.bodyTags = data.bodyTags.filter(i => !i.async);
+      hooks.alterAssetTagGroups.tapPromise('MoveTagsPlugin', async (data) => {
+        data.headTags.push(data.headTags.bodyTags.filter((i) => i.async));
+        data.bodyTags = data.bodyTags.filter((i) => !i.async);
       });
     });
   },
@@ -771,11 +771,11 @@ export default {
 ```js title="rspack.config.mjs"
 const InjectContentPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       hooks.afterTemplateExecution.tapPromise(
         'InjectContentPlugin',
-        async pluginArgs => {
+        async (pluginArgs) => {
           pluginArgs.html = pluginArgs.html.replace(
             '</body>',
             'Injected by plugin</body>',
@@ -821,9 +821,9 @@ export default {
 ```js title="rspack.config.mjs"
 const InjectContentPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.beforeEmit.tapPromise('InjectContentPlugin', async data => {
+      hooks.beforeEmit.tapPromise('InjectContentPlugin', async (data) => {
         data.html = data.html.replace('</body>', 'Injected by plugin</body>');
       });
     });

@@ -205,7 +205,7 @@ export default {
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };

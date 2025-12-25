@@ -571,7 +571,7 @@ HtmlRspackPlugin provides some hooks that allow you to modify tags or generated 
 ```js title="rspack.config.mjs"
 const HtmlModifyPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
+    compiler.hooks.compilation.tap('HtmlModifyPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       // hooks.beforeAssetTagGeneration.tapPromise()
       // hooks.alterAssetTags.tapPromise()
@@ -621,11 +621,11 @@ The following code adds an additional `extra-script.js` and generates a `<script
 ```js title="rspack.config.mjs"
 const AddScriptPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
+    compiler.hooks.compilation.tap('AddScriptPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       hooks.beforeAssetTagGeneration.tapPromise(
         'AddScriptPlugin',
-        async data => {
+        async (data) => {
           data.assets.js.push('extra-script.js');
         },
       );
@@ -683,10 +683,10 @@ The following code adds the `specialAttribute` property to all `script` type tag
 ```js title="rspack.config.mjs"
 const AddAttributePlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+    compiler.hooks.compilation.tap('AddAttributePlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.alterAssetTags.tapPromise('AddAttributePlugin', async data => {
-        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+      hooks.alterAssetTags.tapPromise('AddAttributePlugin', async (data) => {
+        data.assetTags.scripts = data.assetTags.scripts.map((tag) => {
           if (tag.tagName === 'script') {
             tag.attributes.specialAttribute = true;
           }
@@ -731,11 +731,11 @@ The following code moves the `async` `script` tags from `body` to `head`:
 ```js title="rspack.config.mjs"
 const MoveTagsPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
+    compiler.hooks.compilation.tap('MoveTagsPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.alterAssetTagGroups.tapPromise('MoveTagsPlugin', async data => {
-        data.headTags.push(data.headTags.bodyTags.filter(i => i.async));
-        data.bodyTags = data.bodyTags.filter(i => !i.async);
+      hooks.alterAssetTagGroups.tapPromise('MoveTagsPlugin', async (data) => {
+        data.headTags.push(data.headTags.bodyTags.filter((i) => i.async));
+        data.bodyTags = data.bodyTags.filter((i) => !i.async);
       });
     });
   },
@@ -783,11 +783,11 @@ The following code adds `Injected by plugin` at the end of the body. Then the ta
 ```js title="rspack.config.mjs"
 const InjectContentPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       hooks.afterTemplateExecution.tapPromise(
         'InjectContentPlugin',
-        async data => {
+        async (data) => {
           data.html = data.html.replace('</body>', 'Injected by plugin</body>');
         },
       );
@@ -831,9 +831,9 @@ The following code adds `Injected by plugin` at the end of the body. It will be 
 ```js title="rspack.config.mjs"
 const InjectContentPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
+    compiler.hooks.compilation.tap('InjectContentPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.beforeEmit.tapPromise('InjectContentPlugin', async data => {
+      hooks.beforeEmit.tapPromise('InjectContentPlugin', async (data) => {
         data.html = data.html.replace('</body>', 'Injected by plugin</body>');
       });
     });

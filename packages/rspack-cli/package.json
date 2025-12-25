@@ -23,7 +23,10 @@
   "bin": {
     "rspack": "./bin/rspack.js"
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",

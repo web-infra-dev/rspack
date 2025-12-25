@@ -5,12 +5,12 @@ on:
     inputs:
       dry_run:
         type: boolean
-        description: "DryRun release"
+        description: 'DryRun release'
         required: true
         default: false
       push_tags:
         type: boolean
-        description: "Push tags to repository"
+        description: 'Push tags to repository'
         required: true
         default: true
 
@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/reusable-rust-test.yml
     with:
       # Use separated strategy to check all crates
-      cargo-check-strategy: "separated"
+      cargo-check-strategy: 'separated'
 
   release_crates:
     environment: crate

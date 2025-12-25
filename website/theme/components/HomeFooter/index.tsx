@@ -113,11 +113,11 @@ export const HomeFooter = memo(() => {
       style={{ borderColor: 'var(--rp-c-divider-light)' }}
     >
       <div className="pt-12 pb-4 w-full justify-around max-w-6xl flex">
-        {footerData.map(item => (
+        {footerData.map((item) => (
           <div key={item.title} className="flex flex-col items-start">
             <h2 className="font-bold my-4 text-lg">{item.title}</h2>
             <ul className="flex flex-col gap-3">
-              {item.items.map(subItem => (
+              {item.items.map((subItem) => (
                 <li key={subItem.title}>
                   <Link href={subItem.link}>
                     <span className={`font-normal ${styles.text}`}>

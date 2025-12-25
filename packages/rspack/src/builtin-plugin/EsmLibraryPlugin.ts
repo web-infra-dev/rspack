@@ -1,91 +1,91 @@
-import { BuiltinPluginName } from "@rspack/binding";
-import rspack from "..";
-import type { Compiler } from "../Compiler";
-import type { RspackOptionsNormalized } from "../config";
-import type { Logger } from "../logging/Logger";
-import { RemoveDuplicateModulesPlugin } from "./RemoveDuplicateModulesPlugin";
+import { BuiltinPluginName } from '@rspack/binding';
+import rspack from '..';
+import type { Compiler } from '../Compiler';
+import type { RspackOptionsNormalized } from '../config';
+import type { Logger } from '../logging/Logger';
+import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 
 function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
-	// concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
-	options.optimization.concatenateModules = false;
+  // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
+  options.optimization.concatenateModules = false;
 
-	// esm library won't have useless empty chunk, the empty chunk for esm lib is to re-exports
-	options.optimization.removeEmptyChunks = false;
+  // esm library won't have useless empty chunk, the empty chunk for esm lib is to re-exports
+  options.optimization.removeEmptyChunks = false;
 
-	// chunk rendering is handled by EsmLibraryPlugin
-	options.output.chunkFormat = false;
+  // chunk rendering is handled by EsmLibraryPlugin
+  options.output.chunkFormat = false;
 
-	// mark output is module
-	options.output.module = true;
+  // mark output is module
+  options.output.module = true;
 
-	if (options.output.chunkLoading && options.output.chunkLoading !== "import") {
-		logger.warn(
-			`\`output.chunkLoading\` should be \`"import"\` or \`false\`, but got ${options.output.chunkLoading}, changed it to \`"import"\``
-		);
-		options.output.chunkLoading = "import";
-	}
+  if (options.output.chunkLoading && options.output.chunkLoading !== 'import') {
+    logger.warn(
+      `\`output.chunkLoading\` should be \`"import"\` or \`false\`, but got ${options.output.chunkLoading}, changed it to \`"import"\``,
+    );
+    options.output.chunkLoading = 'import';
+  }
 
-	if (options.output.chunkLoading === undefined) {
-		options.output.chunkLoading = "import";
-	}
+  if (options.output.chunkLoading === undefined) {
+    options.output.chunkLoading = 'import';
+  }
 
-	if (options.output.library) {
-		options.output.library = undefined;
-	}
+  if (options.output.library) {
+    options.output.library = undefined;
+  }
 
-	let { splitChunks } = options.optimization;
-	if (splitChunks === undefined) {
-		splitChunks = options.optimization.splitChunks = {};
-	}
+  let { splitChunks } = options.optimization;
+  if (splitChunks === undefined) {
+    splitChunks = options.optimization.splitChunks = {};
+  }
 
-	if (splitChunks !== false) {
-		splitChunks.chunks = "all";
-		splitChunks.minSize = 0;
-		splitChunks.maxAsyncRequests = Infinity;
-		splitChunks.maxInitialRequests = Infinity;
-		splitChunks.cacheGroups ??= {};
-		splitChunks.cacheGroups.default = false;
-		splitChunks.cacheGroups.defaultVendors = false;
-	}
+  if (splitChunks !== false) {
+    splitChunks.chunks = 'all';
+    splitChunks.minSize = 0;
+    splitChunks.maxAsyncRequests = Infinity;
+    splitChunks.maxInitialRequests = Infinity;
+    splitChunks.cacheGroups ??= {};
+    splitChunks.cacheGroups.default = false;
+    splitChunks.cacheGroups.defaultVendors = false;
+  }
 }
 
 export class EsmLibraryPlugin {
-	static PLUGIN_NAME = "EsmLibraryPlugin";
-	options?: { preserveModules?: string };
+  static PLUGIN_NAME = 'EsmLibraryPlugin';
+  options?: { preserveModules?: string };
 
-	constructor(options?: { preserveModules?: string }) {
-		this.options = options;
-	}
+  constructor(options?: { preserveModules?: string }) {
+    this.options = options;
+  }
 
-	apply(compiler: Compiler) {
-		const logger = compiler.getInfrastructureLogger(
-			EsmLibraryPlugin.PLUGIN_NAME
-		);
-		applyLimits(compiler.options, logger);
-		new RemoveDuplicateModulesPlugin().apply(compiler);
+  apply(compiler: Compiler) {
+    const logger = compiler.getInfrastructureLogger(
+      EsmLibraryPlugin.PLUGIN_NAME,
+    );
+    applyLimits(compiler.options, logger);
+    new RemoveDuplicateModulesPlugin().apply(compiler);
 
-		let err;
-		if ((err = checkConfig(compiler.options))) {
-			throw new rspack.WebpackError(
-				`Conflicted config for ${EsmLibraryPlugin.PLUGIN_NAME}: ${err}`
-			);
-		}
+    let err;
+    if ((err = checkConfig(compiler.options))) {
+      throw new rspack.WebpackError(
+        `Conflicted config for ${EsmLibraryPlugin.PLUGIN_NAME}: ${err}`,
+      );
+    }
 
-		compiler.__internal__registerBuiltinPlugin({
-			name: BuiltinPluginName.EsmLibraryPlugin,
-			options: {
-				preserveModules: this.options?.preserveModules
-			}
-		});
-	}
+    compiler.__internal__registerBuiltinPlugin({
+      name: BuiltinPluginName.EsmLibraryPlugin,
+      options: {
+        preserveModules: this.options?.preserveModules,
+      },
+    });
+  }
 }
 
 function checkConfig(config: RspackOptionsNormalized): string | undefined {
-	if (config.optimization.concatenateModules) {
-		return "You should disable `config.optimization.concatenateModules`";
-	}
+  if (config.optimization.concatenateModules) {
+    return 'You should disable `config.optimization.concatenateModules`';
+  }
 
-	if (config.output.chunkFormat !== false) {
-		return "You should disable default chunkFormat by `config.output.chunkFormat = false`";
-	}
+  if (config.output.chunkFormat !== false) {
+    return 'You should disable default chunkFormat by `config.output.chunkFormat = false`';
+  }
 }

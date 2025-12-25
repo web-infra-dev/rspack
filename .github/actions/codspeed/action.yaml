@@ -1,16 +1,16 @@
-name: "CodSpeed Performance Analysis"
-description: "Continuous benchmarking and performance checks"
+name: 'CodSpeed Performance Analysis'
+description: 'Continuous benchmarking and performance checks'
 branding:
   color: orange
   icon: activity
 
-author: "Arthur Pastel"
+author: 'Arthur Pastel'
 inputs:
   token:
-    description: "CodSpeed upload token"
+    description: 'CodSpeed upload token'
     required: false
   run:
-    description: "The command to run the benchmarks"
+    description: 'The command to run the benchmarks'
     required: true
 
   working-directory:
@@ -19,11 +19,11 @@ inputs:
       Warning: if you use defaults.working-directory, you must still set this parameter.
     required: false
   upload-url:
-    description: "The upload endpoint (for on-premise deployments)"
+    description: 'The upload endpoint (for on-premise deployments)'
     required: false
 
   runner-version:
-    description: "The version of the runner to use"
+    description: 'The version of the runner to use'
     required: false
 
   mode:
@@ -50,12 +50,12 @@ inputs:
     required: false
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - shell: bash
       env:
-        GH_MATRIX: "${{ toJson(matrix) }}"
-        GH_STRATEGY: "${{ toJson(strategy) }}"
+        GH_MATRIX: '${{ toJson(matrix) }}'
+        GH_STRATEGY: '${{ toJson(strategy) }}'
       run: |
         # Configure and run codspeed-runner
         # if [ -n "${{ inputs.runner-version }}" ]; then

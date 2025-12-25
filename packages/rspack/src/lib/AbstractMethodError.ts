@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import WebpackError from "./WebpackError";
+import WebpackError from './WebpackError';
 
 const CURRENT_METHOD_REGEXP = /at ([a-zA-Z0-9_.]*)/;
 
@@ -17,17 +17,17 @@ const CURRENT_METHOD_REGEXP = /at ([a-zA-Z0-9_.]*)/;
  * @returns message
  */
 function createMessage(method?: string): string {
-	return `Abstract method${method ? ` ${method}` : ""}. Must be overridden.`;
+  return `Abstract method${method ? ` ${method}` : ''}. Must be overridden.`;
 }
 
 class Message extends Error {
-	constructor() {
-		super();
-		this.stack = undefined;
-		Error.captureStackTrace(this);
-		const match = this.stack!.split("\n")[3].match(CURRENT_METHOD_REGEXP);
-		this.message = match?.[1] ? createMessage(match[1]) : createMessage();
-	}
+  constructor() {
+    super();
+    this.stack = undefined;
+    Error.captureStackTrace(this);
+    const match = this.stack!.split('\n')[3].match(CURRENT_METHOD_REGEXP);
+    this.message = match?.[1] ? createMessage(match[1]) : createMessage();
+  }
 }
 
 /**
@@ -41,8 +41,8 @@ class Message extends Error {
  *
  */
 export class AbstractMethodError extends WebpackError {
-	constructor() {
-		super(new Message().message);
-		this.name = "AbstractMethodError";
-	}
+  constructor() {
+    super(new Message().message);
+    this.name = 'AbstractMethodError';
+  }
 }

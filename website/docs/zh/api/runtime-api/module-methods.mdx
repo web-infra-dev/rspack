@@ -73,7 +73,7 @@ function import(path: string): Promise;
 
 ```js
 if (module.hot) {
-  import('lodash').then(_ => {
+  import('lodash').then((_) => {
     // 使用 lodash 做些事情...
   });
 }
@@ -94,7 +94,7 @@ if (module.hot) {
 ```js
 // 想象一下，如果我们有一种方法可以从 Cookie 或其他存储中获取语言
 const language = detectVisitorLanguage();
-import(`./locale/${language}.json`).then(module => {
+import(`./locale/${language}.json`).then((module) => {
   // 做一些翻译相关的事情
 });
 ```
@@ -139,7 +139,7 @@ import(
 这在需要从外部 CDN 动态加载 ESM 格式的第三方库时特别有用，例如：
 
 ```js
-import('https://esm.sh/react' /* webpackIgnore: true */).then(React => {
+import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```

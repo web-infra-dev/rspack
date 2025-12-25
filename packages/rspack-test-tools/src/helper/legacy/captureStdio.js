@@ -1,42 +1,42 @@
 // @ts-nocheck
-const { stripVTControlCharacters: stripAnsi } = require("node:util");
+const { stripVTControlCharacters: stripAnsi } = require('node:util');
 
 module.exports = (stdio, tty) => {
-	let logs = [];
+  let logs = [];
 
-	const write = stdio.write;
-	const isTTY = stdio.isTTY;
+  const write = stdio.write;
+  const isTTY = stdio.isTTY;
 
-	stdio.write = str => {
-		logs.push(str);
-	};
-	if (tty !== undefined) stdio.isTTY = tty;
+  stdio.write = (str) => {
+    logs.push(str);
+  };
+  if (tty !== undefined) stdio.isTTY = tty;
 
-	return {
-		data: logs,
+  return {
+    data: logs,
 
-		reset: () => (logs = []),
+    reset: () => (logs = []),
 
-		toString: () => {
-			return stripAnsi(logs.join("")).replace(
-				/\([^)]+\) (\[[^\]]+\]\s*)?(Deprecation|Experimental)Warning.+(\n\(Use .node.+\))?(\n(\s|BREAKING CHANGE).*)*(\n\s+at .*)*\n?/g,
-				""
-			);
-		},
+    toString: () => {
+      return stripAnsi(logs.join('')).replace(
+        /\([^)]+\) (\[[^\]]+\]\s*)?(Deprecation|Experimental)Warning.+(\n\(Use .node.+\))?(\n(\s|BREAKING CHANGE).*)*(\n\s+at .*)*\n?/g,
+        '',
+      );
+    },
 
-		toStringRaw: () => {
-			return logs.join("");
-		},
+    toStringRaw: () => {
+      return logs.join('');
+    },
 
-		restore() {
-			stdio.write = write;
-			stdio.isTTY = isTTY;
+    restore() {
+      stdio.write = write;
+      stdio.isTTY = isTTY;
 
-			delete require.cache[require.resolve("../../")];
-			// delete require.cache[
-			// 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
-			// ];
-			// delete require.cache[require.resolve("../../lib/node/nodeConsole")];
-		}
-	};
+      delete require.cache[require.resolve('../../')];
+      // delete require.cache[
+      // 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
+      // ];
+      // delete require.cache[require.resolve("../../lib/node/nodeConsole")];
+    },
+  };
 };

@@ -7,7 +7,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
   pull_request:
@@ -16,10 +16,10 @@ on:
     branches:
       - main
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -43,7 +43,7 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -71,7 +71,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
-      profile: "dev"
+      profile: 'dev'
       runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
       test-runner: '"windows-latest"'
       test: true
@@ -83,7 +83,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
-      profile: "ci"
+      profile: 'ci'
       runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
       test-runner: ${{ '"macos-latest"' }}
       test: true
@@ -95,7 +95,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
-      profile: "ci"
+      profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
 
@@ -160,7 +160,7 @@ jobs:
         test-wasm,
         check-changed,
         size-limit,
-        check-cache
+        check-cache,
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest

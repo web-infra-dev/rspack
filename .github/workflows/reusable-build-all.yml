@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       profile: # Rust profile, "ci" or "production" or "profiling"
-        default: "ci"
+        default: 'ci'
         required: false
         type: string
       test: # Run tests?

@@ -29,7 +29,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": ["dist", "hot", "compiled", "module.d.ts"],
+  "files": [
+    "dist",
+    "hot",
+    "compiled",
+    "module.d.ts"
+  ],
   "engines": {
     "node": ">=18.12.0"
   },

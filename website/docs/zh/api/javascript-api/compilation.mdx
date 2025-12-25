@@ -37,11 +37,11 @@ Compilation 对象是 Rspack 构建过程中的核心对象之一，每当 Rspac
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('thisCompilation hook called:', compilation);
     });
 
-    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation hook called:', compilation);
     });
   }
@@ -65,7 +65,7 @@ emitAsset(
 以下示例将添加一个 `asset-name.js` 的新产物且不会被压缩：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const buffer = Buffer.from(
@@ -113,7 +113,7 @@ updateAsset(
 以下示例将 `main.js` 的产物内容替换，且不触发代码压缩：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const updatedSource = new RawSource(
@@ -157,7 +157,7 @@ renameAsset(
 以下示例将 `main.js` 产物更名为 `my-asset-name.js`：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     compilation.renameAsset('main.js', 'my-asset-name.js');
   });
@@ -177,7 +177,7 @@ deleteAsset(
 以下示例将移除名为 `no-need.js` 的产物：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     compilation.deleteAsset('no-need.js');
   });
@@ -199,7 +199,7 @@ getAssets(): ReadonlyArray<{
 以下示例将打印所有产物的总体积大小：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const assets = compilation.getAssets();
     const totalSize = assets.reduce(
@@ -245,7 +245,7 @@ getAsset(
 以下示例将打印名为 `main.js` 的产物体积：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const assetSize = compilation.getAsset('main.js')?.source.size();
     console.log(`main size: ${assetSize}`);
@@ -382,7 +382,7 @@ getStats(): Stats;
 以下示例将输出模块总数：
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
+compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
@@ -409,7 +409,7 @@ createChildCompiler(
 以下示例将以 `child-entry.js` 作为入口添加子编译，并将产物输出到 `dist/child` 中:
 
 ```js
-compiler.hooks.make.tap('MyPlugin', compilation => {
+compiler.hooks.make.tap('MyPlugin', (compilation) => {
   const childCompiler = compilation.createChildCompiler(
     'ChildCompiler',
     {
@@ -469,7 +469,7 @@ export default {
           }
         }
 
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeRequirementInTree
             .for(RuntimeGlobals.ensureChunkHandlers)
             .tap('CustomPlugin', (chunk, set) => {
@@ -503,9 +503,9 @@ rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void
 以下示例将重新构建结尾为 `a.js` 模块：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
-  compilation.hooks.finishModules.tapPromise('MyPlugin', async modules => {
-    const oldModule = Array.from(modules).find(item =>
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
+    const oldModule = Array.from(modules).find((item) =>
       item.resource.endsWith('a.js'),
     );
     compilation.rebuildModule(oldModule, (err, m) => {
@@ -536,7 +536,7 @@ getLogger(name: string | (() => string)): Logger;
 以下示例在 `processAssets` 中打印产物信息到 debug 日志中：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   const logger = compilation.getLogger('MyPlugin');
 
   compilation.hooks.processAssets.tap('MyPlugin', () => {
