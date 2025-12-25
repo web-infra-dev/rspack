@@ -8,14 +8,14 @@ test('should compile', async ({ page, fileAction, rspack }) => {
   rspack.compiler.__sharedObj.useFullEntry = false;
   fileAction.updateFile('src/index2.js', (content) =>
     content.replace(
-      'div.innerText = "index2";',
-      'div.innerText = "index2 updated";',
+      "div.innerText = 'index2';",
+      "div.innerText = 'index2 updated';",
     ),
   );
   fileAction.updateFile('src/index1.js', (content) =>
     content.replace(
-      'div.innerText = "index1";',
-      'div.innerText = "index1 updated";',
+      "div.innerText = 'index1';",
+      "div.innerText = 'index1 updated';",
     ),
   );
 

@@ -4,7 +4,7 @@ test('should compile', async ({ page, fileAction, rspack }) => {
   await expect(page.getByText('index')).toBeVisible();
 
   fileAction.updateFile('src/index.js', (content) =>
-    content.replace('div.innerText = "index";', 'div.innerText = "error";'),
+    content.replace("div.innerText = 'index';", "div.innerText = 'error';"),
   );
 
   await page.reload();
@@ -17,7 +17,7 @@ test('should compile', async ({ page, fileAction, rspack }) => {
   expect(stats?.errors?.length).toBe(1);
 
   fileAction.updateFile('src/index.js', (content) =>
-    content.replace('div.innerText = "error";', 'div.innerText = "index";'),
+    content.replace("div.innerText = 'error';", "div.innerText = 'index';"),
   );
   await page.reload();
   await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(

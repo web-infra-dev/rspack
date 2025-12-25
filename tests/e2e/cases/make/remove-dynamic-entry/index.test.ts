@@ -7,8 +7,8 @@ test('should compile', async ({ page, fileAction, rspack }) => {
   fileAction.deleteFile('src/index2.js');
   fileAction.updateFile('src/index1.js', (content) =>
     content.replace(
-      'div.innerText = "index1";',
-      'div.innerText = "index1 updated";',
+      "div.innerText = 'index1';",
+      "div.innerText = 'index1 updated';",
     ),
   );
 

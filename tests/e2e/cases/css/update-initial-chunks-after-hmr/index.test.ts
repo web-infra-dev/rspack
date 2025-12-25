@@ -8,7 +8,7 @@ test('should update body css', async ({ page, fileAction }) => {
 
   // trigger css hmr
   fileAction.updateFile('src/index.js', (content) =>
-    content.replace('import "./blue.css";', '// import "./blue.css";'),
+    content.replace("import './blue.css';", "// import './blue.css';"),
   );
 
   await expect(page.locator('body')).toHaveCSS('background-color', COLOR_WHITE);
