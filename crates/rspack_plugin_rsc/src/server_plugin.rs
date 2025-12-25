@@ -324,7 +324,9 @@ impl RscServerPlugin {
 
     let module_graph = compilation.get_module_graph();
     let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
-    for (server_entry_module, entry_name, runtime) in server_entry_modules {
+    for (server_entry_module, entry_name, runtime, should_inject_ssr_modules) in
+      server_entry_modules
+    {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
 
@@ -355,9 +357,17 @@ impl RscServerPlugin {
 
         for client_entry_to_inject in client_entries_to_inject {
           let entry_name = client_entry_to_inject.entry_name.to_string();
-          let injected = self
-            .inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject, plugin_state)
-            .await;
+          let Some(injected) = self
+            .inject_client_entry_and_ssr_modules(
+              compilation,
+              client_entry_to_inject,
+              should_inject_ssr_modules,
+              plugin_state,
+            )
+            .await
+          else {
+            continue;
+          };
 
           // Track all created SSR dependencies for each entry from the server layer.
           created_ssr_dependencies_per_entry
@@ -676,8 +686,9 @@ impl RscServerPlugin {
     &self,
     compilation: &Compilation,
     client_entry: ClientEntry,
+    should_inject_ssr_modules: bool,
     plugin_state: &mut PluginState,
-  ) -> InjectedClientEntry {
+  ) -> Option<InjectedClientEntry> {
     let ClientEntry {
       entry_name,
       runtime,
@@ -746,6 +757,10 @@ impl RscServerPlugin {
       .injected_client_entries
       .insert(entry_name.to_string(), client_browser_loader);
 
+    if !should_inject_ssr_modules {
+      return None;
+    }
+
     let ssr_entry_dependency = EntryDependency::new(
       client_server_loader.to_string(),
       compilation.options.context.clone(),
@@ -753,8 +768,7 @@ impl RscServerPlugin {
       false,
     );
     let ssr_dependency_id = *(ssr_entry_dependency.id());
-
-    InjectedClientEntry {
+    Some(InjectedClientEntry {
       runtime,
       add_ssr_entry: (
         Box::new(ssr_entry_dependency),
@@ -764,7 +778,7 @@ impl RscServerPlugin {
         },
       ),
       ssr_dependency_id,
-    }
+    })
   }
 
   fn inject_action_entry(

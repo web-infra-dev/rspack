@@ -18,7 +18,9 @@ pub fn track_server_component_changes(
     Default::default();
   let mut cur_server_component_hashes = Default::default();
 
-  for (server_entry_module, entry_name, _runtime) in server_entry_modules {
+  for (server_entry_module, entry_name, _runtime, _should_inject_ssr_modules) in
+    server_entry_modules
+  {
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry
