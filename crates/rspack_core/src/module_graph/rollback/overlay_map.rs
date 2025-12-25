@@ -77,6 +77,13 @@ impl<K, V> OverlayMap<K, V>
 where
   K: Eq + Hash + Clone,
 {
+  pub fn new(base: HashMap<K, V>) -> Self {
+    Self {
+      base,
+      overlay: None,
+    }
+  }
+
   /// Enable overlay mode so subsequent mutations stay in the overlay.
   pub fn checkpoint(&mut self) {
     self.overlay.get_or_insert_with(HashMap::default);
