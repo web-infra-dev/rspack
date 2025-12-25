@@ -6,13 +6,13 @@ use rayon::iter::{
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Clone)]
-pub(crate) enum OverlayValue<V> {
+pub enum OverlayValue<V> {
   Value(V),
   Tombstone,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct OverlayMap<K, V> {
+pub struct OverlayMap<K, V> {
   base: HashMap<K, V>,
   overlay: Option<HashMap<K, OverlayValue<V>>>,
 }
@@ -30,7 +30,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum OverlayIter<'a, K, V> {
+pub enum OverlayIter<'a, K, V> {
   Base(HashMapIter<'a, K, V>),
   Combined {
     overlay_keys: &'a HashMap<K, OverlayValue<V>>,
@@ -77,13 +77,6 @@ impl<K, V> OverlayMap<K, V>
 where
   K: Eq + Hash + Clone,
 {
-  pub fn new(base: HashMap<K, V>) -> Self {
-    Self {
-      base,
-      overlay: None,
-    }
-  }
-
   /// Enable overlay mode so subsequent mutations stay in the overlay.
   pub fn checkpoint(&mut self) {
     self.overlay.get_or_insert_with(HashMap::default);
@@ -107,7 +100,6 @@ where
       self.base.insert(key, value);
     }
   }
-
   pub fn remove(&mut self, key: &K) {
     if self.overlay.is_some() {
       let overlay = self.overlay();
