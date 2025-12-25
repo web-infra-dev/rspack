@@ -230,11 +230,21 @@ impl Module for LazyCompilationProxyModule {
       serde_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
-    let keep_active = format!(
-      "var dispose = client.activate({{ data: data, active: {}, module: module, onError: onError }})",
+    let activate_code = format!(
+      r#"
+      window.dispatchEvent(new ErrorEvent('error', {{
+  message: `"start to activdate ${{ new Date()}} ${{ Date.now() }} ${{ data }} `,
+  filename: 'manual.js',
+  lineno: 10,
+  colno: 20,
+  error: new Error('')
+}}));
+      console.error("start to activdate", new Date(), Date.now(), data);
+var dispose = client.activate({{ data: data, active: {}, module: module, onError: onError }})"#,
       block.is_some()
     );
 
+    // Activated Module
     let source = if let Some(block_id) = block {
       let block = module_graph
         .block_by_id(block_id)
@@ -265,8 +275,19 @@ impl Module for LazyCompilationProxyModule {
           module.hot.accept();
           module.hot.accept({}, function() {{ module.hot.invalidate(); }});
           module.hot.dispose(function(data) {{ delete data.resolveSelf; }});
-          if (module.hot.data && module.hot.data.resolveSelf)
+          if (module.hot.data && module.hot.data.resolveSelf){{
+            console.error(\"Module Activated:\", new Date(), Date.now(), \"{}\");
+
+      window.dispatchEvent(new ErrorEvent('error', {{
+  message: `Module Activated: ${{ new Date()}} ${{ Date.now() }} {}`,
+  filename: 'manual.js',
+  lineno: 10,
+  colno: 20,
+  error: new Error('')
+}}));
+
             module.hot.data.resolveSelf(module.exports);
+          }}
         }}
         ",
         compilation.runtime_template.module_namespace_promise(
@@ -281,6 +302,8 @@ impl Module for LazyCompilationProxyModule {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id")
         ),
+        module.to_string(),
+        module.to_string()
       ))
     } else {
       RawStringSource::from(format!(
@@ -292,7 +315,7 @@ impl Module for LazyCompilationProxyModule {
           if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
           module.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
         }}
-        {keep_active}
+        {activate_code}
       "
       ))
     };

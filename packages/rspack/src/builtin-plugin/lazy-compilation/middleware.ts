@@ -208,6 +208,13 @@ const lazyCompilationMiddlewareInternal = (
 		}
 
 		if (moduleActivated.length && compiler.watching) {
+			console.log(
+				">>> start to activate lazy compilation for modules:",
+				new Date(),
+				Date.now(),
+				modules.join(", ")
+			);
+
 			compiler.watching.invalidate();
 		}
 	};
