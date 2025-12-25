@@ -1,68 +1,68 @@
-import type { Compiler } from "./Compiler";
-import { RuntimeVariable, renderRuntimeVariables } from "./RuntimeGlobals";
+import type { Compiler } from './Compiler';
+import { RuntimeVariable, renderRuntimeVariables } from './RuntimeGlobals';
 
 export default class ExecuteModulePlugin {
-	apply(compiler: Compiler) {
-		compiler.hooks.thisCompilation.tap("executeModule", compilation => {
-			// remove execution results every new compilation
-			const map = compiler.__internal__get_module_execution_results_map();
-			map.clear();
+  apply(compiler: Compiler) {
+    compiler.hooks.thisCompilation.tap('executeModule', (compilation) => {
+      // remove execution results every new compilation
+      const map = compiler.__internal__get_module_execution_results_map();
+      map.clear();
 
-			compilation.hooks.executeModule.tap(
-				"executeModule",
-				(options, context) => {
-					const vm = require("node:vm");
-					const moduleObject = options.moduleObject;
-					const source = options.codeGenerationResult.get("javascript");
-					if (source === undefined) return;
-					const code = source;
+      compilation.hooks.executeModule.tap(
+        'executeModule',
+        (options, context) => {
+          const vm = require('node:vm');
+          const moduleObject = options.moduleObject;
+          const source = options.codeGenerationResult.get('javascript');
+          if (source === undefined) return;
+          const code = source;
 
-					try {
-						const fn = vm.runInThisContext(
-							`(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}) {\n${code}\n})`,
-							{
-								filename: moduleObject.id
-							}
-						);
+          try {
+            const fn = vm.runInThisContext(
+              `(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}) {\n${code}\n})`,
+              {
+                filename: moduleObject.id,
+              },
+            );
 
-						fn.call(
-							moduleObject.exports,
-							moduleObject,
-							moduleObject,
-							moduleObject.exports,
-							moduleObject.exports,
-							context[
-								renderRuntimeVariables(
-									RuntimeVariable.Require,
-									compiler.options
-								)
-							]
-						);
-					} catch (e: any) {
-						const err = e instanceof Error ? e : new Error(e);
+            fn.call(
+              moduleObject.exports,
+              moduleObject,
+              moduleObject,
+              moduleObject.exports,
+              moduleObject.exports,
+              context[
+                renderRuntimeVariables(
+                  RuntimeVariable.Require,
+                  compiler.options,
+                )
+              ],
+            );
+          } catch (e: any) {
+            const err = e instanceof Error ? e : new Error(e);
 
-						err.stack += printGeneratedCodeForStack(moduleObject.id, code);
-						throw err;
-					}
-				}
-			);
-		});
-	}
+            err.stack += printGeneratedCodeForStack(moduleObject.id, code);
+            throw err;
+          }
+        },
+      );
+    });
+  }
 }
 const printGeneratedCodeForStack = (moduleId: string, code: string) => {
-	const lines = code.split("\n");
-	const n = `${lines.length}`.length;
-	return `\n\nGenerated code for ${moduleId}\n${lines
-		.map(
-			/**
-			 * @param {string} line the line
-			 * @param {number} i the index
-			 * @returns {string} the line with line number
-			 */
-			(line, i) => {
-				const iStr = `${i + 1}`;
-				return `${" ".repeat(n - iStr.length)}${iStr} | ${line}`;
-			}
-		)
-		.join("\n")}`;
+  const lines = code.split('\n');
+  const n = `${lines.length}`.length;
+  return `\n\nGenerated code for ${moduleId}\n${lines
+    .map(
+      /**
+       * @param {string} line the line
+       * @param {number} i the index
+       * @returns {string} the line with line number
+       */
+      (line, i) => {
+        const iStr = `${i + 1}`;
+        return `${' '.repeat(n - iStr.length)}${iStr} | ${line}`;
+      },
+    )
+    .join('\n')}`;
 };

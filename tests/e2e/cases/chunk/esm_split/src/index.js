@@ -1,3 +1,3 @@
-import { text } from "./split";
+import { text } from './split';
 
-document.getElementById("root").innerText = text;
+document.getElementById('root').innerText = text;

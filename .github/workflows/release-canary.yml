@@ -2,19 +2,19 @@ name: Release Canary
 
 on:
   schedule:
-    - cron: "0 17 * * *"
+    - cron: '0 17 * * *'
 
   workflow_dispatch:
     inputs:
       commit:
         required: true
         type: string
-        description: "Commit SHA"
+        description: 'Commit SHA'
       test:
         required: false
         type: boolean
         default: false
-        description: "Run tests"
+        description: 'Run tests'
       profile:
         required: true
         type: choice
@@ -24,7 +24,7 @@ on:
           - profiling
           - ci
           - debug
-        description: "profiling means release with debug info for profiling, ci means release with debug info and faster build time"
+        description: 'profiling means release with debug info for profiling, ci means release with debug info and faster build time'
 
 permissions:
   # To publish packages with provenance

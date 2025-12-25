@@ -21,7 +21,7 @@ Scripts in `meta` folder are self-contained and shouldn't rely on denpendencis o
 There are many [ways](https://github.com/google/zx#documentation) to use zx. The way we recommended is import globals explicitly.
 
 ```js
-import "zx/globals";
+import 'zx/globals';
 ```
 
 This allow us to execute every script(some of them might not use zx) in this folder by using the same way: `node ./scripts/xxxx.js`

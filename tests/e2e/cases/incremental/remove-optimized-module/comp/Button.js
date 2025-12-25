@@ -1,1 +1,1 @@
-export const Button = "Button";
+export const Button = 'Button';

@@ -85,7 +85,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   module: {
-    noParse: request => /typescript|watermark-dom/.test(request),
+    noParse: (request) => /typescript|watermark-dom/.test(request),
   },
 };
 ```

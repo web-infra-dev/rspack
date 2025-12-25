@@ -6,8 +6,8 @@ on:
       cargo-check-strategy:
         type: string
         required: false
-        default: "all"
-        description: "Strategy for cargo check: all (default) or separated"
+        default: 'all'
+        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -21,7 +21,7 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -183,7 +183,7 @@ jobs:
         rust_check,
         rust_unused_dependencies,
         rust_watcher_test,
-        check-changed
+        check-changed,
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest

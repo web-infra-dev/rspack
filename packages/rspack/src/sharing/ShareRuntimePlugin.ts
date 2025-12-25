@@ -1,30 +1,30 @@
-import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
-} from "../builtin-plugin/base";
-import type { Compiler } from "../Compiler";
+  createBuiltinPlugin,
+  RspackBuiltinPlugin,
+} from '../builtin-plugin/base';
+import type { Compiler } from '../Compiler';
 
 const compilerSet = new WeakSet<Compiler>();
 
 function isSingleton(compiler: Compiler) {
-	return compilerSet.has(compiler);
+  return compilerSet.has(compiler);
 }
 
 function setSingleton(compiler: Compiler) {
-	compilerSet.add(compiler);
+  compilerSet.add(compiler);
 }
 
 export class ShareRuntimePlugin extends RspackBuiltinPlugin {
-	name = BuiltinPluginName.ShareRuntimePlugin;
+  name = BuiltinPluginName.ShareRuntimePlugin;
 
-	constructor(private enhanced = false) {
-		super();
-	}
+  constructor(private enhanced = false) {
+    super();
+  }
 
-	raw(compiler: Compiler): BuiltinPlugin | undefined {
-		if (isSingleton(compiler)) return;
-		setSingleton(compiler);
-		return createBuiltinPlugin(this.name, this.enhanced);
-	}
+  raw(compiler: Compiler): BuiltinPlugin | undefined {
+    if (isSingleton(compiler)) return;
+    setSingleton(compiler);
+    return createBuiltinPlugin(this.name, this.enhanced);
+  }
 }

@@ -1,1 +1,1 @@
-console.log("Node module extends test");
+console.log('Node module extends test');

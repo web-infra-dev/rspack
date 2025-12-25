@@ -69,7 +69,7 @@ export function Table(props: TableProps) {
     <Table style={tableStyle} className={props.className}>
       <thead>
         <tr>
-          {header.map(item => (
+          {header.map((item) => (
             <th key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
             </th>
@@ -81,7 +81,7 @@ export function Table(props: TableProps) {
           const key = `row-${index}`;
           return (
             <tr key={key}>
-              {header.map(headerItem => (
+              {header.map((headerItem) => (
                 <td key={headerItem.key}>{item[headerItem.key]}</td>
               ))}
             </tr>

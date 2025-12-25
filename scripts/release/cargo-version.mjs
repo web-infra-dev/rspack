@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import TOML from "@iarna/toml";
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import TOML from '@iarna/toml';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
@@ -10,24 +10,24 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname);
  * @throws {Error} If the Cargo.toml file cannot be read or parsed
  */
 export function getCargoVersion() {
-	try {
-		const cargoTomlPath = resolve(__dirname, "..", "..", "Cargo.toml");
-		const cargoTomlContent = readFileSync(cargoTomlPath, "utf8");
-		const parsed = TOML.parse(cargoTomlContent);
+  try {
+    const cargoTomlPath = resolve(__dirname, '..', '..', 'Cargo.toml');
+    const cargoTomlContent = readFileSync(cargoTomlPath, 'utf8');
+    const parsed = TOML.parse(cargoTomlContent);
 
-		const version = parsed.workspace?.package?.version;
+    const version = parsed.workspace?.package?.version;
 
-		if (!version) {
-			throw new Error(
-				"No version found in Cargo.toml workspace.package or package section"
-			);
-		}
+    if (!version) {
+      throw new Error(
+        'No version found in Cargo.toml workspace.package or package section',
+      );
+    }
 
-		return version;
-	} catch (error) {
-		console.error("Error reading Cargo.toml:", error);
-		throw error;
-	}
+    return version;
+  } catch (error) {
+    console.error('Error reading Cargo.toml:', error);
+    throw error;
+  }
 }
 
 /**
@@ -36,6 +36,6 @@ export function getCargoVersion() {
  * @param {string} prefix - The prefix for the tag (default: "crates@")
  * @returns {string} The formatted tag name
  */
-export function createTagName(version, prefix = "crates@") {
-	return `${prefix}${version}`;
+export function createTagName(version, prefix = 'crates@') {
+  return `${prefix}${version}`;
 }

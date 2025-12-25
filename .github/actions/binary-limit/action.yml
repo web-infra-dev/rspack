@@ -4,8 +4,8 @@ description: Compare binary size with default
 
 inputs:
   size-threshold:
-    description: "the increase size limit in bytes, default is 50kb"
-    default: "51200"
+    description: 'the increase size limit in bytes, default is 50kb'
+    default: '51200'
     required: false
 
 runs:

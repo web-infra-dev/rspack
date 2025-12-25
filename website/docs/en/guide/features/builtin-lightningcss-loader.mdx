@@ -164,7 +164,7 @@ For example, ignore all warnings:
 ```js title="rspack.config.mjs"
 export default {
   ignoreWarnings: [
-    warning => /LightningCSS parse warning/.test(warning.message),
+    (warning) => /LightningCSS parse warning/.test(warning.message),
   ],
 };
 ```

@@ -62,13 +62,13 @@ import('./module').then(({ value }) => {
 });
 
 // Case 4
-import('./module').then(mod => {
+import('./module').then((mod) => {
   const { value } = mod;
   console.log(value);
 });
 
 // Case 5
-import('./module').then(mod => {
+import('./module').then((mod) => {
   console.log(mod.value);
 });
 ```

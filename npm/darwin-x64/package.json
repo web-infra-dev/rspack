@@ -13,8 +13,14 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": ["darwin"],
-    "cpu": ["x64"]
+    "os": [
+      "darwin"
+    ],
+    "cpu": [
+      "x64"
+    ]
   },
-  "files": ["rspack.darwin-x64.node"]
+  "files": [
+    "rspack.darwin-x64.node"
+  ]
 }

@@ -4,18 +4,18 @@ description: Automatically save and restore cache to local or github
 
 inputs:
   key:
-    description: "An explicit key for restoring the cache"
+    description: 'An explicit key for restoring the cache'
     required: true
   path:
-    description: "A list of files, directories, and wildcard patterns to restore"
+    description: 'A list of files, directories, and wildcard patterns to restore'
     required: true
   restore-keys:
-    description: "An ordered multiline string listing the prefix-matched keys, that are used for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case."
+    description: 'An ordered multiline string listing the prefix-matched keys, that are used for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case.'
     required: false
 
 outputs:
   cache-hit:
-    description: "A boolean value to indicate an exact match was found for the primary key"
+    description: 'A boolean value to indicate an exact match was found for the primary key'
     value: ${{ steps.github-cache.outputs.cache-hit == 'true' || steps.local-cache.outputs.cache-hit == 'true' }}
 
 runs:

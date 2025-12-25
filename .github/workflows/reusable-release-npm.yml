@@ -5,25 +5,25 @@ on:
     inputs:
       tag:
         type: string
-        description: "Release Npm Tag"
+        description: 'Release Npm Tag'
         required: true
       tag_confirm:
         type: string
-        description: "Release Npm Tag Double Check"
+        description: 'Release Npm Tag Double Check'
         required: true
       test:
         type: boolean
-        description: "Run JS tests before release"
+        description: 'Run JS tests before release'
         required: true
         default: true
       dry_run:
         type: boolean
-        description: "DryRun release"
+        description: 'DryRun release'
         required: true
         default: false
       push_tags:
         type: boolean
-        description: "push tags to github"
+        description: 'push tags to github'
         required: true
         default: true
 
@@ -71,7 +71,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: ${{ inputs.test }}
-      profile: "release"
+      profile: 'release'
 
   release:
     name: Release
