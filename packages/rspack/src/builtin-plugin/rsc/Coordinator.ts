@@ -10,6 +10,7 @@ export class Coordinator {
 	#serverCompiler?: Compiler;
 	#clientCompiler?: Compiler;
 	#clientLastCompilation?: Compilation;
+	#isProxyingClientWatching = false;
 
 	#binding?: JsCoordinator;
 
@@ -42,6 +43,7 @@ export class Coordinator {
 
 		// Make server's watched dependencies include client dependencies (so server watcher stays authoritative).
 		serverCompiler.hooks.done.tap(PLUGIN_NAME, stats => {
+			this.#isProxyingClientWatching = true;
 			if (this.#clientLastCompilation) {
 				stats.compilation.fileDependencies.addAll(
 					this.#clientLastCompilation.fileDependencies
@@ -57,6 +59,9 @@ export class Coordinator {
 
 		// Server owns watch events; on invalid, explicitly invalidate client.
 		serverCompiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
+			if (!this.#isProxyingClientWatching) {
+				return;
+			}
 			this.#clientCompiler!.watching!.invalidateWithChangesAndRemovals(
 				new Set(this.#serverCompiler!.modifiedFiles),
 				new Set(this.#serverCompiler!.removedFiles)
