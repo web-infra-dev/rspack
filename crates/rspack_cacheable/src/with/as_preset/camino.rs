@@ -9,54 +9,11 @@ use rkyv::{
 };
 
 use super::AsPreset;
-use crate::{ContextGuard, Error};
-
-const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
+use crate::{ContextGuard, Error, utils::PortablePath, with::AsConverter};
 
 pub struct PathResolver {
   inner: StringResolver,
   path: String,
-}
-
-#[inline]
-fn serialize_path(path: &Utf8PathBuf, project_root: Option<&std::path::Path>) -> String {
-  if let Some(root) = project_root {
-    // Try to strip the project_root prefix
-    if let Ok(relative) = path.as_std_path().strip_prefix(root) {
-      // Convert to Utf8Path for consistent representation
-      if let Some(relative_utf8) = camino::Utf8Path::from_path(relative) {
-        return format!("{}/{}", PROJECT_ROOT_PLACEHOLDER, relative_utf8);
-      }
-    }
-  }
-  // Fallback: use absolute path
-  path.to_string()
-}
-
-#[inline]
-fn deserialize_path(
-  serialized: &str,
-  project_root: Option<&std::path::Path>,
-) -> Result<Utf8PathBuf, Error> {
-  if let Some(relative) = serialized.strip_prefix(PROJECT_ROOT_PLACEHOLDER) {
-    // Remove leading slash if present
-    let relative = relative.strip_prefix('/').unwrap_or(relative);
-
-    if let Some(root) = project_root {
-      // Join with current project_root
-      let root_utf8 = camino::Utf8Path::from_path(root)
-        .ok_or_else(|| Error::MessageError("project_root is not valid UTF-8"))?;
-      return Ok(root_utf8.join(relative));
-    } else {
-      // No project_root available, can't restore relative path
-      return Err(Error::MessageError(
-        "cannot deserialize relative path without project_root context",
-      ));
-    }
-  }
-
-  // Absolute path, use as-is
-  Ok(Utf8PathBuf::from(serialized))
 }
 
 impl ArchiveWith<Utf8PathBuf> for AsPreset {
@@ -77,12 +34,12 @@ where
   #[inline]
   fn serialize_with(field: &Utf8PathBuf, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
     let guard = ContextGuard::sharing_guard(serializer)?;
-    let project_root = guard.context().project_root();
-    let path = serialize_path(field, project_root);
+    // Use PortablePath to serialize, which handles project_root and path normalization
+    let portable_path = PortablePath::serialize(field, guard)?;
 
     Ok(PathResolver {
-      inner: ArchivedString::serialize_from_str(path.as_str(), serializer)?,
-      path,
+      inner: ArchivedString::serialize_from_str(portable_path.0.as_str(), serializer)?,
+      path: portable_path.0,
     })
   }
 }
@@ -94,7 +51,7 @@ where
   #[inline]
   fn deserialize_with(field: &ArchivedString, de: &mut D) -> Result<Utf8PathBuf, D::Error> {
     let guard = ContextGuard::pooling_guard(de)?;
-    let project_root = guard.context().project_root();
-    deserialize_path(field.as_str(), project_root)
+    let portable = PortablePath(field.to_string());
+    portable.deserialize(guard)
   }
 }
