@@ -63,7 +63,7 @@ pub(crate) struct ModuleGraphData {
   module_graph_modules: rollback::RollbackMap<ModuleIdentifier, Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: rollback::RollbackMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: rollback::OverlayMap<DependencyId, Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
