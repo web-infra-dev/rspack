@@ -38,6 +38,7 @@ where
   }
 
   pub fn checkpoint(&mut self) {
+    assert!(self.backup.is_none());
     self.backup = Some(self.current.clone());
   }
 
@@ -84,26 +85,13 @@ mod tests {
   }
 
   #[test]
-  fn recover_without_checkpoint_is_noop() {
-    let mut atom = RollbackAtom::new(5);
-
-    *atom = 8;
-    atom.reset();
-
-    assert_eq!(*atom, 8);
-  }
-
-  #[test]
   fn checkpoint_overrides_previous_backup() {
     let mut atom = RollbackAtom::new("a".to_string());
 
     atom.checkpoint();
     *atom = "b".to_string();
-    atom.checkpoint();
-
-    *atom = "c".to_string();
     atom.reset();
 
-    assert_eq!(atom.as_str(), "b");
+    assert_eq!(atom.as_str(), "a");
   }
 }

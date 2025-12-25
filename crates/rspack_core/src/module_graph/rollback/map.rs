@@ -67,6 +67,7 @@ where
 
   /// Start recording undo operations from this point to save memory.
   pub fn checkpoint(&mut self) {
+    assert!(self.checkpoint.is_none());
     self.undo_stack.clear();
     self.checkpoint = Some(0);
   }
