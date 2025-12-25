@@ -2138,6 +2138,7 @@ useInputFileSystem?: false | Array<RegExp>
 css?: boolean
 lazyBarrel: boolean
 deferImport: boolean
+noSideEffectsNotation: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -2370,6 +2371,7 @@ typeReexportsPresence?: string
  */
 jsx?: boolean
 deferImport?: boolean
+pureFunctions?: Array<string>
 }
 
 export interface RawJsonGeneratorOptions {

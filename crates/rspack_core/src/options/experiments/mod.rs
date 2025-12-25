@@ -16,6 +16,7 @@ pub struct Experiments {
   pub css: bool,
   pub lazy_barrel: bool,
   pub defer_import: bool,
+  pub no_side_effects_notation: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]
