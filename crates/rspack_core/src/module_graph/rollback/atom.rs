@@ -2,7 +2,12 @@ use std::{
   fmt::Debug,
   ops::{Deref, DerefMut},
 };
-pub type RollbackAtomMap<K, V> = RollbackAtom<std::collections::HashMap<K, V>>;
+
+use rspack_collections::UkeyMap;
+use rustc_hash::FxHashMap;
+
+pub type RollbackAtomMap<K, V> = RollbackAtom<FxHashMap<K, V>>;
+pub type RollbackAtomUKeyMap<K, V> = RollbackAtom<UkeyMap<K, V>>;
 // A simple rollback atom that can checkpoint and recover its state.
 #[derive(Debug)]
 pub struct RollbackAtom<T: Debug> {
@@ -37,6 +42,7 @@ where
   }
 
   pub fn reset(&mut self) {
+    assert!(self.backup.is_some());
     if let Some(backup) = self.backup.take() {
       self.current = backup;
     }

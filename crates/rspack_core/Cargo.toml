@@ -82,6 +82,7 @@ urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 
+im                             = { version = "15.1.0", features = ["rayon"] }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }

@@ -47,11 +47,17 @@ pub struct DependencyParents {
 }
 
 /// Internal data structure for ModuleGraph
+/// There're 3 kinds of data in module_graph here
+/// 1. Data only setting during Make Phase which no need for clone or overlay to recover
+/// 2. Data modified during Seal Phase which no need for clone or overlay to recover
+/// 3. Data modified both during Seal Phase and Make Phase which need for clone or overlay to recover
+///    3.1 only the contained modified in seal phase which can be reverted
+///    3.2 the item is modified which can only use overlay or clone to recover
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: HashMap<ModuleIdentifier, Option<BoxModule>>,
+  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
@@ -82,19 +88,23 @@ pub(crate) struct ModuleGraphData {
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
+  /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
   module_graph_modules: rollback::RollbackAtomMap<ModuleIdentifier, Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
+  /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
   connections: rollback::RollbackAtomMap<DependencyId, Option<ModuleGraphConnection>>,
-
-  // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: rollback::RollbackMap<ExportsInfo, ExportsInfoData>,
+  // ExportsInfoData indexed by ExportsInfo id
+  // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
+  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,
 
   /***************** only Modified during Seal Phase ********************/
+  // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
+    self.modules.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
 
@@ -104,6 +114,7 @@ impl ModuleGraphData {
   }
   // reset to checkpoint
   fn recover(&mut self) {
+    self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
     self.exports_info_map.reset();
