@@ -1,7 +1,9 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
+use rustc_hash::FxHasher;
+
 #[derive(Debug, Clone)]
-pub struct OverlayMap<K, V, H> {
+pub struct OverlayMap<K, V, H = std::hash::BuildHasherDefault<FxHasher>> {
   pub base: HashMap<K, V, H>,
   pub overlay: Option<HashMap<K, V, H>>,
 }

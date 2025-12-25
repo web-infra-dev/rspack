@@ -189,7 +189,7 @@ pub async fn recovery_module_graph(
 
   // recovery entry
   let mut entry_module: Vec<ModuleIdentifier> = vec![];
-  for (_, mgm) in mg.module_graph_modules() {
+  for mgm in mg.module_graph_modules().values() {
     if mgm.issuer().identifier().is_none() {
       entry_module.push(mgm.module_identifier);
     };

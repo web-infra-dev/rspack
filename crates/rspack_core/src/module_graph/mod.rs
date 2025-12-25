@@ -94,10 +94,10 @@ pub(crate) struct ModuleGraphData {
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
-  connections: rollback::RollbackAtomMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: rollback::OverlayMap<DependencyId, Option<ModuleGraphConnection>>,
   // ExportsInfoData indexed by ExportsInfo id
   // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
-  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318

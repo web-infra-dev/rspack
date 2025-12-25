@@ -60,7 +60,8 @@ impl ModuleGraph {
   }
 
   pub fn reset_all_exports_info_used(&mut self) {
-    self.inner.exports_info_map.par_iter_mut().for_each(
+    let exports_info_map = self.inner.exports_info_map.get_active();
+    exports_info_map.par_iter_mut().for_each(
       |(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
         for export_info in exports_info.exports_mut().values_mut() {
           export_info.set_has_use_info();
