@@ -694,7 +694,6 @@ export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 // @public (undocumented)
 export type CircularDependencyRspackPluginOptions = {
     failOnError?: boolean;
-    allowAsyncCycles?: boolean;
     exclude?: RegExp;
     ignoredConnections?: [string | RegExp, string | RegExp][];
     onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;

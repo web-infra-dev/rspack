@@ -151,11 +151,15 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
   module_map.reserve(modules.len());
   for (id, module) in modules {
     let mut graph_module = GraphModule::new(id, module.source().is_some());
-    for dependency_id in module.get_dependencies() {
-      let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
+    // if allow async cycles, the async dependencies should not be collected to check for cycles
+    for dependency_id in module_graph
+      .get_outgoing_connections(&id)
+      .map(|conn| conn.dependency_id)
+    {
+      let Some(dependency) = module_graph.dependency_by_id(&dependency_id) else {
         continue;
       };
-      let Some(dependent_module) = module_graph.get_module_by_dependency_id(dependency_id) else {
+      let Some(dependent_module) = module_graph.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
       // Only include dependencies that represent a real source file.
@@ -213,9 +217,6 @@ pub struct CircularDependencyRspackPluginOptions {
   /// When `true`, the plugin will emit Error diagnostics rather than the
   /// default Warn severity.
   pub fail_on_error: bool,
-  /// When `true`, asynchronous imports like `import("some-module")` will not
-  /// be considered connections that can create cycles.
-  pub allow_async_cycles: bool,
   /// Cycles containing any module name that matches this regex will not be
   /// counted as a cycle.
   pub exclude: Option<RspackRegex>,

@@ -15,11 +15,6 @@ export type CircularDependencyRspackPluginOptions = {
 	 */
 	failOnError?: boolean;
 	/**
-	 * When `true`, asynchronous imports like `import("some-module")` will not
-	 * be considered connections that can create cycles.
-	 */
-	allowAsyncCycles?: boolean;
-	/**
 	 * Cycles containing any module name that matches this regex will _not_ be
 	 * counted as a cycle.
 	 */
@@ -75,12 +70,10 @@ export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		const { failOnError, allowAsyncCycles, exclude, ignoredConnections } =
-			this._options;
+		const { failOnError, exclude, ignoredConnections } = this._options;
 
 		const rawOptions: RawCircularDependencyRspackPluginOptions = {
 			failOnError,
-			allowAsyncCycles,
 			exclude,
 			ignoredConnections,
 			onDetected: this._options.onDetected
