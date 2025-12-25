@@ -1,3 +1,5 @@
+pub mod atom;
+pub use atom::*;
 pub mod map;
 pub mod overlay_map;
 pub use map::*;

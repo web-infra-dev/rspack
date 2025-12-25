@@ -2,7 +2,7 @@ pub mod rollback;
 use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -49,21 +49,14 @@ pub struct DependencyParents {
 /// Internal data structure for ModuleGraph
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
+  /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, Option<BoxModule>>,
+  pub(crate) modules: HashMap<ModuleIdentifier, Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: rollback::RollbackMap<DependencyId, Option<BoxDependency>>,
-
+  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks:
-    rollback::RollbackMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
-
-  /// ModuleGraphModule indexed by `ModuleIdentifier`.
-  module_graph_modules: rollback::RollbackMap<ModuleIdentifier, Option<ModuleGraphModule>>,
-
-  /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: rollback::OverlayMap<DependencyId, Option<ModuleGraphConnection>>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -83,40 +76,39 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: rollback::RollbackMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  // TODO try move condition as connection field
+  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+
+  /************************** Modified by Seal Phase **********************/
+  /// ModuleGraphModule indexed by `ModuleIdentifier`.
+  module_graph_modules: rollback::RollbackAtomMap<ModuleIdentifier, Option<ModuleGraphModule>>,
+
+  /// ModuleGraphConnection indexed by `DependencyId`.
+  connections: rollback::RollbackAtomMap<DependencyId, Option<ModuleGraphConnection>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
-  // TODO try move condition as connection field
-  connection_to_condition: rollback::RollbackMap<DependencyId, DependencyCondition>,
+  exports_info_map: rollback::RollbackMap<ExportsInfo, ExportsInfoData>,
+
+  /***************** only Modified during Seal Phase ********************/
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
-    self.modules.checkpoint();
-    self.dependencies.checkpoint();
-    self.blocks.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
-    self.dependency_id_to_parents.checkpoint();
 
-    self.connection_to_condition.checkpoint();
+    self.exports_info_map.checkpoint();
+
     // exports_info_map and dep_meta_map are not used for build_module_graph
   }
+  // reset to checkpoint
   fn recover(&mut self) {
-    self.modules.reset();
-    self.dependencies.reset();
-    self.blocks.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
-    self.dependency_id_to_parents.reset();
-    self.connection_to_condition.reset();
+    self.exports_info_map.reset();
     // reset data to save memory
     self.dep_meta_map.clear();
-    // similar as https://github.com/web-infra-dev/rspack/blob/c1fdcab1dc3cfc5e52255e1670bc4ced8263049e/crates/rspack_core/src/cache/persistent/occasion/make/module_graph.rs#L175
-    for (_, export_info_data) in self.exports_info_map.iter_mut() {
-      export_info_data.reset();
-    }
   }
 }
 

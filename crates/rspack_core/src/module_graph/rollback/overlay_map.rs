@@ -115,3 +115,45 @@ where
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use std::collections::HashMap;
+
+  use super::OverlayMap;
+
+  #[test]
+  fn checkpoint_inserts_apply_only_to_overlay() {
+    let mut map = OverlayMap::new(HashMap::from([("a".to_string(), 1)]));
+
+    map.checkpoint();
+    map.insert("b".to_string(), 2);
+    map.insert("a".to_string(), 3);
+
+    assert!(map.has_overlay());
+    assert_eq!(map.get(&"a".to_string()), Some(&3));
+    assert_eq!(map.get(&"b".to_string()), Some(&2));
+
+    map.reset();
+
+    assert!(!map.has_overlay());
+    assert_eq!(map.get(&"a".to_string()), Some(&1));
+    assert_eq!(map.get(&"b".to_string()), None);
+  }
+
+  #[test]
+  fn get_mut_clones_base_into_overlay() {
+    let mut map = OverlayMap::new(HashMap::from([("a".to_string(), 1)]));
+
+    map.checkpoint();
+    *map
+      .get_mut(&"a".to_string())
+      .expect("should clone base into overlay") = 5;
+
+    assert_eq!(map.get(&"a".to_string()), Some(&5));
+
+    map.reset();
+
+    assert_eq!(map.get(&"a".to_string()), Some(&1));
+  }
+}
