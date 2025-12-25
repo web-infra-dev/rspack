@@ -1,14 +1,15 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 #[derive(Debug, Clone)]
-pub struct OverlayMap<K, V> {
-  base: HashMap<K, V>,
-  pub overlay: Option<HashMap<K, V>>,
+pub struct OverlayMap<K, V, H> {
+  pub base: HashMap<K, V, H>,
+  pub overlay: Option<HashMap<K, V, H>>,
 }
 
-impl<K, V> Default for OverlayMap<K, V>
+impl<K, V, H> Default for OverlayMap<K, V, H>
 where
   K: Eq + Hash,
+  H: Default + std::hash::BuildHasher,
 {
   fn default() -> Self {
     Self {
@@ -18,11 +19,12 @@ where
   }
 }
 
-impl<K, V> OverlayMap<K, V>
+impl<K, V, H> OverlayMap<K, V, H>
 where
   K: Eq + Hash + Clone,
+  H: Default + std::hash::BuildHasher,
 {
-  pub fn new(base: HashMap<K, V>) -> Self {
+  pub fn new(base: HashMap<K, V, H>) -> Self {
     Self {
       base,
       overlay: None,
@@ -107,7 +109,7 @@ where
   pub fn has_overlay(&self) -> bool {
     self.overlay.is_some()
   }
-  pub fn get_active(&mut self) -> &mut HashMap<K, V> {
+  pub fn get_active(&mut self) -> &mut HashMap<K, V, H> {
     if self.overlay.is_some() {
       self.overlay.as_mut().expect("overlay checked above")
     } else {

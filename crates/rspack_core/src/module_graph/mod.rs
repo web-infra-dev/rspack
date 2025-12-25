@@ -1,8 +1,8 @@
 pub mod rollback;
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, hash::BuildHasherDefault};
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -89,7 +89,8 @@ pub(crate) struct ModuleGraphData {
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
-  module_graph_modules: rollback::RollbackAtomMap<ModuleIdentifier, Option<ModuleGraphModule>>,
+  module_graph_modules:
+    rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
@@ -149,13 +150,12 @@ impl ModuleGraph {
       .collect()
   }
 
-  pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
-    self
-      .inner
-      .module_graph_modules
-      .iter()
-      .filter_map(|(k, v)| v.as_ref().map(|m| (*k, m)))
-      .collect()
+  pub fn module_graph_modules(&self) -> &IdentifierMap<ModuleGraphModule> {
+    if let Some(overlay) = self.inner.module_graph_modules.overlay.as_ref() {
+      overlay
+    } else {
+      &self.inner.module_graph_modules.base
+    }
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -298,7 +298,7 @@ impl ModuleGraph {
       .unwrap_or_default();
 
     self.inner.modules.insert(*module_id, None);
-    self.inner.module_graph_modules.insert(*module_id, None);
+    self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {
       self.inner.blocks.insert(block, None);
@@ -315,10 +315,10 @@ impl ModuleGraph {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
-    self.inner.module_graph_modules.insert(
-      module_graph_module.module_identifier,
-      Some(module_graph_module),
-    );
+    self
+      .inner
+      .module_graph_modules
+      .insert(module_graph_module.module_identifier, module_graph_module);
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -731,7 +731,7 @@ impl ModuleGraph {
     &self,
     identifier: &ModuleIdentifier,
   ) -> Option<&ModuleGraphModule> {
-    self.inner.module_graph_modules.get(identifier)?.as_ref()
+    self.inner.module_graph_modules.get(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the exclusive reference
@@ -739,11 +739,7 @@ impl ModuleGraph {
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut ModuleGraphModule> {
-    self
-      .inner
-      .module_graph_modules
-      .get_mut(identifier)?
-      .as_mut()
+    self.inner.module_graph_modules.get_mut(identifier)
   }
 
   pub fn get_ordered_outgoing_connections(
@@ -1053,7 +1049,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 
@@ -1079,7 +1075,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 

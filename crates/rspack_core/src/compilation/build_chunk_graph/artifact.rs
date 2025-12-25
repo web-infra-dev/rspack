@@ -232,7 +232,7 @@ where
       continue;
     };
 
-    map.insert(mid, (pre, post));
+    map.insert(*mid, (pre, post));
   }
   let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
   cache.module_idx = map;
