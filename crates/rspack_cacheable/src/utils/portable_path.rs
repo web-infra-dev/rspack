@@ -36,7 +36,7 @@ const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
 /// // restored.path == PathBuf::from("C:\\workspace\\src\\main.rs")
 /// ```
 #[cacheable(crate=crate)]
-pub struct PortablePath(String);
+pub struct PortablePath(pub String);
 
 impl<T> AsConverter<T> for PortablePath
 where
@@ -53,15 +53,16 @@ where
       if let Ok(relative) = path.strip_prefix(root) {
         // Convert to string representation
         if let Some(relative_str) = relative.to_str() {
-          return Ok(Self(format!(
-            "{}/{}",
-            PROJECT_ROOT_PLACEHOLDER, relative_str
-          )));
+          // Normalize path separators to forward slashes for portability
+          let normalized = relative_str.replace('\\', "/");
+          return Ok(Self(format!("{}/{}", PROJECT_ROOT_PLACEHOLDER, normalized)));
         }
       }
     }
-    // Fallback: use absolute path
-    Ok(Self(path.to_string_lossy().into_owned()))
+    // Fallback: use absolute path, also normalize separators for portability
+    let path_str = path.to_string_lossy();
+    let normalized = path_str.replace('\\', "/");
+    Ok(Self(normalized))
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
