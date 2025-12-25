@@ -6,7 +6,11 @@ use rspack_cacheable::{
 #[cfg_attr(miri, ignore)]
 fn test_manual_cacheable_dyn_macro() {
   struct Context;
-  impl CacheableContext for Context {}
+  impl CacheableContext for Context {
+    fn project_root(&self) -> Option<&std::path::Path> {
+      None
+    }
+  }
 
   trait Animal: rspack_cacheable::r#dyn::SerializeDyn {
     fn color(&self) -> &str;

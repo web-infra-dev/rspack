@@ -1,4 +1,4 @@
-use std::{any::Any, ptr::NonNull};
+use std::{any::Any, path::Path, ptr::NonNull};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -10,10 +10,16 @@ use crate::error::{Error, Result};
 const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
 
-pub trait CacheableContext: Any {}
+pub trait CacheableContext: Any {
+  fn project_root(&self) -> Option<&Path>;
+}
 
 // Implement for unit type for convenience in tests and simple cases
-impl CacheableContext for () {}
+impl CacheableContext for () {
+  fn project_root(&self) -> Option<&Path> {
+    None
+  }
+}
 
 /// A context wrapper that provides shared context methods
 pub struct ContextGuard<'a> {
