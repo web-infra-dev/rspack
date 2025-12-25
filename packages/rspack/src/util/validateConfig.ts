@@ -1,4 +1,4 @@
-import { isAbsolute } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import type {
 	Configuration,
 	ExternalItem,
@@ -15,10 +15,14 @@ const validateContext = ({ context }: Configuration) => {
 	}
 };
 
-const validateOutputPath = ({ output }: Configuration) => {
-	if (output?.path && !isAbsolute(output.path)) {
-		throw new Error(
-			`${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`
+const validateOutputPath = (config: Configuration) => {
+	if (config.output?.path && !isAbsolute(config.output.path)) {
+		// throw new Error(
+		// 	`${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`
+		// );
+		config.output.path = resolve(
+			config.context || process.cwd(),
+			config.output.path
 		);
 	}
 };

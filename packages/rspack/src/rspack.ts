@@ -55,7 +55,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	}
 
 	const compiler = new Compiler(options.context, options);
-
 	new NodeEnvironmentPlugin({
 		infrastructureLogging: options.infrastructureLogging
 	}).apply(compiler);
