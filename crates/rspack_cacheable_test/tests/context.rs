@@ -16,7 +16,11 @@ struct Context {
   option: Arc<CompilerOptions>,
 }
 
-impl CacheableContext for Context {}
+impl CacheableContext for Context {
+  fn project_root(&self) -> Option<&std::path::Path> {
+    None
+  }
+}
 
 #[cacheable]
 struct FromContext;
