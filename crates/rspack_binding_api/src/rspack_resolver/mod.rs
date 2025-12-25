@@ -214,15 +214,7 @@ impl ResolverFactory {
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),
-      pnp_manifest: op.pnp_manifest.map(PathBuf::from).or_else(|| {
-        if op.enable_pnp.unwrap_or_default() {
-          std::env::current_dir()
-            .ok()
-            .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
-        } else {
-          None
-        }
-      }),
+      pnp_manifest: op.pnp_manifest.map(PathBuf::from),
     }
   }
 }
