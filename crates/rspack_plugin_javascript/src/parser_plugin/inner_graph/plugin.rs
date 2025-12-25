@@ -68,6 +68,7 @@ pub enum InnerGraphMapUsage {
 
 pub struct InnerGraphPlugin {
   unresolved_context: SyntaxContext,
+  analyze_pure_annotation: bool,
 }
 
 pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
@@ -103,6 +104,7 @@ impl InnerGraphPlugin {
   pub fn new(unresolved_mark: Mark) -> Self {
     Self {
       unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
+      analyze_pure_annotation: true,
     }
   }
 
@@ -398,6 +400,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     if let Some(class_decl) = stmt.as_class_decl()
       && is_pure_class(
         parser,
+        self.analyze_pure_annotation,
         class_decl.class(),
         self.unresolved_context,
         parser.comments,
@@ -433,6 +436,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       if let DefaultDecl::Class(class_expr) = decl
         && is_pure_class(
           parser,
+          self.analyze_pure_annotation,
           &class_expr.class,
           self.unresolved_context,
           parser.comments,
@@ -446,6 +450,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       } else if let DefaultDecl::Fn(fn_expr) = decl
         && is_pure_function(
           parser,
+          self.analyze_pure_annotation,
           &fn_expr.function,
           self.unresolved_context,
           parser.comments,
@@ -463,7 +468,13 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     // https://github.com/estree/estree/blob/master/es2015.md#exportdefaultdeclaration
     // but SWC using ExportDefaultExpr to represent `export default 1`
     if let ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { expr, .. }) = export_decl
-      && is_pure_expression(parser, expr, self.unresolved_context, parser.comments)
+      && is_pure_expression(
+        parser,
+        self.analyze_pure_annotation,
+        expr,
+        self.unresolved_context,
+        parser.comments,
+      )
     {
       let export_part = &**expr;
       let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
@@ -502,6 +513,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       if init.is_class()
         && is_pure_class(
           parser,
+          self.analyze_pure_annotation,
           &init.as_class().expect("should be class").class,
           self.unresolved_context,
           parser.comments,
@@ -513,7 +525,13 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
           .inner_graph
           .class_with_top_level_symbol
           .insert(init.span(), v);
-      } else if is_pure_expression(parser, init, self.unresolved_context, parser.comments) {
+      } else if is_pure_expression(
+        parser,
+        self.analyze_pure_annotation,
+        init,
+        self.unresolved_context,
+        parser.comments,
+      ) {
         let v = Self::tag_top_level_symbol(parser, name);
         parser
           .inner_graph
@@ -606,6 +624,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
 
     let is_pure_super_class = is_pure_expression(
       parser,
+      self.analyze_pure_annotation,
       super_class,
       self.unresolved_context,
       parser.comments,
@@ -691,8 +710,13 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
-    let pure_member =
-      is_pure_class_member(parser, element, self.unresolved_context, parser.comments);
+    let pure_member = is_pure_class_member(
+      parser,
+      self.analyze_pure_annotation,
+      element,
+      self.unresolved_context,
+      parser.comments,
+    );
     if let Some(v) = parser
       .inner_graph
       .class_with_top_level_symbol

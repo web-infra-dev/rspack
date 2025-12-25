@@ -296,6 +296,9 @@ const applyExperimentsDefaults = (
 
   // IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
   D(experiments, 'lazyBarrel', true);
+
+  // IGNORE(experiments.noSideEffectsNotation): Rspack specific configuration for no side effects notation
+  D(experiments, 'noSideEffectsNotation', false);
 };
 
 const applybundlerInfoDefaults = (

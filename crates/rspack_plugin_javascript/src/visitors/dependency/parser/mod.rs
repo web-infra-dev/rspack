@@ -331,7 +331,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
-  pub(super) definitions: ScopeInfoId,
+  pub(crate) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -479,6 +479,7 @@ impl<'parser> JavascriptParser<'parser> {
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
+        compiler_options.experiments.no_side_effects_notation,
       )));
     }
 
