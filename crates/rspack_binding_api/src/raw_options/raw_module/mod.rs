@@ -621,7 +621,7 @@ pub struct RawAssetGeneratorOptions {
   )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 
-  #[napi(ts_type = r#""url" | "preserve""#)]
+  #[napi(ts_type = r#""url" | "preserve" | "newURL""#)]
   pub import_mode: Option<String>,
   pub binary: Option<bool>,
 }
@@ -672,7 +672,7 @@ pub struct RawAssetResourceGeneratorOptions {
   pub output_path: Option<JsFilename>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
-  #[napi(ts_type = r#""url" | "preserve""#)]
+  #[napi(ts_type = r#""url" | "preserve" | "newURL""#)]
   pub import_mode: Option<String>,
   pub binary: Option<bool>,
 }

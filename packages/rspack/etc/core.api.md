@@ -249,7 +249,7 @@ export type AssetInlineGeneratorOptions = {
 export type AssetModuleFilename = Filename;
 
 // @public
-export type AssetModuleImportMode = "url" | "preserve";
+export type AssetModuleImportMode = "url" | "preserve" | "newURL";
 
 // @public
 export type AssetModuleOutputPath = Filename;

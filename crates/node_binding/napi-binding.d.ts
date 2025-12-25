@@ -1749,7 +1749,7 @@ export interface RawAssetGeneratorOptions {
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
-  importMode?: "url" | "preserve"
+  importMode?: "url" | "preserve" | "newURL"
   binary?: boolean
 }
 
@@ -1776,7 +1776,7 @@ export interface RawAssetResourceGeneratorOptions {
   filename?: JsFilename
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
-  importMode?: "url" | "preserve"
+  importMode?: "url" | "preserve" | "newURL"
   binary?: boolean
 }
 
