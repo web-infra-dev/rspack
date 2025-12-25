@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use rkyv::{
   Archive, Deserialize, Place, Serialize,
   de::Pooling,
@@ -8,15 +6,15 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{Error, Result, cacheable, context::ContextGuard};
+use crate::{ContextGuard, Error, Result, cacheable};
 
 /// A trait for writing custom serialization and deserialization.
 ///
 /// `#[cacheable(with=Custom)]` will use this trait.
 pub trait CustomConverter {
   type Target: Archive;
-  fn serialize(&self, ctx: &dyn Any) -> Result<Self::Target>;
-  fn deserialize(data: Self::Target, ctx: &dyn Any) -> Result<Self>
+  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target>;
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self>
   where
     Self: Sized;
 }
@@ -57,8 +55,8 @@ where
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
-    let ctx = ContextGuard::sharing_context(serializer)?;
-    let value = DataBox(T::serialize(field, ctx)?);
+    let guard = ContextGuard::sharing_guard(serializer)?;
+    let value = DataBox(T::serialize(field, guard)?);
     Ok(CustomResolver {
       resolver: value.serialize(serializer)?,
       value,
@@ -76,7 +74,7 @@ where
   #[inline]
   fn deserialize_with(field: &ArchivedDataBox<T::Target>, de: &mut D) -> Result<T> {
     let value = field.deserialize(de)?;
-    let ctx = ContextGuard::pooling_context(de)?;
-    T::deserialize(value.0, ctx)
+    let guard = ContextGuard::pooling_guard(de)?;
+    T::deserialize(value.0, guard)
   }
 }

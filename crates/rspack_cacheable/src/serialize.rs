@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use rkyv::{
   Serialize,
   api::{high::HighSerializer, serialize_using},
@@ -12,7 +10,7 @@ use rkyv::{
 };
 
 use crate::{
-  context::ContextGuard,
+  context::{CacheableContext, ContextGuard},
   error::{Error, Result},
 };
 
@@ -22,7 +20,7 @@ pub type Serializer<'a> = HighSerializer<AlignedVec, ArenaHandle<'a>, Error>;
 ///
 /// This function implementation refers to rkyv::to_bytes and
 /// add custom error and context support
-pub fn to_bytes<T, C: Any>(value: &T, ctx: &C) -> Result<Vec<u8>>
+pub fn to_bytes<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<Vec<u8>>
 where
   T: for<'a> Serialize<Serializer<'a>>,
 {
