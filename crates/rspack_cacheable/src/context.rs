@@ -10,13 +10,18 @@ use crate::error::{Error, Result};
 const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
 
+pub trait CacheableContext: Any {}
+
+// Implement for unit type for convenience in tests and simple cases
+impl CacheableContext for () {}
+
 /// A context wrapper that provides shared context methods
 pub struct ContextGuard<'a> {
-  context: &'a dyn Any,
+  context: &'a dyn CacheableContext,
 }
 
 impl<'a> ContextGuard<'a> {
-  pub fn new(context: &'a dyn Any) -> Self {
+  pub fn new(context: &'a dyn CacheableContext) -> Self {
     Self { context }
   }
 
@@ -25,11 +30,11 @@ impl<'a> ContextGuard<'a> {
     sharing.finish_sharing(CONTEXT_ADDR, self as *const _ as usize)
   }
 
-  pub fn sharing_context<S: Sharing<Error> + ?Sized>(sharing: &'a mut S) -> Result<&'a dyn Any> {
+  pub fn sharing_guard<S: Sharing<Error> + ?Sized>(sharing: &'a mut S) -> Result<&'a Self> {
     match sharing.start_sharing(CONTEXT_ADDR) {
       SharingState::Finished(addr) => {
         let guard: &Self = unsafe { &*(addr as *const Self) };
-        Ok(guard.context)
+        Ok(guard)
       }
       _ => Err(Error::NoContext),
     }
@@ -43,13 +48,23 @@ impl<'a> ContextGuard<'a> {
     }
   }
 
-  pub fn pooling_context<P: Pooling<Error> + ?Sized>(pooling: &'a mut P) -> Result<&'a dyn Any> {
+  pub fn pooling_guard<P: Pooling<Error> + ?Sized>(pooling: &'a mut P) -> Result<&'a Self> {
     match pooling.start_pooling(CONTEXT_ADDR) {
       PoolingState::Finished(ptr) => {
         let guard: &Self = unsafe { &*(ptr.data_address() as *const Self) };
-        Ok(guard.context)
+        Ok(guard)
       }
       _ => Err(Error::NoContext),
     }
+  }
+
+  pub fn context(&self) -> &dyn CacheableContext {
+    self.context
+  }
+
+  pub fn downcast_context<T: 'static>(&'a self) -> Result<&'a T> {
+    (self.context as &dyn Any)
+      .downcast_ref()
+      .ok_or(Error::NoContext)
   }
 }
