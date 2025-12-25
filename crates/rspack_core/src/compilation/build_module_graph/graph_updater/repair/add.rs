@@ -25,8 +25,7 @@ impl Task<TaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let module_identifier = self.module.identifier();
-    let module_graph =
-      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
+    let module_graph = &mut context.artifact.module_graph;
 
     // reuse module for self referenced module
     if self.module.as_self_module().is_some() {

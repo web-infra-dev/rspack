@@ -127,7 +127,7 @@ impl PluginCssExtract {
     chunk: &Chunk,
     modules: &[&dyn Module],
     compilation: &'comp Compilation,
-    module_graph: &'comp ModuleGraph<'comp>,
+    module_graph: &'comp ModuleGraph,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
     let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
       .iter()
@@ -321,7 +321,7 @@ impl PluginCssExtract {
     // mini-extract-plugin has different conflict order in some cases,
     // for compatibility, we cannot use experiments.css sorting algorithm
     let (used_modules, conflicts) =
-      self.sort_modules(chunk, rendered_modules, compilation, &module_graph);
+      self.sort_modules(chunk, rendered_modules, compilation, module_graph);
 
     let mut diagnostics = Vec::new();
     if let Some(conflicts) = conflicts {
@@ -591,7 +591,7 @@ async fn content_hash(
   let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SOURCE_TYPE[0],
-    &module_graph,
+    module_graph,
   );
 
   if rendered_modules.is_empty() {
@@ -600,7 +600,7 @@ async fn content_hash(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   let (used_modules, diagnostics) =
-    self.sort_modules(chunk, &rendered_modules, compilation, &module_graph);
+    self.sort_modules(chunk, &rendered_modules, compilation, module_graph);
 
   let hasher = hashes
     .entry(SOURCE_TYPE[0])
@@ -639,7 +639,7 @@ async fn render_manifest(
   let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SOURCE_TYPE[0],
-    &module_graph,
+    module_graph,
   );
 
   if rendered_modules.is_empty() {

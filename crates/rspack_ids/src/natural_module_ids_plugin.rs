@@ -30,7 +30,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
   let module_graph = compilation.get_module_graph();
 
   modules_in_natural_order
-    .sort_unstable_by(|a, b| compare_modules_by_pre_order_index_or_identifier(&module_graph, a, b));
+    .sort_unstable_by(|a, b| compare_modules_by_pre_order_index_or_identifier(module_graph, a, b));
 
   let modules_in_natural_order = modules_in_natural_order
     .into_iter()

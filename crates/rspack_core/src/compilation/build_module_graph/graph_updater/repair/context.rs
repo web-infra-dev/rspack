@@ -8,9 +8,7 @@ use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
-  SharedPluginDriver,
-  incremental::Incremental,
-  module_graph::{ModuleGraph, ModuleGraphMut, ModuleGraphPartial},
+  SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
   old_cache::Cache as OldCache,
 };
 
@@ -59,8 +57,8 @@ impl TaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut([None, None], partial)
+  pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
+    artifact.get_module_graph_mut()
   }
 
   // TODO remove it after incremental rebuild cover all stage

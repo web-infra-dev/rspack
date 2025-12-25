@@ -50,8 +50,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         ));
         let dep_id = *dep.id();
 
-        let mut mg =
-          TaskContext::get_module_graph_mut(&mut origin_context.artifact.module_graph_partial);
+        let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
         mg.add_dependency(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {

@@ -1247,7 +1247,7 @@ pub fn create_stats_warnings<'a>(
 
   let stats_warnings = rspack_core::create_stats_errors(
     compilation,
-    &module_graph,
+    module_graph,
     &mut diagnostics,
     colored.unwrap_or(false),
   );

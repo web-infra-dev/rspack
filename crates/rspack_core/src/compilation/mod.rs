@@ -50,10 +50,10 @@ use crate::{
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
+  PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -221,8 +221,6 @@ pub struct Compilation {
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  // module graph partial used in seal phase
-  pub seal_module_graph_partial: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -363,7 +361,6 @@ impl Compilation {
       records,
       options: options.clone(),
       platform,
-      seal_module_graph_partial: None,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -450,70 +447,41 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_build_module_graph_artifact_with_compilation(&mut self, other: &mut Compilation) {
+  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
+    self
+      .build_module_graph_artifact
+      .get_module_graph_mut()
+      .reset();
     std::mem::swap(
       &mut self.build_module_graph_artifact,
-      &mut other.build_module_graph_artifact,
+      &mut new_compilation.build_module_graph_artifact,
     );
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     mem::swap(&mut self.build_module_graph_artifact, make_artifact);
   }
-
-  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        Some(other_module_graph),
-      ])
-    } else {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ])
-    }
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph()
   }
 
   // FIXME: find a better way to do this.
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial
-      && let Some(module) = other_module_graph.modules.get(identifier)
-    {
-      return module.as_ref();
+    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
+      return Some(module);
     };
 
-    if let Some(module) = self
+    self
       .build_module_graph_artifact
-      .get_module_graph_partial()
-      .modules
-      .get(identifier)
-    {
-      return module.as_ref();
-    }
-
-    None
+      .get_module_graph()
+      .module_by_identifier(identifier)
   }
   pub fn get_make_module_graph_mut(
     build_module_graph_artifact: &mut BuildModuleGraphArtifact,
-  ) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut(
-      [None, None],
-      build_module_graph_artifact.get_module_graph_partial_mut(),
-    )
+  ) -> &mut ModuleGraph {
+    build_module_graph_artifact.get_module_graph_mut()
   }
-  // TODO: remove &mut self in the future
-  pub fn get_seal_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    let seal_module_graph_partial = self
-      .seal_module_graph_partial
-      .as_mut()
-      .expect("should set seal_module_graph");
-    ModuleGraph::new_mut(
-      [
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ],
-      seal_module_graph_partial,
-    )
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph_mut()
   }
 
   pub fn file_dependencies(
@@ -1572,7 +1540,7 @@ impl Compilation {
           for revoked_module in revoked_modules {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
-          let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+          let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
           let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
           logger.log(format!(
             "{} modules are affected, {} in total",
@@ -1608,7 +1576,7 @@ impl Compilation {
           .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
           .filter_map(|dependency| {
             dependency
-              .get_diagnostics(&module_graph, module_graph_cache)
+              .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {
                 diagnostics.into_iter().map(|mut diagnostic| {
                   diagnostic.module_identifier = Some(*module_identifier);
@@ -1633,7 +1601,11 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.seal_module_graph_partial = Some(ModuleGraphPartial::default());
+    // add a checkpoint here since we may modify module graph later in incremental compilation
+    // and we can recover to this checkpoint in the future
+    if self.incremental.passes_enabled(IncrementalPasses::MAKE) {
+      self.build_module_graph_artifact.module_graph.checkpoint();
+    }
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();

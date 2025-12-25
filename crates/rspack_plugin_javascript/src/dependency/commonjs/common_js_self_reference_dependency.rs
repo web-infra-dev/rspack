@@ -146,7 +146,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       let used_name = if dep.names.is_empty() {
         let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
           &module_graph.get_exports_info(&module.identifier()),
-          &module_graph,
+          module_graph,
           *runtime,
           false,
         );

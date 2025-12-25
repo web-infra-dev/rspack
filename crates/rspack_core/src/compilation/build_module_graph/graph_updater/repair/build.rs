@@ -121,31 +121,38 @@ impl Task<TaskContext> for BuildResultTask {
 
     let build_info = module.build_info();
 
-    let artifact = &mut context.artifact;
-    let module_graph = &mut TaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
-
     if !module.diagnostics().is_empty() {
-      artifact.make_failed_module.insert(module.identifier());
+      context
+        .artifact
+        .make_failed_module
+        .insert(module.identifier());
     }
 
     tracing::trace!("Module built: {}", module.identifier());
-    module_graph
+    context
+      .artifact
+      .module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
-    artifact
+    context
+      .artifact
       .file_dependencies
       .add_files(&resource_id, &build_info.file_dependencies);
-    artifact
+    context
+      .artifact
       .context_dependencies
       .add_files(&resource_id, &build_info.context_dependencies);
-    artifact
+    context
+      .artifact
       .missing_dependencies
       .add_files(&resource_id, &build_info.missing_dependencies);
-    artifact
+    context
+      .artifact
       .build_dependencies
       .add_files(&resource_id, &build_info.build_dependencies);
 
+    let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];

@@ -51,7 +51,7 @@ pub fn replace_import_dependencies_for_external_modules(
     }
   }
 
-  let mut mg = Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let mg = Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
   for dep in deps_to_replace {
     let dep_id = dep.id();
     // remove connection

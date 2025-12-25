@@ -153,7 +153,7 @@ impl Mutations {
       .affected_modules_with_chunk_graph
       .get_or_init(|| {
         let mg = compilation.get_module_graph();
-        let mut modules = self.get_affected_modules_with_module_graph(&mg);
+        let mut modules = self.get_affected_modules_with_module_graph(mg);
         let mut chunks = UkeySet::default();
         for mutation in self.iter() {
           match mutation {
@@ -257,7 +257,7 @@ fn compute_affected_modules_with_module_graph(
   fn get_direct_and_transitive_affected_modules(
     modules: &IdentifierSet,
     all_affected_modules: &IdentifierSet,
-    module_graph: &ModuleGraph<'_>,
+    module_graph: &ModuleGraph,
   ) -> (IdentifierSet, IdentifierSet) {
     modules
       .par_iter()

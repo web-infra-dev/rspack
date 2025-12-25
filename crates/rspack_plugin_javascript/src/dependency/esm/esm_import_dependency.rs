@@ -128,7 +128,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    con.is_target_active(&module_graph, *runtime, module_graph_cache)
+    con.is_target_active(module_graph, *runtime, module_graph_cache)
   } else {
     true
   };
@@ -157,7 +157,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
     filter_runtime(*runtime, |r| {
-      connection.is_target_active(&module_graph, r, module_graph_cache)
+      connection.is_target_active(module_graph, r, module_graph_cache)
     })
   } else {
     RuntimeCondition::Boolean(true)
@@ -701,7 +701,7 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     let module = module_graph.get_module_by_dependency_id(&dep.id);
 
     if let Some(module) = module {
-      let source_types = module.source_types(&module_graph);
+      let source_types = module.source_types(module_graph);
       if source_types
         .iter()
         .all(|source_type| matches!(source_type, SourceType::Css))

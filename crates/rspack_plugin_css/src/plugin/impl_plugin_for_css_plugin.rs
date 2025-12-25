@@ -89,7 +89,7 @@ impl CssPlugin {
   async fn render_chunk(
     &self,
     compilation: &Compilation,
-    mg: &ModuleGraph<'_>,
+    mg: &ModuleGraph,
     chunk: &Chunk,
     output_path: &str,
     css_import_modules: Vec<&dyn Module>,
@@ -364,12 +364,12 @@ async fn content_hash(
   let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
-    &module_graph,
+    module_graph,
   );
   let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
-    &module_graph,
+    module_graph,
   );
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
@@ -413,12 +413,12 @@ async fn render_manifest(
   let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
-    &module_graph,
+    module_graph,
   );
   let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
-    &module_graph,
+    module_graph,
   );
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
@@ -458,7 +458,7 @@ async fn render_manifest(
       let (source, diagnostics) = self
         .render_chunk(
           compilation,
-          &module_graph,
+          module_graph,
           chunk,
           &output_path,
           css_import_modules,

@@ -97,7 +97,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     case_modules.sort_unstable();
     diagnostics.push(Diagnostic::warn(
       "Sensitive Warn".to_string(),
-      self.create_sensitive_modules_warning(case_modules, &compilation.get_module_graph()),
+      self.create_sensitive_modules_warning(case_modules, compilation.get_module_graph()),
     ));
   }
 

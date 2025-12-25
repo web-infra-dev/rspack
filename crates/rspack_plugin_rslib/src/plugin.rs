@@ -124,8 +124,8 @@ async fn render(
   let module_graph = compilation.get_module_graph();
 
   for entry_module_id in &entry_modules {
-    let hashbang = get_module_hashbang(&module_graph, entry_module_id);
-    let directives = get_module_directives(&module_graph, entry_module_id);
+    let hashbang = get_module_hashbang(module_graph, entry_module_id);
+    let directives = get_module_directives(module_graph, entry_module_id);
 
     if hashbang.is_none() && directives.is_none() {
       continue;

@@ -39,7 +39,7 @@ impl ExposeRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation
         .chunk_graph
-        .get_chunk_modules_identifier_by_source_type(&c, SourceType::Expose, &module_graph);
+        .get_chunk_modules_identifier_by_source_type(&c, SourceType::Expose, module_graph);
       for m in modules {
         let code_gen = compilation
           .code_generation_results

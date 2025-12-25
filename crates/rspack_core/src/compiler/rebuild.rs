@@ -83,11 +83,10 @@ impl Compiler {
         .incremental
         .mutations_readable(IncrementalPasses::MAKE)
       {
-        // copy field from old compilation
-        // build_module_graph stage used
+        // recover module graph from last compilation
         self
           .compilation
-          .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
+          .recover_module_graph_to_new_compilation(&mut new_compilation);
 
         // seal stage used
         new_compilation.build_chunk_graph_artifact =

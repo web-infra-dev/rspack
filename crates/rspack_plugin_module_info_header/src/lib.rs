@@ -267,7 +267,7 @@ async fn render_js_module_package(
         &exports_info,
         &request_shortener,
         &mut FxHashSet::default(),
-        &module_graph,
+        module_graph,
       );
     }
 
