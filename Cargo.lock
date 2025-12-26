@@ -3751,6 +3751,7 @@ dependencies = [
  "rspack_sources",
  "serde_json",
  "smol_str",
+ "sugar_path",
  "swc_core",
  "ustr-fxhash",
  "xxhash-rust",

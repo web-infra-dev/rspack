@@ -10,6 +10,7 @@ use std::{
 };
 
 pub use cacheable_context::CacheableContext;
+// use rspack_cacheable::cacheable;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
@@ -26,6 +27,7 @@ use crate::{
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
 };
 
+// #[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
   pub build_dependencies: BuildDepsOptions,

@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use crate::{ContextGuard, Error, Result, cacheable, with::AsConverter};
+use sugar_path::SugarPath;
 
-const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
+use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
@@ -36,7 +36,27 @@ const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
 /// // restored.path == PathBuf::from("C:\\workspace\\src\\main.rs")
 /// ```
 #[cacheable(crate=crate, hashable)]
-pub struct PortablePath(pub String);
+pub struct PortablePath(String);
+
+impl PortablePath {
+  pub fn new(path: &Path, project_root: Option<&Path>) -> Self {
+    if let Some(project_root) = project_root {
+      return Self(path.relative(project_root).to_slash_lossy().into_owned());
+    }
+
+    Self(path.to_slash_lossy().into_owned())
+  }
+  pub fn into_abs_path_string(self, project_root: Option<&Path>) -> String {
+    if let Some(project_root) = project_root {
+      return self
+        .0
+        .absolutize_with(project_root)
+        .to_string_lossy()
+        .into_owned();
+    }
+    self.0
+  }
+}
 
 impl<T> AsConverter<T> for PortablePath
 where
@@ -46,47 +66,10 @@ where
   where
     Self: Sized,
   {
-    let path = data.as_ref();
-    let project_root = guard.context().project_root();
-    if let Some(root) = project_root {
-      // Try to strip the project_root prefix
-      if let Ok(relative) = path.strip_prefix(root) {
-        // Convert to string representation
-        if let Some(relative_str) = relative.to_str() {
-          // Normalize path separators to forward slashes for portability
-          let normalized = relative_str.replace('\\', "/");
-          return Ok(Self(format!("{}/{}", PROJECT_ROOT_PLACEHOLDER, normalized)));
-        }
-      }
-    }
-    // Fallback: use absolute path, also normalize separators for portability
-    let path_str = path.to_string_lossy();
-    let normalized = path_str.replace('\\', "/");
-    Ok(Self(normalized))
+    Ok(Self::new(data.as_ref(), guard.project_root()))
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
-    let path = self.0;
-    let project_root = guard.context().project_root();
-    if let Some(relative) = path.strip_prefix(PROJECT_ROOT_PLACEHOLDER) {
-      // Remove leading slash if present
-      let relative = relative.strip_prefix('/').unwrap_or(relative);
-
-      if let Some(root) = project_root {
-        // Join with current project_root
-        // Note: Path::join() handles forward slashes correctly on all platforms
-        let path = root.join(relative);
-        return Ok(T::from(path.to_string_lossy().into_owned()));
-      } else {
-        // No project_root available, can't restore relative path
-        return Err(Error::MessageError(
-          "cannot deserialize relative path without project_root context",
-        ));
-      }
-    }
-
-    // Absolute path, use as-is
-    // Note: PathBuf::from() accepts forward slashes on all platforms
-    Ok(T::from(path.to_string()))
+    Ok(T::from(self.into_abs_path_string(guard.project_root())))
   }
 }
