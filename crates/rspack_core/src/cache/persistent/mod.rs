@@ -10,7 +10,11 @@ use std::{
 };
 
 pub use cacheable_context::CacheableContext;
-// use rspack_cacheable::cacheable;
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsVec},
+};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
@@ -27,9 +31,10 @@ use crate::{
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
 };
 
-// #[cacheable]
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
@@ -59,17 +64,24 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
+    let context = Arc::new(CacheableContext {
+      project_path: compiler_options.context.as_path().to_path_buf(),
+    });
+    // use to_bytes to transfrom the absolute path in option,
+    // it will ensure that same project in different directory have the same version.
+    let option_bytes = rspack_cacheable::to_bytes(option, context.as_ref())
+      .expect("should persistent cache options can be serialized");
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      option.hash(&mut hasher);
+      option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
-    let context = Arc::new(CacheableContext);
+
     let make_occasion = MakeOccasion::new(storage.clone(), context);
     let meta_occasion = MetaOccasion::new(storage.clone());
     Self {

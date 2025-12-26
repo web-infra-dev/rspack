@@ -7,54 +7,56 @@ use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 /// A portable path representation that can be serialized and deserialized across different
 /// environments with different project roots.
 ///
-/// # Usage
-///
-/// Use with `with::As<PortablePath>` to make path fields portable:
-///
-/// ```rust,ignore
-/// use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
-/// use std::path::PathBuf;
-///
-/// #[cacheable]
-/// struct MyStruct {
-///   #[cacheable(with=As<PortablePath>)]
-///   path: PathBuf,
-/// }
-/// ```
+/// When serializing with a `project_root`, absolute paths are converted to relative paths.
+/// When deserializing, relative paths are resolved back to absolute paths.
 ///
 /// # Example
 ///
 /// ```rust,ignore
-/// // Serialize on Linux with project_root = /home/user/project
-/// let data = MyStruct {
-///   path: PathBuf::from("/home/user/project/src/main.rs"),
-/// };
-/// let bytes = to_bytes(&data, &context).unwrap();
+/// // Serialize on Linux (project_root = /home/user/project)
+/// let path = PathBuf::from("/home/user/project/src/main.rs");
+/// // Stored as: "src/main.rs" (relative)
 ///
-/// // Deserialize on Windows with project_root = C:\workspace
-/// let restored: MyStruct = from_bytes(&bytes, &windows_context).unwrap();
-/// // restored.path == PathBuf::from("C:\\workspace\\src\\main.rs")
+/// // Deserialize on Windows (project_root = C:\workspace)
+/// // Results in: "C:\workspace\src\main.rs"
 /// ```
 #[cacheable(crate=crate, hashable)]
-pub struct PortablePath(String);
+pub struct PortablePath {
+  path: String,
+  /// Whether the path was transformed to relative during serialization
+  transformed: bool,
+}
 
 impl PortablePath {
+  /// Create a portable path, converting to relative if both path and project_root are absolute
   pub fn new(path: &Path, project_root: Option<&Path>) -> Self {
-    if let Some(project_root) = project_root {
-      return Self(path.relative(project_root).to_slash_lossy().into_owned());
+    if path.is_absolute()
+      && let Some(project_root) = project_root
+    {
+      return Self {
+        path: path.relative(project_root).to_slash_lossy().into_owned(),
+        transformed: true,
+      };
     }
 
-    Self(path.to_slash_lossy().into_owned())
+    Self {
+      path: path.to_slash_lossy().into_owned(),
+      transformed: false,
+    }
   }
-  pub fn into_abs_path_string(self, project_root: Option<&Path>) -> String {
-    if let Some(project_root) = project_root {
+
+  /// Convert back to path string using project_root if the path was transformed
+  pub fn into_path_string(self, project_root: Option<&Path>) -> String {
+    if self.transformed
+      && let Some(project_root) = project_root
+    {
       return self
-        .0
+        .path
         .absolutize_with(project_root)
         .to_string_lossy()
         .into_owned();
     }
-    self.0
+    self.path
   }
 }
 
@@ -70,6 +72,6 @@ where
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
-    Ok(T::from(self.into_abs_path_string(guard.project_root())))
+    Ok(T::from(self.into_path_string(guard.project_root())))
   }
 }

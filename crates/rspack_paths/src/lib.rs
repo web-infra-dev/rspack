@@ -134,7 +134,7 @@ impl CustomConverter for ArcPath {
   }
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
     Ok(Self::from(PathBuf::from(
-      data.into_abs_path_string(guard.project_root()),
+      data.into_path_string(guard.project_root()),
     )))
   }
 }

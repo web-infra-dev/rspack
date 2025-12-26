@@ -50,7 +50,7 @@ where
     let portable_path: PortablePath = Deserialize::deserialize(field, de)?;
     let guard = ContextGuard::pooling_guard(de)?;
     Ok(Utf8PathBuf::from(
-      portable_path.into_abs_path_string(guard.project_root()),
+      portable_path.into_path_string(guard.project_root()),
     ))
   }
 }
