@@ -1,0 +1,10 @@
+Object {
+  btn--info_is-disabled_1: f33f7fb644526fce,
+  btn-info_is-disabled: fe4a21e838f4fb7d,
+  class: _8d0ff855f50a5306,
+  default: _0153bcd8b8aede4f,
+  foo: bar,
+  foo_bar: a7138f0ecb10a985,
+  my-btn-info_is-disabled: value,
+  simple: _44078ed7b5f7eaaa,
+}

@@ -440,9 +440,11 @@ const applyModuleDefaults = (
     );
     D(module.generator['css/auto'], 'exportsConvention', 'as-is');
     const localIdentName =
-      uniqueName && uniqueName.length > 0
-        ? '[uniqueName]-[id]-[local]'
-        : '[id]-[local]';
+      mode === 'development'
+        ? uniqueName && uniqueName.length > 0
+          ? '[uniqueName]-[id]-[local]'
+          : '[id]-[local]'
+        : '[fullhash]';
     D(module.generator['css/auto'], 'localIdentName', localIdentName);
     D(module.generator['css/auto'], 'esModule', true);
 
