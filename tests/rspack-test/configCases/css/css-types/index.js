@@ -38,7 +38,7 @@ it("should compile type: css/module", () => {
     expect(style1.class1).toBe('_style1_local_css-class1');
 });
 
-// CHANGE: not support css/global
+// MAYBE: support css/global
 // it("should compile type: css/global", (done) => {
 //     const element = document.createElement(".class3");
 //     const style = getComputedStyle(element);
