@@ -23,7 +23,7 @@ use rspack_util::{
   ext::{AsAny, DynHash},
   source_map::ModuleSourceMapConfig,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::{
@@ -68,7 +68,8 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
-  pub pure_functions: Option<FxHashSet<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  pub pure_functions: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
@@ -167,8 +168,9 @@ pub enum BuildMetaDefaultObject {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferredPureCheck {
-  pub import_request: String,
+  #[cacheable(with=AsPreset)]
   pub atom: Atom,
+  pub dep_id: DependencyId,
   pub start: u32,
   pub end: u32,
 }

@@ -391,7 +391,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       defer_import: value.defer_import,
       pure_functions: value
         .pure_functions
-        .map(|functions| functions.into_iter().map(Into::into).collect()),
+        .map(|functions| functions.into_iter().collect()),
     }
   }
 }

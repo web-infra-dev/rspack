@@ -1,4 +1,7 @@
-use rspack_core::{DeferredPureCheck, SideEffectsBailoutItemWithSpan};
+use rspack_core::{
+  DeferredPureCheck, Dependency, ModuleDependency, SideEffectsBailoutItemWithSpan,
+};
+use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
@@ -15,6 +18,7 @@ use swc_core::{
 
 use crate::{
   ClassExt, JavascriptParserPlugin,
+  dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration},
 };
@@ -98,8 +102,8 @@ impl<'a> Visit for PureAnnotation<'a> {
   }
 
   fn visit_stmt(&mut self, node: &Stmt) {
-    match node {
-      Stmt::Decl(decl) => match decl {
+    if let Stmt::Decl(decl) = node {
+      match decl {
         Decl::Fn(fn_decl) => {
           if has_no_side_effects_notation(self.parser.comments, fn_decl.span()) {
             self.pure_functions.insert(fn_decl.ident.sym.clone());
@@ -132,8 +136,7 @@ impl<'a> Visit for PureAnnotation<'a> {
           }
         }
         _ => {}
-      },
-      _ => {}
+      }
     }
   }
 }
@@ -154,7 +157,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       };
       ast.visit_with(&mut pure_annotation);
       let detected_pure_functions = pure_annotation.pure_functions;
-      if detected_pure_functions.len() > 0 {
+      if !detected_pure_functions.is_empty() {
         let pure_functions = parser.build_info.pure_functions.get_or_insert_default();
         pure_functions.extend(detected_pure_functions);
       }
@@ -214,7 +217,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     let mut not_defined = Vec::new();
     // check if all user flagged pure_functions are defined
     if let Some(pure_functions) = &parser.javascript_options.pure_functions {
-      let mut pure_functions = pure_functions.into_iter().collect::<Vec<_>>();
+      let mut pure_functions = pure_functions.iter().collect::<Vec<_>>();
       pure_functions.sort();
       for atom in pure_functions {
         if parser
@@ -227,7 +230,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       }
     }
 
-    if not_defined.len() > 0 {
+    if !not_defined.is_empty() {
       let resource = parser.resource_data.resource();
       parser.add_warning(
         rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[{{index}}].pureFunctions`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
@@ -254,7 +257,7 @@ fn is_pure_call_expr(
     .unwrap_or(false);
 
   if pure_flag {
-    call_expr.args.iter().all(|arg| {
+    return call_expr.args.iter().all(|arg| {
       if arg.spread.is_some() {
         false
       } else {
@@ -266,8 +269,8 @@ fn is_pure_call_expr(
           comments,
         )
       }
-    })
-  } else {
+    });
+  } else if analyze_pure_notation {
     if let Some(Expr::Ident(ident)) = callee.as_expr().map(|expr| expr.as_ref())
       && parser
         .build_info
@@ -296,14 +299,14 @@ fn is_pure_call_expr(
         }
       });
     }
-
-    !expr.may_have_side_effects(ExprCtx {
-      unresolved_ctxt,
-      in_strict: false,
-      is_unresolved_ref_safe: false,
-      remaining_depth: 4,
-    })
   }
+
+  !expr.may_have_side_effects(ExprCtx {
+    unresolved_ctxt,
+    in_strict: false,
+    is_unresolved_ref_safe: false,
+    remaining_depth: 4,
+  })
 }
 
 fn try_extract_deferred_check(
@@ -328,12 +331,25 @@ fn try_extract_deferred_check(
 
   let data = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
-  Some(DeferredPureCheck {
-    import_request: data.source.to_string(),
-    atom: data.name.clone(),
-    start: callee.span().lo.0,
-    end: callee.span().hi.0,
-  })
+  parser
+    .get_dependencies()
+    .iter()
+    .find(|dep| {
+      let Some(dep) = dep.downcast_ref::<ESMImportSideEffectDependency>() else {
+        return false;
+      };
+
+      let request_eq = dep.request() == &data.source;
+      let attributes: Option<&rspack_core::ImportAttributes> = data.attributes.as_ref();
+      let attributes_eq = attributes == dep.get_attributes();
+      request_eq && attributes_eq
+    })
+    .map(|dep| DeferredPureCheck {
+      atom: data.name.clone(),
+      dep_id: *dep.id(),
+      start: callee.span().real_lo(),
+      end: callee.span().real_hi(),
+    })
 }
 
 impl SideEffectsParserPlugin {

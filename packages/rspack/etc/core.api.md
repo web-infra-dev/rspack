@@ -2453,7 +2453,6 @@ export type Experiments = {
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
     deferImport?: boolean;
-    noSideEffectsNotation?: boolean;
 };
 
 // @public (undocumented)

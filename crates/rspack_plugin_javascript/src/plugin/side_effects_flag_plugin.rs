@@ -23,6 +23,8 @@ use crate::{
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
 };
 
+pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 1;
+
 #[derive(Clone, Debug)]
 enum SideEffects {
   Bool(bool),
@@ -154,7 +156,7 @@ async fn nmf_module(
 }
 
 // run after exports info are set
-#[plugin_hook(CompilationFinishModules for SideEffectsFlagPlugin, stage = FLAG_DEPENDENCY_EXPORTS_STAGE + 1)]
+#[plugin_hook(CompilationFinishModules for SideEffectsFlagPlugin, stage = SIDE_EFFECTS_FLAG_PLUGIN_STAGE)]
 async fn finish_modules(
   &self,
   compilation: &mut Compilation,
@@ -164,7 +166,7 @@ async fn finish_modules(
     .incremental
     .mutations_read(IncrementalPasses::SIDE_EFFECTS)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
     tracing::debug!(
       target: incremental::TRACING_TARGET,
       passes = %IncrementalPasses::SIDE_EFFECTS,
@@ -189,114 +191,95 @@ async fn finish_modules(
   };
 
   let module_graph = compilation.get_module_graph();
-  let mut modules_with_impurities = Vec::new();
+
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
-  for module_identifier in &modules {
-    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-      continue;
-    };
 
-    // if already has side effects by another statement, skip
-    if module.build_meta().side_effect_free == Some(false) {
-      continue;
-    }
+  let modules_with_impurities = modules
+    .par_iter()
+    .filter_map(|module_identifier| {
+      let module = module_graph.module_by_identifier(module_identifier)?;
 
-    // if user set side effect free, skip
-    if module
-      .factory_meta()
-      .and_then(|factory_meta| factory_meta.side_effect_free)
-      == Some(true)
-    {
-      continue;
-    }
+      // if already has side effects by another statement, skip
+      if module.build_meta().side_effect_free == Some(false) {
+        return None;
+      }
 
-    let build_info = module.build_info();
-    if build_info.deferred_pure_checks.is_empty() {
-      continue;
-    }
-
-    // check if all deferred pure checks are pure
-    let issue_check = build_info.deferred_pure_checks.iter().find(|needs_check| {
-      // find the corresponding specifier dependency
-      let Some(check_dep_id) = module.get_dependencies().iter().find(|dep_id| {
-        let Some(dep) = module_graph.dependency_by_id(dep_id) else {
-          return false;
-        };
-
-        let Some(module_dep) = dep.as_module_dependency() else {
-          return false;
-        };
-
-        let Some(range) = module_dep.range() else {
-          return false;
-        };
-
-        range.start == needs_check.start && range.end == needs_check.end
-      }) else {
-        return false;
-      };
-
-      // find the ref target
-      let Some(ref_module) = module_graph.module_identifier_by_dependency_id(check_dep_id) else {
-        return false;
-      };
-
-      let target_exports_info =
-        module_graph.get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
-      let target_export_info =
-        target_exports_info.get_export_info_without_mut_module_graph(&needs_check.atom);
-
-      let (ref_module_id, atom) = if let Some(target) =
-        target_export_info.get_target(&module_graph, Rc::new(|_| true))
-        && let Some(export) = &target.export
-        && let Some(atom) = export.first()
+      // if user set side effect free, skip
+      if module
+        .factory_meta()
+        .and_then(|factory_meta| factory_meta.side_effect_free)
+        == Some(true)
       {
-        (target.module, atom.clone())
-      } else {
-        (*ref_module, needs_check.atom.clone())
-      };
+        return None;
+      }
 
-      let ref_module = module_graph
-        .module_by_identifier(&ref_module_id)
-        .expect("should have module");
+      let build_info = module.build_info();
+      if build_info.deferred_pure_checks.is_empty() {
+        return None;
+      }
 
-      let Some(pure_functions) = &ref_module.build_info().pure_functions else {
-        return false;
-      };
+      // check if all deferred pure checks are pure
+      let issue_check = build_info.deferred_pure_checks.iter().find(|needs_check| {
+        // find the ref target
+        let Some(ref_module) = module_graph.module_identifier_by_dependency_id(&needs_check.dep_id)
+        else {
+          return true;
+        };
 
-      let is_pure = pure_functions.contains(&atom);
+        let target_exports_info =
+          module_graph.get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+        let target_export_info =
+          target_exports_info.get_export_info_without_mut_module_graph(&needs_check.atom);
 
-      is_pure
-    });
-
-    if let Some(issue_check) = issue_check {
-      let short_id = module.readable_identifier(&compilation.options.context);
-      let source = module
-        .source()
-        .map(|source| source.source().into_string_lossy().to_string());
-      let msg = DependencyRange::new(issue_check.start, issue_check.end)
-        .to_loc(source.as_ref().map(|s| s.as_str()));
-      let atom = &issue_check.atom;
-
-      let reason = format!(
-        "Call `{atom}` with side_effects in source code at {short_id}{}",
-        if let Some(msg) = msg {
-          format!(":{}", msg.to_string())
+        let (ref_module_id, atom) = if let Some(target) =
+          target_export_info.get_target(module_graph, Rc::new(|_| true))
+          && let Some(export) = &target.export
+          && let Some(atom) = export.first()
+        {
+          (target.module, atom.clone())
         } else {
-          String::new()
-        }
-      );
-      dbg!(&reason);
-      modules_with_impurities.push((module_identifier.clone(), reason));
-    } else {
-      logger.log(format!(
-        "{module_identifier} is sideEffectsFree as its all function calls are pure",
-      ));
-    }
-  }
+          (*ref_module, needs_check.atom.clone())
+        };
 
-  let mut module_graph_mut =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+        let ref_module = module_graph
+          .module_by_identifier(&ref_module_id)
+          .expect("should have module");
+
+        let Some(pure_functions) = &ref_module.build_info().pure_functions else {
+          return true;
+        };
+        !pure_functions.contains(&atom)
+      });
+
+      if let Some(issue_check) = issue_check {
+        let short_id = module.readable_identifier(&compilation.options.context);
+        let source = module
+          .source()
+          .map(|source| source.source().into_string_lossy().to_string());
+        let msg =
+          DependencyRange::new(issue_check.start, issue_check.end).to_loc(source.as_deref());
+        let atom = &issue_check.atom;
+
+        let reason = format!(
+          "Call `{atom}` with side_effects in source code at {short_id}{}",
+          if let Some(msg) = msg {
+            format!(":{}", msg)
+          } else {
+            String::new()
+          }
+        );
+
+        Some((*module_identifier, reason))
+      } else {
+        logger.log(format!(
+          "{module_identifier} is sideEffectsFree as its all function calls are pure",
+        ));
+        None
+      }
+    })
+    .collect::<Vec<_>>();
+
+  let module_graph_mut = compilation.get_module_graph_mut();
 
   for (module_id, reason) in modules_with_impurities {
     let module = module_graph_mut
@@ -725,42 +708,5 @@ mod test_side_effects {
       vec!["./src/**/*/z.js"],
       "./src/x/y/z.js"
     ));
-  }
-}
-
-/// A struct representing a parsed pure function entry from the config.
-/// Format: "module_path#export_name" or just "module_path" for all exports.
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct ParsedPureFunction {
-  /// The module path or identifier pattern
-  pub module_pattern: String,
-  /// The export name, if specified (None means all exports are pure)
-  pub export_name: Option<String>,
-}
-
-impl ParsedPureFunction {
-  /// Parse a pure function entry from the config string.
-  /// Format: "module_path#export_name" or just "module_path"
-  pub fn parse(entry: &str) -> Self {
-    if let Some((module_pattern, export_name)) = entry.split_once('#') {
-      ParsedPureFunction {
-        module_pattern: module_pattern.to_string(),
-        export_name: Some(export_name.to_string()),
-      }
-    } else {
-      ParsedPureFunction {
-        module_pattern: entry.to_string(),
-        export_name: None,
-      }
-    }
-  }
-
-  pub fn matches(&self, resource: &str, export_name: &str) -> bool {
-    if let Some(ref name) = self.export_name {
-      if name != export_name {
-        return false;
-      }
-    }
-    resource.ends_with(&self.module_pattern)
   }
 }
