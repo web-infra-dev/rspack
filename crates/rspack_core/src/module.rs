@@ -68,6 +68,7 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub pure_functions: Option<FxHashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
@@ -167,8 +168,8 @@ pub enum BuildMetaDefaultObject {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferredPureCheck {
-  pub import_request: String,
   pub atom: Atom,
+  pub dep_id: DependencyId,
   pub start: u32,
   pub end: u32,
 }

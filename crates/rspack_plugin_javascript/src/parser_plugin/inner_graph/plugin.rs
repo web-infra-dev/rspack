@@ -104,7 +104,8 @@ impl InnerGraphPlugin {
   pub fn new(unresolved_mark: Mark) -> Self {
     Self {
       unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
-      analyze_pure_annotation: true,
+      // TODO: optimize inner graph
+      analyze_pure_annotation: false,
     }
   }
 
