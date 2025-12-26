@@ -46,6 +46,14 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
       continue;
     };
     for file in chunk.files() {
+      if let Some(asset) = compilation.assets().get(file) {
+        let asset_info = asset.get_info();
+        if asset_info.hot_module_replacement.unwrap_or(false)
+          || asset_info.development.unwrap_or(false)
+        {
+          continue;
+        }
+      };
       required_chunks.push(chunk_id.to_string());
       // TODO: encode URI path
       required_chunks.push(file.to_string());
