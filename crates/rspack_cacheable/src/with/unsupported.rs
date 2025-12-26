@@ -4,7 +4,7 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 pub struct Unsupported;
 
@@ -17,18 +17,18 @@ impl<F> ArchiveWith<F> for Unsupported {
 
 impl<F, S> SerializeWith<F, S> for Unsupported
 where
-  S: Fallible<Error = SerializeError> + ?Sized,
+  S: Fallible<Error = Error> + ?Sized,
 {
-  fn serialize_with(_: &F, _: &mut S) -> Result<(), SerializeError> {
-    Err(SerializeError::UnsupportedField)
+  fn serialize_with(_: &F, _: &mut S) -> Result<()> {
+    Err(Error::UnsupportedField)
   }
 }
 
 impl<F, D> DeserializeWith<(), F, D> for Unsupported
 where
-  D: Fallible<Error = DeserializeError> + ?Sized,
+  D: Fallible<Error = Error> + ?Sized,
 {
-  fn deserialize_with(_: &(), _: &mut D) -> Result<F, DeserializeError> {
-    Err(DeserializeError::UnsupportedField)
+  fn deserialize_with(_: &(), _: &mut D) -> Result<F> {
+    Err(Error::UnsupportedField)
   }
 }

@@ -8,15 +8,15 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, SerializeError, cacheable, context::ContextGuard};
+use crate::{Error, Result, cacheable, context::ContextGuard};
 
 /// A trait for writing custom serialization and deserialization.
 ///
 /// `#[cacheable(with=Custom)]` will use this trait.
 pub trait CustomConverter {
   type Target: Archive;
-  fn serialize(&self, ctx: &dyn Any) -> Result<Self::Target, SerializeError>;
-  fn deserialize(data: Self::Target, ctx: &dyn Any) -> Result<Self, DeserializeError>
+  fn serialize(&self, ctx: &dyn Any) -> Result<Self::Target>;
+  fn deserialize(data: Self::Target, ctx: &dyn Any) -> Result<Self>
   where
     Self: Sized;
 }
@@ -53,10 +53,10 @@ impl<T, S> SerializeWith<T, S> for Custom
 where
   T: CustomConverter,
   T::Target: Archive + Serialize<S>,
-  S: Fallible<Error = SerializeError> + Sharing + ?Sized,
+  S: Fallible<Error = Error> + Sharing + ?Sized,
 {
   #[inline]
-  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
     let ctx = ContextGuard::sharing_context(serializer)?;
     let value = DataBox(T::serialize(field, ctx)?);
     Ok(CustomResolver {
@@ -71,13 +71,10 @@ where
   T: CustomConverter,
   T::Target: Archive,
   ArchivedDataBox<T::Target>: Deserialize<DataBox<T::Target>, D>,
-  D: Fallible<Error = DeserializeError> + Pooling + ?Sized,
+  D: Fallible<Error = Error> + Pooling + ?Sized,
 {
   #[inline]
-  fn deserialize_with(
-    field: &ArchivedDataBox<T::Target>,
-    de: &mut D,
-  ) -> Result<T, DeserializeError> {
+  fn deserialize_with(field: &ArchivedDataBox<T::Target>, de: &mut D) -> Result<T> {
     let value = field.deserialize(de)?;
     let ctx = ContextGuard::pooling_context(de)?;
     T::deserialize(value.0, ctx)

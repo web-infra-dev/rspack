@@ -9,14 +9,14 @@ use rspack_cacheable::{from_bytes, to_bytes, with::AsMap};
 )]
 #[rkyv(crate=rspack_cacheable::__private::rkyv)]
 #[rkyv(serialize_bounds(
-    __S: rspack_cacheable::__private::rkyv::ser::Writer + rspack_cacheable::__private::rkyv::ser::Allocator + rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::SerializeError>,
+    __S: rspack_cacheable::__private::rkyv::ser::Writer + rspack_cacheable::__private::rkyv::ser::Allocator + rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::Error>,
   ))]
 #[rkyv(deserialize_bounds(
-      __D: rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::DeserializeError>
+      __D: rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::Error>
     ))]
 #[rkyv(bytecheck(
     bounds(
-        __C: rspack_cacheable::__private::rkyv::validation::ArchiveContext + rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::DeserializeError>,
+        __C: rspack_cacheable::__private::rkyv::validation::ArchiveContext + rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::Error>,
     )
   ))]
 #[derive(Debug, Clone)]

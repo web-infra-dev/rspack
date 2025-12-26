@@ -1,4 +1,4 @@
-use rspack_cacheable::{SerializeError, enable_cacheable as cacheable, with::Unsupported};
+use rspack_cacheable::{Error, enable_cacheable as cacheable, with::Unsupported};
 
 struct UnCacheable;
 
@@ -14,6 +14,6 @@ fn test_unsupport() {
 
   assert!(matches!(
     rspack_cacheable::to_bytes(&app, &()),
-    Err(SerializeError::UnsupportedField)
+    Err(Error::UnsupportedField)
   ));
 }

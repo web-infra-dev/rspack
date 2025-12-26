@@ -17,16 +17,13 @@ enum ProfileState {
 
 impl CustomConverter for ProfileState {
   type Target = Option<u64>;
-  fn serialize(
-    &self,
-    _ctx: &dyn std::any::Any,
-  ) -> Result<Self::Target, rspack_cacheable::SerializeError> {
+  fn serialize(&self, _ctx: &dyn std::any::Any) -> Result<Self::Target, rspack_cacheable::Error> {
     Ok(self.duration())
   }
   fn deserialize(
     data: Self::Target,
     _ctx: &dyn std::any::Any,
-  ) -> Result<Self, rspack_cacheable::DeserializeError> {
+  ) -> Result<Self, rspack_cacheable::Error> {
     if let Some(time) = data {
       Ok(ProfileState::Finish(time))
     } else {
