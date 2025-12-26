@@ -44,13 +44,13 @@ const common = {
 							exportsConvention: "dashes-only"
 						}
 					},
-					{
-						resourceQuery: /\?upper$/,
-						/** @type {GeneratorOptionsByModuleTypeKnown["css/module"]} */
-						generator: {
-							exportsConvention: (name) => name.toUpperCase()
-						}
-					}
+					// {
+					// 	resourceQuery: /\?upper$/,
+					// 	/** @type {GeneratorOptionsByModuleTypeKnown["css/module"]} */
+					// 	generator: {
+					// 		exportsConvention: (name) => name.toUpperCase()
+					// 	}
+					// }
 				]
 			}
 		]

@@ -669,6 +669,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               exports,
               module,
               generate_context.compilation,
+              generate_context.runtime,
               generate_context.runtime_requirements,
               &ns_obj,
               &left,
