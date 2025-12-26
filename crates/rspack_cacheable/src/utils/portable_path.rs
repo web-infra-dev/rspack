@@ -35,7 +35,7 @@ const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
 /// let restored: MyStruct = from_bytes(&bytes, &windows_context).unwrap();
 /// // restored.path == PathBuf::from("C:\\workspace\\src\\main.rs")
 /// ```
-#[cacheable(crate=crate)]
+#[cacheable(crate=crate, hashable)]
 pub struct PortablePath(pub String);
 
 impl<T> AsConverter<T> for PortablePath
