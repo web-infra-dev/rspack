@@ -1,4 +1,4 @@
-use std::{any::Any, path::Path, ptr::NonNull};
+use std::{any::Any, ops::Deref, path::Path, ptr::NonNull};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -24,6 +24,13 @@ impl CacheableContext for () {
 /// A context wrapper that provides shared context methods
 pub struct ContextGuard<'a> {
   context: &'a dyn CacheableContext,
+}
+
+impl<'a> Deref for ContextGuard<'a> {
+  type Target = dyn CacheableContext;
+  fn deref(&self) -> &Self::Target {
+    self.context
+  }
 }
 
 impl<'a> ContextGuard<'a> {
@@ -62,10 +69,6 @@ impl<'a> ContextGuard<'a> {
       }
       _ => Err(Error::NoContext),
     }
-  }
-
-  pub fn context(&self) -> &dyn CacheableContext {
-    self.context
   }
 
   pub fn downcast_context<T: 'static>(&'a self) -> Result<&'a T> {

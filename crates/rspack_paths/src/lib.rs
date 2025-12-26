@@ -128,14 +128,14 @@ impl From<&str> for ArcPath {
 }
 
 impl CustomConverter for ArcPath {
-  type Target = Arc<PortablePath>;
-  fn serialize(&self, _guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(Arc::new(PortablePath(
-      self.path.to_string_lossy().into_owned(),
-    )))
+  type Target = PortablePath;
+  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
+    Ok(PortablePath::new(&self.path, guard.project_root()))
   }
-  fn deserialize(data: Self::Target, _guard: &ContextGuard) -> Result<Self, CacheableError> {
-    Ok(Self::from(data.0.as_str()))
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
+    Ok(Self::from(PathBuf::from(
+      data.into_abs_path_string(guard.project_root()),
+    )))
   }
 }
 
