@@ -2453,6 +2453,7 @@ export type Experiments = {
     typeReexportsPresence?: boolean;
     lazyBarrel?: boolean;
     deferImport?: boolean;
+    noSideEffectsNotation?: boolean;
 };
 
 // @public (undocumented)
@@ -2529,6 +2530,8 @@ export interface ExperimentsNormalized {
     lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
+    // (undocumented)
+    noSideEffectsNotation?: boolean;
     // (undocumented)
     outputModule?: boolean;
     // (undocumented)
@@ -3573,6 +3576,7 @@ export type JavascriptParserOptions = {
     typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
     jsx?: boolean;
     deferImport?: boolean;
+    pureFunctions?: string[];
 };
 
 // @public (undocumented)

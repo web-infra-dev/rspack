@@ -48,6 +48,7 @@ module.exports = {
 			    inlineEnum: false,
 			    lazyBarrel: true,
 			    lazyCompilation: false,
+			    noSideEffectsNotation: false,
 			    parallelLoader: false,
 			    rspackFuture: Object {
 			      bundlerInfo: Object {
