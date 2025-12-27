@@ -60,9 +60,9 @@ pub(crate) struct ModuleGraphData {
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+  dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -89,11 +89,11 @@ pub(crate) struct ModuleGraphData {
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
-  module_graph_modules: rollback::OverlayMap<ModuleIdentifier, Option<ModuleGraphModule>>,
+  module_graph_modules: rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
-  connections: rollback::OverlayMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
   // ExportsInfoData indexed by ExportsInfo id
   // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
   exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
@@ -149,7 +149,7 @@ impl ModuleGraph {
       .inner
       .module_graph_modules
       .iter()
-      .filter_map(|(k, v)| v.as_ref().map(|m| (*k, m)))
+      .map(|(k, v)| (*k, v))
       .collect()
   }
 
@@ -239,10 +239,10 @@ impl ModuleGraph {
     let parent_block = self.get_parent_block(dep_id).copied();
 
     if module_identifier.is_some() {
-      self.inner.connections.insert(*dep_id, None);
+      self.inner.connections.remove(dep_id);
     }
     if force {
-      self.inner.dependencies.insert(*dep_id, None);
+      self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.insert(*dep_id, None);
       self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
@@ -251,7 +251,7 @@ impl ModuleGraph {
         module.remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
-        && let Some(Some(block)) = self.inner.blocks.get_mut(&b_id)
+        && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
         block.remove_dependency_id(*dep_id);
       }
@@ -293,10 +293,10 @@ impl ModuleGraph {
       .unwrap_or_default();
 
     self.inner.modules.remove(module_id);
-    self.inner.module_graph_modules.insert(*module_id, None);
+    self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {
-      self.inner.blocks.insert(block, None);
+      self.inner.blocks.remove(&block);
     }
 
     for dep_id in all_dependencies {
@@ -310,10 +310,10 @@ impl ModuleGraph {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
-    self.inner.module_graph_modules.insert(
-      module_graph_module.module_identifier,
-      Some(module_graph_module),
-    );
+    self
+      .inner
+      .module_graph_modules
+      .insert(module_graph_module.module_identifier, module_graph_module);
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -504,7 +504,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
-    self.inner.blocks.insert(block.identifier(), Some(block));
+    self.inner.blocks.insert(block.identifier(), block);
   }
 
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {
@@ -549,7 +549,7 @@ impl ModuleGraph {
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
-    self.inner.blocks.get(block_id)?.as_ref().map(|b| &**b)
+    self.inner.blocks.get(block_id).map(|b| &**b)
   }
 
   pub fn block_by_id_expect(
@@ -561,38 +561,30 @@ impl ModuleGraph {
       .blocks
       .get(block_id)
       .expect("should insert block before get it")
-      .as_ref()
-      .expect("block has been removed to None")
   }
 
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    let mut res = HashMap::default();
-    for (k, v) in self.inner.dependencies.iter() {
-      if let Some(v) = v {
-        res.insert(*k, v);
-      } else {
-        res.remove(k);
-      }
-    }
-    res
-  }
-
-  pub fn add_dependency(&mut self, dependency: BoxDependency) {
     self
       .inner
       .dependencies
-      .insert(*dependency.id(), Some(dependency));
+      .iter()
+      .map(|(k, v)| (*k, v))
+      .collect()
+  }
+
+  pub fn add_dependency(&mut self, dependency: BoxDependency) {
+    self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self.inner.dependencies.get(dependency_id)?.as_ref()
+    self.inner.dependencies.get(dependency_id)
   }
 
   pub fn dependency_by_id_mut(
     &mut self,
     dependency_id: &DependencyId,
   ) -> Option<&mut BoxDependency> {
-    self.inner.dependencies.get_mut(dependency_id)?.as_mut()
+    self.inner.dependencies.get_mut(dependency_id)
   }
 
   /// Uniquely identify a module by its dependency
@@ -612,8 +604,7 @@ impl ModuleGraph {
     self
       .inner
       .connections
-      .get(dep_id)?
-      .as_ref()
+      .get(dep_id)
       .map(|con| con.module_identifier())
   }
 
@@ -652,7 +643,7 @@ impl ModuleGraph {
     self
       .inner
       .connections
-      .insert(connection.dependency_id, Some(connection));
+      .insert(connection.dependency_id, connection);
 
     // set to module incoming connection
     {
@@ -724,7 +715,7 @@ impl ModuleGraph {
     &self,
     identifier: &ModuleIdentifier,
   ) -> Option<&ModuleGraphModule> {
-    self.inner.module_graph_modules.get(identifier)?.as_ref()
+    self.inner.module_graph_modules.get(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the exclusive reference
@@ -732,11 +723,7 @@ impl ModuleGraph {
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut ModuleGraphModule> {
-    self
-      .inner
-      .module_graph_modules
-      .get_mut(identifier)?
-      .as_mut()
+    self.inner.module_graph_modules.get_mut(identifier)
   }
 
   pub fn get_ordered_outgoing_connections(
@@ -773,14 +760,14 @@ impl ModuleGraph {
     &self,
     dependency_id: &DependencyId,
   ) -> Option<&ModuleGraphConnection> {
-    self.inner.connections.get(dependency_id)?.as_ref()
+    self.inner.connections.get(dependency_id)
   }
 
   pub fn connection_by_dependency_id_mut(
     &mut self,
     dependency_id: &DependencyId,
   ) -> Option<&mut ModuleGraphConnection> {
-    self.inner.connections.get_mut(dependency_id)?.as_mut()
+    self.inner.connections.get_mut(dependency_id)
   }
 
   pub fn get_pre_order_index(&self, module_id: &ModuleIdentifier) -> Option<u32> {
@@ -982,7 +969,7 @@ impl ModuleGraph {
     self
       .inner
       .connections
-      .insert(connection.dependency_id, Some(connection));
+      .insert(connection.dependency_id, connection);
   }
 
   pub fn batch_set_connections_original_module(
@@ -1002,7 +989,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (dep_id, con) in changed {
-      self.inner.connections.insert(dep_id, Some(con));
+      self.inner.connections.insert(dep_id, con);
     }
   }
 
@@ -1020,7 +1007,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (dep_id, con) in changed {
-      self.inner.connections.insert(dep_id, Some(con));
+      self.inner.connections.insert(dep_id, con);
     }
   }
 
@@ -1046,7 +1033,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 
@@ -1072,7 +1059,7 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 
