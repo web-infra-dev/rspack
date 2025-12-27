@@ -189,12 +189,10 @@ impl<'a> ArtifactComparator<'a> {
 
       let dep1 = self
         .mg1
-        .dependency_by_id(dep_id1)
-        .expect("dependency should exist");
+        .dependency_by_id(dep_id1);
       let dep2 = self
         .mg2
-        .dependency_by_id(dep_id2)
-        .expect("dependency should exist");
+        .dependency_by_id(dep_id2);
 
       // Compare dependency types
       let type1 = dep1.dependency_type();

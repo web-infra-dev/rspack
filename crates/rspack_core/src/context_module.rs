@@ -28,7 +28,7 @@ use swc_core::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
+  ChunkGroupOptions, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
   GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId,
@@ -329,13 +329,11 @@ impl ContextModule {
     let dependencies = dependencies.into_iter();
     dependencies
       .filter_map(|dep_id| {
-        let dep = module_graph.dependency_by_id(dep_id).and_then(|dep| {
-          if let Some(d) = dep.as_module_dependency() {
-            Some(d.user_request().to_string())
-          } else {
-            dep.as_context_dependency().map(|d| d.request().to_string())
-          }
-        });
+        let dep = module_graph.dependency_by_id(dep_id);
+        let dep = dep
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| dep.as_context_dependency().map(|d| d.request().to_string()));
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
           .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module))
@@ -453,7 +451,7 @@ impl ContextModule {
     let has_fake_map = matches!(fake_map, FakeMapValue::Map(_));
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, d)| {
-        let chunks = compilation
+        let chunks: Option<&Vec<ChunkUkey>> = compilation
           .chunk_graph
           .get_block_chunk_group(&b.identifier(), &compilation.chunk_group_by_ukey)
           .map(|chunk_group| {
@@ -470,15 +468,12 @@ impl ContextModule {
             has_multiple_or_no_chunks = true;
             None
           });
-        let user_request = compilation
-          .get_module_graph()
-          .dependency_by_id(d)
-          .and_then(|dep| {
-            dep
-              .as_module_dependency()
-              .map(|d| d.user_request().to_string())
-              .or_else(|| dep.as_context_dependency().map(|d| d.request().to_string()))
-          })?;
+        let module_graph = compilation.get_module_graph();
+        let dep = module_graph.dependency_by_id(d);
+        let user_request = dep
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| dep.as_context_dependency().map(|d| d.request().to_string()))?;
         let module_id = module_graph
           .module_identifier_by_dependency_id(d)
           .and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m))?;

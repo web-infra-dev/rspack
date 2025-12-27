@@ -216,11 +216,11 @@ pub fn stringified_exports<'a>(
               .iter()
               .find_map(|id| {
                 let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                let request = if let Some(d) = dependency.as_module_dependency() {
                   Some(d.request())
                 } else {
                   dependency
-                    .and_then(|d| d.as_context_dependency())
+                    .as_context_dependency()
                     .map(|d| d.request())
                 };
                 if let Some(request) = request
@@ -323,11 +323,11 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
               .iter()
               .find_map(|id| {
                 let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                let request = if let Some(d) = dependency.as_module_dependency() {
                   Some(d.request())
                 } else {
                   dependency
-                    .and_then(|d| d.as_context_dependency())
+                    .as_context_dependency()
                     .map(|d| d.request())
                 };
                 if let Some(request) = request

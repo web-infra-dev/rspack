@@ -147,9 +147,7 @@ impl Cutout {
     build_deps
       .into_iter()
       .filter(|(dep_id, _)| {
-        let Some(dep) = module_graph.dependency_by_id(dep_id) else {
-          return false;
-        };
+        let dep = module_graph.dependency_by_id(dep_id);
         dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
       })
       .collect()

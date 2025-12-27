@@ -37,10 +37,9 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
     let dependencies_to_process: Vec<DependencyId> = requested_deps
       .into_iter()
       .filter(|dep| {
-        let Some(dep) = module_graph.dependency_by_id_mut(dep) else {
-          return false;
-        };
-        dep.unset_lazy()
+        module_graph
+          .dependency_by_id_mut(dep)
+          .unset_lazy()
       })
       .collect();
     if dependencies_to_process.is_empty() {

@@ -362,14 +362,11 @@ impl CodeSplitter {
       .iter()
       .map(|dep_id| {
         let module_graph = compilation.get_module_graph();
-        let dep = module_graph.dependency_by_id(dep_id);
-        let mut request = None;
-        if let Some(dep) = dep
-          && let Some(d) = dep.as_any().downcast_ref::<EntryDependency>()
-        {
-          request = Some(d.request().to_string());
-        }
-        request
+        module_graph
+          .dependency_by_id(dep_id)
+          .as_any()
+          .downcast_ref::<EntryDependency>()
+          .map(|d| d.request().to_string())
       })
       .collect::<Vec<_>>();
     let module_identifiers = dependencies
@@ -2047,7 +2044,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
         let mut deps = mg
           .get_outgoing_deps_in_order(module)
-          .filter_map(|dep_id| mg.dependency_by_id(dep_id))
+          .map(|dep_id| mg.dependency_by_id(dep_id))
           .filter(|dep| {
             dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
           })

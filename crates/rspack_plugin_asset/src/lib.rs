@@ -368,8 +368,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       {
         let module_type = module.module_type();
         source_types.insert(SourceType::from(module_type));
-      } else if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id)
-        && matches!(dependency.dependency_type(), DependencyType::LoaderImport)
+      } else if matches!(
+        module_graph
+          .dependency_by_id(&connection.dependency_id)
+          .dependency_type(),
+        DependencyType::LoaderImport
+      )
       {
         source_types.insert(SourceType::JavaScript);
       }

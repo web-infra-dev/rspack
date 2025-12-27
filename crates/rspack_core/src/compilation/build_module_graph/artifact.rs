@@ -112,9 +112,7 @@ impl BuildModuleGraphArtifact {
     {
       self.make_failed_dependencies.remove(&dep_id);
 
-      let dep = mg
-        .dependency_by_id_mut(&dep_id)
-        .expect("should have dependency");
+      let dep = mg.dependency_by_id_mut(&dep_id);
       if let Some(info) = FactorizeInfo::revoke(dep) {
         let resource_id = ResourceId::from(dep_id);
         self
@@ -143,10 +141,8 @@ impl BuildModuleGraphArtifact {
     self.make_failed_dependencies.remove(dep_id);
 
     let mg = &mut self.module_graph;
-    let revoke_dep_ids = if let Some(factorize_info) = mg
-      .dependency_by_id_mut(dep_id)
-      .and_then(FactorizeInfo::revoke)
-    {
+    let revoke_dep_ids =
+      if let Some(factorize_info) = FactorizeInfo::revoke(mg.dependency_by_id_mut(dep_id)) {
       let resource_id = ResourceId::from(dep_id);
       self
         .file_dependencies
@@ -188,9 +184,9 @@ impl BuildModuleGraphArtifact {
             d
           })
           .collect::<Vec<_>>()
-      });
+    });
     let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let dep = mg.dependency_by_id(dep_id);
       let origin_module_identifier = mg.get_parent_module(dep_id);
       FactorizeInfo::get_from(dep)
         .expect("should have factorize info")

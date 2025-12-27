@@ -134,7 +134,7 @@ impl Module for DelegatedModule {
     let source_module = mg.get_module_by_dependency_id(&dep);
     let dependency = mg
       .dependency_by_id(&dep)
-      .and_then(|dep| dep.downcast_ref::<DelegatedSourceDependency>())
+      .downcast_ref::<DelegatedSourceDependency>()
       .expect("Should be module dependency");
 
     let str = match source_module {

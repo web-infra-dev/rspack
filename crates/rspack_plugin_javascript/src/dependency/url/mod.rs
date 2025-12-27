@@ -216,9 +216,7 @@ impl DependencyConditionFn for URLDependencyCondition {
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<URLDependency>()
       .expect("should be URLDependency");

@@ -198,8 +198,7 @@ impl EntryDataDTO {
       .dependencies
       .iter()
       .map(|dependency_id| {
-        #[allow(clippy::unwrap_used)]
-        let dep = module_graph.dependency_by_id(dependency_id).unwrap();
+        let dep = module_graph.dependency_by_id(dependency_id);
         DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
@@ -213,8 +212,7 @@ impl EntryDataDTO {
       .include_dependencies
       .iter()
       .map(|dependency_id| {
-        #[allow(clippy::unwrap_used)]
-        let dep = module_graph.dependency_by_id(dependency_id).unwrap();
+        let dep = module_graph.dependency_by_id(dependency_id);
         DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()

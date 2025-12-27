@@ -90,7 +90,6 @@ impl CodeSplittingCache {
           .filter(|dep_id| {
             module_graph
               .dependency_by_id(dep_id)
-              .expect("should have dep")
               .as_module_dependency()
               .is_none_or(|module_dep| !module_dep.weak())
           })

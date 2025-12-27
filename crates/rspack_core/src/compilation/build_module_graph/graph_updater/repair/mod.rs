@@ -42,9 +42,7 @@ pub async fn repair(
       dependencies
         .into_iter()
         .map(|dep_id| {
-          let dependency = module_graph
-            .dependency_by_id(&dep_id)
-            .expect("dependency not found");
+          let dependency = module_graph.dependency_by_id(&dep_id);
           let current_profile = compilation.options.profile.then(ModuleProfile::default);
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
