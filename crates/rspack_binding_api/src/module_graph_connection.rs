@@ -28,18 +28,12 @@ impl ModuleGraphConnection {
   #[napi(getter, ts_return_type = "Dependency")]
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     let (compilation, module_graph) = self.as_ref()?;
-    if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
-      Ok(DependencyWrapper::new(
-        dependency.as_ref(),
-        compilation.id(),
-        Some(compilation),
-      ))
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access Dependency with id = {:#?} now. The Dependency have been removed on the Rust side.",
-        self.dependency_id
-      )))
-    }
+    let dependency = module_graph.dependency_by_id(&self.dependency_id);
+    Ok(DependencyWrapper::new(
+      dependency.as_ref(),
+      compilation.id(),
+      Some(compilation),
+    ))
   }
 
   #[napi(getter, ts_return_type = "Module | null")]

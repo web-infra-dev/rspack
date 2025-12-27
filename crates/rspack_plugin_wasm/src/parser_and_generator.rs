@@ -157,7 +157,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .map(|id| module_graph.dependency_by_id(id))
           .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (

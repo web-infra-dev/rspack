@@ -369,9 +369,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dependency = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dependency = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -406,9 +404,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dependency = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dependency = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -457,9 +453,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dep = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dep = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dep) {
         let con = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -576,15 +570,20 @@ impl ModuleGraph {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self.inner.dependencies.get(dependency_id)
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
+    self
+      .inner
+      .dependencies
+      .get(dependency_id)
+      .unwrap_or_else(|| panic!("should have dependency: {dependency_id:?}"))
   }
 
-  pub fn dependency_by_id_mut(
-    &mut self,
-    dependency_id: &DependencyId,
-  ) -> Option<&mut BoxDependency> {
-    self.inner.dependencies.get_mut(dependency_id)
+  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
+    self
+      .inner
+      .dependencies
+      .get_mut(dependency_id)
+      .unwrap_or_else(|| panic!("should have dependency: {dependency_id:?}"))
   }
 
   /// Uniquely identify a module by its dependency
@@ -674,9 +673,7 @@ impl ModuleGraph {
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let dependency = self
-      .dependency_by_id(&dependency_id)
-      .expect("should have dependency");
+    let dependency = self.dependency_by_id(&dependency_id);
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
     let condition = dependency
@@ -795,12 +792,10 @@ impl ModuleGraph {
   ) -> bool {
     let mut has_connections = false;
     for connection in self.get_incoming_connections(module_id) {
-      let Some(dependency) = self
+      let dependency = self
         .dependency_by_id(&connection.dependency_id)
-        .and_then(|dep| dep.as_module_dependency())
-      else {
-        return false;
-      };
+        .as_module_dependency()
+        .expect("should be module dependency");
       if !dependency.get_optional() || !connection.is_target_active(self, None, module_graph_cache)
       {
         return false;
@@ -955,7 +950,7 @@ impl ModuleGraph {
   pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
     let condition = self
       .dependency_by_id(&connection.dependency_id)
-      .and_then(|d| d.as_module_dependency())
+      .as_module_dependency()
       .and_then(|dep| dep.get_condition());
 
     // recovery condition

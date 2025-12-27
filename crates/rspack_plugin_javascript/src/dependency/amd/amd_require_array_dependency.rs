@@ -84,7 +84,7 @@ impl AMDRequireArrayDependency {
         let mg = code_generatable_context.compilation.get_module_graph();
         let dep = mg
           .dependency_by_id(dep_id)
-          .and_then(|dep| dep.downcast_ref::<AMDRequireItemDependency>())
+          .downcast_ref::<AMDRequireItemDependency>()
           .expect("should have AMDRequireItemDependency");
         code_generatable_context
           .compilation

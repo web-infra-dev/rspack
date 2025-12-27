@@ -78,9 +78,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
-      let dependency = module_graph
-        .dependency_by_id(id)
-        .expect("should have dependency");
+      let dependency = module_graph.dependency_by_id(id);
       let target_module = module_graph.get_module_by_dependency_id(dependency.id());
       let runtime_condition = match target_module {
         Some(target_module) => {

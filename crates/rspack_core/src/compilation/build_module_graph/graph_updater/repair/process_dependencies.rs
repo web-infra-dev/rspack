@@ -40,9 +40,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
     let module_graph = &mut context.artifact.module_graph;
 
     for dependency_id in dependencies {
-      let dependency = module_graph
-        .dependency_by_id(&dependency_id)
-        .expect("should have dependency");
+      let dependency = module_graph.dependency_by_id(&dependency_id);
       // FIXME: now only module/context dependency can put into resolve queue.
       // FIXME: should align webpack
       let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {
