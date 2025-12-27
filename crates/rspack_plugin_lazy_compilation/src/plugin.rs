@@ -231,15 +231,11 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
   let module_graph =
     Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
-  let mut errors = vec![];
   for module_id in &active_modules {
     let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
-      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
       continue;
     };
-
     let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
-      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
       continue;
     };
 
@@ -248,7 +244,6 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
 
   *self.active_modules.write().await = active_modules.into_iter().collect();
 
-  compilation.extend_diagnostics(errors);
   Ok(())
 }
 
