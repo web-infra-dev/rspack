@@ -109,7 +109,7 @@ export type EcmaTargetProperties = {
 type Never<T> = { [P in keyof T]?: never };
 type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
 
-type TargetProperties = Mix<
+export type TargetProperties = Mix<
   Mix<PlatformTargetProperties, ElectronContextTargetProperties>,
   Mix<ApiTargetProperties, EcmaTargetProperties>
 >;
