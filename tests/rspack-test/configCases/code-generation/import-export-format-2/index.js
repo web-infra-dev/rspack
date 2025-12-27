@@ -33,14 +33,9 @@ it("should use the same accessor syntax for import and export", function () {
 	/*********** DO NOT MATCH BELOW THIS LINE ***********/
 
 	// Checking harmonyexportinitfragment.js formation of standard export fragment
-	// DIFF:
-	// expectSourceToContain(source, "/* harmony export */   bar: () => (/* binding */ bar)");
 	expectSourceToContain(source, "bar: () => (bar)");
 
 	// Checking formation of imports
-	// DIFF:
-	// expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(/*! ./harmony-module */ ")}\\d+${regexEscape(").bar);")}`);
-	// expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(/*! ./export-default-expression */ ")}\\d+${regexEscape(")[\"default\"]);")}`);
 	expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
 	expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 

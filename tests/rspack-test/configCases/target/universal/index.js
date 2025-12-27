@@ -12,8 +12,6 @@ it("should circular depend on itself external", () => {
 
 it("work with URL", () => {
 	const url = new URL("./file.png", import.meta.url);
-	// CHANGE: rspack use 16 length xxhash by default
-	// expect(/[a-f0-9]{20}\.png/.test(url)).toBe(true);
 	expect(/[a-f0-9]{16}\.png/.test(url)).toBe(true);
 });
 

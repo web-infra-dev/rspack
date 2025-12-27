@@ -15,8 +15,6 @@ var source = require("fs")
 	.slice(0, 1)[0];
 
 const banner = parseBanner(source);
-// DIFF:
-// const REGEXP_HASH = /^[A-Za-z0-9]{20}$/;
 const REGEXP_HASH = /^[A-Za-z0-9]{16}$/;
 
 it("should interpolate file hash in chunk banner", () => {

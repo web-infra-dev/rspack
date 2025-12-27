@@ -131,7 +131,6 @@ module.exports = [
 				`);
                 expect(compiler.compilers[0].modifiedFiles.size).toBe(0);
                 expect(compiler.compilers[0].removedFiles.size).toBe(0);
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  b run,
@@ -165,7 +164,6 @@ module.exports = [
 							`);
                 expect(compiler.compilers[1].modifiedFiles.size).toBe(0);
                 expect(compiler.compilers[1].removedFiles.size).toBe(0);
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  b invalid,
@@ -190,7 +188,6 @@ module.exports = [
 									a:
 									  a compiled successfully
 							`);
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  b invalid,
@@ -233,7 +230,6 @@ module.exports = [
 									c:
 									  c compiled successfully
 							`);
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  b invalid,
@@ -307,7 +303,6 @@ module.exports = [
             if (state !== 0) return;
             state++;
 
-            // CHANGE: Rspack generates a distinct snapshot
             expect(events).toMatchInlineSnapshot(`
 				Array [
 				  a run,
@@ -322,7 +317,6 @@ module.exports = [
               try {
                 if (err) return reject(err);
 
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  a invalid,

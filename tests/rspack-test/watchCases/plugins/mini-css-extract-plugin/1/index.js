@@ -28,9 +28,6 @@ it("should load a chunk with css", () => {
 			"utf-8"
 		)
 		.trim();
-	// CHANGE: we use rspack-test-tools to run webpack watchCases for incremental, its inline
-	// snapshot result is different with webpack tester caused by different SnapshotSerializer
-	// (see packages/rspack-test-tools/src/helper/setup-expect.ts)
 	const snapshot = `\
 .chunk {
 	color: red;
@@ -44,9 +41,6 @@ it("should generate correct css", () => {
 	const css = fs
 		.readFileSync(path.resolve(__dirname, "main.css"), "utf-8")
 		.trim();
-	// CHANGE: we use rspack-test-tools to run webpack watchCases for incremental, its inline
-	// snapshot result is different with webpack tester caused by different SnapshotSerializer
-	// (see packages/rspack-test-tools/src/helper/setup-expect.ts)
 	const snapshot = `\
 .dependency {
 	color: ${WATCH_STEP === "1" ? "red" : "green"};

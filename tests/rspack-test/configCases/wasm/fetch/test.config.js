@@ -8,12 +8,7 @@ module.exports = {
 			case 0:
 				return ["bundle0.mjs"];
 			case 1:
-				// CHANGE: bundle id is different
 				return ["chunks/694.async.js", "bundle1.js"];
-			// case 2:
-			// 	return ["bundle2.mjs"];
-			// case 3:
-			// 	return ["chunks/260.sync.js", "bundle3.js"];
 		}
 	},
 	moduleScope(scope, _, options) {

@@ -64,7 +64,7 @@ module.exports = [
 			]
 		}
 	},
-	// DIFF: not support function type of exportsConvention
+	// MAYBE: support function type of exportsConvention
 	{
 		...common,
 		output: {
