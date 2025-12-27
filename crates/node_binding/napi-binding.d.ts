@@ -1522,7 +1522,7 @@ export interface KnownAssetInfo {
   assetType?: string
 }
 
-export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string> | null
+export declare function loadBrowserslist(input: string | undefined | null, context: string): Array<string>
 
 export declare function minify(source: string, options: string): Promise<TransformOutput>
 
