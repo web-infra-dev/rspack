@@ -4378,6 +4378,7 @@ version = "0.7.0-beta.1"
 dependencies = [
  "async-trait",
  "atomic_refcell",
+ "futures",
  "rayon",
  "regex",
  "rspack_cacheable",
@@ -4390,6 +4391,7 @@ dependencies = [
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
+ "rspack_plugin_split_chunks",
  "rspack_util",
  "serde",
  "serde_json",
