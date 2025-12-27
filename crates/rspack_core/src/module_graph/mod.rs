@@ -57,7 +57,7 @@ pub struct DependencyParents {
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, Option<BoxModule>>,
+  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, Option<BoxDependency>>,
@@ -141,12 +141,7 @@ impl ModuleGraph {
 impl ModuleGraph {
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self
-      .inner
-      .modules
-      .iter()
-      .filter_map(|(k, v)| v.as_ref().map(|m| (*k, m)))
-      .collect()
+    self.inner.modules.iter().map(|(k, v)| (*k, v)).collect()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
@@ -251,7 +246,7 @@ impl ModuleGraph {
       self.inner.dependency_id_to_parents.insert(*dep_id, None);
       self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
-        && let Some(Some(module)) = self.inner.modules.get_mut(&m_id)
+        && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
         module.remove_dependency_id(*dep_id);
       }
@@ -297,7 +292,7 @@ impl ModuleGraph {
       })
       .unwrap_or_default();
 
-    self.inner.modules.insert(*module_id, None);
+    self.inner.modules.remove(module_id);
     self.inner.module_graph_modules.insert(*module_id, None);
 
     for block in blocks {
@@ -505,7 +500,7 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    self.inner.modules.insert(module.identifier(), Some(module));
+    self.inner.modules.insert(module.identifier(), module);
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
@@ -624,7 +619,7 @@ impl ModuleGraph {
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
     if let Some(module_id) = self.module_identifier_by_dependency_id(dep_id) {
-      self.inner.modules.get(module_id)?.as_ref()
+      self.inner.modules.get(module_id)
     } else {
       None
     }
@@ -714,16 +709,14 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    let a = self.inner.modules.get(identifier)?;
-    a.as_ref()
+    self.inner.modules.get(identifier)
   }
 
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    let module = self.inner.modules.get_mut(identifier)?.as_mut()?;
-    Some(module)
+    self.inner.modules.get_mut(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
