@@ -322,8 +322,69 @@ export default defineConfig({
 
 ### 升级 SWC 插件
 
-如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），需要将插件升级至兼容 `swc_core@53` 的版本，否则可能因版本不兼容导致构建报错。
+如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），请升级插件至兼容 `swc_core@53` 及以上版本，否则可能因版本不兼容导致构建失败或运行异常。
 
 > 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 
-### 移除 `experiments.layer`
+### 默认开启 Lazy Compilation
+
+从 Rspack 1.7 开始，`lazyCompilation` 在 Web 应用项目中默认启用，无需额外配置即可享受更快的开发启动速度和更低的初始资源消耗。如需关闭，请在配置中显式设置：
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: false,
+};
+```
+
+### 实验特性稳定化及配置调整
+
+- 移除以下已废弃的实验配置：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    inlineConst: true,
+    inlineEnum: true,
+    typeReexportsPresence: true,
+  },
+}
+```
+
+- 使用稳定的配置替代：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    inlineExports: true, // 生产模式默认开启，无需手动设置
+  },
+}
+```
+
+- 调整 `builtin:swc-loader` 中 `collectTypeScriptInfo` 选项位置：
+
+```js title="rspack.config.mjs"
+// Before
+export default {
+  rspackExperiments: {
+    collectTypeScriptInfo: { 
+      exportedEnum: true, 
+      typeExports: true,
+    }
+  }
+}
+
+// After
+export default {
+  options: {
+    collectTypeScriptInfo: { 
+      exportedEnum: true, 
+      typeExports: true,
+    }
+  }
+}
+```
+
+### 启用 Import Bytes
+
+Rspack 现支持 TC39 `import bytes` 语法，允许直接导入二进制资源为 `Uint8Array`。建议根据需要调整资源导入方式以利用此特性。
+
