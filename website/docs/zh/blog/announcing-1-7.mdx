@@ -9,7 +9,7 @@ _2025 年 12 月 29 日_
 
 ![Rspack 1.7](https://assets.rspack.rs/rspack/rspack-banner-v1-7.png)
 
---- 
+---
 
 我们很高兴地宣布 Rspack 1.7 已正式发布！
 
@@ -35,6 +35,7 @@ _2025 年 12 月 29 日_
 
 在之前的实现中，SWC 的 Wasm 插件与不同版本的 `@swc/core` 存在兼容性问题：由于 AST 序列化/反序列化机制依赖于版本一致的内部数据结构，旧版本插件在 host 更新后往往无法正常工作，给插件维护者和使用者带来了较大的升级和维护负担。
 为了解决这个痛点，SWC 引入了一系列兼容性改进，包括：
+
 - 使用**自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化**方案取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更；
 - 为 AST 中的枚举类型增加 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力。
 
@@ -48,8 +49,8 @@ Rspack 的 LazyCompilation 特性在 1.5.0 发布时已经稳定。通过以下�
 
 ```js title="rspack.config.mjs"
 export default {
-  lazyCompilation: true
-}
+  lazyCompilation: true,
+};
 ```
 
 在多入口应用和动态加载路由的SPA 大型应用中，Lazy Compilation 通过按需编译需要的模块，能显著的降低应用的冷启动时间和首次可交互时间。从 Rspack 1.7 开始，Lazy Compilation 功能将在 Web 应用的项目中默认开启，无需额外配置即可获得收益。这意味着，我们将获得**更快的 Dev server 的启动速度**和**更低的初始 CPU/内存占用**。
@@ -64,12 +65,12 @@ Rspack 现已原生支持 [TC39 import attributes](https://github.com/tc39/propo
 
 ```js
 // 静态导入
-import fileBytes from "./file.bin" with { type: "bytes" };
+import fileBytes from './file.bin' with { type: 'bytes' };
 const decoder = new TextDecoder('utf-8');
 const text = decoder.decode(fileBytes);
 
 // 动态导入
-const module = await import("./file.bin", { with: { type: "bytes" } });
+const module = await import('./file.bin', { with: { type: 'bytes' } });
 const decoder = new TextDecoder('utf-8');
 const text = decoder.decode(module.default);
 ```
@@ -99,6 +100,7 @@ export default {
 ```
 
 #### 宽松的类型重导出检查
+
 宽容重导出类型报错 `module.parser.javascript.typeReexportsPresence` 现已稳定，迁移时移除对应实验特性开关 `experiments.typeReexportsPresence` 即可。
 
 ```js title="rspack.config.mjs"
@@ -127,13 +129,13 @@ export default {
           // 新位置：直接位于 options 下，移动到此处即可
           collectTypeScriptInfo: {
             exportedEnum: true,
-            typeExports: true
+            typeExports: true,
           },
           rspackExperiments: {
             // 旧位置，位于 rspackExperiments 中
             collectTypeScriptInfo: {
               exportedEnum: true,
-              typeExports: true
+              typeExports: true,
             },
           },
         },
@@ -220,6 +222,7 @@ await rslib.build();
 ```
 
 更多细节可以参阅 API 文档：
+
 - [Rslib 核心方法](https://rslib.rs/api/javascript-api/core)
 - [Rslib 实例](https://rslib.rs/api/javascript-api/instance)
 - [Rslib 类型](https://rslib.rs/api/javascript-api/types)
@@ -231,7 +234,7 @@ await rslib.build();
 Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**分析 bundle 的构成，以及**资源（Assets）和模块（Modules）的占比**。同时支持搜索模块资源，点击模块资源可以放大到该模块区域。双击模块可以展开**模块依赖链**等信息
 
 > Rsdoctor Tree Map：https://rsdoctor.rs/zh/guide/usage/bundle-size
-> 
+>
 > Rsdoctor V1.4.0: https://github.com/web-infra-dev/rsdoctor/releases/tag/v1.4.0
 
 ![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
@@ -290,11 +293,13 @@ Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**
 ![Rstest stuck case](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rstest-stuck-case.png)
 
 #### 更清晰的超时失败反馈
+
 当测试因**超时**失败时，Rstest 现在会在错误信息中展示**已执行的断言数量**。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
 
 ![Rstest timeout](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rstest-timeout.png)
 
 #### 一键复用框架配置
+
 Rstest 现已支持 `extends` 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
 
 目前，你可以通过 `@rstest/adapter-rslib` 官方适配器，直接复用 Rslib 项目中的构建配置（如环境变量、路径别名等），让 Rstest 在 Rslib 项目中真正做到开箱即用。对 Rspack 等其他框架的适配也正在进行中。
@@ -304,12 +309,12 @@ import { defineConfig } from '@rstest/core';
 import { withRslibConfig } from '@rstest/adapter-rslib';
 
 export default defineConfig({
-    extends: withRslibConfig({}),
-    // 额外的 Rstest 特定配置
-    coverage: {
-        enabled: true,
-        reporters: ['text', 'html'],
-    },
+  extends: withRslibConfig({}),
+  // 额外的 Rstest 特定配置
+  coverage: {
+    enabled: true,
+    reporters: ['text', 'html'],
+  },
 });
 ```
 
