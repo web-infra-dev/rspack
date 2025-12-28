@@ -347,7 +347,7 @@ export default {
     inlineEnum: true,
     typeReexportsPresence: true,
   },
-}
+};
 ```
 
 - 使用稳定的配置替代：
@@ -357,7 +357,7 @@ export default {
   optimization: {
     inlineExports: true, // 生产模式默认开启，无需手动设置
   },
-}
+};
 ```
 
 - 调整 `builtin:swc-loader` 中 `collectTypeScriptInfo` 选项位置：
@@ -366,8 +366,8 @@ export default {
 // Before
 export default {
   rspackExperiments: {
-    collectTypeScriptInfo: { 
-      exportedEnum: true, 
+    collectTypeScriptInfo: {
+      exportedEnum: true,
       typeExports: true,
     }
   }
@@ -376,8 +376,8 @@ export default {
 // After
 export default {
   options: {
-    collectTypeScriptInfo: { 
-      exportedEnum: true, 
+    collectTypeScriptInfo: {
+      exportedEnum: true,
       typeExports: true,
     }
   }
@@ -387,4 +387,3 @@ export default {
 ### 启用 Import Bytes
 
 Rspack 现支持 TC39 `import bytes` 语法，允许直接导入二进制资源为 `Uint8Array`。建议根据需要调整资源导入方式以利用此特性。
-
