@@ -1,0 +1,311 @@
+---
+date: 2025-12-29 16:00:00
+sidebar: false
+---
+
+_2025 年 12 月 29 日_
+
+# Rspack 1.7 发布公告
+
+![Rspack 1.7](https://assets.rspack.rs/rspack/rspack-banner-v1-7.png)
+
+--- 
+
+我们很高兴地宣布 Rspack 1.7 已正式发布！
+
+值得关注的变更如下：
+
+- 新特性
+  - [增强 Tree shaking](#增强-tree-shaking)
+- Rstack 进展
+  - [Rsbuild](#rsbuild)
+  - [Rspress]()
+  - [Rslib]()
+  - [Rstest]()
+  - [Rsdoctor]()
+
+## 新特性
+
+### SWC Wasm 插件兼容性提高
+
+为了提升 Rspack 中 SWC Wasm 插件的兼容性，我们在这一版本中升级到了最新的 SWC 依赖。这次升级不仅带来了性能提升和 bug 修复，还在 [Wasm 插件兼容性方面的做出重要改进](https://swc.rs/docs/plugin/ecmascript/compatibility)。
+
+在之前的实现中，SWC 的 Wasm 插件与不同版本的 `@swc/core` 存在兼容性问题：由于 AST 序列化/反序列化机制依赖于版本一致的内部数据结构，旧版本插件在 host 更新后往往无法正常工作，给插件维护者和使用者带来了较大的升级和维护负担。
+为了解决这个痛点，SWC 引入了一系列兼容性改进，包括：
+- 使用**自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化**方案取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更；
+- 为 AST 中的枚举类型增加 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力。
+
+这些改动极大改善了 Wasm 插件在不同 SWC 版本间的兼容性，降低了插件的维护成本，也让 Rspack 的生态插件能够更稳定地协同工作。在此基础上，官方现有的大部分 SWC 插件已经适配了这些兼容性机制，并且我们也正在积极与社区合作，帮助更多插件提升兼容性支持，让 Rspack 在插件生态方面有更平滑的体验。
+
+如果你是插件作者，请参阅 [Compatibility for wasm plugin](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) 文档提升你的插件的兼容性。
+
+### Lazy Compilation 默认开启
+
+Rspack 的 LazyCompilation 特性在 1.5.0 发布时已经稳定。通过以下配置就能默认开启。
+
+```js title="rspack.config.mjs"
+export default {
+  lazyCompilation: true
+}
+```
+
+在多入口应用和动态加载路由的SPA 大型应用中，Lazy Compilation 通过按需编译需要的模块，能显著的降低应用的冷启动时间和首次可交互时间。从 Rspack 1.7 开始，Lazy Compilation 功能将在 Web 应用的项目中默认开启，无需额外配置即可获得收益。这意味着，我们将获得**更快的 Dev server 的启动速度**和**更低的初始 CPU/内存占用**。
+
+在绝大多数场景下，你只会感受到更快的启动速度。当首次访问某个尚未编译的模块时，Rspack 会即时完成编译并继续执行，对开发流程几乎无感。
+
+如果你有特殊需求（例如调试完整产物、分析完整 Module Graph），也可以通过 `lazyCompilation: false` 来关闭该功能。
+
+### 支持 Import Bytes
+
+Rspack 现已原生支持 [TC39 import attributes](https://github.com/tc39/proposal-import-bytes) 提案的 bytes 类型导入资源文件，可直接将资源作为 `Uint8Array` 二进制数据导入，并通过 `TextDecoder` 解码。
+
+```js
+// 静态导入
+import fileBytes from "./file.bin" with { type: "bytes" };
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(fileBytes);
+
+// 动态导入
+const module = await import("./file.bin", { with: { type: "bytes" } });
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(module.default);
+```
+
+### 实验特性稳定化
+
+在 Rspack v1.7 中，我们推进了实验特性的稳定化工作。以下实验配置项现已稳定。
+
+#### 跨模块常量与枚举内联
+
+我们将原有的 `experiments.inlineConst` 和 `experiments.inlineEnum` 合并为稳定的 `optimization.inlineExports` 配置。该特性支持跨模块内联基本类型常量及 TypeScript enum（通过 `builtin:swc-loader` 收集），从而实现更进一步的死代码消除（DCE）获得更小的产物体积。
+
+迁移时，移除 experiments 下的相关字段即可。`optimization.inlineExports` 优化在生产模式下默认开启。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    // 生产模式默认开启，无需手动设置
+    inlineExports: true,
+  },
+  experiments: {
+    // 功能已稳定，旧配置已废弃，直接移除即可
+    inlineConst: true,
+    inlineEnum: true,
+  },
+};
+```
+
+#### 宽松的类型重导出检查
+宽容重导出类型报错 `module.parser.javascript.typeReexportsPresence` 现已稳定，迁移时移除对应实验特性开关 `experiments.typeReexportsPresence` 即可。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    // 功能已稳定，无需实验特性开关，直接移除即可
+    typeReexportsPresence: true,
+  },
+};
+```
+
+#### TypeScript 信息收集
+
+配合上述枚举优化和宽松的类型重导出检查的稳定，`builtin:swc-loader` 也调整了其配置结构。原先嵌套在 `rspackExperiments` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项现已稳定，提升为 loader 的顶层选项。
+
+迁移时，将 `builtin:swc-loader` 的配置中 `rspackExperiments.collectTypeScriptInfo` 移动至 `options` 的顶层即可。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // 新位置：直接位于 options 下，移动到此处即可
+          collectTypeScriptInfo: {
+            exportedEnum: true,
+            typeExports: true
+          },
+          rspackExperiments: {
+            // 旧位置，位于 rspackExperiments 中
+            collectTypeScriptInfo: {
+              exportedEnum: true,
+              typeExports: true
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## Rstack 进展
+
+[Rstack](/guide/start/ecosystem#rstack) 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+
+### Rsbuild
+
+#### Error overlay 改进
+
+Rsbuild 的 error overlay 现在支持显示**运行时错误**。当应用在运行过程中抛出异常时，错误会直接渲染到 overlay 上，帮助你更快发现并定位问题。
+
+该功能默认关闭，可通过 `client.overlay.runtime` 选项按需开启：
+
+```js title=rsbuild.config.ts
+export default {
+  dev: {
+    client: {
+      overlay: {
+        runtime: true,
+      },
+    },
+  },
+};
+```
+
+#### 产物体积对比
+
+Rsbuild 现在支持产物体积对比，用来直观地观察构建结果是否发生了体积变化。
+
+开启 `printFileSize.diff` 选项后，Rsbuild 构建完成时会记录一份产物体积快照，后续构建会自动与上一次结果对比，并在日志中直接展示体积变化。你可以清楚地看到每个文件是变大还是变小，以及整体体积的增减情况，适合在日常开发和性能回归中快速发现体积变化。
+
+```js title=rsbuild.config.ts
+export default {
+  performance: {
+    printFileSize: {
+      diff: true,
+    },
+  },
+};
+```
+
+### Rslib
+
+#### ESM 产物稳定化
+
+在之前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](/config/lib/experiments#experimentsadvancedesm) 集成了 Rspack 的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，旨在优化 ESM 产物质量。现在，我们很高兴地宣布该插件已完成稳定化工作。
+
+自 Rslib v0.19.0 起，该插件在 bundle 模式下会被默认启用。开发者无需任何额外配置，即可直接获得高质量、对静态分析更友好且完整支持代码分割的 ESM 产物。
+
+#### 全新的 JavaScript API
+
+Rslib v0.19.0 版本引入了全新的 [JavaScript API](https://rslib.rs/api/start)，以便于开发者在 JavaScript 或 TypeScript 代码中直接使用 Rslib 的功能。使用方式如下：
+
+1. **安装 Rslib：** 安装 `@rslib/core` 包：
+
+```sh
+npm add @rslib/core -D
+```
+
+2. **创建 Rslib 实例：** 调用 [createRslib](https://rslib.rs/api/javascript-api/core#createrslib) 方法来创建一个 Rslib 实例：
+
+```js
+import { createRslib } from '@rslib/core';
+
+const rslib = await createRslib();
+```
+
+3. **调用 Rslib 实例方法：** 使用 [rslib.build](https://rslib.rs/api/javascript-api/instance#rslibbuild) 方法来构建生产环境输出：
+
+```js
+await rslib.build();
+```
+
+更多细节可以参阅 API 文档：
+- [Rslib 核心方法](https://rslib.rs/api/javascript-api/core)
+- [Rslib 实例](https://rslib.rs/api/javascript-api/instance)
+- [Rslib 类型](https://rslib.rs/api/javascript-api/types)
+
+### Rsdoctor
+
+#### 全新的 Tree Map 视图
+
+Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**分析 bundle 的构成，以及**资源（Assets）和模块（Modules）的占比**。同时支持搜索模块资源，点击模块资源可以放大到该模块区域。双击模块可以展开**模块依赖链**等信息
+
+> Rsdoctor Tree Map：https://rsdoctor.rs/zh/guide/usage/bundle-size
+> 
+> Rsdoctor V1.4.0: https://github.com/web-infra-dev/rsdoctor/releases/tag/v1.4.0
+
+### Rspress
+
+#### SSG-MD 生成 llms.txt 的新方式
+
+在基于 React 动态渲染的前端框架中， 往往存在静态信息难以提取的问题。对于 Rspress 而言，Rspress 允许用户 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、自定义组件、React Hooks、用 tsx 文件作为路由等等，来增强文档内容的表现力。然而，这些动态内容很难被转化为 Markdown 格式，即使使用 SSG 产生的 html 转为 markdown，结果也往往不尽如人意。
+
+为此 Rspress 提供了 SSG-MD。这是一个全新的功能，见名知意，与[静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg)唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量。
+
+```js rspress.config.ts
+import { defineConfig } from '@rspress/core';
+
+export default defineConfig({
+  llms: true,
+});
+```
+
+生成的产物结构：
+
+```
+doc_build
+├── llms.txt
+├── llms-full.txt
+├── guide
+│   └── start
+│       └── introduction.md
+└── ...
+```
+
+并允许用户高度的自定义：
+
+```js
+export function Tab({ label }: { label: string }) {
+  if (process.env.__SSR_MD__) {
+    return <>{`** Here is a Tab named ${label}**`}</>;
+  }
+  return <div>{label}</div>;
+}
+```
+
+更多请参考：https://v2.rspress.rs/zh/guide/basic/ssg-md
+
+### Rstest
+
+#### 测试反馈更直观
+
+Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观、问题定位更加高效。
+
+#### 更早发现卡住的测试
+
+Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
+
+#### 更清晰的超时失败反馈
+当测试因**超时**失败时，Rstest 现在会在错误信息中展示**已执行的断言数量**。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
+
+#### 一键复用框架配置
+Rstest 现已支持 `extends` 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
+
+目前，你可以通过 `@rstest/adapter-rslib` 官方适配器，直接复用 Rslib 项目中的构建配置（如环境变量、路径别名等），让 Rstest 在 Rslib 项目中真正做到开箱即用。对 Rspack 等其他框架的适配也正在进行中。
+
+```js title=rstest.config.ts
+import { defineConfig } from '@rstest/core';
+import { withRslibConfig } from '@rstest/adapter-rslib';
+
+export default defineConfig({
+    extends: withRslibConfig({}),
+    // 额外的 Rstest 特定配置
+    coverage: {
+        enabled: true,
+        reporters: ['text', 'html'],
+    },
+});
+```
+
+## 升级指南
+
+### 升级 SWC 插件
+
+如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），需要将插件升级至兼容 `swc_core@53` 的版本，否则可能因版本不兼容导致构建报错。
+
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+
+### 移除 `experiments.layer`
