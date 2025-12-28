@@ -164,6 +164,8 @@ export default {
 };
 ```
 
+![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
+
 #### 产物体积对比
 
 Rsbuild 现在支持产物体积对比，用来直观地观察构建结果是否发生了体积变化。
@@ -179,6 +181,8 @@ export default {
   },
 };
 ```
+
+![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
 ### Rslib
 
@@ -226,6 +230,8 @@ Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**
 > Rsdoctor Tree Map：https://rsdoctor.rs/zh/guide/usage/bundle-size
 > 
 > Rsdoctor V1.4.0: https://github.com/web-infra-dev/rsdoctor/releases/tag/v1.4.0
+
+![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
 
 ### Rspress
 
@@ -278,8 +284,12 @@ Rstest 针对本地开发与调试场景进行了多项体验优化，让测试�
 
 Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
 
+![Rstest stuck case](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rstest-stuck-case.png)
+
 #### 更清晰的超时失败反馈
 当测试因**超时**失败时，Rstest 现在会在错误信息中展示**已执行的断言数量**。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
+
+![Rstest timeout](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rstest-timeout.png)
 
 #### 一键复用框架配置
 Rstest 现已支持 `extends` 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
