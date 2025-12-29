@@ -243,9 +243,9 @@ Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**
 
 #### SSG-MD 生成 llms.txt 的新方式
 
-在基于 React 动态渲染的前端框架中， 往往存在静态信息难以提取的问题。对于 Rspress 而言，Rspress 允许用户 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、自定义组件、React Hooks、用 tsx 文件作为路由等等，来增强文档内容的表现力。然而，这些动态内容很难被转化为 Markdown 格式，即使使用 SSG 产生的 html 转为 markdown，结果也往往不尽如人意。
+在基于 React 动态渲染的前端框架中， 往往存在静态信息难以提取的问题。对于 Rspress 而言，Rspress 允许用户使用 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、React Hooks、用 tsx 文件作为路由等等，来增强文档内容的表现力。然而，这些动态内容很难被转化为 Markdown 格式，将 MDX 直接输入给大模型会存在信息丢失，即使使用 SSG 产生的 html 转为 Markdown 格式，结果也往往不尽如人意，。
 
-为此 Rspress 提供了 SSG-MD。这是一个全新的功能，见名知意，与[静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg)唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量。
+为此 Rspress 提供了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md)。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量。
 
 ```js rspress.config.ts
 import { defineConfig } from '@rspress/core';
@@ -267,7 +267,7 @@ doc_build
 └── ...
 ```
 
-并允许用户高度的自定义：
+并允许用户根据环境判断进行自定义：
 
 ```js
 export function Tab({ label }: { label: string }) {
