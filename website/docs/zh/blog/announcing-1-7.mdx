@@ -45,7 +45,7 @@ _2025 年 12 月 29 日_
 
 ### Lazy Compilation 默认开启
 
-Rspack 的 LazyCompilation 特性在 1.5.0 发布时已经稳定。通过以下配置就能默认开启。
+Rspack 的 [LazyCompilation](/config/lazy-compilation) 特性在 1.5.0 发布时已经稳定。通过以下配置就能默认开启。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -155,7 +155,7 @@ export default {
 
 Rsbuild 的 error overlay 现在支持显示**运行时错误**。当应用在运行过程中抛出异常时，错误会直接渲染到 overlay 上，帮助你更快发现并定位问题。
 
-该功能默认关闭，可通过 `client.overlay.runtime` 选项按需开启：
+该功能默认关闭，可通过 [dev.client.overlay.runtime](https://rsbuild.rs/zh/config/dev/client#overlayruntime) 选项按需开启：
 
 ```js title=rsbuild.config.ts
 export default {
@@ -175,7 +175,7 @@ export default {
 
 Rsbuild 现在支持产物体积对比，用来直观地观察构建结果是否发生了体积变化。
 
-开启 `printFileSize.diff` 选项后，Rsbuild 构建完成时会记录一份产物体积快照，后续构建会自动与上一次结果对比，并在日志中直接展示体积变化。你可以清楚地看到每个文件是变大还是变小，以及整体体积的增减情况，适合在日常开发和性能回归中快速发现体积变化。
+开启 [performance.printFileSize.diff](https://rsbuild.rs/zh/config/performance/print-file-size#diff) 选项后，Rsbuild 构建完成时会记录一份产物体积快照，后续构建会自动与上一次结果对比，并在日志中直接展示体积变化。你可以清楚地看到每个文件是变大还是变小，以及整体体积的增减情况，适合在日常开发和性能回归中快速发现体积变化。
 
 ```js title=rsbuild.config.ts
 export default {
@@ -300,9 +300,9 @@ Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**
 
 #### 一键复用框架配置
 
-Rstest 现已支持 `extends` 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
+Rstest 现已支持 [extends](https://rstest.rs/zh/config/test/extends) 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
 
-目前，你可以通过 `@rstest/adapter-rslib` 官方适配器，直接复用 Rslib 项目中的构建配置（如环境变量、路径别名等），让 Rstest 在 Rslib 项目中真正做到开箱即用。对 Rspack 等其他框架的适配也正在进行中。
+目前，你可以通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 官方适配器，直接复用 Rslib 项目中的构建配置（如环境变量、路径别名等），让 Rstest 在 Rslib 项目中真正做到开箱即用。对 Rspack 等其他框架的适配也正在进行中。
 
 ```js title=rstest.config.ts
 import { defineConfig } from '@rstest/core';
