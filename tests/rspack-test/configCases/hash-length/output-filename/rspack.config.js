@@ -1,5 +1,4 @@
 var webpack = require("@rspack/core");
-// CHANGE: rspack use 16 length xxhash by default
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{

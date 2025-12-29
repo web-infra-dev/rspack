@@ -90,8 +90,8 @@ impl EsmLibraryPlugin {
     // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
     let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
     for entry_module_id in &entry_modules {
-      let hashbang = get_module_hashbang(&module_graph, entry_module_id);
-      let directives = get_module_directives(&module_graph, entry_module_id);
+      let hashbang = get_module_hashbang(module_graph, entry_module_id);
+      let directives = get_module_directives(module_graph, entry_module_id);
 
       if hashbang.is_none() && directives.is_none() {
         continue;

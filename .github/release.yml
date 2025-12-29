@@ -3,29 +3,29 @@
 changelog:
   exclude:
     labels:
-      - "release: ignore"
+      - 'release: ignore'
     authors:
       # Ignore the release PR created by github-actions
       - github-actions
   categories:
     - title: Breaking Changes 🛠
       labels:
-        - "release: breaking change"
+        - 'release: breaking change'
     - title: Performance Improvements ⚡
       labels:
-        - "release: performance"
+        - 'release: performance'
     - title: New Features 🎉
       labels:
-        - "release: feature"
+        - 'release: feature'
     - title: Bug Fixes 🐞
       labels:
-        - "release: bug fix"
+        - 'release: bug fix'
     - title: Refactor 🔨
       labels:
-        - "release: refactor"
+        - 'release: refactor'
     - title: Document Updates 📖
       labels:
-        - "release: document"
+        - 'release: document'
     - title: Other Changes
       labels:
-        - "*"
+        - '*'

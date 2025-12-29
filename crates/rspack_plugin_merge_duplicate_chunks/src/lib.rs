@@ -92,7 +92,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               let exports_info = module_graph.get_exports_info(module);
               is_equally_used(
                 &exports_info,
-                &module_graph,
+                module_graph,
                 chunk.runtime(),
                 other_chunk.runtime(),
               )
@@ -115,7 +115,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             &other_chunk_ukey,
             &mut chunk_by_ukey,
             &mut chunk_group_by_ukey,
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
           );
           if chunk_by_ukey.remove(&other_chunk_ukey).is_some()
             && let Some(mut mutations) = compilation.incremental.mutations_write()

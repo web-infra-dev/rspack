@@ -1,10 +1,8 @@
-use std::{
-  collections::hash_map::Entry,
-  ops::{Deref, DerefMut},
-};
+pub mod rollback;
+use std::collections::hash_map::Entry;
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -35,7 +33,7 @@ pub type BuildDependency = (
 );
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DependencyExtraMeta {
   pub ids: Vec<Atom>,
   pub explanation: Option<&'static str>,
@@ -48,24 +46,23 @@ pub struct DependencyParents {
   pub index_in_block: usize,
 }
 
-/// A partial module graph that contains modified parts of the origin make_phased module_graph during seal phase
-/// persistent cache will always use the origin make_phased module and ignore all module_graph change in the modified parts of ModuleGraphPartial in seal phase
+/// Internal data structure for ModuleGraph
+/// There're 3 kinds of data in module_graph here
+/// 1. Data only setting during Make Phase which no need for clone or overlay to recover
+/// 2. Data modified during Seal Phase which no need for clone or overlay to recover
+/// 3. Data modified both during Seal Phase and Make Phase which need for clone or overlay to recover
+///    3.1 only the contained modified in seal phase which can be reverted
+///    3.2 the item is modified which can only use overlay or clone to recover
 #[derive(Debug, Default)]
-pub struct ModuleGraphPartial {
+pub(crate) struct ModuleGraphData {
+  /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: IdentifierMap<Option<BoxModule>>,
+  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
-
+  dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
-
-  /// ModuleGraphModule indexed by `ModuleIdentifier`.
-  module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
-
-  /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: HashMap<DependencyId, Option<ModuleGraphConnection>>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -86,152 +83,74 @@ pub struct ModuleGraphPartial {
   ///   })
   /// ```
   dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
-
-  // Module's ExportsInfo is also a part of ModuleGraph
-  exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+
+  /************************** Modified by Seal Phase **********************/
+  /// ModuleGraphModule indexed by `ModuleIdentifier`.
+  /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
+  module_graph_modules: rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule>,
+
+  /// ModuleGraphConnection indexed by `DependencyId`.
+  /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
+  connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
+  // ExportsInfoData indexed by ExportsInfo id
+  // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
+  exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
+
+  /***************** only Modified during Seal Phase ********************/
+  // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+}
+impl ModuleGraphData {
+  fn checkpoint(&mut self) {
+    self.modules.checkpoint();
+    self.module_graph_modules.checkpoint();
+    self.connections.checkpoint();
+
+    self.exports_info_map.checkpoint();
+
+    // exports_info_map and dep_meta_map are not used for build_module_graph
+  }
+  // reset to checkpoint
+  fn recover(&mut self) {
+    self.modules.reset();
+    self.module_graph_modules.reset();
+    self.connections.reset();
+    self.exports_info_map.reset();
+    // reset data to save memory
+    self.dep_meta_map.clear();
+  }
 }
 
 #[derive(Debug, Default)]
-pub struct ModuleGraph<'a> {
-  partials: [Option<&'a ModuleGraphPartial>; 2],
-  active: Option<&'a mut ModuleGraphPartial>,
+pub struct ModuleGraph {
+  inner: ModuleGraphData,
 }
-
-#[derive(Debug)]
-pub struct ModuleGraphRef<'a>(ModuleGraph<'a>);
-
-#[derive(Debug)]
-pub struct ModuleGraphMut<'a>(ModuleGraph<'a>);
-
-impl<'a> Deref for ModuleGraphRef<'a> {
-  type Target = ModuleGraph<'a>;
-  fn deref(&self) -> &Self::Target {
-    &self.0
+impl ModuleGraph {
+  // checkpoint
+  pub fn checkpoint(&mut self) {
+    self.inner.checkpoint()
+  }
+  // reset to last checkpoint
+  pub fn reset(&mut self) {
+    self.inner.recover()
   }
 }
 
-impl<'a> Deref for ModuleGraphMut<'a> {
-  type Target = ModuleGraph<'a>;
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl<'a> DerefMut for ModuleGraphMut<'a> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
-  }
-}
-
-impl<'a> ModuleGraph<'a> {
-  pub fn new_ref(partials: [Option<&'a ModuleGraphPartial>; 2]) -> ModuleGraphRef<'a> {
-    ModuleGraphRef(Self {
-      partials,
-      active: None,
-    })
-  }
-
-  pub fn new_mut(
-    partials: [Option<&'a ModuleGraphPartial>; 2],
-    active: &'a mut ModuleGraphPartial,
-  ) -> ModuleGraphMut<'a> {
-    ModuleGraphMut(Self {
-      partials,
-      active: Some(active),
-    })
-  }
-
-  fn loop_partials<T>(&self, f: impl Fn(&ModuleGraphPartial) -> Option<&T>) -> Option<&T> {
-    if let Some(active) = &self.active
-      && let Some(r) = f(active)
-    {
-      return Some(r);
-    }
-
-    for item in self.partials.iter().rev().flatten() {
-      if let Some(r) = f(item) {
-        return Some(r);
-      }
-    }
-    None
-  }
-
-  fn loop_partials_mut<REF, MUT>(
-    &mut self,
-    f_exist: impl Fn(&ModuleGraphPartial) -> bool,
-    f_set: impl Fn(&mut ModuleGraphPartial, REF),
-    f: impl Fn(&ModuleGraphPartial) -> Option<REF>,
-    f_mut: impl Fn(&mut ModuleGraphPartial) -> Option<&mut MUT>,
-  ) -> Option<&mut MUT> {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-
-    let active_exist = f_exist(active_partial);
-    if !active_exist {
-      let mut search_result = None;
-      for item in self.partials.iter().rev().flatten() {
-        if let Some(r) = f(item) {
-          search_result = Some(r);
-          break;
-        }
-      }
-      if let Some(search_result) = search_result {
-        f_set(active_partial, search_result);
-      }
-    }
-
-    f_mut(active_partial)
-  }
-
+impl ModuleGraph {
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    let mut res = IdentifierMap::default();
-    for item in self.partials.iter().flatten() {
-      for (k, v) in &item.modules {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-    if let Some(active) = &self.active {
-      for (k, v) in &active.modules {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-    res
+    self.inner.modules.iter().map(|(k, v)| (*k, v)).collect()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
-    let mut res = IdentifierMap::default();
-    for item in self.partials.iter().flatten() {
-      for (k, v) in &item.module_graph_modules {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-    if let Some(active) = &self.active {
-      for (k, v) in &active.module_graph_modules {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-    res
+    self
+      .inner
+      .module_graph_modules
+      .iter()
+      .map(|(k, v)| (*k, v))
+      .collect()
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -319,25 +238,20 @@ impl<'a> ModuleGraph<'a> {
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
     let parent_block = self.get_parent_block(dep_id).copied();
 
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
     if module_identifier.is_some() {
-      active_partial.connections.insert(*dep_id, None);
+      self.inner.connections.remove(dep_id);
     }
     if force {
-      active_partial.dependencies.insert(*dep_id, None);
-      active_partial
-        .dependency_id_to_parents
-        .insert(*dep_id, None);
-      active_partial.connection_to_condition.remove(dep_id);
+      self.inner.dependencies.remove(dep_id);
+      self.inner.dependency_id_to_parents.insert(*dep_id, None);
+      self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
-        && let Some(Some(module)) = active_partial.modules.get_mut(&m_id)
+        && let Some(module) = self.inner.modules.get_mut(&m_id)
       {
         module.remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
-        && let Some(Some(block)) = active_partial.blocks.get_mut(&b_id)
+        && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
         block.remove_dependency_id(*dep_id);
       }
@@ -378,15 +292,11 @@ impl<'a> ModuleGraph<'a> {
       })
       .unwrap_or_default();
 
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-
-    active_partial.modules.insert(*module_id, None);
-    active_partial.module_graph_modules.insert(*module_id, None);
+    self.inner.modules.remove(module_id);
+    self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {
-      active_partial.blocks.insert(block, None);
+      self.inner.blocks.remove(&block);
     }
 
     for dep_id in all_dependencies {
@@ -400,22 +310,10 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    match active_partial
+    self
+      .inner
       .module_graph_modules
-      .entry(module_graph_module.module_identifier)
-    {
-      Entry::Occupied(mut val) => {
-        if val.get().is_none() {
-          val.insert(Some(module_graph_module));
-        }
-      }
-      Entry::Vacant(val) => {
-        val.insert(Some(module_graph_module));
-      }
-    }
+      .insert(module_graph_module.module_identifier, module_graph_module);
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -424,7 +322,7 @@ impl<'a> ModuleGraph<'a> {
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let module_graph = compilation.get_module_graph_mut();
     let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");
@@ -602,42 +500,25 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    match active_partial.modules.entry(module.identifier()) {
-      Entry::Occupied(mut val) => {
-        if val.get().is_none() {
-          val.insert(Some(module));
-        }
-      }
-      Entry::Vacant(val) => {
-        val.insert(Some(module));
-      }
-    }
+    self.inner.modules.insert(module.identifier(), module);
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial
-      .blocks
-      .insert(block.identifier(), Some(block));
+    self.inner.blocks.insert(block.identifier(), block);
   }
 
   pub fn set_parents(&mut self, dependency_id: DependencyId, parents: DependencyParents) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial
+    self
+      .inner
       .dependency_id_to_parents
       .insert(dependency_id, Some(parents));
   }
 
   pub fn get_parent_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     self
-      .loop_partials(|p| p.dependency_id_to_parents.get(dependency_id))?
+      .inner
+      .dependency_id_to_parents
+      .get(dependency_id)?
       .as_ref()
       .map(|p| &p.module)
   }
@@ -647,7 +528,9 @@ impl<'a> ModuleGraph<'a> {
     dependency_id: &DependencyId,
   ) -> Option<&AsyncDependenciesBlockIdentifier> {
     self
-      .loop_partials(|p| p.dependency_id_to_parents.get(dependency_id))?
+      .inner
+      .dependency_id_to_parents
+      .get(dependency_id)?
       .as_ref()
       .map(|p| &p.block)?
       .as_ref()
@@ -655,7 +538,9 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
     self
-      .loop_partials(|p| p.dependency_id_to_parents.get(dependency_id))?
+      .inner
+      .dependency_id_to_parents
+      .get(dependency_id)?
       .as_ref()
       .map(|p| p.index_in_block)
   }
@@ -664,10 +549,7 @@ impl<'a> ModuleGraph<'a> {
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
-    self
-      .loop_partials(|p| p.blocks.get(block_id))?
-      .as_ref()
-      .map(|b| &**b)
+    self.inner.blocks.get(block_id).map(|b| &**b)
   }
 
   pub fn block_by_id_expect(
@@ -675,65 +557,34 @@ impl<'a> ModuleGraph<'a> {
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> &AsyncDependenciesBlock {
     self
-      .loop_partials(|p| p.blocks.get(block_id))
+      .inner
+      .blocks
+      .get(block_id)
       .expect("should insert block before get it")
-      .as_ref()
-      .expect("block has been removed to None")
   }
 
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    let mut res = HashMap::default();
-    for item in self.partials.iter().flatten() {
-      for (k, v) in &item.dependencies {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-    if let Some(active) = &self.active {
-      for (k, v) in &active.dependencies {
-        if let Some(v) = v {
-          res.insert(*k, v);
-        } else {
-          res.remove(k);
-        }
-      }
-    }
-
-    res
+    self
+      .inner
+      .dependencies
+      .iter()
+      .map(|(k, v)| (*k, v))
+      .collect()
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial
-      .dependencies
-      .insert(*dependency.id(), Some(dependency));
+    self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self
-      .loop_partials(|p| p.dependencies.get(dependency_id))?
-      .as_ref()
+    self.inner.dependencies.get(dependency_id)
   }
 
   pub fn dependency_by_id_mut(
     &mut self,
     dependency_id: &DependencyId,
   ) -> Option<&mut BoxDependency> {
-    self
-      .loop_partials_mut(
-        |p| p.dependencies.contains_key(dependency_id),
-        |p, search_result| {
-          p.dependencies.insert(*dependency_id, search_result);
-        },
-        |p| p.dependencies.get(dependency_id).cloned(),
-        |p| p.dependencies.get_mut(dependency_id),
-      )?
-      .as_mut()
+    self.inner.dependencies.get_mut(dependency_id)
   }
 
   /// Uniquely identify a module by its dependency
@@ -751,14 +602,15 @@ impl<'a> ModuleGraph<'a> {
     dep_id: &DependencyId,
   ) -> Option<&ModuleIdentifier> {
     self
-      .loop_partials(|p| p.connections.get(dep_id))?
-      .as_ref()
+      .inner
+      .connections
+      .get(dep_id)
       .map(|con| con.module_identifier())
   }
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
     if let Some(module_id) = self.module_identifier_by_dependency_id(dep_id) {
-      self.loop_partials(|p| p.modules.get(module_id))?.as_ref()
+      self.inner.modules.get(module_id)
     } else {
       None
     }
@@ -776,12 +628,9 @@ impl<'a> ModuleGraph<'a> {
       return;
     }
 
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-
     if let Some(condition) = condition {
-      active_partial
+      self
+        .inner
         .connection_to_condition
         .insert(connection.dependency_id, condition);
     }
@@ -791,9 +640,10 @@ impl<'a> ModuleGraph<'a> {
     let dependency_id = connection.dependency_id;
 
     // add to connections list
-    active_partial
+    self
+      .inner
       .connections
-      .insert(connection.dependency_id, Some(connection));
+      .insert(connection.dependency_id, connection);
 
     // set to module incoming connection
     {
@@ -850,21 +700,14 @@ impl<'a> ModuleGraph<'a> {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    self.loop_partials(|p| p.modules.get(identifier))?.as_ref()
+    self.inner.modules.get(identifier)
   }
 
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    if let Some(res) = active_partial.modules.get_mut(identifier) {
-      res.as_mut()
-    } else {
-      None
-    }
+    self.inner.modules.get_mut(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
@@ -872,9 +715,7 @@ impl<'a> ModuleGraph<'a> {
     &self,
     identifier: &ModuleIdentifier,
   ) -> Option<&ModuleGraphModule> {
-    self
-      .loop_partials(|p| p.module_graph_modules.get(identifier))?
-      .as_ref()
+    self.inner.module_graph_modules.get(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the exclusive reference
@@ -882,16 +723,7 @@ impl<'a> ModuleGraph<'a> {
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut ModuleGraphModule> {
-    self
-      .loop_partials_mut(
-        |p| p.module_graph_modules.contains_key(identifier),
-        |p, search_result| {
-          p.module_graph_modules.insert(*identifier, search_result);
-        },
-        |p| p.module_graph_modules.get(identifier).cloned(),
-        |p| p.module_graph_modules.get_mut(identifier),
-      )?
-      .as_mut()
+    self.inner.module_graph_modules.get_mut(identifier)
   }
 
   pub fn get_ordered_outgoing_connections(
@@ -928,25 +760,14 @@ impl<'a> ModuleGraph<'a> {
     &self,
     dependency_id: &DependencyId,
   ) -> Option<&ModuleGraphConnection> {
-    self
-      .loop_partials(|p| p.connections.get(dependency_id))?
-      .as_ref()
+    self.inner.connections.get(dependency_id)
   }
 
   pub fn connection_by_dependency_id_mut(
     &mut self,
     dependency_id: &DependencyId,
   ) -> Option<&mut ModuleGraphConnection> {
-    self
-      .loop_partials_mut(
-        |p| p.connections.contains_key(dependency_id),
-        |p, search_result| {
-          p.connections.insert(*dependency_id, search_result);
-        },
-        |p| p.connections.get(dependency_id).cloned(),
-        |p| p.connections.get_mut(dependency_id),
-      )?
-      .as_mut()
+    self.inner.connections.get_mut(dependency_id)
   }
 
   pub fn get_pre_order_index(&self, module_id: &ModuleIdentifier) -> Option<u32> {
@@ -1068,14 +889,11 @@ impl<'a> ModuleGraph<'a> {
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
   /// hashmap to store different kinds of meta.
   pub fn get_dep_meta_if_existing(&self, id: &DependencyId) -> Option<&DependencyExtraMeta> {
-    self.loop_partials(|p| p.dep_meta_map.get(id))
+    self.inner.dep_meta_map.get(id)
   }
 
   pub fn set_dependency_extra_meta(&mut self, dep_id: DependencyId, extra: DependencyExtraMeta) {
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
-    active_partial.dep_meta_map.insert(dep_id, extra);
+    self.inner.dep_meta_map.insert(dep_id, extra);
   }
 
   pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
@@ -1126,7 +944,9 @@ impl<'a> ModuleGraph<'a> {
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
     let condition = self
-      .loop_partials(|p| p.connection_to_condition.get(&connection.dependency_id))
+      .inner
+      .connection_to_condition
+      .get(&connection.dependency_id)
       .expect("should have condition");
     condition.get_connection_state(connection, runtime, self, module_graph_cache)
   }
@@ -1137,30 +957,25 @@ impl<'a> ModuleGraph<'a> {
       .dependency_by_id(&connection.dependency_id)
       .and_then(|d| d.as_module_dependency())
       .and_then(|dep| dep.get_condition());
-    let Some(active_partial) = &mut self.active else {
-      panic!("should have active partial");
-    };
 
     // recovery condition
     if let Some(condition) = condition {
-      active_partial
+      self
+        .inner
         .connection_to_condition
         .insert(connection.dependency_id, condition);
     }
 
-    active_partial
+    self
+      .inner
       .connections
-      .insert(connection.dependency_id, Some(connection));
+      .insert(connection.dependency_id, connection);
   }
 
   pub fn batch_set_connections_original_module(
     &mut self,
     tasks: Vec<(DependencyId, ModuleIdentifier)>,
   ) {
-    if self.active.is_none() {
-      panic!("should have active partial");
-    }
-
     let changed = tasks
       .into_par_iter()
       .map(|(dep_id, original_module_identifier)| {
@@ -1173,17 +988,12 @@ impl<'a> ModuleGraph<'a> {
       })
       .collect::<Vec<_>>();
 
-    let active_partial = self.active.as_mut().expect("should have active partial");
     for (dep_id, con) in changed {
-      active_partial.connections.insert(dep_id, Some(con));
+      self.inner.connections.insert(dep_id, con);
     }
   }
 
   pub fn batch_set_connections_module(&mut self, tasks: Vec<(DependencyId, ModuleIdentifier)>) {
-    if self.active.is_none() {
-      panic!("should have active partial");
-    }
-
     let changed = tasks
       .into_par_iter()
       .map(|(dep_id, module_identifier)| {
@@ -1196,9 +1006,8 @@ impl<'a> ModuleGraph<'a> {
       })
       .collect::<Vec<_>>();
 
-    let active_partial = self.active.as_mut().expect("should have active partial");
     for (dep_id, con) in changed {
-      active_partial.connections.insert(dep_id, Some(con));
+      self.inner.connections.insert(dep_id, con);
     }
   }
 
@@ -1206,10 +1015,6 @@ impl<'a> ModuleGraph<'a> {
     &mut self,
     tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
   ) {
-    if self.active.is_none() {
-      panic!("should have active partial");
-    }
-
     let changed = tasks
       .into_par_iter()
       .map(|(mid, outgoings, incomings)| {
@@ -1227,9 +1032,8 @@ impl<'a> ModuleGraph<'a> {
       })
       .collect::<Vec<_>>();
 
-    let active_partial = self.active.as_mut().expect("should have active partial");
     for (mid, mgm) in changed {
-      active_partial.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 
@@ -1237,10 +1041,6 @@ impl<'a> ModuleGraph<'a> {
     &mut self,
     tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
   ) {
-    if self.active.is_none() {
-      panic!("should have active partial");
-    }
-
     let changed = tasks
       .into_par_iter()
       .map(|(mid, outgoings, incomings)| {
@@ -1258,25 +1058,20 @@ impl<'a> ModuleGraph<'a> {
       })
       .collect::<Vec<_>>();
 
-    let active_partial = self.active.as_mut().expect("should have active partial");
     for (mid, mgm) in changed {
-      active_partial.module_graph_modules.insert(mid, Some(mgm));
+      self.inner.module_graph_modules.insert(mid, mgm);
     }
   }
 
   pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, UsedNameItem)>) {
-    if self.active.is_none() {
-      panic!("should have active partial");
-    }
-
-    let active_partial = self.active.as_mut().expect("should have active partial");
     for (export_info, used_name) in tasks {
       let ExportInfo {
         exports_info,
         export_name,
       } = export_info;
 
-      let data = active_partial
+      let data = self
+        .inner
         .exports_info_map
         .get_mut(&exports_info)
         .expect("should have exports info");

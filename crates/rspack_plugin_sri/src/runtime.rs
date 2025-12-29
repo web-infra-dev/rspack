@@ -108,7 +108,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .filter(|c| {
         compilation
           .chunk_graph
-          .get_chunk_modules(c, &module_graph)
+          .get_chunk_modules(c, module_graph)
           .iter()
           .any(|m| {
             let result = compilation.code_generation_results.get_one(&m.identifier());
@@ -125,7 +125,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         .filter(|c| {
           compilation
             .chunk_graph
-            .has_chunk_module_by_source_type(c, source_type, &module_graph)
+            .has_chunk_module_by_source_type(c, source_type, module_graph)
         })
         .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
         .filter(|c| include_chunks.contains_key(c))

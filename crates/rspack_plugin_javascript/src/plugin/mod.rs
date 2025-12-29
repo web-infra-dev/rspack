@@ -432,7 +432,7 @@ var {} = {{}};
               .any(|(origin_module, connections)| {
                 if let Some(origin_module) = origin_module {
                   connections.iter().any(|c| {
-                    c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                    c.is_target_active(module_graph, Some(chunk.runtime()), module_graph_cache)
                   }) && compilation
                     .chunk_graph
                     .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)

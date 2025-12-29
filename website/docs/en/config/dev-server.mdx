@@ -149,7 +149,7 @@ export default {
   devServer: {
     client: {
       overlay: {
-        runtimeErrors: error => {
+        runtimeErrors: (error) => {
           if (error instanceof DOMException && error.name === 'AbortError') {
             return false;
           }

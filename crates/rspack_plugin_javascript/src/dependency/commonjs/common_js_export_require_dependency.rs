@@ -452,7 +452,6 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         &mg.get_exports_info(&module.identifier()),
         mg,
         *runtime,
-        false,
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info),

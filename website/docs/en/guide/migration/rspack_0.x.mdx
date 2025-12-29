@@ -271,8 +271,8 @@ This change might cause some plugins to become unusable.
 Rspack supports the [NormalModuleFactory](/api/plugin-api/normal-module-factory-hooks)'s [resolve](/api/plugin-api/normal-module-factory-hooks#resolve) hook. In most cases, you can use this hook as a replacement for the `Resolver`'s `resolve` hook to achieve the same functionality.
 
 ```js
-compiler.hooks.normalModuleFactory.tap('PLUGIN', normalModuleFactory => {
-  normalModuleFactory.hooks.resolve.tap('PLUGIN', data => {
+compiler.hooks.normalModuleFactory.tap('PLUGIN', (normalModuleFactory) => {
+  normalModuleFactory.hooks.resolve.tap('PLUGIN', (data) => {
     // Redirect the module
     if (data.request === './foo.js') {
       data.request = './bar.js';

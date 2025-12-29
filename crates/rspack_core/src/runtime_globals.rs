@@ -260,13 +260,15 @@ bitflags! {
     const AMD_DEFINE = 1 << 67;
     const AMD_OPTIONS = 1 << 68;
 
+    const TO_BINARY = 1 << 69;
+
     // defer import support
-    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 69;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 70;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 71;
+    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 70;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 71;
+    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 72;
 
     // rspack only
-    const ASYNC_FEDERATION_STARTUP = 1 << 72;
+    const ASYNC_FEDERATION_STARTUP = 1 << 73;
   }
 }
 
@@ -358,6 +360,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules".to_string(),
     RuntimeGlobals::ASYNC_FEDERATION_STARTUP => format!("{scope_name}.mfAsyncStartup"),
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
+    RuntimeGlobals::TO_BINARY => format!("{scope_name}.tb"),
     _ => unreachable!(),
   }
 }

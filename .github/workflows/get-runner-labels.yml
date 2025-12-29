@@ -5,18 +5,18 @@ on:
     inputs:
       force-use-github-runner:
         type: boolean
-        description: "Force use github runner"
+        description: 'Force use github runner'
         required: false
         default: false
     outputs:
       LINUX_RUNNER_LABELS:
-        description: "linux runner labels"
+        description: 'linux runner labels'
         value: ${{ jobs.main.outputs.LINUX_RUNNER_LABELS }}
       MACOS_RUNNER_LABELS:
-        description: "macos runner labels"
+        description: 'macos runner labels'
         value: ${{ jobs.main.outputs.MACOS_RUNNER_LABELS }}
       WINDOWS_RUNNER_LABELS:
-        description: "windows runner labels"
+        description: 'windows runner labels'
         value: ${{ jobs.main.outputs.WINDOWS_RUNNER_LABELS }}
 
 jobs:

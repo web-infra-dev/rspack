@@ -110,7 +110,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
   let module_graph = compilation.get_module_graph();
   SplitChunkSizes(
     module
-      .source_types(&module_graph)
+      .source_types(module_graph)
       .iter()
       .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
       .collect(),
@@ -265,7 +265,7 @@ fn deterministic_grouping_for_modules(
 
   let items = compilation
     .chunk_graph
-    .get_chunk_modules(chunk, &module_graph);
+    .get_chunk_modules(chunk, module_graph);
 
   let mut nodes = items
     .into_iter()

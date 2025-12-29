@@ -1,8 +1,8 @@
 #![allow(clippy::enum_variant_names)]
 use enum_tag::EnumTag;
 use rspack_core::{
-  BoxPlugin, ChunkLoadingType, CompilerOptions, EntryOptions, ExternalItem, ExternalType,
-  LibraryType, PluginExt as _, WasmLoadingType,
+  BoxPlugin, ChunkLoadingType, CompilerOptions, CompilerPlatform, EntryOptions, ExternalItem,
+  ExternalType, LibraryType, PluginExt as _, WasmLoadingType,
 };
 
 /// Options of builtin plugins
@@ -100,9 +100,15 @@ pub(super) enum BuiltinPluginOptions {
 #[derive(Default, Debug)]
 pub struct BuilderContext {
   pub(super) plugins: Vec<BuiltinPluginOptions>,
+  pub(super) platform: CompilerPlatform,
 }
 
 impl BuilderContext {
+  /// Take platform from the context
+  pub fn take_platform(&mut self) -> CompilerPlatform {
+    std::mem::take(&mut self.platform)
+  }
+
   /// Take plugins from the context.
   ///
   /// The plugins are sorted by their tag.

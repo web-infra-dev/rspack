@@ -15,12 +15,12 @@ use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
-  mg: &'a mut ModuleGraph<'a>,
+  mg: &'a mut ModuleGraph,
   mg_cache: &'a ModuleGraphCacheArtifact,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph<'a>, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
     Self { mg, mg_cache }
   }
 
@@ -193,7 +193,7 @@ async fn finish_modules(
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
@@ -212,9 +212,10 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let mut module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
-  FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
+  let module_graph = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }
 

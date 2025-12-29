@@ -13,7 +13,7 @@ on:
         required: false
         type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
-        default: "ci"
+        default: 'ci'
         required: false
         type: string
       test: # Run tests?
@@ -31,7 +31,7 @@ on:
         required: false
         default: true
         type: boolean
-        description: "Prefer to building in docker if supported"
+        description: 'Prefer to building in docker if supported'
 
 permissions:
   # Allow commenting on issues

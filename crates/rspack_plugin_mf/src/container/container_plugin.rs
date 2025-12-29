@@ -113,7 +113,7 @@ async fn additional_tree_runtime_requirements(
     && compilation.chunk_graph.has_chunk_module_by_source_type(
       chunk_ukey,
       SourceType::Expose,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
     )
     && compilation
       .chunk_graph

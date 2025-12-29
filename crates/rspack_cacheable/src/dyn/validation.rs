@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use rkyv::bytecheck::CheckBytes;
 
 use super::VTablePtr;
-use crate::{DeserializeError, Validator};
+use crate::{Result, Validator};
 
-type CheckBytesDyn = unsafe fn(*const u8, &mut Validator<'_>) -> Result<(), DeserializeError>;
+type CheckBytesDyn = unsafe fn(*const u8, &mut Validator<'_>) -> Result<()>;
 
 /// # Safety
 ///
@@ -13,7 +13,7 @@ type CheckBytesDyn = unsafe fn(*const u8, &mut Validator<'_>) -> Result<(), Dese
 pub unsafe fn default_check_bytes_dyn<T>(
   bytes: *const u8,
   context: &mut Validator<'_>,
-) -> Result<(), DeserializeError>
+) -> Result<()>
 where
   T: for<'a> CheckBytes<Validator<'a>>,
 {

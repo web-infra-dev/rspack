@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.7.0-beta.0",
+  "version": "1.7.0-beta.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -29,7 +29,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": ["dist", "hot", "compiled", "module.d.ts"],
+  "files": [
+    "dist",
+    "hot",
+    "compiled",
+    "module.d.ts"
+  ],
   "engines": {
     "node": ">=18.12.0"
   },
@@ -44,7 +49,7 @@
     "@ast-grep/napi": "^0.40.3",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.18.5",
+    "@rslib/core": "0.19.0",
     "@swc/types": "0.1.25",
     "@types/node": "^20.19.27",
     "@types/watchpack": "^2.4.5",
@@ -60,7 +65,7 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.21.6",
+    "@module-federation/runtime-tools": "0.22.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.1.0"
   },

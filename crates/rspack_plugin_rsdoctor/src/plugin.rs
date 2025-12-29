@@ -275,7 +275,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   // 1. collect modules
   rsd_modules.extend(collect_modules(
     &modules,
-    &module_graph,
+    module_graph,
     chunk_graph,
     &compilation.options.context,
   ));
@@ -318,7 +318,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 4. collect module dependencies
-  let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, &module_graph);
+  let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, module_graph);
   for (origin_module_id, dependencies) in dependency_infos {
     for (dep_module_id, (dep_id, dependency)) in dependencies {
       if let Some(rsd_module) = rsd_modules.get_mut(&dep_module_id) {
@@ -357,7 +357,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
   // 6. collect chunk modules
   let chunk_modules =
-    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, &module_graph);
+    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
   tokio::spawn(async move {
     match hooks
@@ -426,7 +426,7 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
     &MODULE_UKEY_MAP
       .get(&compilation.id())
       .expect("should have module ukey map"),
-    &module_graph,
+    module_graph,
     compilation,
   );
 

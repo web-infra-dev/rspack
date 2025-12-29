@@ -7,8 +7,8 @@ inputs:
     required: true
     type: string
   options:
-    description: "Options for docker"
-    default: ""
+    description: 'Options for docker'
+    default: ''
     required: false
     type: string
   script:

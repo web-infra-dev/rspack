@@ -15,11 +15,13 @@ import WebpackLicense from '@components/WebpackLicense';
 
 关于该对象的具体行为，请参考 [Node.js 文档](https://nodejs.org/api/globals.html#globals_global)。
 
-可选值有：
+### 可选值
 
-- `true`：Rspack 会注入 polyfill，使打包产物中能够使用 `global`。适用于依赖 Node.js 全局变量、但运行在非 Node 环境的代码。
-- `false`：不注入 polyfill。对 `global` 的引用将保持原样。如果目标环境不支持 `global`，运行时会抛出 `ReferenceError`。
-- `'warn'`：行为与 `true` 相同，会注入 polyfill，同时在使用 `global` 时额外打印警告。
+- `true`：Rspack 会注入 polyfill，使打包产物中能够使用 `global`。适用于依赖 Node.js 全局变量、但运行在非 Node 环境的代码
+- `false`：不注入 polyfill。对 `global` 的引用将保持原样。如果目标环境不支持 `global`，运行时会抛出 `ReferenceError`
+- `'warn'`：行为与 `true` 相同，会注入 polyfill，同时在使用 `global` 时额外打印警告
+
+### 示例
 
 例如，禁用 `global` polyfill：
 
@@ -34,20 +36,24 @@ export default {
 ## node.\_\_filename
 
 - **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
-- **默认值：** `'warn-mock'`，当启用 [output.module](/config/output#outputmodule) 时为 `'node-module'`
+- **默认值：**
+  - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
+  - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`
 
-控制 Rspack 在为非 Node 环境打包时，如何处理 Node.js 的 [`__filename`](https://nodejs.org/api/modules.html#__filename) 变量。
+控制 Rspack 在为非 Node 环境打包时，如何处理 Node.js 的 [`__filename`](https://nodejs.org/api/modules.html#__filename) 和 [`import.meta.filename`](https://nodejs.org/api/esm.html#importmetafilename) 变量。
 
-可选值有：
+### 可选值
 
-- `true`：输入文件的文件名，是相对于 [`context`](/config/context) 选项。
-- `false`：Rspack 不会更改 `__filename` 的代码。在 Node.js 环境中运行时输出文件的文件名。
-- `'mock'`：固定值为 '/index.js'。
-- `'warn-mock'`：使用固定值 '/index.js'，但会发出警告。
-- `'node-module'`：当 `output.module` 启用时，将 CommonJS 模块中的 `__filename` 替换为 `fileURLToPath(import.meta.url)`。
-- `'eval-only'`：等同于 `false`。
+- `true`：替换为源文件的文件路径，相对于 [`context`](/config/context) 选项
+- `false`：不做任何处理，保持原生行为
+- `'mock'`：替换为 `'/index.js'`
+- `'eval-only'`：等同于 `false`
+- `'warn-mock'`：替换为 `'/index.js'`，并输出警告，用于提醒代码中存在潜在的 Node 依赖
+- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__filename` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物
 
-例如，不对 `__filename` 进行任何处理：
+### 示例
+
+例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -57,28 +63,60 @@ export default {
 };
 ```
 
+将 ESM 产物中的 `__filename` 替换为 `fileURLToPath(import.meta.url)`：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    module: true,
+  },
+  node: {
+    __filename: 'node-module',
+  },
+};
+```
+
 ## node.\_\_dirname
 
 - **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
-- **默认值：** `'warn-mock'`，当启用 [output.module](/config/output#outputmodule) 时为 `'node-module'`
+- **默认值：**
+  - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
+  - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`
 
-控制 Rspack 在为非 Node 环境打包时，如何处理 Node.js 的 [`__dirname`](https://nodejs.org/api/modules.html#__dirname) 变量。
+控制 Rspack 在为非 Node 环境打包时，如何处理 Node.js 的 [`__dirname`](https://nodejs.org/api/modules.html#__dirname) 和 [`import.meta.dirname`](https://nodejs.org/api/esm.html#importmetadirname) 变量。
 
-可选值有：
+### 可选值
 
-- `true`：**输入** 文件的目录名，是相对于 [`context`](/config/context) 选项。
-- `false`：Rspack 不会更改 `__dirname` 的代码，这意味着你有常规 Node.js 中的 `__dirname` 的行为。在 Node.js 环境中运行时，**输出** 文件的目录名。
-- `'mock'`：value 填充为 `'/'`。
-- `'warn-mock'`：使用 `'/'` 但是会显示一个警告。
-- `'node-module'`: 当启用 `output.module` 时，将 CommonJS 模块中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`。
-- `'eval-only'`：等同于 `false`。
+- `true`：替换为源文件的目录路径，相对于 [`context`](/config/context) 选项
+- `false`：不做任何处理，保持原生行为
+- `'mock'`：替换为 `'/'`
+- `'eval-only'`：等同于 `false`
+- `'warn-mock'`：替换为 `'/'`，并输出警告，用于提醒代码中存在潜在的 Node 依赖
+- `'node-module'`：仅在 [output.module](/config/output#outputmodule) 启用时使用。将 CommonJS 中的 `__dirname` 替换为基于 `import.meta.url` 的等价实现，适合 ESM 产物
 
-例如，不对 `__dirname` 进行任何处理：
+### 示例
+
+例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理：
 
 ```js title="rspack.config.mjs"
 export default {
   node: {
     __dirname: false,
+  },
+};
+```
+
+将 ESM 产物中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    module: true,
+  },
+  node: {
+    __dirname: 'node-module',
   },
 };
 ```

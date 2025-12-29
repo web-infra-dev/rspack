@@ -134,9 +134,9 @@ let result = str.cow_replace("old", "new");
 **Imports:**
 
 ```typescript
-import util from "node:util";
-import type { Callback } from "@rspack/lite-tapable";
-import { Compiler } from "./Compiler";
+import util from 'node:util';
+import type { Callback } from '@rspack/lite-tapable';
+import { Compiler } from './Compiler';
 ```
 
 **Type Definitions:**
@@ -154,7 +154,7 @@ import { Compiler } from "./Compiler";
 
 ```typescript
 if (isNil(options.context)) {
-	throw new Error("options.context is required");
+  throw new Error('options.context is required');
 }
 ```
 

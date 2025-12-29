@@ -100,7 +100,7 @@ fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   let module_graph = compilation.get_module_graph();
   for module in modules {
-    for source_type in module.source_types(&module_graph) {
+    for source_type in module.source_types(module_graph) {
       size += module.size(Some(source_type), Some(compilation));
     }
   }

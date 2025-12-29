@@ -1,18 +1,18 @@
 import {
-	BuiltinPluginName,
-	type RawRstestPluginOptions
-} from "@rspack/binding";
+  BuiltinPluginName,
+  type RawRstestPluginOptions,
+} from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export type RstestPluginArgument =
-	| Partial<Omit<RawRstestPluginOptions, "handler">>
-	| ((percentage: number, msg: string, ...args: string[]) => void)
-	| undefined;
+  | Partial<Omit<RawRstestPluginOptions, 'handler'>>
+  | ((percentage: number, msg: string, ...args: string[]) => void)
+  | undefined;
 
 export const RstestPlugin = create(
-	BuiltinPluginName.RstestPlugin,
-	(rstest: RawRstestPluginOptions): RawRstestPluginOptions => {
-		return rstest;
-	}
+  BuiltinPluginName.RstestPlugin,
+  (rstest: RawRstestPluginOptions): RawRstestPluginOptions => {
+    return rstest;
+  },
 );

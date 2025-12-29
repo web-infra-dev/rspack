@@ -197,7 +197,7 @@ impl EsmLibraryPlugin {
         let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &compilation.options.context,
         );
@@ -297,7 +297,7 @@ impl EsmLibraryPlugin {
 
           let mut ns_obj = Vec::new();
           let exports_info = module_graph.get_exports_info(module_info_id);
-          for export_info in exports_info.as_data(&module_graph).exports().values() {
+          for export_info in exports_info.as_data(module_graph).exports().values() {
             if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
               continue;
             }
@@ -310,7 +310,7 @@ impl EsmLibraryPlugin {
             if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
               let mut binding = Self::get_binding(
                 None,
-                &compilation.get_module_graph(),
+                compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
@@ -464,7 +464,7 @@ var {} = {{}};
       let info = &mut concate_modules_map[id];
       let readable_identifier = get_cached_readable_identifier(
         id,
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         context,
       );
@@ -634,7 +634,7 @@ var {} = {{}};
       if info.name.is_none() {
         let readable_identifier = get_cached_readable_identifier(
           external_module,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           context,
         );
@@ -993,7 +993,7 @@ var {} = {{}};
 
     let exports_info = module_graph
       .get_exports_info(&entry_module)
-      .as_data(&module_graph);
+      .as_data(module_graph);
 
     // detect reexport star
     let mut star_re_exports_modules = IdentifierIndexSet::default();
@@ -1010,7 +1010,7 @@ var {} = {{}};
 
     Self::resolve_re_export_star_from_unknown(
       entry_module,
-      &module_graph,
+      module_graph,
       &compilation.module_graph_cache_artifact,
       true,
     )
@@ -1035,7 +1035,7 @@ var {} = {{}};
       let chunk_link = link.get_mut_unwrap(&current_chunk);
       let binding = Self::get_binding(
         None,
-        &module_graph,
+        module_graph,
         &compilation.module_graph_cache_artifact,
         &entry_module,
         vec![name.clone()],
@@ -1064,6 +1064,10 @@ var {} = {{}};
 
               let export_name = if let Some(id) = symbol_binding.ids.first() {
                 required_info.property_access(id, &mut chunk_link.used_names)
+              } else if let Some(default_access) = &required_info.default_access
+                && default_access == &symbol_binding.symbol
+              {
+                required_info.default_exported(&mut chunk_link.used_names)
               } else {
                 symbol_binding.symbol
               };
@@ -1132,7 +1136,7 @@ var {} = {{}};
             &entry_chunk_link.used_names,
             &escaped_identifiers[&get_cached_readable_identifier(
               &entry_module,
-              &module_graph,
+              module_graph,
               &compilation.module_static_cache_artifact,
               context,
             )],
@@ -1292,11 +1296,7 @@ var {} = {{}};
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
-          if !conn.is_target_active(
-            &module_graph,
-            None,
-            &compilation.module_graph_cache_artifact,
-          ) {
+          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
             continue;
           }
 
@@ -1346,7 +1346,7 @@ var {} = {{}};
 
             let binding = Self::get_binding(
               Some(m),
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               ref_module,
               options.ids.clone(),
@@ -1382,7 +1382,7 @@ var {} = {{}};
 
             let mut binding = Self::get_binding(
               None,
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               ref_module,
               vec![ref_atom.clone()],
@@ -1460,7 +1460,7 @@ var {} = {{}};
         if needs_import_chunk && !from_external {
           let readable_identifier = get_cached_readable_identifier(
             &m,
-            &module_graph,
+            module_graph,
             &compilation.module_static_cache_artifact,
             context,
           );
@@ -1518,11 +1518,7 @@ var {} = {{}};
             continue;
           };
 
-          if !conn.is_target_active(
-            &module_graph,
-            None,
-            &compilation.module_graph_cache_artifact,
-          ) {
+          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
             continue;
           }
 
@@ -1590,6 +1586,11 @@ var {} = {{}};
 
       let mut removed_import_stmts = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
+        if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
+          // import 'externals'
+          continue;
+        }
+
         if key.1.is_some() {
           // TODO: optimize import attributes
           continue;

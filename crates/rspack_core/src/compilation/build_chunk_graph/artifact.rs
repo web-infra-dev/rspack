@@ -69,7 +69,7 @@ impl CodeSplittingCache {
 
     let module_graph = this_compilation.get_module_graph();
     let module_graph_cache = &this_compilation.module_graph_cache_artifact;
-    let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
+    let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &self.code_splitter.block_modules_runtime_map;
 
     if previous_modules_map.is_empty() {
@@ -103,7 +103,7 @@ impl CodeSplittingCache {
         'outer: for (m, connections) in active_modules {
           for conn in connections {
             if conn
-              .active_state(&module_graph, None, module_graph_cache)
+              .active_state(module_graph, None, module_graph_cache)
               .is_not_false()
             {
               res.push(m);
@@ -199,7 +199,7 @@ where
 
     if no_change {
       let module_idx = cache.module_idx.clone();
-      let mut module_graph = compilation.get_seal_module_graph_mut();
+      let module_graph = compilation.get_module_graph_mut();
       for (m, (pre, post)) in module_idx {
         let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&m) else {
           continue;

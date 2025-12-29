@@ -214,22 +214,22 @@ mod tests {
 
 ```javascript
 // tests/rspack-test/configCases/my-plugin/index.js
-import rspack from "@rspack/core";
+import rspack from '@rspack/core';
 
-it("should process assets correctly", async () => {
-	const compiler = rspack({
-		entry: "./index.js",
-		plugins: [new MyPlugin({ option1: "test" })]
-	});
+it('should process assets correctly', async () => {
+  const compiler = rspack({
+    entry: './index.js',
+    plugins: [new MyPlugin({ option1: 'test' })],
+  });
 
-	const stats = await new Promise((resolve, reject) => {
-		compiler.run((err, stats) => {
-			if (err) reject(err);
-			else resolve(stats);
-		});
-	});
+  const stats = await new Promise((resolve, reject) => {
+    compiler.run((err, stats) => {
+      if (err) reject(err);
+      else resolve(stats);
+    });
+  });
 
-	expect(stats.hasErrors()).toBe(false);
+  expect(stats.hasErrors()).toBe(false);
 });
 ```
 
@@ -300,21 +300,21 @@ fn default_option3() -> i32 {
 
 ```typescript
 export interface MyPluginOptions {
-	/**
-	 * Description of option1
-	 */
-	option1: string;
+  /**
+   * Description of option1
+   */
+  option1: string;
 
-	/**
-	 * Optional description of option2
-	 */
-	option2?: boolean;
+  /**
+   * Optional description of option2
+   */
+  option2?: boolean;
 
-	/**
-	 * Default value is 10
-	 * @default 10
-	 */
-	option3?: number;
+  /**
+   * Default value is 10
+   * @default 10
+   */
+  option3?: number;
 }
 ```
 

@@ -44,14 +44,14 @@ pub async fn compare(
 
 /// Comparator for BuildModuleGraphArtifacts
 struct ArtifactComparator<'a> {
-  mg1: rspack_core::ModuleGraphRef<'a>,
-  mg2: rspack_core::ModuleGraphRef<'a>,
+  mg1: &'a rspack_core::ModuleGraph,
+  mg2: &'a rspack_core::ModuleGraph,
 }
 
 impl<'a> ArtifactComparator<'a> {
   fn new(artifact1: &'a BuildModuleGraphArtifact, artifact2: &'a BuildModuleGraphArtifact) -> Self {
-    let mg1 = rspack_core::ModuleGraph::new_ref([Some(&artifact1.module_graph_partial), None]);
-    let mg2 = rspack_core::ModuleGraph::new_ref([Some(&artifact2.module_graph_partial), None]);
+    let mg1 = &artifact1.module_graph;
+    let mg2 = &artifact2.module_graph;
     Self { mg1, mg2 }
   }
 

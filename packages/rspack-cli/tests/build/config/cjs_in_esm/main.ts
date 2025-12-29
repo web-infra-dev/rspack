@@ -1,1 +1,1 @@
-console.log("Main cjs file");
+console.log('Main cjs file');

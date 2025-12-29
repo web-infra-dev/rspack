@@ -60,7 +60,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     },
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(
-        &module_graph,
+        module_graph,
         &a.identifier(),
         &b.identifier(),
       )

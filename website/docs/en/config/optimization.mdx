@@ -207,7 +207,7 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };
@@ -243,7 +243,7 @@ Imported modules are initialized for each runtime chunk separately, so if you in
 ## optimization.realContentHash
 
 <PropertyType
-  type="boolean | 'flag'"
+  type="boolean"
   defaultValueList={[
     { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
@@ -405,7 +405,7 @@ Performs cross-module inline optimization for:
    - `number` with length \<= 6
    - `string` with length \<= 6
 
-2. Exported TypeScript enums that collected by [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum)
+2. Exported TypeScript enums that collected by [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum)
 
 This optimization helps reduce bundle size and can improve runtime performance.
 

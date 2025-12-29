@@ -1,5 +1,5 @@
 module.exports = () =>
-	Promise.resolve({
-		mode: "development",
-		entry: "./src/entry.js"
-	});
+  Promise.resolve({
+    mode: 'development',
+    entry: './src/entry.js',
+  });

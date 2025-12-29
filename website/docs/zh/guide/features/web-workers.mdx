@@ -52,7 +52,7 @@ const worker = new Worker(new URL('./node-worker.js', import.meta.url));
 - `navigator.serviceWorker.register()`：用于注册 Service Worker，详见 [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)。
 
 ```js
-navigator.serviceWorker.register('./sw.js').then(registration => {
+navigator.serviceWorker.register('./sw.js').then((registration) => {
   console.log('Service worker registration succeeded:', registration);
 });
 ```

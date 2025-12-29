@@ -6,9 +6,9 @@ on:
       commit:
         required: true
         type: string
-        description: "Commit SHA"
+        description: 'Commit SHA'
   workflow_run:
-    workflows: ["Release Full"]
+    workflows: ['Release Full']
     types:
       - completed
 permissions:
