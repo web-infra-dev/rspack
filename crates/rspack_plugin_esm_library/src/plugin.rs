@@ -258,8 +258,9 @@ async fn finish_modules(
     );
   }
 
-  let module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let module_graph = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
   for m in entry_modules {
     let exports_info = module_graph.get_exports_info(&m);
 

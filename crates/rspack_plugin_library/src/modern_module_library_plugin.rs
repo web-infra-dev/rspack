@@ -230,7 +230,9 @@ impl ModernModuleLibraryPlugin {
       }
     }
 
-    let mg = Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mg = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     for dep in deps_to_replace {
       let dep_id = dep.id();
       external_connections.remove(dep_id);
