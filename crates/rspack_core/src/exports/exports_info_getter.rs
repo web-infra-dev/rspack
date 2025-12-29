@@ -444,12 +444,12 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       if redirected.is_used(runtime) {
         return true;
       }
-    } else if self.other_exports_info().get_used(runtime) != UsageState::Unused {
+    } else if self.other_exports_info().is_used(runtime) {
       return true;
     }
 
     for (_, export_info) in self.exports() {
-      if export_info.get_used(runtime) != UsageState::Unused {
+      if export_info.is_used(runtime) {
         return true;
       }
     }
@@ -629,55 +629,37 @@ impl ExportsInfoGetter {
     id: &ExportsInfo,
     mg: &'a ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-    full_data: bool,
   ) -> PrefetchedExportsInfoUsed<'a> {
-    if full_data {
-      let data = Self::prefetch(id, mg, PrefetchExportsInfoMode::Default);
-      let is_used = data.is_used(runtime);
-      let is_module_used = data.is_module_used(runtime);
-      PrefetchedExportsInfoUsed {
-        is_used,
-        is_module_used,
-        data: Some(data),
-      }
-    } else {
-      fn is_exports_info_used(
-        info: &ExportsInfo,
-        runtime: Option<&RuntimeSpec>,
-        mg: &ModuleGraph,
-      ) -> bool {
-        let exports_info = info.as_data(mg);
-        if let Some(redirect) = exports_info.redirect_to() {
-          if is_exports_info_used(&redirect, runtime, mg) {
-            return true;
-          }
-        } else if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    fn is_exports_info_used(
+      info: &ExportsInfo,
+      runtime: Option<&RuntimeSpec>,
+      mg: &ModuleGraph,
+    ) -> bool {
+      let exports_info = info.as_data(mg);
+      if let Some(redirect) = exports_info.redirect_to() {
+        if is_exports_info_used(&redirect, runtime, mg) {
           return true;
         }
-
-        for export_info in exports_info.exports().values() {
-          if export_info.get_used(runtime) != UsageState::Unused {
-            return true;
-          }
-        }
-        false
+      } else if exports_info.other_exports_info().is_used(runtime) {
+        return true;
       }
+      exports_info
+        .exports()
+        .values()
+        .any(|export_info| export_info.is_used(runtime))
+    }
 
-      let is_used = is_exports_info_used(id, runtime, mg);
-      let is_module_used = if is_used {
-        true
-      } else {
-        !matches!(
-          id.as_data(mg).side_effects_only_info().get_used(runtime),
-          UsageState::Unused
-        )
-      };
+    let is_used = is_exports_info_used(id, runtime, mg);
+    let is_module_used = if is_used {
+      true
+    } else {
+      id.as_data(mg).side_effects_only_info().is_used(runtime)
+    };
 
-      PrefetchedExportsInfoUsed {
-        is_used,
-        is_module_used,
-        data: None,
-      }
+    PrefetchedExportsInfoUsed {
+      is_used,
+      is_module_used,
+      data: None,
     }
   }
 

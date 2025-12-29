@@ -458,8 +458,9 @@ fn get_exports_type_impl(
                 return ExportsType::Dynamic;
               };
               match target_exports_type {
-                BuildMetaExportsType::Flagged => ExportsType::Namespace,
-                BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
+                  ExportsType::Namespace
+                }
                 BuildMetaExportsType::Default => handle_default(default_object),
                 _ => ExportsType::Dynamic,
               }

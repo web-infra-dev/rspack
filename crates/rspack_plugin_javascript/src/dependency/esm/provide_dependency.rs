@@ -176,7 +176,6 @@ impl DependencyTemplate for ProvideDependencyTemplate {
         &module_graph.get_exports_info(con.module_identifier()),
         module_graph,
         *runtime,
-        false,
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info),

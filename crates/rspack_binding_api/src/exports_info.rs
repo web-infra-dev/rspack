@@ -51,7 +51,6 @@ impl JsExportsInfo {
       &self.exports_info,
       module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_used())
   }
@@ -67,7 +66,6 @@ impl JsExportsInfo {
       &self.exports_info,
       module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_module_used())
   }

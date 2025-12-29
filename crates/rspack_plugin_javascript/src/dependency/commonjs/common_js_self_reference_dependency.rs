@@ -148,7 +148,6 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
           &module_graph.get_exports_info(&module.identifier()),
           module_graph,
           *runtime,
-          false,
         );
         ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithoutNames(&exports_info),
