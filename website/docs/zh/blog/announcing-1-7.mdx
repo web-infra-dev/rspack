@@ -309,9 +309,11 @@ export function Tab({ label }: { label: string }) {
 
 #### 一键复用框架配置
 
-Rstest 现已支持 [extends](https://rstest.rs/zh/config/test/extends) 功能，允许你复用 Rslib 或 Rsbuild 等基于 Rspack 的框架的构建配置，并将其自动转换为 Rstest 测试所需的格式。其他框架也可以通过实现对应适配器的方式，使其能够轻松地为 Rstest 提供开箱即用的测试配置支持。
+Rstest 现已支持 [extends](https://rstest.rs/zh/config/test/extends) 配置能力，让你可以直接复用 Rslib、Rsbuild 等基于 Rspack 的框架构建配置，通过对应适配器将其自动转换为 Rstest 测试所需的格式，从而避免重复维护多套配置。
 
-目前，你可以通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 官方适配器，直接复用 Rslib 项目中的构建配置（如环境变量、路径别名等），让 Rstest 在 Rslib 项目中真正做到开箱即用。对 Rspack 等其他框架的适配也正在进行中。
+通过 `extends`，框架中已有的配置（如环境变量、路径别名等）可以无缝应用到测试环境中。同时，其他框架也可以通过实现对应的适配器，为 Rstest 提供开箱即用的测试配置支持。
+
+目前，你可以通过官方适配器 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib)，直接复用 Rslib 项目的构建配置，让 Rstest 在 Rslib 项目中真正做到“零额外配置即可运行”。对 Rsbuild、Rspack 等更多框架的适配也在持续推进中。
 
 ```js title=rstest.config.ts
 import { defineConfig } from '@rstest/core';
