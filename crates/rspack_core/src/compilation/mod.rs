@@ -76,7 +76,8 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+ diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -1634,16 +1635,23 @@ impl Compilation {
 
     let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut build_module_graph_artifact = mem::take(&mut self.build_module_graph_artifact);
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
+        .call(
+          self,
+          &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
+          &mut diagnostics
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
     self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
+    self.build_module_graph_artifact = build_module_graph_artifact;
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);

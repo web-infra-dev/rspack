@@ -9,6 +9,7 @@ use rspack_core::{
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
@@ -150,8 +151,9 @@ async fn nmf_module(
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
@@ -276,7 +278,7 @@ async fn optimize_dependencies(
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let module_graph = compilation.get_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
     let new_connections: Vec<_> = do_optimizes
       .into_iter()

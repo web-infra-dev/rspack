@@ -7,8 +7,8 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState,
-  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
-  is_no_exports_referenced,
+  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
+  is_exports_object_referenced, is_no_exports_referenced,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -32,22 +32,28 @@ enum ProcessModuleReferencedExports {
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
-  compilation: &'a mut Compilation,
+  compilation: &'a Compilation,
+  build_module_graph_artifact: &'a mut BuildModuleGraphArtifact,
   exports_info_module_map: UkeyMap<ExportsInfo, ModuleIdentifier>,
 }
 
 #[allow(unused)]
 impl<'a> FlagDependencyUsagePluginProxy<'a> {
-  pub fn new(global: bool, compilation: &'a mut Compilation) -> Self {
+  pub fn new(
+    global: bool,
+    compilation: &'a Compilation,
+    build_module_graph_artifact: &'a mut BuildModuleGraphArtifact,
+  ) -> Self {
     Self {
       global,
       compilation,
+      build_module_graph_artifact,
       exports_info_module_map: UkeyMap::default(),
     }
   }
 
   fn apply(&mut self) {
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
 
@@ -62,7 +68,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
     let mut global_runtime: Option<RuntimeSpec> = None;
-    let entries = std::mem::take(&mut self.compilation.entries);
+    let entries = &self.compilation.entries;
     for (entry_name, entry) in entries.iter() {
       let runtime = if self.global {
         None
@@ -85,7 +91,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     for dep in self.compilation.global_entry.include_dependencies.clone() {
       self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
-    self.compilation.entries = entries;
 
     loop {
       let mut batch = vec![];
@@ -202,7 +207,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
       {
         // after processing, we will set the exports info data back to the module graph
-        let mut mg = self.compilation.get_module_graph_mut();
+        let mut mg = self.build_module_graph_artifact.get_module_graph_mut();
         for (exports_info, res) in non_nested_res {
           for i in res {
             q.enqueue(i);
@@ -327,7 +332,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
   ) -> Vec<ProcessBlockTask> {
     let mut queue = vec![];
-    let mut module_graph = self.compilation.get_module_graph_mut();
+    let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
@@ -479,8 +484,9 @@ impl FlagDependencyUsagePlugin {
 #[plugin_hook(CompilationOptimizeDependencies for FlagDependencyUsagePlugin)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
@@ -489,10 +495,11 @@ async fn optimize_dependencies(
     "it requires calculating the used exports based on all modules, which is a global effect",
   ) {
     diagnostics.extend(diagnostic);
-    compilation.cgm_hash_artifact.clear();
+    // compilation.cgm_hash_artifact.clear();
   }
 
-  let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
+  let mut proxy =
+    FlagDependencyUsagePluginProxy::new(self.global, compilation, build_module_graph_artifact);
   proxy.apply();
   Ok(None)
 }
