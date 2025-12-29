@@ -27,12 +27,8 @@ pub fn is_export_inlined(
   runtime: Option<&RuntimeSpec>,
 ) -> bool {
   let used_name = if ids.is_empty() {
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &mg.get_exports_info(module),
-      mg,
-      runtime,
-      false,
-    );
+    let exports_info =
+      ExportsInfoGetter::prefetch_used_info_without_name(&mg.get_exports_info(module), mg, runtime);
     ExportsInfoGetter::get_used_name(GetUsedNameParam::WithoutNames(&exports_info), runtime, ids)
   } else {
     let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
