@@ -1,4 +1,5 @@
 mod client_plugin;
+mod component_info;
 mod constants;
 mod coordinator;
 mod hot_reloader;

@@ -4,33 +4,38 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{Compilation, Module, ModuleGraphRef, RscModuleType};
 use rustc_hash::{FxHashMap, FxHasher};
 
-use crate::utils::ServerEntryModules;
+use crate::constants::LAYERS_NAMES;
 
 pub fn track_server_component_changes(
   compilation: &Compilation,
   prev_server_component_hashes: &mut IdentifierMap<u64>,
 ) -> FxHashMap<String, IdentifierSet> {
   let module_graph = compilation.get_module_graph();
-  let server_entry_modules = ServerEntryModules::new(compilation, &module_graph);
 
   let mut visited_modules: IdentifierSet = Default::default();
   let mut changed_server_components_per_entry: FxHashMap<String, IdentifierSet> =
     Default::default();
   let mut cur_server_component_hashes = Default::default();
 
-  for (server_entry_module, entry_name, _runtime, _should_inject_ssr_modules) in
-    server_entry_modules
-  {
+  for (entry_name, entry_data) in &compilation.entries {
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry
       .entry(entry_name.to_string())
       .or_default();
 
-    traverse_server_components(
+    let entry_dependency_id = entry_data.dependencies[0];
+    let Some(resolved_module) = module_graph
+      .get_resolved_module(&entry_dependency_id)
+      .and_then(|identifier| compilation.module_by_identifier(identifier))
+    else {
+      continue;
+    };
+
+    traverse_modules(
       compilation,
       &module_graph,
-      server_entry_module,
+      resolved_module.as_ref(),
       prev_server_component_hashes,
       &mut visited_modules,
       &mut cur_server_component_hashes,
@@ -44,7 +49,7 @@ pub fn track_server_component_changes(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn traverse_server_components(
+fn traverse_modules(
   compilation: &Compilation,
   module_graph: &ModuleGraphRef<'_>,
   module: &dyn Module,
@@ -53,36 +58,41 @@ fn traverse_server_components(
   cur_server_component_hashes: &mut IdentifierMap<u64>,
   changed_server_components: &mut IdentifierSet,
 ) {
-  if let Some(rsc) = module.build_info().rsc.as_ref()
-    && rsc.module_type.contains(RscModuleType::Client)
-  {
-    return;
-  }
-
   let module_identifier = module.identifier();
   if visited_modules.contains(&module_identifier) {
     return;
   }
   visited_modules.insert(module_identifier);
 
-  let Some(module) = compilation.module_by_identifier(&module_identifier) else {
-    return;
-  };
-  let Some(source) = module.source() else {
-    return;
-  };
-  let mut hasher = FxHasher::default();
-  source.hash(&mut hasher);
-  let cur_hash = hasher.finish();
-  if prev_server_component_hashes
-    .get(&module_identifier)
-    .is_some_and(|prev| *prev != cur_hash)
-  {
-    changed_server_components.insert(module_identifier);
+  if let Some(rsc) = module.build_info().rsc.as_ref() {
+    if rsc.module_type.contains(RscModuleType::Client) {
+      return;
+    }
   }
-  cur_server_component_hashes.insert(module_identifier, cur_hash);
 
-  for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier()) {
+  if module
+    .get_layer()
+    .is_some_and(|layer| layer == LAYERS_NAMES.react_server_components)
+  {
+    let Some(module) = compilation.module_by_identifier(&module_identifier) else {
+      return;
+    };
+    let Some(source) = module.source() else {
+      return;
+    };
+    let mut hasher = FxHasher::default();
+    source.hash(&mut hasher);
+    let cur_hash = hasher.finish();
+    if prev_server_component_hashes
+      .get(&module_identifier)
+      .is_some_and(|prev| *prev != cur_hash)
+    {
+      changed_server_components.insert(module_identifier);
+    }
+    cur_server_component_hashes.insert(module_identifier, cur_hash);
+  }
+
+  for dependency_id in module_graph.get_outgoing_deps_in_order(&module_identifier) {
     let Some(resolved_module) = module_graph
       .connection_by_dependency_id(dependency_id)
       .and_then(|c| module_graph.module_by_identifier(&c.resolved_module))
@@ -90,7 +100,7 @@ fn traverse_server_components(
       continue;
     };
 
-    traverse_server_components(
+    traverse_modules(
       compilation,
       module_graph,
       resolved_module.as_ref(),

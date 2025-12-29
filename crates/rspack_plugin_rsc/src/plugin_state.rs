@@ -18,12 +18,18 @@ pub struct PluginState {
   pub client_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>>,
   pub server_actions: ServerReferenceManifest,
   pub entry_css_imports: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
-  pub entry_css_files: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
-  /// Nested map of JS chunk files for each entry pair.
+  /// Maps entry names to CSS chunk files organized by server entry resource.
   ///
-  /// Structure:
-  /// - key: entry name
-  /// - value: ordered set of JS chunk file paths (deduped)
+  /// This nested structure tracks CSS dependencies for React Server Components:
+  /// - Outer key: Entry name (e.g., "main", "app")
+  /// - Inner key: Server entry resource
+  /// - Inner value: Ordered set of CSS chunk file paths (automatically deduplicated)
+  pub entry_css_files: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
+  /// Maps entry names to their associated JS chunk files.
+  ///
+  /// This structure tracks JavaScript dependencies for React Server Components:
+  /// - Key: Entry name (e.g., "main", "app")
+  /// - Value: Ordered set of JS chunk file paths (automatically deduplicated)
   pub entry_js_files: FxHashMap<String, FxIndexSet<String>>,
   pub changed_server_components_per_entry: FxHashMap<String, IdentifierSet>,
 }
