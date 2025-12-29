@@ -189,6 +189,22 @@ export default {
 
 ![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
+#### create-rsbuild 改进
+
+`create-rsbuild` 现在包含了更多开箱即用的工具。
+
+在创建 Rsbuild 项目时，你现在可以选择自动集成 [Rstest](https://rstest.rs/) 作为测试框架，或启用 [Storybook](https://storybook.rsbuild.rs/) 用于 UI 组件的开发与调试。相关依赖和基础配置都会在初始化阶段一次性完成，减少重复的手动配置成本。
+
+```text
+◆  Select additional tools (Use <space> to select, <enter> to continue)
+│  ◼ Rstest - testing
+│  ◻ Biome - linting & formatting
+│  ◻ ESLint - linting
+│  ◻ Prettier - formatting
+│  ◻ Storybook - component development
+└
+```
+
 ### Rslib
 
 #### ESM 产物稳定化
