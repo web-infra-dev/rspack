@@ -475,11 +475,6 @@ impl Compilation {
       .get_module_graph()
       .module_by_identifier(identifier)
   }
-  pub fn get_make_module_graph_mut(
-    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
-  ) -> &mut ModuleGraph {
-    build_module_graph_artifact.get_module_graph_mut()
-  }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     self.build_module_graph_artifact.get_module_graph_mut()
   }
@@ -625,8 +620,10 @@ impl Compilation {
 
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    let entry_name = options.name.clone();
-    Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+    let entry_name: Option<String> = options.name.clone();
+    self
+      .build_module_graph_artifact
+      .get_module_graph_mut()
       .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
@@ -687,7 +684,9 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+      self
+        .build_module_graph_artifact
+        .get_module_graph_mut()
         .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
