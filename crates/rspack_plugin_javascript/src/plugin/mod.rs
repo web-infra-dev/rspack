@@ -404,7 +404,7 @@ var {} = {{}};
         let has_expose_entry = compilation.chunk_graph.has_chunk_module_by_source_type(
           chunk_ukey,
           SourceType::Expose,
-          &module_graph,
+          module_graph,
         );
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
