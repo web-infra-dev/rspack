@@ -23,8 +23,8 @@ use serde_json::json;
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
-  client_compiler_handle::Coordinator,
   constants::LAYERS_NAMES,
+  coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
   loaders::{
     action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,

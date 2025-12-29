@@ -57,7 +57,6 @@ impl Coordinator {
         *state
       ));
     }
-    println!("Coordinator transition: {:?} -> {:?}", *state, next);
     *state = next;
     self.state_notify.notify_waiters();
     Ok(())
