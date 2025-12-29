@@ -241,13 +241,18 @@ Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**
 
 ### Rspress
 
-#### SSG-MD 生成 llms.txt 的新方式
+#### SSG-MD：生成 llms.txt 的全新方式
 
-在基于 React 动态渲染的前端框架中， 往往存在静态信息难以提取的问题。对于 Rspress 而言，Rspress 允许用户 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、自定义组件、React Hooks、用 tsx 文件作为路由等等，来增强文档内容的表现力。然而，这些动态内容很难被转化为 Markdown 格式，即使使用 SSG 产生的 html 转为 markdown，结果也往往不尽如人意。
+在基于 React 动态渲染的前端框架中，往往存在静态信息难以提取的问题，Rspress 也遇到了相同的问题。Rspress 的核心优势之一是允许用户通过 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、Hooks 以及 TSX 路由等动态特性来增强文档表现力。但这些动态内容在转换为 Markdown 文本时会面临以下问题：
 
-为此 Rspress 提供了 SSG-MD。这是一个全新的功能，见名知意，与[静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg)唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量。
+- 直接将 MDX 输入给 AI 会包含大量代码语法噪音，并丢失 React 组件内容
+- 将 SSG 生成的 HTML 转为 Markdown 往往效果不佳，信息质量难以保证
 
-```js rspress.config.ts
+为了从根本上解决这个问题，Rspress V2 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
+
+启用方式非常简单：
+
+```js title="rspress.config.ts"
 import { defineConfig } from '@rspress/core';
 
 export default defineConfig({
@@ -255,30 +260,34 @@ export default defineConfig({
 });
 ```
 
-生成的产物结构：
+构建后将生成如下结构：
 
 ```
 doc_build
-├── llms.txt
-├── llms-full.txt
+├── llms.txt          # 摘要版，包含关键文档索引
+├── llms-full.txt     # 完整版，包含所有文档内容
 ├── guide
 │   └── start
 │       └── introduction.md
 └── ...
 ```
 
-并允许用户高度的自定义：
+对于自定义组件，你可以通过环境变量来控制其在 SSG-MD 模式下的渲染行为：
 
-```js
+```tsx
 export function Tab({ label }: { label: string }) {
   if (process.env.__SSR_MD__) {
-    return <>{`** Here is a Tab named ${label}**`}</>;
+    // SSG-MD 模式下输出纯文本描述
+    return <>{`**Tab: ${label}**`}</>;
   }
-  return <div>{label}</div>;
+  // 正常渲染交互式组件
+  return <div className="tab">{label}</div>;
 }
 ```
 
-更多请参考：https://v2.rspress.rs/zh/guide/basic/ssg-md
+这样既保证了文档的交互性体验，又确保 AI 能够理解组件的语义信息。
+
+更多详情请参考：[SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
 
 ### Rstest
 
