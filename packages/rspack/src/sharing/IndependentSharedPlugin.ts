@@ -55,7 +55,7 @@ export interface IndependentSharePluginOptions {
 	treeshake?: boolean;
 	manifest?: ModuleFederationManifestPluginOptions;
 	injectUsedExports?: boolean;
-	treeshakeSharedExcludedPlugins?: string[];
+	treeshakeSharedExcludePlugins?: string[];
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
@@ -131,7 +131,7 @@ export class IndependentSharedPlugin {
 	manifest?: ModuleFederationManifestPluginOptions;
 	buildAssets: ShareFallback = {};
 	injectUsedExports?: boolean;
-	treeshakeSharedExcludedPlugins?: string[];
+	treeshakeSharedExcludePlugins?: string[];
 
 	name = "IndependentSharedPlugin";
 	constructor(options: IndependentSharePluginOptions) {
@@ -144,7 +144,7 @@ export class IndependentSharedPlugin {
 			manifest,
 			injectUsedExports,
 			library,
-			treeshakeSharedExcludedPlugins
+			treeshakeSharedExcludePlugins
 		} = options;
 		this.shared = shared;
 		this.mfName = name;
@@ -154,7 +154,7 @@ export class IndependentSharedPlugin {
 		this.manifest = manifest;
 		this.injectUsedExports = injectUsedExports ?? true;
 		this.library = library;
-		this.treeshakeSharedExcludedPlugins = treeshakeSharedExcludedPlugins || [];
+		this.treeshakeSharedExcludePlugins = treeshakeSharedExcludePlugins || [];
 		this.sharedOptions = parseOptions(
 			shared,
 			(item, key) => {
@@ -321,7 +321,7 @@ export class IndependentSharedPlugin {
 			sharedOptions,
 			treeshake,
 			library,
-			treeshakeSharedExcludedPlugins
+			treeshakeSharedExcludePlugins
 		} = this;
 
 		const outputDirWithShareName = resolveOutputDir(
@@ -349,7 +349,7 @@ export class IndependentSharedPlugin {
 			if (
 				plugin !== undefined &&
 				typeof plugin !== "string" &&
-				filterPlugin(plugin, treeshakeSharedExcludedPlugins)
+				filterPlugin(plugin, treeshakeSharedExcludePlugins)
 			) {
 				finalPlugins.push(plugin);
 			}

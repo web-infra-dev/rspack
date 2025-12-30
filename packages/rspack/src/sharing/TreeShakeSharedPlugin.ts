@@ -58,7 +58,7 @@ export class TreeShakeSharedPlugin {
 				treeshake: reShake,
 				library,
 				manifest: mfConfig.manifest,
-				treeshakeSharedExcludedPlugins: mfConfig.treeshakeSharedExcludedPlugins
+				treeshakeSharedExcludePlugins: mfConfig.treeshakeSharedExcludePlugins
 			});
 			this._independentSharePlugin.apply(compiler);
 		}

@@ -4879,7 +4879,9 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     shareStrategy?: "version-first" | "loaded-first";
     // (undocumented)
-    treeshakeSharedExcludedPlugins?: string[];
+    treeshakeSharedExcludePlugins?: string[];
+    // (undocumented)
+    treeshakeSharedPlugins?: string[];
 }
 
 // @public (undocumented)

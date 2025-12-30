@@ -24,7 +24,8 @@ export interface ModuleFederationPluginOptions extends Omit<
 	manifest?: ModuleFederationManifestPluginOptions;
 	injectUsedExports?: boolean;
 	independentShareDir?: string;
-	treeshakeSharedExcludedPlugins?: string[];
+	treeshakeSharedExcludePlugins?: string[];
+	treeshakeSharedPlugins?: string[];
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 

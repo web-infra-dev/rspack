@@ -90,7 +90,9 @@ function getBuildInfo(
 		statsBuildInfo.target = Array.isArray(compiler.options.target)
 			? compiler.options.target
 			: [];
-		statsBuildInfo.plugins = mfConfig.treeshakeSharedExcludedPlugins || [];
+		statsBuildInfo.plugins = mfConfig.treeshakeSharedPlugins || [];
+		statsBuildInfo.excludePlugins =
+			mfConfig.treeshakeSharedExcludePlugins || [];
 	}
 
 	return statsBuildInfo;
@@ -101,6 +103,7 @@ interface StatsBuildInfo {
 	buildName?: string;
 	// only appear when enable treeshake
 	target?: string[];
+	excludePlugins?: string[];
 	plugins?: string[];
 }
 
