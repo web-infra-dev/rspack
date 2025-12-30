@@ -5,15 +5,46 @@ use rspack_core::{
   ModuleIdentifier, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashMap;
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
   constants::LAYERS_NAMES,
   loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
-  plugin_state::{PLUGIN_STATE_BY_COMPILER_ID, PluginState},
-  reference_manifest::{ManifestExport, ManifestNode},
+  plugin_state::PLUGIN_STATE_BY_COMPILER_ID,
+  reference_manifest::{ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest},
   utils::{ChunkModules, to_json_string_literal},
 };
+
+fn serialize_none_as_empty_object<S, T>(val: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+  T: Serialize,
+{
+  match val {
+    Some(v) => v.serialize(serializer),
+    None => {
+      let map = serializer.serialize_map(Some(0))?;
+      map.end()
+    }
+  }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RscManifest<'a> {
+  pub server_manifest: &'a FxHashMap<String, ManifestExport>,
+  pub client_manifest: &'a FxHashMap<String, ManifestExport>,
+  pub server_consumer_module_map: &'a FxHashMap<String, ManifestNode>,
+  pub module_loading: &'a ModuleLoading,
+
+  #[serde(serialize_with = "serialize_none_as_empty_object")]
+  pub entry_css_files: Option<&'a FxHashMap<String, FxIndexSet<String>>>,
+
+  #[serde(serialize_with = "serialize_none_as_empty_object")]
+  pub entry_js_files: Option<&'a FxIndexSet<String>>,
+}
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -60,49 +91,30 @@ impl RuntimeModule for RscManifestRuntimeModule {
           server_compiler_id.as_u32()
         )
       })?;
-    let server_manifest = build_server_manifest(compilation, plugin_state)?;
-    let server_manifest_literal = to_json_string_literal(server_manifest).to_rspack_result()?;
 
+    build_server_manifest(compilation, &mut plugin_state.server_actions)?;
     let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {
       rspack_error::error!(
         "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
       )
     })?;
-
     let server_consumer_module_map =
       build_server_consumer_module_map(compilation, &plugin_state.client_modules);
 
-    let client_manifest_literal =
-      to_json_string_literal(&plugin_state.client_modules).to_rspack_result()?;
-    let server_consumer_module_map_literal =
-      to_json_string_literal(&server_consumer_module_map).to_rspack_result()?;
-    let module_loading_literal = to_json_string_literal(module_loading).to_rspack_result()?;
-    let entry_css_files_literal = match &plugin_state.entry_css_files.get(entry_name) {
-      Some(entry_css_files) => to_json_string_literal(&entry_css_files).to_rspack_result()?,
-      None => serde_json::to_string("{}").to_rspack_result()?,
-    };
-    let entry_js_files_literal = match &plugin_state.entry_js_files.get(entry_name) {
-      Some(entry_js_files) => to_json_string_literal(&entry_js_files).to_rspack_result()?,
-      None => serde_json::to_string("[]").to_rspack_result()?,
+    let rsc_manifest = RscManifest {
+      server_manifest: &plugin_state.server_actions,
+      client_manifest: &plugin_state.client_modules,
+      server_consumer_module_map: &server_consumer_module_map,
+      module_loading,
+      entry_css_files: plugin_state.entry_css_files.get(entry_name),
+      entry_js_files: plugin_state.entry_js_files.get(entry_name),
     };
 
     Ok(formatdoc! {
-        r#"
-          __webpack_require__.rscM = {{
-            serverManifest: JSON.parse({server_manifest}),
-            clientManifest: JSON.parse({client_manifest}),
-            serverConsumerModuleMap: JSON.parse({server_consumer_module_map}),
-            moduleLoading: JSON.parse({module_loading}),
-            entryCssFiles: JSON.parse({entry_css_files}),
-            entryJsFiles: JSON.parse({entry_js_files}),
-          }};
-        "#,
-      server_manifest = server_manifest_literal,
-      client_manifest = client_manifest_literal,
-      server_consumer_module_map = server_consumer_module_map_literal,
-      module_loading = module_loading_literal,
-      entry_css_files = entry_css_files_literal,
-      entry_js_files = entry_js_files_literal,
+      r#"
+        __webpack_require__.rscM = JSON.parse({});
+      "#,
+      to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }
 
@@ -111,69 +123,62 @@ impl RuntimeModule for RscManifestRuntimeModule {
   }
 }
 
-fn build_server_manifest<'a>(
+fn build_server_manifest(
   compilation: &Compilation,
-  plugin_state: &'a mut PluginState,
-) -> Result<&'a FxHashMap<String, ManifestExport>> {
-  let server_actions = &mut plugin_state.server_actions;
+  server_actions: &mut ServerReferenceManifest,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
 
-  // traverse modules
-  for chunk_group in compilation.chunk_group_by_ukey.values() {
-    for chunk_ukey in &chunk_group.chunks {
-      let chunk_modules = compilation
-        .chunk_graph
-        .get_chunk_modules_identifier(chunk_ukey);
-      for module_identifier in chunk_modules {
-        // Go through all action entries and record the module ID for each entry.
-        let module = compilation.module_by_identifier(module_identifier);
-        let Some(module) = module else {
-          continue;
-        };
-        let Some(module) = module.as_normal_module() else {
-          continue;
-        };
-        let request = module.request();
-        let Some(module_id) =
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
-        else {
-          continue;
-        };
+  for module in module_graph.modules().values() {
+    let module_id =
+      match ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier()) {
+        Some(id) => id,
+        None => continue,
+      };
 
-        if request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
-          let loader_query = request
-            .split_once('?')
-            .map(|x| x.1)
-            .unwrap_or_default()
-            .rsplit_once('!')
-            .map(|x| x.0)
-            .unwrap_or_default();
-          let loader_options = form_urlencoded::parse(loader_query.as_bytes());
-          let mut individual_actions = vec![];
-          for (k, v) in loader_options {
-            if k == "actions" {
-              individual_actions = parse_action_entries(v.into_owned())?.unwrap_or_default();
-            }
-          }
-          for action in individual_actions {
+    let Some(normal_module) = module.as_normal_module() else {
+      continue;
+    };
+
+    let request = normal_module.request();
+    if !request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
+      continue;
+    }
+
+    let loader_query = request
+      .split_once('?')
+      .map(|x| x.1)
+      .unwrap_or_default()
+      .rsplit_once('!')
+      .map(|x| x.0)
+      .unwrap_or_default();
+    let loader_options = form_urlencoded::parse(loader_query.as_bytes());
+
+    for (k, v) in loader_options {
+      if k == "actions" {
+        if let Some(actions) = parse_action_entries(v.into_owned())? {
+          for action in actions {
             server_actions.insert(
               action.id.to_string(),
               ManifestExport {
                 id: module_id.to_string(),
                 name: action.id.to_string(),
+                // Server Action modules serve as endpoints rather than code splitting points, so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],
                 r#async: Some(ModuleGraph::is_async(
                   &compilation.async_modules_artifact.borrow(),
-                  module_identifier,
+                  &module.identifier(),
                 )),
               },
             );
           }
         }
+        break;
       }
     }
   }
 
-  Ok(server_actions)
+  Ok(())
 }
 
 fn record_module(

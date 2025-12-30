@@ -1,12 +1,7 @@
 use derive_more::Debug;
-use regex::Regex;
-use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerFinishMake, CompilerThisCompilation, Dependency,
-  DependencyId, EntryDependency, EntryOptions, ExportsInfoGetter, Logger, Module, ModuleGraph,
-  ModuleGraphRef, ModuleId, ModuleIdentifier, NormalModule, Plugin, PrefetchExportsInfoMode,
-  RscMeta, RscModuleType, RuntimeGlobals, RuntimeSpec,
+  Compilation, DependencyId, ExportsInfoGetter, Module, ModuleIdentifier, PrefetchExportsInfoMode,
+  RscMeta, RscModuleType, RuntimeSpec,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -17,7 +12,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
-  constants::{LAYERS_NAMES, REGEX_CSS},
+  constants::LAYERS_NAMES,
   plugin_state::ActionIdNamePair,
   server_plugin::IMAGE_REGEX,
   utils::{get_module_resource, is_css_mod},

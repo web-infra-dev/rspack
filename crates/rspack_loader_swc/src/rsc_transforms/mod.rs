@@ -25,7 +25,7 @@ pub fn rsc_pass(
   let module = &loader_context.context.module;
   let is_react_server_layer = module
     .get_layer()
-    .is_some_and(|layer| layer == "react-server-components");
+    .is_some_and(|layer| layer == "react-server-components" || layer == "action-browser");
 
   (
     // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
