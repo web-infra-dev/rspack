@@ -262,9 +262,9 @@ async fn finish_modules(
     .build_module_graph_artifact
     .get_module_graph_mut();
   for m in entry_modules {
-    let exports_info = module_graph.get_exports_info(&m);
-
-    exports_info.set_used_in_unknown_way(module_graph, None);
+    module_graph
+      .get_exports_info_data_mut(&m)
+      .set_used_in_unknown_way(None);
   }
 
   Ok(())

@@ -1,7 +1,7 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfo, ModuleGraph, Plugin, RuntimeSpec,
+  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfoData, Plugin, RuntimeSpec,
   incremental::Mutation, is_runtime_equal,
 };
 use rspack_error::Result;
@@ -89,10 +89,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .get_chunk_modules_identifier(&chunk_ukey)
             .into_par_iter()
             .all(|module| {
-              let exports_info = module_graph.get_exports_info(module);
               is_equally_used(
-                &exports_info,
-                module_graph,
+                module_graph.get_exports_info_data(module),
                 chunk.runtime(),
                 other_chunk.runtime(),
               )
@@ -151,22 +149,16 @@ impl Plugin for MergeDuplicateChunksPlugin {
   }
 }
 
-fn is_equally_used(
-  exports_info: &ExportsInfo,
-  mg: &ModuleGraph,
-  a: &RuntimeSpec,
-  b: &RuntimeSpec,
-) -> bool {
-  let info = exports_info.as_data(mg);
-  let other_exports_info = info.other_exports_info();
+fn is_equally_used(exports_info: &ExportsInfoData, a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
+  let other_exports_info = exports_info.other_exports_info();
   if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
     return false;
   }
-  let side_effects_only_info = info.side_effects_only_info();
+  let side_effects_only_info = exports_info.side_effects_only_info();
   if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {
     return false;
   }
-  for export_info in info.exports().values() {
+  for export_info in exports_info.exports().values() {
     let export_info_data = export_info;
     if export_info_data.get_used(Some(a)) != export_info_data.get_used(Some(b)) {
       return false;
