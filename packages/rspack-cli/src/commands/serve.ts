@@ -93,13 +93,11 @@ export class ServeCommand implements RspackCommand {
           !compiler.platform.electron &&
           !compiler.platform.webworker;
 
-        if (isWebAppOnly) {
-          if (userConfig.lazyCompilation === undefined) {
-            compiler.options.lazyCompilation = {
-              imports: true,
-              entries: false,
-            };
-          }
+        if (isWebAppOnly && userConfig.lazyCompilation === undefined) {
+          compiler.options.lazyCompilation = {
+            imports: true,
+            entries: false,
+          };
         }
 
         devServer.hot = cliOptions.hot ?? devServer.hot ?? DEFAULT_SERVER_HOT;
