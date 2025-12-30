@@ -1,7 +1,11 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode, ExportProvided, ExportsInfo, ExportsInfoGetter, GetUsedNameParam, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem, build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses
+  Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
+  ExportProvided, ExportsInfo, ExportsInfoGetter, GetUsedNameParam, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
+  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

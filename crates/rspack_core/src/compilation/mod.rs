@@ -4,12 +4,12 @@ use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
   hash::{BuildHasherDefault, Hash},
+  mem,
   sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
-use std::mem;
 
 use atomic_refcell::AtomicRefCell;
 use build_chunk_graph::{artifact::use_code_splitting_cache, build_chunk_graph};
