@@ -73,7 +73,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let runtime = if self.global {
         None
       } else {
-        Some(get_entry_runtime(entry_name, &entry.options, &entries))
+        Some(get_entry_runtime(entry_name, &entry.options, entries))
       };
       if let Some(runtime) = runtime.as_ref() {
         global_runtime.get_or_insert_default().extend(runtime);
