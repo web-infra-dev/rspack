@@ -7,6 +7,7 @@ use rspack_core::{
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyId,
   DependencyType, ExportsType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
   NormalModule, Plugin, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Diagnostic, Result};
@@ -98,7 +99,7 @@ impl SharedUsedExportsOptimizerPlugin {
 }
 
 fn collect_processed_modules(
-  module_graph: &ModuleGraph<'_>,
+  module_graph: &ModuleGraph,
   module_blocks: &[AsyncDependenciesBlockIdentifier],
   module_deps: &[DependencyId],
   out: &mut Vec<ModuleIdentifier>,
@@ -126,12 +127,13 @@ fn collect_processed_modules(
 )]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     module_graph
       .modules()
       .into_iter()
@@ -139,10 +141,9 @@ async fn optimize_dependencies(
       .collect()
   };
   self.apply_custom_exports();
-
   for module_id in module_ids {
+    let module_graph = build_module_graph_artifact.get_module_graph();
     let (share_key, modules_to_process) = match {
-      let module_graph = compilation.get_module_graph();
       let module = module_graph.module_by_identifier(&module_id);
       module.and_then(|module| {
         let module_type = module.module_type();
@@ -252,14 +253,12 @@ async fn optimize_dependencies(
     if !self.shared_map.contains_key(&share_key) {
       continue;
     }
-
     if let Some(runtime_reference_exports) = runtime_reference_exports {
       if runtime_reference_exports.is_empty() {
         continue;
       }
 
       let real_shared_identifier = {
-        let module_graph = compilation.get_module_graph();
         module_graph.modules().into_iter().find_map(|(id, module)| {
           module
             .as_any()
@@ -272,7 +271,6 @@ async fn optimize_dependencies(
       // Check if the real shared module is side effect free
       if let Some(real_shared_identifier) = real_shared_identifier {
         let is_side_effect_free = {
-          let module_graph = compilation.get_module_graph();
           module_graph
             .module_by_identifier(&real_shared_identifier)
             .and_then(|module| module.factory_meta().and_then(|meta| meta.side_effect_free))
@@ -289,7 +287,7 @@ async fn optimize_dependencies(
           continue;
         }
 
-        let mut module_graph_mut = compilation.get_seal_module_graph_mut();
+        let mut module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
         module_graph_mut.active_all_exports_info();
         // mark used for collected modules
         for module_id in &modules_to_process {
@@ -337,13 +335,6 @@ async fn optimize_dependencies(
             export_info.set_can_mangle_provide(Some(false));
             export_info.set_can_mangle_use(Some(false));
           }
-          // exports_info_data
-          //   .other_exports_info_mut()
-          //   .set_used_conditionally(
-          //     Box::new(|used| *used == rspack_core::UsageState::Unknown),
-          //     rspack_core::UsageState::Unused,
-          //     None,
-          //   );
         }
       }
     }
@@ -427,8 +418,9 @@ async fn dependency_referenced_exports(
   dependency_id: &DependencyId,
   referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
   _runtime: Option<&RuntimeSpec>,
+  module_graph: Option<&ModuleGraph>,
 ) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
+  let module_graph = module_graph.unwrap_or_else(|| compilation.get_module_graph());
   if referenced_exports.is_none() {
     return Ok(());
   }
@@ -436,7 +428,7 @@ async fn dependency_referenced_exports(
     return Ok(());
   };
 
-  let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
+  let Some(dependency) = module_graph.dependency_by_id(&dependency_id) else {
     return Ok(());
   };
 

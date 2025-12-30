@@ -1,3 +1,3 @@
 export enum Type {
-	START = 0
+  START = 0,
 }

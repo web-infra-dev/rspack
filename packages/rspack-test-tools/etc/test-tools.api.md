@@ -60,7 +60,7 @@ export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?:
 export function createBuiltinCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createCacheCase(name: string, src: string, dist: string, target: RspackOptions["target"], temp: string): void;
+export function createCacheCase(name: string, src: string, dist: string, target: RspackOptions['target'], temp: string): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -93,16 +93,16 @@ export function createHashCase(name: string, src: string, dist: string): void;
 export function createHookCase(name: string, src: string, dist: string, source: string): void;
 
 // @public (undocumented)
-export function createHotCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
+export function createHotCase(name: string, src: string, dist: string, temp: string, target: RspackOptions['target']): void;
 
 // @public (undocumented)
-export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"], webpackCases: boolean): void;
+export function createHotIncrementalCase(name: string, src: string, dist: string, temp: string, target: RspackOptions['target'], webpackCases: boolean): void;
 
 // @public (undocumented)
 export function createHotNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions["target"]): void;
+export function createHotStepCase(name: string, src: string, dist: string, temp: string, target: RspackOptions['target']): void;
 
 // @public (undocumented)
 export const createLocatedError: (collectedErrors: Error[], offset: number) => (e: Error, file: TRunnerFile) => Error;
@@ -139,7 +139,7 @@ export function createWatchIncrementalCase(name: string, src: string, dist: stri
 
 // @public (undocumented)
 export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
-    type?: "file" | "directory";
+    type?: 'file' | 'directory';
     level?: number;
     source?: string;
     dist?: string;
@@ -556,7 +556,7 @@ export type TCompilerCaseConfig = {
     options?: (context: ITestContext) => RspackOptions;
     compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-    check?: ({ context, stats, files, compiler, compilation }: {
+    check?: ({ context, stats, files, compiler, compilation, }: {
         context: ITestContext;
         stats?: StatsCompilation;
         files?: Record<string, string>;
@@ -570,7 +570,7 @@ export type TCompilerCaseConfig = {
 export type TCompilerFactory = (options: RspackOptions | RspackOptions[], callback?: (error: Error | null, stats: Stats | null) => void) => Compiler;
 
 // @public (undocumented)
-export type TConfigCaseConfig = Omit<TTestConfig, "validate">;
+export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
 
 // @public (undocumented)
 export type TDefaultsCaseConfig = {
@@ -680,11 +680,11 @@ export type TFileCompareResult = TCompareResult & {
         source: string;
         dist: string;
     };
-    modules: Partial<Record<"modules" | "runtimeModules", TModuleCompareResult[]>>;
+    modules: Partial<Record<'modules' | 'runtimeModules', TModuleCompareResult[]>>;
 };
 
 // @public (undocumented)
-export type THashCaseConfig = Pick<TTestConfig, "validate">;
+export type THashCaseConfig = Pick<TTestConfig, 'validate'>;
 
 // @public (undocumented)
 export type THookCaseConfig = {
@@ -720,7 +720,7 @@ export type TMultiCompilerCaseConfig = {
     options?: (context: ITestContext) => RspackOptions;
     compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-    check?: ({ context, stats, files, compiler, compilation }: {
+    check?: ({ context, stats, files, compiler, compilation, }: {
         context: ITestContext;
         stats?: StatsCompilation;
         files?: Record<string, string>;
@@ -786,7 +786,7 @@ export type TTestConfig = {
 };
 
 // @public (undocumented)
-export type TTestContextOptions = Omit<ITesterConfig, "steps">;
+export type TTestContextOptions = Omit<ITesterConfig, 'steps'>;
 
 // @public (undocumented)
 export type TTestFilter = (creatorConfig: Record<string, unknown>, testConfig: TTestConfig) => boolean | string;

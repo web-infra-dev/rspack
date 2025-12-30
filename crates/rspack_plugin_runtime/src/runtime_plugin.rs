@@ -35,7 +35,8 @@ use crate::{
     LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
     OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-    RuntimeIdRuntimeModule, SystemContextRuntimeModule, chunk_has_css, is_enabled_for_chunk,
+    RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css,
+    is_enabled_for_chunk,
   },
 };
 
@@ -599,6 +600,12 @@ async fn runtime_requirements_in_tree(
           chunk_ukey,
           MakeDeferredNamespaceObjectRuntimeModule::new(&compilation.runtime_template, *chunk_ukey)
             .boxed(),
+        )?;
+      }
+      RuntimeGlobals::TO_BINARY => {
+        compilation.add_runtime_module(
+          chunk_ukey,
+          ToBinaryRuntimeModule::new(&compilation.runtime_template).boxed(),
         )?;
       }
       _ => {}

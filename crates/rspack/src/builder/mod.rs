@@ -38,10 +38,10 @@ use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
+  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
   GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
@@ -448,6 +448,7 @@ impl CompilerBuilder {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
+    let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
     let input_filesystem = self.input_filesystem.take();
@@ -465,6 +466,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      Arc::new(platform),
     ))
   }
 }
@@ -913,6 +915,7 @@ impl CompilerOptionsBuilder {
       vec!["web".to_string()]
     });
     let target_properties = get_targets_properties(&target, &context);
+    builder_context.platform = CompilerPlatform::from(&target_properties);
 
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);
@@ -3693,8 +3696,6 @@ pub struct ExperimentsBuilder {
   future_defaults: Option<bool>,
   /// Whether to enable css.
   css: Option<bool>,
-  /// Whether to enable parallel code splitting.
-  parallel_code_splitting: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
@@ -3707,7 +3708,6 @@ impl From<Experiments> for ExperimentsBuilder {
       top_level_await: Some(value.top_level_await),
       rspack_future: Some(value.rspack_future),
       cache: Some(value.cache),
-      parallel_code_splitting: Some(value.parallel_code_splitting),
       output_module: None,
       future_defaults: None,
       css: Some(value.css),
@@ -3726,7 +3726,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
-      parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
     }
   }
@@ -3769,12 +3768,6 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable parallel code splitting.
-  pub fn parallel_code_splitting(&mut self, parallel_code_splitting: bool) -> &mut Self {
-    self.parallel_code_splitting = Some(parallel_code_splitting);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3811,13 +3804,10 @@ impl ExperimentsBuilder {
     w!(self.async_web_assembly, *future_defaults);
     w!(self.output_module, false);
 
-    let parallel_code_splitting = d!(self.parallel_code_splitting, false);
-
     Ok(Experiments {
       incremental,
       top_level_await,
       rspack_future,
-      parallel_code_splitting,
       cache,
       css: d!(self.css, false),
       lazy_barrel: true,

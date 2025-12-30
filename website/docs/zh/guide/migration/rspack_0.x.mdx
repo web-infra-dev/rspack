@@ -270,8 +270,8 @@ export default {
 Rspack 支持 [NormalModuleFactory](/api/plugin-api/normal-module-factory-hooks) 的 [resolve](/api/plugin-api/normal-module-factory-hooks#resolve) 钩子，在大多数情况下，你可以使用该钩子替代 `Resolver` 的 `resolve` 钩子来实现相关的功能。
 
 ```js
-compiler.hooks.normalModuleFactory.tap('PLUGIN', normalModuleFactory => {
-  normalModuleFactory.hooks.resolve.tap('PLUGIN', data => {
+compiler.hooks.normalModuleFactory.tap('PLUGIN', (normalModuleFactory) => {
+  normalModuleFactory.hooks.resolve.tap('PLUGIN', (data) => {
     // 重定向模块
     if (data.request === './foo.js') {
       data.request = './bar.js';

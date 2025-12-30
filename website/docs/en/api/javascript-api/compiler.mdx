@@ -53,7 +53,7 @@ compiler.run((err, stats) => {
   // Deal with the result
   handleBuildResult(stats);
   // End this compilation
-  compiler.close(closeErr => {
+  compiler.close((closeErr) => {
     // Start a new compilation
     compiler.run((err, stats) => {});
   });

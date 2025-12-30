@@ -614,12 +614,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                &mg,
+                mg,
               );
               generate_context.data.insert(unused_exports);
             }
             let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
 
             css_modules_exports_to_concatenate_module_string(
               exports,
@@ -657,18 +657,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                &mg,
+                mg,
               );
               generate_context.data.insert(unused_exports);
             }
 
             let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
 
             css_modules_exports_to_string(
               exports,
               module,
               generate_context.compilation,
+              generate_context.runtime,
               generate_context.runtime_requirements,
               &ns_obj,
               &left,

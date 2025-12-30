@@ -1,0 +1,23 @@
+[package]
+description       = "Toolkit for debugging and testing rspack internals"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_tools"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[[bin]]
+name = "rspack_tools"
+path = "src/main.rs"
+
+[dependencies]
+clap             = { workspace = true, features = ["std", "derive"] }
+itertools        = { workspace = true }
+rspack_cacheable = { workspace = true }
+rspack_core      = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_fs        = { workspace = true }
+rspack_paths     = { workspace = true }
+rustc-hash       = { workspace = true }
+tokio            = { workspace = true }

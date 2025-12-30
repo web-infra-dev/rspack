@@ -55,7 +55,7 @@ pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   compilation.chunk_graph.has_chunk_module_by_source_type(
     chunk,
     SourceType::Css,
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
   )
 }
 

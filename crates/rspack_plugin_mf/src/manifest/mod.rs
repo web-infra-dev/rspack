@@ -293,7 +293,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             &mut shared_usage_links,
             &pkg,
             &module_identifier,
-            &module_graph,
+            module_graph,
             compilation,
           );
         }
@@ -326,7 +326,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           &mut shared_usage_links,
           &pkg,
           &module_identifier,
-          &module_graph,
+          module_graph,
           compilation,
         );
       }
@@ -488,7 +488,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names);
+        collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names);
       remote_list.push(StatsRemote {
         alias: alias.clone(),
         consumingFederationContainerName: container_name.clone(),

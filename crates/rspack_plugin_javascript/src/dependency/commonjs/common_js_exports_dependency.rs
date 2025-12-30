@@ -171,9 +171,8 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     let used = if dep.names.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
         &module_graph.get_exports_info(&module.identifier()),
-        &module_graph,
+        module_graph,
         *runtime,
-        false,
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info),

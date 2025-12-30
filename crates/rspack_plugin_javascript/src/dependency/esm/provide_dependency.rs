@@ -174,9 +174,8 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let used_name = if dep.ids.is_empty() {
       let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
         &module_graph.get_exports_info(con.module_identifier()),
-        &module_graph,
+        module_graph,
         *runtime,
-        false,
       );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info),

@@ -133,10 +133,10 @@ export default {
 若不使用 HTML 插件，也可以从 `stats.assets` 中获取 `integrity` 属性，如：
 
 ```js
-compiler.plugin('done', stats => {
+compiler.plugin('done', (stats) => {
   const integrityValues = stats
     .toJson()
-    .assets.map(asset => [asset.name, asset.integrity]);
+    .assets.map((asset) => [asset.name, asset.integrity]);
 });
 ```
 

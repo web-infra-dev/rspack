@@ -15,12 +15,12 @@ use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
-  mg: &'a mut ModuleGraph<'a>,
+  mg: &'a mut ModuleGraph,
   mg_cache: &'a ModuleGraphCacheArtifact,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph<'a>, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
     Self { mg, mg_cache }
   }
 
@@ -84,17 +84,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
-        .partition(|(mid, (_, has_nested_exports))| {
+        .partition(|(_mid, (_, has_nested_exports))| {
           if *has_nested_exports {
-            return false;
-          }
-          if self
-            .mg
-            .get_exports_info(mid)
-            .as_data(self.mg)
-            .redirect_to()
-            .is_some()
-          {
             return false;
           }
           true
@@ -193,7 +184,7 @@ async fn finish_modules(
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
@@ -212,9 +203,10 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let mut module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
-  FlagDependencyExportsState::new(&mut module_graph, &module_graph_cache).apply(modules);
+  let module_graph = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache).apply(modules);
   Ok(())
 }
 
@@ -568,12 +560,12 @@ pub fn merge_exports(
     dependencies.extend(target_dependencies);
 
     let export_info_data = export_info.as_data_mut(mg);
-    if export_info_data.exports_info_owned() {
-      changed |= export_info_data
-        .exports_info()
-        .expect("should have exports_info when exports_info_owned is true")
-        .as_data_mut(mg)
-        .set_redirect_name_to(target_exports_info);
+    if export_info_data.exports_info_owned()
+      && export_info_data.exports_info() != target_exports_info
+      && let Some(target_exports_info) = target_exports_info
+    {
+      export_info_data.set_exports_info(Some(target_exports_info));
+      changed = true;
     }
   }
   (changed, dependencies)
@@ -632,7 +624,6 @@ fn merge_nested_exports(
       .expect("should have exports_info when exports_info is true")
   } else {
     let export_info = export_info.as_data_mut(mg);
-    let old_exports_info = export_info.exports_info();
     let new_exports_info = ExportsInfoData::default();
     let new_exports_info_id = new_exports_info.id();
     export_info.set_exports_info(Some(new_exports_info_id));
@@ -640,11 +631,6 @@ fn merge_nested_exports(
     mg.set_exports_info(new_exports_info_id, new_exports_info);
 
     new_exports_info_id.set_has_provide_info(mg);
-    if let Some(exports_info) = old_exports_info {
-      exports_info
-        .as_data_mut(mg)
-        .set_redirect_name_to(Some(new_exports_info_id));
-    }
     new_exports_info_id
   };
 

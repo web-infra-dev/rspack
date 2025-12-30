@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.7.0-beta.0",
+  "version": "1.7.0-beta.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -23,7 +23,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
-  "files": ["client", "dist", "template", "rstest.d.ts"],
+  "files": [
+    "client",
+    "dist",
+    "template",
+    "rstest.d.ts"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -42,7 +47,7 @@
     "@babel/types": "7.28.5",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.2",
+    "fs-extra": "^11.3.3",
     "iconv-lite": "^0.7.1",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.2.0",

@@ -48,6 +48,7 @@ const DEFAULT_ENCODING: &str = "base64";
 enum DataUrlOptions {
   Inline(bool),
   Source,
+  Bytes,
   Auto(Option<AssetParserDataUrl>),
 }
 
@@ -60,12 +61,17 @@ const ASSET_RESOURCE: bool = false;
 #[derive(Debug, Clone)]
 pub enum CanonicalizedDataUrlOption {
   Source,
+  Bytes,
   Asset(IsInline),
 }
 
 impl CanonicalizedDataUrlOption {
   pub fn is_source(&self) -> bool {
     matches!(self, CanonicalizedDataUrlOption::Source)
+  }
+
+  pub fn is_bytes(&self) -> bool {
+    matches!(self, CanonicalizedDataUrlOption::Bytes)
   }
 
   pub fn is_inline(&self) -> bool {
@@ -114,6 +120,14 @@ impl AssetParserAndGenerator {
     Self {
       emit: false,
       data_url: DataUrlOptions::Source,
+      parsed_asset_config: None,
+    }
+  }
+
+  pub fn with_bytes() -> Self {
+    Self {
+      emit: false,
+      data_url: DataUrlOptions::Bytes,
       parsed_asset_config: None,
     }
   }
@@ -372,7 +386,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     if self
       .parsed_asset_config
       .as_ref()
-      .is_some_and(|x| x.is_source() || x.is_inline())
+      .is_some_and(|x| x.is_source() || x.is_inline() || x.is_bytes())
       || !self.emit
     {
       if source_types.is_empty() {
@@ -420,7 +434,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
         let parsed_size = self.parsed_asset_config.as_ref().map(|config| {
           match config {
-            CanonicalizedDataUrlOption::Source => original_source_size,
+            CanonicalizedDataUrlOption::Source | CanonicalizedDataUrlOption::Bytes => {
+              original_source_size
+            }
             CanonicalizedDataUrlOption::Asset(meta) => {
               match *meta {
                 ASSET_INLINE => {
@@ -465,6 +481,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     self.parsed_asset_config = match &self.data_url {
       DataUrlOptions::Source => Some(CanonicalizedDataUrlOption::Source),
+      DataUrlOptions::Bytes => Some(CanonicalizedDataUrlOption::Bytes),
       DataUrlOptions::Inline(val) => Some(CanonicalizedDataUrlOption::Asset(*val)),
       DataUrlOptions::Auto(option) => {
         let limit_size = parse_context
@@ -524,7 +541,30 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript | SourceType::CssUrl => {
-        let exported_content = if parsed_asset_config.is_inline() {
+        let exported_content = if parsed_asset_config.is_bytes() {
+          let mut encoded_source = base64::encode_to_string(source.buffer());
+          if generate_context.requested_source_type == SourceType::CssUrl {
+            encoded_source = format!("data:application/octet-stream;base64,{}", encoded_source);
+            generate_context
+              .data
+              .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
+            serde_json::to_string(&encoded_source).to_rspack_result()?
+          } else {
+            generate_context
+              .runtime_requirements
+              .insert(RuntimeGlobals::REQUIRE_SCOPE);
+            generate_context
+              .runtime_requirements
+              .insert(RuntimeGlobals::TO_BINARY);
+            format!(
+              "{}({})",
+              compilation
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::TO_BINARY),
+              serde_json::to_string(&encoded_source).to_rspack_result()?
+            )
+          }
+        } else if parsed_asset_config.is_inline() {
           let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = module_generator_options.and_then(|x| x.asset_data_url());
           let encoded_source: String;
@@ -807,7 +847,7 @@ async fn render_manifest(
 
   let ordered_modules = compilation
     .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::Asset, &module_graph);
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::Asset, module_graph);
 
   let assets = ordered_modules
     .par_iter()
@@ -897,6 +937,11 @@ impl Plugin for AssetPlugin {
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
       Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
+    );
+
+    ctx.register_parser_and_generator_builder(
+      rspack_core::ModuleType::AssetBytes,
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_bytes())),
     );
 
     Ok(())

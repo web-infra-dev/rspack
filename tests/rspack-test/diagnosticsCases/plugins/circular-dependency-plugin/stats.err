@@ -16,4 +16,7 @@ WARNING in ⚠ Circular dependency detected:
 WARNING in ⚠ Circular dependency detected:
   │  ./multiple-circular/a.js -> ./multiple-circular/b.js -> ./multiple-circular/c.js -> ./multiple-circular/e.js -> ./multiple-circular/a.js
 
+WARNING in ⚠ Circular dependency detected:
+  │  ./dynamic-circular/b.js -> ./dynamic-circular/c.js -> ./dynamic-circular/b.js
+
 ERROR in × Module not found: Can't resolve './' in '<TEST_ROOT>/diagnosticsCases/plugins/circular-dependency-plugin'

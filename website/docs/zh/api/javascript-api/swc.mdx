@@ -22,7 +22,7 @@ swc
       // ...other options
     },
   })
-  .then(result => {
+  .then((result) => {
     console.log(result.code);
   });
 
@@ -57,7 +57,7 @@ export default function myLoader(source) {
       sourceMap: true,
       // ...other options
     })
-    .then(result => {
+    .then((result) => {
       callback(null, `${result.code}\n${source}`);
     });
 }

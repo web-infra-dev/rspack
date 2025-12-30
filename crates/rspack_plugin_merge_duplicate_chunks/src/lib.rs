@@ -92,7 +92,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               let exports_info = module_graph.get_exports_info(module);
               is_equally_used(
                 &exports_info,
-                &module_graph,
+                module_graph,
                 chunk.runtime(),
                 other_chunk.runtime(),
               )
@@ -115,7 +115,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             &other_chunk_ukey,
             &mut chunk_by_ukey,
             &mut chunk_group_by_ukey,
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
           );
           if chunk_by_ukey.remove(&other_chunk_ukey).is_some()
             && let Some(mut mutations) = compilation.incremental.mutations_write()
@@ -158,15 +158,9 @@ fn is_equally_used(
   b: &RuntimeSpec,
 ) -> bool {
   let info = exports_info.as_data(mg);
-  if let Some(redirect_to) = &info.redirect_to() {
-    if is_equally_used(redirect_to, mg, a, b) {
-      return false;
-    }
-  } else {
-    let other_exports_info = info.other_exports_info();
-    if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
-      return false;
-    }
+  let other_exports_info = info.other_exports_info();
+  if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
+    return false;
   }
   let side_effects_only_info = info.side_effects_only_info();
   if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {

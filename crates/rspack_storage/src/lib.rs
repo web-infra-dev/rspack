@@ -20,6 +20,8 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   fn remove(&self, scope: &'static str, key: &[u8]);
   fn trigger_save(&self) -> Result<Receiver<Result<()>>>;
   async fn reset(&self);
+  /// Get list of all available scopes in the storage
+  async fn scopes(&self) -> Result<Vec<String>>;
 }
 
 pub type ArcStorage = Arc<dyn Storage>;

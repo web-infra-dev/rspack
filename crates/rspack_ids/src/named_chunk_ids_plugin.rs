@@ -34,7 +34,7 @@ fn assign_named_chunk_ids(
         chunk_graph,
         context,
         delimiter,
-        &module_graph,
+        module_graph,
         module_graph_cache,
         named_chunk_ids_artifact,
       );
@@ -81,7 +81,7 @@ fn assign_named_chunk_ids(
         chunk_graph,
         context,
         delimiter,
-        &module_graph,
+        module_graph,
         module_graph_cache,
         named_chunk_ids_artifact,
       );

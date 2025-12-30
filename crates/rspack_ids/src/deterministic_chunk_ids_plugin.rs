@@ -64,7 +64,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
         get_full_chunk_name(
           chunk,
           chunk_graph,
-          &module_graph,
+          module_graph,
           module_graph_cache,
           &context,
         ),

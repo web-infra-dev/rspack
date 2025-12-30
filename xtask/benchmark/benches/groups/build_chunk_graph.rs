@@ -1,12 +1,11 @@
 #![allow(clippy::unwrap_used)]
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
 use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, DerefOption, Experiments, ModuleGraphPartial, Optimization,
-  build_chunk_graph, fast_set,
+  Compilation, Compiler, DerefOption, Experiments, Optimization, build_chunk_graph, fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
@@ -129,6 +128,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     Compilation::new(
       compiler_id,
       compiler.options.clone(),
+      compiler.platform.clone(),
       compiler.plugin_driver.clone(),
       compiler.buildtime_plugin_driver.clone(),
       compiler.resolver_factory.clone(),
@@ -176,26 +176,28 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .await
       .unwrap();
     compiler.compilation.build_module_graph().await.unwrap();
-    compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-
+    let mut build_module_graph_artifact =
+      mem::take(&mut compiler.compilation.build_module_graph_artifact);
     while matches!(
       compiler
         .plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(
-          &mut compiler.compilation,
+          &compiler.compilation,
           &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
           &mut diagnostics
         )
         .await
         .unwrap(),
       Some(true)
     ) {}
+    compiler.compilation.build_module_graph_artifact = build_module_graph_artifact;
 
     compiler.compilation.side_effects_optimize_artifact =
       DerefOption::new(side_effects_optimize_artifact);
@@ -209,23 +211,12 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());
-  compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
   c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {
         build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
-        assert_eq!(compiler.compilation.chunk_by_ukey.len(), NUM_MODULES / 10);
-      });
-    });
-  });
-
-  c.bench_function("rust@build_chunk_graph_parallel", |b| {
-    b.iter_with_setup_wrapper(|runner| {
-      reset_chunk_graph_state(&mut compiler.compilation);
-      runner.run(|| {
-        build_chunk_graph::build_chunk_graph_new(&mut compiler.compilation).unwrap();
         assert_eq!(compiler.compilation.chunk_by_ukey.len(), NUM_MODULES / 10);
       });
     });
@@ -242,5 +233,4 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.async_entrypoints = Default::default();
   compilation.named_chunk_groups = Default::default();
   compilation.named_chunks = Default::default();
-  compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 }

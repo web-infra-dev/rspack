@@ -1,16 +1,15 @@
 packages:
-  - "packages/*"
-  - "scripts"
-  - "website"
-  - "tests/e2e/fixtures/**"
-  - "packages/create-rspack/**"
-  - "npm/*"
-  - "crates/node_binding"
-  - "crates/rspack_binding_builder_testing"
-  - "examples/**"
-  - "!examples/three"
-  - "tests/e2e"
-  - "tests/rspack-test"
-  - "tests/bench"
+  - 'packages/*'
+  - 'examples/*'
+  - 'scripts'
+  - 'website'
+  - 'tests/e2e/fixtures/**'
+  - 'packages/create-rspack/**'
+  - 'npm/*'
+  - 'crates/node_binding'
+  - 'crates/rspack_binding_builder_testing'
+  - 'tests/e2e'
+  - 'tests/rspack-test'
+  - 'tests/bench'
   # this following is used to test resolve in monorepo
-  - "tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*"
+  - 'tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*'

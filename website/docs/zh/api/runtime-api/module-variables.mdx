@@ -234,7 +234,7 @@ const componentsContext = import.meta.webpackContext('./components', {
   regExp: /\.js$/,
 });
 
-componentsContext.keys().forEach(fileName => {
+componentsContext.keys().forEach((fileName) => {
   const componentModule = componentsContext(fileName);
 
   // 在这里你可以使用你的模块，例如使用 console.log 输出
@@ -585,7 +585,7 @@ __webpack_require__.e = function (chunkId) {
 ```js
 const originalLoad = __webpack_chunk_load__;
 const publicPaths = ['a', 'b', 'c'];
-__webpack_chunk_load__ = async id => {
+__webpack_chunk_load__ = async (id) => {
   let error;
   for (const path of publicPaths) {
     __webpack_public_path__ = path;
@@ -597,7 +597,7 @@ __webpack_chunk_load__ = async id => {
   }
   throw error;
 };
-import('./module-a').then(moduleA => {
+import('./module-a').then((moduleA) => {
   // now webpack will use the custom __webpack_chunk_load__ to load chunk
 });
 ```
@@ -629,7 +629,7 @@ __webpack_require__.u = function (chunkId) {
 ```js
 const oldFn = __webpack_get_script_filename__;
 
-__webpack_get_script_filename__ = chunkId => {
+__webpack_get_script_filename__ = (chunkId) => {
   const filename = oldFn(chunkId);
   return filename + '.changed';
 };

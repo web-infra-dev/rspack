@@ -9,6 +9,7 @@ use rspack_core::{
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
@@ -150,14 +151,15 @@ async fn nmf_module(
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
 
   let all_modules = module_graph.modules();
 
@@ -167,7 +169,7 @@ async fn optimize_dependencies(
       (
         *module_identifier,
         module.get_side_effects_connection_state(
-          &module_graph,
+          module_graph,
           &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
@@ -218,7 +220,7 @@ async fn optimize_dependencies(
       |mut modules, mutation| match mutation {
         Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
-            affected_incoming_modules(module, &module_graph, &mut modules);
+            affected_incoming_modules(module, module_graph, &mut modules);
           }
           modules.extend(
             module_graph
@@ -257,7 +259,7 @@ async fn optimize_dependencies(
     .map(|connection| {
       (
         connection.dependency_id,
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph),
+        can_optimize_connection(connection, &side_effects_state_map, module_graph),
       )
     })
     .consume(|(dep_id, can_optimize)| {
@@ -276,22 +278,22 @@ async fn optimize_dependencies(
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, &mut module_graph)
+        do_optimize_connection(dependency, do_optimize, module_graph)
       })
       .collect();
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
       .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph)
+        can_optimize_connection(connection, &side_effects_state_map, module_graph)
           .map(|i| (connection.dependency_id, i))
       })
       .collect();

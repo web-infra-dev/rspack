@@ -1,1 +1,1 @@
-export const foo = "__FOO_VALUE__";
+export const foo = '__FOO_VALUE__';

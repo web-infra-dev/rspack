@@ -12,7 +12,8 @@ module.exports = {
 		ff: {
 			import: "./multiple-circular/a.js",
 			layer: "f"
-		}
+		},
+		gg: "./dynamic-circular/index.js"
 	},
 	module: {
 		rules: [

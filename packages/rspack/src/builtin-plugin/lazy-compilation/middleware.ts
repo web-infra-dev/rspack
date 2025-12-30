@@ -1,46 +1,47 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import { type Compiler, MultiCompiler } from "../..";
-import type { LazyCompilationOptions } from "../../config";
-import type { MiddlewareHandler } from "../../config/devServer";
-import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { type Compiler, MultiCompiler } from '../..';
+import type { LazyCompilationOptions } from '../../config';
+import type { MiddlewareHandler } from '../../config/devServer';
+import { deprecate } from '../../util';
+import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
-export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
+export const LAZY_COMPILATION_PREFIX = '/lazy-compilation-using-';
 
 const getDefaultClient = (compiler: Compiler): string =>
-	require.resolve(
-		`../hot/lazy-compilation-${
-			compiler.options.externalsPresets.node ? "node" : "web"
-		}.js`
-	);
+  require.resolve(
+    `../hot/lazy-compilation-${
+      compiler.options.externalsPresets.node ? 'node' : 'web'
+    }.js`,
+  );
 
 const noop = (
-	_req: IncomingMessage,
-	_res: ServerResponse,
-	next?: (err?: any) => void
+  _req: IncomingMessage,
+  _res: ServerResponse,
+  next?: (err?: any) => void,
 ) => {
-	if (typeof next === "function") {
-		next();
-	}
+  if (typeof next === 'function') {
+    next();
+  }
 };
 
 const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
-	const lazyCompilationPrefix = prefix || LAZY_COMPILATION_PREFIX;
-	if (!serverUrl) {
-		return lazyCompilationPrefix;
-	}
-	return (
-		serverUrl +
-		(serverUrl.endsWith("/")
-			? lazyCompilationPrefix.slice(1)
-			: lazyCompilationPrefix)
-	);
+  const lazyCompilationPrefix = prefix || LAZY_COMPILATION_PREFIX;
+  if (!serverUrl) {
+    return lazyCompilationPrefix;
+  }
+  return (
+    serverUrl +
+    (serverUrl.endsWith('/')
+      ? lazyCompilationPrefix.slice(1)
+      : lazyCompilationPrefix)
+  );
 };
 
 const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
-	"The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.";
+  'The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.';
 
 const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
-	"Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.";
+  'Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.';
 
 /**
  * Create a middleware that handles lazy compilation requests from the client.
@@ -51,166 +52,163 @@ const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
  * custom development server instead of relying on the built-in server.
  */
 export const lazyCompilationMiddleware = (
-	compiler: Compiler | MultiCompiler
+  compiler: Compiler | MultiCompiler,
 ): MiddlewareHandler => {
-	if (compiler instanceof MultiCompiler) {
-		const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
+  if (compiler instanceof MultiCompiler) {
+    const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
 
-		let i = 0;
-		let isReportDeprecatedWarned = false;
-		let isReportRepeatWarned = false;
-		for (const c of compiler.compilers) {
-			if (c.options.experiments.lazyCompilation) {
-				if (c.name) {
-					console.warn(
-						`The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`
-					);
-				} else if (!isReportDeprecatedWarned) {
-					console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-					isReportDeprecatedWarned = true;
-				}
-			}
+    let i = 0;
 
-			if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
-				if (c.name) {
-					console.warn(
-						`The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`
-					);
-				} else if (!isReportRepeatWarned) {
-					console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-					isReportRepeatWarned = true;
-				}
-			}
+    for (const c of compiler.compilers) {
+      if (c.options.experiments.lazyCompilation) {
+        if (c.name) {
+          deprecate(
+            `The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`,
+          );
+        } else {
+          deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+        }
+      }
 
-			if (
-				!c.options.lazyCompilation &&
-				!c.options.experiments.lazyCompilation
-			) {
-				continue;
-			}
+      if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
+        if (c.name) {
+          deprecate(
+            `The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`,
+          );
+        } else {
+          deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
+        }
+      }
 
-			const options = {
-				// TODO: remove this when experiments.lazyCompilation is removed
-				...c.options.experiments.lazyCompilation,
-				...c.options.lazyCompilation
-			};
+      if (
+        !c.options.lazyCompilation &&
+        !c.options.experiments.lazyCompilation
+      ) {
+        continue;
+      }
 
-			const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
-			options.prefix = `${prefix}__${i++}`;
-			const activeModules = new Set<string>();
+      const options = {
+        // TODO: remove this when experiments.lazyCompilation is removed
+        ...c.options.experiments.lazyCompilation,
+        ...c.options.lazyCompilation,
+      };
 
-			middlewareByCompiler.set(
-				options.prefix,
-				lazyCompilationMiddlewareInternal(
-					compiler,
-					activeModules,
-					options.prefix
-				)
-			);
+      const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
+      options.prefix = `${prefix}__${i++}`;
+      const activeModules = new Set<string>();
 
-			applyPlugin(c, options, activeModules);
-		}
+      middlewareByCompiler.set(
+        options.prefix,
+        lazyCompilationMiddlewareInternal(
+          compiler,
+          activeModules,
+          options.prefix,
+        ),
+      );
 
-		const keys = [...middlewareByCompiler.keys()];
-		return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-			const key = keys.find(key => req.url?.startsWith(key));
-			if (!key) {
-				return next?.();
-			}
+      applyPlugin(c, options, activeModules);
+    }
 
-			const middleware = middlewareByCompiler.get(key);
+    const keys = [...middlewareByCompiler.keys()];
+    return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      const key = keys.find((key) => req.url?.startsWith(key));
+      if (!key) {
+        return next?.();
+      }
 
-			return middleware?.(req, res, next);
-		};
-	}
+      const middleware = middlewareByCompiler.get(key);
 
-	if (compiler.options.experiments.lazyCompilation) {
-		console.warn(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-		if (compiler.options.lazyCompilation) {
-			console.warn(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-		}
-	}
+      return middleware?.(req, res, next);
+    };
+  }
 
-	if (
-		!compiler.options.lazyCompilation &&
-		!compiler.options.experiments.lazyCompilation
-	) {
-		return noop;
-	}
+  if (compiler.options.experiments.lazyCompilation) {
+    deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
+    if (compiler.options.lazyCompilation) {
+      deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
+    }
+  }
 
-	const activeModules: Set<string> = new Set();
+  if (
+    !compiler.options.lazyCompilation &&
+    !compiler.options.experiments.lazyCompilation
+  ) {
+    return noop;
+  }
 
-	const options = {
-		// TODO: remove this when experiments.lazyCompilation is removed
-		...compiler.options.experiments.lazyCompilation,
-		...compiler.options.lazyCompilation
-	};
+  const activeModules: Set<string> = new Set();
 
-	applyPlugin(compiler, options, activeModules);
+  const options = {
+    // TODO: remove this when experiments.lazyCompilation is removed
+    ...compiler.options.experiments.lazyCompilation,
+    ...compiler.options.lazyCompilation,
+  };
 
-	const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
-	return lazyCompilationMiddlewareInternal(
-		compiler,
-		activeModules,
-		lazyCompilationPrefix
-	);
+  applyPlugin(compiler, options, activeModules);
+
+  const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
+  return lazyCompilationMiddlewareInternal(
+    compiler,
+    activeModules,
+    lazyCompilationPrefix,
+  );
 };
 
 function applyPlugin(
-	compiler: Compiler,
-	options: LazyCompilationOptions,
-	activeModules: Set<string>
+  compiler: Compiler,
+  options: LazyCompilationOptions,
+  activeModules: Set<string>,
 ) {
-	const plugin = new BuiltinLazyCompilationPlugin(
-		() => {
-			const res = new Set(activeModules);
-			activeModules.clear();
-			return res;
-		},
-		options.entries ?? true,
-		options.imports ?? true,
-		`${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-		options.test
-	);
-	plugin.apply(compiler);
+  const plugin = new BuiltinLazyCompilationPlugin(
+    () => {
+      const res = new Set(activeModules);
+      activeModules.clear();
+      return res;
+    },
+    options.entries ?? true,
+    options.imports ?? true,
+    `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
+    options.test,
+  );
+  plugin.apply(compiler);
 }
 
 // used for reuse code, do not export this
 const lazyCompilationMiddlewareInternal = (
-	compiler: Compiler | MultiCompiler,
-	activeModules: Set<string>,
-	lazyCompilationPrefix: string
+  compiler: Compiler | MultiCompiler,
+  activeModules: Set<string>,
+  lazyCompilationPrefix: string,
 ): MiddlewareHandler => {
-	const logger = compiler.getInfrastructureLogger("LazyCompilation");
+  const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
-	return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
-		if (!req.url?.startsWith(lazyCompilationPrefix)) {
-			// only handle requests that are come from lazyCompilation
-			return next?.();
-		}
+  return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
+    if (!req.url?.startsWith(lazyCompilationPrefix)) {
+      // only handle requests that are come from lazyCompilation
+      return next?.();
+    }
 
-		const modules = req.url
-			.slice(lazyCompilationPrefix.length)
-			.split("@")
-			.map(decodeURIComponent);
-		req.socket.setNoDelay(true);
+    const modules = req.url
+      .slice(lazyCompilationPrefix.length)
+      .split('@')
+      .map(decodeURIComponent);
+    req.socket.setNoDelay(true);
 
-		res.setHeader("content-type", "text/event-stream");
-		res.writeHead(200);
-		res.write("\n");
+    res.setHeader('content-type', 'text/event-stream');
+    res.writeHead(200);
+    res.write('\n');
 
-		const moduleActivated = [];
-		for (const key of modules) {
-			const activated = activeModules.has(key);
-			activeModules.add(key);
-			if (!activated) {
-				logger.log(`${key} is now in use and will be compiled.`);
-				moduleActivated.push(key);
-			}
-		}
+    const moduleActivated = [];
+    for (const key of modules) {
+      const activated = activeModules.has(key);
+      activeModules.add(key);
+      if (!activated) {
+        logger.log(`${key} is now in use and will be compiled.`);
+        moduleActivated.push(key);
+      }
+    }
 
-		if (moduleActivated.length && compiler.watching) {
-			compiler.watching.invalidate();
-		}
-	};
+    if (moduleActivated.length && compiler.watching) {
+      compiler.watching.invalidate();
+    }
+  };
 };

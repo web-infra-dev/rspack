@@ -1,7 +1,7 @@
 use std::{any::Any, sync::Arc};
 
 use rspack_cacheable::{
-  DeserializeError, SerializeError, enable_cacheable as cacheable, from_bytes, to_bytes,
+  Error, enable_cacheable as cacheable, from_bytes, to_bytes,
   with::{As, AsConverter},
 };
 
@@ -19,12 +19,12 @@ struct Context {
 struct FromContext;
 
 impl AsConverter<Arc<CompilerOptions>> for FromContext {
-  fn serialize(_data: &Arc<CompilerOptions>, _ctx: &dyn Any) -> Result<Self, SerializeError> {
+  fn serialize(_data: &Arc<CompilerOptions>, _ctx: &dyn Any) -> Result<Self, Error> {
     Ok(FromContext)
   }
-  fn deserialize(self, ctx: &dyn Any) -> Result<Arc<CompilerOptions>, DeserializeError> {
+  fn deserialize(self, ctx: &dyn Any) -> Result<Arc<CompilerOptions>, Error> {
     let Some(ctx) = ctx.downcast_ref::<Context>() else {
-      return Err(DeserializeError::MessageError("context not match"));
+      return Err(Error::MessageError("context not match"));
     };
     Ok(ctx.option.clone())
   }
@@ -52,7 +52,7 @@ fn test_context() {
 
   assert!(matches!(
     from_bytes::<Module, ()>(&bytes, &()),
-    Err(DeserializeError::MessageError("context not match"))
+    Err(Error::MessageError("context not match"))
   ));
   let new_module: Module = from_bytes(&bytes, &context).unwrap();
   assert_eq!(module, new_module);

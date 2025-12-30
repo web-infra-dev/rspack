@@ -9,13 +9,13 @@
  */
 
 export default class ConcurrentCompilationError extends Error {
-	name: string;
-	message: string;
+  name: string;
+  message: string;
 
-	constructor() {
-		super();
-		this.name = "ConcurrentCompilationError";
-		this.message =
-			"You ran rspack twice. Each instance only supports a single concurrent compilation at a time.";
-	}
+  constructor() {
+    super();
+    this.name = 'ConcurrentCompilationError';
+    this.message =
+      'You ran rspack twice. Each instance only supports a single concurrent compilation at a time.';
+  }
 }

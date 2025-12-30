@@ -43,7 +43,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
             };
             use rspack_cacheable::{
                 r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn, VTablePtr},
-                DeserializeError, Deserializer, SerializeError, Serializer, Validator,
+                Error, Deserializer, Serializer, Validator,
             };
 
             unsafe impl #impl_generics ptr_meta::Pointee for dyn #trait_ident #ty_generics #where_clause {
@@ -70,7 +70,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                 fn serialize_unsized(
                     &self,
                     serializer: &mut Serializer
-                ) -> Result<usize, SerializeError> {
+                ) -> Result<usize, Error> {
                     self.serialize_dyn(serializer)
                 }
             }
@@ -98,7 +98,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                     &self,
                     deserializer: &mut Deserializer,
                     out: *mut dyn #trait_ident #ty_generics
-                ) -> Result<(), DeserializeError> {
+                ) -> Result<(), Error> {
                     self.deserialize_dyn(deserializer, out)
                 }
 
@@ -121,13 +121,13 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                 unsafe fn check_bytes(
                     value: *const Self,
                     context: &mut Validator,
-                ) -> Result<(), DeserializeError> {
+                ) -> Result<(), Error> {
                     let vtable = VTablePtr::new(ptr_meta::metadata(value));
                     if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
                         check_bytes_dyn(value.cast(), context)?;
                         Ok(())
                     } else {
-                        Err(DeserializeError::DynCheckBytesNotRegister)
+                        Err(Error::DynCheckBytesNotRegister)
                     }
                 }
             }
@@ -200,7 +200,7 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
                   validation::{default_check_bytes_dyn, CheckBytesEntry},
                   DeserializeDyn, DynEntry, VTablePtr,
               },
-              DeserializeError, Deserializer,
+              Error, Deserializer,
           };
 
           const fn get_vtable() -> VTablePtr {
@@ -219,7 +219,7 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
                   &self,
                   deserializer: &mut Deserializer,
                   out: *mut dyn #trait_ident
-              ) -> Result<(), DeserializeError> {
+              ) -> Result<(), Error> {
                   unsafe {
                       <Self as DeserializeUnsized<#target_ident, _>>::deserialize_unsized(self, deserializer, out.cast())
                   }

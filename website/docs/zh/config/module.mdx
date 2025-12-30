@@ -85,7 +85,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   module: {
-    noParse: request => /typescript|watermark-dom/.test(request),
+    noParse: (request) => /typescript|watermark-dom/.test(request),
   },
 };
 ```
@@ -636,7 +636,7 @@ WARNING in ./re-exports.ts
 :::
 
 - `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
-- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 配合使用。
+- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 配合使用。
 - `'tolerant-no-check'`：会对重导出类型进行宽容处理，但不会检查子模块中是否有对应的类型导出，此时可能存在误将本该报错的场景宽容掉（通常 IDE 也会有相应提示），由于不需要检查子模块，所以性能也会更好。
 
 ```js title="rspack.config.mjs"
@@ -659,10 +659,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
-                },
+              collectTypeScriptInfo: {
+                typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
               },
             },
           },

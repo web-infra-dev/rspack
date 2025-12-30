@@ -707,9 +707,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        compilation
-          .get_seal_module_graph_mut()
-          .set_depth_if_lower(&k, v);
+        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
       }
     }
 
@@ -1165,7 +1163,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let mut module_graph = compilation.get_seal_module_graph_mut();
+      let module_graph = compilation.get_module_graph_mut();
       let module = module_graph
         .module_graph_module_by_identifier_mut(&item.module)
         .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
@@ -1210,7 +1208,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let module_graph = compilation.get_module_graph_mut();
     let module = module_graph
       .module_graph_module_by_identifier_mut(&item.module)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
@@ -1684,7 +1682,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     extract_block_modules(
-      module.get_root_block(&compilation.get_module_graph()),
+      module.get_root_block(compilation.get_module_graph()),
       runtime,
       compilation,
       &self.prepared_blocks_map,
@@ -1818,7 +1816,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let active_state = get_active_state_of_connections(
             connections,
             Some(&cgi.runtime),
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
           );
           if active_state.is_false() {
@@ -2256,7 +2254,7 @@ fn extract_block_modules(
     let active_state = get_active_state_of_connections(
       connections,
       runtime.as_deref(),
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));

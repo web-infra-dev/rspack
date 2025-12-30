@@ -13,7 +13,7 @@ use super::{
   storage::Storage,
 };
 
-const SCOPE: &str = "build_dependencies";
+pub const SCOPE: &str = "build_dependencies";
 
 pub type BuildDepsOptions = Vec<PathBuf>;
 

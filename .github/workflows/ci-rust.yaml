@@ -10,13 +10,13 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/**"
-      - "crates/**"
-      - "Cargo.lock"
-      - "Cargo.toml"
-      - "rust-toolchain.toml"
+      - '.github/workflows/**'
+      - 'crates/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
     tags-ignore:
-      - "**"
+      - '**'
 jobs:
   rust_tests:
     name: Run Rust Tests

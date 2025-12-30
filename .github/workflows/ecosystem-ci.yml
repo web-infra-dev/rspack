@@ -5,14 +5,14 @@ on:
     inputs:
       pr:
         type: number
-        description: "Run ecosystem ci PR number"
+        description: 'Run ecosystem ci PR number'
         required: true
       suite:
-        description: "testsuite to run. runs all testsuits when `-`."
+        description: 'testsuite to run. runs all testsuits when `-`.'
         required: false
         type: choice
         options:
-          - "-"
+          - '-'
           - modernjs
           # - nx
           - rspress
@@ -26,18 +26,18 @@ on:
           - plugin
           - lynx-stack
       suiteRef:
-        description: "suite ref to use"
+        description: 'suite ref to use'
         required: true
         type: string
-        default: "-"
+        default: '-'
   push:
     branches:
       - main
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 
 permissions:
   # Allow commenting on commits
@@ -167,7 +167,7 @@ jobs:
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: "22"
+          node-version: '22'
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
@@ -321,7 +321,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
-          node-version: "22.21.1"
+          node-version: '22.21.1'
           package-manager-cache: false
 
       - name: Update Ecosystem History

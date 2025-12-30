@@ -1,4 +1,4 @@
 module.exports = () => ({
-	mode: "development",
-	entry: "./src/entry.js"
+  mode: 'development',
+  entry: './src/entry.js',
 });

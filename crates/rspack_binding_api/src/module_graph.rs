@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
-use rspack_core::{Compilation, ModuleGraph, ModuleGraphRef, PrefetchExportsInfoMode, RuntimeSpec};
+use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
 use crate::{
   dependencies::DependencyObject,
@@ -26,7 +26,7 @@ impl JsModuleGraph {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraphRef<'static>)> {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ModuleGraph)> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
 

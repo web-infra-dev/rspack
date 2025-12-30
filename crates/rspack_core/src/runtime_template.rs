@@ -520,7 +520,7 @@ impl RuntimeTemplate {
     };
 
     let exports_type = get_exports_type(
-      &mg,
+      mg,
       &compilation.module_graph_cache_artifact,
       id,
       &module.identifier(),
@@ -760,7 +760,7 @@ impl RuntimeTemplate {
     let opt_declaration = if update { "" } else { "var " };
 
     let exports_type = get_exports_type(
-      &mg,
+      mg,
       &compilation.module_graph_cache_artifact,
       id,
       &module.identifier(),
@@ -881,7 +881,7 @@ impl RuntimeTemplate {
 
     let promise = self.block_promise(block, runtime_requirements, compilation, message);
     let exports_type = get_exports_type(
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       dep_id,
       &module.identifier(),
@@ -1402,7 +1402,7 @@ fn get_outgoing_async_modules(
   let mut visited = HashSet::default();
   helper(
     compilation,
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     module,
     &mut set,
     &mut visited,

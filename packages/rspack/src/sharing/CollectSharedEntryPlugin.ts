@@ -1,89 +1,92 @@
 import {
-	type BuiltinPlugin,
-	BuiltinPluginName,
-	type RawCollectShareEntryPluginOptions
-} from "@rspack/binding";
+  type BuiltinPlugin,
+  BuiltinPluginName,
+  type RawCollectShareEntryPluginOptions,
+} from '@rspack/binding';
 import {
-	createBuiltinPlugin,
-	RspackBuiltinPlugin
-} from "../builtin-plugin/base";
-import type { Compiler } from "../Compiler";
-import { normalizeConsumeShareOptions } from "./ConsumeSharedPlugin";
+  createBuiltinPlugin,
+  RspackBuiltinPlugin,
+} from '../builtin-plugin/base';
+import type { Compiler } from '../Compiler';
+import { normalizeConsumeShareOptions } from './ConsumeSharedPlugin';
 import {
-	createConsumeShareOptions,
-	type NormalizedSharedOptions
-} from "./SharePlugin";
+  createConsumeShareOptions,
+  type NormalizedSharedOptions,
+} from './SharePlugin';
 
 export type CollectSharedEntryPluginOptions = {
-	sharedOptions: NormalizedSharedOptions;
-	shareScope?: string;
+  sharedOptions: NormalizedSharedOptions;
+  shareScope?: string;
 };
 
 export type ShareRequestsMap = Record<
-	string,
-	{
-		shareScope: string;
-		requests: [string, string][];
-	}
+  string,
+  {
+    shareScope: string;
+    requests: [string, string][];
+  }
 >;
 
-const SHARE_ENTRY_ASSET = "collect-shared-entries.json";
+const SHARE_ENTRY_ASSET = 'collect-shared-entries.json';
 export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
-	name = BuiltinPluginName.CollectSharedEntryPlugin;
-	sharedOptions: NormalizedSharedOptions;
-	private _collectedEntries: ShareRequestsMap;
+  name = BuiltinPluginName.CollectSharedEntryPlugin;
+  sharedOptions: NormalizedSharedOptions;
+  private _collectedEntries: ShareRequestsMap;
 
-	constructor(options: CollectSharedEntryPluginOptions) {
-		super();
-		const { sharedOptions } = options;
+  constructor(options: CollectSharedEntryPluginOptions) {
+    super();
+    const { sharedOptions } = options;
 
-		this.sharedOptions = sharedOptions;
-		this._collectedEntries = {};
-	}
+    this.sharedOptions = sharedOptions;
+    this._collectedEntries = {};
+  }
 
-	getData() {
-		return this._collectedEntries;
-	}
+  getData() {
+    return this._collectedEntries;
+  }
 
-	getFilename() {
-		return SHARE_ENTRY_ASSET;
-	}
+  getFilename() {
+    return SHARE_ENTRY_ASSET;
+  }
 
-	apply(compiler: Compiler) {
-		super.apply(compiler);
+  apply(compiler: Compiler) {
+    super.apply(compiler);
 
-		compiler.hooks.thisCompilation.tap("Collect shared entry", compilation => {
-			compilation.hooks.processAssets.tapPromise(
-				{
-					name: "CollectSharedEntry",
-					stage:
-						compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				},
-				async () => {
-					compilation.getAssets().forEach(asset => {
-						if (asset.name === SHARE_ENTRY_ASSET) {
-							this._collectedEntries = JSON.parse(
-								asset.source.source().toString()
-							);
-						}
-						compilation.deleteAsset(asset.name);
-					});
-				}
-			);
-		});
-	}
+    compiler.hooks.thisCompilation.tap(
+      'Collect shared entry',
+      (compilation) => {
+        compilation.hooks.processAssets.tapPromise(
+          {
+            name: 'CollectSharedEntry',
+            stage:
+              compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
+          },
+          async () => {
+            compilation.getAssets().forEach((asset) => {
+              if (asset.name === SHARE_ENTRY_ASSET) {
+                this._collectedEntries = JSON.parse(
+                  asset.source.source().toString(),
+                );
+              }
+              compilation.deleteAsset(asset.name);
+            });
+          },
+        );
+      },
+    );
+  }
 
-	raw(): BuiltinPlugin {
-		const consumeShareOptions = createConsumeShareOptions(this.sharedOptions);
-		const normalizedConsumeShareOptions =
-			normalizeConsumeShareOptions(consumeShareOptions);
-		const rawOptions: RawCollectShareEntryPluginOptions = {
-			consumes: normalizedConsumeShareOptions.map(([key, v]) => ({
-				key,
-				...v
-			})),
-			filename: this.getFilename()
-		};
-		return createBuiltinPlugin(this.name, rawOptions);
-	}
+  raw(): BuiltinPlugin {
+    const consumeShareOptions = createConsumeShareOptions(this.sharedOptions);
+    const normalizedConsumeShareOptions =
+      normalizeConsumeShareOptions(consumeShareOptions);
+    const rawOptions: RawCollectShareEntryPluginOptions = {
+      consumes: normalizedConsumeShareOptions.map(([key, v]) => ({
+        key,
+        ...v,
+      })),
+      filename: this.getFilename(),
+    };
+    return createBuiltinPlugin(this.name, rawOptions);
+  }
 }

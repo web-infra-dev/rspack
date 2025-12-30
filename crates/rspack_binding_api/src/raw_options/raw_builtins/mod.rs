@@ -46,6 +46,7 @@ use rspack_ids::{
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_case_sensitive::CaseSensitivePlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -99,7 +100,6 @@ use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_sri::{SubresourceIntegrityPlugin, SubresourceIntegrityPluginOptions};
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
-use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
   AsyncWasmPlugin, FetchCompileAsyncWasmPlugin, enable_wasm_loading_plugin,
 };
@@ -191,7 +191,7 @@ pub enum BuiltinPluginName {
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
   EnsureChunkConditionsPlugin,
-  WarnCaseSensitiveModulesPlugin,
+  CaseSensitivePlugin,
   DataUriPlugin,
   FileUriPlugin,
   RuntimePlugin,
@@ -571,8 +571,8 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
         plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
-      BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
+      BuiltinPluginName::CaseSensitivePlugin => {
+        plugins.push(CaseSensitivePlugin::default().boxed())
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),

@@ -521,7 +521,7 @@ impl ExternalModule {
                   let mut safe_to_optimize = true;
                   'outer: for m in compilation
                     .chunk_graph
-                    .get_chunk_modules(chunk, &module_graph)
+                    .get_chunk_modules(chunk, module_graph)
                   {
                     if m.identifier() == concatenation_scope.concat_module_id {
                       // skip self
