@@ -83,46 +83,19 @@ const text = decoder.decode(module.default);
 
 ### 实验特性稳定化
 
-在 Rspack v1.7 中，我们推进了实验特性的稳定化工作。以下实验配置项现已稳定。
+在 Rspack 1.7 中，我们推进了多项实验特性的稳定化工作。以下能力已完成验证并进入稳定阶段，相关实验开关也随之废弃，或调整为默认行为：
 
-#### 跨模块常量与枚举内联
+- **常量内联优化**：该优化已正式稳定，并在生产构建中默认启用。
+  - 原有的 [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) 选项已废弃
+  - 如需关闭该行为，可通过 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制
+- **TypeScript enum 内联优化**：该优化已正式稳定。
+  - 原有的 [experiments.inlineEnum](/config/deprecated-options#experimentsinlineenum) 选项已废弃
+  - 可以通过 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制是否收集导出的 `enum` 信息
+  - 可以通过 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制是否内联 `enum`
+- **类型重导出检查**：该优化已正式稳定。
+  - 原有的 [experiments.typeReexportsPresence](/config/deprecated-options#experimentstypereexportspresence) 选项已废弃
 
-我们将原有的 `experiments.inlineConst` 和 `experiments.inlineEnum` 合并为稳定的 `optimization.inlineExports` 配置。该特性支持跨模块内联基本类型常量及 TypeScript enum（通过 `builtin:swc-loader` 收集），从而实现更进一步的死代码消除（DCE）获得更小的产物体积。
-
-迁移时，移除 experiments 下的相关字段即可。`optimization.inlineExports` 优化在生产模式下默认开启。
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    // 生产模式默认开启，无需手动设置
-    inlineExports: true,
-  },
-  experiments: {
-    // 功能已稳定，旧配置已废弃，直接移除即可
-    inlineConst: true,
-    inlineEnum: true,
-  },
-};
-```
-
-#### 宽松的类型重导出检查
-
-宽容重导出类型报错 `module.parser.javascript.typeReexportsPresence` 现已稳定，迁移时移除对应实验特性开关 `experiments.typeReexportsPresence` 即可。
-
-```js title="rspack.config.mjs"
-export default {
-  // [!code --]
-  experiments: {
-    typeReexportsPresence: true, // [!code --]
-  }, // [!code --]
-};
-```
-
-#### TypeScript 信息收集
-
-配合上述枚举优化和宽松的类型重导出检查的稳定，`builtin:swc-loader` 也调整了其配置结构。原先嵌套在 `rspackExperiments` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项现已稳定，提升为 loader 的顶层选项。
-
-迁移时，将 `builtin:swc-loader` 的配置中 `rspackExperiments.collectTypeScriptInfo` 中的 `rspackExperiments` 层级移除即可。
+> 参考 [升级指南](#升级指南) 了解如何调整相关配置。
 
 ## Rstack 进展
 
@@ -352,7 +325,7 @@ export default {
 };
 ```
 
-- 调整 `builtin:swc-loader` 中的 `collectTypeScriptInfo` 选项位置，移除 `rspackExperiments` 层级：
+- 调整 `builtin:swc-loader` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项位置，移除 `rspackExperiments` 层级：
 
 ```js title="rspack.config.mjs"
 export default {
