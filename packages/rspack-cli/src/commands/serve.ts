@@ -82,6 +82,19 @@ export class ServeCommand implements RspackCommand {
        */
       for (const compiler of compilers) {
         const devServer = (compiler.options.devServer ??= {});
+        const isWebAppOnly =
+          compiler.platform.web &&
+          !compiler.platform.node &&
+          !compiler.platform.nwjs &&
+          !compiler.platform.electron &&
+          !compiler.platform.webworker;
+
+        if (isWebAppOnly) {
+          compiler.options.lazyCompilation ??= {
+            imports: true,
+            entries: false,
+          };
+        }
 
         devServer.hot = cliOptions.hot ?? devServer.hot ?? DEFAULT_SERVER_HOT;
 
