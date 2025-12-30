@@ -29,7 +29,7 @@ Notable changes include:
 
 ## New features
 
-### Improved SWC Plugin Compatibility
+### Improved SWC plugin compatibility
 
 In previous versions, the upgrade cost for SWC Wasm plugins was relatively high. This was because the SWC AST structure would change with version evolution, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to synchronize dependency upgrades, which affected project stability and the upgrade experience.
 
@@ -92,7 +92,7 @@ In Rspack 1.7, we have advanced the stabilization of several experimental featur
 
 > Refer to the [Upgrade Guide](#upgrade-guide) to learn how to adjust related configurations.
 
-## Rstack Progress
+## Rstack progress
 
 ### Rsbuild 1.7
 
@@ -116,7 +116,7 @@ export default {
 };
 ```
 
-#### Print Size Diff
+#### Print size diff
 
 Rsbuild now supports printing size differences to visually observe if the build result size has changed.
 
@@ -152,7 +152,7 @@ When creating an Rsbuild project, you can now choose to automatically integrate 
 
 ### Rsdoctor 1.4
 
-#### New Tree Map View
+#### New Tree Map view
 
 Rsdoctor 1.4 has improved the original [Tree Map](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
 
@@ -162,7 +162,7 @@ In this view, you can quickly locate specific modules or assets via search. Clic
 
 ### Rslib 0.19
 
-#### ESM Output Stabilization
+#### ESM output stabilization
 
 In previous versions, Rslib enabled Rspack's [new ESM library output](/plugins/rspack/esm-library-plugin#esmlibraryplugin) through the experimental configuration [experiments.advancedEsm](https://rslib.rs/config/lib/experiments#experimentsadvancedesm) to improve the overall quality of ESM artifacts. After verification and polishing over multiple versions, this capability is now stable.
 
@@ -187,7 +187,7 @@ await rslib.build();
 
 ### Rstest 0.7
 
-#### Configuration Adapter
+#### Configuration adapter
 
 Rstest 0.7 introduces the [extends](https://rstest.rs/config/test/extends) option and an adapter mechanism, allowing you to directly reuse existing tool or framework configurations. An adapter is a configuration transformation function that can convert configurations from other tools into Rstest configurations, thereby reducing the cost of adopting Rstest.
 
@@ -211,7 +211,7 @@ The adapter is responsible for converting configurations of different tools into
 
 Currently, the `@rstest/adapter-rslib` adapter has been officially released, and we will launch more adapters to interface with various tools in the Rstack. You can also refer to [Rstest - Adapters](https://rstest.rs/guide/integration/adapters) to write custom adapters.
 
-#### Improved Test Feedback
+#### Improved test feedback
 
 Rstest has made several experience optimizations for local development and debugging scenarios, making test feedback more intuitive:
 
@@ -221,7 +221,7 @@ Rstest has made several experience optimizations for local development and debug
 
 ### Rspress 2.0 RC
 
-#### SSG-MD Feature
+#### SSG-MD feature
 
 In front-end frameworks based on React dynamic rendering, there is often a problem that static information is difficult to extract, and Rspress also encountered the same problem. One of the core advantages of Rspress is allowing users to enhance document expressiveness through dynamic features such as [MDX fragments](https://v2.rspress.rs/guide/use-mdx/components), React components, Hooks, and TSX routes. However, these dynamic contents face the following problems when converted to Markdown text:
 
@@ -271,7 +271,7 @@ For more details, please refer to: [SSG-MD Guide](https://v2.rspress.rs/guide/ba
 
 ## Upgrade guide
 
-### Upgrade SWC Plugins
+### Upgrade SWC plugins
 
 If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`, etc.), please upgrade the plugins to be compatible with `swc_core@54` or above, otherwise build failures or runtime exceptions may occur due to version incompatibility.
 
