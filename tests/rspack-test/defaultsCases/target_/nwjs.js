@@ -13,12 +13,6 @@ module.exports = {
 			+     "node": true,
 			+     "nwjs": true,
 			@@ ... @@
-			-   "lazyCompilation": Object {
-			-     "entries": false,
-			-     "imports": true,
-			-   },
-			+   "lazyCompilation": false,
-			@@ ... @@
 			-       "document": true,
 			+       "document": false,
 			@@ ... @@

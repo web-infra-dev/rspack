@@ -64,4 +64,5 @@ module.exports = {
       writeToDisk: true,
     },
   },
+  lazyCompilation: true,
 };
