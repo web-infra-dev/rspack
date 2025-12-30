@@ -129,11 +129,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               let mut non_nested_tasks = vec![];
               for (module_id, exports) in referenced_exports {
                 let exports_info = mg.get_exports_info(&module_id).as_data(mg);
-                let has_nested = exports_info.redirect_to().is_some()
-                  || exports.iter().any(|e| match e {
-                    ExtendedReferencedExport::Array(arr) => arr.len() > 1,
-                    ExtendedReferencedExport::Export(export) => export.name.len() > 1,
-                  });
+                let has_nested = exports.iter().any(|e| match e {
+                  ExtendedReferencedExport::Array(arr) => arr.len() > 1,
+                  ExtendedReferencedExport::Export(export) => export.name.len() > 1,
+                });
                 if has_nested {
                   nested_tasks.push((
                     runtime.clone(),
