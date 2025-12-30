@@ -24,8 +24,8 @@ _2025 年 12 月 29 日_
   - [Rsbuild 1.7](#rsbuild-17)
   - [Rsdoctor 1.4](#rsdoctor-14)
   - [Rslib 0.19](#rslib-019)
-  - [Rspress 2.0 RC](#rspress-20-rc)
   - [Rstest 0.7](#rstest-07)
+  - [Rspress 2.0 RC](#rspress-20-rc)
 
 ## 新特性
 
@@ -191,6 +191,40 @@ await rslib.build();
 
 > 更多使用方式请参考 [API 文档](https://rslib.rs/api/javascript-api/core)。
 
+### Rstest 0.7
+
+#### 配置适配器
+
+Rstest 0.7 引入了 [extends](https://rstest.rs/zh/config/test/extends) 选项和适配器机制，用于直接复用现有的工具或框架配置。适配器是一个配置转换函数，可以将其他工具的配置转换为 Rstest 的配置，从而降低 Rstest 的接入成本。
+
+例如，在一个使用 Rslib 的库项目中，通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 适配器，你可以直接复用已有的 Rslib 配置：
+
+```js title=rstest.config.ts
+import { defineConfig } from '@rstest/core';
+import { withRslibConfig } from '@rstest/adapter-rslib';
+
+export default defineConfig({
+  // 自动读取 rslib.config.ts 并转换为 Rstest 配置
+  extends: withRslibConfig(),
+  // 其他测试配置
+  coverage: {
+    // ...
+  },
+});
+```
+
+适配器则负责将不同工具的配置转换为 Rstest 的配置（如 `define`、`alias` 等），而 `extends` 则负责将转换后的配置与 Rstest 的配置进行合并。通过二者的配合，任何基于 Rspack 的工具或框架，都可以以最小成本与 Rstest 集成。
+
+目前 `@rstest/adapter-rslib` 适配器已正式发布，后续我们还将推出更多适配器，以对接 Rstack 的各个工具。你也可以参考 [Rstest - 适配器](https://rstest.rs/zh/guide/integration/adapters) 来编写自定义的适配器。
+
+#### 测试反馈优化
+
+Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观：
+
+- **更早发现卡住的测试:** Rstest 现已支持在本地运行时标记长时间未完成的测试用例。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
+
+- **更清晰的超时失败反馈:** 当测试因超时失败时，Rstest 现在会在错误信息中展示已执行的断言数量。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
+
 ### Rspress 2.0 RC
 
 #### SSG-MD：生成 llms.txt 的全新方式
@@ -240,38 +274,6 @@ export function Tab({ label }: { label: string }) {
 这样既保证了文档的交互性体验，又确保 AI 能够理解组件的语义信息。
 
 更多详情请参考：[SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
-
-### Rstest 0.7
-
-#### 一键复用框架配置
-
-Rstest 现已支持 [extends](https://rstest.rs/zh/config/test/extends) 配置能力，让你可以直接复用 Rslib、Rsbuild 等基于 Rspack 的构建工具的配置，通过对应适配器将其自动转换为 Rstest 测试所需的格式，从而避免重复维护多套配置。
-
-通过 `extends`，框架中已有的配置（如环境变量、路径别名等）可以无缝应用到测试环境中。同时，其他工具和框架也可以通过实现对应的适配器，为 Rstest 提供开箱即用的测试配置支持。
-
-目前，你可以通过官方适配器 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib)，直接复用 Rslib 项目的构建配置，让 Rstest 在 Rslib 项目中真正做到“零额外配置即可运行”。对 Rsbuild、Rspack 等更多工具和框架的适配也在持续推进中。
-
-```js title=rstest.config.ts
-import { defineConfig } from '@rstest/core';
-import { withRslibConfig } from '@rstest/adapter-rslib';
-
-export default defineConfig({
-  extends: withRslibConfig(options),
-  // 额外的 Rstest 特定配置
-  coverage: {
-    enabled: true,
-    reporters: ['text', 'html'],
-  },
-});
-```
-
-#### 测试反馈更直观
-
-Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观、问题定位更加高效。
-
-- **更早发现卡住的测试:** Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
-
-- **更清晰的超时失败反馈:** 当测试因**超时**失败时，Rstest 现在会在错误信息中展示**已执行的断言数量**。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
 
 ## 升级指南
 
