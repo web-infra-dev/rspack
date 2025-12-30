@@ -16,7 +16,7 @@ _2025 年 12 月 29 日_
 值得关注的变更如下：
 
 - 新特性
-  - [SWC Wasm 插件兼容性提高](#swc-wasm-插件兼容性提高)
+  - [SWC 插件兼容性提升](#swc-插件兼容性提升)
   - [Lazy Compilation 默认开启](#lazy-compilation-默认开启)
   - [支持 Import Bytes](#支持-import-bytes)
   - [实验特性稳定化](#实验特性稳定化)
@@ -29,19 +29,18 @@ _2025 年 12 月 29 日_
 
 ## 新特性
 
-### SWC Wasm 插件兼容性提高
+### SWC 插件兼容性提升
 
-为了提升 Rspack 中 SWC Wasm 插件的兼容性，我们在这一版本中升级到了最新的 SWC 依赖。这次升级不仅带来了性能提升和 bug 修复，还在 [Wasm 插件兼容性方面的做出重要改进](https://swc.rs/docs/plugin/ecmascript/compatibility)。
+在过去的版本中，SWC Wasm 插件的升级成本一直较高。这是由于 SWC 的 AST 结构会随着版本演进发生变化，已有插件在 SWC 升级后可能无法继续工作，插件作者需要进行适配，插件使用者也需要同步升级依赖，这在一定程度上影响了项目的稳定性和升级体验。
 
-在之前的实现中，SWC 的 Wasm 插件与不同版本的 `@swc/core` 存在兼容性问题：由于 AST 序列化/反序列化机制依赖于版本一致的内部数据结构，旧版本插件在 host 更新后往往无法正常工作，给插件维护者和使用者带来了较大的升级和维护负担。
-为了解决这个痛点，SWC 引入了一系列兼容性改进，包括：
+为缓解这一问题，我们向 SWC 社区贡献并引入了一系列 [兼容性改进](https://swc.rs/docs/plugin/ecmascript/compatibility)，包括：
 
-- 使用**自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化**方案取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更；
-- 为 AST 中的枚举类型增加 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力。
+- 使用自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化方案，取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更
+- 为 AST 中的枚举类型引入 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力
 
-这些改动极大改善了 Wasm 插件在不同 SWC 版本间的兼容性，降低了插件的维护成本，也让 Rspack 的生态插件能够更稳定地协同工作。在此基础上，官方现有的大部分 SWC 插件已经适配了这些兼容性机制，并且我们也正在积极与社区合作，帮助更多插件提升兼容性支持，让 Rspack 在插件生态方面有更平滑的体验。
+在 Rspack 1.7 中，我们升级了使用的 SWC 版本并支持了上述方案。这使得在 AST 新增字段的情况下，现有插件在多数场景下仍可正常运行，而无需额外的适配工作。
 
-如果你是插件作者，请参阅 [Compatibility for wasm plugin](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) 文档提升你的插件的兼容性。
+目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
 
 ### Lazy Compilation 默认开启
 
