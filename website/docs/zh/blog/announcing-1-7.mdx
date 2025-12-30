@@ -62,7 +62,7 @@ const text = decoder.decode(module.default);
 
 在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/features/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
 
-从 Rspack 1.7 开始，Rspack CLI 在构建 Web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
+从 Rspack 1.7 开始，Rspack CLI 在构建 web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -78,7 +78,7 @@ export default {
 
 ### 实验特性稳定化
 
-在 Rspack 1.7 中，我们推进了多项实验特性的稳定化工作。以下能力已完成验证并进入稳定阶段，相关实验开关也随之废弃，或调整为默认行为：
+在 Rspack 1.7 中，我们稳定化了多项实验性特性。以下能力已完成生产验证并进入稳定阶段，相关实验开关也随之废弃，或调整为默认行为：
 
 - **常量内联优化**：该优化已正式稳定，并在生产构建中默认启用。
   - 原有的 [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) 选项已废弃
