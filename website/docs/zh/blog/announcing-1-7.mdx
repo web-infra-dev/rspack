@@ -21,11 +21,11 @@ _2025 年 12 月 29 日_
   - [支持 Import Bytes](#支持-import-bytes)
   - [实验特性稳定化](#实验特性稳定化)
 - Rstack 进展
-  - [Rsbuild](#rsbuild)
-  - [Rspress](#rspress)
-  - [Rslib](#rslib)
-  - [Rstest](#rstest)
-  - [Rsdoctor](#rsdoctor)
+  - [Rsbuild 1.7](#rsbuild-17)
+  - [Rsdoctor 1.4](#rsdoctor-14)
+  - [Rslib 0.19](#rslib-019)
+  - [Rspress 2.0 RC](#rspress-20-rc)
+  - [Rstest 0.7](#rstest-07)
 
 ## 新特性
 
@@ -148,11 +148,13 @@ export default {
 
 [Rstack](/guide/start/ecosystem#rstack) 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
 
-### Rsbuild
+### Rsbuild 1.7
 
 #### Error overlay 改进
 
 Rsbuild 的 error overlay 现在支持显示**运行时错误**。当应用在运行过程中抛出异常时，错误会直接渲染到 overlay 上，帮助你更快发现并定位问题。
+
+![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
 
 该功能默认关闭，可通过 [dev.client.overlay.runtime](https://rsbuild.rs/zh/config/dev/client#overlayruntime) 选项按需开启：
 
@@ -168,11 +170,11 @@ export default {
 };
 ```
 
-![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
-
 #### 产物体积对比
 
 Rsbuild 现在支持产物体积对比，用来直观地观察构建结果是否发生了体积变化。
+
+![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
 开启 [performance.printFileSize.diff](https://rsbuild.rs/zh/config/performance/print-file-size#diff) 选项后，Rsbuild 构建完成时会记录一份产物体积快照，后续构建会自动与上一次结果对比，并在日志中直接展示体积变化。你可以清楚地看到每个文件是变大还是变小，以及整体体积的增减情况，适合在日常开发和性能回归中快速发现体积变化。
 
@@ -185,8 +187,6 @@ export default {
   },
 };
 ```
-
-![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
 #### create-rsbuild 改进
 
@@ -204,17 +204,29 @@ export default {
 └
 ```
 
-### Rslib
+### Rsdoctor 1.4
+
+#### 全新的 Tree Map 视图
+
+Rsdoctor 1.4 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**分析 bundle 的构成，以及**资源（Assets）和模块（Modules）的占比**。同时支持搜索模块资源，点击模块资源可以放大到该模块区域。双击模块可以展开**模块依赖链**等信息
+
+> Rsdoctor Tree Map：https://rsdoctor.rs/zh/guide/usage/bundle-size
+>
+> Rsdoctor V1.4.0: https://github.com/web-infra-dev/rsdoctor/releases/tag/v1.4.0
+
+![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
+
+### Rslib 0.19
 
 #### ESM 产物稳定化
 
 在之前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](/plugins/rspack/esm-library-plugin#esmlibraryplugin) 集成了 Rspack 的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，旨在优化 ESM 产物质量。现在，我们很高兴地宣布该插件已完成稳定化工作。
 
-自 Rslib v0.19.0 起，该插件在 bundle 模式下会被默认启用。开发者无需任何额外配置，即可直接获得高质量、对静态分析更友好且完整支持代码分割的 ESM 产物。
+自 Rslib 0.19 起，该插件在 bundle 模式下会被默认启用。开发者无需任何额外配置，即可直接获得高质量、对静态分析更友好且完整支持代码分割的 ESM 产物。
 
 #### 全新的 JavaScript API
 
-Rslib v0.19.0 版本引入了全新的 [JavaScript API](https://rslib.rs/api/start)，以便于开发者在 JavaScript 或 TypeScript 代码中直接使用 Rslib 的功能。使用方式如下：
+Rslib 0.19 版本引入了全新的 [JavaScript API](https://rslib.rs/api/start)，以便于开发者在 JavaScript 或 TypeScript 代码中直接使用 Rslib 的功能。使用方式如下：
 
 1. **安装 Rslib：** 安装 `@rslib/core` 包：
 
@@ -242,19 +254,7 @@ await rslib.build();
 - [Rslib 实例](https://rslib.rs/api/javascript-api/instance)
 - [Rslib 类型](https://rslib.rs/api/javascript-api/types)
 
-### Rsdoctor
-
-#### 全新的 Tree Map 视图
-
-Rsdoctor 带来了全新的 Tree Map 视图，能帮助开发者**更直观地**分析 bundle 的构成，以及**资源（Assets）和模块（Modules）的占比**。同时支持搜索模块资源，点击模块资源可以放大到该模块区域。双击模块可以展开**模块依赖链**等信息
-
-> Rsdoctor Tree Map：https://rsdoctor.rs/zh/guide/usage/bundle-size
->
-> Rsdoctor V1.4.0: https://github.com/web-infra-dev/rsdoctor/releases/tag/v1.4.0
-
-![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
-
-### Rspress
+### Rspress 2.0 RC
 
 #### SSG-MD：生成 llms.txt 的全新方式
 
@@ -304,7 +304,7 @@ export function Tab({ label }: { label: string }) {
 
 更多详情请参考：[SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
 
-### Rstest
+### Rstest 0.7
 
 #### 一键复用框架配置
 
