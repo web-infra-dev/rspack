@@ -51,10 +51,11 @@ Rspack CLI [dev](/zh/api/cli#rspack-dev) 命令将会按以下配置默认开启
 export default {
   lazyCompilation: {
     imports: true,
-    entries: false
+    entries: false,
   },
 };
 ```
+
 :::note
 目前默认仅对应用中的动态引用 `import('module')`，采用的懒编译的方式加载。
 :::
@@ -169,39 +170,26 @@ Rsdoctor 1.4 对原有的 [Tree Map](https://rsdoctor.rs/zh/guide/usage/bundle-s
 
 #### ESM 产物稳定化
 
-在之前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](/plugins/rspack/esm-library-plugin#esmlibraryplugin) 集成了 Rspack 的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，旨在优化 ESM 产物质量。现在，我们很高兴地宣布该插件已完成稳定化工作。
+在此前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](https://rslib.rs/zh/config/lib/experiments#experimentsadvancedesm) 来启用 Rspack 的 [新版 ESM 库产物](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，用于提升 ESM 产物的整体质量。经过多个版本的验证与打磨，该能力现已完成稳定化。
 
-自 Rslib 0.19 起，该插件在 bundle 模式下会被默认启用。开发者无需任何额外配置，即可直接获得高质量、对静态分析更友好且完整支持代码分割的 ESM 产物。
+自 Rslib 0.19 起，Rslib 的 bundle 模式将默认启用该特性。开发者无需进行任何额外配置，即可直接获得对静态分析更友好、并完整支持代码分割的 ESM 产物。
 
-#### 全新的 JavaScript API
+#### JavaScript API
 
-Rslib 0.19 版本引入了全新的 [JavaScript API](https://rslib.rs/api/start)，以便于开发者在 JavaScript 或 TypeScript 代码中直接使用 Rslib 的功能。使用方式如下：
+Rslib 0.19 引入了全新的 [JavaScript API](https://rslib.rs/api/start)，使开发者可以在 JavaScript 代码中以编程方式直接调用 Rslib 的构建能力。
 
-1. **安装 Rslib：** 安装 `@rslib/core` 包：
-
-```sh
-npm add @rslib/core -D
-```
-
-2. **创建 Rslib 实例：** 调用 [createRslib](https://rslib.rs/api/javascript-api/core#createrslib) 方法来创建一个 Rslib 实例：
+下面是一个基础示例：
 
 ```js
 import { createRslib } from '@rslib/core';
 
+// 创建 Rslib 实例
 const rslib = await createRslib();
-```
-
-3. **调用 Rslib 实例方法：** 使用 [rslib.build](https://rslib.rs/api/javascript-api/instance#rslibbuild) 方法来构建生产环境输出：
-
-```js
+// 构建生产环境输出
 await rslib.build();
 ```
 
-更多细节可以参阅 API 文档：
-
-- [Rslib 核心方法](https://rslib.rs/api/javascript-api/core)
-- [Rslib 实例](https://rslib.rs/api/javascript-api/instance)
-- [Rslib 类型](https://rslib.rs/api/javascript-api/types)
+> 更多使用方式请参考 [API 文档](https://rslib.rs/api/javascript-api/core)。
 
 ### Rspress 2.0 RC
 
@@ -292,16 +280,6 @@ Rstest 针对本地开发与调试场景进行了多项体验优化，让测试�
 如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），请升级插件至兼容 `swc_core@53` 及以上版本，否则可能因版本不兼容导致构建失败或运行异常。
 
 > 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
-
-### 默认开启 Lazy Compilation
-
-从 Rspack 1.7 开始，`lazyCompilation` 在 Web 应用项目中默认启用，无需额外配置即可享受更快的开发启动速度和更低的初始资源消耗。如需关闭，请在配置中显式设置：
-
-```js title="rspack.config.mjs"
-export default {
-  lazyCompilation: false,
-};
-```
 
 ### 移除配置
 
