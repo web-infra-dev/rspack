@@ -123,13 +123,13 @@ impl Module for SharedContainerEntryModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut dependencies: Vec<BoxDependency> = Vec::new();
-
-    dependencies.push(Box::new(StaticExportsDependency::new(
-      StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
-      false,
-    )));
-    dependencies.push(Box::new(SharedContainerDependency::new(self.name.clone())));
+    let dependencies: Vec<BoxDependency> = vec![
+      Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        false,
+      )),
+      Box::new(SharedContainerDependency::new(self.name.clone())),
+    ];
 
     Ok(BuildResult {
       dependencies,
@@ -183,18 +183,16 @@ impl Module for SharedContainerEntryModule {
     );
 
     // Generate installInitialConsumes function using returning_function
-    let install_initial_consumes_call = format!(
-      r#"localBundlerRuntime.installInitialConsumes({{ 
+    let install_initial_consumes_call = r#"localBundlerRuntime.installInitialConsumes({ 
         installedModules: localInstalledModules, 
         initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes, 
-        moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
+        moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping || {}, 
         webpackRequire: __webpack_require__, 
         asyncLoad: true 
-      }})"#
-    );
+      })"#;
     let install_initial_consumes_fn = compilation
       .runtime_template
-      .returning_function(&install_initial_consumes_call, "");
+      .returning_function(install_initial_consumes_call, "");
 
     // Create initShareContainer function using basic_function, supporting multi-statement body
     let init_body = format!(

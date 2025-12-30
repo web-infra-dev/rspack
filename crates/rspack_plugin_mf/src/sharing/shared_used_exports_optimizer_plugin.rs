@@ -55,7 +55,7 @@ pub struct SharedUsedExportsOptimizerPlugin {
 impl SharedUsedExportsOptimizerPlugin {
   pub fn new(options: SharedUsedExportsOptimizerPluginOptions) -> Self {
     let mut shared_map = FxHashMap::default();
-    let inject_used_exports = options.inject_used_exports.clone();
+    let inject_used_exports = options.inject_used_exports;
     for config in options.shared.into_iter().filter(|c| c.treeshake) {
       let atoms = config
         .used_exports
@@ -127,23 +127,19 @@ fn collect_processed_modules(
 )]
 async fn optimize_dependencies(
   &self,
-  compilation: &Compilation,
+  _compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
     let module_graph = build_module_graph_artifact.get_module_graph();
-    module_graph
-      .modules()
-      .into_iter()
-      .map(|(id, _)| id)
-      .collect()
+    module_graph.modules().keys().copied().collect()
   };
   self.apply_custom_exports();
   for module_id in module_ids {
     let module_graph = build_module_graph_artifact.get_module_graph();
-    let (share_key, modules_to_process) = match {
+    let share_info = {
       let module = module_graph.module_by_identifier(&module_id);
       module.and_then(|module| {
         let module_type = module.module_type();
@@ -170,8 +166,8 @@ async fn optimize_dependencies(
               return None;
             }
             let share_key_part = parts[1];
-            let share_key_end = if share_key_part.starts_with('@') {
-              share_key_part[1..]
+            let share_key_end = if let Some(stripped) = share_key_part.strip_prefix('@') {
+              stripped
                 .find('@')
                 .map(|i| i + 1)
                 .unwrap_or(share_key_part.len())
@@ -180,7 +176,7 @@ async fn optimize_dependencies(
             };
             let sk: String = share_key_part[..share_key_end].to_string();
             collect_processed_modules(
-              &module_graph,
+              module_graph,
               consume_shared_module.get_blocks(),
               consume_shared_module.get_dependencies(),
               &mut modules_to_process,
@@ -191,7 +187,7 @@ async fn optimize_dependencies(
             let provide_shared_module = module.as_any().downcast_ref::<ProvideSharedModule>()?;
             let sk = provide_shared_module.share_key().to_string();
             collect_processed_modules(
-              &module_graph,
+              module_graph,
               provide_shared_module.get_blocks(),
               provide_shared_module.get_dependencies(),
               &mut modules_to_process,
@@ -210,17 +206,14 @@ async fn optimize_dependencies(
               return None;
             }
             let name_part = parts[3];
-            let name_end = if name_part.starts_with('@') {
-              name_part[1..]
-                .find('@')
-                .map(|i| i + 1)
-                .unwrap_or(name_part.len())
+            let name_end = if let Some(stripped) = name_part.strip_prefix('@') {
+              stripped.find('@').map(|i| i + 1).unwrap_or(name_part.len())
             } else {
               name_part.find('@').unwrap_or(name_part.len())
             };
             let sk = name_part[..name_end].to_string();
             collect_processed_modules(
-              &module_graph,
+              module_graph,
               share_container_entry_module.get_blocks(),
               share_container_entry_module.get_dependencies(),
               &mut modules_to_process,
@@ -231,7 +224,9 @@ async fn optimize_dependencies(
         };
         Some((share_key, modules_to_process))
       })
-    } {
+    };
+
+    let (share_key, modules_to_process) = match share_info {
       Some(result) => result,
       None => continue,
     };
@@ -279,20 +274,20 @@ async fn optimize_dependencies(
 
         if !is_side_effect_free {
           // Clear referenced exports for this share_key when module is not side-effect free
-          if let Ok(mut shared_referenced_exports) = self.shared_referenced_exports.write() {
-            if let Some(set) = shared_referenced_exports.get_mut(&share_key) {
-              set.clear();
-            }
+          if let Ok(mut shared_referenced_exports) = self.shared_referenced_exports.write()
+            && let Some(set) = shared_referenced_exports.get_mut(&share_key)
+          {
+            set.clear();
           }
           continue;
         }
 
-        let mut module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
+        let module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
         module_graph_mut.active_all_exports_info();
         // mark used for collected modules
         for module_id in &modules_to_process {
           let exports_info = module_graph_mut.get_exports_info(module_id);
-          let exports_info_data = exports_info.as_data_mut(&mut module_graph_mut);
+          let exports_info_data = exports_info.as_data_mut(module_graph_mut);
 
           for export_name in runtime_reference_exports.iter() {
             let export_atom = Atom::from(export_name.as_str());
@@ -305,7 +300,7 @@ async fn optimize_dependencies(
 
         // find if can update real share module
         let exports_info = module_graph_mut.get_exports_info(&real_shared_identifier);
-        let exports_info_data = exports_info.as_data_mut(&mut module_graph_mut);
+        let exports_info_data = exports_info.as_data_mut(module_graph_mut);
         let can_update_module_used_stage = {
           let exports_view = exports_info_data.exports();
           if exports_view.is_empty() {
@@ -350,32 +345,29 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     self.manifest_file_name.clone(),
   ];
   for file_name in file_names {
-    if let Some(file_name) = &file_name {
-      if let Some(file) = compilation.assets().get(file_name) {
-        if let Some(source) = file.get_source() {
-          if let SourceValue::String(content) = source.source() {
-            if let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content) {
-              let shared_referenced_exports = self
-                .shared_referenced_exports
-                .read()
-                .expect("lock poisoned");
+    if let Some(file_name) = &file_name
+      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(source) = file.get_source()
+      && let SourceValue::String(content) = source.source()
+      && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
+    {
+      let shared_referenced_exports = self
+        .shared_referenced_exports
+        .read()
+        .expect("lock poisoned");
 
-              for shared in &mut stats_root.shared {
-                if let Some(exports_set) = shared_referenced_exports.get(&shared.name) {
-                  shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
-                }
-              }
-
-              let updated_content = serde_json::to_string_pretty(&stats_root)
-                .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
-
-              compilation.update_asset(file_name, |_, info| {
-                Ok((RawStringSource::from(updated_content).boxed(), info))
-              })?;
-            }
-          }
+      for shared in &mut stats_root.shared {
+        if let Some(exports_set) = shared_referenced_exports.get(&shared.name) {
+          shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
         }
       }
+
+      let updated_content = serde_json::to_string_pretty(&stats_root)
+        .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
+
+      compilation.update_asset(file_name, |_, info| {
+        Ok((RawStringSource::from(updated_content).boxed(), info))
+      })?;
     }
   }
 
@@ -428,7 +420,7 @@ async fn dependency_referenced_exports(
     return Ok(());
   };
 
-  let Some(dependency) = module_graph.dependency_by_id(&dependency_id) else {
+  let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
     return Ok(());
   };
 
@@ -462,27 +454,25 @@ async fn dependency_referenced_exports(
     shared_referenced_exports.remove(share_key);
     return Ok(());
   }
-  if final_exports.is_empty() || is_exports_object {
-    if dependency.dependency_type() == &DependencyType::EsmImportSpecifier {
-      if let Some(esm_dep) = dependency
-        .as_any()
-        .downcast_ref::<ESMImportSpecifierDependency>()
-      {
-        let ids = esm_dep.get_ids(&module_graph);
-        if ids.is_empty() {
-          return Ok(());
-        }
-        if let Some(first) = ids.first()
-          && *first == "default"
-        {
-          final_exports = esm_dep.get_referenced_exports_in_destructuring(Some(ids));
-        } else {
-          final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
-            &module_graph,
-            Some(ExportsType::DefaultWithNamed),
-          );
-        }
-      }
+  if (final_exports.is_empty() || is_exports_object)
+    && dependency.dependency_type() == &DependencyType::EsmImportSpecifier
+    && let Some(esm_dep) = dependency
+      .as_any()
+      .downcast_ref::<ESMImportSpecifierDependency>()
+  {
+    let ids = esm_dep.get_ids(module_graph);
+    if ids.is_empty() {
+      return Ok(());
+    }
+    if let Some(first) = ids.first()
+      && *first == "default"
+    {
+      final_exports = esm_dep.get_referenced_exports_in_destructuring(Some(ids));
+    } else {
+      final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
+        module_graph,
+        Some(ExportsType::DefaultWithNamed),
+      );
     }
   }
 
@@ -494,7 +484,7 @@ async fn dependency_referenced_exports(
       .expect("lock poisoned");
     let export_set = shared_referenced_exports
       .entry(share_key.to_string())
-      .or_insert_with(|| FxHashSet::default());
+      .or_default();
 
     for referenced_export in &final_exports {
       match referenced_export {
@@ -507,13 +497,9 @@ async fn dependency_referenced_exports(
           if referenced.name.is_empty() {
             continue;
           }
-          let flattened = referenced
-            .name
-            .iter()
-            .map(|atom| atom.to_string())
-            .collect::<Vec<_>>()
-            .join(".");
-          export_set.insert(flattened);
+          for atom in &referenced.name {
+            export_set.insert(atom.to_string());
+          }
         }
       }
     }

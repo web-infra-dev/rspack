@@ -1,6 +1,5 @@
 use std::collections::{VecDeque, hash_map::Entry};
 
-use futures::executor::block_on;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -53,7 +52,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  fn apply(&mut self) {
+  async fn apply(&mut self) {
     let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     module_graph.active_all_exports_info();
     module_graph.reset_all_exports_info_used();
@@ -105,12 +104,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       // and also added referenced modules to queue for further processing
       let mut batch_res = vec![];
       for (block_id, runtime, force_side_effects) in batch {
-        let (referenced_exports, module_tasks) = block_on(self.process_module(
-          block_id,
-          runtime.as_ref(),
-          force_side_effects,
-          self.global,
-        ));
+        let (referenced_exports, module_tasks) = self
+          .process_module(block_id, runtime.as_ref(), force_side_effects, self.global)
+          .await;
         batch_res.push((
           runtime,
           force_side_effects,
@@ -282,7 +278,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .compilation_hooks
         .dependency_referenced_exports
         .call(
-          &*self.compilation,
+          self.compilation,
           &dep_id,
           &referenced_exports_result,
           runtime,
@@ -530,7 +526,7 @@ async fn optimize_dependencies(
 
   let mut proxy =
     FlagDependencyUsagePluginProxy::new(self.global, compilation, build_module_graph_artifact);
-  proxy.apply();
+  proxy.apply().await;
   Ok(None)
 }
 

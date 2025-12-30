@@ -48,12 +48,11 @@ impl CollectSharedEntryPlugin {
   async fn infer_version(&self, request: &str) -> Option<String> {
     // 1) Try pnpm store path pattern: .pnpm/<pkg>@<version>_
     let pnpm_re = Regex::new(r"/\\.pnpm/[^/]*@([^/_]+)").ok();
-    if let Some(re) = pnpm_re {
-      if let Some(caps) = re.captures(request) {
-        if let Some(m) = caps.get(1) {
-          return Some(m.as_str().to_string());
-        }
-      }
+    if let Some(re) = pnpm_re
+      && let Some(caps) = re.captures(request)
+      && let Some(m) = caps.get(1)
+    {
+      return Some(m.as_str().to_string());
     }
 
     // 2) Fallback: read version from the deepest node_modules/<pkg>/package.json
@@ -83,14 +82,12 @@ impl CollectSharedEntryPlugin {
           package_json_path.push(p);
         }
         package_json_path.push("package.json");
-        if package_json_path.exists() {
-          if let Ok(content) = std::fs::read_to_string(&package_json_path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-              if let Some(version) = json.get("version").and_then(|v| v.as_str()) {
-                return Some(version.to_string());
-              }
-            }
-          }
+        if package_json_path.exists()
+          && let Ok(content) = std::fs::read_to_string(&package_json_path)
+          && let Ok(json) = serde_json::from_str::<serde_json::Value>(&content)
+          && let Some(version) = json.get("version").and_then(|v| v.as_str())
+        {
+          return Some(version.to_string());
         }
       }
     }
@@ -163,17 +160,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // Add real module resource paths to the map and infer version
       let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
       for target_id in target_modules {
-        if let Some(target) = module_graph.module_by_identifier(&target_id) {
-          if let Some(name) = target.name_for_condition() {
-            let resource: String = name.into();
-            let version = self
-              .infer_version(&resource)
-              .await
-              .unwrap_or_else(|| "".to_string());
-            let pair = [resource, version];
-            if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
-              reqs.push(pair);
-            }
+        if let Some(target) = module_graph.module_by_identifier(&target_id)
+          && let Some(name) = target.name_for_condition()
+        {
+          let resource: String = name.into();
+          let version = self
+            .infer_version(&resource)
+            .await
+            .unwrap_or_else(|| "".to_string());
+          let pair = [resource, version];
+          if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
+            reqs.push(pair);
           }
         }
       }
@@ -208,8 +205,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let filename = self
     .options
     .filename
-    .as_ref()
-    .map(|f| f.clone())
+    .clone()
     .unwrap_or_else(|| DEFAULT_FILENAME.to_string());
 
   compilation.emit_asset(
