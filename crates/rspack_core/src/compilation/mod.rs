@@ -79,7 +79,7 @@ define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
@@ -1674,15 +1674,17 @@ impl Compilation {
     })
     .await?;
 
+    let mut diagnostics = vec![];
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_modules
-        .call(self)
+        .call(self, &mut diagnostics)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
       Some(true)
     ) {}
+    self.extend_diagnostics(diagnostics);
 
     plugin_driver
       .compilation_hooks

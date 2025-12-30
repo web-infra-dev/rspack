@@ -450,7 +450,11 @@ async fn optimize_dependencies(
 }
 
 #[plugin_hook(CompilationOptimizeModules for ProgressPlugin)]
-async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_modules(
+  &self,
+  _compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   self.sealing_hooks_report("module optimization", 7).await?;
   Ok(None)
 }
