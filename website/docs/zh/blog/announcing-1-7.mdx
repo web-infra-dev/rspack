@@ -104,10 +104,10 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
+  // [!code --]
   experiments: {
-    // 功能已稳定，无需实验特性开关，直接移除即可
-    typeReexportsPresence: true,
-  },
+    typeReexportsPresence: true, // [!code --]
+  }, // [!code --]
 };
 ```
 
@@ -115,34 +115,7 @@ export default {
 
 配合上述枚举优化和宽松的类型重导出检查的稳定，`builtin:swc-loader` 也调整了其配置结构。原先嵌套在 `rspackExperiments` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项现已稳定，提升为 loader 的顶层选项。
 
-迁移时，将 `builtin:swc-loader` 的配置中 `rspackExperiments.collectTypeScriptInfo` 移动至 `options` 的顶层即可。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        loader: 'builtin:swc-loader',
-        options: {
-          // 新位置：直接位于 options 下，移动到此处即可
-          collectTypeScriptInfo: {
-            exportedEnum: true,
-            typeExports: true,
-          },
-          rspackExperiments: {
-            // 旧位置，位于 rspackExperiments 中
-            collectTypeScriptInfo: {
-              exportedEnum: true,
-              typeExports: true,
-            },
-          },
-        },
-      },
-    ],
-  },
-};
-```
+迁移时，将 `builtin:swc-loader` 的配置中 `rspackExperiments.collectTypeScriptInfo` 中的 `rspackExperiments` 层级移除即可。
 
 ## Rstack 进展
 
@@ -354,50 +327,45 @@ export default {
 };
 ```
 
-### 实验特性稳定化及配置调整
+### 移除配置
 
-- 移除以下已废弃的实验配置：
+- 以下实验性选项已废弃，可以直接移除：
 
 ```js title="rspack.config.mjs"
 export default {
+  // [!code --]
   experiments: {
+    // [!code --]
     inlineConst: true,
+    // [!code --]
     inlineEnum: true,
+    // [!code --]
     typeReexportsPresence: true,
   },
 };
 ```
 
-- 使用稳定的配置替代：
+- 调整 `builtin:swc-loader` 中的 `collectTypeScriptInfo` 选项位置，移除 `rspackExperiments` 层级：
 
 ```js title="rspack.config.mjs"
 export default {
-  optimization: {
-    inlineExports: true, // 生产模式默认开启，无需手动设置
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // [!code --]
+          rspackExperiments: {
+            collectTypeScriptInfo: {
+              exportedEnum: true,
+              typeExports: true,
+            },
+            // [!code --]
+          },
+        },
+      },
+    ],
   },
 };
-```
-
-- 调整 `builtin:swc-loader` 中 `collectTypeScriptInfo` 选项位置：
-
-```js title="rspack.config.mjs"
-// Before
-export default {
-  rspackExperiments: {
-    collectTypeScriptInfo: {
-      exportedEnum: true,
-      typeExports: true,
-    }
-  }
-}
-
-// After
-export default {
-  options: {
-    collectTypeScriptInfo: {
-      exportedEnum: true,
-      typeExports: true,
-    }
-  }
-}
 ```
