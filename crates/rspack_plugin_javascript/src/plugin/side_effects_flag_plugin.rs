@@ -159,7 +159,7 @@ async fn optimize_dependencies(
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
 
   let all_modules = module_graph.modules();
 
@@ -287,7 +287,7 @@ async fn optimize_dependencies(
       })
       .collect();
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
       .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))

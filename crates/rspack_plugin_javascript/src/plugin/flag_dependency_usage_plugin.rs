@@ -124,7 +124,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         // 1. if the exports info data has `redirect_to`, the redirected exports info will also be modified, so the referenced exports should not be processed parallelly
         // 2. if the referenced exports has nested properties, the nested exports info will also be modified, the referenced exports should not be processed parallelly
 
-        let mg = self.compilation.get_module_graph();
+        let mg = self.build_module_graph_artifact.get_module_graph();
 
         let collected = batch_res
           .into_par_iter()
@@ -170,7 +170,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       // we can ensure that only the module's exports info data will be modified
       // so we can process these non-nested tasks parallelly by cloning the exports info data
       let non_nested_res = {
-        let mg = self.compilation.get_module_graph();
+        let mg = self.build_module_graph_artifact.get_module_graph();
         non_nested_tasks
           .into_par_iter()
           .map(|(module_id, tasks)| {
@@ -256,7 +256,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let (dependencies, async_blocks) = collect_active_dependencies(
       block_id,
       runtime,
-      self.compilation.get_module_graph(),
+      self.build_module_graph_artifact.get_module_graph(),
       &self.compilation.module_graph_cache_artifact,
       global,
     );
@@ -266,7 +266,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       let old_referenced_exports = map.remove(&module_id);
       let Some(referenced_exports) = get_dependency_referenced_exports(
         dep_id,
-        self.compilation.get_module_graph(),
+        self.build_module_graph_artifact.get_module_graph(),
         &self.compilation.module_graph_cache_artifact,
         runtime,
       ) else {
@@ -304,11 +304,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     queue: &mut Queue<ProcessBlockTask>,
   ) {
     if let Some(module) = self
-      .compilation
+      .build_module_graph_artifact
       .get_module_graph()
       .module_graph_module_by_dependency_id(&dep)
     {
-      let mg = self.compilation.get_module_graph();
+      let mg = self.build_module_graph_artifact.get_module_graph();
       let exports_info = mg.get_exports_info(&module.module_identifier);
       let res = self.process_referenced_module(
         exports_info,
