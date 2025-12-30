@@ -17,15 +17,15 @@ _2025 年 12 月 31 日_
 
 - 新特性
   - [SWC 插件兼容性提升](#swc-插件兼容性提升)
-  - [Lazy Compilation 默认开启](#lazy-compilation-默认开启)
   - [支持 Import Bytes](#支持-import-bytes)
+  - [Lazy compilation](#lazy-compilation)
   - [实验特性稳定化](#实验特性稳定化)
 - Rstack 进展
   - [Rsbuild 1.7](#rsbuild-17)
   - [Rsdoctor 1.4](#rsdoctor-14)
   - [Rslib 0.19](#rslib-019)
-  - [Rspress 2.0 RC](#rspress-20-rc)
   - [Rstest 0.7](#rstest-07)
+  - [Rspress 2.0 RC](#rspress-20-rc)
 
 ## 新特性
 
@@ -42,30 +42,6 @@ _2025 年 12 月 31 日_
 
 目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
 
-### Rspack CLI 默认开启 Lazy Compilation
-
-继 [LazyCompilation](/zh/config/lazy-compilation) 特性在 1.5.0 发布稳定后，
-Rspack CLI [dev](/zh/api/cli#rspack-dev) 命令将会按以下配置默认开启该特性；`@rspack/core` API 保持默认关闭，需手动启用。
-
-```js title="rspack.config.mjs"
-export default {
-  lazyCompilation: {
-    imports: true,
-    entries: false,
-  },
-};
-```
-
-:::note
-目前默认仅对应用中的动态引用 `import('module')`，采用的懒编译的方式加载。
-:::
-
-在多入口应用和动态加载路由的 SPA 大型应用中，Lazy Compilation 通过按需编译需要的模块，能显著的降低应用的冷启动时间和首次可交互时间。
-从 Rspack CLI 1.7 开始，Lazy Compilation 功能将在 Web 应用的项目中默认开启后，我们将获得**更快的 Dev server 的启动速度**和**更低的初始 CPU/内存占用**。
-
-在绝大多数场景下，你只会感受到更快的启动速度。当首次访问某个尚未编译的模块时，Rspack 会即时完成编译并继续执行，对开发流程几乎无感。
-如果你有特殊需求（例如调试完整产物、分析完整 Module Graph），也可以通过 `lazyCompilation: false` 来关闭该功能。
-
 ### 支持 Import Bytes
 
 Rspack 现已原生支持 [TC39 import attributes](https://github.com/tc39/proposal-import-bytes) 提案的 bytes 类型导入资源文件，可直接将资源作为 `Uint8Array` 二进制数据导入，并通过 `TextDecoder` 解码。
@@ -81,6 +57,24 @@ const module = await import('./file.bin', { with: { type: 'bytes' } });
 const decoder = new TextDecoder('utf-8');
 const text = decoder.decode(module.default);
 ```
+
+### Lazy compilation
+
+在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/features/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
+
+从 Rspack 1.7 开始，Rspack CLI 在构建 Web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
+
+```js title="rspack.config.mjs"
+export default {
+  // 当前默认配置
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+  },
+};
+```
+
+如果你有特殊需求，例如需要调试完整构建的产物，或分析完整的 Module Graph，可以通过将 [lazyCompilation](/config/lazy-compilation) 设置为 `false` 来显式关闭该功能。
 
 ### 实验特性稳定化
 
@@ -191,16 +185,50 @@ await rslib.build();
 
 > 更多使用方式请参考 [API 文档](https://rslib.rs/api/javascript-api/core)。
 
+### Rstest 0.7
+
+#### 配置适配器
+
+Rstest 0.7 引入了 [extends](https://rstest.rs/zh/config/test/extends) 选项和适配器机制，用于直接复用现有的工具或框架配置。适配器是一个配置转换函数，可以将其他工具的配置转换为 Rstest 的配置，从而降低 Rstest 的接入成本。
+
+例如，在一个使用 Rslib 的库项目中，通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 适配器，你可以直接复用已有的 Rslib 配置：
+
+```js title=rstest.config.ts
+import { defineConfig } from '@rstest/core';
+import { withRslibConfig } from '@rstest/adapter-rslib';
+
+export default defineConfig({
+  // 自动读取 rslib.config.ts 并转换为 Rstest 配置
+  extends: withRslibConfig(),
+  // 其他测试配置
+  coverage: {
+    // ...
+  },
+});
+```
+
+适配器则负责将不同工具的配置转换为 Rstest 的配置（如 `define`、`alias` 等），而 `extends` 则负责将转换后的配置与 Rstest 的配置进行合并。通过二者的配合，任何基于 Rspack 的工具或框架，都可以以最小成本与 Rstest 集成。
+
+目前 `@rstest/adapter-rslib` 适配器已正式发布，后续我们还将推出更多适配器，以对接 Rstack 的各个工具。你也可以参考 [Rstest - 适配器](https://rstest.rs/zh/guide/integration/adapters) 来编写自定义的适配器。
+
+#### 测试反馈优化
+
+Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观：
+
+- **更早发现卡住的测试:** Rstest 现已支持在本地运行时标记长时间未完成的测试用例。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
+
+- **更清晰的超时失败反馈:** 当测试因超时失败时，Rstest 现在会在错误信息中展示已执行的断言数量。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
+
 ### Rspress 2.0 RC
 
-#### SSG-MD：生成 llms.txt 的全新方式
+#### SSG-MD 特性
 
 在基于 React 动态渲染的前端框架中，往往存在静态信息难以提取的问题，Rspress 也遇到了相同的问题。Rspress 的核心优势之一是允许用户通过 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、Hooks 以及 TSX 路由等动态特性来增强文档表现力。但这些动态内容在转换为 Markdown 文本时会面临以下问题：
 
 - 直接将 MDX 输入给 AI 会包含大量代码语法噪音，并丢失 React 组件内容
 - 将 SSG 生成的 HTML 转为 Markdown 往往效果不佳，信息质量难以保证
 
-为了从根本上解决这个问题，Rspress V2 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
+为了从根本上解决这个问题，Rspress 2.0 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
 
 启用方式非常简单：
 
@@ -240,38 +268,6 @@ export function Tab({ label }: { label: string }) {
 这样既保证了文档的交互性体验，又确保 AI 能够理解组件的语义信息。
 
 更多详情请参考：[SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
-
-### Rstest 0.7
-
-#### 一键复用框架配置
-
-Rstest 现已支持 [extends](https://rstest.rs/zh/config/test/extends) 配置能力，让你可以直接复用 Rslib、Rsbuild 等基于 Rspack 的构建工具的配置，通过对应适配器将其自动转换为 Rstest 测试所需的格式，从而避免重复维护多套配置。
-
-通过 `extends`，框架中已有的配置（如环境变量、路径别名等）可以无缝应用到测试环境中。同时，其他工具和框架也可以通过实现对应的适配器，为 Rstest 提供开箱即用的测试配置支持。
-
-目前，你可以通过官方适配器 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib)，直接复用 Rslib 项目的构建配置，让 Rstest 在 Rslib 项目中真正做到“零额外配置即可运行”。对 Rsbuild、Rspack 等更多工具和框架的适配也在持续推进中。
-
-```js title=rstest.config.ts
-import { defineConfig } from '@rstest/core';
-import { withRslibConfig } from '@rstest/adapter-rslib';
-
-export default defineConfig({
-  extends: withRslibConfig(options),
-  // 额外的 Rstest 特定配置
-  coverage: {
-    enabled: true,
-    reporters: ['text', 'html'],
-  },
-});
-```
-
-#### 测试反馈更直观
-
-Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观、问题定位更加高效。
-
-- **更早发现卡住的测试:** Rstest 现已支持在本地运行时**标记长时间未完成的测试用例**。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
-
-- **更清晰的超时失败反馈:** 当测试因**超时**失败时，Rstest 现在会在错误信息中展示**已执行的断言数量**。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
 
 ## 升级指南
 
