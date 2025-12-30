@@ -13,9 +13,10 @@ use rspack_core::{
   IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode,
   RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
-  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
+  to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
@@ -1241,6 +1242,43 @@ var {} = {{}};
         let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
         entry_imports.entry(entry_module).or_default();
 
+        // NOTE: Similar hashbang and directives handling logic.
+        // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
+        let hashbang = get_module_hashbang(module_graph, &entry_module);
+        let directives = get_module_directives(module_graph, &entry_module);
+
+        if let Some(hashbang) = &hashbang {
+          let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+          entry_chunk_link.init_fragments.insert(
+            0,
+            Box::new(rspack_core::NormalInitFragment::new(
+              format!("{hashbang}\n"),
+              rspack_core::InitFragmentStage::StageConstants,
+              i32::MIN,
+              rspack_core::InitFragmentKey::unique(),
+              None,
+            )),
+          );
+        }
+
+        if let Some(directives) = directives {
+          let entry_module_chunk_link = link.get_mut_unwrap(&entry_module_chunk);
+
+          for (idx, directive) in directives.iter().enumerate() {
+            let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
+            entry_module_chunk_link.init_fragments.insert(
+              insert_pos,
+              Box::new(rspack_core::NormalInitFragment::new(
+                format!("{directive}\n"),
+                rspack_core::InitFragmentStage::StageConstants,
+                i32::MIN + 1 + idx as i32,
+                rspack_core::InitFragmentKey::unique(),
+                None,
+              )),
+            );
+          }
+        }
+
         /*
         entry module sometimes are splitted to whatever chunk user needs,
         so the entry chunk maynot actually contains entry modules
@@ -1849,7 +1887,7 @@ var {} = {{}};
             info.module,
             Self::add_require(
               *info_id,
-              None,
+              from,
               Some(info.name.clone().expect("should have symbol")),
               all_used_names,
               required,
@@ -2062,7 +2100,7 @@ var {} = {{}};
               info.module,
               Self::add_require(
                 *info_id,
-                None,
+                from,
                 Some(info.name.clone().expect("should have symbol")),
                 all_used_names,
                 required,

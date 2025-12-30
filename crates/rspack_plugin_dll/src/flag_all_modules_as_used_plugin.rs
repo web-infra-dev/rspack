@@ -1,7 +1,8 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationBuildModule, CompilationId, CompilationOptimizeDependencies,
-  CompilerId, FactoryMeta, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact, get_entry_runtime,
+  CompilerId, FactoryMeta, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -41,8 +42,9 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
 #[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let entries = &compilation.entries;
@@ -56,7 +58,7 @@ async fn optimize_dependencies(
       a
     });
 
-  let mg = compilation.get_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
 
   let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
 

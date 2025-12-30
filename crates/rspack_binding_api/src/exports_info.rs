@@ -32,8 +32,9 @@ impl JsExportsInfo {
 
   fn as_mut(&mut self) -> napi::Result<&'static mut ModuleGraph> {
     let compilation = unsafe { self.compilation.as_mut() };
-    let module_graph =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let module_graph = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     Ok(module_graph)
   }
 }
@@ -51,7 +52,6 @@ impl JsExportsInfo {
       &self.exports_info,
       module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_used())
   }
@@ -67,7 +67,6 @@ impl JsExportsInfo {
       &self.exports_info,
       module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_module_used())
   }

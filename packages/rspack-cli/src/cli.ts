@@ -41,14 +41,19 @@ export class RspackCLI {
     program.version(RSPACK_CLI_VERSION);
   }
 
-  async createCompiler(
+  async buildCompilerConfig(
     options: CommonOptionsForBuildAndServe,
     rspackCommand: Command,
-    callback?: (e: Error | null, res?: Stats | MultiStats) => void,
   ) {
     let { config, pathMap } = await this.loadConfig(options);
     config = await this.buildConfig(config, pathMap, options, rspackCommand);
+    return config;
+  }
 
+  async createCompiler(
+    config: RspackOptions | MultiRspackOptions,
+    callback?: (e: Error | null, res?: Stats | MultiStats) => void,
+  ) {
     const isWatch = Array.isArray(config)
       ? (config as MultiRspackOptions).some((i) => i.watch)
       : (config as RspackOptions).watch;

@@ -51,7 +51,6 @@ module.exports = [
             if (state !== 0) return;
             state++;
 
-            // CHANGE: Rspack generates a distinct snapshot
             expect(events).toMatchInlineSnapshot(`
 				Array [
 				  b run,
@@ -66,7 +65,6 @@ module.exports = [
               try {
                 if (err) return reject(err);
 
-                // CHANGE: Rspack generates a distinct snapshot
                 expect(events).toMatchInlineSnapshot(`
 					Array [
 					  a invalid,
