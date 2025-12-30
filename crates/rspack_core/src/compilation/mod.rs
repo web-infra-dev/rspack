@@ -463,7 +463,7 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
-  // it will return None during make phase since mg is incomplete 
+  // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_none() {
       return None;
@@ -660,20 +660,22 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?);
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        make_artifact,
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
     Ok(())
   }
 
@@ -709,20 +711,22 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?);
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        make_artifact,
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
     Ok(())
   }
 
@@ -1036,12 +1040,14 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact = DerefOption::new(update_module_graph(
-      self,
-      artifact,
-      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?);
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        artifact,
+        vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+      )
+      .await?,
+    );
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
