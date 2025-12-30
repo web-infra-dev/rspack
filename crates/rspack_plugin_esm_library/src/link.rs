@@ -1849,7 +1849,7 @@ var {} = {{}};
             info.module,
             Self::add_require(
               *info_id,
-              None,
+              from,
               Some(info.name.clone().expect("should have symbol")),
               all_used_names,
               required,
@@ -2062,7 +2062,7 @@ var {} = {{}};
               info.module,
               Self::add_require(
                 *info_id,
-                None,
+                from,
                 Some(info.name.clone().expect("should have symbol")),
                 all_used_names,
                 required,
