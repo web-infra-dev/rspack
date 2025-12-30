@@ -136,7 +136,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               let mut nested_tasks = vec![];
               let mut non_nested_tasks = vec![];
               for (module_id, exports) in referenced_exports {
-                let exports_info = mg.get_exports_info(&module_id).as_data(mg);
+                let exports_info = mg.get_exports_info_data(&module_id);
                 let has_nested = exports.iter().any(|e| match e {
                   ExtendedReferencedExport::Array(arr) => arr.len() > 1,
                   ExtendedReferencedExport::Export(export) => export.name.len() > 1,
@@ -177,7 +177,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         non_nested_tasks
           .into_par_iter()
           .map(|(module_id, tasks)| {
-            let mut exports_info = mg.get_exports_info(&module_id).as_data(mg).clone();
+            let mut exports_info = mg.get_exports_info_data(&module_id).clone();
             let module = mg
               .module_by_identifier(&module_id)
               .expect("should have module");
@@ -365,8 +365,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         module.build_meta().exports_type,
         BuildMetaExportsType::Unset
       );
+
       if need_insert {
-        let flag = mgm_exports_info.set_used_without_info(module_graph, runtime.as_ref());
+        let flag = mgm_exports_info
+          .as_data_mut(module_graph)
+          .set_used_without_info(runtime.as_ref());
         if flag {
           queue.push((
             ModuleOrAsyncDependenciesBlock::Module(module_id),
@@ -385,7 +388,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
         };
         if used_exports.is_empty() {
-          let flag = mgm_exports_info.set_used_in_unknown_way(module_graph, runtime.as_ref());
+          let flag = mgm_exports_info
+            .as_data_mut(module_graph)
+            .set_used_in_unknown_way(runtime.as_ref());
 
           if flag {
             queue.push((
@@ -400,7 +405,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info = current_exports_info
-              .get_export_info(module_graph, &used_export)
+              .as_data_mut(module_graph)
+              .ensure_export_info(&used_export)
               .as_data_mut(module_graph);
             if !can_mangle {
               export_info.set_can_mangle_use(Some(false));
@@ -708,7 +714,7 @@ fn process_referenced_module_without_nested(
   let mut queue = vec![];
   if !used_exports.is_empty() {
     if is_exports_type_unset {
-      let flag = exports_info.set_owned_used_without_info(runtime.as_ref());
+      let flag = exports_info.set_used_without_info(runtime.as_ref());
       if flag {
         queue.push((
           ModuleOrAsyncDependenciesBlock::Module(module_id),
@@ -727,7 +733,7 @@ fn process_referenced_module_without_nested(
         }
       };
       if used_exports.is_empty() {
-        let flag = exports_info.set_owned_used_in_unknown_way(runtime.as_ref());
+        let flag = exports_info.set_used_in_unknown_way(runtime.as_ref());
 
         if flag {
           queue.push((

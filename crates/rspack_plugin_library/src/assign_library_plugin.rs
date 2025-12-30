@@ -481,15 +481,16 @@ async fn finish_modules(
       .get_module_graph_mut();
     if let Some(export) = export {
       let export_info = module_graph
-        .get_exports_info(&module_identifier)
-        .get_export_info(module_graph, &(export.as_str()).into());
+        .get_exports_info_data_mut(&module_identifier)
+        .ensure_export_info(&(export.as_str()).into());
       let info = export_info.as_data_mut(module_graph);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      let exports_info = module_graph.get_exports_info(&module_identifier);
-      exports_info.set_used_in_unknown_way(module_graph, Some(&runtime));
+      module_graph
+        .get_exports_info_data_mut(&module_identifier)
+        .set_used_in_unknown_way(Some(&runtime));
     }
   }
   Ok(())
