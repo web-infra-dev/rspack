@@ -89,36 +89,37 @@ pub fn collect_referenced_export_items<'a>(
       return;
     }
     already_visited.insert(export_info_id);
-    if let Some(exports_info) = module_graph.try_get_exports_info_by_id(
+
+    let exports_info = module_graph.get_exports_info_by_id(
       &export_info
         .exports_info()
         .expect("should have exports info"),
-    ) {
-      for export_info in exports_info.exports().values() {
-        collect_referenced_export_items(
-          module_graph,
-          runtime,
-          referenced_export,
-          if default_points_to_self
-            && export_info
-              .name()
-              .map(|name| name == "default")
-              .unwrap_or_default()
-          {
-            prefix.clone()
-          } else {
-            let mut value = prefix.clone();
-            if let Some(name) = export_info.name() {
-              value.push(name);
-            }
-            value
-          },
-          Some(export_info),
-          false,
-          already_visited,
-        );
-      }
+    );
+    for export_info in exports_info.exports().values() {
+      collect_referenced_export_items(
+        module_graph,
+        runtime,
+        referenced_export,
+        if default_points_to_self
+          && export_info
+            .name()
+            .map(|name| name == "default")
+            .unwrap_or_default()
+        {
+          prefix.clone()
+        } else {
+          let mut value = prefix.clone();
+          if let Some(name) = export_info.name() {
+            value.push(name);
+          }
+          value
+        },
+        Some(export_info),
+        false,
+        already_visited,
+      );
     }
+
     already_visited.remove(&export_info.id());
   } else {
     referenced_export.push(prefix);

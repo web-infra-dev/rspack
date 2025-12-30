@@ -297,8 +297,11 @@ impl EsmLibraryPlugin {
           }
 
           let mut ns_obj = Vec::new();
-          let exports_info = module_graph.get_exports_info(module_info_id);
-          for export_info in exports_info.as_data(module_graph).exports().values() {
+          for export_info in module_graph
+            .get_exports_info_data(module_info_id)
+            .exports()
+            .values()
+          {
             if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
               continue;
             }
@@ -934,9 +937,7 @@ var {} = {{}};
     }
 
     let mut exports = if collect_own_exports {
-      let exports_info = module_graph
-        .get_exports_info(&module_id)
-        .as_data(module_graph);
+      let exports_info = module_graph.get_exports_info_data(&module_id);
       exports_info
         .exports()
         .iter()
@@ -992,9 +993,7 @@ var {} = {{}};
     let context = &compilation.options.context;
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph
-      .get_exports_info(&entry_module)
-      .as_data(module_graph);
+    let exports_info = module_graph.get_exports_info_data(&entry_module);
 
     // detect reexport star
     let mut star_re_exports_modules = IdentifierIndexSet::default();
