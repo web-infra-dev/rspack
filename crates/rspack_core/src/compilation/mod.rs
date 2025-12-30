@@ -463,8 +463,11 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
-  // FIXME: find a better way to do this.
+  // it will return None during make phase since mg is incomplete 
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
+    if self.build_module_graph_artifact.is_none() {
+      return None;
+    }
     if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
       return Some(module);
     };
