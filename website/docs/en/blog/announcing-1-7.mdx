@@ -31,14 +31,14 @@ Notable changes include:
 
 ### Improved SWC plugin compatibility
 
-In previous versions, the upgrade cost for SWC Wasm plugins was relatively high. This was because the SWC AST structure would change across versions, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to upgrade dependencies, which affected project stability and the upgrade experience.
+In previous versions, the upgrade cost of SWC Wasm plugins was relatively high. This was because the SWC AST structure changed across versions, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to keep their dependencies in sync, which affected project stability and the upgrade experience.
 
-To alleviate this issue, we contributed and introduced a series of [compatibility improvements](https://swc.rs/docs/plugin/ecmascript/compatibility) to the SWC community, including:
+To alleviate this issue, we contributed a series of [compatibility improvements](https://swc.rs/docs/plugin/ecmascript/compatibility) to the SWC community, including:
 
 - Using the self-describing [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) serialization scheme to replace the version-sensitive [rkyv](https://rkyv.org/), allowing Wasm plugins to better adapt to AST structure changes.
 - Introducing the `Unknown` variant for enum types in the AST, improving fault tolerance when encountering new fields or nodes.
 
-In Rspack 1.7, we upgraded the used SWC version and adopted these compatibility mechanisms. From now on, in most scenarios, SWC upgrades will not break existing plugins built with older SWC versions.
+In Rspack 1.7, we upgraded the SWC version in use and adopted these compatibility mechanisms. From now on, in most scenarios, SWC upgrades will not break existing plugins built with older SWC versions.
 
 Currently, this approach has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this approach and reduce maintenance costs in future version evolutions.
 
@@ -62,7 +62,7 @@ const text = decoder.decode(module.default);
 
 In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/features/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
 
-Starting from Rspack 1.7, the Rspack CLI will also default to enabling on-demand compilation for dynamically imported modules when building Web applications. This improvement can reduce the number of modules in the initial build, thereby speeding up the dev server startup.
+Starting from Rspack 1.7, the Rspack CLI also enables lazy compilation by default for dynamically imported modules when building Web applications. This improvement can reduce the number of modules in the initial build, thereby speeding up the dev server startup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -116,9 +116,9 @@ export default {
 };
 ```
 
-#### Printing size diff
+#### Asset size diff reporting
 
-Rsbuild now supports printing size differences to visually observe if the build output size has changed.
+Rsbuild now supports reporting size differences to see whether the build output size has changed.
 
 ![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
@@ -138,7 +138,7 @@ export default {
 
 `create-rsbuild` now includes more out-of-the-box tools.
 
-When creating an Rsbuild project, you can now choose to automatically integrate [Rstest](https://rstest.rs/) as the testing framework or enable [Storybook](https://storybook.rsbuild.rs/) for UI component development and debugging. Related dependencies and basic configurations will be completed in the initialization phase, reducing repetitive manual configuration costs.
+When creating an Rsbuild project, you can now choose to automatically integrate [Rstest](https://rstest.rs/) as the testing framework or enable [Storybook](https://storybook.rsbuild.rs/) for UI component development and debugging. Related dependencies and configurations will be set up during initialization, reducing repetitive manual configuration costs.
 
 ```text
 ◆  Select additional tools (Use <space> to select, <enter> to continue)
@@ -156,7 +156,7 @@ When creating an Rsbuild project, you can now choose to automatically integrate 
 
 Rsdoctor 1.4 has improved the original [Treemap](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
 
-In this view, you can quickly locate specific modules or assets via search. Clicking on a module or asset will automatically focus and zoom in on the corresponding area. Double-clicking a module can also expand its dependency chain, allowing you to view the reference relationship between modules layer by layer, thus clarifying the source of the size.
+In this view, you can quickly locate specific modules or assets via search. Clicking on a module or asset will automatically focus and zoom in on the corresponding area. Double-clicking a module can also expand its dependency chain, allowing you to view the reference relationship between modules layer by layer, helping identify where the size comes from.
 
 ![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
 
@@ -170,7 +170,7 @@ Starting from Rslib 0.19, Rslib's bundle mode enables this feature by default. D
 
 #### JavaScript API
 
-Rslib 0.19 introduces a brand new [JavaScript API](https://rslib.rs/api/start), allowing developers to invoke Rslib's build capabilities directly programmatically in JavaScript code.
+Rslib 0.19 introduces a [JavaScript API](https://rslib.rs/api/start), allowing developers to invoke Rslib's build capabilities programmatically in JavaScript code.
 
 Here is a basic example:
 
@@ -187,7 +187,7 @@ await rslib.build();
 
 ### Rstest 0.7
 
-#### Configuration adapter
+#### Configuration adapters
 
 Rstest 0.7 introduces the [extends](https://rstest.rs/config/test/extends) option and an adapter mechanism, allowing you to directly reuse existing tool or framework configurations. An adapter is a configuration transformation function that can convert configurations from other tools into Rstest configurations, thereby reducing the cost of integrating Rstest.
 
@@ -213,9 +213,9 @@ Currently, the `@rstest/adapter-rslib` adapter has been officially released, and
 
 #### Improved test feedback
 
-Rstest has made several experience optimizations for local development and debugging scenarios, making test feedback more intuitive:
+Rstest has made several usability improvements for local development and debugging scenarios, making test feedback more intuitive:
 
-- **Spot stuck tests earlier:** Rstest now supports marking test cases that have not completed for a long time during local runs. When the test process slows down, you can directly see which case is executing and may be stuck, instead of just staring at the terminal waiting for the entire test to timeout.
+- **Spot stuck tests earlier:** Rstest now supports marking test cases that have not completed for a long time during local runs. When the test process slows down, you can directly see which case is executing and may be stuck, instead of waiting blindly for the test to time out.
 
 - **Clearer timeout failure feedback:** When a test fails due to timeout, Rstest now displays the number of executed assertions in the error message. This helps you quickly judge whether the test has been partially executed or is stuck in some asynchronous logic, thus locating the problem faster.
 
@@ -223,12 +223,12 @@ Rstest has made several experience optimizations for local development and debug
 
 #### SSG-MD feature
 
-In front-end frameworks based on React dynamic rendering, there is often a problem that static information is difficult to extract, and Rspress also encountered the same problem. One of the core advantages of Rspress is allowing users to enhance document expressiveness through dynamic features such as [MDX fragments](https://v2.rspress.rs/guide/use-mdx/components), React components, Hooks, and TSX routes. However, these dynamic contents face the following problems when converted to Markdown text:
+In front-end frameworks based on React dynamic rendering, static information is often difficult to extract, and Rspress also encountered the same problem. Rspress allows users to enhance document expressiveness through dynamic features such as [MDX fragments](https://v2.rspress.rs/guide/use-mdx/components), React components, Hooks, and TSX routes. However, these dynamic contents face several challenges when converted to Markdown text:
 
 - Directly inputting MDX to AI will contain a lot of code syntax noise and lose React component content.
 - Converting SSG-generated HTML to Markdown often yields poor results, and information quality is difficult to guarantee.
 
-To solve this problem fundamentally, Rspress 2.0 introduces the [SSG-MD](https://v2.rspress.rs/guide/basic/ssg-md) feature. This is a brand-new function, as the name suggests, the only difference from [Static Site Generation (SSG)](https://v2.rspress.rs/guide/basic/ssg) is that it renders your page into Markdown files instead of HTML files, and generates [llms.txt](https://llmstxt.org/) and llms-full.txt files. Compared with traditional methods such as converting html to markdown, SSG-MD has better information sources during rendering, such as React Virtual DOM, so it has better static information quality and flexibility.
+To solve this problem, Rspress 2.0 introduces the [SSG-MD](https://v2.rspress.rs/guide/basic/ssg-md) feature. This is a new rendering mode, as the name suggests, the key difference from traditional [Static Site Generation (SSG)](https://v2.rspress.rs/guide/basic/ssg) is that it renders your page into Markdown files instead of HTML files, and generates [llms.txt](https://llmstxt.org/) and llms-full.txt files. Compared with traditional methods such as converting HTML to Markdown, SSG-MD has better information sources during rendering, such as React Virtual DOM, so it produces higher-quality static content with greater flexibility.
 
 Enabling it is very simple:
 
@@ -265,7 +265,7 @@ export function Tab({ label }: { label: string }) {
 }
 ```
 
-This guarantees both the interactive experience of the document and ensures that AI can understand the semantic information of the components.
+This preserves the interactive experience of the document and helps AI understand the semantic information of the components.
 
 > For more details, refer to: [SSG-MD Guide](https://v2.rspress.rs/guide/basic/ssg-md)
 

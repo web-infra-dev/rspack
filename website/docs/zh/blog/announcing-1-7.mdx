@@ -33,7 +33,7 @@ _2025 年 12 月 31 日_
 
 在过去的版本中，SWC Wasm 插件的升级成本一直较高。这是由于 SWC 的 AST 结构会随着版本演进发生变化，已有插件在 SWC 升级后可能无法继续工作，插件作者需要进行适配，插件使用者也需要同步升级依赖，这在一定程度上影响了项目的稳定性和升级体验。
 
-为缓解这一问题，我们向 SWC 社区贡献并引入了一系列 [兼容性改进](https://swc.rs/docs/plugin/ecmascript/compatibility)，包括：
+为缓解这一问题，我们向 SWC 社区贡献了一系列 [兼容性改进](https://swc.rs/docs/plugin/ecmascript/compatibility)，包括：
 
 - 使用自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化方案，取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更
 - 为 AST 中的枚举类型引入 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力
@@ -118,7 +118,7 @@ export default {
 
 #### 产物体积对比
 
-Rsbuild 现在支持输出产物体积对比，用来直观地观察构建结果是否发生了体积变化。
+Rsbuild 现在支持输出产物体积对比，用来查看构建结果是否发生了体积变化。
 
 ![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
@@ -138,7 +138,7 @@ export default {
 
 `create-rsbuild` 现在包含了更多开箱即用的工具。
 
-在创建 Rsbuild 项目时，你现在可以选择自动集成 [Rstest](https://rstest.rs/) 作为测试框架，或启用 [Storybook](https://storybook.rsbuild.rs/) 用于 UI 组件的开发与调试。相关依赖和基础配置都会在初始化阶段一次性完成，减少重复的手动配置成本。
+在创建 Rsbuild 项目时，你现在可以选择自动集成 [Rstest](https://rstest.rs/) 作为测试框架，或启用 [Storybook](https://storybook.rsbuild.rs/) 用于 UI 组件的开发与调试。相关依赖和配置都会在初始化时一次性完成，减少重复的手动配置成本。
 
 ```text
 ◆  Select additional tools (Use <space> to select, <enter> to continue)
@@ -152,7 +152,7 @@ export default {
 
 ### Rsdoctor 1.4
 
-#### 全新的 Treemap 视图
+#### 新的 Treemap 视图
 
 Rsdoctor 1.4 对原有的 [Treemap](https://rsdoctor.rs/zh/guide/usage/bundle-size) 视图进行了改进。新的交互设计可以帮助你更直观地分析 bundle 的整体构成，以及各类资源和模块的体积占比。
 
@@ -170,7 +170,7 @@ Rsdoctor 1.4 对原有的 [Treemap](https://rsdoctor.rs/zh/guide/usage/bundle-si
 
 #### JavaScript API
 
-Rslib 0.19 引入了全新的 [JavaScript API](https://rslib.rs/api/start)，使开发者可以在 JavaScript 代码中以编程方式直接调用 Rslib 的构建能力。
+Rslib 0.19 引入了 [JavaScript API](https://rslib.rs/api/start)，使开发者可以在 JavaScript 代码中以编程方式直接调用 Rslib 的构建能力。
 
 下面是一个基础示例：
 
@@ -223,12 +223,12 @@ Rstest 针对本地开发与调试场景进行了多项体验优化，让测试�
 
 #### SSG-MD 特性
 
-在基于 React 动态渲染的前端框架中，往往存在静态信息难以提取的问题，Rspress 也遇到了相同的问题。Rspress 的核心优势之一是允许用户通过 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、Hooks 以及 TSX 路由等动态特性来增强文档表现力。但这些动态内容在转换为 Markdown 文本时会面临以下问题：
+在基于 React 动态渲染的前端框架中，往往存在静态信息难以提取的问题，Rspress 也遇到了相同的问题。Rspress 允许用户通过 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、Hooks 以及 TSX 路由等动态特性来增强文档表现力。但这些动态内容在转换为 Markdown 文本时会面临以下问题：
 
 - 直接将 MDX 输入给 AI 会包含大量代码语法噪音，并丢失 React 组件内容
 - 将 SSG 生成的 HTML 转为 Markdown 往往效果不佳，信息质量难以保证
 
-为了从根本上解决这个问题，Rspress 2.0 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 html 转化为 markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
+为了解决这个问题，Rspress 2.0 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 HTML 转化为 Markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
 
 启用方式非常简单：
 
@@ -265,7 +265,7 @@ export function Tab({ label }: { label: string }) {
 }
 ```
 
-这样既保证了文档的交互性体验，又确保 AI 能够理解组件的语义信息。
+这样既保证了文档的交互体验，也能帮助 AI 理解组件的语义信息。
 
 > 详见 [SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
 
