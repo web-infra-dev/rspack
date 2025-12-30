@@ -17,8 +17,8 @@ _2025 年 12 月 29 日_
 
 - 新特性
   - [SWC 插件兼容性提升](#swc-插件兼容性提升)
-  - [Lazy Compilation 默认开启](#lazy-compilation-默认开启)
   - [支持 Import Bytes](#支持-import-bytes)
+  - [Lazy compilation](#lazy-compilation)
   - [实验特性稳定化](#实验特性稳定化)
 - Rstack 进展
   - [Rsbuild 1.7](#rsbuild-17)
@@ -42,30 +42,6 @@ _2025 年 12 月 29 日_
 
 目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
 
-### Rspack CLI 默认开启 Lazy Compilation
-
-继 [LazyCompilation](/zh/config/lazy-compilation) 特性在 1.5.0 发布稳定后，
-Rspack CLI [dev](/zh/api/cli#rspack-dev) 命令将会按以下配置默认开启该特性；`@rspack/core` API 保持默认关闭，需手动启用。
-
-```js title="rspack.config.mjs"
-export default {
-  lazyCompilation: {
-    imports: true,
-    entries: false,
-  },
-};
-```
-
-:::note
-目前默认仅对应用中的动态引用 `import('module')`，采用的懒编译的方式加载。
-:::
-
-在多入口应用和动态加载路由的 SPA 大型应用中，Lazy Compilation 通过按需编译需要的模块，能显著的降低应用的冷启动时间和首次可交互时间。
-从 Rspack CLI 1.7 开始，Lazy Compilation 功能将在 Web 应用的项目中默认开启后，我们将获得**更快的 Dev server 的启动速度**和**更低的初始 CPU/内存占用**。
-
-在绝大多数场景下，你只会感受到更快的启动速度。当首次访问某个尚未编译的模块时，Rspack 会即时完成编译并继续执行，对开发流程几乎无感。
-如果你有特殊需求（例如调试完整产物、分析完整 Module Graph），也可以通过 `lazyCompilation: false` 来关闭该功能。
-
 ### 支持 Import Bytes
 
 Rspack 现已原生支持 [TC39 import attributes](https://github.com/tc39/proposal-import-bytes) 提案的 bytes 类型导入资源文件，可直接将资源作为 `Uint8Array` 二进制数据导入，并通过 `TextDecoder` 解码。
@@ -81,6 +57,24 @@ const module = await import('./file.bin', { with: { type: 'bytes' } });
 const decoder = new TextDecoder('utf-8');
 const text = decoder.decode(module.default);
 ```
+
+### Lazy compilation
+
+在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/features/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
+
+从 Rspack 1.7 开始，Rspack CLI 在构建 Web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
+
+```js title="rspack.config.mjs"
+export default {
+  // 当前默认配置
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+  },
+};
+```
+
+如果你有特殊需求，例如需要调试完整构建的产物，或分析完整的 Module Graph，可以通过将 [lazyCompilation](/config/lazy-compilation) 设置为 `false` 来显式关闭该功能。
 
 ### 实验特性稳定化
 
