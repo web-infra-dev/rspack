@@ -3,8 +3,17 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DerefOption<T>(Option<T>);
+
+impl<T> Default for DerefOption<T>
+where
+  T: Default,
+{
+  fn default() -> Self {
+    Self(Some(T::default()))
+  }
+}
 
 impl<T> From<T> for DerefOption<T> {
   fn from(value: T) -> Self {
@@ -43,10 +52,7 @@ impl<T> Deref for DerefOption<T> {
       .unwrap_or_else(|| panic!("should set in compilation first"))
   }
 }
-impl<T> DerefMut for DerefOption<T>
-where
-  T: Debug,
-{
+impl<T> DerefMut for DerefOption<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self
       .0
