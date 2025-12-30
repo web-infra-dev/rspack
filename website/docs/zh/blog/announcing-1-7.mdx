@@ -189,7 +189,7 @@ await rslib.build();
 
 #### 配置适配器
 
-Rstest 0.7 引入了 [extends](https://rstest.rs/zh/config/test/extends) 选项和适配器机制，用于直接复用现有的工具或框架配置。适配器是一个配置转换函数，可以将其他工具的配置转换为 Rstest 的配置，从而降低 Rstest 的接入成本。
+Rstest 0.7 引入了 [extends](https://rstest.rs/zh/config/test/extends) 选项和适配器机制，用于直接复用现有的工具或框架配置。适配器是一个配置转换函数，可以将其他工具的配置转换为 Rstest 的配置，从而降低 Rstest 的集成成本。
 
 例如，在一个使用 Rslib 的库项目中，通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 适配器，你可以直接复用已有的 Rslib 配置：
 
@@ -256,7 +256,7 @@ doc_build
 
 ```tsx
 export function Tab({ label }: { label: string }) {
-  if (process.env.__SSR_MD__) {
+  if (import.meta.env.SSG_MD) {
     // SSG-MD 模式下输出纯文本描述
     return <>{`**Tab: ${label}**`}</>;
   }
@@ -267,7 +267,7 @@ export function Tab({ label }: { label: string }) {
 
 这样既保证了文档的交互性体验，又确保 AI 能够理解组件的语义信息。
 
-更多详情请参考：[SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
+> 详见 [SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
 
 ## 升级指南
 

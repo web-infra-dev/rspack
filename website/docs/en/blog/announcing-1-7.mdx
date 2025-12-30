@@ -16,10 +16,10 @@ We are excited to announce Rspack 1.7!
 Notable changes include:
 
 - New Features
-  - [Improved SWC Plugin Compatibility](#improved-swc-plugin-compatibility)
+  - [Improved SWC plugin compatibility](#improved-swc-plugin-compatibility)
   - [Support for Import Bytes](#support-for-import-bytes)
   - [Lazy compilation](#lazy-compilation)
-  - [Stabilization of experimental features](#stabilization-of-experimental-features)
+  - [Experimental features stabilized](#experimental-features-stabilized)
 - Rstack Progress
   - [Rsbuild 1.7](#rsbuild-17)
   - [Rsdoctor 1.4](#rsdoctor-14)
@@ -38,9 +38,9 @@ To alleviate this issue, we contributed and introduced a series of [compatibilit
 - Using the self-describing [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) serialization scheme to replace the version-sensitive [rkyv](https://rkyv.org/), allowing Wasm plugins to better adapt to AST structure changes.
 - Introducing the `Unknown` variant for enum types in the AST, improving fault tolerance when encountering new fields or nodes.
 
-In Rspack 1.7, we upgraded the used SWC version and supported the above scheme. From now on, in most scenarios, SWC upgrades will not affect the normal operation of plugins built with older SWC versions.
+In Rspack 1.7, we upgraded the used SWC version and supported the above approach. From now on, in most scenarios, SWC upgrades will not affect the normal operation of plugins built with older SWC versions.
 
-Currently, this scheme has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, please refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this scheme and reduce maintenance costs in future version evolutions.
+Currently, this approach has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this approach and reduce maintenance costs in future version evolutions.
 
 ### Support for Import Bytes
 
@@ -76,7 +76,7 @@ export default {
 
 If you have special requirements, such as needing to debug the full build output or inspect the complete Module Graph, you can explicitly disable this feature by setting [lazyCompilation](/config/lazy-compilation) to `false`.
 
-### Stabilization of experimental features
+### Experimental features stabilized
 
 In Rspack 1.7, we have advanced the stabilization of several experimental features. The following capabilities have been verified and entered the stable stage, and the corresponding experimental flags have been deprecated or adjusted to default behaviors:
 
@@ -118,11 +118,11 @@ export default {
 
 #### Print size diff
 
-Rsbuild now supports printing size differences to visually observe if the build result size has changed.
+Rsbuild now supports printing size differences to visually observe if the build output size has changed.
 
 ![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
-When the [performance.printFileSize.diff](https://rsbuild.rs/config/performance/print-file-size#diff) option is enabled, Rsbuild will record a snapshot of the asset sizes upon build completion. Subsequent builds will automatically compare with the previous result and display value changes directly in the log. You can clearly see whether each file has grown or shrunk, as well as the overall size change, making it suitable for quickly spotting size regressions during daily development.
+When the [performance.printFileSize.diff](https://rsbuild.rs/config/performance/print-file-size#diff) option is enabled, Rsbuild records a snapshot of the asset sizes upon build completion. Subsequent builds will automatically compare with the previous result and display value changes directly in the log. You can clearly see whether each file has grown or shrunk, as well as the overall size change, making it suitable for quickly spotting size regressions during daily development.
 
 ```js title=rsbuild.config.ts
 export default {
@@ -152,7 +152,7 @@ When creating an Rsbuild project, you can now choose to automatically integrate 
 
 ### Rsdoctor 1.4
 
-#### New Tree Map view
+#### New tree map view
 
 Rsdoctor 1.4 has improved the original [Tree Map](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
 
@@ -166,7 +166,7 @@ In this view, you can quickly locate specific modules or assets via search. Clic
 
 In previous versions, Rslib enabled Rspack's [new ESM library output](/plugins/rspack/esm-library-plugin#esmlibraryplugin) through the experimental configuration [experiments.advancedEsm](https://rslib.rs/config/lib/experiments#experimentsadvancedesm) to improve the overall quality of ESM artifacts. After verification and polishing over multiple versions, this capability is now stable.
 
-Starting from Rslib 0.19, Rslib's bundle mode will enable this feature by default. Developers do not need any additional configuration to directly obtain ESM artifacts that are friendlier to static analysis and fully support code splitting.
+Starting from Rslib 0.19, Rslib's bundle mode enables this feature by default. Developers do not need any additional configuration to directly obtain ESM artifacts that are friendlier to static analysis and fully support code splitting.
 
 #### JavaScript API
 
@@ -183,13 +183,13 @@ const rslib = await createRslib();
 await rslib.build();
 ```
 
-> For more usage, please refer to the [API Documentation](https://rslib.rs/api/javascript-api/core).
+> For more usage, refer to the [API Documentation](https://rslib.rs/api/javascript-api/core).
 
 ### Rstest 0.7
 
 #### Configuration adapter
 
-Rstest 0.7 introduces the [extends](https://rstest.rs/config/test/extends) option and an adapter mechanism, allowing you to directly reuse existing tool or framework configurations. An adapter is a configuration transformation function that can convert configurations from other tools into Rstest configurations, thereby reducing the cost of adopting Rstest.
+Rstest 0.7 introduces the [extends](https://rstest.rs/config/test/extends) option and an adapter mechanism, allowing you to directly reuse existing tool or framework configurations. An adapter is a configuration transformation function that can convert configurations from other tools into Rstest configurations, thereby reducing the cost of integrating Rstest.
 
 For example, in a library project using Rslib, you can directly reuse the existing Rslib configuration via the [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) adapter:
 
@@ -256,7 +256,7 @@ For custom components, you can control their rendering behavior in SSG-MD mode v
 
 ```tsx
 export function Tab({ label }: { label: string }) {
-  if (process.env.__SSR_MD__) {
+  if (import.meta.env.SSG_MD) {
     // Output plain text description in SSG-MD mode
     return <>{`**Tab: ${label}**`}</>;
   }
@@ -267,15 +267,15 @@ export function Tab({ label }: { label: string }) {
 
 This guarantees both the interactive experience of the document and ensures that AI can understand the semantic information of the components.
 
-For more details, please refer to: [SSG-MD Guide](https://v2.rspress.rs/guide/basic/ssg-md)
+> For more details, refer to: [SSG-MD Guide](https://v2.rspress.rs/guide/basic/ssg-md)
 
 ## Upgrade guide
 
 ### Upgrade SWC plugins
 
-If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`, etc.), please upgrade the plugins to be compatible with `swc_core@54` or above, otherwise build failures or runtime exceptions may occur due to version incompatibility.
+If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`, etc.), upgrade the plugins to be compatible with `swc_core@54` or above, otherwise build failures or runtime exceptions may occur due to version incompatibility.
 
-> For details, please consult: [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
+> For details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
 
 ### Remove deprecated configuration
 
