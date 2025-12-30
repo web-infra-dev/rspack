@@ -375,7 +375,8 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mut mg = compilation.get_seal_module_graph_mut();
+      let mut mg =
+        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
       let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };

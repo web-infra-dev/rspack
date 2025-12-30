@@ -32,7 +32,7 @@ pub fn track_server_component_changes(
       continue;
     };
 
-    traverse_modules(
+    collect_changed_server_components(
       compilation,
       &module_graph,
       resolved_module.as_ref(),
@@ -44,12 +44,11 @@ pub fn track_server_component_changes(
   }
 
   *prev_server_component_hashes = cur_server_component_hashes;
-
   changed_server_components_per_entry
 }
 
 #[allow(clippy::too_many_arguments)]
-fn traverse_modules(
+fn collect_changed_server_components(
   compilation: &Compilation,
   module_graph: &ModuleGraphRef<'_>,
   module: &dyn Module,
@@ -100,7 +99,7 @@ fn traverse_modules(
       continue;
     };
 
-    traverse_modules(
+    collect_changed_server_components(
       compilation,
       module_graph,
       resolved_module.as_ref(),
