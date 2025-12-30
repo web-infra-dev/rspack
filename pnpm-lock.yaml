@@ -23,8 +23,8 @@ importers:
         specifier: 7.32.2
         version: 7.32.2(@types/node@20.19.27)
       '@rslint/core':
-        specifier: 0.1.13
-        version: 0.1.13
+        specifier: 0.1.14
+        version: 0.1.14
       '@rspack/cli':
         specifier: workspace:*
         version: link:packages/rspack-cli
@@ -3244,37 +3244,37 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.1.13':
-    resolution: {integrity: sha512-4K/5/aZFS4sz4fZ2hdNFFLTwgpnxTkaDo1vC+fBltDMe9G0Jp0ELhesM1nbYPa3f+JsN8xE8BU8XseJjW6igYQ==}
+  '@rslint/core@0.1.14':
+    resolution: {integrity: sha512-rT69n4xtqZMUYu9cjNBH4esmstUqKGsURh2IcTurXrZRKqiXgpT9j1PwTh59cnfj2tf9MzPKzh74fAdxe7a/Vw==}
     hasBin: true
 
-  '@rslint/darwin-arm64@0.1.13':
-    resolution: {integrity: sha512-UpZWLD6B9pZ+uXjZ0i+nkXbZKHPatd/6FNroF7q6qRSnFdix+moxaqgzhHg+9Eq4rnVc7aL1VmduRTh40bH7xg==}
+  '@rslint/darwin-arm64@0.1.14':
+    resolution: {integrity: sha512-YkRlGwudeDPTurYHVMXZbLrZv/GN/9gKm2oLCGSvI+oSjS+iwUGGnuqgdXbS9LzpO3tiKa+TZQ0sDkS8WRjf/A==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rslint/darwin-x64@0.1.13':
-    resolution: {integrity: sha512-o9BocB82RglcoI0Cnz3Stx5SdBTzjZb3ZY+EFcsom4RTEna2QVlQhG4Y5NogicfzPJvudvnl2RREPuNuWiBTpw==}
+  '@rslint/darwin-x64@0.1.14':
+    resolution: {integrity: sha512-+efbAUcm9sVeNmM8J8laS+rrcBg/FAie+otoiEhM2n6i6P/u7sVdLAkkmhpv1M6Br+x7y61UqOcRj4savftB3A==}
     cpu: [x64]
     os: [darwin]
 
-  '@rslint/linux-arm64@0.1.13':
-    resolution: {integrity: sha512-4vBIDkFS9e1239VNbwWe5c35D9pxM0RrxXidVV2jmv2/O0kOrcKdx0m+n6RiD/0EHfboe8dUd2AleRQpHiDZqQ==}
+  '@rslint/linux-arm64@0.1.14':
+    resolution: {integrity: sha512-CY4wa4VN+ZrWDWYXIZezOGuzHDpWOgugpoRDIVRMrvT3dev+gmgoq6B8c2wVddK0WsMJGb3S65CixNe3CL5AXA==}
     cpu: [arm64]
     os: [linux]
 
-  '@rslint/linux-x64@0.1.13':
-    resolution: {integrity: sha512-HQG/GeN5YggyPUJIvdbVrIqSiiR/X+NSKSCpw719Ttbl9Vw6juk4tUskCjIDVgl5lhpfiqArn4gVT4EPNSd7XQ==}
+  '@rslint/linux-x64@0.1.14':
+    resolution: {integrity: sha512-jggaHv29dVAOfRJ6uNuu5VYz9o4V5BLQGQtriZ+t9yitqraFTMerGZ4YPZUYJnvGaLuJzABWPY+MKvwTwViiwQ==}
     cpu: [x64]
     os: [linux]
 
-  '@rslint/win32-arm64@0.1.13':
-    resolution: {integrity: sha512-oxfgWQMePJ6QjhG1Q7M527D2neunbuUpYy/HFDS8kdhTYPuHRsMUG2I5eIkdoumBC36FuGWKRaKJBZuKfWwskg==}
+  '@rslint/win32-arm64@0.1.14':
+    resolution: {integrity: sha512-2g5C7Ag9ZDPGxSGupxqu4F52mWgAxaBLe+BHnrdWOoIliwX1Gf6DKbEB3yniEb+OYYuJa0YxB73pvfCno0G+Jw==}
     cpu: [arm64]
     os: [win32]
 
-  '@rslint/win32-x64@0.1.13':
-    resolution: {integrity: sha512-fxUw0sYpuy+Op1096/zddo4fqNBOC//NOp3c85uiLie3SMyQ3HtPp4dnW7e9CLmc6EcXr24fMkQI0BEHHpN7Ow==}
+  '@rslint/win32-x64@0.1.14':
+    resolution: {integrity: sha512-PeHSLSyrwfq8RSwBSL9d8CfbyiuvOunYeIcHV/wHf0bAtqZjWEPlvMl5e11HzHzQPEfB1UiyQCkguzoVtC0qwQ==}
     cpu: [x64]
     os: [win32]
 
@@ -8592,6 +8592,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -10791,31 +10792,31 @@ snapshots:
     transitivePeerDependencies:
       - '@typescript/native-preview'
 
-  '@rslint/core@0.1.13':
+  '@rslint/core@0.1.14':
     optionalDependencies:
-      '@rslint/darwin-arm64': 0.1.13
-      '@rslint/darwin-x64': 0.1.13
-      '@rslint/linux-arm64': 0.1.13
-      '@rslint/linux-x64': 0.1.13
-      '@rslint/win32-arm64': 0.1.13
-      '@rslint/win32-x64': 0.1.13
+      '@rslint/darwin-arm64': 0.1.14
+      '@rslint/darwin-x64': 0.1.14
+      '@rslint/linux-arm64': 0.1.14
+      '@rslint/linux-x64': 0.1.14
+      '@rslint/win32-arm64': 0.1.14
+      '@rslint/win32-x64': 0.1.14
 
-  '@rslint/darwin-arm64@0.1.13':
+  '@rslint/darwin-arm64@0.1.14':
     optional: true
 
-  '@rslint/darwin-x64@0.1.13':
+  '@rslint/darwin-x64@0.1.14':
     optional: true
 
-  '@rslint/linux-arm64@0.1.13':
+  '@rslint/linux-arm64@0.1.14':
     optional: true
 
-  '@rslint/linux-x64@0.1.13':
+  '@rslint/linux-x64@0.1.14':
     optional: true
 
-  '@rslint/win32-arm64@0.1.13':
+  '@rslint/win32-arm64@0.1.14':
     optional: true
 
-  '@rslint/win32-x64@0.1.13':
+  '@rslint/win32-x64@0.1.14':
     optional: true
 
   '@rspack/binding-darwin-arm64@1.6.8':
