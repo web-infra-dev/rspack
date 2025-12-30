@@ -38,7 +38,9 @@ To alleviate this issue, we contributed and introduced a series of [compatibilit
 - Using the self-describing [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) serialization scheme to replace the version-sensitive [rkyv](https://rkyv.org/), allowing Wasm plugins to better adapt to AST structure changes.
 - Introducing the `Unknown` variant for enum types in the AST, improving fault tolerance when encountering new fields or nodes.
 
-In Rspack 1.7, we upgraded the used SWC version and supported the above scheme. Currently, this scheme has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, please refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this scheme and reduce maintenance costs in future version evolutions.
+In Rspack 1.7, we upgraded the used SWC version and supported the above scheme. From now on, in most scenarios, SWC upgrades will not affect the normal operation of plugins built with older SWC versions.
+
+Currently, this scheme has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, please refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this scheme and reduce maintenance costs in future version evolutions.
 
 ### Support for Import Bytes
 

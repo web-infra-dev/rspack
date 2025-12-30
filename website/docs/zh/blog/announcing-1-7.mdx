@@ -38,7 +38,9 @@ _2025 年 12 月 31 日_
 - 使用自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化方案，取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更
 - 为 AST 中的枚举类型引入 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力
 
-在 Rspack 1.7 中，我们升级了使用的 SWC 版本并支持了上述方案。目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
+在 Rspack 1.7 中，我们升级了使用的 SWC 版本并支持了上述方案。在此之后，多数场景下 SWC 的升级将不会影响基于旧版本 SWC 构建的插件的正常使用。
+
+目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
 
 ### 支持 Import Bytes
 
