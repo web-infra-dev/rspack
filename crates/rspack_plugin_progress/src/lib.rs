@@ -480,7 +480,7 @@ async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ProgressPlugin)]
-async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(&self, _compilation: &Compilation) -> Result<Option<bool>> {
   self
     .sealing_hooks_report("chunk modules optimization", 13)
     .await?;

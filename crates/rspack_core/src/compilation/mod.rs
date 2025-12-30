@@ -83,7 +83,7 @@ define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, d
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
-define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &Compilation) -> bool);
 define_hook!(CompilationModuleIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
@@ -446,6 +446,15 @@ impl Compilation {
 
   pub fn compiler_id(&self) -> CompilerId {
     self.compiler_id
+  }
+
+  /// # Safety
+  ///
+  /// This converts an immutable reference to a mutable one. Callers must
+  /// ensure they have exclusive access to the [`Compilation`] before invoking
+  /// this method.
+  pub unsafe fn as_mut_unchecked(&self) -> &mut Self {
+    &mut *(self as *const Self as *mut Self)
   }
 
   pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {

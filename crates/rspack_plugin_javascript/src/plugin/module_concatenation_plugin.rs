@@ -1395,7 +1395,8 @@ impl ModuleConcatenationPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  let compilation = unsafe { compilation.as_mut_unchecked() };
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES
     | IncrementalPasses::MODULE_IDS

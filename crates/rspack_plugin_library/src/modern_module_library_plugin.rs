@@ -451,8 +451,10 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ModernModuleLibraryPlugin)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.optimize_chunk_modules_impl(compilation).await?;
+async fn optimize_chunk_modules(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  self
+    .optimize_chunk_modules_impl(unsafe { compilation.as_mut_unchecked() })
+    .await?;
   Ok(None)
 }
 
