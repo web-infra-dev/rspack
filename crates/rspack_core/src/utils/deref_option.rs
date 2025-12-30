@@ -15,6 +15,9 @@ impl<T> DerefOption<T> {
   pub fn new(value: T) -> Self {
     Self(Some(value))
   }
+  pub fn is_none(&self) -> bool {
+    self.0.is_none()
+  }
   pub fn take(&mut self) -> T {
     self
       .0
