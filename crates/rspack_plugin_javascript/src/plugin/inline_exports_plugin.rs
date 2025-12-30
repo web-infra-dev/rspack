@@ -4,7 +4,8 @@ use rspack_core::{
   Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
   ExportProvided, ExportsInfo, ExportsInfoGetter, GetUsedNameParam, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
-  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem, incremental::IncrementalPasses,
+  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -92,8 +93,9 @@ pub struct InlineExportsPlugin;
 #[plugin_hook(CompilationOptimizeDependencies for InlineExportsPlugin, stage = 100)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
@@ -102,10 +104,10 @@ async fn optimize_dependencies(
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
     diagnostics.extend(diagnostic);
-    compilation.cgm_hash_artifact.clear();
+    //compilation.cgm_hash_artifact.clear();
   }
 
-  let mg = compilation.get_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();
