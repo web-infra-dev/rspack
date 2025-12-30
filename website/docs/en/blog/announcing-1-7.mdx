@@ -17,7 +17,7 @@ Notable changes include:
 
 - New Features
   - [Improved SWC plugin compatibility](#improved-swc-plugin-compatibility)
-  - [Support for Import Bytes](#support-for-import-bytes)
+  - [Importing assets as bytes](#importing-assets-as-bytes)
   - [Lazy compilation](#lazy-compilation)
   - [Experimental features stabilized](#experimental-features-stabilized)
 - Rstack Progress
@@ -31,20 +31,20 @@ Notable changes include:
 
 ### Improved SWC plugin compatibility
 
-In previous versions, the upgrade cost for SWC Wasm plugins was relatively high. This was because the SWC AST structure would change with version evolution, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to synchronize dependency upgrades, which affected project stability and the upgrade experience.
+In previous versions, the upgrade cost for SWC Wasm plugins was relatively high. This was because the SWC AST structure would change across versions, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to upgrade dependencies, which affected project stability and the upgrade experience.
 
 To alleviate this issue, we contributed and introduced a series of [compatibility improvements](https://swc.rs/docs/plugin/ecmascript/compatibility) to the SWC community, including:
 
 - Using the self-describing [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) serialization scheme to replace the version-sensitive [rkyv](https://rkyv.org/), allowing Wasm plugins to better adapt to AST structure changes.
 - Introducing the `Unknown` variant for enum types in the AST, improving fault tolerance when encountering new fields or nodes.
 
-In Rspack 1.7, we upgraded the used SWC version and supported the above approach. From now on, in most scenarios, SWC upgrades will not affect the normal operation of plugins built with older SWC versions.
+In Rspack 1.7, we upgraded the used SWC version and adopted these compatibility mechanisms. From now on, in most scenarios, SWC upgrades will not break existing plugins built with older SWC versions.
 
 Currently, this approach has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt this approach and reduce maintenance costs in future version evolutions.
 
-### Support for Import Bytes
+### Importing assets as bytes
 
-Rspack now natively supports the [TC39 import attributes](https://github.com/tc39/proposal-import-bytes) proposal for importing resource files as bytes. You can directly import resources as `Uint8Array` binary data and decode them using `TextDecoder`.
+Rspack now natively supports the [Import Bytes](https://github.com/tc39/proposal-import-bytes) proposal for importing assets as bytes. You can now import assets as `Uint8Array` and decode them using `TextDecoder`.
 
 ```js
 // Static import
@@ -78,7 +78,7 @@ If you have special requirements, such as needing to debug the full build output
 
 ### Experimental features stabilized
 
-In Rspack 1.7, we have advanced the stabilization of several experimental features. The following capabilities have been verified and entered the stable stage, and the corresponding experimental flags have been deprecated or adjusted to default behaviors:
+In Rspack 1.7, we have advanced the stabilization of several experimental features. The following capabilities have been verified and are now considered stable, and the corresponding experimental flags have been deprecated or enabled by default:
 
 - **Constant Inlining Optimization**: This optimization is now stable and enabled by default in production builds.
   - The original [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) option is deprecated.
@@ -98,7 +98,7 @@ In Rspack 1.7, we have advanced the stabilization of several experimental featur
 
 #### Error overlay improvements
 
-Rsbuild's error overlay now supports displaying **runtime errors**. When an exception is thrown during application execution, the error will be rendered directly on the overlay, helping you discover and locate problems faster.
+Rsbuild's error overlay now supports displaying **runtime errors**. When an exception is thrown during application execution, the error will be rendered directly on the overlay, helping you identify and diagnose issues faster.
 
 ![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
 
@@ -116,7 +116,7 @@ export default {
 };
 ```
 
-#### Print size diff
+#### Printing size diff
 
 Rsbuild now supports printing size differences to visually observe if the build output size has changed.
 
@@ -152,13 +152,13 @@ When creating an Rsbuild project, you can now choose to automatically integrate 
 
 ### Rsdoctor 1.4
 
-#### New tree map view
+#### New treemap view
 
-Rsdoctor 1.4 has improved the original [Tree Map](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
+Rsdoctor 1.4 has improved the original [Treemap](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
 
 In this view, you can quickly locate specific modules or assets via search. Clicking on a module or asset will automatically focus and zoom in on the corresponding area. Double-clicking a module can also expand its dependency chain, allowing you to view the reference relationship between modules layer by layer, thus clarifying the source of the size.
 
-![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
+![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
 
 ### Rslib 0.19
 

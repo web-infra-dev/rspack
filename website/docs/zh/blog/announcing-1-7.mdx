@@ -44,7 +44,7 @@ _2025 年 12 月 31 日_
 
 ### 支持 Import Bytes
 
-Rspack 现已原生支持 [TC39 import attributes](https://github.com/tc39/proposal-import-bytes) 提案的 bytes 类型导入资源文件，可直接将资源作为 `Uint8Array` 二进制数据导入，并通过 `TextDecoder` 解码。
+Rspack 现已原生支持 [Import Bytes](https://github.com/tc39/proposal-import-bytes) 提案，可以将静态资源作为 `Uint8Array` 导入，并通过 `TextDecoder` 解码。
 
 ```js
 // 静态导入
@@ -118,7 +118,7 @@ export default {
 
 #### 产物体积对比
 
-Rsbuild 现在支持产物体积对比，用来直观地观察构建结果是否发生了体积变化。
+Rsbuild 现在支持输出产物体积对比，用来直观地观察构建结果是否发生了体积变化。
 
 ![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
 
@@ -152,13 +152,13 @@ export default {
 
 ### Rsdoctor 1.4
 
-#### 全新的 Tree Map 视图
+#### 全新的 Treemap 视图
 
-Rsdoctor 1.4 对原有的 [Tree Map](https://rsdoctor.rs/zh/guide/usage/bundle-size) 视图进行了改进。新的交互设计可以帮助你更直观地分析 bundle 的整体构成，以及各类资源和模块的体积占比。
+Rsdoctor 1.4 对原有的 [Treemap](https://rsdoctor.rs/zh/guide/usage/bundle-size) 视图进行了改进。新的交互设计可以帮助你更直观地分析 bundle 的整体构成，以及各类资源和模块的体积占比。
 
 在该视图中，你可以通过搜索快速定位到具体的模块或资源。点击某个模块或资源后，视图会自动聚焦并放大对应区域。双击模块还可以展开其依赖链路，逐层查看模块之间的引用关系，从而更清晰地分析体积来源。
 
-![Rsdoctor Tree Map](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
+![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
 
 ### Rslib 0.19
 
