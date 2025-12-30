@@ -13,7 +13,7 @@ module.exports = {
 	},
 	plugins: [
 		new TreeShakeSharedPlugin({
-			reshake: true,
+			reShake: true,
 					plugins: [
 					{
 						apply(compiler) {
@@ -24,7 +24,7 @@ module.exports = {
 									},
 									async () => {
 										compilation.emitAsset('apply-plugin.json', new compilation.compiler.rspack.sources.RawSource(JSON.stringify({
-											reshake: true
+											reShake: true
 										})))
 									})
 							})
