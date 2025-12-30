@@ -79,8 +79,6 @@ export interface AssetEmittedInfo {
   compilation: Compilation;
 }
 
-const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
-
 export type CompilerHooks = {
   done: liteTapable.AsyncSeriesHook<Stats>;
   afterDone: liteTapable.SyncHook<Stats>;
@@ -130,6 +128,9 @@ class Compiler {
   #initial: boolean;
 
   #compilation?: Compilation;
+  // TODO: GC issue - manual cleanup needed to prevent memory leaks.
+  // Suspected closure references preventing proper garbage collection.
+  #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
   #compilationParams?: CompilationParams;
 
   #builtinPlugins: binding.BuiltinPlugin[];
@@ -756,6 +757,12 @@ class Compiler {
   }
 
   close(callback: (error?: Error | null) => void) {
+    if (this.#compilation) {
+      this.#bindingCompilationMap.delete(
+        this.#compilation.__internal_getInner(),
+      );
+    }
+
     if (this.watching) {
       // When there is still an active watching, close this #initial
       this.watching.close(() => {
@@ -822,12 +829,14 @@ class Compiler {
    * @internal
    */
   __internal__create_compilation(native: binding.JsCompilation): Compilation {
-    let compilation = COMPILATION_WEAK_MAP.get(native);
+    let compilation = this.#bindingCompilationMap.get(native);
 
     if (!compilation) {
       compilation = new Compilation(this, native);
       compilation.name = this.name;
-      COMPILATION_WEAK_MAP.set(native, compilation);
+      this.#bindingCompilationMap.set(native, compilation);
+    } else {
+      this.#bindingCompilationMap.delete(compilation.__internal_getInner());
     }
 
     this.#compilation = compilation;

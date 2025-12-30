@@ -95,7 +95,8 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
     }
   };
 
-  const compiler = await cli.createCompiler(options, 'build', errorHandler);
+  const userOption = await cli.buildCompilerConfig(options, 'build');
+  const compiler = await cli.createCompiler(userOption, errorHandler);
 
   if (!compiler || cli.isWatch(compiler)) {
     return;

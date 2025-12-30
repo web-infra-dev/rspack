@@ -29,9 +29,11 @@ import {
   getDefaultTarget,
   getTargetProperties,
   getTargetsProperties,
+  type TargetProperties,
 } from './target';
 import type {
   Context,
+  CssGeneratorOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
@@ -83,19 +85,7 @@ export const applyRspackOptionsDefaults = (
   D(options, 'watch', false);
   D(options, 'profile', false);
   // IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
-  F(options, 'lazyCompilation', () => {
-    // for 'web' target only
-    if (
-      !!targetProperties &&
-      targetProperties.web &&
-      !targetProperties.electron &&
-      !targetProperties.node &&
-      !targetProperties.nwjs
-    ) {
-      return { imports: true, entries: false };
-    }
-    return false;
-  });
+  D(options, 'lazyCompilation', false);
   // IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
   D(options, 'bail', false);
 
@@ -343,6 +333,18 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'deferImport', deferImport);
 };
 
+const applyCssGeneratorOptionsDefaults = (
+  generatorOptions: CssGeneratorOptions,
+  { targetProperties }: { targetProperties: TargetProperties | false },
+) => {
+  D(
+    generatorOptions,
+    'exportsOnly',
+    !targetProperties || targetProperties.document === false,
+  );
+  D(generatorOptions, 'esModule', true);
+};
+
 const applyJsonGeneratorOptionsDefaults = (
   generatorOptions: JsonGeneratorOptions,
 ) => {
@@ -424,20 +426,15 @@ const applyModuleDefaults = (
     // IGNORE(module.generator): already check to align in 2024.6.27
     F(module.generator, 'css', () => ({}));
     assertNotNill(module.generator.css);
-    D(
-      module.generator.css,
-      'exportsOnly',
-      !targetProperties || !targetProperties.document,
-    );
-    D(module.generator.css, 'esModule', true);
+    applyCssGeneratorOptionsDefaults(module.generator.css, {
+      targetProperties,
+    });
 
     F(module.generator, 'css/auto', () => ({}));
     assertNotNill(module.generator['css/auto']);
-    D(
-      module.generator['css/auto'],
-      'exportsOnly',
-      !targetProperties || !targetProperties.document,
-    );
+    applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
+      targetProperties,
+    });
     D(module.generator['css/auto'], 'exportsConvention', 'as-is');
     const localIdentName =
       mode === 'development'
@@ -446,18 +443,14 @@ const applyModuleDefaults = (
           : '[id]-[local]'
         : '[fullhash]';
     D(module.generator['css/auto'], 'localIdentName', localIdentName);
-    D(module.generator['css/auto'], 'esModule', true);
 
     F(module.generator, 'css/module', () => ({}));
     assertNotNill(module.generator['css/module']);
-    D(
-      module.generator['css/module'],
-      'exportsOnly',
-      !targetProperties || !targetProperties.document,
-    );
+    applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+      targetProperties,
+    });
     D(module.generator['css/module'], 'exportsConvention', 'as-is');
     D(module.generator['css/module'], 'localIdentName', localIdentName);
-    D(module.generator['css/module'], 'esModule', true);
   }
 
   // IGNORE(module.defaultRules): Rspack does not support `rule.assert`

@@ -22,7 +22,7 @@ exports["default"] = 'esm'
 
 },
 });
-// ./index.js
+// ./lib.js
 const foo = __webpack_require__("./foo.cjs");
 const from_esm = __webpack_require__("./from-esm.cjs");
 
@@ -39,6 +39,8 @@ it('should have correct import', () => {
 	expect(foo.foo).toBe(42)
 	expect(/* inlined export .value */("value")).toBe('value')
 })
+
+// ./index.js
 
 
 ```

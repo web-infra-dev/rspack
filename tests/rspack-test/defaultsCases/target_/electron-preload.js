@@ -17,12 +17,6 @@ module.exports = {
 			-     "node": false,
 			+     "node": true,
 			@@ ... @@
-			-   "lazyCompilation": Object {
-			-     "entries": false,
-			-     "imports": true,
-			-   },
-			+   "lazyCompilation": false,
-			@@ ... @@
 			-       "document": true,
 			+       "document": false,
 			@@ ... @@

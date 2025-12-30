@@ -1,5 +1,5 @@
 #![allow(clippy::unwrap_used)]
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
 use criterion::criterion_group;
 use rspack::builder::Builder as _;
@@ -180,21 +180,24 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-
+    let mut build_module_graph_artifact =
+      mem::take(&mut compiler.compilation.build_module_graph_artifact);
     while matches!(
       compiler
         .plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(
-          &mut compiler.compilation,
+          &compiler.compilation,
           &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
           &mut diagnostics
         )
         .await
         .unwrap(),
       Some(true)
     ) {}
+    compiler.compilation.build_module_graph_artifact = build_module_graph_artifact;
 
     compiler.compilation.side_effects_optimize_artifact =
       DerefOption::new(side_effects_optimize_artifact);

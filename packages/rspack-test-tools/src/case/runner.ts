@@ -3,6 +3,14 @@ import { NodeRunner, WebRunner } from '../runner';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv, ITestRunner } from '../type';
 
+const isWebTarget = (compilerOptions: RspackOptions): boolean => {
+  const target = compilerOptions.target;
+  if (Array.isArray(target)) {
+    return target.some((t) => t === 'web' || t === 'webworker');
+  }
+  return target === 'web' || target === 'webworker';
+};
+
 export type THotStepRuntimeLangData = {
   outdatedModules: string[];
   outdatedDependencies: Record<string, string[]>;
@@ -60,10 +68,8 @@ export function createRunner(
     dist: context.getDist(),
     compilerOptions,
   };
-  if (
-    compilerOptions.target === 'web' ||
-    compilerOptions.target === 'webworker'
-  ) {
+  const isWeb = isWebTarget(compilerOptions);
+  if (isWeb) {
     return new WebRunner({
       ...runnerOptions,
       runInNewContext: true,
@@ -144,10 +150,8 @@ export function createMultiCompilerRunner(
     logs,
     errors,
   };
-  if (
-    compilerOptions.target === 'web' ||
-    compilerOptions.target === 'webworker'
-  ) {
+  const isWeb = isWebTarget(compilerOptions);
+  if (isWeb) {
     runner = new WebRunner({
       ...runnerOptions,
       runInNewContext: true,

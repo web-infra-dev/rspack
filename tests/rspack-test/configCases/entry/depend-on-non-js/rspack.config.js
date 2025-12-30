@@ -1,5 +1,3 @@
-// CHANGE:
-// const MiniCssPlugin = require("mini-css-extract-plugin");
 const MiniCssPlugin = require("@rspack/core").CssExtractRspackPlugin;
 
 /** @type {import("@rspack/core").Configuration} */
