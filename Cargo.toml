@@ -145,9 +145,9 @@ swc_html_minifier   = { version = "42.0.0", default-features = false }
 swc_node_comments   = { version = "18.0.0", default-features = false }
 swc_plugin_runner   = { version = "23.0.0", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.3.5", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.3.5", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.3.5", default-features = false }
+swc_experimental_ecma_ast      = { version = "0.4.0", default-features = false }
+swc_experimental_ecma_parser   = { version = "0.4.0", default-features = false }
+swc_experimental_ecma_semantic = { version = "0.4.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client = { version = "=0.18.3", default-features = false, features = [
