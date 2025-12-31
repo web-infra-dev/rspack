@@ -102,7 +102,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
+define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -1391,7 +1391,7 @@ impl Compilation {
   }
 
   #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+  async fn after_seal(&self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver.compilation_hooks.after_seal.call(self).await
   }
 
