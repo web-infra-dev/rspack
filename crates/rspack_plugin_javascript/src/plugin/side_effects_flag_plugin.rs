@@ -400,17 +400,16 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = match get_target(
+    let Some(GetTargetResult::Target(target)) = get_target(
       &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
       &mut Default::default(),
-    ) {
-      Some(GetTargetResult::Target(target)) => Some(target),
-      _ => None,
-    }?;
+    ) else {
+      return None;
+    };
 
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
