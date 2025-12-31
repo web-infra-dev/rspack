@@ -28,9 +28,12 @@ pub fn is_export_inlined(
   runtime: Option<&RuntimeSpec>,
 ) -> bool {
   let used_name = if ids.is_empty() {
-    let exports_info =
-      ExportsInfoGetter::prefetch_used_info_without_name(&mg.get_exports_info(module), mg, runtime);
-    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithoutNames(&exports_info), runtime, ids)
+    let exports_info_used = mg.get_prefetched_exports_info_used(module, runtime);
+    ExportsInfoGetter::get_used_name(
+      GetUsedNameParam::WithoutNames(&exports_info_used),
+      runtime,
+      ids,
+    )
   } else {
     let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
     ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids)
@@ -66,7 +69,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
     return true;
   };
   let module = connection.module_identifier();
-  let exports_info = mg.get_exports_info(module).as_data(mg);
+  let exports_info = mg.get_exports_info_data(module);
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return true;
   }

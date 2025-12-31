@@ -438,7 +438,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_usage_key(&self, runtime: Option<&RuntimeSpec>) -> UsageKey {
-    // only expand capacity when this has redirect_to
     let mut key = UsageKey(Vec::with_capacity(self.exports().count() + 2));
 
     key.add(Either::Right(self.other_exports_info().get_used(runtime)));
@@ -460,27 +459,20 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
  * that should avoid the unnecessary prefetch of the whole named exports
  */
 #[derive(Debug, Clone)]
-pub struct PrefetchedExportsInfoUsed<'a> {
+pub struct PrefetchedExportsInfoUsed {
   // if this exports info is used
   is_used: bool,
   // if this exports info is used or this module is used
   is_module_used: bool,
-  // the data wrapper of the exports info
-  // only when you need to get the used info and the full exports info data
-  data: Option<PrefetchedExportsInfoWrapper<'a>>,
 }
 
-impl<'a> PrefetchedExportsInfoUsed<'a> {
+impl PrefetchedExportsInfoUsed {
   pub fn is_used(&self) -> bool {
     self.is_used
   }
 
   pub fn is_module_used(&self) -> bool {
     self.is_module_used
-  }
-
-  pub fn data(&self) -> Option<&PrefetchedExportsInfoWrapper<'a>> {
-    self.data.as_ref()
   }
 }
 
@@ -553,11 +545,11 @@ impl ExportsInfoGetter {
     }
   }
 
-  pub fn prefetch_used_info_without_name<'a>(
+  pub fn prefetch_used_info_without_name(
     id: &ExportsInfo,
-    mg: &'a ModuleGraph,
+    mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> PrefetchedExportsInfoUsed<'a> {
+  ) -> PrefetchedExportsInfoUsed {
     fn is_exports_info_used(
       info: &ExportsInfo,
       runtime: Option<&RuntimeSpec>,
@@ -583,7 +575,6 @@ impl ExportsInfoGetter {
     PrefetchedExportsInfoUsed {
       is_used,
       is_module_used,
-      data: None,
     }
   }
 
@@ -661,6 +652,6 @@ impl ExportsInfoGetter {
 }
 
 pub enum GetUsedNameParam<'a> {
-  WithoutNames(&'a PrefetchedExportsInfoUsed<'a>),
+  WithoutNames(&'a PrefetchedExportsInfoUsed),
   WithNames(&'a PrefetchedExportsInfoWrapper<'a>),
 }
