@@ -311,7 +311,7 @@ pub struct ChunkLinkContext {
   pub raw_import_stmts: FxIndexMap<(String, Option<String>), ImportSpec>,
 
   /**
-  const symbol = __webpack_require__(module_id)
+  `const symbol = __webpack_require__(module_id)`
   */
   pub required: IdentifierIndexMap<ExternalInterop>,
 

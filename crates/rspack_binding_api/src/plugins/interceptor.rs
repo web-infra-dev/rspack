@@ -1228,7 +1228,11 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+  ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 
@@ -1239,7 +1243,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 

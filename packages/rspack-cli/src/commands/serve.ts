@@ -1,4 +1,4 @@
-import type { Compiler } from '@rspack/core';
+import type { Compiler, MultiRspackOptions } from '@rspack/core';
 import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
 import { DEFAULT_SERVER_HOT } from '../constants';
@@ -51,14 +51,17 @@ export class ServeCommand implements RspackCommand {
       // Lazy import @rspack/dev-server to avoid loading it on build mode
       const { RspackDevServer } = await import('@rspack/dev-server');
 
-      const compiler = await cli.createCompiler(cliOptions, 'serve');
+      const userConfig = await cli.buildCompilerConfig(cliOptions, 'serve');
+      const compiler = await cli.createCompiler(userConfig);
       if (!compiler) {
         return;
       }
+      const isMultiCompiler = cli.isMultipleCompiler(compiler);
 
-      const compilers = cli.isMultipleCompiler(compiler)
-        ? compiler.compilers
-        : [compiler];
+      const compilers = isMultiCompiler ? compiler.compilers : [compiler];
+      const userConfigs = isMultiCompiler
+        ? (userConfig as MultiRspackOptions)
+        : ([userConfig] as MultiRspackOptions);
 
       const possibleCompilers = compilers.filter(
         (compiler: Compiler) => compiler.options.devServer,
@@ -80,8 +83,22 @@ export class ServeCommand implements RspackCommand {
       /**
        * Rspack relies on devServer.hot to enable HMR
        */
-      for (const compiler of compilers) {
+      for (const [index, compiler] of compilers.entries()) {
+        const userConfig = userConfigs[index];
         const devServer = (compiler.options.devServer ??= {});
+        const isWebAppOnly =
+          compiler.platform.web &&
+          !compiler.platform.node &&
+          !compiler.platform.nwjs &&
+          !compiler.platform.electron &&
+          !compiler.platform.webworker;
+
+        if (isWebAppOnly && userConfig.lazyCompilation === undefined) {
+          compiler.options.lazyCompilation = {
+            imports: true,
+            entries: false,
+          };
+        }
 
         devServer.hot = cliOptions.hot ?? devServer.hot ?? DEFAULT_SERVER_HOT;
 

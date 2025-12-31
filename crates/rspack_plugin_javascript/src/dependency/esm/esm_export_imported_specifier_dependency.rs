@@ -721,19 +721,16 @@ impl ESMExportImportedSpecifierDependency {
                 runtime_condition,
               )));
           } else {
-            let exports_info = mg.get_exports_info(imported_module);
             let used_name = if ids.is_empty() {
-              let exports_info =
-                ExportsInfoGetter::prefetch_used_info_without_name(&exports_info, mg, None);
+              let exports_info_used = mg.get_prefetched_exports_info_used(imported_module, None);
               ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithoutNames(&exports_info),
+                GetUsedNameParam::WithoutNames(&exports_info_used),
                 None,
                 &ids,
               )
             } else {
-              let exports_info = ExportsInfoGetter::prefetch(
-                &exports_info,
-                mg,
+              let exports_info = mg.get_prefetched_exports_info(
+                imported_module,
                 PrefetchExportsInfoMode::Nested(&ids),
               );
               ExportsInfoGetter::get_used_name(
@@ -1529,9 +1526,7 @@ fn determine_export_assignments(
 
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
-      let exports_info = module_graph
-        .get_exports_info(module_identifier)
-        .as_data(module_graph);
+      let exports_info = module_graph.get_exports_info_data(module_identifier);
 
       for export_info in exports_info.exports().values() {
         // SAFETY: This is safe because a real export can't export empty string
