@@ -1,16 +1,15 @@
-use std::{borrow::Cow, collections::VecDeque};
+use std::borrow::Cow;
 
 use futures::future::BoxFuture;
-use rspack_collections::{Identifiable, IdentifierSet};
+use rspack_collections::Identifiable;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilerId,
-  ConcatenatedInnerModule, DependencyId, Module, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  ModuleType, NormalModule, RscModuleType, RuntimeSpec, get_entry_runtime,
+  ConcatenatedInnerModule, Module, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
 
-use crate::constants::{LAYERS_NAMES, REGEX_CSS};
+use crate::constants::REGEX_CSS;
 
 pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   if let Some(module) = module.as_normal_module() {
@@ -40,116 +39,6 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
   }
   let resource = get_module_resource(module);
   REGEX_CSS.is_match(resource.as_ref())
-}
-
-pub struct ServerEntryModules<'a> {
-  compilation: &'a Compilation,
-  entries_iter: indexmap::map::Iter<'a, String, rspack_core::EntryData>,
-  module_graph: &'a ModuleGraphRef<'a>,
-  entry_name: Option<&'a str>,
-  runtime: Option<RuntimeSpec>,
-  has_ssr_layer_in_current_entry: bool,
-  dependency_queue: VecDeque<DependencyId>,
-  server_entry_modules_per_entry: VecDeque<&'a NormalModule>,
-  visited_modules: IdentifierSet,
-}
-
-impl<'a> ServerEntryModules<'a> {
-  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraphRef<'a>) -> Self {
-    let entries_iter = compilation.entries.iter();
-    Self {
-      compilation,
-      entries_iter,
-      module_graph,
-      entry_name: None,
-      runtime: None,
-      has_ssr_layer_in_current_entry: false,
-      dependency_queue: Default::default(),
-      server_entry_modules_per_entry: Default::default(),
-      visited_modules: Default::default(),
-    }
-  }
-
-  fn next_server_entry(&mut self) -> Option<&'a NormalModule> {
-    while let Some(dependency_id) = self.dependency_queue.pop_front() {
-      let Some(module_identifier) = self.module_graph.get_resolved_module(&dependency_id) else {
-        continue;
-      };
-      if !self.visited_modules.insert(*module_identifier) {
-        continue;
-      }
-      let Some(module) = self.module_graph.module_by_identifier(module_identifier) else {
-        continue;
-      };
-
-      if !self.has_ssr_layer_in_current_entry
-        && module
-          .get_layer()
-          .is_some_and(|layer| layer == LAYERS_NAMES.server_side_rendering)
-      {
-        self.has_ssr_layer_in_current_entry = true;
-      }
-
-      if let Some(normal_module) = module.as_normal_module() {
-        if let Some(rsc) = &normal_module.build_info().rsc
-          && rsc.module_type.contains(RscModuleType::ServerEntry)
-        {
-          return Some(normal_module);
-        }
-      }
-
-      self.dependency_queue.extend(
-        self
-          .module_graph
-          .get_outgoing_deps_in_order(module_identifier)
-          .into_iter()
-          .copied(),
-      );
-    }
-
-    None
-  }
-}
-
-impl<'a> Iterator for ServerEntryModules<'a> {
-  type Item = (&'a NormalModule, &'a str, RuntimeSpec, bool);
-
-  fn next(&mut self) -> Option<Self::Item> {
-    'outer: loop {
-      // Return any queued server entry modules from the current entry
-      if let Some(module) = self.server_entry_modules_per_entry.pop_front() {
-        return Some((
-          module,
-          self.entry_name.unwrap(),
-          self.runtime.clone().unwrap(),
-          self.has_ssr_layer_in_current_entry,
-        ));
-      }
-
-      while !self.dependency_queue.is_empty() {
-        if let Some(module) = self.next_server_entry() {
-          self.server_entry_modules_per_entry.push_back(module);
-        }
-        if !self.server_entry_modules_per_entry.is_empty() {
-          continue 'outer;
-        }
-      }
-
-      let (entry_name, entry_data) = self.entries_iter.next()?;
-      self.entry_name = Some(entry_name.as_str());
-      self.runtime = Some(get_entry_runtime(
-        entry_name,
-        &entry_data.options,
-        &self.compilation.entries,
-      ));
-
-      let entry_dependency = entry_data.dependencies[0];
-      self.dependency_queue.push_back(entry_dependency);
-
-      self.visited_modules.clear();
-      self.has_ssr_layer_in_current_entry = false;
-    }
-  }
 }
 
 pub struct ChunkModules<'a> {

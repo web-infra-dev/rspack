@@ -6,13 +6,11 @@ use regex::Regex;
 pub const LAYERS_NAMES: LayersNames = LayersNames {
   react_server_components: "react-server-components",
   server_side_rendering: "server-side-rendering",
-  action_browser: "action-browser",
 };
 
 pub struct LayersNames {
   pub react_server_components: &'static str,
   pub server_side_rendering: &'static str,
-  pub action_browser: &'static str,
 }
 
 pub static REGEX_CSS: Lazy<Regex> = Lazy::new(|| {

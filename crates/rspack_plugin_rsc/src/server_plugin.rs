@@ -520,11 +520,7 @@ impl RscServerPlugin {
     );
 
     // Inject the entry to the server compiler
-    let layer = if from_client {
-      LAYERS_NAMES.action_browser.to_string()
-    } else {
-      LAYERS_NAMES.react_server_components.to_string()
-    };
+    let layer = LAYERS_NAMES.react_server_components.to_string();
     let action_entry_dep = EntryDependency::new(
       action_entry_loader,
       compilation.options.context.clone(),

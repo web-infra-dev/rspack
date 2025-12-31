@@ -30,9 +30,5 @@ export const RSC_LAYERS_NAMES = {
 	/**
 	 * Server Side Rendering layer for app.
 	 */
-	SERVER_SIDE_RENDERING: "server-side-rendering",
-	/**
-	 * The browser client bundle layer for actions.
-	 */
-	ACTION_BROWSER: "action-browser"
+	SERVER_SIDE_RENDERING: "server-side-rendering"
 };
