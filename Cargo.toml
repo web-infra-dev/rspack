@@ -53,7 +53,7 @@ indicatif           = { version = "0.17.9", default-features = false }
 indoc               = { version = "2.0.7", default-features = false }
 insta               = { version = "1.42.0", default-features = false }
 itertools           = { version = "0.14.0", default-features = false, features = ["use_std"] }
-itoa                = { version = "1.0.16", default-features = false }
+itoa                = { version = "1.0.17", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 jsonc-parser        = { version = "0.26.2", default-features = false, features = ["serde"] }
 lightningcss        = { version = "1.0.0-alpha.68", default-features = false, features = ["serde"] }
@@ -73,7 +73,7 @@ paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
 pathdiff            = { version = "0.2.3", default-features = false }
 pretty_assertions   = { version = "1.4.1", default-features = false, features = ["std"] }
-proc-macro2         = { version = "1.0.103", default-features = false }
+proc-macro2         = { version = "1.0.104", default-features = false }
 prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.42", default-features = false }
 rayon               = { version = "1.11.0", default-features = false }
@@ -87,7 +87,7 @@ rustc-hash          = { version = "2.1.1", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
 serde               = { version = "1.0.228", default-features = false, features = ["derive"] }
-serde_json          = { version = "1.0.147", default-features = false, features = ["std"] }
+serde_json          = { version = "1.0.148", default-features = false, features = ["std"] }
 sftrace-setup       = { version = "0.1.2", default-features = false }
 sha2                = { version = "0.10.9", default-features = false }
 signal-hook         = { version = "0.3.18", default-features = false, features = ["iterator"] }
@@ -95,7 +95,7 @@ simd-json           = { version = "0.17.0", default-features = false }
 smol_str            = { version = "0.3.4", default-features = false }
 stacker             = { version = "0.1.22", default-features = false }
 sugar_path          = { version = "1.2.1", default-features = false, features = ["cached_current_dir"] }
-syn                 = { version = "2.0.111", default-features = false }
+syn                 = { version = "2.0.112", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
@@ -134,7 +134,7 @@ inventory = { version = "0.3.17", default-features = false }
 rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "bytecheck"] }
 
 # Must be pinned with the same swc versions
-pnp                 = { version = "0.12.6", default-features = false }
+pnp                 = { version = "0.12.7", default-features = false }
 swc                 = { version = "52.0.0", default-features = false }
 swc_config          = { version = "3.1.2", default-features = false }
 swc_core            = { version = "54.0.0", default-features = false, features = ["parallel_rayon"] }
