@@ -1243,7 +1243,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 

@@ -81,7 +81,8 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .set_used_in_unknown_way(module_graph, runtime.as_ref()),
+        .as_data_mut(module_graph)
+        .set_used_in_unknown_way(runtime.as_ref()),
     )
   }
 

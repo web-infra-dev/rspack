@@ -63,8 +63,8 @@ async fn optimize_dependencies(
   let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
 
   for module_id in module_id_list {
-    let exports_info = mg.get_exports_info(&module_id);
-    exports_info.set_used_in_unknown_way(mg, Some(&runtime));
+    mg.get_exports_info_data_mut(&module_id)
+      .set_used_in_unknown_way(Some(&runtime));
   }
 
   Ok(None)

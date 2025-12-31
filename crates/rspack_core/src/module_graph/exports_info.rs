@@ -2,7 +2,7 @@ use rayon::prelude::*;
 
 use crate::{
   ExportsInfo, ExportsInfoData, ExportsInfoGetter, ModuleGraph, ModuleIdentifier,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper, RuntimeSpec,
 };
 
 impl ModuleGraph {
@@ -11,6 +11,25 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm")
       .exports
+  }
+
+  pub fn get_exports_info_data(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfoData {
+    self
+      .inner
+      .exports_info_map
+      .get(&self.get_exports_info(module_identifier))
+      .expect("should have exports info")
+  }
+
+  pub fn get_exports_info_data_mut(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+  ) -> &mut ExportsInfoData {
+    self
+      .inner
+      .exports_info_map
+      .get_mut(&self.get_exports_info(module_identifier))
+      .expect("should have exports info")
   }
 
   pub fn get_prefetched_exports_info_optional<'b>(
@@ -32,14 +51,25 @@ impl ModuleGraph {
     ExportsInfoGetter::prefetch(&exports_info, self, mode)
   }
 
-  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+  pub fn get_prefetched_exports_info_used(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> PrefetchedExportsInfoUsed {
     self
-      .try_get_exports_info_by_id(id)
+      .module_graph_module_by_identifier(module_identifier)
+      .map(move |mgm| {
+        ExportsInfoGetter::prefetch_used_info_without_name(&mgm.exports, self, runtime)
+      })
       .expect("should have exports info")
   }
 
-  pub fn try_get_exports_info_by_id(&self, id: &ExportsInfo) -> Option<&ExportsInfoData> {
-    self.inner.exports_info_map.get(id)
+  pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+    self
+      .inner
+      .exports_info_map
+      .get(id)
+      .expect("should have exports info")
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfo) -> &mut ExportsInfoData {

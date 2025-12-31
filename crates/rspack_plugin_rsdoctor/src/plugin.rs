@@ -9,9 +9,9 @@ use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, Plugin,
+  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
@@ -379,7 +379,12 @@ async fn optimize_chunk_modules(&self, compilation: &Compilation) -> Result<Opti
 }
 
 #[plugin_hook(CompilationModuleIds for RsdoctorPlugin, stage = 9999)]
-async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+async fn module_ids(
+  &self,
+  compilation: &Compilation,
+  module_ids: &mut ModuleIdsArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleIds) {
     return Ok(());
   }
@@ -392,7 +397,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     &MODULE_UKEY_MAP
       .get(&compilation.id())
       .expect("should have module ukey map"),
-    &compilation.module_ids_artifact,
+    module_ids,
   );
 
   tokio::spawn(async move {

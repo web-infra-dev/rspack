@@ -80,11 +80,11 @@ define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &Compilation) -> bool);
-define_hook!(CompilationModuleIds: Series(compilation: &mut Compilation));
+define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
@@ -1735,12 +1735,16 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
+    let mut diagnostics = vec![];
+    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
     plugin_driver
       .compilation_hooks
       .module_ids
-      .call(self)
+      .call(self, &mut module_ids_artifact, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    self.module_ids_artifact = module_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     let start = logger.time("chunk ids");

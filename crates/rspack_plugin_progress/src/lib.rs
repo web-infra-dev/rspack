@@ -19,7 +19,7 @@ use rspack_core::{
   CompilationOptimizeModules, CompilationOptimizeTree, CompilationParams, CompilationProcessAssets,
   CompilationSeal, CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation,
   CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
-  ModuleIdentifier, Plugin, SideEffectsOptimizeArtifact,
+  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
@@ -460,7 +460,7 @@ async fn optimize_modules(
 }
 
 #[plugin_hook(CompilationAfterOptimizeModules for ProgressPlugin)]
-async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_optimize_modules(&self, _compilation: &Compilation) -> Result<()> {
   self
     .sealing_hooks_report("after module optimization", 8)
     .await
@@ -488,7 +488,12 @@ async fn optimize_chunk_modules(&self, _compilation: &Compilation) -> Result<Opt
 }
 
 #[plugin_hook(CompilationModuleIds for ProgressPlugin)]
-async fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
+async fn module_ids(
+  &self,
+  _compilation: &Compilation,
+  _module_ids: &mut ModuleIdsArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   self.sealing_hooks_report("module ids", 16).await
 }
 
