@@ -113,6 +113,23 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let require_global = compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      let entry_chunk_ids = compilation
+        .chunk_graph
+        .get_chunk_entry_dependent_chunks_iterable(
+          &chunk_ukey,
+          &compilation.chunk_by_ukey,
+          &compilation.chunk_group_by_ukey,
+        )
+        .map(|chunk_ukey| {
+          compilation
+            .chunk_by_ukey
+            .expect_get(&chunk_ukey)
+            .expect_id()
+            .to_string()
+        })
+        .collect::<Vec<_>>();
+      let entry_chunk_ids_literal =
+        serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
 
       let mut code = String::with_capacity(256 + module_executions.len());
 
@@ -153,31 +170,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         .push_str("\t\tvar promises = base && typeof base.then === \"function\" ? [base] : [];\n");
       code.push_str("\t\tvar f = __webpack_require__.f;\n");
       code.push_str("\t\tif (f) {\n");
-      code.push_str("\t\t\tvar startupChunkIds = [];\n");
-      code.push_str("\t\t\tvar seen = {};\n");
-      code.push_str("\t\t\tvar mapping;\n");
-      code.push_str(
-        "\t\t\tif (__webpack_require__.remotesLoadingData && (mapping = __webpack_require__.remotesLoadingData.chunkMapping)) {\n",
-      );
-      code.push_str("\t\t\t\tfor (var id in mapping) {\n");
-      code
-        .push_str("\t\t\t\t\tif (!Object.prototype.hasOwnProperty.call(mapping, id)) continue;\n");
-      code.push_str("\t\t\t\t\tif (seen[id]) continue;\n");
-      code.push_str("\t\t\t\t\tseen[id] = 1;\n");
-      code.push_str("\t\t\t\t\tstartupChunkIds.push(id);\n");
-      code.push_str("\t\t\t\t}\n");
-      code.push_str("\t\t\t}\n");
-      code.push_str(
-        "\t\t\tif (__webpack_require__.consumesLoadingData && (mapping = __webpack_require__.consumesLoadingData.chunkMapping)) {\n",
-      );
-      code.push_str("\t\t\t\tfor (var id in mapping) {\n");
-      code
-        .push_str("\t\t\t\t\tif (!Object.prototype.hasOwnProperty.call(mapping, id)) continue;\n");
-      code.push_str("\t\t\t\t\tif (seen[id]) continue;\n");
-      code.push_str("\t\t\t\t\tseen[id] = 1;\n");
-      code.push_str("\t\t\t\t\tstartupChunkIds.push(id);\n");
-      code.push_str("\t\t\t\t}\n");
-      code.push_str("\t\t\t}\n");
+      code.push_str(&format!(
+        "\t\t\tvar startupChunkIds = {entry_chunk_ids_literal};\n"
+      ));
       code.push_str("\t\t\tif (startupChunkIds.length) {\n");
       code.push_str("\t\t\t\tvar consumes = f.consumes;\n");
       code.push_str("\t\t\t\tif (typeof consumes === \"function\") {\n");
