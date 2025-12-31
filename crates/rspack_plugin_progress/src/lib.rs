@@ -460,7 +460,7 @@ async fn optimize_modules(
 }
 
 #[plugin_hook(CompilationAfterOptimizeModules for ProgressPlugin)]
-async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_optimize_modules(&self, _compilation: &Compilation) -> Result<()> {
   self
     .sealing_hooks_report("after module optimization", 8)
     .await
