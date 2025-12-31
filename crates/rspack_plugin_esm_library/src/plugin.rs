@@ -478,7 +478,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  // SAFETY: optimize_chunks runs with exclusive access to the compilation.
+  let compilation = unsafe { compilation.as_mut() };
   // check if we have to generate proxy chunks
   if let Some(preserve_modules_root) = &self.preserve_modules {
     let errors = preserve_modules(preserve_modules_root, compilation).await;
