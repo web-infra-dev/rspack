@@ -1,15 +1,16 @@
-use std::{fmt::Debug, rc::Rc};
+use std::{borrow::Cow, fmt::Debug, rc::Rc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
-  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  DependencyId, FactoryMeta, Logger, ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget,
+  ResolvedExportInfoTargetWithCircular, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
+  can_move_target, get_target_from_maybe_export_info,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
@@ -353,7 +354,8 @@ fn can_optimize_connection(
       module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
-    let target = export_info.can_move_target(
+    let target = can_move_target(
+      &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
@@ -374,11 +376,11 @@ fn can_optimize_connection(
       })
       .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
     let need_move_target = match export_info {
-      MaybeDynamicTargetExportInfo::Static(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
+      Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
         export_info: export_info.id(),
         target_export: target.export,
       }),
-      MaybeDynamicTargetExportInfo::Dynamic { .. } => None,
+      Cow::Owned { .. } => None,
     };
 
     return Some(SideEffectsDoOptimize {
@@ -399,12 +401,18 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = export_info.get_target(
+    let target = match get_target_from_maybe_export_info(
+      &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
-    )?;
+      &mut Default::default(),
+    ) {
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
+      _ => None,
+    }?;
+
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }

@@ -9,11 +9,11 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, 
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
-  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template,
+  ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult,
+  GetUsedNameParam, IdentCollector, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name, find_new_name,
+  find_target_from_export_info, get_cached_readable_identifier, get_js_chunk_filename_template,
   get_module_directives, get_module_hashbang, property_access, property_name,
   reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
   to_normal_comment,
@@ -1709,7 +1709,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<MaybeDynamicTargetExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfoHashKey>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Ref {
@@ -1988,9 +1988,11 @@ var {} = {{}};
           ));
         }
 
-        let reexport = export_info.find_target(
+        let reexport = find_target_from_export_info(
+          &export_info,
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &mut Default::default(),
         );
         match reexport {
           FindTargetResult::NoTarget => {}

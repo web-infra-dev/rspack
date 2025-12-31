@@ -42,14 +42,14 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
-  DependencyType, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
-  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  find_target_from_export_info, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -2536,7 +2536,7 @@ impl ConcatenatedModule {
     dep_deferred: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+    already_visited: &mut HashSet<ExportInfoHashKey>,
   ) -> FinalBindingResult {
     let info = module_to_info_map
       .get(info_id)
@@ -2872,9 +2872,11 @@ impl ConcatenatedModule {
           }));
         }
 
-        let reexport = export_info.find_target(
+        let reexport = find_target_from_export_info(
+          &export_info,
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &mut Default::default(),
         );
         match reexport {
           crate::FindTargetResult::NoTarget => {}

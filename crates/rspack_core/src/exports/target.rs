@@ -4,9 +4,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  DependencyId, ExportInfo, ExportInfoData, ExportsInfo, ExportsInfoGetter,
-  MaybeDynamicTargetExportInfo, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleIdentifier,
-  PrefetchExportsInfoMode,
+  DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoGetter,
+  ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
 };
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -72,7 +71,7 @@ pub fn find_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-  visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  visited: &mut HashSet<ExportInfoHashKey>,
 ) -> FindTargetResult {
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return FindTargetResult::NoTarget;
@@ -110,7 +109,7 @@ pub fn find_target_from_export_info(
     }
     visited.insert(export_info_hash_key);
     let new_target = find_target_from_export_info(
-      export_info.to_data(),
+      &export_info,
       mg,
       valid_target_module_filter.clone(),
       visited,
@@ -171,7 +170,7 @@ fn get_target_from_export_info(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,
-  already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
   let max_target = export_info.get_max_target();
   let mut values = max_target
@@ -217,21 +216,16 @@ fn get_target_from_export_info(
   }
 }
 
-pub(crate) fn get_target_from_maybe_export_info(
-  export_info: &MaybeDynamicTargetExportInfo,
+pub fn get_target_from_maybe_export_info(
+  export_info: &ExportInfoData,
   mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,
-  already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
-  let export_info = match export_info {
-    MaybeDynamicTargetExportInfo::Static(export_info) => export_info,
-    MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data,
-  };
-
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return None;
   }
-  let hash_key = MaybeDynamicTargetExportInfoHashKey::ExportInfo(export_info.id());
+  let hash_key = export_info.as_hash_key();
   if already_visited.contains(&hash_key) {
     return Some(ResolvedExportInfoTargetWithCircular::Circular);
   }
@@ -241,7 +235,7 @@ pub(crate) fn get_target_from_maybe_export_info(
 
 fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
-  already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  already_visited: &mut HashSet<ExportInfoHashKey>,
   resolve_filter: ResolveFilterFnTy,
   mg: &ModuleGraph,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
@@ -315,4 +309,23 @@ fn resolve_target(
   } else {
     None
   }
+}
+
+pub fn can_move_target(
+  export_info: &ExportInfoData,
+  mg: &ModuleGraph,
+  resolve_filter: ResolveFilterFnTy,
+) -> Option<ResolvedExportInfoTarget> {
+  let target = get_target_with_filter(export_info, mg, resolve_filter)?;
+  let max_target = export_info.get_max_target();
+  let original_target = max_target
+    .values()
+    .next()
+    .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+  if original_target.dependency.as_ref() == Some(&target.dependency)
+    && original_target.export == target.export
+  {
+    return None;
+  }
+  Some(target)
 }
