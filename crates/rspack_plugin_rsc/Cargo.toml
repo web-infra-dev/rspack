@@ -34,6 +34,7 @@ simd-json                = { workspace = true }
 swc_core                 = { workspace = true }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
+urlencoding              = { workspace = true }
 ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]

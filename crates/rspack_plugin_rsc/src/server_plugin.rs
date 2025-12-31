@@ -27,7 +27,7 @@ use crate::{
     client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
   manifest_runtime_module::RscManifestRuntimeModule,
-  plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
   reference_manifest::ManifestExport,
   utils::{ChunkModules, get_module_resource},
 };
@@ -80,11 +80,17 @@ async fn this_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-  let plugin_state = guard
-    .entry(compilation.compiler_id())
-    .or_insert(PluginState::default());
-  plugin_state.clear();
+  // Initialize or reset the plugin state for the current compilation.
+  // If a state already exists, clear it; otherwise, insert a default state.
+  let mut plugin_states = PLUGIN_STATES.borrow_mut();
+  match plugin_states.entry(compilation.compiler_id()) {
+    std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+      occupied_entry.get_mut().clear();
+    }
+    std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+      vacant_entry.insert(Default::default());
+    }
+  };
 
   self.coordinator.start_server_entries_compilation().await?;
 
@@ -96,10 +102,8 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscServerPlugin");
 
   {
-    let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-    let plugin_state = guard
-      .entry(compilation.compiler_id())
-      .or_insert(PluginState::default());
+    let mut plugin_states = PLUGIN_STATES.borrow_mut();
+    let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
 
     let start = logger.time("track server component changes");
     let mut prev_server_component_hashes = self.prev_server_component_hashes.borrow_mut();
@@ -134,10 +138,8 @@ async fn runtime_requirements_in_tree(
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscServerPlugin");
 
-  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-  let plugin_state = guard
-    .entry(compilation.compiler_id())
-    .or_insert(PluginState::default());
+  let mut plugin_states = PLUGIN_STATES.borrow_mut();
+  let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
 
   let start = logger.time("traverse modules");
   self.traverse_chunk_modules(compilation, plugin_state);
@@ -193,7 +195,7 @@ impl RscServerPlugin {
     let mut runtime_per_entry: FxHashMap<String, RuntimeSpec> = Default::default();
 
     for (entry_name, entry_data) in &compilation.entries {
-      let runtime = get_entry_runtime(&entry_name, &entry_data.options, &compilation.entries);
+      let runtime = get_entry_runtime(entry_name, &entry_data.options, &compilation.entries);
       runtime_per_entry.insert(entry_name.to_string(), runtime.clone());
 
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
@@ -215,10 +217,8 @@ impl RscServerPlugin {
       }
 
       {
-        let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-        let plugin_state = guard
-          .entry(compilation.compiler_id())
-          .or_insert(PluginState::default());
+        let mut plugin_states = PLUGIN_STATES.borrow_mut();
+        let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
 
         for client_entry_to_inject in client_entries_to_inject {
           let entry_name = client_entry_to_inject.entry_name.to_string();
@@ -321,9 +321,9 @@ impl RscServerPlugin {
       .await?;
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
-    let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
+    let plugin_states = PLUGIN_STATES.borrow_mut();
     #[allow(clippy::unwrap_used)]
-    let plugin_state = guard.get(&compilation.compiler_id()).unwrap();
+    let plugin_state = plugin_states.get(&compilation.compiler_id()).unwrap();
 
     for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
       // If an action method is already created in the server layer, we don't

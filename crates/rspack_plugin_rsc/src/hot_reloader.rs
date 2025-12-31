@@ -63,10 +63,10 @@ fn collect_changed_server_components(
   }
   visited_modules.insert(module_identifier);
 
-  if let Some(rsc) = module.build_info().rsc.as_ref() {
-    if rsc.module_type.contains(RscModuleType::Client) {
-      return;
-    }
+  if let Some(rsc) = module.build_info().rsc.as_ref()
+    && rsc.module_type.contains(RscModuleType::Client)
+  {
+    return;
   }
 
   if module

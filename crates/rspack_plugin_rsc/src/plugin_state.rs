@@ -1,9 +1,9 @@
+use atomic_refcell::AtomicRefCell;
 use once_cell::sync::Lazy;
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
 use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 use rustc_hash::FxHashMap;
-use tokio::sync::Mutex;
 
 use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceManifest};
 
@@ -49,5 +49,5 @@ impl PluginState {
   }
 }
 
-pub static PLUGIN_STATE_BY_COMPILER_ID: Lazy<Mutex<FxHashMap<CompilerId, PluginState>>> =
+pub static PLUGIN_STATES: Lazy<AtomicRefCell<FxHashMap<CompilerId, PluginState>>> =
   Lazy::new(Default::default);

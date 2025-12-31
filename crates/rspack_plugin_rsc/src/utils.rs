@@ -8,6 +8,7 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
+use urlencoding::encode;
 
 use crate::constants::REGEX_CSS;
 
@@ -160,4 +161,12 @@ pub type GetServerCompilerId =
 /// - output: "\"{\\\"a\\\":1}\""
 pub fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
   serde_json::to_string(&serde_json::to_string(value).to_rspack_result()?).to_rspack_result()
+}
+
+pub fn encode_uri_path(file: &str) -> String {
+  file
+    .split('/')
+    .map(|p| encode(p).into_owned())
+    .collect::<Vec<_>>()
+    .join("/")
 }

@@ -18,9 +18,9 @@ use crate::{
   Coordinator,
   hot_reloader_runtime_module::RscHotReloaderRuntimeModule,
   loaders::client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
-  plugin_state::{ActionIdNamePair, PLUGIN_STATE_BY_COMPILER_ID, PluginState},
+  plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
-  utils::{get_module_resource, is_css_mod},
+  utils::{encode_uri_path, get_module_resource, is_css_mod},
 };
 
 pub struct RscClientPluginOptions {
@@ -55,8 +55,12 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
         }
       };
       required_chunks.push(chunk_id.to_string());
-      // TODO: encode URI path
-      required_chunks.push(file.to_string());
+      // We encode the file as a URI because our server (and many other services such as S3)
+      // expect to receive reserved characters such as `[` and `]` as encoded. This was
+      // previously done for dynamic chunks by patching the Rspack runtime but we want
+      // these filenames to be managed by React's Flight runtime instead and so we need
+      // to implement any special handling of the file name here.
+      required_chunks.push(encode_uri_path(file));
     }
   }
   required_chunks
@@ -467,8 +471,8 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
-  let guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-  let Some(plugin_state) = guard.get(&server_compiler_id) else {
+  let plugin_states = PLUGIN_STATES.borrow_mut();
+  let Some(plugin_state) = plugin_states.get(&server_compiler_id) else {
     return Err(rspack_error::error!(
       "Failed to find plugin state for server compiler (ID: {}). \
      The server compiler may not have properly collected client entry information, \
@@ -545,8 +549,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
-  let mut guard = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-  let Some(plugin_state) = guard.get_mut(&server_compiler_id) else {
+  let mut plugin_states = PLUGIN_STATES.borrow_mut();
+  let Some(plugin_state) = plugin_states.get_mut(&server_compiler_id) else {
     return Err(rspack_error::error!(
       "Failed to find plugin state for server compiler (ID: {}). \
      The server compiler may not have properly collected client entry information, \

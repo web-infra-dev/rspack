@@ -12,7 +12,7 @@ use serde::{Serialize, Serializer, ser::SerializeMap};
 use crate::{
   constants::LAYERS_NAMES,
   loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
-  plugin_state::PLUGIN_STATE_BY_COMPILER_ID,
+  plugin_state::PLUGIN_STATES,
   reference_manifest::{ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest},
   utils::{ChunkModules, to_json_string_literal},
 };
@@ -82,15 +82,13 @@ impl RuntimeModule for RscManifestRuntimeModule {
       return Ok(String::new());
     };
 
-    let mut state_by_compiler_id = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-    let plugin_state = state_by_compiler_id
-      .get_mut(&server_compiler_id)
-      .ok_or_else(|| {
-        rspack_error::error!(
-          "Failed to find RSC plugin state for compiler (ID: {}).",
-          server_compiler_id.as_u32()
-        )
-      })?;
+    let mut plugin_states = PLUGIN_STATES.borrow_mut();
+    let plugin_state = plugin_states.get_mut(&server_compiler_id).ok_or_else(|| {
+      rspack_error::error!(
+        "Failed to find RSC plugin state for compiler (ID: {}).",
+        server_compiler_id.as_u32()
+      )
+    })?;
 
     build_server_manifest(compilation, &mut plugin_state.server_actions)?;
     let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {

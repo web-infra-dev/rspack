@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use crate::{plugin_state::PLUGIN_STATE_BY_COMPILER_ID, utils::to_json_string_literal};
+use crate::{plugin_state::PLUGIN_STATES, utils::to_json_string_literal};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -52,8 +52,8 @@ impl RuntimeModule for RscHotReloaderRuntimeModule {
       return Ok(String::new());
     };
 
-    let mut state_by_compiler_id = PLUGIN_STATE_BY_COMPILER_ID.lock().await;
-    let plugin_state = state_by_compiler_id
+    let mut plugin_states = PLUGIN_STATES.borrow_mut();
+    let plugin_state = plugin_states
       .get_mut(&self.server_compiler_id)
       .ok_or_else(|| {
         rspack_error::error!(
