@@ -5,7 +5,7 @@ use rspack_core::{
   ModuleIdsArtifact, Plugin,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{comparators::compare_ids, itoa};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -124,8 +124,13 @@ fn assign_named_module_ids(
 pub struct NamedModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NamedModuleIdsPlugin)]
-async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
-  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
+async fn module_ids(
+  &self,
+  compilation: &rspack_core::Compilation,
+  module_ids_artifact: &mut ModuleIdsArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let mut module_ids = std::mem::take(module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()
     .map(|(&module, id)| (id.clone(), module))
@@ -234,7 +239,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
     compilation_mutations.extend(mutations);
   }
 
-  compilation.module_ids_artifact = module_ids;
+  *module_ids_artifact = module_ids;
   Ok(())
 }
 
