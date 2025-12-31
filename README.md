@@ -46,7 +46,7 @@ Rstack is a unified JavaScript toolchain centered on Rspack, with high performan
 ## Getting started
 
 <p>
-  <a target="_blank" href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
+  <a target="_blank" href="https://stackblitz.com/fork/github/rstackjs/rspack-stackblitz-example">
     <img
       alt="Open in StackBlitz"
       src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
@@ -70,15 +70,15 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                                 | Description                                                                   |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | A curated list of awesome things related to Rspack                            |
-| [Rspack 1.x documentation](https://rspack.rs/)                                       | Documentation for Rspack 1.x (latest)                                         |
-| [Rspack 0.x documentation](https://v0.rspack.rs/)                                    | Documentation for Rspack 0.x version                                          |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Dev server for Rspack                                                         |
-| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Examples showcasing Rstack                                                    |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Design resources for Rstack                                                   |
+| Name                                                                           | Description                                                                   |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [awesome-rspack](https://github.com/rstackjs/awesome-rstack)                   | A curated list of awesome things related to Rspack                            |
+| [Rspack 1.x documentation](https://rspack.rs/)                                 | Documentation for Rspack 1.x (latest)                                         |
+| [Rspack 0.x documentation](https://v0.rspack.rs/)                              | Documentation for Rspack 0.x version                                          |
+| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)        | Dev server for Rspack                                                         |
+| [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Examples showcasing Rstack                                                    |
+| [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Design resources for Rstack                                                   |
 
 ## Contributors
 
@@ -103,8 +103,8 @@ Thanks to:
 - The `rolldown-legacy` project created by old Rolldown team, It's the predecessor of the [rolldown](https://github.com/rolldown) project, which explores the possibility of making a performant bundler in Rust with Rollup-compatible API. It inspires the design principles of Rspack.
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), `@rspack/html-plugin` is a fork of [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) to avoid some webpack API usage not supported in Rspack.
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
-- The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement [react refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-react-refresh).
-- The [prefresh](https://github.com/preactjs/prefresh) created by [@Jovi De Croock](https://github.com/JoviDeCroock), which inspires implement [preact refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-preact-refresh).
+- The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement [react refresh rspack plugin](https://github.com/rstackjs/rspack-plugin-react-refresh).
+- The [prefresh](https://github.com/preactjs/prefresh) created by [@Jovi De Croock](https://github.com/JoviDeCroock), which inspires implement [preact refresh rspack plugin](https://github.com/rstackjs/rspack-plugin-preact-refresh).
 - The [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
 - The [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
 - The [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) project created by [@jscheid](https://github.com/jscheid), which inspires implement subresource integrity rspack plugin.

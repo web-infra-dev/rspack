@@ -182,7 +182,7 @@ jobs:
 
           RSPACK_DIR=$(pwd)
           cd ..
-          git clone --single-branch --depth 1 https://github.com/rspack-contrib/rstack-ecosystem-ci.git
+          git clone --single-branch --depth 1 https://github.com/rstackjs/rstack-ecosystem-ci.git
           cd rstack-ecosystem-ci
           pnpm i --frozen-lockfile
 
@@ -313,7 +313,7 @@ jobs:
       - name: Checkout ecosystem-ci repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
-          repository: rspack-contrib/rstack-ecosystem-ci
+          repository: rstackjs/rstack-ecosystem-ci
           ref: main
           fetch-depth: 1
           token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
@@ -331,7 +331,7 @@ jobs:
           WORKFLOW_FILE: ecosystem-ci.yml
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
-          HISTORY_REPOSITORY: rspack-contrib/rstack-ecosystem-ci
+          HISTORY_REPOSITORY: rstackjs/rstack-ecosystem-ci
           OUTPUT_DIR: data-artifacts
           GITHUB_TOKEN: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           STACK: rspack
@@ -349,6 +349,6 @@ jobs:
           clean: false
           target-folder: .
           token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
-          repository-name: rspack-contrib/rstack-ecosystem-ci
+          repository-name: rstackjs/rstack-ecosystem-ci
           git-config-name: github-actions[bot]
           git-config-email: github-actions[bot]@users.noreply.github.com

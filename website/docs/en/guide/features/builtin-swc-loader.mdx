@@ -266,7 +266,7 @@ export default {
 };
 ```
 
-this is an [example](https://github.com/rspack-contrib/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
+this is an [example](https://github.com/rstackjs/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
 
 #### Set cache root
 
@@ -470,7 +470,7 @@ Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/depreca
 
 Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 #### collectTypeScriptInfo.exportedEnum
 
@@ -519,8 +519,8 @@ export default {
 
 Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
 
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
+Please refer to [inline enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum) for more details.
 
 :::info
-By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)
 :::
