@@ -74,7 +74,7 @@
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.7.6",
+    "@rstest/core": "^0.7.7",
     "lint-staged": "^16.2.7",
     "prettier": "3.7.4",
     "prettier-2": "npm:prettier@2.8.8",
