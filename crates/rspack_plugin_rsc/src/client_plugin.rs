@@ -36,8 +36,11 @@ pub struct RscClientPlugin {
   client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
 }
 
-fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> Vec<String> {
-  let mut required_chunks = vec![];
+fn extend_required_chunks(
+  chunk_group: &ChunkGroup,
+  compilation: &Compilation,
+  required_chunks: &mut Vec<String>,
+) {
   for chunk_ukey in &chunk_group.chunks {
     let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
       continue;
@@ -63,7 +66,6 @@ fn get_required_chunks(chunk_group: &ChunkGroup, compilation: &Compilation) -> V
       required_chunks.push(encode_uri_path(file));
     }
   }
-  required_chunks
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -71,13 +73,13 @@ fn record_module(
   entry_name: &str,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
-  client_reference_modules: &FxHashSet<ModuleIdentifier>,
+  client_entry_modules: &FxHashSet<ModuleIdentifier>,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
   required_chunks: &[String],
   plugin_state: &mut PluginState,
 ) {
-  let Some(module) = (client_reference_modules.contains(module_identifier))
+  let Some(module) = (client_entry_modules.contains(module_identifier))
     .then(|| compilation.module_by_identifier(module_identifier))
     .flatten()
   else {
@@ -143,7 +145,7 @@ fn record_module(
 #[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
   entry_name: &str,
-  client_reference_modules: &FxHashSet<ModuleIdentifier>,
+  client_entry_modules: &FxHashSet<ModuleIdentifier>,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
   required_chunks: &mut Vec<String>,
@@ -157,6 +159,8 @@ fn record_chunk_group(
   }
   checked_chunk_groups.insert(chunk_group.ukey);
 
+  let module_graph = compilation.get_module_graph();
+
   // Only apply following logic to client module requests from client entry,
   // or if the module is marked as client module. That's because other
   // client modules don't need to be in the manifest at all as they're
@@ -169,7 +173,6 @@ fn record_chunk_group(
     }
     checked_chunks.insert(*chunk_ukey);
 
-    let module_graph = compilation.get_module_graph();
     let chunk_modules = compilation
       .chunk_graph
       .get_chunk_modules_identifier(chunk_ukey);
@@ -182,13 +185,14 @@ fn record_chunk_group(
       let Some(module) = module_graph.module_by_identifier(module_identifier) else {
         continue;
       };
+
       if let Some(concatenated_module) = module.as_concatenated_module() {
         for inner_module in concatenated_module.get_modules() {
           record_module(
             entry_name,
             module_id,
             &inner_module.id,
-            client_reference_modules,
+            client_entry_modules,
             chunk_ukey,
             compilation,
             required_chunks,
@@ -200,7 +204,7 @@ fn record_chunk_group(
           entry_name,
           module_id,
           module_identifier,
-          client_reference_modules,
+          client_entry_modules,
           chunk_ukey,
           compilation,
           required_chunks,
@@ -215,12 +219,11 @@ fn record_chunk_group(
     let Some(child) = compilation.chunk_group_by_ukey.get(child_ukey) else {
       continue;
     };
-    let child_required_chunks = get_required_chunks(child, compilation);
     let start_len = required_chunks.len();
-    required_chunks.extend(child_required_chunks);
+    extend_required_chunks(child, compilation, required_chunks);
     record_chunk_group(
       entry_name,
-      client_reference_modules,
+      client_entry_modules,
       child,
       compilation,
       required_chunks,
@@ -228,7 +231,7 @@ fn record_chunk_group(
       checked_chunks,
       plugin_state,
     );
-    required_chunks.drain(start_len..);
+    required_chunks.truncate(start_len);
   }
 }
 
@@ -357,10 +360,7 @@ impl RscClientPlugin {
 
     let prefix = match public_path {
       rspack_core::PublicPath::Filename(filename) => match filename.template() {
-        Some(template) => {
-          // TODO: 只能是纯字符串，模版也不行
-          template.to_string()
-        }
+        Some(template) => template.to_string(),
         None => {
           return Err(rspack_error::error!(
             "Expected Rspack publicPath to be a string when using React Server Components."
@@ -386,47 +386,50 @@ impl RscClientPlugin {
       cross_origin,
     });
 
-    let mut client_reference_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let mut client_entry_modules: FxHashSet<ModuleIdentifier> = Default::default();
     let module_graph = compilation.get_module_graph();
     for entry_data in compilation.entries.values() {
-      for include_dependencies in &entry_data.include_dependencies {
+      for dependency_id in &entry_data.include_dependencies {
         let Some(module_identifier) =
-          module_graph.module_identifier_by_dependency_id(include_dependencies)
+          module_graph.module_identifier_by_dependency_id(dependency_id)
         else {
           continue;
         };
         let Some(module) = module_graph.module_by_identifier(module_identifier) else {
           continue;
         };
-        let Some(normal_module) = module.as_normal_module() else {
-          continue;
-        };
-        if !normal_module
-          .user_request()
-          .starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER)
-        {
+
+        let is_client_loader = module
+          .as_normal_module()
+          .map(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER))
+          .unwrap_or(false);
+        if !is_client_loader {
           continue;
         }
         for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
-          let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
-            continue;
-          };
-          client_reference_modules.insert(*connection.module_identifier());
+          if let Some(conn) = module_graph.connection_by_dependency_id(dependency_id) {
+            client_entry_modules.insert(*conn.module_identifier());
+          }
         }
       }
     }
+
+    let mut required_chunks: Vec<String> = Default::default();
+    let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
+    let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
     for (entry_name, entrypoint_ukey) in &compilation.entrypoints {
       let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) else {
         continue;
       };
-      let mut required_chunks = vec![];
 
-      let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
-      let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
+      required_chunks.clear();
+      checked_chunk_groups.clear();
+      checked_chunks.clear();
+
       record_chunk_group(
         entry_name,
-        &client_reference_modules,
+        &client_entry_modules,
         entrypoint,
         compilation,
         &mut required_chunks,
