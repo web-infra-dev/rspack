@@ -73,6 +73,7 @@ fn collect_changed_server_components(
     .get_layer()
     .is_some_and(|layer| layer == LAYERS_NAMES.react_server_components)
   {
+    println!("module_identifier {}", module_identifier);
     let Some(module) = compilation.module_by_identifier(&module_identifier) else {
       return;
     };

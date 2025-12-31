@@ -14,6 +14,7 @@ enum State {
   ClientEntriesDone,
   ServerActionsCompiling,
   ServerActionsDone,
+  Failed,
 }
 
 pub struct Coordinator {
@@ -42,6 +43,9 @@ impl Coordinator {
         if predicate(state) {
           return Ok(());
         }
+        if state == State::Failed {
+          return Ok(());
+        }
       }
       self.state_notify.notified().await;
     }
@@ -49,6 +53,10 @@ impl Coordinator {
 
   async fn transition(&self, expected: State, next: State, context: &'static str) -> Result<()> {
     let mut state = self.state.borrow_mut();
+    if *state == State::Failed {
+      return Ok(());
+    }
+
     if *state != expected {
       return Err(rspack_error::error!(
         "Invalid state transition in {}: expected {:?}, got {:?}",
@@ -174,5 +182,12 @@ impl Coordinator {
         "complete_server_actions_compilation",
       )
       .await
+  }
+
+  pub async fn failed(&self) -> Result<()> {
+    let mut state = self.state.borrow_mut();
+    *state = State::Failed;
+    self.state_notify.notify_waiters();
+    Ok(())
   }
 }

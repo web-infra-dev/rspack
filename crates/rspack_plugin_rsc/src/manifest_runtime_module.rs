@@ -194,10 +194,9 @@ fn record_module(
     return;
   };
 
-  if normal_module.build_info().rsc.as_ref().is_none()
-    || normal_module
-      .get_layer()
-      .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
+  if normal_module
+    .get_layer()
+    .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
   {
     return;
   }

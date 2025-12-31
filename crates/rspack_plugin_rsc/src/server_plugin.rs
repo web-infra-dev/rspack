@@ -6,9 +6,9 @@ use regex::Regex;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerFinishMake, CompilerThisCompilation, Dependency,
-  DependencyId, EntryDependency, EntryOptions, Logger, Module, ModuleGraph, ModuleGraphRef,
-  ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeSpec, get_entry_runtime,
+  CompilationRuntimeRequirementInTree, CompilerFailed, CompilerFinishMake, CompilerThisCompilation,
+  Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin, RuntimeGlobals,
+  RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -28,8 +28,6 @@ use crate::{
   },
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
-  reference_manifest::ManifestExport,
-  utils::{ChunkModules, get_module_resource},
 };
 
 #[derive(Debug)]
@@ -135,18 +133,8 @@ async fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.RscServerPlugin");
-
-  let mut plugin_states = PLUGIN_STATES.borrow_mut();
-  let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
-
-  let start = logger.time("traverse modules");
-  self.traverse_chunk_modules(compilation, plugin_state);
-  logger.time_end(start);
-
+async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
   self.coordinator.idle().await?;
-
   Ok(())
 }
 
@@ -160,6 +148,8 @@ impl Plugin for RscServerPlugin {
       .compiler_hooks
       .this_compilation
       .tap(this_compilation::new(self));
+
+    ctx.compiler_hooks.failed.tap(failed::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
@@ -540,60 +530,10 @@ impl RscServerPlugin {
       ),
     })
   }
+}
 
-  fn record_module(
-    &self,
-    compilation: &Compilation,
-    module_graph: &ModuleGraphRef<'_>,
-    module_idenfitifier: ModuleIdentifier,
-    module_id: ModuleId,
-    plugin_state: &mut PluginState,
-  ) {
-    let Some(normal_module) = module_graph
-      .module_by_identifier(&module_idenfitifier)
-      .and_then(|m| m.as_normal_module())
-    else {
-      return;
-    };
-
-    if normal_module.build_info().rsc.as_ref().is_none()
-      || normal_module
-        .get_layer()
-        .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
-    {
-      return;
-    }
-
-    let resource = get_module_resource(normal_module);
-    if resource.is_empty() {
-      return;
-    }
-
-    let manifest_export = ManifestExport {
-      id: module_id.to_string(),
-      name: "*".to_string(),
-      chunks: vec![],
-      r#async: Some(ModuleGraph::is_async(
-        &compilation.async_modules_artifact.borrow(),
-        &module_idenfitifier,
-      )),
-    };
-    plugin_state
-      .ssr_modules
-      .insert(resource.to_string(), manifest_export);
-  }
-
-  fn traverse_chunk_modules(&self, compilation: &Compilation, plugin_state: &mut PluginState) {
-    let module_graph = compilation.get_module_graph();
-    let chunk_modules = ChunkModules::new(compilation, &module_graph);
-    for (module_identifier, module_id) in chunk_modules {
-      self.record_module(
-        compilation,
-        &module_graph,
-        module_identifier,
-        module_id,
-        plugin_state,
-      );
-    }
-  }
+#[plugin_hook(CompilerFailed for RscServerPlugin)]
+async fn failed(&self, _compilation: &Compilation) -> Result<()> {
+  self.coordinator.failed().await?;
+  Ok(())
 }

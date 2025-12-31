@@ -92,8 +92,6 @@ impl VisitMut for ReactServerComponents<'_> {
       if is_server_entry {
         self.set_server_entry_metadata(is_cjs);
       }
-    } else if is_client_entry {
-      self.set_client_metadata(is_cjs);
     }
     module.visit_mut_children_with(self)
   }

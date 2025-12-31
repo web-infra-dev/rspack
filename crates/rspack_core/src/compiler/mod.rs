@@ -40,6 +40,7 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
+define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -52,6 +53,7 @@ pub struct CompilerHooks {
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
   pub close: CompilerCloseHook,
+  pub failed: CompilerFailedHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
@@ -203,11 +205,23 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
+
   pub async fn build(&mut self) -> Result<()> {
     let compiler_context = self.compiler_context.clone();
-    within_compiler_context(compiler_context, self.build_inner()).await?;
-    Ok(())
+    match within_compiler_context(compiler_context, self.build_inner()).await {
+      Ok(_) => Ok(()),
+      Err(e) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .failed
+          .call(&self.compilation)
+          .await?;
+        Err(e)
+      }
+    }
   }
+
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
     self.old_cache.end_idle();

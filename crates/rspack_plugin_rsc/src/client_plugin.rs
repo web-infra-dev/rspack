@@ -5,11 +5,11 @@ use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerId, CompilerMake, CrossOriginLoading, Dependency,
-  DependencyId, EntryDependency, Logger, ModuleGraph, ModuleGraphRef, ModuleId, ModuleIdentifier,
-  Plugin, RuntimeGlobals,
+  CompilationRuntimeRequirementInTree, CompilerFailed, CompilerId, CompilerMake,
+  CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
+  ModuleGraphRef, ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -17,7 +17,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   Coordinator,
   hot_reloader_runtime_module::RscHotReloaderRuntimeModule,
-  loaders::client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
+  loaders::client_entry_loader::{
+    CLIENT_ENTRY_LOADER_IDENTIFIER, ParsedClientEntries, parse_client_entries,
+  },
   plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
   utils::{encode_uri_path, get_module_resource, is_css_mod},
@@ -451,6 +453,8 @@ impl Plugin for RscClientPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.make.tap(make::new(self));
 
+    ctx.compiler_hooks.failed.tap(failed::new(self));
+
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree
@@ -489,13 +493,27 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   for (entry_name, import) in &plugin_state.injected_client_entries {
     {
       if compilation.entries.get(entry_name).is_none() {
-        return Err(rspack_error::error!(
-          "Missing required entry '{}' in client compiler. \
-       RscClientPlugin requires an entry with the same name as the server compiler \
-       for rendering the React application in the browser. \
-       Client components will be injected into this entry.",
-          entry_name,
+        let loader_query = import
+          .split_once('?')
+          .map(|x| x.1)
+          .unwrap_or_default()
+          .rsplit_once('!')
+          .map(|x| x.0)
+          .unwrap_or_default();
+        let ParsedClientEntries { modules, .. } = parse_client_entries(loader_query)?;
+        compilation.push_diagnostic(Diagnostic::error(
+          "RSC Client Entry Mismatch".to_string(),
+          format!(
+            "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+            entry_name,
+            modules
+              .into_iter()
+              .map(|m| m.request)
+              .collect::<Vec<_>>()
+              .join(", ")
+          ),
         ));
+        continue;
       }
 
       let dependency = Box::new(EntryDependency::new(
@@ -582,5 +600,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .complete_client_entries_compilation()
     .await?;
 
+  Ok(())
+}
+
+#[plugin_hook(CompilerFailed for RscClientPlugin)]
+async fn failed(&self, _compilation: &Compilation) -> Result<()> {
+  self.coordinator.failed().await?;
   Ok(())
 }

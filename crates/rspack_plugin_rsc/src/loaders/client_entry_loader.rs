@@ -14,8 +14,8 @@ use crate::constants::REGEX_CSS;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ClientEntry {
-  request: String,
-  ids: Vec<String>,
+  pub request: String,
+  pub ids: Vec<String>,
 }
 
 pub const CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-client-entry-loader";
@@ -42,7 +42,7 @@ impl ClientEntryLoader {
   }
 }
 
-fn parse_client_entry(object: &BorrowedValue) -> Option<ClientEntry> {
+fn parse_client_entry_from_value(object: &BorrowedValue) -> Option<ClientEntry> {
   let object = object.as_object()?;
   let request = object.get("request")?.as_str()?.to_string();
   let ids_array = object.get("ids")?.try_as_array().ok()?;
@@ -51,6 +51,41 @@ fn parse_client_entry(object: &BorrowedValue) -> Option<ClientEntry> {
     .filter_map(|id_value| id_value.as_str().map(String::from))
     .collect::<Vec<String>>();
   Some(ClientEntry { request, ids })
+}
+
+#[derive(Debug, Default)]
+pub struct ParsedClientEntries {
+  pub modules: Vec<ClientEntry>,
+  pub is_server: bool,
+}
+
+pub fn parse_client_entries(query: &str) -> Result<ParsedClientEntries> {
+  let loader_options = form_urlencoded::parse(query.as_bytes());
+  let mut modules: Vec<ClientEntry> = vec![];
+  let mut is_server: bool = false;
+  for (k, v) in loader_options {
+    if k == "modules" {
+      let mut bytes = v.to_string().into_bytes();
+      let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
+      match borrowed_value.try_as_array() {
+        Ok(array) => {
+          for item in array.iter() {
+            if let Some(component) = parse_client_entry_from_value(item) {
+              modules.push(component);
+            }
+          }
+        }
+        Err(_) => {
+          if let Some(component) = parse_client_entry_from_value(&borrowed_value) {
+            modules.push(component);
+          }
+        }
+      }
+    } else if k == "server" && v == "true" {
+      is_server = true;
+    }
+  }
+  Ok(ParsedClientEntries { modules, is_server })
 }
 
 #[cacheable_dyn]
@@ -71,31 +106,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
       return Ok(());
     };
 
-    let loader_options = form_urlencoded::parse(&loader_query.as_bytes()[1..]);
-    let mut modules: Vec<ClientEntry> = vec![];
-    let mut is_server: bool = false;
-    for (k, v) in loader_options {
-      if k == "modules" {
-        let mut bytes = v.to_string().into_bytes();
-        let borrowed_value = simd_json::to_borrowed_value(&mut bytes).to_rspack_result()?;
-        match borrowed_value.try_as_array() {
-          Ok(array) => {
-            for item in array.iter() {
-              if let Some(component) = parse_client_entry(item) {
-                modules.push(component);
-              }
-            }
-          }
-          Err(_) => {
-            if let Some(component) = parse_client_entry(&borrowed_value) {
-              modules.push(component);
-            }
-          }
-        }
-      } else if k == "server" && v == "true" {
-        is_server = true;
-      }
-    }
+    let ParsedClientEntries { modules, is_server } = parse_client_entries(&loader_query[1..])?;
 
     let code = modules
       .iter()
