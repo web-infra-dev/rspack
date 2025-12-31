@@ -57,7 +57,7 @@ export default {
 
 Refer to [Builtin swc-loader](/guide/features/builtin-swc-loader) for detailed configurations.
 
-Refer to [examples/preact](https://github.com/rspack-contrib/rstack-examples/blob/main/rspack/preact) for the full example.
+Refer to [examples/preact](https://github.com/rstackjs/rstack-examples/blob/main/rspack/preact) for the full example.
 
 ## Preact Refresh
 
@@ -74,7 +74,7 @@ First you need to install the dependencies:
 
 The enabling of the [Preact Refresh](https://github.com/preactjs/prefresh) is divided into two parts: code injection and code transformation
 
-- Code injection: injects code that interacts with `@prefresh/core` and `@prefresh/utils`, which has been integrated in the [@rspack/plugin-preact-refresh](https://github.com/rspack-contrib/rspack-plugin-preact-refresh) plugin
+- Code injection: injects code that interacts with `@prefresh/core` and `@prefresh/utils`, which has been integrated in the [@rspack/plugin-preact-refresh](https://github.com/rstackjs/rspack-plugin-preact-refresh) plugin
 - Code transformation requires a loader
   - Use `builtin:swc-loader` or [`swc-loader`](https://swc.rs/docs/usage/swc-loader)
     - Enable `jsc.transform.react.refresh` to support common react transformation
@@ -135,4 +135,4 @@ export default {
 };
 ```
 
-Refer to [examples/preact-refresh](https://github.com/rspack-contrib/rstack-examples/blob/main/rspack/preact-refresh) for the full example.
+Refer to [examples/preact-refresh](https://github.com/rstackjs/rstack-examples/blob/main/rspack/preact-refresh) for the full example.

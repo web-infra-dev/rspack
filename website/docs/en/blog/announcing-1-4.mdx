@@ -41,7 +41,7 @@ Notable changes:
 
 Starting with Rspack 1.4, we have added Wasm target support, which means Rspack can now run in browser environments, including online platforms like [StackBlitz](https://stackblitz.com/) ([WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)). This enables developers to quickly create prototypes and share code examples without having to configure local environments.
 
-You can try out our [online example](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
+You can try out our [online example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
 
 <video
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
@@ -227,7 +227,7 @@ Rsbuild 1.4 has been released alongside Rspack 1.4, with notable features includ
 
 #### Chrome DevTools integration
 
-We've introduced a new [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) plugin, which enables seamless integration with Chrome DevTools' new [Automatic Workspace Folders](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) feature. This means you can directly edit and debug your source code in DevTools and save changes to your local file system.
+We've introduced a new [rsbuild-plugin-devtools-json](https://github.com/rstackjs/rsbuild-plugin-devtools-json) plugin, which enables seamless integration with Chrome DevTools' new [Automatic Workspace Folders](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) feature. This means you can directly edit and debug your source code in DevTools and save changes to your local file system.
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
@@ -277,7 +277,7 @@ Rslib now generates cleaner, more concise, and smaller ESM output by default.
 
 #### Building Vue UI libraries
 
-By integrating the [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) plugin, you can use Rslib to generate bundleless builds for Vue UI libraries.
+By integrating the [rsbuild-plugin-unplugin-vue](https://github.com/rstackjs/rsbuild-plugin-unplugin-vue) plugin, you can use Rslib to generate bundleless builds for Vue UI libraries.
 
 ```ts title="rslib.config.mjs"
 import { defineConfig } from '@rslib/core';

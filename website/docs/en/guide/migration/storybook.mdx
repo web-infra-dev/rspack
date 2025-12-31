@@ -2,7 +2,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Migrate from Storybook webpack
 
-If you are using React / Vue with [Storybook](https://storybook.js.org/) and building with webpack 5, you can replace the `@storybook/react-webpack5` build with [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild), which is implemented based on Rsbuild and uses Rspack as the underlying bundler. It supports out-of-the-box use, and the documentation can be found at [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild).
+If you are using React / Vue with [Storybook](https://storybook.js.org/) and building with webpack 5, you can replace the `@storybook/react-webpack5` build with [storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild), which is implemented based on Rsbuild and uses Rspack as the underlying bundler. It supports out-of-the-box use, and the documentation can be found at [storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild).
 
 Next, we will take React as an example to introduce how to migrate a Storybook webpack 5 project. The migration steps for Vue projects are similar to React.
 
@@ -44,8 +44,8 @@ export default {
 
 ## Examples
 
-The [rspack-contrib/storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild/tree/main/sandboxes) repository provides examples of Storybook for React / Vue projects.
+The [rstackjs/storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild/tree/main/sandboxes) repository provides examples of Storybook for React / Vue projects.
 
 ## Limitations
 
-Rspack is gradually improving full support for Storybook. Currently, there are some capabilities that are not supported, see [storybook-rsbuild - Roadmap](https://github.com/rspack-contrib/storybook-rsbuild#roadmap) for details.
+Rspack is gradually improving full support for Storybook. Currently, there are some capabilities that are not supported, see [storybook-rsbuild - Roadmap](https://github.com/rstackjs/storybook-rsbuild#roadmap) for details.

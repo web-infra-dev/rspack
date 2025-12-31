@@ -58,6 +58,7 @@
     "Rslib",
     "rspack",
     "rstack",
+    "rstackjs",
     "threejs",
     "tokio",
     "ukey",

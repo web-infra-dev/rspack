@@ -98,7 +98,7 @@ export default {
 
 Rspack v1.2 no longer watching the `node_modules` directory by default. This can greatly reduce the number of files to watch and improve performance.
 
-According to our [benchmark repo](https://github.com/rspack-contrib/build-tools-performance), this change will:
+According to our [benchmark repo](https://github.com/rstackjs/build-tools-performance), this change will:
 
 - Reduce memory usage by 120MB
 - Increase dev startup speed by 40%
@@ -120,7 +120,7 @@ export default {
 
 ### Reduced memory usage
 
-We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/web-infra-dev/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
+We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/rstackjs/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
 
 > See [perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666) for more details.
 
