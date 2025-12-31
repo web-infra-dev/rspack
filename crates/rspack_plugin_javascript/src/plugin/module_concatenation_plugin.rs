@@ -1,14 +1,14 @@
 #![allow(clippy::only_used_in_recursion)]
-use std::{borrow::Cow, collections::VecDeque, sync::Arc};
+use std::{borrow::Cow, collections::VecDeque, rc::Rc, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, DependencyType,
-  ExportProvided, ExtendedReferencedExport, ImportedByDeferModulesArtifact, LibIdentOptions,
-  Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, ProvidedExports,
-  RuntimeCondition, RuntimeSpec, SourceType,
+  ExportProvided, ExtendedReferencedExport, GetTargetResult, ImportedByDeferModulesArtifact,
+  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -909,7 +909,16 @@ impl ModuleConcatenationPlugin {
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
-            export_info.is_reexport() && get_target(export_info, module_graph).is_none()
+            export_info.is_reexport()
+              && !matches!(
+                get_target(
+                  export_info,
+                  module_graph,
+                  Rc::new(|_| true),
+                  &mut Default::default()
+                ),
+                Some(GetTargetResult::Target(_))
+              )
           })
           .copied()
           .collect::<Vec<_>>();

@@ -13,7 +13,7 @@ use rspack_core::{
   GetUsedNameParam, IdentCollector, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
   SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name, find_new_name,
-  find_target_from_export_info, get_cached_readable_identifier, get_js_chunk_filename_template,
+  find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
   get_module_directives, get_module_hashbang, property_access, property_name,
   reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
   to_normal_comment,
@@ -1988,7 +1988,7 @@ var {} = {{}};
           ));
         }
 
-        let reexport = find_target_from_export_info(
+        let reexport = find_target(
           &export_info,
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),

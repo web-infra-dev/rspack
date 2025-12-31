@@ -4,13 +4,12 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
-  PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget,
-  ResolvedExportInfoTargetWithCircular, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  DependencyId, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
-  can_move_target, get_target_from_maybe_export_info,
+  can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
@@ -401,7 +400,7 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = match get_target_from_maybe_export_info(
+    let target = match get_target(
       &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
@@ -409,7 +408,7 @@ fn can_optimize_connection(
       }),
       &mut Default::default(),
     ) {
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
+      Some(GetTargetResult::Target(target)) => Some(target),
       _ => None,
     }?;
 

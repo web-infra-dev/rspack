@@ -1,5 +1,6 @@
 use std::{
   path::PathBuf,
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -12,9 +13,9 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
-  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -151,7 +152,16 @@ async fn finish_modules(
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {
-          export_info.is_reexport() && get_target(export_info, module_graph).is_none()
+          export_info.is_reexport()
+            && !matches!(
+              get_target(
+                export_info,
+                module_graph,
+                Rc::new(|_| true),
+                &mut Default::default()
+              ),
+              Some(GetTargetResult::Target(_))
+            )
         })
         .copied()
         .collect::<Vec<_>>();

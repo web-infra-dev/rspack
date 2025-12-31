@@ -23,7 +23,7 @@ pub struct UnResolvedExportInfoTarget {
 pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget) -> bool + 'a>;
 
 #[derive(Debug)]
-pub enum ResolvedExportInfoTargetWithCircular {
+pub enum GetTargetResult {
   Target(ResolvedExportInfoTarget),
   Circular,
 }
@@ -57,7 +57,12 @@ pub fn get_terminal_binding(
   if export_info.terminal_binding() {
     return Some(TerminalBinding::ExportInfo(export_info.id()));
   }
-  let target = get_target(export_info, mg)?;
+  let target = get_target(export_info, mg, Rc::new(|_| true), &mut Default::default()).and_then(
+    |d| match d {
+      GetTargetResult::Target(target) => Some(target),
+      _ => None,
+    },
+  )?;
   let exports_info = mg.get_exports_info(&target.module);
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
@@ -67,7 +72,7 @@ pub fn get_terminal_binding(
     .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
-pub fn find_target_from_export_info(
+pub fn find_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
@@ -108,7 +113,7 @@ pub fn find_target_from_export_info(
       return FindTargetResult::NoTarget;
     }
     visited.insert(export_info_hash_key);
-    let new_target = find_target_from_export_info(
+    let new_target = find_target(
       &export_info,
       mg,
       valid_target_module_filter.clone(),
@@ -150,28 +155,18 @@ pub fn find_target_from_export_info(
 pub fn get_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-) -> Option<ResolvedExportInfoTarget> {
-  get_target_with_filter(export_info, mg, Rc::new(|_| true))
-}
-
-pub(crate) fn get_target_with_filter(
-  export_info: &ExportInfoData,
-  mg: &ModuleGraph,
-  resolve_filter: ResolveFilterFnTy,
-) -> Option<ResolvedExportInfoTarget> {
-  match get_target_from_export_info(export_info, mg, resolve_filter, &mut Default::default()) {
-    Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
-    Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
-    None => None,
-  }
-}
-
-fn get_target_from_export_info(
-  export_info: &ExportInfoData,
-  mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,
   already_visited: &mut HashSet<ExportInfoHashKey>,
-) -> Option<ResolvedExportInfoTargetWithCircular> {
+) -> Option<GetTargetResult> {
+  if !export_info.target_is_set() || export_info.target().is_empty() {
+    return None;
+  }
+  let hash_key = export_info.as_hash_key();
+  if already_visited.contains(&hash_key) {
+    return Some(GetTargetResult::Circular);
+  }
+  already_visited.insert(hash_key);
+
   let max_target = export_info.get_max_target();
   let mut values = max_target
     .values()
@@ -188,19 +183,17 @@ fn get_target_from_export_info(
   );
 
   match target {
-    Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-      Some(ResolvedExportInfoTargetWithCircular::Circular)
-    }
+    Some(GetTargetResult::Circular) => Some(GetTargetResult::Circular),
     None => None,
-    Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
+    Some(GetTargetResult::Target(target)) => {
       for val in values {
         let resolved_target =
           resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
         match resolved_target {
-          Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-            return Some(ResolvedExportInfoTargetWithCircular::Circular);
+          Some(GetTargetResult::Circular) => {
+            return Some(GetTargetResult::Circular);
           }
-          Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
+          Some(GetTargetResult::Target(tt)) => {
             if target.module != tt.module {
               return None;
             }
@@ -211,26 +204,9 @@ fn get_target_from_export_info(
           None => return None,
         }
       }
-      Some(ResolvedExportInfoTargetWithCircular::Target(target))
+      Some(GetTargetResult::Target(target))
     }
   }
-}
-
-pub fn get_target_from_maybe_export_info(
-  export_info: &ExportInfoData,
-  mg: &ModuleGraph,
-  resolve_filter: ResolveFilterFnTy,
-  already_visited: &mut HashSet<ExportInfoHashKey>,
-) -> Option<ResolvedExportInfoTargetWithCircular> {
-  if !export_info.target_is_set() || export_info.target().is_empty() {
-    return None;
-  }
-  let hash_key = export_info.as_hash_key();
-  if already_visited.contains(&hash_key) {
-    return Some(ResolvedExportInfoTargetWithCircular::Circular);
-  }
-  already_visited.insert(hash_key);
-  get_target_from_export_info(export_info, mg, resolve_filter, already_visited)
 }
 
 fn resolve_target(
@@ -238,7 +214,7 @@ fn resolve_target(
   already_visited: &mut HashSet<ExportInfoHashKey>,
   resolve_filter: ResolveFilterFnTy,
   mg: &ModuleGraph,
-) -> Option<ResolvedExportInfoTargetWithCircular> {
+) -> Option<GetTargetResult> {
   if let Some(input_target) = input_target {
     let mut target = ResolvedExportInfoTarget {
       module: *input_target
@@ -250,16 +226,16 @@ fn resolve_target(
       dependency: input_target.dependency.expect("should have dependency"),
     };
     if target.export.is_none() {
-      return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+      return Some(GetTargetResult::Target(target));
     }
     if !resolve_filter(&target) {
-      return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+      return Some(GetTargetResult::Target(target));
     }
     loop {
       let name = if let Some(export) = target.export.as_ref().and_then(|exports| exports.first()) {
         export
       } else {
-        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        return Some(GetTargetResult::Target(target));
       };
 
       let exports_info =
@@ -267,9 +243,9 @@ fn resolve_target(
       let maybe_export_info = exports_info.get_export_info_without_mut_module_graph(name);
       let maybe_export_info_hash_key = maybe_export_info.as_hash_key();
       if already_visited.contains(&maybe_export_info_hash_key) {
-        return Some(ResolvedExportInfoTargetWithCircular::Circular);
+        return Some(GetTargetResult::Circular);
       }
-      let new_target = get_target_from_maybe_export_info(
+      let new_target = get_target(
         &maybe_export_info,
         mg,
         resolve_filter.clone(),
@@ -277,17 +253,17 @@ fn resolve_target(
       );
 
       match new_target {
-        Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-          return Some(ResolvedExportInfoTargetWithCircular::Circular);
+        Some(GetTargetResult::Circular) => {
+          return Some(GetTargetResult::Circular);
         }
-        None => return Some(ResolvedExportInfoTargetWithCircular::Target(target)),
-        Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
+        None => return Some(GetTargetResult::Target(target)),
+        Some(GetTargetResult::Target(t)) => {
           // SAFETY: if the target.exports is None, program will not reach here
           let target_exports = target.export.as_ref().expect("should have exports");
           if target_exports.len() == 1 {
             target = t;
             if target.export.is_none() {
-              return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+              return Some(GetTargetResult::Target(target));
             }
           } else {
             target.module = t.module;
@@ -302,7 +278,7 @@ fn resolve_target(
         }
       }
       if !resolve_filter(&target) {
-        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        return Some(GetTargetResult::Target(target));
       }
       already_visited.insert(maybe_export_info_hash_key);
     }
@@ -316,7 +292,11 @@ pub fn can_move_target(
   mg: &ModuleGraph,
   resolve_filter: ResolveFilterFnTy,
 ) -> Option<ResolvedExportInfoTarget> {
-  let target = get_target_with_filter(export_info, mg, resolve_filter)?;
+  let target =
+    get_target(export_info, mg, resolve_filter, &mut Default::default()).and_then(|r| match r {
+      GetTargetResult::Target(target) => Some(target),
+      _ => None,
+    })?;
   let max_target = export_info.get_max_target();
   let original_target = max_target
     .values()
