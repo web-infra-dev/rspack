@@ -48,12 +48,15 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           path: artifacts
+          pattern: bindings-*
 
       - name: Clean artifacts
         run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
 
       - name: Move artifacts
-        run: node scripts/build-npm.cjs
+        run: |
+          ls -R artifacts
+          node scripts/build-npm.cjs
 
       - name: Show binding packages
         run: ls -R npm
