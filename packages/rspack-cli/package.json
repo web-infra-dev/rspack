@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.7.0-beta.1",
+  "version": "1.7.0",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/dev-server": "~1.1.4",
+    "@rspack/dev-server": "~1.1.5",
     "exit-hook": "^4.0.0",
     "webpack-bundle-analyzer": "4.10.2"
   },

@@ -46,7 +46,7 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 ## 快速上手
 
 <p>
-  <a target="_blank" href="https://stackblitz.com/fork/github/rspack-contrib/rspack-stackblitz-example">
+  <a target="_blank" href="https://stackblitz.com/fork/github/rstackjs/rspack-stackblitz-example">
     <img
       alt="Open in StackBlitz"
       src="https://developer.stackblitz.com/img/open_in_stackblitz.svg"
@@ -71,15 +71,15 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 
 ## 链接
 
-| 名称                                                                                 | 描述                                                                         |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack)                    | 与 Rspack 相关的精彩内容列表                                                 |
-| [Rspack 1.x 文档](https://rspack.rs/zh/)                                             | Rspack 1.x 版本的文档（最新）                                                |
-| [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                          | Rspack 0.x 版本的文档                                                        |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)              | Rspack 的开发服务器                                                          |
-| [rstack-examples](https://github.com/rspack-contrib/rstack-examples)                 | Rstack 的示例项目                                                            |
-| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                    | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) | Rstack 的设计资源                                                            |
+| 名称                                                                           | 描述                                                                         |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                   | 与 Rspack 相关的精彩内容列表                                                 |
+| [Rspack 1.x 文档](https://rspack.rs/zh/)                                       | Rspack 1.x 版本的文档（最新）                                                |
+| [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                    | Rspack 0.x 版本的文档                                                        |
+| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)        | Rspack 的开发服务器                                                          |
+| [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Rstack 的示例项目                                                            |
+| [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Rstack 的设计资源                                                            |
 
 ## 贡献者
 
