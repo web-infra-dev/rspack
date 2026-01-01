@@ -18,7 +18,7 @@ async function rspackBenchcases() {
     console.log('rspack-benchcases already exists, skipping');
     return;
   }
-  await $`git clone --depth=1 https://github.com/rspack-contrib/rspack-benchcases.git ${RSPACK_BENCH_CASES}`;
+  await $`git clone --depth=1 https://github.com/rstackjs/rspack-benchcases.git ${RSPACK_BENCH_CASES}`;
   Promise.all(
     ['.git', '.github'].map((item) =>
       fs.remove(path.join(BENCH_DIR, 'rspack-benchcases', item)),

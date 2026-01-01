@@ -82,8 +82,8 @@ define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilati
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &Compilation) -> bool);
+define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
@@ -102,7 +102,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
+define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
