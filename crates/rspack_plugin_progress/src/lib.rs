@@ -473,7 +473,7 @@ async fn optimize_chunks(&self, _compilation: &Compilation) -> Result<Option<boo
 }
 
 #[plugin_hook(CompilationOptimizeTree for ProgressPlugin)]
-async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn optimize_tree(&self, _compilation: &Compilation) -> Result<()> {
   self
     .sealing_hooks_report("module and chunk tree optimization", 11)
     .await

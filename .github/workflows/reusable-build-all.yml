@@ -22,7 +22,7 @@ jobs:
   build:
     name: Build All
     strategy:
-      fail-fast: true # for better utilize ci runners
+      fail-fast: false
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu

@@ -126,7 +126,7 @@
         'actions/download-artifact',
         'lynx-infra/download-artifact',
         'lynx-infra/upload-artifact',
-        'rspack-contrib/rust-cache',
+        'rstackjs/rust-cache',
       ],
     },
     {
@@ -137,7 +137,7 @@
         'actions/download-artifact',
         'lynx-infra/download-artifact',
         'lynx-infra/upload-artifact',
-        'rspack-contrib/rust-cache',
+        'rstackjs/rust-cache',
       ],
       enabled: false,
     },

@@ -1254,7 +1254,7 @@ impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1464,7 +1464,7 @@ impl CompilationSeal for CompilationSealTap {
 
 #[async_trait]
 impl CompilationAfterSeal for CompilationAfterSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
