@@ -29,7 +29,7 @@ impl Dependency {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
-      if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
+      if let Some(dependency) = module_graph.try_dependency_by_id(&self.dependency_id) {
         self.dependency = {
           #[allow(clippy::unwrap_used)]
           NonNull::new(dependency.as_ref() as *const dyn rspack_core::Dependency

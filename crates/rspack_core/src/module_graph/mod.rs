@@ -369,9 +369,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dependency = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dependency = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -406,9 +404,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dependency = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dependency = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dependency) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -457,9 +453,7 @@ impl ModuleGraph {
       let connection = self
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
-      let dep = self
-        .dependency_by_id(&dep_id)
-        .expect("should have dependency");
+      let dep = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dep) {
         let con = self
           .connection_by_dependency_id_mut(&dep_id)
@@ -576,15 +570,53 @@ impl ModuleGraph {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
+  /// Try to get a dependency by ID, returning None if not found.
+  ///
+  /// **RESTRICTED TO BINDING LAYER ONLY**: This method should ONLY be used in
+  /// the `rspack_binding_api` crate for JavaScript/Node.js API bindings that need
+  /// to handle missing dependencies gracefully for external API consumers.
+  ///
+  /// **All internal Rust code should use `dependency_by_id()`** instead, which
+  /// enforces the invariant that dependencies exist and provides clear panic
+  /// messages when this expectation is violated.
+  pub fn try_dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.inner.dependencies.get(dependency_id)
   }
 
-  pub fn dependency_by_id_mut(
-    &mut self,
-    dependency_id: &DependencyId,
-  ) -> Option<&mut BoxDependency> {
-    self.inner.dependencies.get_mut(dependency_id)
+  /// Get a dependency by ID, panicking if not found.
+  ///
+  /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
+  /// - Core compilation logic
+  /// - All plugins (`rspack_plugin_*`)  
+  /// - Stats generation, code generation, runtime templates
+  /// - Chunk graph building, export analysis
+  /// - Module graph building operations
+  /// - Any internal operations where dependencies should exist
+  ///
+  /// Dependencies should always be accessible in internal operations, so this
+  /// method enforces that invariant with a clear panic message if violated.
+  ///
+  /// **Only the binding layer (`rspack_binding_api`) should use `try_dependency_by_id()`**
+  /// for graceful handling of missing dependencies in external APIs.
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
+    self
+      .inner
+      .dependencies
+      .get(dependency_id)
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
+  }
+
+  /// Get a mutable dependency by ID, panicking if not found.
+  ///
+  /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
+  /// modify dependencies. Dependencies should always be accessible in internal
+  /// operations, so this method enforces that invariant with a clear panic message.
+  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
+    self
+      .inner
+      .dependencies
+      .get_mut(dependency_id)
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Uniquely identify a module by its dependency
@@ -674,9 +706,7 @@ impl ModuleGraph {
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let dependency = self
-      .dependency_by_id(&dependency_id)
-      .expect("should have dependency");
+    let dependency = self.dependency_by_id(&dependency_id);
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
     let condition = dependency
@@ -795,13 +825,12 @@ impl ModuleGraph {
   ) -> bool {
     let mut has_connections = false;
     for connection in self.get_incoming_connections(module_id) {
-      let Some(dependency) = self
-        .dependency_by_id(&connection.dependency_id)
-        .and_then(|dep| dep.as_module_dependency())
-      else {
+      let dependency = self.dependency_by_id(&connection.dependency_id);
+      let Some(module_dependency) = dependency.as_module_dependency() else {
         return false;
       };
-      if !dependency.get_optional() || !connection.is_target_active(self, None, module_graph_cache)
+      if !module_dependency.get_optional()
+        || !connection.is_target_active(self, None, module_graph_cache)
       {
         return false;
       }
@@ -955,7 +984,7 @@ impl ModuleGraph {
   pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
     let condition = self
       .dependency_by_id(&connection.dependency_id)
-      .and_then(|d| d.as_module_dependency())
+      .as_module_dependency()
       .and_then(|dep| dep.get_condition());
 
     // recovery condition

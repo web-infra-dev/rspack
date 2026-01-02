@@ -1583,8 +1583,8 @@ impl Compilation {
         let diagnostics = mgm
           .all_dependencies
           .iter()
-          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| {
+          .filter_map(|dependency_id| {
+            let dependency = module_graph.dependency_by_id(dependency_id);
             dependency
               .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {

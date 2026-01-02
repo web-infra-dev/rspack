@@ -28,7 +28,7 @@ impl ModuleGraphConnection {
   #[napi(getter, ts_return_type = "Dependency")]
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     let (compilation, module_graph) = self.as_ref()?;
-    if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
+    if let Some(dependency) = module_graph.try_dependency_by_id(&self.dependency_id) {
       Ok(DependencyWrapper::new(
         dependency.as_ref(),
         compilation.id(),

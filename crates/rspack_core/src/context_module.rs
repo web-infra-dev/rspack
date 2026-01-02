@@ -329,13 +329,14 @@ impl ContextModule {
     let dependencies = dependencies.into_iter();
     dependencies
       .filter_map(|dep_id| {
-        let dep = module_graph.dependency_by_id(dep_id).and_then(|dep| {
-          if let Some(d) = dep.as_module_dependency() {
-            Some(d.user_request().to_string())
-          } else {
-            dep.as_context_dependency().map(|d| d.request().to_string())
-          }
-        });
+        let dependency = module_graph.dependency_by_id(dep_id);
+        let dep = if let Some(d) = dependency.as_module_dependency() {
+          Some(d.user_request().to_string())
+        } else {
+          dependency
+            .as_context_dependency()
+            .map(|d| d.request().to_string())
+        };
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
           .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module))
@@ -470,14 +471,14 @@ impl ContextModule {
             has_multiple_or_no_chunks = true;
             None
           });
-        let user_request = compilation
-          .get_module_graph()
-          .dependency_by_id(d)
-          .and_then(|dep| {
-            dep
-              .as_module_dependency()
-              .map(|d| d.user_request().to_string())
-              .or_else(|| dep.as_context_dependency().map(|d| d.request().to_string()))
+        let dependency = compilation.get_module_graph().dependency_by_id(d);
+        let user_request = dependency
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| {
+            dependency
+              .as_context_dependency()
+              .map(|d| d.request().to_string())
           })?;
         let module_id = module_graph
           .module_identifier_by_dependency_id(d)

@@ -699,9 +699,7 @@ impl Module for ConcatenatedModule {
 
       // populate dependencies
       for dep_id in module.get_dependencies().iter() {
-        let dep = module_graph
-          .dependency_by_id(dep_id)
-          .expect("should have dependency");
+        let dep = module_graph.dependency_by_id(dep_id);
         let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
         if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
           self.dependencies.push(*dep_id);
@@ -2167,9 +2165,7 @@ impl ConcatenatedModule {
     let mut references = connections
       .into_iter()
       .filter_map(|connection| {
-        let dep = mg
-          .dependency_by_id(&connection.dependency_id)
-          .expect("should have dependency");
+        let dep = mg.dependency_by_id(&connection.dependency_id);
         if !is_esm_dep_like(dep) {
           return None;
         }

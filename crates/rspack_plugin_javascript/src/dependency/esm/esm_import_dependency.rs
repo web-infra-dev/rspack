@@ -502,9 +502,7 @@ fn find_type_exports_from_outgoings(
     if visited.contains(connection.module_identifier()) {
       continue;
     }
-    let dependency = mg
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = mg.dependency_by_id(&connection.dependency_id);
     if !matches!(
       dependency.dependency_type(),
       DependencyType::EsmImport | DependencyType::EsmExportImport

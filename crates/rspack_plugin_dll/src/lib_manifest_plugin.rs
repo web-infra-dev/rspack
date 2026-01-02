@@ -112,10 +112,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           module_graph.get_incoming_connections(&module.identifier()),
           |conn| {
             let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-            dep
-              .map(|dep| dep.is::<EntryDependency>())
-              .unwrap_or_default()
+            dep.is::<EntryDependency>()
           },
         )
       {
