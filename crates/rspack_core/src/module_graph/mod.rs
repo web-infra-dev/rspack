@@ -603,7 +603,7 @@ impl ModuleGraph {
       .inner
       .dependencies
       .get(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {:?} not found", dependency_id))
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Get a mutable dependency by ID, panicking if not found.
