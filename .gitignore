@@ -188,3 +188,5 @@ CLAUDE.local.md
 # Demo projects cloned during CI
 rspack-diff-minimal/
 rstack-examples/
+# Local demo workspace
+examples/rsbuild-demo/
