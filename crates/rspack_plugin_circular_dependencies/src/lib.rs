@@ -156,9 +156,7 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
       .get_outgoing_connections(&id)
       .map(|conn| conn.dependency_id)
     {
-      let Some(dependency) = module_graph.try_dependency_by_id(&dependency_id) else {
-        continue;
-      };
+      let dependency = module_graph.dependency_by_id(&dependency_id);
       let Some(dependent_module) = module_graph.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };

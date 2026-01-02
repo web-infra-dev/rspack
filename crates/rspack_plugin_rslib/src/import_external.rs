@@ -19,10 +19,8 @@ pub fn replace_import_dependencies_for_external_modules(
         continue;
       };
       for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.try_dependency_by_id(block_dep_id);
-        if let Some(block_dep) = block_dep
-          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
-        {
+        let block_dep = mg.dependency_by_id(block_dep_id);
+        if let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>() {
           let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
           if let Some(import_dep_connection) = import_dep_connection {
             // Try find the connection with a import dependency pointing to an external module.

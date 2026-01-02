@@ -273,7 +273,7 @@ fn compute_affected_modules_with_module_graph(
             match reduce_affect_type(
               connections
                 .iter()
-                .filter_map(|c| module_graph.try_dependency_by_id(&c.dependency_id)),
+                .map(|c| module_graph.dependency_by_id(&c.dependency_id)),
             ) {
               AffectType::False => None,
               AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
@@ -311,9 +311,7 @@ fn compute_affected_modules_with_module_graph(
   // and the incremental won't know that, so here we need to reduce the updated dependencies and collect
   // their parent module into affected modules (The module is affected if there dependencies is updated).
   for dep_id in built_dependencies {
-    let Some(dep) = module_graph.try_dependency_by_id(&dep_id) else {
-      continue;
-    };
+    let dep = module_graph.dependency_by_id(&dep_id);
     match dep.could_affect_referencing_module() {
       AffectType::False => {}
       AffectType::True => {

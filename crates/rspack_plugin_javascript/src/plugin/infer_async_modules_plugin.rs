@@ -141,15 +141,11 @@ fn set_sync_modules(
       module_graph
         .get_incoming_connections(&module)
         .filter(|con| {
-          module_graph
-            .try_dependency_by_id(&con.dependency_id)
-            .map(|dep| {
-              matches!(
-                dep.dependency_type(),
-                DependencyType::EsmImport | DependencyType::EsmExportImport
-              )
-            })
-            .unwrap_or_default()
+          let dep = module_graph.dependency_by_id(&con.dependency_id);
+          matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          )
         })
         .for_each(|con| {
           if let Some(id) = con.original_module_identifier {
@@ -179,15 +175,11 @@ fn set_async_modules(
     module_graph
       .get_incoming_connections(&module)
       .filter(|con| {
-        module_graph
-          .try_dependency_by_id(&con.dependency_id)
-          .map(|dep| {
-            matches!(
-              dep.dependency_type(),
-              DependencyType::EsmImport | DependencyType::EsmExportImport
-            )
-          })
-          .unwrap_or_default()
+        let dep = module_graph.dependency_by_id(&con.dependency_id);
+        matches!(
+          dep.dependency_type(),
+          DependencyType::EsmImport | DependencyType::EsmExportImport
+        )
       })
       .for_each(|con| {
         if let Some(id) = con.original_module_identifier

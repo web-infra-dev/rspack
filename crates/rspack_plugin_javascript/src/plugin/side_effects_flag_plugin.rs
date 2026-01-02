@@ -206,9 +206,7 @@ async fn optimize_dependencies(
         if modules.contains(&original_module) {
           continue;
         }
-        let Some(dep) = module_graph.try_dependency_by_id(&connection.dependency_id) else {
-          continue;
-        };
+        let dep = module_graph.dependency_by_id(&connection.dependency_id);
         if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
           affected_incoming_modules(&original_module, module_graph, modules);
         }
@@ -344,7 +342,7 @@ fn can_optimize_connection(
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
-  let dep = module_graph.try_dependency_by_id(&dependency_id)?;
+  let dep = module_graph.dependency_by_id(&dependency_id);
 
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name

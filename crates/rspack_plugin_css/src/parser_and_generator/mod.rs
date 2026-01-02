@@ -553,9 +553,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         });
 
         for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let Some(dep) = module_graph.try_dependency_by_id(&conn.dependency_id) else {
-            continue;
-          };
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
 
           if matches!(dep.dependency_type(), DependencyType::CssImport) {
             let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
