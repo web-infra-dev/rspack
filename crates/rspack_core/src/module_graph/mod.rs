@@ -571,13 +571,26 @@ impl ModuleGraph {
   }
 
   /// Try to get a dependency by ID, returning None if not found.
-  /// Use this for defensive programming when dependency might not exist.
+  ///
+  /// **USAGE RESTRICTION**: Only use this during the module graph building phase
+  /// when dependencies might legitimately not exist yet (e.g., during graph updates,
+  /// repairs, or module execution).
+  ///
+  /// For post-build phases (stats generation, code generation, plugin hooks after
+  /// build completion), use `dependency_by_id()` instead since dependencies should
+  /// always exist after the module graph is built.
   pub fn try_dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.inner.dependencies.get(dependency_id)
   }
 
   /// Try to get a mutable dependency by ID, returning None if not found.
-  /// Use this for defensive programming when dependency might not exist.
+  ///
+  /// **USAGE RESTRICTION**: Only use this during the module graph building phase
+  /// when dependencies might legitimately not exist yet (e.g., during graph updates,
+  /// repairs, or module execution).
+  ///
+  /// For post-build phases, use `dependency_by_id_mut()` instead since dependencies
+  /// should always exist after the module graph is built.
   pub fn try_dependency_by_id_mut(
     &mut self,
     dependency_id: &DependencyId,
@@ -586,7 +599,17 @@ impl ModuleGraph {
   }
 
   /// Get a dependency by ID, panicking if not found.
-  /// Use this when you know the dependency must exist.
+  ///
+  /// **PREFERRED METHOD**: Use this for all post-build phases including:
+  /// - Stats generation
+  /// - Code generation
+  /// - Runtime template generation
+  /// - Plugin hooks after module graph building is complete
+  /// - Chunk graph building
+  /// - Export analysis
+  ///
+  /// Dependencies should always exist after the module graph is built, so this
+  /// method enforces that invariant with a clear panic message if violated.
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
     self
       .inner
@@ -596,7 +619,10 @@ impl ModuleGraph {
   }
 
   /// Get a mutable dependency by ID, panicking if not found.
-  /// Use this when you know the dependency must exist.
+  ///
+  /// **PREFERRED METHOD**: Use this for all post-build phases when you need to
+  /// modify dependencies. Dependencies should always exist after the module graph
+  /// is built, so this method enforces that invariant with a clear panic message.
   pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
     self
       .inner
