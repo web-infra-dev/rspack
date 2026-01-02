@@ -583,22 +583,6 @@ impl ModuleGraph {
     self.inner.dependencies.get(dependency_id)
   }
 
-  /// Try to get a mutable dependency by ID, returning None if not found.
-  ///
-  /// **RESTRICTED TO BINDING LAYER ONLY**: This method should ONLY be used in
-  /// the `rspack_binding_api` crate for JavaScript/Node.js API bindings that need
-  /// to handle missing dependencies gracefully for external API consumers.
-  ///
-  /// **All internal Rust code should use `dependency_by_id_mut()`** instead, which
-  /// enforces the invariant that dependencies exist and provides clear panic
-  /// messages when this expectation is violated.
-  pub fn try_dependency_by_id_mut(
-    &mut self,
-    dependency_id: &DependencyId,
-  ) -> Option<&mut BoxDependency> {
-    self.inner.dependencies.get_mut(dependency_id)
-  }
-
   /// Get a dependency by ID, panicking if not found.
   ///
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
@@ -627,15 +611,12 @@ impl ModuleGraph {
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
   /// modify dependencies. Dependencies should always be accessible in internal
   /// operations, so this method enforces that invariant with a clear panic message.
-  ///
-  /// **Only the binding layer (`rspack_binding_api`) should use `try_dependency_by_id_mut()`**
-  /// for graceful handling of missing dependencies in external APIs.
   pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
     self
       .inner
       .dependencies
       .get_mut(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {:?} not found", dependency_id))
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Uniquely identify a module by its dependency
