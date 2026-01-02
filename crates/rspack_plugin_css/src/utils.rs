@@ -219,9 +219,7 @@ pub fn stringified_exports<'a>(
                 let request = if let Some(d) = dependency.as_module_dependency() {
                   Some(d.request())
                 } else {
-                  dependency
-                    .as_context_dependency()
-                    .map(|d| d.request())
+                  dependency.as_context_dependency().map(|d| d.request())
                 };
                 if let Some(request) = request
                   && request == from_name
@@ -326,9 +324,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
                 let request = if let Some(d) = dependency.as_module_dependency() {
                   Some(d.request())
                 } else {
-                  dependency
-                    .as_context_dependency()
-                    .map(|d| d.request())
+                  dependency.as_context_dependency().map(|d| d.request())
                 };
                 if let Some(request) = request
                   && request == from_name
