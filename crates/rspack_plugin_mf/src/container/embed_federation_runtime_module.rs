@@ -114,12 +114,10 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE);
       let entry_chunk_ids = compilation
-        .chunk_graph
-        .get_chunk_entry_dependent_chunks_iterable(
-          &chunk_ukey,
-          &compilation.chunk_by_ukey,
-          &compilation.chunk_group_by_ukey,
-        )
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey)
+        .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+        .into_iter()
         .map(|chunk_ukey| {
           compilation
             .chunk_by_ukey
