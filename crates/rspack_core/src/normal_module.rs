@@ -829,7 +829,7 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
         for dependency_id in self.get_dependencies().iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
+          if let Some(dependency) = module_graph.try_dependency_by_id(dependency_id) {
             let state = dependency.get_module_evaluation_side_effects_state(
               module_graph,
               module_graph_cache,

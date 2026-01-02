@@ -215,7 +215,7 @@ pub fn stringified_exports<'a>(
               .get_dependencies()
               .iter()
               .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
+                let dependency = module_graph.try_dependency_by_id(id);
                 let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                   Some(d.request())
                 } else {
@@ -322,7 +322,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
               .get_dependencies()
               .iter()
               .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
+                let dependency = module_graph.try_dependency_by_id(id);
                 let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
                   Some(d.request())
                 } else {

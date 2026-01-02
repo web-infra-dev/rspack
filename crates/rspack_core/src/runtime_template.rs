@@ -1374,7 +1374,7 @@ fn get_outgoing_async_modules(
     } else {
       for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
         let is_esm = connections.iter().any(|connection| {
-          mg.dependency_by_id(&connection.dependency_id)
+          mg.try_dependency_by_id(&connection.dependency_id)
             .map(|dep| {
               matches!(
                 dep.dependency_type(),

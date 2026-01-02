@@ -92,7 +92,7 @@ pub fn find_target_from_export_info(
     defer: raw_target
       .dependency
       .as_ref()
-      .and_then(|dep| mg.dependency_by_id(dep))
+      .and_then(|dep| mg.try_dependency_by_id(dep))
       .map(|dep| dep.get_phase().is_defer())
       .unwrap_or_default(),
   };

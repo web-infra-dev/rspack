@@ -1065,7 +1065,7 @@ impl ESMExportImportedSpecifierDependency {
         {
           all_star_exports
             .iter()
-            .filter_map(|id| module_graph.dependency_by_id(id))
+            .filter_map(|id| module_graph.try_dependency_by_id(id))
             .filter_map(|dep| dep.as_module_dependency())
             .collect::<Vec<_>>()
         } else {
@@ -1635,9 +1635,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<ESMExportImportedSpecifierDependency>()
       .expect("should be ESMExportImportedSpecifierDependency");

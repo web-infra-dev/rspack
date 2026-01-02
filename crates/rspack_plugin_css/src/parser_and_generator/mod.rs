@@ -100,9 +100,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let no_need_js = module_graph
       .get_incoming_connections(&module.identifier())
       .all(|conn| {
-        let dep = module_graph
-          .dependency_by_id(&conn.dependency_id)
-          .expect("if have dependency id, certainly has dependency value");
+        let dep = module_graph.dependency_by_id(&conn.dependency_id);
         matches!(
           dep.dependency_type(),
           DependencyType::CssImport | DependencyType::EsmImport
@@ -540,9 +538,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         let module_graph = compilation.get_module_graph();
         module.get_dependencies().iter().for_each(|id| {
-          let dep = module_graph
-            .dependency_by_id(id)
-            .expect("should have dependency");
+          let dep = module_graph.dependency_by_id(id);
 
           if let Some(dependency) = dep.as_dependency_code_generation() {
             if let Some(template) = compilation.get_dependency_template(dependency) {
@@ -557,7 +553,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         });
 
         for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let Some(dep) = module_graph.dependency_by_id(&conn.dependency_id) else {
+          let Some(dep) = module_graph.try_dependency_by_id(&conn.dependency_id) else {
             continue;
           };
 

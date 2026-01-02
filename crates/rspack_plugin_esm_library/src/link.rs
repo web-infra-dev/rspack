@@ -949,9 +949,7 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
-      let dep = module_graph
-        .dependency_by_id(dep)
-        .expect("should have dependency");
+      let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
@@ -1326,7 +1324,7 @@ var {} = {{}};
         // import './foo.cjs'
         // should be rendered as __webpack_require__('./foo.cjs')
         for dep_id in module.get_dependencies() {
-          let Some(dep) = module_graph.dependency_by_id(dep_id) else {
+          let Some(dep) = module_graph.try_dependency_by_id(dep_id) else {
             continue;
           };
 

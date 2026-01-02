@@ -142,7 +142,7 @@ fn set_sync_modules(
         .get_incoming_connections(&module)
         .filter(|con| {
           module_graph
-            .dependency_by_id(&con.dependency_id)
+            .try_dependency_by_id(&con.dependency_id)
             .map(|dep| {
               matches!(
                 dep.dependency_type(),
@@ -180,7 +180,7 @@ fn set_async_modules(
       .get_incoming_connections(&module)
       .filter(|con| {
         module_graph
-          .dependency_by_id(&con.dependency_id)
+          .try_dependency_by_id(&con.dependency_id)
           .map(|dep| {
             matches!(
               dep.dependency_type(),

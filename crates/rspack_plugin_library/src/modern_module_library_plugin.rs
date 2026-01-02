@@ -156,7 +156,7 @@ impl ModernModuleLibraryPlugin {
         });
 
       for dep_id in module.get_dependencies() {
-        if let Some(export_dep) = mg.dependency_by_id(dep_id)
+        if let Some(export_dep) = mg.try_dependency_by_id(dep_id)
           && let Some(reexport_dep) = export_dep
             .as_any()
             .downcast_ref::<ESMExportImportedSpecifierDependency>()
@@ -176,7 +176,7 @@ impl ModernModuleLibraryPlugin {
                 let reexport_star_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
+                    if let Some(dep) = mg.try_dependency_by_id(c)
                       && let Some(dep) = dep
                         .as_any()
                         .downcast_ref::<ESMExportImportedSpecifierDependency>()
@@ -191,7 +191,7 @@ impl ModernModuleLibraryPlugin {
                 let side_effect_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
+                    if let Some(dep) = mg.try_dependency_by_id(c)
                       && dep
                         .as_any()
                         .downcast_ref::<ESMImportSideEffectDependency>()

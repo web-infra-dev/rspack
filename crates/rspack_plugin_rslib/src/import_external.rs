@@ -19,7 +19,7 @@ pub fn replace_import_dependencies_for_external_modules(
         continue;
       };
       for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
+        let block_dep = mg.try_dependency_by_id(block_dep_id);
         if let Some(block_dep) = block_dep
           && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
         {

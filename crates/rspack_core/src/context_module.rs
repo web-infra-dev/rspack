@@ -329,7 +329,7 @@ impl ContextModule {
     let dependencies = dependencies.into_iter();
     dependencies
       .filter_map(|dep_id| {
-        let dep = module_graph.dependency_by_id(dep_id).and_then(|dep| {
+        let dep = module_graph.try_dependency_by_id(dep_id).and_then(|dep| {
           if let Some(d) = dep.as_module_dependency() {
             Some(d.user_request().to_string())
           } else {
@@ -472,7 +472,7 @@ impl ContextModule {
           });
         let user_request = compilation
           .get_module_graph()
-          .dependency_by_id(d)
+          .try_dependency_by_id(d)
           .and_then(|dep| {
             dep
               .as_module_dependency()

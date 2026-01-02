@@ -994,7 +994,7 @@ impl Stats<'_> {
               }
             })
             .unzip();
-          let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+          let dependency = module_graph.try_dependency_by_id(&connection.dependency_id);
           let (r#type, user_request) =
             if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
               (Some(d.dependency_type().as_str()), Some(d.user_request()))

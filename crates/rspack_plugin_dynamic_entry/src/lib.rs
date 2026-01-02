@@ -66,7 +66,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       let entry_dependency: BoxDependency = if let Some(map) =
         imported_dependencies.get(entry.as_str())
         && let Some(dependency_id) = map.get(&options)
-        && let Some(dependency) = module_graph.dependency_by_id(dependency_id)
+        && let Some(dependency) = module_graph.try_dependency_by_id(dependency_id)
       {
         next_imported_dependencies
           .entry(entry.into())

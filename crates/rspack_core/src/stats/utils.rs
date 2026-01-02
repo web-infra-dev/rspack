@@ -196,7 +196,7 @@ pub fn get_module_trace<'a>(
     let dependencies = module_graph
       .get_incoming_connections(&module_identifier)
       .filter_map(|c| {
-        let dep = module_graph.dependency_by_id(&c.dependency_id)?;
+        let dep = module_graph.try_dependency_by_id(&c.dependency_id)?;
         let loc = dep.loc().map(|loc| loc.to_string())?;
         Some(StatsErrorModuleTraceDependency { loc })
       })

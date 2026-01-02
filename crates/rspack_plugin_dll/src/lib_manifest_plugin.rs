@@ -111,7 +111,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         && !some_in_iterable(
           module_graph.get_incoming_connections(&module.identifier()),
           |conn| {
-            let dep = module_graph.dependency_by_id(&conn.dependency_id);
+            let dep = module_graph.try_dependency_by_id(&conn.dependency_id);
 
             dep
               .map(|dep| dep.is::<EntryDependency>())

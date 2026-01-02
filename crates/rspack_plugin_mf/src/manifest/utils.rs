@@ -70,7 +70,7 @@ pub fn record_shared_usage(
       let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
-      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
+      let Some(dependency) = module_graph.try_dependency_by_id(&connection.dependency_id) else {
         continue;
       };
       let maybe_request = dependency

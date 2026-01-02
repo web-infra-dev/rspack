@@ -184,7 +184,7 @@ pub fn collect_module_dependencies(
         .get_outgoing_connections(module_id)
         .filter_map(|conn| {
           let dep = module_graph
-            .dependency_by_id(&conn.dependency_id)?
+            .try_dependency_by_id(&conn.dependency_id)?
             .as_module_dependency()?;
 
           if matches!(
