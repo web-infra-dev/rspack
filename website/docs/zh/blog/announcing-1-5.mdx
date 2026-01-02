@@ -63,7 +63,7 @@ export default {
 
 在实际测试中，开启 barrel 文件优化后，两个不同规模的应用都获得了明显的构建性能提升：
 
-- [Benchmark 应用](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components)：
+- [Benchmark 应用](https://github.com/rstackjs/build-tools-performance/tree/main/cases/ui-components)：
 
 | 指标             | 开启前    | 开启后    | 优化   |
 | ---------------- | --------- | --------- | ------ |
@@ -148,7 +148,7 @@ rspack({}, (err, stats) => {
 - **完全兼容** —— 保留所有现有的 JavaScript API，无需修改现有项目。
 - **开发便捷** —— 官方模板提供了完整的开发环境和发布流程。
 
-你可以使用 [官方模板](https://github.com/rspack-contrib/rspack-binding-template) 快速开始，更多信息请参考 [设计理念](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)。需要注意的是，使用此方案会带来额外的维护成本，建议仅在需要极致性能优化时使用。
+你可以使用 [官方模板](https://github.com/rstackjs/rspack-binding-template) 快速开始，更多信息请参考 [设计理念](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html)。需要注意的是，使用此方案会带来额外的维护成本，建议仅在需要极致性能优化时使用。
 
 ### 常量内联优化
 
@@ -207,7 +207,7 @@ console.log(Kind.A);
 })();
 ```
 
-需要注意的是，启用 `inlineEnum` 后，Rspack 默认会内联所有 enums。如果你希望只内联 const enums，可以参考此 [示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)。
+需要注意的是，启用 `inlineEnum` 后，Rspack 默认会内联所有 enums。如果你希望只内联 const enums，可以参考此 [示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)。
 
 > 详见 [experiments.inlineEnum](/config/experiments#experimentsinlineenum)。
 
@@ -332,7 +332,7 @@ export default {
 
 ### Resolver JavaScript API
 
-为了让 Rspack 用户能够更便捷地使用 Rspack 的模块解析功能，我们已将 [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) 集成到 Rspack 的 JavaScript API 中，它提供了类似 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 的模块解析能力。
+为了让 Rspack 用户能够更便捷地使用 Rspack 的模块解析功能，我们已将 [rspack-resolver](https://github.com/rstackjs/rspack-resolver) 集成到 Rspack 的 JavaScript API 中，它提供了类似 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 的模块解析能力。
 
 使用方法请参阅 [Resolver API 文档](/api/javascript-api/resolver#resolver-api)。
 

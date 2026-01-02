@@ -156,10 +156,10 @@ impl ModernModuleLibraryPlugin {
         });
 
       for dep_id in module.get_dependencies() {
-        if let Some(export_dep) = mg.dependency_by_id(dep_id)
-          && let Some(reexport_dep) = export_dep
-            .as_any()
-            .downcast_ref::<ESMExportImportedSpecifierDependency>()
+        let export_dep = mg.dependency_by_id(dep_id);
+        if let Some(reexport_dep) = export_dep
+          .as_any()
+          .downcast_ref::<ESMExportImportedSpecifierDependency>()
           && self.reexport_star_from_external_module(reexport_dep, mg)
         {
           let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
@@ -176,10 +176,10 @@ impl ModernModuleLibraryPlugin {
                 let reexport_star_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && let Some(dep) = dep
-                        .as_any()
-                        .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                    let dep = mg.dependency_by_id(c);
+                    if let Some(dep) = dep
+                      .as_any()
+                      .downcast_ref::<ESMExportImportedSpecifierDependency>()
                     {
                       return self.reexport_star_from_external_module(dep, mg);
                     }
@@ -191,16 +191,11 @@ impl ModernModuleLibraryPlugin {
                 let side_effect_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && dep
-                        .as_any()
-                        .downcast_ref::<ESMImportSideEffectDependency>()
-                        .is_some()
-                    {
-                      return true;
-                    }
-
-                    false
+                    let dep = mg.dependency_by_id(c);
+                    dep
+                      .as_any()
+                      .downcast_ref::<ESMImportSideEffectDependency>()
+                      .is_some()
                   })
                   .count();
 

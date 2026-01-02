@@ -641,9 +641,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");

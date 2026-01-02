@@ -252,7 +252,7 @@ fn collect_module_exports_specs(
   let res = dep_ids
     .into_iter()
     .filter_map(|id| {
-      let dep = mg.dependency_by_id(&id)?;
+      let dep = mg.dependency_by_id(&id);
       let exports_spec = dep.get_exports(mg, mg_cache)?;
       has_nested_exports |= exports_spec.has_nested_exports();
       Some((id, exports_spec))

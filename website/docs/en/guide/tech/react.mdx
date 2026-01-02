@@ -67,7 +67,7 @@ First you need to install [@rspack/plugin-react-refresh](https://www.npmjs.com/p
 
 Enabling [React Fast Refresh](https://reactnative.dev/docs/fast-refresh) functionality primarily involves two aspects: code injection and code transformation.
 
-- Code injection will inject some code from the `react-refresh` package, as well as some custom runtime code, all of which are integrated in the [@rspack/plugin-react-refresh](https://github.com/rspack-contrib/rspack-plugin-react-refresh) plugin and can be injected through this plugin.
+- Code injection will inject some code from the `react-refresh` package, as well as some custom runtime code, all of which are integrated in the [@rspack/plugin-react-refresh](https://github.com/rstackjs/rspack-plugin-react-refresh) plugin and can be injected through this plugin.
 - Code transformation can be added through loaders, such as [jsc.transform.react.refresh](https://swc.rs/docs/configuration/compilation#jsctransformreactrefresh) for swc-loader or the [react-refresh/babel](https://github.com/facebook/react/tree/main/packages/react-refresh) for babel-loader.
 
 ```js title="rspack.config.mjs"
@@ -111,8 +111,8 @@ export default {
 
 Compared to the previous approach, this method decouples the React Fast Refresh code injection logic from the transformation logic. The code injection logic is handled uniformly by the @rspack/plugin-react-refresh plugin, while the code transformation is handled by loaders. This means that this plugin can be used in conjunction with `builtin:swc-loader`, `swc-loader`, or `babel-loader`:
 
-- For usage with `builtin:swc-loader`, you can refer to the example at [examples/react-refresh](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-refresh), When using with `swc-loader`, simply replace `builtin:swc-loader` with `swc-loader`.
-- For usage with `babel-loader`, you can refer to the example at [examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-refresh-babel-loader)
+- For usage with `builtin:swc-loader`, you can refer to the example at [examples/react-refresh](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh), When using with `swc-loader`, simply replace `builtin:swc-loader` with `swc-loader`.
+- For usage with `babel-loader`, you can refer to the example at [examples/react-refresh-babel-loader](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh-babel-loader)
 
 ## React Compiler
 
@@ -199,8 +199,8 @@ const ReactCompilerConfig = {
 
 You can refer to the following example projects:
 
-- [Rspack + React Compiler](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-compiler-babel)
-- [Rspack + React Compiler + TypeScript](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-compiler-babel-ts)
+- [Rspack + React Compiler](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-compiler-babel)
+- [Rspack + React Compiler + TypeScript](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-compiler-babel-ts)
 
 ## Integrating SVGR
 

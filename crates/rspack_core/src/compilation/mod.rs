@@ -102,7 +102,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
+define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -1583,8 +1583,8 @@ impl Compilation {
         let diagnostics = mgm
           .all_dependencies
           .iter()
-          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| {
+          .filter_map(|dependency_id| {
+            let dependency = module_graph.dependency_by_id(dependency_id);
             dependency
               .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {

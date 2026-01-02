@@ -98,7 +98,7 @@ function useFooterData() {
         },
         {
           title: 'Awesome Rspack',
-          link: 'https://github.com/web-infra-dev/awesome-rspack',
+          link: 'https://github.com/rstackjs/awesome-rstack',
         },
       ],
     },

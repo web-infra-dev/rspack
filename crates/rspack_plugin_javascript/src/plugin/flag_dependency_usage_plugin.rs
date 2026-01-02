@@ -665,9 +665,7 @@ fn get_dependency_referenced_exports(
   module_graph_cache: &ModuleGraphCacheArtifact,
   runtime: Option<&RuntimeSpec>,
 ) -> Option<Vec<ExtendedReferencedExport>> {
-  let dep = module_graph
-    .dependency_by_id(&dep_id)
-    .expect("should have dep");
+  let dep = module_graph.dependency_by_id(&dep_id);
 
   if let Some(md) = dep.as_module_dependency() {
     Some(md.get_referenced_exports(module_graph, module_graph_cache, runtime))

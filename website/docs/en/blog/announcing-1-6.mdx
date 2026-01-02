@@ -221,7 +221,7 @@ Rspack 1.6 introduces several performance optimizations. Compared with Rspack 1.
 - Building 10000 React components is **11% faster**
 - Building multiple UI component libraries is **31% faster** (thanks to the newly enabled barrel-file optimization by default)
 
-> Data source: [Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
+> Data source: [Rspack benchmark](https://github.com/rstackjs/build-tools-performance)
 
 ## Rstack progress
 
@@ -375,7 +375,7 @@ Rsdoctor now supports exporting a [all-in-one JSON report file](https://rsdoctor
 
 ### next-rspack
 
-In Next.js 16, next-rspack has integrated Rspack's [custom Rust binding solution](https://github.com/rspack-contrib/rspack-binding-template), delivering significant performance gains:
+In Next.js 16, next-rspack has integrated Rspack's [custom Rust binding solution](https://github.com/rstackjs/rspack-binding-template), delivering significant performance gains:
 
 - 24% faster build performance
 - 10% faster dev performance
@@ -396,7 +396,7 @@ The benchmark is based on the [chakra-ui-docs](https://github.com/SyMind/chakra-
 
 If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`), you need to upgrade the plugins to a version compatible with `swc_core@46`, otherwise it may cause build errors due to version incompatibility.
 
-> For more details, see [FAQ - SWC plugin version unmatched](/errors/swc-plugin-version).
+> For more details, see [FAQ - SWC plugin version mismatch](/errors/swc-plugin-version).
 
 ### Remove `experiments.layer`
 

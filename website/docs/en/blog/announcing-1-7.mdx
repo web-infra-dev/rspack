@@ -1,0 +1,321 @@
+---
+date: 2025-12-31 16:00:00
+sidebar: false
+---
+
+_December 31, 2025_
+
+# Announcing Rspack 1.7
+
+![Rspack 1.7](https://assets.rspack.rs/rspack/rspack-banner-v1-7.png)
+
+---
+
+We are excited to announce Rspack 1.7! This marks the final minor release in the Rspack 1.x series and focuses on stabilizing existing features. Next, we'll be moving toward Rspack 2.0.
+
+Notable changes include:
+
+- New features
+  - [Improved SWC plugin compatibility](#improved-swc-plugin-compatibility)
+  - [Importing assets as bytes](#importing-assets-as-bytes)
+  - [Lazy compilation](#lazy-compilation)
+  - [Experimental features stabilized](#experimental-features-stabilized)
+- Rstack progress
+  - [Rsbuild 1.7](#rsbuild-17)
+  - [Rsdoctor 1.4](#rsdoctor-14)
+  - [Rslib 0.19](#rslib-019)
+  - [Rstest 0.7](#rstest-07)
+  - [Rspress 2.0 RC](#rspress-20-rc)
+
+## New features
+
+### Improved SWC plugin compatibility
+
+In previous versions, the upgrade cost for SWC Wasm plugins was relatively high. This was because the SWC AST structure evolved across versions, causing existing plugins to fail after an SWC upgrade. Plugin authors needed to adapt their plugins, and users needed to upgrade their dependencies in lockstep, which affected project stability and the upgrade experience.
+
+To address this issue, we contributed a series of [compatibility improvements](https://swc.rs/docs/plugin/ecmascript/compatibility) to the SWC community, including:
+
+- Using the self-describing [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) serialization scheme to replace the version-sensitive [rkyv](https://rkyv.org/), allowing Wasm plugins to better adapt to AST structure changes.
+- Introducing the `Unknown` variant for enum types in the AST, improving fault tolerance when encountering new fields or nodes.
+
+In Rspack 1.7, we upgraded the SWC version in use and adopted these compatibility improvements. From now on, in most scenarios, SWC upgrades are unlikely to break existing plugins built with older SWC versions.
+
+Currently, this approach has been adopted by most popular SWC Wasm plugins. If you are an SWC Wasm plugin author, refer to the [official guide](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible) to adopt these changes and reduce maintenance costs in future version evolutions.
+
+### Importing assets as bytes
+
+Rspack now natively supports the [Import Bytes](https://github.com/tc39/proposal-import-bytes) proposal for importing assets as bytes. You can now import assets as `Uint8Array` and decode them with `TextDecoder`.
+
+```js
+// Static import
+import fileBytes from './file.bin' with { type: 'bytes' };
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(fileBytes);
+
+// Dynamic import
+const module = await import('./file.bin', { with: { type: 'bytes' } });
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(module.default);
+```
+
+### Lazy compilation
+
+In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/features/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
+
+Starting from Rspack 1.7, the Rspack CLI also enables lazy compilation by default for dynamically imported modules when building web applications. This change reduces the number of modules in the initial build, thereby speeding up the dev server startup.
+
+```js title="rspack.config.mjs"
+export default {
+  // Current default configuration
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+  },
+};
+```
+
+If you have special requirements, such as needing to debug the full build output or inspect the complete module graph, you can explicitly disable this feature by setting [lazyCompilation](/config/lazy-compilation) to `false`.
+
+### Experimental features stabilized
+
+In Rspack 1.7, we have stabilized several experimental features. The following capabilities have been verified in production and are now considered stable, and the corresponding experimental flags have been deprecated or enabled by default:
+
+- **Constant Inlining Optimization**: This optimization is now stable and enabled by default in production builds.
+  - The original [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) option is deprecated.
+  - If you need to disable this behavior, use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control it.
+- **TypeScript Enum Inlining Optimization**: This optimization is now stable.
+  - The original [experiments.inlineEnum](/config/deprecated-options#experimentsinlineenum) option is deprecated.
+  - Use [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
+  - Use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control whether to inline `enum`.
+- **Type Re-export Check**: This optimization is now stable.
+  - The original [experiments.typeReexportsPresence](/config/deprecated-options#experimentstypereexportspresence) option is deprecated.
+
+> Refer to the [Upgrade Guide](#upgrade-guide) to learn how to adjust related configurations.
+
+## Rstack progress
+
+### Rsbuild 1.7
+
+#### Error overlay improvements
+
+Rsbuild's error overlay now supports displaying **runtime errors**. When an exception is thrown during application execution, the error will be rendered directly on the overlay, helping you identify and diagnose issues faster.
+
+![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
+
+This feature is disabled by default and can be enabled via the [dev.client.overlay.runtime](https://rsbuild.rs/config/dev/client#overlayruntime) option:
+
+```js title=rsbuild.config.ts
+export default {
+  dev: {
+    client: {
+      overlay: {
+        runtime: true,
+      },
+    },
+  },
+};
+```
+
+#### Asset size diff reporting
+
+Rsbuild now supports reporting size differences to see whether the build output size has changed.
+
+![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
+
+When the [performance.printFileSize.diff](https://rsbuild.rs/config/performance/print-file-size#diff) option is enabled, Rsbuild records a snapshot of the asset sizes upon build completion. Subsequent builds will automatically compare with the previous result and display size deltas in the logs. You can clearly see whether each file has grown or shrunk, as well as the overall size change, making it suitable for quickly spotting size regressions during daily development.
+
+```js title=rsbuild.config.ts
+export default {
+  performance: {
+    printFileSize: {
+      diff: true,
+    },
+  },
+};
+```
+
+#### create-rsbuild improvements
+
+`create-rsbuild` now includes more out-of-the-box tools.
+
+When creating an Rsbuild project, you can now choose to automatically integrate [Rstest](https://rstest.rs/) as the testing framework or enable [Storybook](https://storybook.rsbuild.rs/) for UI component development and debugging. Related dependencies and configurations will be set up during initialization, reducing repetitive manual configuration costs.
+
+```text
+◆  Select additional tools (Use <space> to select, <enter> to continue)
+│  ◼ Rstest - testing
+│  ◻ Biome - linting & formatting
+│  ◻ ESLint - linting
+│  ◻ Prettier - formatting
+│  ◻ Storybook - component development
+└
+```
+
+### Rsdoctor 1.4
+
+#### New treemap view
+
+Rsdoctor 1.4 introduces an improved [Treemap](https://rsdoctor.rs/guide/usage/bundle-size) view. The new interaction design helps you analyze the overall composition of the bundle and the size proportion of various assets and modules more intuitively.
+
+In this view, you can quickly locate specific modules or assets via search. Clicking on a module or asset will automatically focus and zoom in on the corresponding area. Double-clicking a module can also expand its dependency chain, allowing you to view the reference relationship between modules layer by layer, helping identify where the size comes from.
+
+![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
+
+### Rslib 0.19
+
+#### ESM output stabilization
+
+In previous versions, Rslib enabled Rspack's [new ESM library output](/plugins/rspack/esm-library-plugin#esmlibraryplugin) through the experimental configuration [experiments.advancedEsm](https://rslib.rs/config/lib/experiments#experimentsadvancedesm) to improve the quality of ESM output. After verification and polishing over multiple versions, this capability is now stable.
+
+Starting from Rslib 0.19, Rslib's bundle mode enables this feature by default. Developers do not need any additional configuration to directly obtain ESM artifacts that are friendly to static analysis and fully support code splitting.
+
+#### JavaScript API
+
+Rslib 0.19 introduces a [JavaScript API](https://rslib.rs/api/start), allowing developers to invoke Rslib's build capabilities programmatically in JavaScript code.
+
+Here is a basic example:
+
+```js
+import { createRslib } from '@rslib/core';
+
+// Create Rslib instance
+const rslib = await createRslib();
+// Build production output
+await rslib.build();
+```
+
+> For more usage, refer to the [API Documentation](https://rslib.rs/api/javascript-api/core).
+
+### Rstest 0.7
+
+#### Configuration adapters
+
+Rstest 0.7 introduces the [extends](https://rstest.rs/config/test/extends) option and an adapter mechanism, allowing you to directly reuse existing tool or framework configurations. An adapter is a configuration transformation function that can convert configurations from other tools into Rstest configurations, thereby reducing the integration overhead of Rstest.
+
+For example, in a library project using Rslib, you can directly reuse the existing Rslib configuration via the [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) adapter:
+
+```js title=rstest.config.ts
+import { defineConfig } from '@rstest/core';
+import { withRslibConfig } from '@rstest/adapter-rslib';
+
+export default defineConfig({
+  // Automatically read rslib.config.ts and convert to Rstest configuration
+  extends: withRslibConfig(),
+  // Other test configurations
+  coverage: {
+    // ...
+  },
+});
+```
+
+The adapter is responsible for converting configurations of different tools into Rstest configurations (such as `define`, `alias`, etc.), while `extends` is responsible for merging the converted configuration with Rstest's configuration. By combining the two, any tool or framework based on Rspack can be integrated with Rstest at minimal cost.
+
+Currently, the `@rstest/adapter-rslib` adapter has been officially released, and we will launch more adapters to interface with various tools in the Rstack. You can also refer to [Rstest - Adapters](https://rstest.rs/guide/integration/adapters) to write custom adapters.
+
+#### Improved test feedback
+
+Rstest has made several usability improvements for local development and debugging scenarios, making test feedback more intuitive:
+
+- **Spot stuck tests earlier:** Rstest now supports marking test cases that have not completed for a long time during local runs. When the test process slows down, you can directly see which case is executing and may be stuck, instead of waiting blindly for the test to time out.
+
+- **Clearer timeout failure feedback:** When a test fails due to timeout, Rstest now displays the number of executed assertions in the error message. This helps you quickly judge whether the test has been partially executed or is stuck in some asynchronous logic, thus locating the problem faster.
+
+### Rspress 2.0 RC
+
+#### SSG-MD feature
+
+In front-end frameworks that rely on dynamic React rendering, static information is often difficult to extract, and Rspress also encountered the same problem. Rspress allows users to enhance document expressiveness through dynamic features such as [MDX fragments](https://v2.rspress.rs/guide/use-mdx/components), React components, Hooks, and TSX routes. However, these dynamic contents face several challenges when converted to Markdown text:
+
+- Directly inputting MDX to AI will contain a lot of code syntax noise and lose React component content.
+- Converting SSG-generated HTML to Markdown often yields poor results, and information quality is difficult to guarantee.
+
+To solve this problem, Rspress 2.0 introduces the [SSG-MD](https://v2.rspress.rs/guide/basic/ssg-md) feature. This is a new rendering mode, as the name suggests, the key difference from traditional [Static Site Generation (SSG)](https://v2.rspress.rs/guide/basic/ssg) is that it renders your page into Markdown files instead of HTML files, and generates [llms.txt](https://llmstxt.org/) and llms-full.txt files. Compared to traditional approaches such as converting HTML to Markdown, SSG-MD has better information sources during rendering, such as React Virtual DOM, so it produces higher-quality static content with greater flexibility.
+
+Enabling it is very simple:
+
+```js title="rspress.config.ts"
+import { defineConfig } from '@rspress/core';
+
+export default defineConfig({
+  llms: true,
+});
+```
+
+The build will generate the following structure:
+
+```
+doc_build
+├── llms.txt          # Summary version, containing key document index
+├── llms-full.txt     # Full version, containing all document content
+├── guide
+│   └── start
+│       └── introduction.md
+└── ...
+```
+
+For custom components, you can control their rendering behavior in SSG-MD mode via environment variables:
+
+```tsx
+export function Tab({ label }: { label: string }) {
+  if (import.meta.env.SSG_MD) {
+    // Output plain text description in SSG-MD mode
+    return <>{`**Tab: ${label}**`}</>;
+  }
+  // Normal interactive component rendering
+  return <div className="tab">{label}</div>;
+}
+```
+
+This preserves the interactive experience of the document and helps AI understand the semantic information of the components.
+
+> For more details, refer to: [SSG-MD Guide](https://v2.rspress.rs/guide/basic/ssg-md)
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`, etc.), upgrade the plugins to be compatible with `swc_core@54` or above, otherwise build failures or runtime exceptions may occur due to version incompatibility.
+
+> For details, see [FAQ - SWC plugin version mismatch](/errors/swc-plugin-version).
+
+### Remove deprecated configuration
+
+- The following experimental options have been deprecated and can be directly removed:
+
+```js title="rspack.config.mjs"
+export default {
+  // [!code --]
+  experiments: {
+    // [!code --]
+    inlineConst: true,
+    // [!code --]
+    inlineEnum: true,
+    // [!code --]
+    typeReexportsPresence: true,
+  },
+};
+```
+
+- Adjust the position of the [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) option in `builtin:swc-loader`, removing the `rspackExperiments` level:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // [!code --]
+          rspackExperiments: {
+            collectTypeScriptInfo: {
+              exportedEnum: true,
+              typeExports: true,
+            },
+            // [!code --]
+          },
+        },
+      },
+    ],
+  },
+};
+```

@@ -191,7 +191,7 @@ checksum = "2eb025ef00a6da925cf40870b9c8d008526b6004ece399cb0974209720f0b194"
 dependencies = [
  "quote",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -202,7 +202,7 @@ checksum = "3b43422f69d8ff38f95f1b2bb76517c91589a924d1559a0e935d7c8ce0274c11"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -213,7 +213,7 @@ checksum = "9035ad2d096bed7955a320ee7e2230574d28fd3c3a0f186cbea1ff3c7eed5dbb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -230,7 +230,7 @@ checksum = "3c87f3f15e7794432337fc718554eaa4dc8f04c9677a950ffe366f20a162ae42"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -455,7 +455,7 @@ checksum = "523363cbe1df49b68215efdf500b103ac3b0fb4836aed6d15689a076eadb8fff"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -696,7 +696,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -781,15 +781,15 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.15.10"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea3c6ecd8059b57859df5c69830340ed3c41d30e3da0c1cbed90a96ac853041b"
+checksum = "03e45a4a8926227e4197636ba97a9fc9b00477e9f4bd711395687c5f0734bec4"
 dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
  "unicode-width 0.2.2",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1103,7 +1103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
 dependencies = [
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1153,7 +1153,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1164,7 +1164,7 @@ checksum = "d336a2a514f6ccccaa3e09b02d41d35330c07ddf03a62165fcec10bb561c7806"
 dependencies = [
  "darling_core",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1247,7 +1247,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1257,7 +1257,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab63b0e2bf4d5928aff72e83a7dace85d7bba5fe12dcc3c5a572d78caffd3f3c"
 dependencies = [
  "derive_builder_core",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1277,7 +1277,7 @@ checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "unicode-xid",
 ]
 
@@ -1305,7 +1305,7 @@ checksum = "97369cbbc041bc366949bc74d34658d6cda5621039731c6310521892a3a20ae0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1403,7 +1403,7 @@ checksum = "1ccd72f8e71e242f71705868f5478fe7592a6e194c06330d8732421ffdbc554c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1531,7 +1531,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ff35a391aef949120a0340d690269b3d9f63460a6106e99bd07b961f345ea9"
 dependencies = [
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1616,7 +1616,7 @@ checksum = "162ee34ebcb7c64a8abebc059ce0fee27c2262618d7b60ed8faf72fef13c3650"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -1979,7 +1979,7 @@ checksum = "1ec89e9337638ecdc08744df490b221a7399bf8d164eb52a665454e60e075ad6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2030,14 +2030,14 @@ dependencies = [
 
 [[package]]
 name = "indicatif"
-version = "0.17.9"
+version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf675b85ed934d3c67b5c5469701eec7db22689d0a2139d856e0925fa28b281"
+checksum = "9375e112e4b463ec1b1c6c011953545c65a30164fbab5b581df32b3abf0dcb88"
 dependencies = [
  "console",
- "number_prefix",
  "portable-atomic",
  "unicode-width 0.2.2",
+ "unit-prefix",
  "web-time",
 ]
 
@@ -2122,7 +2122,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2177,9 +2177,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.16"
+version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ee5b5339afb4c41626dde77b7a611bd4f2c202b897852b4bcf5d03eddc61010"
+checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
 name = "js-sys"
@@ -2476,7 +2476,7 @@ checksum = "db5b29714e950dbb20d5e6f74f9dcec4edbcc1067bb7f8ed198c097b8c1a818b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2549,7 +2549,7 @@ checksum = "1bb5c1d8184f13f7d0ccbeeca0def2f9a181bce2624302793005f5ca8aa62e5e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2587,7 +2587,7 @@ dependencies = [
  "napi-derive-backend",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2600,7 +2600,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "semver",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -2629,9 +2629,9 @@ dependencies = [
 
 [[package]]
 name = "nodejs-built-in-modules"
-version = "0.0.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef70c89437ecec6d0052d1e39efee1830f37fe7d466d9aa44f08b04297f31d49"
+checksum = "a5eb86a92577833b75522336f210c49d9ebd7dd55a44d80a92e68c668a75f27c"
 
 [[package]]
 name = "nohash-hasher"
@@ -2744,12 +2744,6 @@ checksum = "5c7398b9c8b70908f6371f47ed36737907c87c52af34c268fed0bf0ceb92ead9"
 dependencies = [
  "libc",
 ]
-
-[[package]]
-name = "number_prefix"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 
 [[package]]
 name = "object"
@@ -2979,7 +2973,7 @@ dependencies = [
  "phf_shared",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3005,9 +2999,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pnp"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf3870860a3e16e4944bcfa4c5c722305c54c64d487b72d0bb17606bf14b95c2"
+checksum = "a6e38320d5a8e386647f622067588bdb338c9e6e43eb32cf6f8991dd0e8f0046"
 dependencies = [
  "byteorder",
  "concurrent_lru",
@@ -3097,9 +3091,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ee95bc4ef87b8d5ba32e8b7714ccc834865276eab0aed5c9958d00ec45f49e8"
+checksum = "9695f8df41bb4f3d222c95a67532365f569318332d03d5f3f67f37b20e6ebdf0"
 dependencies = [
  "unicode-ident",
 ]
@@ -3124,7 +3118,7 @@ dependencies = [
  "itertools 0.14.0",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3173,7 +3167,7 @@ checksum = "ca414edb151b4c8d125c12566ab0d74dc9cdba36fb80eb7b848c15f495fd32d1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3196,7 +3190,7 @@ checksum = "938543690519c20c3a480d20a8efcc8e69abeb44093ab1df4e7c1f81f26c677a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3321,7 +3315,7 @@ checksum = "bcc303e793d3734489387d205e9b186fac9c6cfacedd98cbb2e8a5943595f3e6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3451,7 +3445,7 @@ checksum = "09cb82b74b4810f07e460852c32f522e979787691b0b7b7439fe473e49d49b2f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3466,7 +3460,7 @@ dependencies = [
 
 [[package]]
 name = "rspack"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "bitflags 2.9.1",
  "derive_more",
@@ -3537,7 +3531,7 @@ checksum = "125d6c4fea52a20e2baaa381c122e111a825ac4c3cccdbb50605805f025d7197"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -3552,7 +3546,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_allocator"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "mimalloc-rspack",
  "sftrace-setup",
@@ -3561,7 +3555,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_benchmark"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "criterion2",
  "rspack",
@@ -3577,7 +3571,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_api"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3683,31 +3677,31 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_build"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "napi-build",
 ]
 
 [[package]]
 name = "rspack_binding_builder"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_binding_api",
 ]
 
 [[package]]
 name = "rspack_binding_builder_macros"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "rspack_binding_builder",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
 name = "rspack_binding_builder_testing"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "napi",
  "napi-derive",
@@ -3721,11 +3715,11 @@ dependencies = [
 
 [[package]]
 name = "rspack_browser"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 
 [[package]]
 name = "rspack_browserslist"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "browserslist-rs",
  "lightningcss",
@@ -3734,7 +3728,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3758,15 +3752,15 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_macros"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
 name = "rspack_cacheable_test"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3785,7 +3779,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_collections"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "dashmap 6.1.0",
  "hashlink",
@@ -3799,7 +3793,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_core"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anymap3",
  "async-recursion",
@@ -3878,7 +3872,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_error"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "miette",
@@ -3895,7 +3889,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_fs"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -3910,7 +3904,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_futures"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_tasks",
  "tokio",
@@ -3918,7 +3912,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hash"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "md4",
  "rspack_cacheable",
@@ -3929,7 +3923,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hook"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_error",
@@ -3940,7 +3934,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_ids"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "itertools 0.14.0",
  "rayon",
@@ -3955,7 +3949,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_javascript_compiler"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "base64",
@@ -3979,7 +3973,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_lightningcss"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "derive_more",
@@ -3999,7 +3993,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_preact_refresh"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4012,7 +4006,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_react_refresh"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4025,7 +4019,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_runner"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -4048,7 +4042,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_swc"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "either",
@@ -4076,7 +4070,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_testing"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4088,7 +4082,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_location"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "itoa",
  "rspack_cacheable",
@@ -4096,16 +4090,16 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
 name = "rspack_macros_test"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4123,7 +4117,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "napi",
  "oneshot",
@@ -4135,16 +4129,16 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi_macros"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
 name = "rspack_node"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "napi-derive",
  "rspack_binding_api",
@@ -4154,7 +4148,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_paths"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -4166,7 +4160,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_asset"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "mime_guess",
@@ -4184,7 +4178,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_banner"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "futures",
@@ -4198,7 +4192,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_case_sensitive"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "itertools 0.14.0",
@@ -4212,7 +4206,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_circular_dependencies"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4229,7 +4223,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_copy"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -4249,7 +4243,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4277,7 +4271,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css_chunking"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "indexmap",
  "rspack_collections",
@@ -4292,7 +4286,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_devtool"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
@@ -4320,7 +4314,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dll"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4340,7 +4334,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dynamic_entry"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "derive_more",
  "futures",
@@ -4353,7 +4347,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ensure_chunk_conditions"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4364,7 +4358,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_entry"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4374,7 +4368,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_esm_library"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4401,7 +4395,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_externals"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "regex",
  "rspack_core",
@@ -4414,7 +4408,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_extract_css"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4440,7 +4434,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_hmr"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4460,7 +4454,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_html"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "atomic_refcell",
@@ -4489,7 +4483,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ignore"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "derive_more",
  "futures",
@@ -4502,7 +4496,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_javascript"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -4543,7 +4537,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_json"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4557,7 +4551,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lazy_compilation"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4577,7 +4571,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_library"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "futures",
  "regex",
@@ -4596,7 +4590,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lightning_css_minimizer"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "lightningcss",
  "parcel_sourcemap",
@@ -4614,7 +4608,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_limit_chunk_count"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4625,7 +4619,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rayon",
  "rspack_collections",
@@ -4638,7 +4632,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "camino",
@@ -4664,7 +4658,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_info_header"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "regex",
  "rspack_cacheable",
@@ -4680,7 +4674,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_replacement"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "derive_more",
  "futures",
@@ -4695,7 +4689,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_no_emit_on_errors"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4705,7 +4699,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_progress"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "futures",
  "indicatif",
@@ -4719,7 +4713,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_real_content_hash"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "aho-corasick",
  "atomic_refcell",
@@ -4740,7 +4734,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_duplicate_modules"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4752,7 +4746,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_empty_chunks"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4763,7 +4757,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsdoctor"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "atomic_refcell",
  "futures",
@@ -4784,7 +4778,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rslib"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4802,7 +4796,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rstest"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "camino",
  "regex",
@@ -4818,7 +4812,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4842,7 +4836,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime_chunk"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "futures",
  "rspack_core",
@@ -4853,7 +4847,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_schemes"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4878,7 +4872,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_size_limits"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "derive_more",
  "futures",
@@ -4892,7 +4886,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_split_chunks"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -4914,7 +4908,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_sri"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4948,7 +4942,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_swc_js_minimizer"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "once_cell",
@@ -4971,7 +4965,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_wasm"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4991,7 +4985,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_web_worker_template"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_core",
  "rspack_plugin_runtime",
@@ -4999,7 +4993,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_worker"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5009,7 +5003,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_regex"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "napi",
@@ -5060,7 +5054,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_storage"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5078,7 +5072,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_import"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "heck",
@@ -5089,7 +5083,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_ts_collector"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "glob",
  "rspack_javascript_compiler",
@@ -5100,14 +5094,14 @@ dependencies = [
 
 [[package]]
 name = "rspack_tasks"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "rspack_tools"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "clap",
  "itertools 0.14.0",
@@ -5122,7 +5116,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "rspack_tracing_perfetto",
  "tracing-subscriber",
@@ -5130,7 +5124,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing_perfetto"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "bytes",
  "micromegas-perfetto",
@@ -5142,7 +5136,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_util"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "base64-simd 0.8.0",
@@ -5175,7 +5169,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_watcher"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
@@ -5191,7 +5185,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_workspace"
-version = "0.7.0-beta.1"
+version = "0.7.0"
 
 [[package]]
 name = "rustc-demangle"
@@ -5337,14 +5331,14 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
 name = "serde_json"
-version = "1.0.147"
+version = "1.0.148"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6af14725505314343e673e9ecb7cd7e8a36aa9791eb936235a3567cc31447ae4"
+checksum = "3084b546a1dd6289475996f182a22aba973866ea8e8b02c51d9f46b1336a22da"
 dependencies = [
  "indexmap",
  "itoa",
@@ -5552,7 +5546,7 @@ checksum = "710e9696ef338691287aeb937ee6ffe60022f579d3c8d2fd9d58973a9a10a466"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -5597,7 +5591,7 @@ checksum = "ae36a4951ca7bd1cfd991c241584a9824a70f6aff1e7d4f693fb3f2465e4030e"
 dependencies = [
  "quote",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -5811,7 +5805,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -5896,7 +5890,7 @@ checksum = "e276dc62c0a2625a560397827989c82a93fd545fcf6f7faec0935a82cc4ddbb8"
 dependencies = [
  "proc-macro2",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6219,7 +6213,7 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_parser",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6332,7 +6326,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "swc_macros_common",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6507,7 +6501,7 @@ checksum = "c16ce73424a6316e95e09065ba6a207eba7765496fed113702278b7711d4b632"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6531,7 +6525,7 @@ checksum = "b45db26cc495a8695f8034277ceb6a44e52eb702d6c64ea5c7156dd673ea8c98"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6634,7 +6628,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f98ef1f87379c816ba7d22351c9fc993af38b034bce4da3286cfe4b17e7ec9e2"
 dependencies = [
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6710,7 +6704,7 @@ checksum = "aae1efbaa74943dc5ad2a2fb16cbd78b77d7e4d63188f3c5b4df2b4dcd2faaae"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6796,7 +6790,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfd2b4b0adb82e36f2ac688d00a6a67132c7f4170c772617516793a701be89e8"
 dependencies = [
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6834,9 +6828,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.111"
+version = "2.0.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "390cc9a294ab71bdb1aa2e99d13be9c753cd2d7bd6560c77118597410c4d2e87"
+checksum = "21f182278bf2d2bcb3c88b1b08a37df029d71ce3d3ae26168e3c653b213b99d4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6851,7 +6845,7 @@ checksum = "c8af7666ab7b6390ab78131fb5b0fce11d6b7a6951602017c35fa82800708971"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6956,7 +6950,7 @@ checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -6967,7 +6961,7 @@ checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -7057,7 +7051,7 @@ checksum = "af407857209536a95c8e56f8231ef2c2e2aff839b22e07a1ffcbc617e9db9fa5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -7159,7 +7153,7 @@ checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -7315,6 +7309,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unit-prefix"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81e544489bf3d8ef66c953931f56617f423cd4b5494be343d9b9d3dda037b9a3"
 
 [[package]]
 name = "url"
@@ -7511,7 +7511,7 @@ dependencies = [
  "log",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "wasm-bindgen-shared",
 ]
 
@@ -7533,7 +7533,7 @@ checksum = "8ae87ea40c9f689fc23f209965b6fb8a99ad69aeeb0231408be24920604395de"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -7754,7 +7754,7 @@ checksum = "342b0466f92b7217a4de9e114175fedee1907028567d2548bcd42f71a8b5b016"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -7818,7 +7818,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "witx",
 ]
 
@@ -7830,7 +7830,7 @@ checksum = "f5872fbe512b73acd514e7ef5bd5aee0ff951a12c1fed0293e1f7992de30df9f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "wiggle-generate",
 ]
 
@@ -7948,7 +7948,7 @@ checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -7959,7 +7959,7 @@ checksum = "3f316c4a2570ba26bbec722032c4099d8c8bc095efccdc15688708623367e358"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -8027,6 +8027,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
 dependencies = [
  "windows-targets 0.53.2",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.61.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
+dependencies = [
+ "windows-link 0.2.1",
 ]
 
 [[package]]
@@ -8270,7 +8279,7 @@ checksum = "2380878cad4ac9aac1e2435f3eb4020e8374b5f13c296cb75b4620ff8e229154"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "synstructure",
 ]
 
@@ -8301,7 +8310,7 @@ checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -8312,7 +8321,7 @@ checksum = "28a6e20d751156648aa063f3800b706ee209a32c0b4d9f24be3d980b01be55ef"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -8332,7 +8341,7 @@ checksum = "595eed982f7d355beb85837f651fa22e90b3c044842dc7f2c2842c086f295808"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
  "synstructure",
 ]
 
@@ -8355,7 +8364,7 @@ checksum = "6eafa6dfb17584ea3e2bd6e76e0cc15ad7af12b09abdd1ca55961bed9b1063c6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.111",
+ "syn 2.0.112",
 ]
 
 [[package]]
@@ -8366,6 +8375,6 @@ checksum = "2f06ae92f42f5e5c42443fd094f245eb656abf56dd7cce9b8b263236565e00f2"
 
 [[package]]
 name = "zmij"
-version = "0.1.7"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e404bcd8afdaf006e529269d3e85a743f9480c3cef60034d77860d02964f3ba"
+checksum = "e3280a1b827474fcd5dbef4b35a674deb52ba5c312363aef9135317df179d81b"

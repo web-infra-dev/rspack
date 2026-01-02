@@ -470,11 +470,8 @@ impl ModuleConcatenationPlugin {
       let mut non_esm_connections = HashMap::default();
       for (origin_module, connections) in incoming_connections_from_modules.iter() {
         let has_non_esm_connections = connections.iter().any(|connection| {
-          if let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) {
-            !is_esm_dep_like(dep)
-          } else {
-            false
-          }
+          let dep = module_graph.dependency_by_id(&connection.dependency_id);
+          !is_esm_dep_like(dep)
         });
 
         if has_non_esm_connections {
@@ -495,9 +492,9 @@ impl ModuleConcatenationPlugin {
               );
               let mut names = connections
                 .iter()
-                .filter_map(|item| {
-                  let dep = module_graph.dependency_by_id(&item.dependency_id)?;
-                  Some(dep.dependency_type().to_string())
+                .map(|item| {
+                  let dep = module_graph.dependency_by_id(&item.dependency_id);
+                  dep.dependency_type().to_string()
                 })
                 .collect::<Vec<_>>();
               names.sort();
@@ -1079,7 +1076,7 @@ impl ModuleConcatenationPlugin {
           .get_dependencies()
           .iter()
           .filter_map(|d| {
-            let dep = module_graph.dependency_by_id(d)?;
+            let dep = module_graph.dependency_by_id(d);
             if !is_esm_dep_like(dep) {
               return None;
             }
@@ -1567,7 +1564,7 @@ where
       let connection = mg
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let dep = mg.dependency_by_id(dep_id);
       if filter_connection(m, connection, dep) {
         res.push(*dep_id);
       }
@@ -1596,7 +1593,7 @@ where
       .connection_by_dependency_id(dep_id)
       .expect("should have connection");
 
-    let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+    let dep = mg.dependency_by_id(dep_id);
     if filter_connection(root_module_id, connection, dep) {
       outgoings.push(*dep_id);
     }
@@ -1612,7 +1609,7 @@ where
     let connection = mg
       .connection_by_dependency_id(dep_id)
       .expect("should have connection");
-    let dependency = mg.dependency_by_id(dep_id).expect("should have dependency");
+    let dependency = mg.dependency_by_id(dep_id);
     if filter_connection(root_module_id, connection, dependency) {
       incomings.push(*dep_id);
     }
