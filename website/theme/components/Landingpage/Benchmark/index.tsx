@@ -15,7 +15,7 @@ import styles from './index.module.scss';
 
 // Benchmark data for different cases
 // Unit: second
-// From: https://github.com/rstackjs/performance-compare
+// From: https://github.com/rstackjs/build-tools-performance
 const BENCHMARK_DATA: BenchmarkData = {
   rspack: {
     label: 'Rspack',
@@ -99,7 +99,7 @@ export const Benchmark = memo(() => {
         <BaseBenchmark data={BENCHMARK_DATA} />
         <div className="flex flex-col items-center self-stretch">
           <a
-            href="https://github.com/rstackjs/performance-compare"
+            href="https://github.com/rstackjs/build-tools-performance"
             target="_blank"
             className={styles.button}
             rel="noreferrer"
