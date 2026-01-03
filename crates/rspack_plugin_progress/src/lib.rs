@@ -12,15 +12,15 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, Compilation, CompilationAfterOptimizeModules,
-  CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
-  CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunks, CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies,
-  CompilationOptimizeModules, CompilationOptimizeTree, CompilationParams, CompilationProcessAssets,
-  CompilationSeal, CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation,
-  CompilerEmit, CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation,
-  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
-  build_module_graph::BuildModuleGraphArtifact,
+  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, Compilation,
+  CompilationAfterOptimizeModules, CompilationAfterProcessAssets, CompilationBuildModule,
+  CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
+  CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
+  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
+  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
+  CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, ModuleIdsArtifact, Plugin,
+  SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -498,7 +498,13 @@ async fn module_ids(
 }
 
 #[plugin_hook(CompilationChunkIds for ProgressPlugin)]
-async fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn chunk_ids(
+  &self,
+  _compilation: &Compilation,
+  _chunk_by_ukey: &mut ChunkByUkey,
+  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   self.sealing_hooks_report("chunk ids", 21).await
 }
 
