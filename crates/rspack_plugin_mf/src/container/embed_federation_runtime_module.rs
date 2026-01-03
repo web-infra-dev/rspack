@@ -45,10 +45,37 @@ impl EmbedFederationRuntimeModule {
   }
 }
 
+enum TemplateId {
+  Async,
+  Sync,
+}
+
+impl EmbedFederationRuntimeModule {
+  fn template_id(&self, template_id: TemplateId) -> String {
+    match template_id {
+      TemplateId::Async => format!("{}_async", self.id),
+      TemplateId::Sync => format!("{}_sync", self.id),
+    }
+  }
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::Async),
+        include_str!("./embed_federation_runtime_async.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::Sync),
+        include_str!("./embed_federation_runtime_sync.ejs").to_string(),
+      ),
+    ]
   }
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
@@ -99,20 +126,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     }
 
     if self.options.experiments.async_startup {
-      // Build startup wrappers. Always wrap STARTUP; also wrap STARTUP_ENTRYPOINT when async startup
-      // is enabled so runtimeChunk: "single" flows still initialize federation runtime.
-      let startup = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP);
-      let startup_entry = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT);
-      let async_startup = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
-      let require_global = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE);
       let entry_chunk_ids = compilation
         .chunk_by_ukey
         .expect_get(&chunk_ukey)
@@ -128,162 +141,21 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
         serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
-
-      let mut code = format!(
-        r#"{require_global}.mfStartupBase = (function() {{
-	var hasRun = false;
-	var result;
-	return function __webpack_require__mfStartupBase() {{
-		if (hasRun) return result;
-		hasRun = true;
-		result = (function(){{
-{module_executions}		}})();
-		return result;
-	}};
-}})();
-
-{async_startup} = (function() {{
-	var hasRun = false;
-	var result;
-	return function __webpack_require__mfAsyncStartup() {{
-		if (hasRun) return result;
-		hasRun = true;
-		var base = {require_global}.mfStartupBase && {require_global}.mfStartupBase();
-		var promises = base && typeof base.then === "function" ? [base] : [];
-		var f = __webpack_require__.f;
-		if (f) {{
-			var startupChunkIds = {entry_chunk_ids_literal};
-			if (startupChunkIds.length) {{
-				var consumes = f.consumes;
-				if (typeof consumes === "function") {{
-					for (var i = 0; i < startupChunkIds.length; i++) consumes(startupChunkIds[i], promises);
-				}}
-				var remotes = f.remotes;
-				if (typeof remotes === "function") {{
-					for (var i = 0; i < startupChunkIds.length; i++) remotes(startupChunkIds[i], promises);
-				}}
-			}}
-		}}
-		result = promises.length ? Promise.all(promises) : base;
-		return result;
-	}};
-}})();
-
-{require_global}.mfStartup = {startup};
-"#,
-        async_startup = async_startup,
-        entry_chunk_ids_literal = entry_chunk_ids_literal,
-        module_executions = module_executions,
-        require_global = require_global,
-        startup = startup,
-      );
-
-      let supports_arrow_function = compilation
-        .options
-        .output
-        .environment
-        .supports_arrow_function();
-      if supports_arrow_function {
-        code.push_str(&format!(
-          r#"{startup} = (function(prev) {{
-	var fn = typeof prev === 'function' ? prev : function(){{}};
-	return function() {{
-		var res = {async_startup}();
-		if (res && typeof res.then === "function") {{
-			return res.then(() => fn.apply(this, arguments));
-		}}
-		return fn.apply(this, arguments);
-	}};
-}})({startup});
-"#,
-          async_startup = async_startup,
-          startup = startup,
-        ));
-
-        // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
-        code.push_str(&format!(
-          r#"{startup_entry} = (function(prev) {{
-	var fn = typeof prev === 'function' ? prev : function(){{}};
-	return function(result, chunkIds, cb) {{
-		var res = {async_startup}();
-		if (chunkIds === undefined && result === undefined) {{
-			return res && typeof res.then === "function" ? res.then(() => {{}}) : Promise.resolve();
-		}}
-		if (chunkIds === undefined) chunkIds = [];
-		if (res && typeof res.then === "function") {{
-			return res.then(() => fn.call(this, result, chunkIds, cb));
-		}}
-		return fn.call(this, result, chunkIds, cb);
-	}};
-}})({startup_entry});
-"#,
-          async_startup = async_startup,
-          startup_entry = startup_entry,
-        ));
-      } else {
-        code.push_str(&format!(
-          r#"{startup} = (function(prev) {{
-	var fn = typeof prev === 'function' ? prev : function(){{}};
-	return function() {{
-		var res = {async_startup}();
-		if (res && typeof res.then === "function") {{
-			var _this = this, _args = arguments;
-			return res.then(function() {{ return fn.apply(_this, _args); }});
-		}}
-		return fn.apply(this, arguments);
-	}};
-}})({startup});
-"#,
-          async_startup = async_startup,
-          startup = startup,
-        ));
-
-        // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
-        code.push_str(&format!(
-          r#"{startup_entry} = (function(prev) {{
-	var fn = typeof prev === 'function' ? prev : function(){{}};
-	return function(result, chunkIds, cb) {{
-		var res = {async_startup}();
-		if (chunkIds === undefined && result === undefined) {{
-			return res && typeof res.then === "function" ? res.then(function() {{}}) : Promise.resolve();
-		}}
-		if (chunkIds === undefined) chunkIds = [];
-		if (res && typeof res.then === "function") {{
-			var _this = this;
-			return res.then(function() {{ return fn.call(_this, result, chunkIds, cb); }});
-		}}
-		return fn.call(this, result, chunkIds, cb);
-	}};
-}})({startup_entry});
-"#,
-          async_startup = async_startup,
-          startup_entry = startup_entry,
-        ));
-      }
-
-      Ok(code)
+      Ok(compilation.runtime_template.render(
+        &self.template_id(TemplateId::Async),
+        Some(serde_json::json!({
+          "_module_executions": module_executions,
+          "_entry_chunk_ids": entry_chunk_ids_literal,
+        })),
+      )?)
     } else {
       // Sync startup: keep the legacy prevStartup wrapper for minimal surface area.
-      let startup = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP);
-      Ok(format!(
-        r#"var prevStartup = {startup};
-var hasRun = false;
-{startup} = function() {{
-	if (!hasRun) {{
-		hasRun = true;
-{module_executions}	}}
-	if (typeof prevStartup === 'function') {{
-		return prevStartup();
-	}} else {{
-		console.warn('[MF] Invalid prevStartup');
-	}}
-}};
-"#,
-        module_executions = module_executions,
-        startup = startup,
-      ))
+      Ok(compilation.runtime_template.render(
+        &self.template_id(TemplateId::Sync),
+        Some(serde_json::json!({
+          "_module_executions": module_executions,
+        })),
+      )?)
     }
   }
 

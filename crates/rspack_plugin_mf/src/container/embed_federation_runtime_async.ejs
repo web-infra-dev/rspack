@@ -1,0 +1,60 @@
+<%- REQUIRE %>.mfStartupBase = (function () {
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfStartupBase() {
+		if (hasRun) return result;
+		hasRun = true;
+		result = (function () {
+<%- _module_executions %>		})();
+		return result;
+	};
+})();
+
+<%- ASYNC_FEDERATION_STARTUP %> = (function () {
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfAsyncStartup() {
+		if (hasRun) return result;
+		hasRun = true;
+		var base = <%- REQUIRE %>.mfStartupBase && <%- REQUIRE %>.mfStartupBase();
+		var promises = base && base.then ? [base] : [];
+		var f = <%- REQUIRE %>.f;
+		if (f) {
+			var startupChunkIds = <%- _entry_chunk_ids %>;
+			if (startupChunkIds.length) {
+				var consumes = f.consumes;
+				var remotes = f.remotes;
+				for (var i = 0; i < startupChunkIds.length; i++) {
+					consumes && consumes(startupChunkIds[i], promises);
+					remotes && remotes(startupChunkIds[i], promises);
+				}
+			}
+		}
+		result = promises.length ? Promise.all(promises) : base;
+		return result;
+	};
+})();
+
+<%- REQUIRE %>.mfStartup = <%- STARTUP %>;
+
+var __mf_wrap__ = function (prev, isEntry) {
+	var fn = typeof prev === "function" ? prev : function () {};
+	return function (result, chunkIds, cb) {
+		var res = <%- ASYNC_FEDERATION_STARTUP %>();
+		var _this = this;
+		var _args = arguments;
+		if (isEntry) {
+			if (chunkIds === undefined && result === undefined) {
+				return res && res.then ? res.then(function () {}) : Promise.resolve();
+			}
+			if (chunkIds === undefined) chunkIds = [];
+		}
+		var call = function () {
+			return isEntry ? fn.call(_this, result, chunkIds, cb) : fn.apply(_this, _args);
+		};
+		return res && res.then ? res.then(call) : call();
+	};
+};
+
+<%- STARTUP %> = __mf_wrap__(<%- STARTUP %>);
+<%- STARTUP_ENTRYPOINT %> = __mf_wrap__(<%- STARTUP_ENTRYPOINT %>, 1);
