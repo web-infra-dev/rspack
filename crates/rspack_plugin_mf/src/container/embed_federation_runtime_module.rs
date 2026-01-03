@@ -129,70 +129,54 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let entry_chunk_ids_literal =
         serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
 
-      let mut code = String::with_capacity(256 + module_executions.len());
+      let mut code = format!(
+        r#"{require_global}.mfStartupBase = (function() {{
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfStartupBase() {{
+		if (hasRun) return result;
+		hasRun = true;
+		result = (function(){{
+{module_executions}		}})();
+		return result;
+	}};
+}})();
 
-      // Expose a once-guarded base startup hook so containers can run federation
-      // runtime setup without awaiting async preloads.
-      code.push_str(&format!(
-        "{require_global}.mfStartupBase = (function() {{\n"
-      ));
-      code.push_str("\tvar hasRun = false;\n");
-      code.push_str("\tvar result;\n");
-      code.push_str("\treturn function __webpack_require__mfStartupBase() {\n");
-      code.push_str("\t\tif (hasRun) return result;\n");
-      code.push_str("\t\thasRun = true;\n");
-      // Run embedded federation runtime modules once (may return a Promise)
-      code.push_str("\t\tresult = (function(){\n");
-      // Inline the federation runtime executions directly; keep newlines so the inserted code
-      // remains syntactically valid inside the startup function body.
-      code.push_str(&module_executions);
-      code.push_str("\t\t})();\n");
-      code.push_str("\t\treturn result;\n");
-      code.push_str("\t};\n");
-      code.push_str("})();\n");
+{async_startup} = (function() {{
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfAsyncStartup() {{
+		if (hasRun) return result;
+		hasRun = true;
+		var base = {require_global}.mfStartupBase && {require_global}.mfStartupBase();
+		var promises = base && typeof base.then === "function" ? [base] : [];
+		var f = __webpack_require__.f;
+		if (f) {{
+			var startupChunkIds = {entry_chunk_ids_literal};
+			if (startupChunkIds.length) {{
+				var consumes = f.consumes;
+				if (typeof consumes === "function") {{
+					for (var i = 0; i < startupChunkIds.length; i++) consumes(startupChunkIds[i], promises);
+				}}
+				var remotes = f.remotes;
+				if (typeof remotes === "function") {{
+					for (var i = 0; i < startupChunkIds.length; i++) remotes(startupChunkIds[i], promises);
+				}}
+			}}
+		}}
+		result = promises.length ? Promise.all(promises) : base;
+		return result;
+	}};
+}})();
 
-      // Expose a once-guarded async startup hook on __webpack_require__ and keep the implementation
-      // minimal (single assignment + fewer temp bindings).
-      code.push_str(&format!("{async_startup} = (function() {{\n"));
-      code.push_str("\tvar hasRun = false;\n");
-      code.push_str("\tvar result;\n");
-      code.push_str("\treturn function __webpack_require__mfAsyncStartup() {\n");
-      code.push_str("\t\tif (hasRun) return result;\n");
-      code.push_str("\t\thasRun = true;\n");
-      // Run embedded federation runtime modules once (may return a Promise)
-      code.push_str(&format!(
-        "\t\tvar base = {require_global}.mfStartupBase && {require_global}.mfStartupBase();\n"
-      ));
-      // Collect thenables from base + remote/consume handlers (mirrors webpack async startup)
-      code
-        .push_str("\t\tvar promises = base && typeof base.then === \"function\" ? [base] : [];\n");
-      code.push_str("\t\tvar f = __webpack_require__.f;\n");
-      code.push_str("\t\tif (f) {\n");
-      code.push_str(&format!(
-        "\t\t\tvar startupChunkIds = {entry_chunk_ids_literal};\n"
-      ));
-      code.push_str("\t\t\tif (startupChunkIds.length) {\n");
-      code.push_str("\t\t\t\tvar consumes = f.consumes;\n");
-      code.push_str("\t\t\t\tif (typeof consumes === \"function\") {\n");
-      code.push_str(
-        "\t\t\t\t\tfor (var i = 0; i < startupChunkIds.length; i++) consumes(startupChunkIds[i], promises);\n",
+{require_global}.mfStartup = {startup};
+"#,
+        async_startup = async_startup,
+        entry_chunk_ids_literal = entry_chunk_ids_literal,
+        module_executions = module_executions,
+        require_global = require_global,
+        startup = startup,
       );
-      code.push_str("\t\t\t\t}\n");
-      code.push_str("\t\t\t\tvar remotes = f.remotes;\n");
-      code.push_str("\t\t\t\tif (typeof remotes === \"function\") {\n");
-      code.push_str(
-        "\t\t\t\t\tfor (var i = 0; i < startupChunkIds.length; i++) remotes(startupChunkIds[i], promises);\n",
-      );
-      code.push_str("\t\t\t\t}\n");
-      code.push_str("\t\t\t}\n");
-      code.push_str("\t\t}\n");
-      code.push_str("\t\tresult = promises.length ? Promise.all(promises) : base;\n");
-      code.push_str("\t\treturn result;\n");
-      code.push_str("\t};\n");
-      code.push_str("})();\n");
-
-      // Preserve the original startup function for synchronous container entry execution.
-      code.push_str(&format!("{require_global}.mfStartup = {startup};\n"));
 
       let supports_arrow_function = compilation
         .options
@@ -201,21 +185,79 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         .supports_arrow_function();
       if supports_arrow_function {
         code.push_str(&format!(
-          "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.apply(this, arguments));\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
+          r#"{startup} = (function(prev) {{
+	var fn = typeof prev === 'function' ? prev : function(){{}};
+	return function() {{
+		var res = {async_startup}();
+		if (res && typeof res.then === "function") {{
+			return res.then(() => fn.apply(this, arguments));
+		}}
+		return fn.apply(this, arguments);
+	}};
+}})({startup});
+"#,
+          async_startup = async_startup,
+          startup = startup,
         ));
 
         // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
         code.push_str(&format!(
-          "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(() => {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\treturn res.then(() => fn.call(this, result, chunkIds, cb));\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
+          r#"{startup_entry} = (function(prev) {{
+	var fn = typeof prev === 'function' ? prev : function(){{}};
+	return function(result, chunkIds, cb) {{
+		var res = {async_startup}();
+		if (chunkIds === undefined && result === undefined) {{
+			return res && typeof res.then === "function" ? res.then(() => {{}}) : Promise.resolve();
+		}}
+		if (chunkIds === undefined) chunkIds = [];
+		if (res && typeof res.then === "function") {{
+			return res.then(() => fn.call(this, result, chunkIds, cb));
+		}}
+		return fn.call(this, result, chunkIds, cb);
+	}};
+}})({startup_entry});
+"#,
+          async_startup = async_startup,
+          startup_entry = startup_entry,
         ));
       } else {
         code.push_str(&format!(
-          "{startup} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function() {{\n\t\tvar res = {async_startup}();\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\tvar _this = this, _args = arguments;\n\t\t\treturn res.then(function() {{ return fn.apply(_this, _args); }});\n\t\t}}\n\t\treturn fn.apply(this, arguments);\n\t}};\n}})({startup});\n"
+          r#"{startup} = (function(prev) {{
+	var fn = typeof prev === 'function' ? prev : function(){{}};
+	return function() {{
+		var res = {async_startup}();
+		if (res && typeof res.then === "function") {{
+			var _this = this, _args = arguments;
+			return res.then(function() {{ return fn.apply(_this, _args); }});
+		}}
+		return fn.apply(this, arguments);
+	}};
+}})({startup});
+"#,
+          async_startup = async_startup,
+          startup = startup,
         ));
 
         // STARTUP_ENTRYPOINT is called with no args in runtimeChunk:'single' entry flows; tolerate that.
         code.push_str(&format!(
-          "{startup_entry} = (function(prev) {{\n\tvar fn = typeof prev === 'function' ? prev : function(){{}};\n\treturn function(result, chunkIds, cb) {{\n\t\tvar res = {async_startup}();\n\t\tif (chunkIds === undefined && result === undefined) {{\n\t\t\treturn res && typeof res.then === \"function\" ? res.then(function() {{}}) : Promise.resolve();\n\t\t}}\n\t\tif (chunkIds === undefined) chunkIds = [];\n\t\tif (res && typeof res.then === \"function\") {{\n\t\t\tvar _this = this;\n\t\t\treturn res.then(function() {{ return fn.call(_this, result, chunkIds, cb); }});\n\t\t}}\n\t\treturn fn.call(this, result, chunkIds, cb);\n\t}};\n}})({startup_entry});\n"
+          r#"{startup_entry} = (function(prev) {{
+	var fn = typeof prev === 'function' ? prev : function(){{}};
+	return function(result, chunkIds, cb) {{
+		var res = {async_startup}();
+		if (chunkIds === undefined && result === undefined) {{
+			return res && typeof res.then === "function" ? res.then(function() {{}}) : Promise.resolve();
+		}}
+		if (chunkIds === undefined) chunkIds = [];
+		if (res && typeof res.then === "function") {{
+			var _this = this;
+			return res.then(function() {{ return fn.call(_this, result, chunkIds, cb); }});
+		}}
+		return fn.call(this, result, chunkIds, cb);
+	}};
+}})({startup_entry});
+"#,
+          async_startup = async_startup,
+          startup_entry = startup_entry,
         ));
       }
 
@@ -225,21 +267,23 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       let startup = compilation
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::STARTUP);
-      let mut code = String::with_capacity(128 + module_executions.len());
-      code.push_str(&format!("var prevStartup = {startup};\n"));
-      code.push_str("var hasRun = false;\n");
-      code.push_str(&format!("{startup} = function() {{\n"));
-      code.push_str("\tif (!hasRun) {\n");
-      code.push_str("\t\thasRun = true;\n");
-      code.push_str(&module_executions);
-      code.push_str("\t}\n");
-      code.push_str("\tif (typeof prevStartup === 'function') {\n");
-      code.push_str("\t\treturn prevStartup();\n");
-      code.push_str("\t} else {\n");
-      code.push_str("\t\tconsole.warn('[MF] Invalid prevStartup');\n");
-      code.push_str("\t}\n");
-      code.push_str("};\n");
-      Ok(code)
+      Ok(format!(
+        r#"var prevStartup = {startup};
+var hasRun = false;
+{startup} = function() {{
+	if (!hasRun) {{
+		hasRun = true;
+{module_executions}	}}
+	if (typeof prevStartup === 'function') {{
+		return prevStartup();
+	}} else {{
+		console.warn('[MF] Invalid prevStartup');
+	}}
+}};
+"#,
+        module_executions = module_executions,
+        startup = startup,
+      ))
     }
   }
 

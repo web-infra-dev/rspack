@@ -197,10 +197,10 @@ importers:
         specifier: ^1.4.2
         version: 1.4.2(@rsbuild/core@1.6.15)
       '@rspack/cli':
-        specifier: workspace:*
+        specifier: link:/Users/zackjackson/rspack/packages/rspack-cli
         version: link:../../packages/rspack-cli
       '@rspack/core':
-        specifier: workspace:*
+        specifier: link:/Users/zackjackson/rspack/packages/rspack
         version: link:../../packages/rspack
       '@types/react':
         specifier: ^19.2.7
