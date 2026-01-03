@@ -14,6 +14,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
 
 #[tracing::instrument(skip_all)]
+#[allow(clippy::too_many_arguments)]
 fn assign_named_chunk_ids(
   chunks: UkeySet<ChunkUkey>,
   chunk_by_ukey: &mut ChunkByUkey,
