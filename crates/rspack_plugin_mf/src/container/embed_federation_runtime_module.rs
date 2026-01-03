@@ -85,27 +85,21 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     let collected_deps = &self.options.collected_dependency_ids;
 
-    if collected_deps.is_empty() {
-      return Ok("// No federation runtime dependencies to embed.".into());
-    }
-
     let module_graph = compilation.get_module_graph();
     let mut federation_runtime_modules = Vec::new();
 
     // Find federation runtime dependencies in this chunk
-    for dep_id in collected_deps.iter() {
-      if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
-        let is_in_chunk = compilation
-          .chunk_graph
-          .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
-        if is_in_chunk {
-          federation_runtime_modules.push(*dep_id);
+    if !collected_deps.is_empty() {
+      for dep_id in collected_deps.iter() {
+        if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
+          let is_in_chunk = compilation
+            .chunk_graph
+            .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
+          if is_in_chunk {
+            federation_runtime_modules.push(*dep_id);
+          }
         }
       }
-    }
-
-    if federation_runtime_modules.is_empty() {
-      return Ok("// Federation runtime entry modules not found in this chunk.".into());
     }
 
     // Generate module execution code for each federation runtime dependency
@@ -149,6 +143,9 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         })),
       )?)
     } else {
+      if module_executions.is_empty() {
+        return Ok("// Federation runtime entry modules not found in this chunk.".into());
+      }
       // Sync startup: keep the legacy prevStartup wrapper for minimal surface area.
       Ok(compilation.runtime_template.render(
         &self.template_id(TemplateId::Sync),

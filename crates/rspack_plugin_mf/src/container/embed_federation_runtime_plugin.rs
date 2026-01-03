@@ -214,6 +214,9 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit startup calls
   if !has_runtime && has_entry_modules {
+    if self.experiments.async_startup {
+      return Ok(());
+    }
     let mut startup_with_call = ConcatSource::default();
 
     // Add startup call

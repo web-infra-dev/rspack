@@ -2477,6 +2477,7 @@ export interface RawModuleFederationRuntimeExperimentsOptions {
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
   experiments?: RawModuleFederationRuntimeExperimentsOptions
+  asyncStartup?: boolean
 }
 
 export interface RawModuleFilenameTemplateFnCtx {

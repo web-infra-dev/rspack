@@ -9,6 +9,7 @@ export interface ModuleFederationRuntimeExperimentsOptions {
 export interface ModuleFederationRuntimeOptions {
   entryRuntime?: string;
   experiments?: ModuleFederationRuntimeExperimentsOptions;
+  asyncStartup?: boolean;
 }
 
 export const ModuleFederationRuntimePlugin = create(

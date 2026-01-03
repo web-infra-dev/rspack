@@ -50,14 +50,16 @@ export class ModuleFederationPlugin {
     // Generate the runtime entry content
     const entryRuntime = getDefaultEntryRuntime(paths, this._options, compiler);
 
+    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
-      asyncStartup: this._options.experiments?.asyncStartup ?? false,
+      asyncStartup,
     };
 
     // Pass only the entry runtime to the Rust-side plugin
     new ModuleFederationRuntimePlugin({
       entryRuntime,
       experiments: runtimeExperiments,
+      asyncStartup,
     }).apply(compiler);
 
     // Keep v1 options isolated from v2-only fields like `experiments`.
