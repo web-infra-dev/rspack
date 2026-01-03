@@ -10,8 +10,9 @@ use itertools::{
 };
 use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, compare_runtime,
+  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
+  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -314,9 +315,9 @@ pub fn get_full_chunk_name(
 
 pub use rspack_util::identifier::request_to_id;
 
-pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
+pub fn get_used_chunk_ids(chunk_by_ukey: &ChunkByUkey) -> FxHashSet<String> {
   let mut used_ids = FxHashSet::default();
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in chunk_by_ukey.values() {
     if let Some(id) = chunk.id() {
       used_ids.insert(id.to_string());
     }
@@ -324,13 +325,13 @@ pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
   used_ids
 }
 
-pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compilation) {
-  let used_ids = get_used_chunk_ids(compilation);
+pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut ChunkByUkey) {
+  let used_ids = get_used_chunk_ids(chunk_by_ukey);
 
   let mut next_id = 0;
   if !used_ids.is_empty() {
     for chunk in chunks {
-      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
+      let chunk = chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id().is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
@@ -341,7 +342,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
     }
   } else {
     for chunk in chunks {
-      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
+      let chunk = chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id().is_none() {
         chunk.set_id(next_id.to_string());
         next_id += 1;

@@ -1,10 +1,12 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
-  ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilationChunkIds, Logger, Plugin,
+  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
+  Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
   chunk_graph_chunk::ChunkId,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
+use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -14,21 +16,22 @@ use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_c
 #[tracing::instrument(skip_all)]
 fn assign_named_chunk_ids(
   chunks: UkeySet<ChunkUkey>,
-  compilation: &mut Compilation,
+  chunk_by_ukey: &mut ChunkByUkey,
+  chunk_graph: &ChunkGraph,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+  module_ids_artifact: &rspack_core::ModuleIdsArtifact,
+  context: &str,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   delimiter: &str,
   used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
   named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ChunkUkey> {
-  let context: &str = compilation.options.context.as_ref();
-  let module_graph = compilation.get_module_graph();
-  let module_graph_cache = &compilation.module_graph_cache_artifact;
-  let chunk_graph = &compilation.chunk_graph;
-
   let item_name_pair: Vec<_> = chunks
     .into_par_iter()
     .map(|item| {
-      let chunk = compilation.chunk_by_ukey.expect_get(&item);
+      let chunk = chunk_by_ukey.expect_get(&item);
       let name = get_short_chunk_name(
         chunk,
         chunk_graph,
@@ -57,7 +60,7 @@ fn assign_named_chunk_ids(
     // Also rename the conflicting chunks in used_ids
     else if let Some(item) = used_ids.get(name.as_str())
     // Unless the chunk is explicitly using chunk name as id
-      && matches!(compilation.chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
+      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
     {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
@@ -75,7 +78,7 @@ fn assign_named_chunk_ids(
     })
     .par_bridge()
     .map(|(_, item)| {
-      let chunk = compilation.chunk_by_ukey.expect_get(&item);
+      let chunk = chunk_by_ukey.expect_get(&item);
       let long_name = get_long_chunk_name(
         chunk,
         chunk_graph,
@@ -99,7 +102,7 @@ fn assign_named_chunk_ids(
     // Also rename the conflicting chunks in used_ids
     if let Some(item) = used_ids.get(name.as_str())
     // Unless the chunk is explicitly using chunk name as id
-      && matches!(compilation.chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
+      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
     {
       items.insert(*item);
     }
@@ -121,8 +124,8 @@ fn assign_named_chunk_ids(
       }
     } else if items.len() == 1 && !used_ids.contains_key(name.as_str()) {
       let item = items[0];
+      let chunk = chunk_by_ukey.expect_get_mut(&item);
       let name: ChunkId = name.into();
-      let chunk = compilation.chunk_by_ukey.expect_get_mut(&item);
       if chunk.set_id(name.clone())
         && let Some(mutations) = mutations
       {
@@ -131,12 +134,12 @@ fn assign_named_chunk_ids(
       used_ids.insert(name, item);
     } else {
       items.sort_unstable_by(|a, b| {
-        let a = compilation.chunk_by_ukey.expect_get(a);
-        let b = compilation.chunk_by_ukey.expect_get(b);
+        let a = chunk_by_ukey.expect_get(a);
+        let b = chunk_by_ukey.expect_get(b);
         compare_chunks_natural(
           chunk_graph,
-          &compilation.chunk_group_by_ukey,
-          &compilation.module_ids_artifact,
+          chunk_group_by_ukey,
+          module_ids_artifact,
           a,
           b,
           &mut ordered_chunk_modules_cache,
@@ -153,8 +156,8 @@ fn assign_named_chunk_ids(
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = format!("{name}{}", i_buffer.format(i));
         }
+        let chunk = chunk_by_ukey.expect_get_mut(&item);
         let name: ChunkId = formatted_name.into();
-        let chunk = compilation.chunk_by_ukey.expect_get_mut(&item);
         if chunk.set_id(name.clone())
           && let Some(mutations) = mutations
         {
@@ -166,12 +169,12 @@ fn assign_named_chunk_ids(
     }
   }
   unnamed_items.sort_unstable_by(|a, b| {
-    let a = compilation.chunk_by_ukey.expect_get(a);
-    let b = compilation.chunk_by_ukey.expect_get(b);
+    let a = chunk_by_ukey.expect_get(a);
+    let b = chunk_by_ukey.expect_get(b);
     compare_chunks_natural(
       chunk_graph,
-      &compilation.chunk_group_by_ukey,
-      &compilation.module_ids_artifact,
+      chunk_group_by_ukey,
+      module_ids_artifact,
       a,
       b,
       &mut ordered_chunk_modules_cache,
@@ -194,7 +197,13 @@ impl NamedChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for NamedChunkIdsPlugin)]
-async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(
+  &self,
+  compilation: &rspack_core::Compilation,
+  chunk_by_ukey: &mut ChunkByUkey,
+  named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> rspack_error::Result<()> {
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
@@ -204,7 +213,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
-          compilation.named_chunk_ids_artifact.remove(chunk);
+          named_chunk_ids_artifact.remove(chunk);
         }
         Mutation::ModuleSetId { module } => {
           let chunks = compilation.chunk_graph.get_module_chunks(*module);
@@ -214,15 +223,11 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       }
     }
 
-    compilation.named_chunk_ids_artifact.retain(|chunk| {
-      compilation.chunk_by_ukey.contains(chunk) && !affected_chunks.contains(chunk)
-    });
+    named_chunk_ids_artifact
+      .retain(|chunk| chunk_by_ukey.contains(chunk) && !affected_chunks.contains(chunk));
   }
 
-  let mut named_chunk_ids_artifact = std::mem::take(&mut compilation.named_chunk_ids_artifact);
-
-  let mut chunks: UkeySet<ChunkUkey> = compilation
-    .chunk_by_ukey
+  let mut chunks: UkeySet<ChunkUkey> = chunk_by_ukey
     .values_mut()
     .map(|chunk| {
       if let Some(id) = named_chunk_ids_artifact.chunk_ids.get(&chunk.ukey()) {
@@ -243,7 +248,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
 
   // Use chunk name as default chunk id
   chunks.retain(|chunk_ukey| {
-    let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk_ukey);
+    let chunk = chunk_by_ukey.expect_get_mut(chunk_ukey);
     if let Some(chunk_name) = chunk.name() {
       let name = chunk_name.to_string();
       used_ids.insert(name.clone().into(), *chunk_ukey);
@@ -258,19 +263,27 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
   });
   let named_chunks_len = chunks_len - chunks.len();
 
+  let module_graph = compilation.get_module_graph();
+  let context = compilation.options.context.as_str();
   let unnamed_chunks = assign_named_chunk_ids(
     chunks,
-    compilation,
+    chunk_by_ukey,
+    &compilation.chunk_graph,
+    &compilation.chunk_group_by_ukey,
+    &compilation.module_ids_artifact,
+    context,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
     &self.delimiter,
     &mut used_ids,
-    &mut named_chunk_ids_artifact,
+    named_chunk_ids_artifact,
     &mut mutations,
   );
 
   if !unnamed_chunks.is_empty() {
     let mut next_id = 0;
     for chunk_ukey in &unnamed_chunks {
-      let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk_ukey);
+      let chunk = chunk_by_ukey.expect_get_mut(chunk_ukey);
       let mut id = next_id.to_string();
       while used_ids.contains_key(id.as_str()) {
         next_id += 1;
@@ -308,12 +321,11 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
   }
 
   // store chunk id map to the artifact
-  compilation.chunk_by_ukey.values().for_each(|chunk| {
+  chunk_by_ukey.values().for_each(|chunk| {
     named_chunk_ids_artifact
       .chunk_ids
       .insert(chunk.ukey(), chunk.expect_id().clone());
   });
-  compilation.named_chunk_ids_artifact = named_chunk_ids_artifact;
 
   Ok(())
 }
