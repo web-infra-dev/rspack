@@ -1,4 +1,4 @@
-<%- REQUIRE %>.mfStartupBase = (function () {
+var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 	var hasRun = false;
 	var result;
 	return function __webpack_require__mfStartupBase() {
@@ -10,24 +10,20 @@
 	};
 })();
 
-<%- ASYNC_FEDERATION_STARTUP %> = (function () {
+var mfAsyncStartup = <%- ASYNC_FEDERATION_STARTUP %> = (function () {
 	var hasRun = false;
 	var result;
 	return function __webpack_require__mfAsyncStartup() {
 		if (hasRun) return result;
 		hasRun = true;
-		var base = <%- REQUIRE %>.mfStartupBase && <%- REQUIRE %>.mfStartupBase();
+		var base = mfStartupBase && mfStartupBase();
 		var promises = base && base.then ? [base] : [];
-		var f = <%- REQUIRE %>.f;
-		if (f) {
+		var handlers = <%- REQUIRE %>.f;
+		if (handlers) {
 			var startupChunkIds = <%- _entry_chunk_ids %>;
-			if (startupChunkIds.length) {
-				var consumes = f.consumes;
-				var remotes = f.remotes;
-				for (var i = 0; i < startupChunkIds.length; i++) {
-					consumes && consumes(startupChunkIds[i], promises);
-					remotes && remotes(startupChunkIds[i], promises);
-				}
+			for (var i = 0; i < startupChunkIds.length; i++) {
+				handlers.consumes && handlers.consumes(startupChunkIds[i], promises);
+				handlers.remotes && handlers.remotes(startupChunkIds[i], promises);
 			}
 		}
 		result = promises.length ? Promise.all(promises) : base;
@@ -37,24 +33,22 @@
 
 <%- REQUIRE %>.mfStartup = <%- STARTUP %>;
 
-var __mf_wrap__ = function (prev, isEntry) {
-	var fn = typeof prev === "function" ? prev : function () {};
+var wrapStartup = function (prev, isEntry) {
+	prev = typeof prev === "function" ? prev : function () {};
 	return function (result, chunkIds, cb) {
-		var res = <%- ASYNC_FEDERATION_STARTUP %>();
+		var res = mfAsyncStartup();
+		if (isEntry && chunkIds === undefined && result === undefined) {
+			return res && res.then ? res.then(function () {}) : Promise.resolve();
+		}
+		if (isEntry && chunkIds === undefined) chunkIds = [];
 		var _this = this;
 		var _args = arguments;
-		if (isEntry) {
-			if (chunkIds === undefined && result === undefined) {
-				return res && res.then ? res.then(function () {}) : Promise.resolve();
-			}
-			if (chunkIds === undefined) chunkIds = [];
-		}
-		var call = function () {
-			return isEntry ? fn.call(_this, result, chunkIds, cb) : fn.apply(_this, _args);
+		var run = function () {
+			return isEntry ? prev.call(_this, result, chunkIds, cb) : prev.apply(_this, _args);
 		};
-		return res && res.then ? res.then(call) : call();
+		return res && res.then ? res.then(run) : run();
 	};
 };
 
-<%- STARTUP %> = __mf_wrap__(<%- STARTUP %>);
-<%- STARTUP_ENTRYPOINT %> = __mf_wrap__(<%- STARTUP_ENTRYPOINT %>, 1);
+<%- STARTUP %> = wrapStartup(<%- STARTUP %>);
+<%- STARTUP_ENTRYPOINT %> = wrapStartup(<%- STARTUP_ENTRYPOINT %>, 1);
