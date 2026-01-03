@@ -77,12 +77,11 @@ pub(crate) struct ModuleGraphData {
   ///     let parents_info = module_graph_partial
   ///       .dependency_id_to_parents
   ///       .get(dependency_id)
-  ///       .unwrap()
   ///       .unwrap();
-  ///     assert_eq!(parents_info, parent_module_id);
+  ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
   // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
 
@@ -243,7 +242,7 @@ impl ModuleGraph {
     }
     if force {
       self.inner.dependencies.remove(dep_id);
-      self.inner.dependency_id_to_parents.insert(*dep_id, None);
+      self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
         && let Some(module) = self.inner.modules.get_mut(&m_id)
@@ -505,15 +504,14 @@ impl ModuleGraph {
     self
       .inner
       .dependency_id_to_parents
-      .insert(dependency_id, Some(parents));
+      .insert(dependency_id, parents);
   }
 
   pub fn get_parent_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     self
       .inner
       .dependency_id_to_parents
-      .get(dependency_id)?
-      .as_ref()
+      .get(dependency_id)
       .map(|p| &p.module)
   }
 
@@ -524,18 +522,15 @@ impl ModuleGraph {
     self
       .inner
       .dependency_id_to_parents
-      .get(dependency_id)?
-      .as_ref()
-      .map(|p| &p.block)?
-      .as_ref()
+      .get(dependency_id)
+      .and_then(|p| p.block.as_ref())
   }
 
   pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
     self
       .inner
       .dependency_id_to_parents
-      .get(dependency_id)?
-      .as_ref()
+      .get(dependency_id)
       .map(|p| p.index_in_block)
   }
 
