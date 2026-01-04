@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::{ExportedVariableInfo, VariableDeclaration},
+  visitors::{ExportedVariableInfo, ExprRef, VariableDeclaration},
 };
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -803,7 +803,7 @@ impl JavascriptParser<'_> {
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
     // println!("{:#?}", expr);
     if let Some(expr_info) =
-      self.get_member_expression_info(Expr::Member(expr.clone()), AllowedMemberTypes::all())
+      self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
     {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
@@ -1082,7 +1082,7 @@ impl JavascriptParser<'_> {
         } else {
           if let Expr::Member(member) = &**callee {
             if let Some(MemberExpressionInfo::Call(expr_info)) = self.get_member_expression_info(
-              Expr::Member(member.clone()),
+              ExprRef::Member(member),
               AllowedMemberTypes::CallExpression,
             ) && expr_info
               .root_info
@@ -1308,8 +1308,8 @@ impl JavascriptParser<'_> {
       );
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
-      if let Some(MemberExpressionInfo::Expression(expr_name)) = self
-        .get_member_expression_info(Expr::Member(member.clone()), AllowedMemberTypes::Expression)
+      if let Some(MemberExpressionInfo::Expression(expr_name)) =
+        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
