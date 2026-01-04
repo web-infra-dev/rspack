@@ -1,11 +1,14 @@
+use std::rc::Rc;
+
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
   ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, get_target,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -696,10 +699,10 @@ fn find_target_exports_info(
 ) {
   let mut dependencies = vec![];
   // Recalculate target exportsInfo
-  let target = get_target(export_info, mg);
+  let target = get_target(export_info, mg, Rc::new(|_| true), &mut Default::default());
 
   let mut target_exports_info = None;
-  if let Some(target) = target {
+  if let Some(GetTargetResult::Target(target)) = target {
     let target_module_exports_info = mg.get_prefetched_exports_info(
       &target.module,
       if let Some(names) = &target.export {

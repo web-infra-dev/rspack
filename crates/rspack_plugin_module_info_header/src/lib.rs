@@ -1,12 +1,12 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::{hash::Hash, rc::Rc, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState,
-  get_target,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, GetTargetResult, Module,
+  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
+  UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -75,8 +75,13 @@ fn print_exports_info_to_source<F>(
     let usage_info = export_info.get_used_info();
     let rename_info = export_info.get_rename_info();
 
-    let target_desc = match get_target(export_info, module_graph) {
-      Some(resolve_target) => {
+    let target_desc = match get_target(
+      export_info,
+      module_graph,
+      Rc::new(|_| true),
+      &mut Default::default(),
+    ) {
+      Some(GetTargetResult::Target(resolve_target)) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
           None => format!("-> {target_module}"),
@@ -86,7 +91,7 @@ fn print_exports_info_to_source<F>(
           }
         }
       }
-      None => "".into(),
+      _ => "".into(),
     };
 
     let export_str = format!(
@@ -116,8 +121,13 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
-    let target = get_target(other_exports_info, module_graph);
-    if target.is_some()
+    let target = get_target(
+      other_exports_info,
+      module_graph,
+      Rc::new(|_| true),
+      &mut Default::default(),
+    );
+    if matches!(target, Some(GetTargetResult::Target(_)))
       || !matches!(
         other_exports_info.provided(),
         Some(ExportProvided::NotProvided)
@@ -133,10 +143,10 @@ fn print_exports_info_to_source<F>(
       let provide_info = other_exports_info.get_provided_info();
       let used_info = other_exports_info.get_used_info();
       let target_desc = match target {
-        Some(resolve_target) => {
+        Some(GetTargetResult::Target(resolve_target)) => {
           format!(" -> {}", request_shortener(&resolve_target.module))
         }
-        None => "".into(),
+        _ => "".into(),
       };
 
       let other_export_str =
