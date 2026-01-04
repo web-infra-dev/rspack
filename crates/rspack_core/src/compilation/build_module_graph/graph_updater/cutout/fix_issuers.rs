@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::BuildModuleGraphArtifact;
 use crate::{
   DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer,
-  module_graph::internal::try_get_module_graph_module_mut_by_identifier,
+  internal::try_get_module_graph_module_mut_by_identifier,
 };
 
 /// Result of IssuerHelper.is_issuer.
