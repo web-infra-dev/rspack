@@ -768,7 +768,9 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {
       Some(rsc_meta) => {
-        rsc_meta.action_ids = action_ids;
+        if rsc_meta.module_type != RscModuleType::ServerEntry {
+          rsc_meta.action_ids = action_ids;
+        }
       }
       None => {
         *rsc_meta = Some(RscMeta {
@@ -1778,7 +1780,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       // Encryption and decryption only happens when there are bound arguments.
       if self.has_server_reference_with_bound_args {
         // import { encryptActionBoundArgs, decryptActionBoundArgs } from
-        // 'private-next-rsc-action-encryption'
+        // 'react-server-dom-rspack/server'
         new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
           span: DUMMY_SP,
           specifiers: vec![
@@ -1797,7 +1799,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
           ],
           src: Box::new(Str {
             span: DUMMY_SP,
-            value: atom!("private-next-rsc-action-encryption").into(),
+            value: atom!("react-server-dom-rspack/server").into(),
             raw: None,
           }),
           type_only: false,

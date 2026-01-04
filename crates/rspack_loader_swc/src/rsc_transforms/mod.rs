@@ -28,7 +28,7 @@ pub fn rsc_pass(
     .is_some_and(|layer| layer == "react-server-components");
 
   // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
-  let from_server_entry_proxy = loader_context
+  let server_entry_proxy = loader_context
     .resource_query()
     .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
 
@@ -37,7 +37,7 @@ pub fn rsc_pass(
       filename,
       Config::WithOptions(Options {
         is_react_server_layer,
-        enable_server_entry: !from_server_entry_proxy,
+        enable_server_entry: !server_entry_proxy,
       }),
       rsc_meta,
     ),
