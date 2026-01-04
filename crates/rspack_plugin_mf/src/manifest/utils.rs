@@ -46,6 +46,7 @@ pub fn ensure_shared_entry<'a>(
       singleton: None,
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
+      usedExports: Vec::new(),
     })
 }
 
