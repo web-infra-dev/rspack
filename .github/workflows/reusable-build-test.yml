@@ -70,7 +70,7 @@ jobs:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'&& '[22]'
+          inputs.target == 'wasm32-wasip1-threads'&& '[24]'
           || contains(inputs.target, 'linux') && '[18, 20, 22]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
