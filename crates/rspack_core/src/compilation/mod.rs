@@ -85,7 +85,7 @@ define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
-define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
+define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -1739,12 +1739,23 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
+    let mut diagnostics = vec![];
+    let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
+    let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
     plugin_driver
       .compilation_hooks
       .chunk_ids
-      .call(self)
+      .call(
+        self,
+        &mut chunk_by_ukey,
+        &mut named_chunk_ids_artifact,
+        &mut diagnostics,
+      )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
+    self.chunk_by_ukey = chunk_by_ukey;
+    self.named_chunk_ids_artifact = named_chunk_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     self.assign_runtime_ids();
