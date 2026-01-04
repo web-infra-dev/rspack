@@ -101,7 +101,7 @@ define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation,
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
@@ -1383,11 +1383,16 @@ impl Compilation {
 
   #[instrument("Compilation:after_process_assets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver
+    let mut diagnostics: Vec<Diagnostic> = vec![];
+
+    let res = plugin_driver
       .compilation_hooks
       .after_process_assets
-      .call(self)
-      .await
+      .call(self, &mut diagnostics)
+      .await;
+
+    self.extend_diagnostics(diagnostics);
+    res
   }
 
   #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]

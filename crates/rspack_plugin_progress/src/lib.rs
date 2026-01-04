@@ -519,7 +519,11 @@ async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for ProgressPlugin)]
-async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(
+  &self,
+  _compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   self
     .sealing_hooks_report("after asset optimization", 36)
     .await
