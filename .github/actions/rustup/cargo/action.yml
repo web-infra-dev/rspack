@@ -23,7 +23,7 @@ runs:
 
     - name: Cache to local
       uses: rstackjs/rust-cache@8269079380bc35105b3ed8b0f1f7c9557c6dec93 # v2.7.8
-      if: ${{ runner.environment == 'self-hosted' }}
+      if: ${{ runner.environment == 'self-hosted' && startsWith(runner.name, 'rspack') }}
       with:
         prefix-key: 'RCache-L-5'
         shared-key: ${{ inputs.key }}

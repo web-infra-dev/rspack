@@ -47,13 +47,13 @@ jobs:
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2404"'}}
+            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
           - target: aarch64-unknown-linux-gnu
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2404"'}}
+            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
           - target: x86_64-unknown-linux-musl
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2404"'}}
+            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
           - target: aarch64-unknown-linux-musl
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2404"'}}
+            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
@@ -65,7 +65,7 @@ jobs:
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2404"'}}
+            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit || github.sha}}
@@ -76,7 +76,7 @@ jobs:
 
   release:
     name: Release Canary
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     needs: build
     environment: npm-canary
     steps:

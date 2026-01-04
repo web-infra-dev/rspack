@@ -19,12 +19,12 @@ runs:
   steps:
     - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ runner.environment == 'github-hosted' || inputs.force-use-github == 'true' }}
+      if: ${{ runner.environment == 'github-hosted' || startsWith(runner.name, 'blacksmith-') ||  inputs.force-use-github == 'true' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download artifact from local
-      if: ${{ runner.environment == 'self-hosted' && inputs.force-use-github != 'true' }}
+      if: ${{ runner.environment == 'self-hosted' && startsWith(runner.name, 'rspack') && inputs.force-use-github != 'true' }}
       uses: lynx-infra/download-artifact@79d9914484f933089c2840552cf439bac85debad # https://github.com/lynx-infra/download-artifact/tree/dev
       with:
         name: ${{ inputs.name }}
