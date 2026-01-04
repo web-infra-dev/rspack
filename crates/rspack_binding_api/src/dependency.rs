@@ -5,7 +5,7 @@ use napi::{
   bindgen_prelude::{Array, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, DependencyId};
+use rspack_core::{Compilation, CompilationId, DependencyId, internal};
 use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -29,11 +29,13 @@ impl Dependency {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
-      if let Some(dependency) = module_graph.try_dependency_by_id(&self.dependency_id) {
+      if let Some(dependency) = internal::try_dependency_by_id(&module_graph, &self.dependency_id) {
         self.dependency = {
           #[allow(clippy::unwrap_used)]
-          NonNull::new(dependency.as_ref() as *const dyn rspack_core::Dependency
-            as *mut dyn rspack_core::Dependency)
+          NonNull::new(
+            (&**dependency) as *const dyn rspack_core::Dependency
+              as *mut dyn rspack_core::Dependency,
+          )
           .unwrap()
         };
         Ok((unsafe { self.dependency.as_ref() }, Some(compilation)))

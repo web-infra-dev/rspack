@@ -7,6 +7,7 @@ use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  internal,
 };
 use rspack_napi::{
   OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
@@ -395,9 +396,13 @@ impl Module {
       dependencies
         .iter()
         .filter_map(|dependency_id| {
-          module_graph
-            .try_dependency_by_id(dependency_id)
-            .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+          internal::try_dependency_by_id(&module_graph, dependency_id).map(|dep| {
+            DependencyWrapper::new(
+              (&**dep) as &dyn rspack_core::Dependency,
+              compilation.id(),
+              Some(compilation),
+            )
+          })
         })
         .collect::<Vec<_>>(),
     )

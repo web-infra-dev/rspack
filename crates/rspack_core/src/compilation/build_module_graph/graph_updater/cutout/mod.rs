@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{BuildModuleGraphArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, ResourceId};
+use crate::{BuildDependency, Compilation, ResourceId, internal};
 
 /// Cutout module graph.
 ///
@@ -147,7 +147,7 @@ impl Cutout {
     build_deps
       .into_iter()
       .filter(|(dep_id, _)| {
-        let Some(dep) = module_graph.try_dependency_by_id(dep_id) else {
+        let Some(dep) = internal::try_dependency_by_id(&module_graph, dep_id) else {
           return false;
         };
         dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
