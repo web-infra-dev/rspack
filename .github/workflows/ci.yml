@@ -59,7 +59,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      runner: ${{ '"blacksmith-4vcpu-ubuntu-2404"' }}
       test: true
       bench: true
       prefer_docker: false
