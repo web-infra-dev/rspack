@@ -69,9 +69,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id)
-              .expect("should have dependency")
-              .into(),
+            mg.dependency_by_id(dep_id).into(),
             mg.get_parent_block(dep_id).map(Into::into),
           )
         })

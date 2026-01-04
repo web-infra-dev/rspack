@@ -87,12 +87,12 @@ define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationModuleIds: Series(compilation: &mut Compilation));
-define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
+define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -109,7 +109,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
+define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -1591,8 +1591,8 @@ impl Compilation {
         let diagnostics = mgm
           .all_dependencies
           .iter()
-          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| {
+          .filter_map(|dependency_id| {
+            let dependency = module_graph.dependency_by_id(dependency_id);
             dependency
               .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {
@@ -1734,21 +1734,36 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
+    let mut diagnostics = vec![];
+    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
     plugin_driver
       .compilation_hooks
       .module_ids
-      .call(self)
+      .call(self, &mut module_ids_artifact, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    self.module_ids_artifact = module_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
+    let mut diagnostics = vec![];
+    let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
+    let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
     plugin_driver
       .compilation_hooks
       .chunk_ids
-      .call(self)
+      .call(
+        self,
+        &mut chunk_by_ukey,
+        &mut named_chunk_ids_artifact,
+        &mut diagnostics,
+      )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
+    self.chunk_by_ukey = chunk_by_ukey;
+    self.named_chunk_ids_artifact = named_chunk_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     self.assign_runtime_ids();

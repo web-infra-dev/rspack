@@ -71,9 +71,7 @@ pub fn record_shared_usage(
       let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
-      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
-        continue;
-      };
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
       let maybe_request = dependency
         .as_module_dependency()
         .map(|dep| dep.user_request().to_string())

@@ -44,13 +44,13 @@ To maximize parallelism, `builtin:swc-loader` will transpile each module separat
 
 ## Type checking
 
-You can use the [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) to perform TypeScript type checking during compilation. However, it's important to note that TypeScript's type checking can be time-consuming, especially for larger projects. This means that the time required for type checking may exceed the build time of Rspack itself.
+You can use the [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin) to perform TypeScript type checking during compilation. However, it's important to note that TypeScript's type checking can be time-consuming, especially for larger projects. This means that the time required for type checking may exceed the build time of Rspack itself.
 
 If you are using the plugin in development mode, it won't block the build and you can continue with the build process. However, in build mode, the plugin will block the build until the type checking is complete which may lead to longer build times.
 
 Based on your actual needs, you should decide whether to enable this plugin. If the type checking process becomes a bottleneck in your build process, we recommend using TypeScript's incremental build feature. This feature can greatly speed up the type checking process by only analyzing the changed files since the last build.
 
-To enable TypeScript's incremental build, you can use `tsc --incremental` independently or [enabling incremental mode](https://github.com/rspack-contrib/ts-checker-rspack-plugin#enabling-incremental-mode) in the plugin.
+To enable TypeScript's incremental build, you can use `tsc --incremental` independently or [enabling incremental mode](https://github.com/rstackjs/ts-checker-rspack-plugin#enabling-incremental-mode) in the plugin.
 
 Enabling incremental build can help reduce type checking time, especially when only a few files have been modified. This way, you can optimize your build process without sacrificing the benefits of type checking.
 

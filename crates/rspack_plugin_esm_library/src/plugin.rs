@@ -127,7 +127,7 @@ async fn finish_modules(
     // }
     else if module_graph
       .get_incoming_connections(module_identifier)
-      .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
+      .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
         !is_esm_dep_like(dep)
           && !matches!(
