@@ -1162,9 +1162,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     {
       let module_graph = compilation.get_module_graph_mut();
-      let module = module_graph
-        .module_graph_module_by_identifier_mut(&item.module)
-        .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
+      let module = module_graph.module_graph_module_by_identifier_mut(&item.module);
 
       if module.pre_order_index.is_none() {
         module.pre_order_index = Some(self.next_free_module_pre_order_index);
@@ -1207,9 +1205,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     let module_graph = compilation.get_module_graph_mut();
-    let module = module_graph
-      .module_graph_module_by_identifier_mut(&item.module)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
+    let module = module_graph.module_graph_module_by_identifier_mut(&item.module);
 
     if module.post_order_index.is_none() {
       module.post_order_index = Some(self.next_free_module_post_order_index);

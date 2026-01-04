@@ -4,7 +4,10 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::BuildModuleGraphArtifact;
-use crate::{DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer};
+use crate::{
+  DependencyId, ModuleGraph, ModuleIdentifier, ModuleIssuer,
+  module_graph::internal::try_get_module_graph_module_mut_by_identifier,
+};
 
 /// Result of IssuerHelper.is_issuer.
 enum IsIssuerResult {
@@ -215,7 +218,7 @@ impl FixIssuers {
     need_check_modules
       .into_iter()
       .filter_map(|mid| {
-        let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&mid) else {
+        let Some(mgm) = try_get_module_graph_module_mut_by_identifier(module_graph, &mid) else {
           // no mgm means the module has been removed, ignored.
           return None;
         };
@@ -308,9 +311,7 @@ impl FixIssuers {
         revoke_module.insert(mid);
         continue;
       };
-      let mgm = module_graph
-        .module_graph_module_by_identifier_mut(&mid)
-        .expect("should mgm exist");
+      let mgm = module_graph.module_graph_module_by_identifier_mut(&mid);
       artifact.issuer_update_modules.insert(mgm.module_identifier);
       mgm.set_issuer(match first_parent {
         Some(id) => ModuleIssuer::Some(*id),
@@ -359,9 +360,7 @@ impl FixIssuers {
     for (mid, parents) in need_check_available_modules {
       match helper.calc_issuer(module_graph, &mid, parents) {
         CalcIssuerResult::Ok(issuer) => {
-          let mgm = module_graph
-            .module_graph_module_by_identifier_mut(&mid)
-            .expect("should have mgm");
+          let mgm = module_graph.module_graph_module_by_identifier_mut(&mid);
           artifact.issuer_update_modules.insert(mgm.module_identifier);
           mgm.set_issuer(issuer);
           // check cycled modules.
@@ -375,9 +374,7 @@ impl FixIssuers {
             need_clean_cycle_modules.retain(|id, paths| {
               for (issuer, cycle_paths) in paths {
                 if cycle_paths.contains(&current_id) {
-                  let mgm = module_graph
-                    .module_graph_module_by_identifier_mut(id)
-                    .expect("should have mgm");
+                  let mgm = module_graph.module_graph_module_by_identifier_mut(id);
                   artifact.issuer_update_modules.insert(mgm.module_identifier);
                   mgm.set_issuer(ModuleIssuer::Some(*issuer));
                   // this module issuer has been update, add module to queue to recheck need_clean_cycle_modules
@@ -440,9 +437,7 @@ impl FixIssuers {
 
           match helper.calc_issuer(module_graph, &mid, parents) {
             CalcIssuerResult::Ok(issuer) => {
-              let mgm = module_graph
-                .module_graph_module_by_identifier_mut(&mid)
-                .expect("should have mgm");
+              let mgm = module_graph.module_graph_module_by_identifier_mut(&mid);
               artifact.issuer_update_modules.insert(mgm.module_identifier);
               mgm.set_issuer(issuer);
               // fix child issuer
@@ -461,9 +456,7 @@ impl FixIssuers {
                   .collect();
                 for child_mid in child_modules {
                   if useless_module.remove(&child_mid) {
-                    let mgm = module_graph
-                      .module_graph_module_by_identifier_mut(&child_mid)
-                      .expect("should have mgm");
+                    let mgm = module_graph.module_graph_module_by_identifier_mut(&child_mid);
                     artifact.issuer_update_modules.insert(mgm.module_identifier);
                     mgm.set_issuer(ModuleIssuer::Some(mid));
                     fixing_queue.push_back(child_mid);
