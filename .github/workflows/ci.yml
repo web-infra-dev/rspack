@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -59,7 +59,8 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      runner: ${{ '"blacksmith-8vcpu-ubuntu-2204"' }}
+      test-runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test: true
       bench: true
       prefer_docker: false
@@ -72,8 +73,8 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: 'dev'
-      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
-      test-runner: '"windows-latest"'
+      runner: ${{ '"blacksmith-8vcpu-windows-2025"' }}
+      test-runner: '"blacksmith-4vcpu-windows-2025"'
       test: true
 
   test-mac:
@@ -96,7 +97,8 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      runner: ${{ '"blacksmith-8vcpu-ubuntu-2204"' }}
+      test-runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test: true
 
   check-codspeed:
