@@ -420,15 +420,13 @@ async fn dependency_referenced_exports(
     return Ok(());
   };
 
-  let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
-    return Ok(());
-  };
+  let dependency = module_graph.dependency_by_id(dependency_id);
 
   let Some(module_dependency) = dependency.as_module_dependency() else {
     return Ok(());
   };
 
-  let share_key = module_dependency.request();
+  let share_key: &str = module_dependency.request();
 
   // Check if dependency type is EsmImportSpecifier and share_key is in shared_map
   if !self.shared_map.contains_key(share_key) {
@@ -460,7 +458,7 @@ async fn dependency_referenced_exports(
       .as_any()
       .downcast_ref::<ESMImportSpecifierDependency>()
   {
-    let ids = esm_dep.get_ids(module_graph);
+    let ids: &[Atom] = esm_dep.get_ids(module_graph);
     if ids.is_empty() {
       return Ok(());
     }

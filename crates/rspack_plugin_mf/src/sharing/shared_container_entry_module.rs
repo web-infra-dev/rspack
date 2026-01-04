@@ -158,15 +158,17 @@ impl Module for SharedContainerEntryModule {
     let module_graph = compilation.get_module_graph();
     let mut factory = String::new();
     for dependency_id in self.get_dependencies() {
-      let dependency = module_graph
-        .dependency_by_id(dependency_id)
-        .expect("share container dependency should exist");
-      if let Some(dependency) = dependency.downcast_ref::<SharedContainerDependency>() {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      if let Some(dependency) = dependency
+        .as_any()
+        .downcast_ref::<SharedContainerDependency>()
+      {
+        let request: &str = dependency.user_request();
         let module_expr = compilation.runtime_template.module_raw(
           compilation,
           &mut code_generation_result.runtime_requirements,
           dependency_id,
-          dependency.user_request(),
+          request,
           false,
         );
         factory = compilation
