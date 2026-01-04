@@ -68,7 +68,7 @@ jobs:
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       comment-id: ${{ steps.create-comment.outputs.result }}
     steps:
@@ -102,7 +102,7 @@ jobs:
 
   calculate-eco-ci-suite:
     if: github.repository == 'web-infra-dev/rspack'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       suites: ${{ steps.calculate.outputs.result }}
     steps:
@@ -141,7 +141,7 @@ jobs:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
       fail-fast: false
     name: eco-ci (${{ matrix.suite }})
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     #    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout

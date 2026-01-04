@@ -28,7 +28,7 @@ jobs:
 
   release:
     name: Release Debug
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     needs: build
     environment: npm-canary
     steps:

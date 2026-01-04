@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   team-labeler:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - uses: JulienKode/team-labeler-action@edc2a1d3b252624ac7611293835edad9f1392ed4 # v2.0.2
         with:

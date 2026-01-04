@@ -15,7 +15,7 @@ jobs:
   release-labeling:
     # See context at https://github.com/web-infra-dev/rspack/discussions/2760
     name: Labeling for releasing
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
         with:

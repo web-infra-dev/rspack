@@ -67,7 +67,7 @@ permissions:
 jobs:
   validate_inputs:
     name: Validate Inputs
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     if: ${{ inputs.release_npm }}
     steps:
       - name: Validate npm tag confirmation
