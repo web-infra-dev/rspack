@@ -20,7 +20,7 @@ use rspack_core::{
   CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
   CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
   CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, ModuleIdsArtifact, Plugin,
-  SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
+  ProcessAssetsArtifact, SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -514,7 +514,7 @@ async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Resu
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35).await
 }
 

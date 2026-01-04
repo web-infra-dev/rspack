@@ -13,7 +13,8 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
+  AssetInfo, BindingCell, Compilation, CompilationAsset, CompilationAssets, CompilationId, CompilationProcessAssets, Logger, Plugin,
+  ProcessAssetsArtifact,
   rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -56,8 +57,8 @@ impl RealContentHashPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  inner_impl(compilation).await
+async fn process_assets(&self, compilation: &mut Compilation, artifact: &mut ProcessAssetsArtifact) -> Result<()> {
+  inner_impl(compilation, &mut artifact.assets).await
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -78,12 +79,11 @@ impl Plugin for RealContentHashPlugin {
   }
 }
 
-async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
+async fn inner_impl(compilation: &mut Compilation, assets: &mut CompilationAssets) -> Result<()> {
   let logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
-  for (name, asset) in compilation
-    .assets()
+  for (name, asset) in assets
     .iter()
     .filter(|(_, asset)| asset.get_source().is_some())
   {
@@ -262,7 +262,12 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("update assets");
   let mut asset_renames = Vec::with_capacity(updates.len());
   for (name, new_source, new_name) in updates {
-    compilation.update_asset(&name, |_, old_info| {
+    // Inline the update_asset logic
+    if let Some(CompilationAsset {
+      source: Some(source),
+      info: old_info,
+    }) = assets.remove(&name)
+    {
       let new_hashes: HashSet<_> = old_info
         .content_hash
         .iter()
@@ -274,17 +279,27 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         })
         .collect();
       let info_update = (*old_info).clone();
-      Ok((
-        new_source.clone(),
-        BindingCell::from(info_update.with_content_hashes(new_hashes)),
-      ))
-    })?;
+      let new_info = BindingCell::from(info_update.with_content_hashes(new_hashes));
+
+      assets.insert(
+        name.clone(),
+        CompilationAsset {
+          source: Some(new_source.clone()),
+          info: new_info,
+        },
+      );
+    }
     if let Some(new_name) = new_name {
       asset_renames.push((name, new_name));
     }
   }
 
-  compilation.par_rename_assets(asset_renames);
+  // Handle asset renames
+  for (old_name, new_name) in asset_renames {
+    if let Some(asset) = assets.remove(&old_name) {
+      assets.insert(new_name, asset);
+    }
+  }
 
   logger.time_end(start);
 
