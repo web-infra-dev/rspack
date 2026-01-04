@@ -17,7 +17,7 @@ use crate::{
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::inner_graph::plugin::InnerGraphPlugin,
-  visitors::{JavascriptParser, context_reg_exp, create_context_dependency},
+  visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
 #[derive(Default)]
@@ -38,12 +38,13 @@ impl Visit for NestedNewUrlVisitor {
 }
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
-  let chain = parser.extract_member_expression_chain(Expr::Member(expr.clone()));
-  chain.object.as_meta_prop().is_some_and(|meta| {
-    meta.kind == MetaPropKind::ImportMeta
+  let chain = parser.extract_member_expression_chain(ExprRef::Member(expr));
+  if let ExprRef::MetaProp(meta) = chain.object {
+    return meta.kind == MetaPropKind::ImportMeta
       && chain.members.len() == 1
-      && chain.members.first().is_some_and(|member| member == "url")
-  })
+      && chain.members.first().is_some_and(|member| member == "url");
+  }
+  false
 }
 
 pub fn get_url_request(

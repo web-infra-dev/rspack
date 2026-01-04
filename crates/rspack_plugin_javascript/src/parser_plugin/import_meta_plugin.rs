@@ -13,8 +13,8 @@ use crate::{
   dependency::{ImportMetaResolveDependency, ImportMetaResolveHeaderDependency},
   utils::eval,
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, RootName,
-    create_traceable_error, expr_name,
+    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
+    RootName, create_traceable_error, expr_name,
   },
 };
 
@@ -346,7 +346,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
           let members = parser
-            .get_member_expression_info(Expr::Member(expr.clone()), AllowedMemberTypes::Expression)
+            .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
             .and_then(|info| match info {
               MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,
