@@ -390,7 +390,7 @@ export default {
         test: /\.js$/,
         include: /node_modules/,
         descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
+          name: (packageJsonName) => packageJsonName.includes('rspack'),
         },
         // additional rule options...
       },
@@ -527,7 +527,6 @@ Flag the module for side effects, this will affect the result of [Tree Shaking](
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   module: {
     rules: [
       {
@@ -551,7 +550,6 @@ When specified as `'pre'`, the loader will execute before all other loaders.
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   module: {
     rules: [
       {
@@ -568,7 +566,6 @@ When specified as `'post'`, the loader will execute after all other loaders.
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   module: {
     rules: [
       {
@@ -615,7 +612,6 @@ For example, if you want to load a `.json` file through a custom loader, you'd n
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   module: {
     rules: [
       {
@@ -635,7 +631,7 @@ The meanings of all `type` options are as follows:
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
 - `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: Asset module, see [Asset Module](/guide/features/asset-module).
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
 
@@ -653,7 +649,6 @@ For version before v1.6.0, this configuration will only work if [experiments.lay
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   module: {
     rules: [
       {
@@ -718,7 +713,7 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => [
+        use: (info) => [
           {
             loader: 'svgo-loader',
             options: {

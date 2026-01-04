@@ -114,7 +114,7 @@ const compiler = rspack({
 compiler.run((err, stats) => {
   // ...
 
-  compiler.close(closeErr => {
+  compiler.close((closeErr) => {
     // ...
   });
 });
@@ -270,7 +270,7 @@ compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {
   // Read the output later:
   const content = fs.readFileSync('...');
-  compiler.close(closeErr => {
+  compiler.close((closeErr) => {
     // ...
   });
 });

@@ -105,10 +105,10 @@ interface AdditionalData {
 }
 
 // @public (undocumented)
-type AffectedHooks = keyof Compiler["hooks"];
+type AffectedHooks = keyof Compiler['hooks'];
 
 // @public (undocumented)
-type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "es2025" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
+type AllowTarget = 'web' | 'webworker' | 'es3' | 'es5' | 'es2015' | 'es2016' | 'es2017' | 'es2018' | 'es2019' | 'es2020' | 'es2021' | 'es2022' | 'es2023' | 'es2024' | 'es2025' | 'node' | 'async-node' | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | 'electron-main' | `electron${number}-main` | `electron${number}.${number}-main` | 'electron-renderer' | `electron${number}-renderer` | `electron${number}.${number}-renderer` | 'electron-preload' | `electron${number}-preload` | `electron${number}.${number}-preload` | 'nwjs' | `nwjs${number}` | `nwjs${number}.${number}` | 'node-webkit' | `node-webkit${number}` | `node-webkit${number}.${number}` | 'browserslist' | `browserslist:${string}`;
 
 // @public
 export type Amd = false | Record<string, any>;
@@ -128,7 +128,16 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
+    platform: false | {
+        web: boolean | null | undefined;
+        browser: boolean | null | undefined;
+        webworker: boolean | null | undefined;
+        node: boolean | null | undefined;
+        nwjs: boolean | null | undefined;
+        electron: boolean | null | undefined;
+    };
+};
 
 // @public (undocumented)
 interface Argument {
@@ -218,7 +227,7 @@ export type AssetGeneratorDataUrlFunction = (content: Buffer, context: {
 
 // @public (undocumented)
 export type AssetGeneratorDataUrlOptions = {
-    encoding?: false | "base64";
+    encoding?: false | 'base64';
     mimetype?: string;
 };
 
@@ -240,7 +249,7 @@ export type AssetInlineGeneratorOptions = {
 export type AssetModuleFilename = Filename;
 
 // @public
-export type AssetModuleImportMode = "url" | "preserve";
+export type AssetModuleImportMode = 'url' | 'preserve';
 
 // @public
 export type AssetModuleOutputPath = Filename;
@@ -508,8 +517,8 @@ interface BreakStatement extends Node_4, HasSpan {
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
 
 // @public (undocumented)
-type BufferEncodingOption = "buffer" | {
-    encoding: "buffer";
+type BufferEncodingOption = 'buffer' | {
+    encoding: 'buffer';
 };
 
 // @public (undocumented)
@@ -618,6 +627,19 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
+const CaseSensitivePlugin: {
+    new (): {
+        name: string;
+        _args: [];
+        affectedHooks: keyof CompilerHooks | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+export { CaseSensitivePlugin }
+export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
+
+// @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
     // (undocumented)
     body: BlockStatement;
@@ -648,7 +670,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type ChunkLoadingGlobal = string;
 
 // @public
-export type ChunkLoadingType = LiteralUnion<"jsonp" | "import-scripts" | "require" | "async-node" | "import", string>;
+export type ChunkLoadingType = LiteralUnion<'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import', string>;
 
 // @public (undocumented)
 export type ChunkPathData = {
@@ -672,7 +694,6 @@ export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
 // @public (undocumented)
 export type CircularDependencyRspackPluginOptions = {
     failOnError?: boolean;
-    allowAsyncCycles?: boolean;
     exclude?: RegExp;
     ignoredConnections?: [string | RegExp, string | RegExp][];
     onDetected?(entrypoint: Module, modules: string[], compilation: Compilation): void;
@@ -783,7 +804,7 @@ export type Clean = boolean | {
 
 // @public (undocumented)
 type ClientConfiguration = {
-    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | undefined;
+    logging?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose' | undefined;
     overlay?: boolean | {
         warnings?: OverlayMessageOptions;
         errors?: OverlayMessageOptions;
@@ -811,7 +832,7 @@ type CodeValuePrimitive = null | undefined | RegExp | Function | string | number
 // @public (undocumented)
 type CollectTypeScriptInfoOptions = {
     typeExports?: boolean;
-    exportedEnum?: boolean | "const-only";
+    exportedEnum?: boolean | 'const-only';
 };
 
 // @public (undocumented)
@@ -840,9 +861,9 @@ export class Compilation {
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
-    __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
+    __internal__pushDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void;
     // @internal
-    __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    __internal__pushDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void;
     // @internal
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // (undocumented)
@@ -1138,11 +1159,11 @@ export class Compiler {
     // (undocumented)
     context: string;
     // (undocumented)
-    contextTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | "ignore" | null>;
+    contextTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | 'ignore' | null>;
     // (undocumented)
     createChildCompiler(compilation: Compilation, compilerName: string, compilerIndex: number, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
     // (undocumented)
-    fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | "ignore" | null>;
+    fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | 'ignore' | null>;
     // (undocumented)
     fsStartTime?: number;
     // (undocumented)
@@ -1179,6 +1200,9 @@ export class Compiler {
     outputPath: string;
     // (undocumented)
     parentCompilation?: Compilation;
+    // (undocumented)
+    get platform(): PlatformTargetProperties;
+    set platform(platform: PlatformTargetProperties);
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
@@ -1548,7 +1572,7 @@ export const CopyRspackPlugin: {
 
 // @public (undocumented)
 export type CopyRspackPluginOptions = {
-    patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
+    patterns: (string | (Pick<RawCopyPattern, 'from'> & Partial<Omit<RawCopyPattern, 'from'>>))[];
 };
 
 // @public
@@ -1574,7 +1598,7 @@ type CreateReadStreamFSImplementation = FSImplementation & {
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext & Record<string, any>;
 
 // @public
-export type CrossOriginLoading = false | "anonymous" | "use-credentials";
+export type CrossOriginLoading = false | 'anonymous' | 'use-credentials';
 
 // @public
 export type CssAutoGeneratorOptions = {
@@ -1649,17 +1673,17 @@ export interface CssExtractRspackPluginOptions {
     // (undocumented)
     attributes?: Record<string, string>;
     // (undocumented)
-    chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
+    chunkFilename?: RawCssExtractPluginOption['chunkFilename'];
     // (undocumented)
     enforceRelative?: boolean;
     // (undocumented)
-    filename?: RawCssExtractPluginOption["filename"];
+    filename?: RawCssExtractPluginOption['filename'];
     // (undocumented)
     ignoreOrder?: boolean;
     // (undocumented)
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     // (undocumented)
-    linkType?: LiteralUnion<"text/css", string> | false;
+    linkType?: LiteralUnion<'text/css', string> | false;
     // (undocumented)
     pathinfo?: boolean;
     // (undocumented)
@@ -1673,7 +1697,7 @@ export type CssFilename = Filename;
 export type CssGeneratorEsModule = boolean;
 
 // @public (undocumented)
-export type CssGeneratorExportsConvention = "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only";
+export type CssGeneratorExportsConvention = 'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only';
 
 // @public (undocumented)
 export type CssGeneratorExportsOnly = boolean;
@@ -1771,13 +1795,13 @@ type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMe
     writeToDisk?: boolean | ((targetPath: string) => boolean) | undefined;
     methods?: string[] | undefined;
     headers?: any;
-    publicPath?: NonNullable<RspackConfiguration["output"]>["publicPath"];
-    stats?: RspackConfiguration["stats"];
+    publicPath?: NonNullable<RspackConfiguration['output']>['publicPath'];
+    stats?: RspackConfiguration['stats'];
     serverSideRender?: boolean | undefined;
     outputFileSystem?: OutputFileSystem_2 | undefined;
     index?: string | boolean | undefined;
     modifyResponseData?: ModifyResponseData<RequestInternal, ResponseInternal> | undefined;
-    etag?: "strong" | "weak" | undefined;
+    etag?: 'strong' | 'weak' | undefined;
     lastModified?: boolean | undefined;
     cacheControl?: string | number | boolean | {
         maxAge?: number;
@@ -1797,7 +1821,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     ipc?: string | boolean | undefined;
     host?: string | undefined;
     port?: Port | undefined;
-    hot?: boolean | "only" | undefined;
+    hot?: boolean | 'only' | undefined;
     liveReload?: boolean | undefined;
     devMiddleware?: DevMiddlewareOptions | undefined;
     compress?: boolean | undefined;
@@ -1819,13 +1843,13 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
 };
 
 // @public (undocumented)
-export type DevTool = false | "eval" | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
+export type DevTool = false | 'eval' | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
 
 // @public (undocumented)
-type DevToolCheap = "cheap-" | "cheap-module-" | "";
+type DevToolCheap = 'cheap-' | 'cheap-module-' | '';
 
 // @public (undocumented)
-type DevToolDebugIds = "-debugids" | "";
+type DevToolDebugIds = '-debugids' | '';
 
 // @public
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
@@ -1837,10 +1861,10 @@ export type DevtoolModuleFilenameTemplate = string | ((context: ModuleFilenameTe
 export type DevtoolNamespace = string;
 
 // @public (undocumented)
-type DevToolNoSources = "nosources-" | "";
+type DevToolNoSources = 'nosources-' | '';
 
 // @public
-type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
+type DevToolPosition = 'inline-' | 'hidden-' | 'eval-' | '';
 
 // @public (undocumented)
 interface Diagnostic {
@@ -1851,7 +1875,7 @@ interface Diagnostic {
     // (undocumented)
     message: string;
     // (undocumented)
-    severity: "error" | "warning";
+    severity: 'error' | 'warning';
     // (undocumented)
     sourceCode?: string;
 }
@@ -1957,7 +1981,7 @@ export type DllReferencePluginOptions = {
     name?: string;
     scope?: string;
     sourceType?: DllReferencePluginOptionsSourceType;
-    type?: "require" | "object";
+    type?: 'require' | 'object';
 } | {
     content: DllReferencePluginOptionsContent;
     context?: string;
@@ -1965,7 +1989,7 @@ export type DllReferencePluginOptions = {
     name: string;
     scope?: string;
     sourceType?: DllReferencePluginOptionsSourceType;
-    type?: "require" | "object";
+    type?: 'require' | 'object';
 };
 
 // @public
@@ -1985,7 +2009,7 @@ export interface DllReferencePluginOptionsManifest {
 }
 
 // @public
-export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
+export type DllReferencePluginOptionsSourceType = 'var' | 'assign' | 'this' | 'window' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system';
 
 // @public (undocumented)
 interface DoWhileStatement extends Node_4, HasSpan {
@@ -2138,7 +2162,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, 'runtime' | 'chunkLoading' | 'wasmLoading' | 'asyncChunks' | 'publicPath' | 'baseUri' | 'filename' | 'library' | 'layer'> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2172,7 +2196,7 @@ export class EntryOptionPlugin {
 }
 
 // @public
-export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
+export type EntryOptions = Omit<EntryDescriptionNormalized, 'import'> & {
     name?: string;
 };
 
@@ -2374,9 +2398,9 @@ interface ExecuteModuleContext {
 
 // @public (undocumented)
 export type ExperimentCacheNormalized = boolean | {
-    type: "memory";
+    type: 'memory';
 } | {
-    type: "persistent";
+    type: 'persistent';
     buildDependencies: string[];
     version: string;
     snapshot: {
@@ -2385,16 +2409,16 @@ export type ExperimentCacheNormalized = boolean | {
         managedPaths: (string | RegExp)[];
     };
     storage: {
-        type: "filesystem";
+        type: 'filesystem';
         directory: string;
     };
 };
 
 // @public
 export type ExperimentCacheOptions = boolean | {
-    type: "memory";
+    type: 'memory';
 } | {
-    type: "persistent";
+    type: 'persistent';
     buildDependencies?: string[];
     version?: string;
     snapshot?: {
@@ -2403,7 +2427,7 @@ export type ExperimentCacheOptions = boolean | {
         managedPaths?: (string | RegExp)[];
     };
     storage?: {
-        type: "filesystem";
+        type: 'filesystem';
         directory?: string;
     };
 };
@@ -2418,7 +2442,6 @@ export type Experiments = {
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
-    parallelCodeSplitting?: boolean;
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
@@ -2445,7 +2468,7 @@ interface Experiments_2 {
     EsmLibraryPlugin: typeof EsmLibraryPlugin;
     // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
+        register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
     // @deprecated (undocumented)
@@ -2508,8 +2531,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // @deprecated (undocumented)
-    parallelCodeSplitting?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
     // (undocumented)
@@ -2604,7 +2625,7 @@ class ExportsInfo {
 type ExportSpecifier = ExportNamespaceSpecifier | ExportDefaultSpecifier | NamedExportSpecifier;
 
 // @public (undocumented)
-type ExportsPresence = "error" | "warn" | "auto" | false;
+type ExportsPresence = 'error' | 'warn' | 'auto' | false;
 
 // @public (undocumented)
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
@@ -2714,7 +2735,7 @@ export type ExternalsPresets = {
 };
 
 // @public
-export type ExternalsType = "var" | "module" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system" | "promise" | "import" | "module-import" | "script" | "node-commonjs" | "commonjs-import";
+export type ExternalsType = 'var' | 'module' | 'assign' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system' | 'promise' | 'import' | 'module-import' | 'script' | 'node-commonjs' | 'commonjs-import';
 
 // @public (undocumented)
 type ExtractCommentsBanner = string | boolean;
@@ -2739,7 +2760,7 @@ type ExtraPluginHookData = {
 };
 
 // @public (undocumented)
-export type Falsy = false | "" | 0 | null | undefined;
+export type Falsy = false | '' | 0 | null | undefined;
 
 // @public (undocumented)
 const FetchCompileAsyncWasmPlugin: {
@@ -2867,11 +2888,11 @@ export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown | G
 // @public (undocumented)
 export type GeneratorOptionsByModuleTypeKnown = {
     asset?: AssetGeneratorOptions;
-    "asset/inline"?: AssetInlineGeneratorOptions;
-    "asset/resource"?: AssetResourceGeneratorOptions;
+    'asset/inline'?: AssetInlineGeneratorOptions;
+    'asset/resource'?: AssetResourceGeneratorOptions;
     css?: CssGeneratorOptions;
-    "css/auto"?: CssAutoGeneratorOptions;
-    "css/module"?: CssModuleGeneratorOptions;
+    'css/auto'?: CssAutoGeneratorOptions;
+    'css/module'?: CssModuleGeneratorOptions;
     json?: JsonGeneratorOptions;
 };
 
@@ -2891,7 +2912,7 @@ export const getPnpDefault: () => boolean;
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
 
 // @public (undocumented)
-export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
+export function getRawResolve(resolve: Resolve): RawOptions['resolve'];
 
 // @public (undocumented)
 interface GetterProperty extends PropBase, HasSpan {
@@ -2962,7 +2983,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 // @public
-export type HashFunction = "md4" | "xxhash64" | "sha256";
+export type HashFunction = 'md4' | 'xxhash64' | 'sha256';
 
 // @public (undocumented)
 interface HashLike {
@@ -3094,17 +3115,17 @@ export type HtmlRspackPluginOptions = {
     template?: string;
     templateContent?: string | TemplateRenderFunction;
     templateParameters?: Record<string, string> | boolean | TemplateParamFunction;
-    inject?: boolean | "head" | "body";
+    inject?: boolean | 'head' | 'body';
     publicPath?: string;
     base?: string | {
         href?: string;
-        target?: "_self" | "_blank" | "_parent" | "_top";
+        target?: '_self' | '_blank' | '_parent' | '_top';
     };
-    scriptLoading?: "blocking" | "defer" | "module" | "systemjs-module";
+    scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
     chunks?: string[];
     excludeChunks?: string[];
-    chunksSortMode?: "auto" | "manual";
-    sri?: "sha256" | "sha384" | "sha512";
+    chunksSortMode?: 'auto' | 'manual';
+    sri?: 'sha256' | 'sha384' | 'sha512';
     minify?: boolean;
     favicon?: string;
     meta?: Record<string, string | Record<string, string>>;
@@ -3115,7 +3136,7 @@ export type HtmlRspackPluginOptions = {
 // @public (undocumented)
 interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     // (undocumented)
-    logLevel?: "debug" | "info" | "warn" | "error" | "silent";
+    logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
     // (undocumented)
     logProvider?: LogProviderCallback;
     // (undocumented)
@@ -3136,8 +3157,8 @@ interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     } | ((path: string, req: Request_2) => string) | ((path: string, req: Request_2) => Promise<string>);
     // (undocumented)
     router?: {
-        [hostOrPath: string]: HttpProxyServerOptions["target"];
-    } | ((req: Request_2) => HttpProxyServerOptions["target"]) | ((req: Request_2) => Promise<HttpProxyServerOptions["target"]>);
+        [hostOrPath: string]: HttpProxyServerOptions['target'];
+    } | ((req: Request_2) => HttpProxyServerOptions['target']) | ((req: Request_2) => Promise<HttpProxyServerOptions['target']>);
 }
 
 // @public (undocumented)
@@ -3222,7 +3243,7 @@ type HttpUriPluginOptions = {
     lockfileLocation?: string;
     cacheLocation?: string | false;
     upgrade?: boolean;
-    httpClient?: RawHttpUriPluginOptions["httpClient"];
+    httpClient?: RawHttpUriPluginOptions['httpClient'];
 };
 
 // @public (undocumented)
@@ -3291,10 +3312,10 @@ export const IgnorePlugin: {
 
 // @public (undocumented)
 export type IgnorePluginOptions = {
-    resourceRegExp: NonNullable<RawIgnorePluginOptions["resourceRegExp"]>;
-    contextRegExp?: RawIgnorePluginOptions["contextRegExp"];
+    resourceRegExp: NonNullable<RawIgnorePluginOptions['resourceRegExp']>;
+    contextRegExp?: RawIgnorePluginOptions['contextRegExp'];
 } | {
-    checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
+    checkResource: NonNullable<RawIgnorePluginOptions['checkResource']>;
 };
 
 // @public
@@ -3386,7 +3407,7 @@ export type Incremental = {
 };
 
 // @public
-export type IncrementalPresets = boolean | "none" | "safe" | "advance" | "advance-silent";
+export type IncrementalPresets = boolean | 'none' | 'safe' | 'advance' | 'advance-silent';
 
 // @public
 export type InfrastructureLogging = {
@@ -3394,7 +3415,7 @@ export type InfrastructureLogging = {
     colors?: boolean;
     console?: Console;
     debug?: boolean | FilterTypes;
-    level?: "none" | "error" | "warn" | "info" | "log" | "verbose";
+    level?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose';
     stream?: NodeJS.WritableStream;
 };
 
@@ -3518,7 +3539,7 @@ class JavascriptModulesPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+export type JavascriptParserCommonjsExports = boolean | 'skipInEsm';
 
 // @public (undocumented)
 export type JavascriptParserCommonjsOption = boolean | {
@@ -3527,12 +3548,12 @@ export type JavascriptParserCommonjsOption = boolean | {
 
 // @public (undocumented)
 export type JavascriptParserOptions = {
-    dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once";
+    dynamicImportMode?: 'eager' | 'lazy' | 'weak' | 'lazy-once';
     dynamicImportPreload?: boolean | number;
     dynamicImportPrefetch?: boolean | number;
-    dynamicImportFetchPriority?: "low" | "high" | "auto";
+    dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
     importMeta?: boolean;
-    url?: "relative" | "new-url-relative" | boolean;
+    url?: 'relative' | 'new-url-relative' | boolean;
     exprContextCritical?: boolean;
     unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
@@ -3542,14 +3563,14 @@ export type JavascriptParserOptions = {
     reexportExportsPresence?: ExportsPresence;
     strictExportPresence?: boolean;
     worker?: string[] | boolean;
-    overrideStrict?: "strict" | "non-strict";
+    overrideStrict?: 'strict' | 'non-strict';
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+    typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
     jsx?: boolean;
     deferImport?: boolean;
 };
@@ -3629,7 +3650,7 @@ interface JsFormatOptions_2 {
     asciiOnly?: boolean;
     beautify?: boolean;
     braces?: boolean;
-    comments?: false | "some" | "all";
+    comments?: false | 'some' | 'all';
     ecma?: TerserEcmaVersion_2;
     indentLevel?: number;
     indentStart?: number;
@@ -3925,7 +3946,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     depth: boolean;
     // (undocumented)
-    entrypoints: boolean | "auto";
+    entrypoints: boolean | 'auto';
     // (undocumented)
     errors: boolean;
     // (undocumented)
@@ -3933,7 +3954,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
     // (undocumented)
-    excludeModules: ((name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean)[];
+    excludeModules: ((name: string, module: StatsModule, type: 'module' | 'chunk' | 'root-of-chunk' | 'nested') => boolean)[];
     // (undocumented)
     groupAssetsByEmitStatus: boolean;
     // (undocumented)
@@ -3957,7 +3978,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     ids: boolean;
     // (undocumented)
-    logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
+    logging: false | 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose';
     // (undocumented)
     loggingDebug: ((value: string) => boolean)[];
     // (undocumented)
@@ -4238,7 +4259,7 @@ type KnownStatsPrinterContext = {
     cyan?: (str: string) => string;
     formatFilename?: (file: string, oversize?: boolean) => string;
     formatModuleId?: (id: string) => string;
-    formatChunkId?: ((id: string, direction?: "parent" | "child" | "sibling") => string) | undefined;
+    formatChunkId?: ((id: string, direction?: 'parent' | 'child' | 'sibling') => string) | undefined;
     formatSize?: (size: number) => string;
     formatDateTime?: (dateTime: number) => string;
     formatFlag?: (flag: string) => string;
@@ -4323,7 +4344,7 @@ export type LibraryOptions = {
 };
 
 // @public
-export type LibraryType = LiteralUnion<"var" | "module" | "assign" | "assign-properties" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system", string>;
+export type LibraryType = LiteralUnion<'var' | 'module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
@@ -4548,7 +4569,7 @@ class LoaderObject {
     // (undocumented)
     shouldYield(): boolean;
     // (undocumented)
-    type?: "module" | "commonjs";
+    type?: 'module' | 'commonjs';
 }
 
 // @public (undocumented)
@@ -4591,7 +4612,7 @@ export interface LogEntry {
 type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 
 // @public (undocumented)
-type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
+type Logger = ReturnType<Compiler['getInfrastructureLogger']>;
 
 // @public (undocumented)
 class Logger_2 {
@@ -4816,7 +4837,7 @@ function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
-export type Mode = "development" | "production" | "none";
+export type Mode = 'development' | 'production' | 'none';
 
 // @public (undocumented)
 type ModifyResponseData<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = (req: RequestInternal, res: ResponseInternal, data: Buffer | ReadStream, byteLength: number) => ResponseData;
@@ -4860,15 +4881,15 @@ class ModuleFederationPlugin {
 }
 
 // @public (undocumented)
-export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, 'enhanced'> {
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
+    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, 'remoteAliasMap' | 'globalName' | 'name' | 'exposes' | 'shared'>;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
-    shareStrategy?: "version-first" | "loaded-first";
+    shareStrategy?: 'version-first' | 'loaded-first';
 }
 
 // @public (undocumented)
@@ -5011,7 +5032,7 @@ export class MultiCompiler {
         run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
         watchClose: liteTapable.SyncHook<[]>;
         watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
-        infrastructureLog: liteTapable.MultiHook<CompilerHooks["infrastructureLog"]>;
+        infrastructureLog: liteTapable.MultiHook<CompilerHooks['infrastructureLog']>;
     };
     // (undocumented)
     get inputFileSystem(): InputFileSystem;
@@ -5078,7 +5099,7 @@ export class MultiStats {
 }
 
 // @public (undocumented)
-export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+export type MultiStatsOptions = Omit<StatsOptions, 'children'> & {
     children?: StatsValue | (StatsValue | undefined)[];
 };
 
@@ -5102,7 +5123,7 @@ class MultiWatching {
 }
 
 // @public (undocumented)
-type MultiWatching_2 = MultiCompiler["watch"];
+type MultiWatching_2 = MultiCompiler['watch'];
 
 // @public
 export type Name = string;
@@ -5142,7 +5163,7 @@ const NativeSubresourceIntegrityPlugin: {
 };
 
 // @public (undocumented)
-type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, "htmlPlugin"> & {
+type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, 'htmlPlugin'> & {
     htmlPlugin: string | false;
 };
 
@@ -5207,9 +5228,9 @@ interface NodeNextConfig extends BaseModuleConfig {
 
 // @public
 export type NodeOptions = {
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
-    global?: boolean | "warn";
+    __dirname?: boolean | 'warn-mock' | 'mock' | 'eval-only' | 'node-module';
+    __filename?: boolean | 'warn-mock' | 'mock' | 'eval-only' | 'node-module';
+    global?: boolean | 'warn';
 };
 
 // @public (undocumented)
@@ -5386,22 +5407,22 @@ type OpenApp = {
 
 // @public (undocumented)
 export type Optimization = {
-    moduleIds?: "named" | "natural" | "deterministic";
-    chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
+    moduleIds?: 'named' | 'natural' | 'deterministic';
+    chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
     minimize?: boolean;
-    minimizer?: ("..." | Plugin_2)[];
+    minimizer?: ('...' | Plugin_2)[];
     mergeDuplicateChunks?: boolean;
     splitChunks?: false | OptimizationSplitChunksOptions;
     runtimeChunk?: OptimizationRuntimeChunk;
     removeAvailableModules?: boolean;
     removeEmptyChunks?: boolean;
     realContentHash?: boolean;
-    sideEffects?: "flag" | boolean;
+    sideEffects?: 'flag' | boolean;
     providedExports?: boolean;
     concatenateModules?: boolean;
     innerGraph?: boolean;
-    usedExports?: "global" | boolean;
-    mangleExports?: "size" | "deterministic" | boolean;
+    usedExports?: 'global' | boolean;
+    mangleExports?: 'size' | 'deterministic' | boolean;
     inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
@@ -5409,7 +5430,7 @@ export type Optimization = {
 };
 
 // @public
-export type OptimizationRuntimeChunk = boolean | "single" | "multiple" | {
+export type OptimizationRuntimeChunk = boolean | 'single' | 'multiple' | {
     name?: string | ((value: {
         name: string;
     }) => string);
@@ -5440,7 +5461,7 @@ export type OptimizationSplitChunksCacheGroupTestFn = (module: Module, ctx: {
 }) => boolean;
 
 // @public (undocumented)
-type OptimizationSplitChunksChunks = "initial" | "async" | "all" | RegExp | ((chunk: Chunk) => boolean);
+type OptimizationSplitChunksChunks = 'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
 
 // @public (undocumented)
 type OptimizationSplitChunksName = string | false | OptimizationSplitChunksNameFunction;
@@ -5714,7 +5735,7 @@ export interface OutputNormalized {
     // (undocumented)
     path?: Path;
     // (undocumented)
-    pathinfo?: boolean | "verbose";
+    pathinfo?: boolean | 'verbose';
     // (undocumented)
     publicPath?: PublicPath;
     // (undocumented)
@@ -5768,12 +5789,12 @@ export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown | ParserO
 export type ParserOptionsByModuleTypeKnown = {
     asset?: AssetParserOptions;
     css?: CssParserOptions;
-    "css/auto"?: CssAutoParserOptions;
-    "css/module"?: CssModuleParserOptions;
+    'css/auto'?: CssAutoParserOptions;
+    'css/module'?: CssModuleParserOptions;
     javascript?: JavascriptParserOptions;
-    "javascript/auto"?: JavascriptParserOptions;
-    "javascript/dynamic"?: JavascriptParserOptions;
-    "javascript/esm"?: JavascriptParserOptions;
+    'javascript/auto'?: JavascriptParserOptions;
+    'javascript/dynamic'?: JavascriptParserOptions;
+    'javascript/esm'?: JavascriptParserOptions;
     json?: JsonParserOptions;
 };
 
@@ -5798,7 +5819,7 @@ export type PathData = {
 };
 
 // @public
-export type Pathinfo = boolean | "verbose";
+export type Pathinfo = boolean | 'verbose';
 
 // @public (undocumented)
 type PathLike = string | Buffer | URL;
@@ -5818,7 +5839,7 @@ interface PatternBase extends Node_4, HasSpan {
 // @public
 type Performance_2 = false | {
     assetFilter?: (assetFilename: string) => boolean;
-    hints?: false | "warning" | "error";
+    hints?: false | 'warning' | 'error';
     maxAssetSize?: number;
     maxEntrypointSize?: number;
 };
@@ -5826,6 +5847,16 @@ export { Performance_2 as Performance }
 
 // @public (undocumented)
 export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
+
+// @public (undocumented)
+type PlatformTargetProperties = {
+    web?: boolean | null;
+    browser?: boolean | null;
+    webworker?: boolean | null;
+    node?: boolean | null;
+    nwjs?: boolean | null;
+    electron?: boolean | null;
+};
 
 // @public (undocumented)
 type Plugin_2 = RspackPluginInstance | RspackPluginFunction | WebpackPluginInstance | WebpackPluginFunction | Falsy;
@@ -5858,7 +5889,7 @@ type PluginImportOptions = PluginImportConfig[];
 export type Plugins = Plugin_2[];
 
 // @public (undocumented)
-type Port = number | LiteralUnion<"auto", string>;
+type Port = number | LiteralUnion<'auto', string>;
 
 // @public (undocumented)
 type PrintedElement = {
@@ -5908,7 +5939,7 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
+export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
 
 // @public (undocumented)
 interface PropBase extends Node_4 {
@@ -5960,7 +5991,7 @@ class ProvideSharedPlugin<Enhanced extends boolean = false> extends RspackBuilti
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    _provides: [string, Omit<RawProvideOptions, "key">][];
+    _provides: [string, Omit<RawProvideOptions, 'key'>][];
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
 }
@@ -6014,7 +6045,7 @@ interface PseudoClasses {
 }
 
 // @public
-export type PublicPath = LiteralUnion<"auto", string> | Exclude<Filename, string>;
+export type PublicPath = LiteralUnion<'auto', string> | Exclude<Filename, string>;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
@@ -6089,10 +6120,10 @@ type Readdir = {
         recursive?: boolean;
     } | BufferEncoding | null | undefined, callback: ReaddirStringCallback): void;
     (path: PathLike, options: {
-        encoding: "buffer";
+        encoding: 'buffer';
         withFileTypes?: false;
         recursive?: boolean;
-    } | "buffer", callback: ReaddirBufferCallback): void;
+    } | 'buffer', callback: ReaddirBufferCallback): void;
     (path: PathLike, callback: ReaddirStringCallback): void;
     (path: PathLike, options: (ObjectEncodingOptions & {
         withFileTypes: true;
@@ -6124,10 +6155,10 @@ type ReaddirSync = {
         recursive?: boolean;
     } | BufferEncoding | null): string[];
     (path: PathLike, options: {
-        encoding: "buffer";
+        encoding: 'buffer';
         withFileTypes?: false;
         recursive?: boolean;
-    } | "buffer"): Buffer[];
+    } | 'buffer'): Buffer[];
     (path: PathLike, options: (ObjectEncodingOptions & {
         withFileTypes?: false;
         recursive?: boolean;
@@ -6375,7 +6406,7 @@ type ResolverWithOptions = Resolver & WithOptions;
 // @public
 export type ResolveTsConfig = string | {
     configFile: string;
-    references?: string[] | "auto" | undefined;
+    references?: string[] | 'auto' | undefined;
 };
 
 // @public (undocumented)
@@ -6430,7 +6461,7 @@ const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
 
 // @public (undocumented)
 export namespace RsdoctorPluginData {
-    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch };
+    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch, };
 }
 
 // @public (undocumented)
@@ -6463,8 +6494,8 @@ const RsdoctorPluginImpl: {
 
 // @public (undocumented)
 type RsdoctorPluginOptions = {
-    moduleGraphFeatures?: boolean | ("graph" | "ids" | "sources")[];
-    chunkGraphFeatures?: boolean | ("graph" | "assets")[];
+    moduleGraphFeatures?: boolean | ('graph' | 'ids' | 'sources')[];
+    chunkGraphFeatures?: boolean | ('graph' | 'assets')[];
     sourceMapFeatures?: {
         module?: boolean;
         cheap?: boolean;
@@ -6587,6 +6618,8 @@ declare namespace rspackExports {
         ProgressPluginArgument,
         ProvidePluginOptions,
         BannerPlugin,
+        CaseSensitivePlugin,
+        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
@@ -6598,7 +6631,6 @@ declare namespace rspackExports {
         ProgressPlugin,
         ProvidePlugin,
         RuntimePlugin,
-        WarnCaseSensitiveModulesPlugin,
         DllPlugin,
         DllPluginOptions,
         DllReferencePlugin,
@@ -6898,7 +6930,7 @@ export type RspackFutureOptions = {
     bundlerInfo?: {
         version?: string;
         bundler?: string;
-        force?: boolean | ("version" | "uniqueId")[];
+        force?: boolean | ('version' | 'uniqueId')[];
     };
 };
 
@@ -7110,14 +7142,14 @@ export type RuleSetRule = {
     generator?: Record<string, any>;
     resolve?: ResolveOptions;
     sideEffects?: boolean;
-    enforce?: "pre" | "post";
+    enforce?: 'pre' | 'post';
     oneOf?: (RuleSetRule | Falsy)[];
     rules?: (RuleSetRule | Falsy)[];
     extractSourceMap?: boolean;
 };
 
 // @public
-export type RuleSetRules = ("..." | RuleSetRule | Falsy)[];
+export type RuleSetRules = ('...' | RuleSetRule | Falsy)[];
 
 // @public (undocumented)
 export type RuleSetUse = RuleSetUseItem | RuleSetUseItem[] | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
@@ -7230,7 +7262,7 @@ interface Script extends Node_4, HasSpan, HasInterpreter {
 }
 
 // @public (undocumented)
-export type ScriptType = false | "text/javascript" | "module";
+export type ScriptType = false | 'text/javascript' | 'module';
 
 // @public (undocumented)
 interface SequenceExpression extends ExpressionBase {
@@ -7259,7 +7291,7 @@ type ServerOptions = ServerOptions_2 & {
     spdy?: {
         plain?: boolean | undefined;
         ssl?: boolean | undefined;
-        "x-forwarded-for"?: string | undefined;
+        'x-forwarded-for'?: string | undefined;
         protocol?: string | undefined;
         protocols?: string[] | undefined;
     };
@@ -7269,7 +7301,7 @@ type ServerOptions = ServerOptions_2 & {
 type ServerResponse_2 = ServerResponse;
 
 // @public (undocumented)
-type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = LiteralUnion<"http" | "https" | "spdy" | "http2", string> | ((arg0: ServerOptions, arg1: A) => S);
+type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = LiteralUnion<'http' | 'https' | 'spdy' | 'http2', string> | ((arg0: ServerOptions, arg1: A) => S);
 
 // @public (undocumented)
 type ServeStaticOptions = {
@@ -7480,7 +7512,7 @@ type Static = {
     staticOptions?: ServeStaticOptions | undefined;
     watch?: boolean | (ChokidarWatchOptions & {
         aggregateTimeout?: number;
-        ignored?: ChokidarWatchOptions["ignored"];
+        ignored?: ChokidarWatchOptions['ignored'];
         poll?: number | boolean;
     }) | undefined;
 };
@@ -7563,7 +7595,7 @@ export enum StatsErrorCode {
 class StatsFactory {
     constructor();
     // (undocumented)
-    create(type: string, data: any, baseContext: Omit<StatsFactoryContext, "type">): any;
+    create(type: string, data: any, baseContext: Omit<StatsFactoryContext, 'type'>): any;
     // (undocumented)
     _forEachLevel(hookMap: HookMap<any>, cache: CacheHookMap, type: string, fn: CallFn): any;
     // (undocumented)
@@ -7615,7 +7647,7 @@ export type StatsOptions = {
     assets?: boolean;
     chunks?: boolean;
     modules?: boolean;
-    entrypoints?: boolean | "auto";
+    entrypoints?: boolean | 'auto';
     chunkGroups?: boolean;
     warnings?: boolean;
     warningsCount?: boolean;
@@ -7635,7 +7667,7 @@ export type StatsOptions = {
     moduleAssets?: boolean;
     nestedModules?: boolean;
     source?: boolean;
-    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | boolean;
+    logging?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose' | boolean;
     loggingDebug?: boolean | FilterTypes;
     loggingTrace?: boolean;
     runtimeModules?: boolean;
@@ -7692,7 +7724,7 @@ export type StatsOptions = {
 type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
 
 // @public (undocumented)
-export type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
+export type StatsPresets = 'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings' | 'minimal' | 'detailed' | 'summary';
 
 // @public (undocumented)
 class StatsPrinter {
@@ -7797,7 +7829,7 @@ interface StringLiteral extends Node_4, HasSpan {
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
-type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
+type SubresourceIntegrityHashFunction = 'sha256' | 'sha384' | 'sha512';
 
 // @public (undocumented)
 export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
@@ -7813,7 +7845,7 @@ export type SubresourceIntegrityPluginOptions = {
     ...SubresourceIntegrityHashFunction[]
     ];
     htmlPlugin?: string | false;
-    enabled?: "auto" | boolean;
+    enabled?: 'auto' | boolean;
 };
 
 // @public (undocumented)
@@ -7873,7 +7905,8 @@ export type SwcLoaderModuleConfig = ModuleConfig;
 
 // @public (undocumented)
 export type SwcLoaderOptions = Config_2 & {
-    isModule?: boolean | "unknown";
+    isModule?: boolean | 'unknown';
+    collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
         collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
@@ -8363,7 +8396,7 @@ type TruePlusMinus = true | "+" | "-";
 // @public
 export type TrustedTypes = {
     policyName?: string;
-    onPolicyCreationFailure?: "continue" | "stop";
+    onPolicyCreationFailure?: 'continue' | 'stop';
 };
 
 // @public (undocumented)
@@ -9152,17 +9185,6 @@ class VirtualModulesPlugin {
 }
 
 // @public (undocumented)
-export const WarnCaseSensitiveModulesPlugin: {
-    new (): {
-        name: string;
-        _args: [];
-        affectedHooks: keyof CompilerHooks | undefined;
-        raw(compiler: Compiler): BuiltinPlugin;
-        apply(compiler: Compiler): void;
-    };
-};
-
-// @public (undocumented)
 interface Wasm {
     // (undocumented)
     EnableWasmLoadingPlugin: typeof EnableWasmLoadingPlugin;
@@ -9175,7 +9197,7 @@ export const wasm: Wasm;
 export type WasmLoading = false | WasmLoadingType;
 
 // @public
-export type WasmLoadingType = LiteralUnion<"fetch-streaming" | "fetch" | "async-node", string>;
+export type WasmLoadingType = LiteralUnion<'fetch-streaming' | 'fetch' | 'async-node', string>;
 
 // @public (undocumented)
 type WasmPlugin = [wasmPackage: string, config: Record<string, any>];
@@ -9192,9 +9214,9 @@ interface Watcher {
     // (undocumented)
     getAggregatedRemovals?(): Set<string>;
     // (undocumented)
-    getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">;
+    getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
-    getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">;
+    getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
     getInfo(): WatcherInfo;
     // (undocumented)
@@ -9223,9 +9245,9 @@ interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
     // (undocumented)
-    contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">;
+    contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
-    fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">;
+    fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
     removals: Set<string>;
 }
@@ -9235,7 +9257,7 @@ type WatchFiles = {
     paths: string | string[];
     options?: (ChokidarWatchOptions & {
         aggregateTimeout?: number;
-        ignored?: ChokidarWatchOptions["ignored"];
+        ignored?: ChokidarWatchOptions['ignored'];
         poll?: number | boolean;
     }) | undefined;
 };
@@ -9252,7 +9274,7 @@ export interface WatchFileSystem {
     }, missing: Iterable<string> & {
         added?: Iterable<String>;
         removed?: Iterable<String>;
-    }, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
+    }, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
 }
 
 // @public (undocumented)

@@ -153,24 +153,23 @@ async fn finish_modules(
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let module_graph = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     if let Some(export) = export {
       let export_info = module_graph
-        .get_exports_info(&module_identifier)
-        .get_export_info(&mut module_graph, &(export.as_str()).into());
-      let info = export_info.as_data_mut(&mut module_graph);
+        .get_exports_info_data_mut(&module_identifier)
+        .ensure_export_info(&(export.as_str()).into());
+      let info = export_info.as_data_mut(module_graph);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      let exports_info = module_graph.get_exports_info(&module_identifier);
+      let exports_info = module_graph.get_exports_info_data_mut(&module_identifier);
       if self.ns_object_used {
-        exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
+        exports_info.set_used_in_unknown_way(Some(&runtime));
       } else {
-        exports_info
-          .as_data_mut(&mut module_graph)
-          .set_all_known_exports_used(Some(&runtime));
+        exports_info.set_all_known_exports_used(Some(&runtime));
       }
     }
   }

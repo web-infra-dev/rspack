@@ -81,7 +81,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkFilename: pathData => {
+    chunkFilename: (pathData) => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
     },
   },
@@ -188,7 +188,7 @@ export default {
   // or
   output: {
     clean: {
-      keep: path => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
+      keep: (path) => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
     },
   },
 };
@@ -334,7 +334,7 @@ export default {
 export default {
   //...
   output: {
-    devtoolModuleFilenameTemplate: info => {
+    devtoolModuleFilenameTemplate: (info) => {
       return `webpack:///${info.resourcePath}?${info.loaders}`;
     },
   },
@@ -550,7 +550,7 @@ export default {
 export default {
   //...
   output: {
-    filename: pathData => {
+    filename: (pathData) => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
     },
   },
@@ -574,7 +574,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   output: {
     library: 'myLib',
     libraryTarget: 'umd',

@@ -85,7 +85,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   module: {
-    noParse: request => /typescript|watermark-dom/.test(request),
+    noParse: (request) => /typescript|watermark-dom/.test(request),
   },
 };
 ```
@@ -636,14 +636,11 @@ When using Rspack to bundle TypeScript, we strongly recommend enabling [isolated
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    typeReexportsPresence: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     parser: {
       javascript: {
@@ -662,10 +659,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  typeExports: true, // Must be enabled in "tolerant" mode
-                },
+              collectTypeScriptInfo: {
+                typeExports: true, // Must be enabled in "tolerant" mode
               },
             },
           },
@@ -676,11 +671,7 @@ export default {
 };
 ```
 
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-
-:::warning
-This is currently an experimental feature. You must enable [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) for this configuration to take effect.
-:::
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 ### module.parser.javascript.worker
 
@@ -757,66 +748,6 @@ export default {
   },
 };
 ```
-
-### module.parser.javascript.inlineConst
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Performs cross-module inline optimization for constant exports in leaf modules of the module graph.
-
-A common optimization case is `constants.js`, for example:
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// Bundled by Rspack: output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A will be inlined at the usage sites.
-    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-Inline optimization is applied when the constant value is:
-
-- `null` or `undefined`
-- `boolean` values (`true` or `false`)
-- `number` with length \<= 6
-- `string` with length \<= 6
-
-```js title="rspack.config.mjs"
-const isProduction = process.env.NODE_ENV === 'production';
-
-export default {
-  experiments: {
-    inlineConst: true, // This is currently an experimental feature and requires explicit enabling
-  },
-  module: {
-    parser: {
-      javascript: {
-        inlineConst: isProduction,
-      },
-    },
-  },
-};
-```
-
-Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
-
-Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-:::warning
-This is currently an experimental feature, so you also need to enable [experiments.inlineConst](/config/experiments#experimentstypereexportspresence).
-:::
 
 ### module.parser.javascript.jsx
 

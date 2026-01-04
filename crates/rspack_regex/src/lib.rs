@@ -124,10 +124,10 @@ impl TryFrom<SwcRegex> for RspackRegex {
 }
 
 impl AsStringConverter for RspackRegex {
-  fn to_string(&self) -> Result<String, rspack_cacheable::SerializeError> {
+  fn to_string(&self) -> Result<String, rspack_cacheable::Error> {
     Ok(format!("{}#{}", self.flags, self.source))
   }
-  fn from_str(s: &str) -> Result<Self, rspack_cacheable::DeserializeError>
+  fn from_str(s: &str) -> Result<Self, rspack_cacheable::Error>
   where
     Self: Sized,
   {

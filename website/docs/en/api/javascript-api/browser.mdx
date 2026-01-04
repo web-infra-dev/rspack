@@ -91,7 +91,7 @@ const projectFs = builtinMemFs.memfs(filteredFiles);
 export default {
   plugins: [
     {
-      apply: compiler => {
+      apply: (compiler) => {
         compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
           compiler.inputFileSystem = projectFs.fs;
           compiler.outputFileSystem = projectFs.fs;

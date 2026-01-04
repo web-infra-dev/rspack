@@ -35,7 +35,7 @@ jobs:
     needs: [get-runner-labels, check-changed]
     if: needs.check-changed.outputs.changed == 'true'
     strategy:
-      fail-fast: true # for better utilize ci runners
+      fail-fast: false
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
@@ -60,7 +60,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: "release"
+      profile: 'release'
       test: false
 
   publish:

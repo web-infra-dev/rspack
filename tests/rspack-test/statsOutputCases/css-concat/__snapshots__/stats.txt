@@ -1,7 +1,7 @@
-asset main.js xx KiB [emitted] (name: main)
+asset main.js xx bytes [emitted] (name: main)
 asset main.css xx bytes [emitted] (name: main)
-Entrypoint main xx KiB = main.js xx KiB main.css xx bytes
-runtime modules xx KiB 6 modules
+Entrypoint main xx bytes = main.js xx bytes main.css xx bytes
+runtime modules xx bytes 2 modules
 cacheable modules xx bytes (javascript) xx bytes (css)
   ./index.js xx bytes [built] [code generated]
   ./foo.css xx bytes [built] [code generated]

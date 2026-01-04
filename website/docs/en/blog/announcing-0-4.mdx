@@ -124,7 +124,6 @@ With `experiments.rspackFuture.disableTransformByDefault` is enabled by default 
 const isDev = process.env.NODE_ENV === 'development';
 
 export default {
-  // ...
   mode: isDev ? 'development' : 'production',
   module: {
     rules: [
@@ -195,7 +194,7 @@ To opt out of the new resolver, set `experiments.rspackFuture.newResolver` to `f
 
 ## Migration guide
 
-There is a [migrate example](https://github.com/rspack-contrib/rstack-examples/pull/2) demonstrating how to migrate from Rspack 0.3.14 to Rspack 0.4.0.
+There is a [migrate example](https://github.com/rstackjs/rstack-examples/pull/2) demonstrating how to migrate from Rspack 0.3.14 to Rspack 0.4.0.
 
 ### Choose `@rspack/cli` or `Rsbuild`?
 

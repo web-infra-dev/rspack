@@ -65,7 +65,7 @@ export default {
 
 [React Fast Refresh](https://reactnative.dev/docs/fast-refresh) 功能的开启主要分为两部分：代码注入和代码转换：
 
-- 代码注入会注入 `react-refresh` 包中的一些代码，以及一些自定义的运行时代码，都已集成在 [@rspack/plugin-react-refresh](https://github.com/rspack-contrib/rspack-plugin-react-refresh) 插件中，可通过该插件注入。
+- 代码注入会注入 `react-refresh` 包中的一些代码，以及一些自定义的运行时代码，都已集成在 [@rspack/plugin-react-refresh](https://github.com/rstackjs/rspack-plugin-react-refresh) 插件中，可通过该插件注入。
 - 代码转换可通过 loader 来完成，比如 `swc-loader` 的 [jsc.transform.react.refresh](https://swc.rs/docs/configuration/compilation#jsctransformreactrefresh) 或 `babel-loader` 的 [react-refresh/babel 插件](https://github.com/facebook/react/tree/main/packages/react-refresh)。
 
 ```js title="rspack.config.mjs"
@@ -75,7 +75,6 @@ import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 const isDev = process.env.NODE_ENV === 'development';
 
 export default {
-  // ...
   mode: isDev ? 'development' : 'production',
   module: {
     rules: [
@@ -110,8 +109,8 @@ export default {
 
 这种实现方式将代码注入逻辑和转换逻辑解耦，代码注入逻辑统一通过 `@rspack/plugin-react-refresh` 插件完成，代码转换通过 loader 完成。这意味着该插件可以配合 `builtin:swc-loader`、`swc-loader` 或 `babel-loader` 使用：
 
-- 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-refresh)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
-- 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-refresh-babel-loader)
+- 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
+- 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh-babel-loader)
 
 ## React Compiler
 
@@ -198,8 +197,8 @@ const ReactCompilerConfig = {
 
 你可以参考以下示例项目：
 
-- [Rspack + React Compiler](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-compiler-babel)
-- [Rspack + React Compiler + TypeScript](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/react-compiler-babel-ts)
+- [Rspack + React Compiler](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-compiler-babel)
+- [Rspack + React Compiler + TypeScript](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-compiler-babel-ts)
 
 ## 集成 SVGR
 

@@ -85,7 +85,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   module: {
-    noParse: request => /typescript|watermark-dom/.test(request),
+    noParse: (request) => /typescript|watermark-dom/.test(request),
   },
 };
 ```
@@ -636,14 +636,11 @@ WARNING in ./re-exports.ts
 :::
 
 - `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
-- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 配合使用。
+- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 配合使用。
 - `'tolerant-no-check'`：会对重导出类型进行宽容处理，但不会检查子模块中是否有对应的类型导出，此时可能存在误将本该报错的场景宽容掉（通常 IDE 也会有相应提示），由于不需要检查子模块，所以性能也会更好。
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    typeReexportsPresence: true, // 目前为实验性功能，需开启此选项
-  },
   module: {
     parser: {
       javascript: {
@@ -662,10 +659,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
-                },
+              collectTypeScriptInfo: {
+                typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
               },
             },
           },
@@ -676,11 +671,7 @@ export default {
 };
 ```
 
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
-
-:::warning
-目前仍为实验性功能，需要开启 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 该配置才会生效。
-:::
+详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 
 ### module.parser.javascript.worker
 
@@ -757,66 +748,6 @@ export default {
   },
 };
 ```
-
-### module.parser.javascript.inlineConst
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-对位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
-
-常见的优化场景为 `constants.js`，比如：
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// 经过打包后的结果 output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A 会被内联到使用的地方。
-    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-inline 优化的条件是常量值为：
-
-- `null` 或 `undefined`
-- `boolean` 值 (`true` 或 `false`)
-- 长度 \<= 6 的 `number`
-- 长度 \<= 6 的 `string`
-
-```js title="rspack.config.mjs"
-const isProduction = process.env.NODE_ENV === 'production';
-
-export default {
-  experiments: {
-    inlineConst: true, // 目前为实验性功能，需开启此选项
-  },
-  module: {
-    parser: {
-      javascript: {
-        inlineConst: isProduction,
-      },
-    },
-  },
-};
-```
-
-由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
-
-详细示例可参考：[inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-:::warning
-目前仍为实验性功能，需要开启 [experiments.inlineConst](/config/experiments#experimentstypereexportspresence)。
-:::
 
 ### module.parser.javascript.jsx
 

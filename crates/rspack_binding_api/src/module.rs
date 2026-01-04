@@ -396,7 +396,7 @@ impl Module {
         .iter()
         .filter_map(|dependency_id| {
           module_graph
-            .dependency_by_id(dependency_id)
+            .try_dependency_by_id(dependency_id)
             .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
         })
         .collect::<Vec<_>>(),

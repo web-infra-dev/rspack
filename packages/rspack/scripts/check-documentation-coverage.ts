@@ -1,154 +1,155 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, extname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
+import { readdirSync, readFileSync } from 'node:fs';
+import { basename, dirname, extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ApiItemKind, ApiModel } from '@microsoft/api-extractor-model';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const CORE_API_JSON = resolve(__dirname, "../temp/core.api.json");
+const CORE_API_JSON = resolve(__dirname, '../temp/core.api.json');
 
 function toPascalCase(s) {
-	return s
-		.split(/[\s-_]+/)
-		.map(word => word[0].toUpperCase() + word.slice(1).toLowerCase())
-		.join("");
+  return s
+    .split(/[\s-_]+/)
+    .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
 }
 
 function toCamelCase(s) {
-	return s
-		.split(/[\s-_]+/)
-		.map(
-			(word, index) =>
-				(index === 0 ? word[0].toLowerCase() : word[0].toUpperCase()) +
-				word.slice(1)
-		)
-		.join("");
+  return s
+    .split(/[\s-_]+/)
+    .map(
+      (word, index) =>
+        (index === 0 ? word[0].toLowerCase() : word[0].toUpperCase()) +
+        word.slice(1),
+    )
+    .join('');
 }
 
 function extractMarkdownHeadings(markdown) {
-	const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-	const headings: string[] = [];
-	let match: RegExpExecArray | null;
-	while ((match = headingRegex.exec(markdown)) !== null) {
-		headings.push(match[2].trim());
-	}
-	return headings;
+  const headingRegex = /^(#{1,6})\s+(.+)$/gm;
+  const headings: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = headingRegex.exec(markdown)) !== null) {
+    headings.push(match[2].trim());
+  }
+  return headings;
 }
 
 function checkPluginsDocumentationCoverage() {
-	const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
-	const PLUGIN_DOCS_DIR = resolve(
-		__dirname,
-		"../../../website/docs/en/plugins"
-	);
-	const INTERNAL_PLUGINS_DOC = join(
-		PLUGIN_DOCS_DIR,
-		"webpack/internal-plugins.mdx"
-	);
+  const PLUGIN_REGEX = /^[A-Z][a-zA-Z]+Plugin$/;
+  const PLUGIN_DOCS_DIR = resolve(
+    __dirname,
+    '../../../website/docs/en/plugins',
+  );
+  const INTERNAL_PLUGINS_DOC = join(
+    PLUGIN_DOCS_DIR,
+    'webpack/internal-plugins.mdx',
+  );
 
-	function getImplementedPlugins() {
-		const apiModel = new ApiModel();
-		apiModel.loadPackage(CORE_API_JSON);
+  function getImplementedPlugins() {
+    const apiModel = new ApiModel();
+    apiModel.loadPackage(CORE_API_JSON);
 
-		const implementedPlugins = new Set();
+    const implementedPlugins = new Set();
 
-		function visitApiItem(apiItem) {
-			if (
-				[ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) &&
-				PLUGIN_REGEX.test(apiItem.displayName) &&
-				!apiItem.isAbstract
-			) {
-				implementedPlugins.add(apiItem.displayName);
-			}
-			for (const member of apiItem.members) {
-				visitApiItem(member);
-			}
-		}
-		visitApiItem(apiModel);
+    function visitApiItem(apiItem) {
+      if (
+        [ApiItemKind.Class, ApiItemKind.Variable].includes(apiItem.kind) &&
+        PLUGIN_REGEX.test(apiItem.displayName) &&
+        !apiItem.isAbstract
+      ) {
+        implementedPlugins.add(apiItem.displayName);
+      }
+      for (const member of apiItem.members) {
+        visitApiItem(member);
+      }
+    }
+    visitApiItem(apiModel);
 
-		return implementedPlugins;
-	}
+    return implementedPlugins;
+  }
 
-	function getDocumentedPlugins() {
-		const documentedPlugins = new Set();
+  function getDocumentedPlugins() {
+    const documentedPlugins = new Set();
 
-		function visitDir(dir) {
-			const items = readdirSync(dir, { withFileTypes: true });
-			for (const item of items) {
-				const resPath = resolve(dir, item.name);
-				if (item.isDirectory()) {
-					visitDir(resPath);
-				} else {
-					const ext = extname(item.name);
-					if (ext === ".mdx") {
-						const name = toPascalCase(basename(item.name, ext));
-						if (PLUGIN_REGEX.test(name)) {
-							documentedPlugins.add(name);
-						}
-					}
-				}
-			}
-		}
-		visitDir(PLUGIN_DOCS_DIR);
+    function visitDir(dir) {
+      const items = readdirSync(dir, { withFileTypes: true });
+      for (const item of items) {
+        const resPath = resolve(dir, item.name);
+        if (item.isDirectory()) {
+          visitDir(resPath);
+        } else {
+          const ext = extname(item.name);
+          if (ext === '.mdx') {
+            const name = toPascalCase(basename(item.name, ext));
+            if (PLUGIN_REGEX.test(name)) {
+              documentedPlugins.add(name);
+            }
+          }
+        }
+      }
+    }
+    visitDir(PLUGIN_DOCS_DIR);
 
-		const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, "utf-8");
-		const headings = extractMarkdownHeadings(internalPluginsDoc);
-		for (const heading of headings) {
-			if (PLUGIN_REGEX.test(heading)) {
-				documentedPlugins.add(heading);
-			}
-		}
+    const internalPluginsDoc = readFileSync(INTERNAL_PLUGINS_DOC, 'utf-8');
+    const headings = extractMarkdownHeadings(internalPluginsDoc);
+    for (const heading of headings) {
+      if (PLUGIN_REGEX.test(heading)) {
+        documentedPlugins.add(heading);
+      }
+    }
 
-		return documentedPlugins;
-	}
+    return documentedPlugins;
+  }
 
-	const implementedPlugins = getImplementedPlugins();
-	const documentedPlugins = getDocumentedPlugins();
+  const implementedPlugins = getImplementedPlugins();
+  const documentedPlugins = getDocumentedPlugins();
 
-	const excludedPlugins = [
-		"OriginEntryPlugin",
-		"RuntimePlugin", // This plugin only provides hooks, should not be used separately
-		"RsdoctorPlugin", // This plugin is not stable yet
-		"RstestPlugin", // This plugin is not stable yet
-		"RslibPlugin" // This plugin is not stable yet
-	];
+  const excludedPlugins = [
+    'OriginEntryPlugin',
+    'RuntimePlugin', // This plugin only provides hooks, should not be used separately
+    'RsdoctorPlugin', // This plugin is not stable yet
+    'RstestPlugin', // This plugin is not stable yet
+    'RslibPlugin', // This plugin is not stable yet
+    'WarnCaseSensitiveModulesPlugin', // This plugin is deprecated and will be replaced with CaseSensitivePlugin
+  ];
 
-	const undocumentedPlugins = Array.from(implementedPlugins).filter(
-		plugin =>
-			!documentedPlugins.has(plugin) &&
-			!excludedPlugins.includes(plugin as string)
-	);
-	const unimplementedPlugins = Array.from(documentedPlugins).filter(
-		plugin => !implementedPlugins.has(plugin)
-	);
+  const undocumentedPlugins = Array.from(implementedPlugins).filter(
+    (plugin) =>
+      !documentedPlugins.has(plugin) &&
+      !excludedPlugins.includes(plugin as string),
+  );
+  const unimplementedPlugins = Array.from(documentedPlugins).filter(
+    (plugin) => !implementedPlugins.has(plugin),
+  );
 
-	if (undocumentedPlugins.length) {
-		console.error(
-			"The following plugins are implemented but not documented:",
-			undocumentedPlugins.join(", ")
-		);
-	}
+  if (undocumentedPlugins.length) {
+    console.error(
+      'The following plugins are implemented but not documented:',
+      undocumentedPlugins.join(', '),
+    );
+  }
 
-	if (unimplementedPlugins.length) {
-		if (undocumentedPlugins.length) {
-			console.log("\n");
-		}
-		console.error(
-			"The following plugins are documented but not implemented or not properly exported:",
-			unimplementedPlugins.join(", ")
-		);
-	}
+  if (unimplementedPlugins.length) {
+    if (undocumentedPlugins.length) {
+      console.log('\n');
+    }
+    console.error(
+      'The following plugins are documented but not implemented or not properly exported:',
+      unimplementedPlugins.join(', '),
+    );
+  }
 
-	if (undocumentedPlugins.length || unimplementedPlugins.length) {
-		process.exit(1);
-	}
+  if (undocumentedPlugins.length || unimplementedPlugins.length) {
+    process.exit(1);
+  }
 }
 
 type Section = {
-	title: string;
-	level: number;
-	text: string;
+  title: string;
+  level: number;
+  text: string;
 };
 
 /**
@@ -162,137 +163,137 @@ type Section = {
  *       2. If not, fail.
  */
 function checkConfigsDocumentationCoverage() {
-	const CONFIG_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/config");
+  const CONFIG_DOCS_DIR = resolve(__dirname, '../../../website/docs/en/config');
 
-	function parseConfigDocuments() {
-		function parseMarkdownContent(content) {
-			const sections: Section[] = [];
-			let section: Section | null = null;
+  function parseConfigDocuments() {
+    function parseMarkdownContent(content) {
+      const sections: Section[] = [];
+      let section: Section | null = null;
 
-			const lines = content.split("\n");
+      const lines = content.split('\n');
 
-			for (let i = 0; i < lines.length; i++) {
-				const line = lines[i];
-				if (line.startsWith("#")) {
-					let level: number | undefined;
-					for (let j = 0; j < line.length; j++) {
-						if (level === undefined) {
-							if (line[j] !== "#") {
-								level = j;
-							}
-						} else {
-							break;
-						}
-					}
-					const title = line
-						.substring(level)
-						.trim()
-						.split(" ")[0]
-						.replace(/\\/g, "");
-					section = {
-						title: title.includes(".") ? title : toCamelCase(title),
-						level: level!,
-						text: ""
-					};
-					sections.push(section!);
-				} else if (section) {
-					section.text += line;
-				}
-			}
-			return sections;
-		}
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.startsWith('#')) {
+          let level: number | undefined;
+          for (let j = 0; j < line.length; j++) {
+            if (level === undefined) {
+              if (line[j] !== '#') {
+                level = j;
+              }
+            } else {
+              break;
+            }
+          }
+          const title = line
+            .substring(level)
+            .trim()
+            .split(' ')[0]
+            .replace(/\\/g, '');
+          section = {
+            title: title.includes('.') ? title : toCamelCase(title),
+            level: level!,
+            text: '',
+          };
+          sections.push(section!);
+        } else if (section) {
+          section.text += line;
+        }
+      }
+      return sections;
+    }
 
-		const sections: Section[] = [];
-		function visitDir(dir) {
-			const items = readdirSync(dir, { withFileTypes: true });
-			for (const item of items) {
-				const resPath = resolve(dir, item.name);
-				if (item.isDirectory()) {
-					visitDir(resPath);
-				} else {
-					const ext = extname(item.name);
-					if (ext === ".mdx") {
-						const content = readFileSync(join(dir, item.name), "utf-8");
-						const markdownBlocks = parseMarkdownContent(content);
-						sections.push(...markdownBlocks);
-					}
-				}
-			}
-		}
-		visitDir(CONFIG_DOCS_DIR);
-		return sections;
-	}
+    const sections: Section[] = [];
+    function visitDir(dir) {
+      const items = readdirSync(dir, { withFileTypes: true });
+      for (const item of items) {
+        const resPath = resolve(dir, item.name);
+        if (item.isDirectory()) {
+          visitDir(resPath);
+        } else {
+          const ext = extname(item.name);
+          if (ext === '.mdx') {
+            const content = readFileSync(join(dir, item.name), 'utf-8');
+            const markdownBlocks = parseMarkdownContent(content);
+            sections.push(...markdownBlocks);
+          }
+        }
+      }
+    }
+    visitDir(CONFIG_DOCS_DIR);
+    return sections;
+  }
 
-	// const implementedConfigs = getImplementedConfigs().filter(config => {
-	// 	return ![
-	// 		"experiments.lazyCompilation.backend",
-	// 		"resolveLoader",
-	// 		"module.parser",
-	// 		"module.generator",
-	// 		"experiments.rspackFuture",
-	// 		"experiments.incremental",
-	// 		"output.library.amd",
-	// 		"output.library.commonjs",
-	// 		"output.library.root",
-	// 		"output.workerChunkLoading",
-	// 		"output.workerWasmLoading",
-	// 		"output.workerPublicPath",
-	// 		"output.strictModuleExceptionHandling",
-	// 		"output.auxiliaryComment.amd",
-	// 		"output.auxiliaryComment.commonjs",
-	// 		"output.auxiliaryComment.commonjs2",
-	// 		"output.auxiliaryComment.root",
-	// 		"stats",
-	// 		"optimization.splitChunks",
-	// 		"optimization.removeAvailableModules",
-	// 		"optimization.concatenateModules",
-	// 		"loader",
-	// 		"snapshot",
-	// 		"profile"
-	// 	].some(c => config.startsWith(c));
-	// });
-	const _markdownSections = parseConfigDocuments();
-	const undocumentedConfigs: string[] = [];
-	// const map = new Map();
+  // const implementedConfigs = getImplementedConfigs().filter(config => {
+  // 	return ![
+  // 		"experiments.lazyCompilation.backend",
+  // 		"resolveLoader",
+  // 		"module.parser",
+  // 		"module.generator",
+  // 		"experiments.rspackFuture",
+  // 		"experiments.incremental",
+  // 		"output.library.amd",
+  // 		"output.library.commonjs",
+  // 		"output.library.root",
+  // 		"output.workerChunkLoading",
+  // 		"output.workerWasmLoading",
+  // 		"output.workerPublicPath",
+  // 		"output.strictModuleExceptionHandling",
+  // 		"output.auxiliaryComment.amd",
+  // 		"output.auxiliaryComment.commonjs",
+  // 		"output.auxiliaryComment.commonjs2",
+  // 		"output.auxiliaryComment.root",
+  // 		"stats",
+  // 		"optimization.splitChunks",
+  // 		"optimization.removeAvailableModules",
+  // 		"optimization.concatenateModules",
+  // 		"loader",
+  // 		"snapshot",
+  // 		"profile"
+  // 	].some(c => config.startsWith(c));
+  // });
+  const _markdownSections = parseConfigDocuments();
+  const undocumentedConfigs: string[] = [];
+  // const map = new Map();
 
-	// for (const config of implementedConfigs) {
-	// 	let documented = false;
-	// 	for (const section of markdownSections) {
-	// 		if (section.title === config) {
-	// 			documented = true;
-	// 			map.set(config, section);
-	// 		}
-	// 	}
-	// 	if (!documented) {
-	// 		const parts = config.split(".");
-	// 		const subs: string[] = [];
-	// 		let part: string | undefined;
-	// 		while ((part = parts.pop())) {
-	// 			subs.push(part);
-	// 			const section = map.get(parts.join("."));
-	// 			if (section) {
-	// 				if (subs.every(sub => section.text.includes(sub))) {
-	// 					documented = true;
-	// 					break;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	if (!documented) {
-	// 		undocumentedConfigs.push(config);
-	// 	}
-	// }
+  // for (const config of implementedConfigs) {
+  // 	let documented = false;
+  // 	for (const section of markdownSections) {
+  // 		if (section.title === config) {
+  // 			documented = true;
+  // 			map.set(config, section);
+  // 		}
+  // 	}
+  // 	if (!documented) {
+  // 		const parts = config.split(".");
+  // 		const subs: string[] = [];
+  // 		let part: string | undefined;
+  // 		while ((part = parts.pop())) {
+  // 			subs.push(part);
+  // 			const section = map.get(parts.join("."));
+  // 			if (section) {
+  // 				if (subs.every(sub => section.text.includes(sub))) {
+  // 					documented = true;
+  // 					break;
+  // 				}
+  // 			}
+  // 		}
+  // 	}
+  // 	if (!documented) {
+  // 		undocumentedConfigs.push(config);
+  // 	}
+  // }
 
-	if (undocumentedConfigs.length) {
-		console.error(
-			"The following configs are implemented but not documented:",
-			undocumentedConfigs.join(", ")
-		);
-	}
+  if (undocumentedConfigs.length) {
+    console.error(
+      'The following configs are implemented but not documented:',
+      undocumentedConfigs.join(', '),
+    );
+  }
 
-	if (undocumentedConfigs.length) {
-		process.exit(1);
-	}
+  if (undocumentedConfigs.length) {
+    process.exit(1);
+  }
 }
 
 checkPluginsDocumentationCoverage();

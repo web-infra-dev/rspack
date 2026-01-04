@@ -53,7 +53,7 @@ compiler.run((err, stats) => {
   // 处理构建结果
   handleBuildResult(stats);
   // 结束本次编译
-  compiler.close(closeErr => {
+  compiler.close((closeErr) => {
     // 重新启动一次编译
     compiler.run((err, stats) => {});
   });

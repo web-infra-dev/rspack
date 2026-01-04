@@ -1,8 +1,8 @@
 # Resolver API
 
-Rspack uses the higher-performance [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) written in Rust to replace webpack's [enhanced-resolve](https://github.com/webpack/enhanced-resolve), and experimentally re-exports these APIs through `rspack.experiments.resolver`. This allows you to directly call rspack-resolver's functions like `resolver.sync` or `resolver.async`.
+Rspack uses the higher-performance [rspack-resolver](https://github.com/rstackjs/rspack-resolver) written in Rust to replace webpack's [enhanced-resolve](https://github.com/webpack/enhanced-resolve), and experimentally re-exports these APIs through `rspack.experiments.resolver`. This allows you to directly call rspack-resolver's functions like `resolver.sync` or `resolver.async`.
 
-For complete usage and options, see [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver). Below is a simple example demonstrating how to use Rspack to resolve module paths:
+For complete usage and options, see [rspack-resolver](https://github.com/rstackjs/rspack-resolver). Below is a simple example demonstrating how to use Rspack to resolve module paths:
 
 ```js
 import { rspack } from '@rspack/core';

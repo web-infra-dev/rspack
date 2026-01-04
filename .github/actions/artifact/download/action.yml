@@ -4,13 +4,13 @@ description: Download file to local or artifact to quickly share files between j
 
 inputs:
   name:
-    description: "Artifact name"
-    default: "artifact"
+    description: 'Artifact name'
+    default: 'artifact'
   path:
-    description: "Destination path"
+    description: 'Destination path'
     required: true
   force-use-github:
-    description: "Force download from github"
+    description: 'Force download from github'
     default: false
     required: false
 

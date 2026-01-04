@@ -162,6 +162,7 @@ rspackplugin
 rspeedy
 rspress
 rstack
+rstackjs
 rstest
 ruid
 ruleoneof

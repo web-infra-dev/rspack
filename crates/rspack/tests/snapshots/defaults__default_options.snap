@@ -1512,7 +1512,6 @@ CompilerOptions {
                 MAKE | EMIT_ASSETS,
             ),
         },
-        parallel_code_splitting: false,
         top_level_await: true,
         rspack_future: RspackFuture,
         cache: Disabled,

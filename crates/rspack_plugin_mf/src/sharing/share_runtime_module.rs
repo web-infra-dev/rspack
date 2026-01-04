@@ -58,7 +58,7 @@ impl RuntimeModule for ShareRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let mut modules = compilation
         .chunk_graph
-        .get_chunk_modules_identifier_by_source_type(&c, SourceType::ShareInit, &module_graph);
+        .get_chunk_modules_identifier_by_source_type(&c, SourceType::ShareInit, module_graph);
       modules.sort_unstable();
       for mid in modules {
         let code_gen = compilation

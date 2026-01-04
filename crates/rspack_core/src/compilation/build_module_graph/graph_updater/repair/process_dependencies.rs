@@ -28,19 +28,19 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       from_unlazy,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
-    let module_graph =
-      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
-    for dependency_id in dependencies {
-      // Some dependencies here will not trigger the factorize task, so add all dependencies here.
+    // First mark all dependencies as added
+    for dependency_id in &dependencies {
       context
         .artifact
         .affected_dependencies
-        .mark_as_add(&dependency_id);
+        .mark_as_add(dependency_id);
+    }
 
-      let dependency = module_graph
-        .dependency_by_id(&dependency_id)
-        .expect("should have dependency");
+    let module_graph = &mut context.artifact.module_graph;
+
+    for dependency_id in dependencies {
+      let dependency = module_graph.dependency_by_id(&dependency_id);
       // FIXME: now only module/context dependency can put into resolve queue.
       // FIXME: should align webpack
       let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {

@@ -1,9 +1,10 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilationModuleIds, Plugin, incremental::IncrementalPasses,
+  ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
+  incremental::IncrementalPasses,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
@@ -16,21 +17,26 @@ use crate::id_helpers::{
 pub struct DeterministicModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for DeterministicModuleIdsPlugin)]
-async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+async fn module_ids(
+  &self,
+  compilation: &Compilation,
+  module_ids: &mut ModuleIdsArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULE_IDS,
     "DeterministicModuleIdsPlugin (optimization.moduleIds = \"deterministic\")",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
     if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
+      diagnostics.push(diagnostic);
     }
-    compilation.module_ids_artifact.clear();
+    module_ids.clear();
   }
 
   let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
 
-  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
+  let mut module_ids_map = std::mem::take(module_ids);
   let context = compilation.options.context.as_ref();
   let max_length = 3;
   let fail_on_conflict = false;
@@ -60,7 +66,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     },
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(
-        &module_graph,
+        module_graph,
         &a.identifier(),
         &b.identifier(),
       )
@@ -70,7 +76,11 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
         conflicts += 1;
         return false;
       }
-      ChunkGraph::set_module_id(&mut module_ids, module.identifier(), id.to_string().into());
+      ChunkGraph::set_module_id(
+        &mut module_ids_map,
+        module.identifier(),
+        id.to_string().into(),
+      );
       true
     },
     &[usize::pow(10, max_length)],
@@ -78,7 +88,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     used_ids_len,
     salt,
   );
-  compilation.module_ids_artifact = module_ids;
+  *module_ids = module_ids_map;
   if fail_on_conflict && conflicts > 0 {
     // TODO: better error msg
     panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");

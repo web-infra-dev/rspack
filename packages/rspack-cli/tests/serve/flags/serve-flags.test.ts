@@ -1,17 +1,17 @@
-import { normalizeStdout, runWatch } from "../../utils/test-utils";
+import { normalizeStdout, runWatch } from '../../utils/test-utils';
 
-describe("serve usage with flags", () => {
-	test("basic flags", async () => {
-		const { stdout } = await runWatch(
-			__dirname,
-			["serve", "--host=localhost", "--port=8888", "--hot"],
-			{
-				killString: /localhost/
-			}
-		);
+describe('serve usage with flags', () => {
+  test('basic flags', async () => {
+    const { stdout } = await runWatch(
+      __dirname,
+      ['serve', '--host=localhost', '--port=8888', '--hot'],
+      {
+        killString: /localhost/,
+      },
+    );
 
-		expect(normalizeStdout(stdout)).toContain(
-			'{"hot":true,"host":"localhost","port":8888}'
-		);
-	});
+    expect(normalizeStdout(stdout)).toContain(
+      '{"hot":true,"host":"localhost","port":8888}',
+    );
+  });
 });

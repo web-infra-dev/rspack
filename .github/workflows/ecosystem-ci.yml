@@ -5,14 +5,14 @@ on:
     inputs:
       pr:
         type: number
-        description: "Run ecosystem ci PR number"
+        description: 'Run ecosystem ci PR number'
         required: true
       suite:
-        description: "testsuite to run. runs all testsuits when `-`."
+        description: 'testsuite to run. runs all testsuits when `-`.'
         required: false
         type: choice
         options:
-          - "-"
+          - '-'
           - modernjs
           # - nx
           - rspress
@@ -26,18 +26,18 @@ on:
           - plugin
           - lynx-stack
       suiteRef:
-        description: "suite ref to use"
+        description: 'suite ref to use'
         required: true
         type: string
-        default: "-"
+        default: '-'
   push:
     branches:
       - main
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 
 permissions:
   # Allow commenting on commits
@@ -167,7 +167,7 @@ jobs:
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: "22"
+          node-version: '22'
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
@@ -182,7 +182,7 @@ jobs:
 
           RSPACK_DIR=$(pwd)
           cd ..
-          git clone --single-branch --depth 1 https://github.com/rspack-contrib/rstack-ecosystem-ci.git
+          git clone --single-branch --depth 1 https://github.com/rstackjs/rstack-ecosystem-ci.git
           cd rstack-ecosystem-ci
           pnpm i --frozen-lockfile
 
@@ -313,7 +313,7 @@ jobs:
       - name: Checkout ecosystem-ci repository
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
-          repository: rspack-contrib/rstack-ecosystem-ci
+          repository: rstackjs/rstack-ecosystem-ci
           ref: main
           fetch-depth: 1
           token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
@@ -321,7 +321,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
-          node-version: "22.21.1"
+          node-version: '22.21.1'
           package-manager-cache: false
 
       - name: Update Ecosystem History
@@ -331,7 +331,7 @@ jobs:
           WORKFLOW_FILE: ecosystem-ci.yml
           WORKFLOW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
-          HISTORY_REPOSITORY: rspack-contrib/rstack-ecosystem-ci
+          HISTORY_REPOSITORY: rstackjs/rstack-ecosystem-ci
           OUTPUT_DIR: data-artifacts
           GITHUB_TOKEN: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           STACK: rspack
@@ -349,6 +349,6 @@ jobs:
           clean: false
           target-folder: .
           token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
-          repository-name: rspack-contrib/rstack-ecosystem-ci
+          repository-name: rstackjs/rstack-ecosystem-ci
           git-config-name: github-actions[bot]
           git-config-email: github-actions[bot]@users.noreply.github.com

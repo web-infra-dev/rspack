@@ -3,7 +3,7 @@ use std::{cell::RefCell, ptr::NonNull};
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_collections::UkeyMap;
-use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraphRef};
+use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph};
 use rspack_napi::OneShotRef;
 
 use crate::{dependency::DependencyWrapper, module::ModuleObject};
@@ -15,7 +15,7 @@ pub struct ModuleGraphConnection {
 }
 
 impl ModuleGraphConnection {
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraphRef<'static>)> {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ModuleGraph)> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
 
@@ -28,7 +28,7 @@ impl ModuleGraphConnection {
   #[napi(getter, ts_return_type = "Dependency")]
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     let (compilation, module_graph) = self.as_ref()?;
-    if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
+    if let Some(dependency) = module_graph.try_dependency_by_id(&self.dependency_id) {
       Ok(DependencyWrapper::new(
         dependency.as_ref(),
         compilation.id(),

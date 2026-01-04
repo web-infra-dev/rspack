@@ -44,6 +44,7 @@ use rspack_core::{
   Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
   rspack_sources::RawStringSource,
 };
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -1228,7 +1229,11 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+  ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 
@@ -1239,7 +1244,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
@@ -1250,7 +1255,7 @@ impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1437,7 +1442,11 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_sync(compilation).await
   }
@@ -1460,7 +1469,7 @@ impl CompilationSeal for CompilationSealTap {
 
 #[async_trait]
 impl CompilationAfterSeal for CompilationAfterSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 

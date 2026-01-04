@@ -5,7 +5,7 @@ use rkyv::{
   ser::{Sharing, sharing::SharingState},
 };
 
-use crate::{DeserializeError, SerializeError};
+use crate::error::{Error, Result};
 
 const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
@@ -20,30 +20,22 @@ impl<'a> ContextGuard<'a> {
     Self { context }
   }
 
-  pub fn add_to_sharing<S: Sharing<SerializeError> + ?Sized>(
-    &self,
-    sharing: &mut S,
-  ) -> Result<(), SerializeError> {
+  pub fn add_to_sharing<S: Sharing<Error> + ?Sized>(&self, sharing: &mut S) -> Result<()> {
     sharing.start_sharing(CONTEXT_ADDR);
     sharing.finish_sharing(CONTEXT_ADDR, self as *const _ as usize)
   }
 
-  pub fn sharing_context<S: Sharing<SerializeError> + ?Sized>(
-    sharing: &'a mut S,
-  ) -> Result<&'a dyn Any, SerializeError> {
+  pub fn sharing_context<S: Sharing<Error> + ?Sized>(sharing: &'a mut S) -> Result<&'a dyn Any> {
     match sharing.start_sharing(CONTEXT_ADDR) {
       SharingState::Finished(addr) => {
         let guard: &Self = unsafe { &*(addr as *const Self) };
         Ok(guard.context)
       }
-      _ => Err(SerializeError::NoContext),
+      _ => Err(Error::NoContext),
     }
   }
 
-  pub fn add_to_pooling<P: Pooling<DeserializeError> + ?Sized>(
-    &self,
-    pooling: &mut P,
-  ) -> Result<(), DeserializeError> {
+  pub fn add_to_pooling<P: Pooling<Error> + ?Sized>(&self, pooling: &mut P) -> Result<()> {
     unsafe {
       let ctx_ptr = ErasedPtr::new(NonNull::new_unchecked(self as *const _ as *mut ()));
       pooling.start_pooling(CONTEXT_ADDR);
@@ -51,15 +43,13 @@ impl<'a> ContextGuard<'a> {
     }
   }
 
-  pub fn pooling_context<P: Pooling<DeserializeError> + ?Sized>(
-    pooling: &'a mut P,
-  ) -> Result<&'a dyn Any, DeserializeError> {
+  pub fn pooling_context<P: Pooling<Error> + ?Sized>(pooling: &'a mut P) -> Result<&'a dyn Any> {
     match pooling.start_pooling(CONTEXT_ADDR) {
       PoolingState::Finished(ptr) => {
         let guard: &Self = unsafe { &*(ptr.data_address() as *const Self) };
         Ok(guard.context)
       }
-      _ => Err(DeserializeError::NoContext),
+      _ => Err(Error::NoContext),
     }
   }
 }

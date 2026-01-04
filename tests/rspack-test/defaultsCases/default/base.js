@@ -48,7 +48,6 @@ module.exports = {
 			    inlineEnum: false,
 			    lazyBarrel: true,
 			    lazyCompilation: false,
-			    parallelCodeSplitting: false,
 			    parallelLoader: false,
 			    rspackFuture: Object {
 			      bundlerInfo: Object {
@@ -74,10 +73,7 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  infrastructureLogging: Object {},
-			  lazyCompilation: Object {
-			    entries: false,
-			    imports: true,
-			  },
+			  lazyCompilation: false,
 			  loader: Object {
 			    environment: Object {
 			      arrowFunction: true,
@@ -187,6 +183,12 @@ module.exports = {
 			        type: asset/source,
 			        with: Object {
 			          type: text,
+			        },
+			      },
+			      Object {
+			        type: asset/bytes,
+			        with: Object {
+			          type: bytes,
 			        },
 			      },
 			    ],

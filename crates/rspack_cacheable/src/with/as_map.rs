@@ -9,7 +9,7 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, with::AsCacheable};
+use crate::{Error, Result, with::AsCacheable};
 
 pub struct AsMap<WK = AsCacheable, WV = AsCacheable> {
   _key: WK,
@@ -22,9 +22,7 @@ pub trait AsMapConverter {
   type Value;
   fn len(&self) -> usize;
   fn iter(&self) -> impl Iterator<Item = (&Self::Key, &Self::Value)>;
-  fn from(
-    data: impl Iterator<Item = Result<(Self::Key, Self::Value), DeserializeError>>,
-  ) -> Result<Self, DeserializeError>
+  fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self>
   where
     Self: Sized;
 }
@@ -115,14 +113,14 @@ impl<K, V, WK, WV, T, D> DeserializeWith<ArchivedVec<RkyvEntry<WK::Archived, WV:
 where
   T: AsMapConverter<Key = K, Value = V>,
   K: std::hash::Hash + Eq,
-  D: Fallible<Error = DeserializeError> + ?Sized,
+  D: Fallible<Error = Error> + ?Sized,
   WK: ArchiveWith<K> + DeserializeWith<WK::Archived, K, D>,
   WV: ArchiveWith<V> + DeserializeWith<WV::Archived, V, D>,
 {
   fn deserialize_with(
     field: &ArchivedVec<RkyvEntry<WK::Archived, WV::Archived>>,
     deserializer: &mut D,
-  ) -> Result<T, DeserializeError> {
+  ) -> Result<T> {
     T::from(field.iter().map(|RkyvEntry { key, value, .. }| {
       Ok((
         WK::deserialize_with(key, deserializer)?,
@@ -146,10 +144,8 @@ where
   fn iter(&self) -> impl Iterator<Item = (&Self::Key, &Self::Value)> {
     self.iter()
   }
-  fn from(
-    data: impl Iterator<Item = Result<(Self::Key, Self::Value), DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<std::collections::HashMap<K, V, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self> {
+    data.collect::<Result<std::collections::HashMap<K, V, S>>>()
   }
 }
 
@@ -167,10 +163,8 @@ where
   fn iter(&self) -> impl Iterator<Item = (&Self::Key, &Self::Value)> {
     self.iter()
   }
-  fn from(
-    data: impl Iterator<Item = Result<(Self::Key, Self::Value), DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<hashlink::LinkedHashMap<K, V, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self> {
+    data.collect::<Result<hashlink::LinkedHashMap<K, V, S>>>()
   }
 }
 
@@ -188,10 +182,8 @@ where
   fn iter(&self) -> impl Iterator<Item = (&Self::Key, &Self::Value)> {
     self.iter()
   }
-  fn from(
-    data: impl Iterator<Item = Result<(Self::Key, Self::Value), DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<indexmap::IndexMap<K, V, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self> {
+    data.collect::<Result<indexmap::IndexMap<K, V, S>>>()
   }
 }
 
@@ -215,9 +207,7 @@ where
       unsafe { (&*key, &*value) }
     })
   }
-  fn from(
-    data: impl Iterator<Item = Result<(Self::Key, Self::Value), DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<dashmap::DashMap<K, V, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self> {
+    data.collect::<Result<dashmap::DashMap<K, V, S>>>()
   }
 }

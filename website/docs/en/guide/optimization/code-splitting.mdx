@@ -175,7 +175,7 @@ Sometimes you need to have your own control over preload. For example, preload o
 
 ```js
 const lazyComp = () =>
-  import('DynamicComponent').catch(error => {
+  import('DynamicComponent').catch((error) => {
     // Do something with the error.
     // For example, we can retry the request in case of any net error
   });

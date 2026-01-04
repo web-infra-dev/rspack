@@ -17,7 +17,6 @@ pub struct RawExperiments {
   pub top_level_await: bool,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
-  pub parallel_code_splitting: bool,
   pub rspack_future: Option<RawRspackFuture>,
   #[napi(
     ts_type = r#"boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }"#
@@ -40,7 +39,6 @@ impl From<RawExperiments> for Experiments {
         },
         None => IncrementalOptions::empty_passes(),
       },
-      parallel_code_splitting: value.parallel_code_splitting,
       top_level_await: value.top_level_await,
       rspack_future: value.rspack_future.unwrap_or_default().into(),
       cache: normalize_raw_experiment_cache_options(value.cache),

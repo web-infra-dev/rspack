@@ -9,7 +9,7 @@ Handles the bundling of JavaScript, usually used to access the [hooks of the Jav
 ```js
 class MyJsMinimizerPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, compilation => {
+    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, (compilation) => {
       // Access the chunkHash hooks of JavascriptModulesPlugin
       const hooks =
         compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
@@ -20,9 +20,12 @@ class MyJsMinimizerPlugin {
         hash.update(`minimized by ${MyJsMinimizerPlugin.name}`);
       });
       // Optimize the JS chunk
-      compilation.hooks.processAssets.tap(MyJsMinimizerPlugin.name, assets => {
-        optimize(assets);
-      });
+      compilation.hooks.processAssets.tap(
+        MyJsMinimizerPlugin.name,
+        (assets) => {
+          optimize(assets);
+        },
+      );
     });
   }
 }

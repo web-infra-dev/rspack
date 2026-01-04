@@ -17,4 +17,7 @@ Array [
   Object {
     code: Circular Dependency,
   },
+  Object {
+    code: Circular Dependency,
+  },
 ]

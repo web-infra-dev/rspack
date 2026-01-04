@@ -59,10 +59,10 @@ APIs should be intuitive, well-documented, and provide helpful error messages.
 
 ```typescript
 interface RspackOptions {
-	entry?: EntryNormalized;
-	output?: OutputNormalized;
-	module?: ModuleOptions;
-	plugins?: RspackPluginInstance[];
+  entry?: EntryNormalized;
+  output?: OutputNormalized;
+  module?: ModuleOptions;
+  plugins?: RspackPluginInstance[];
 }
 ```
 
@@ -77,8 +77,8 @@ interface RspackOptions {
 
 ```typescript
 interface Plugin {
-	apply(compiler: Compiler): void;
-	name?: string;
+  apply(compiler: Compiler): void;
+  name?: string;
 }
 ```
 
@@ -93,9 +93,9 @@ interface Plugin {
 
 ```typescript
 function loader(
-	this: LoaderContext,
-	content: string | Buffer,
-	sourceMap?: SourceMap
+  this: LoaderContext,
+  content: string | Buffer,
+  sourceMap?: SourceMap,
 ): string | Buffer | void;
 ```
 
@@ -109,8 +109,8 @@ function loader(
 ### Hook API
 
 ```typescript
-compiler.hooks.done.tap("PluginName", stats => {
-	// Handle completion
+compiler.hooks.done.tap('PluginName', (stats) => {
+  // Handle completion
 });
 ```
 

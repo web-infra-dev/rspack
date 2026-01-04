@@ -10,10 +10,10 @@ on:
     branches:
       - main
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 jobs:
   check-changed:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -26,7 +26,7 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -93,6 +93,9 @@ jobs:
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Prettier
+        run: pnpm run format-ci:js
 
       - name: Run
         run: |

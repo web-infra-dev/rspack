@@ -25,10 +25,8 @@ function config(index, { concatenateModules } = {}) {
 									},
 									target: "esnext"
 								},
-								rspackExperiments: {
-									collectTypeScriptInfo: {
-										exportedEnum: true
-									}
+								collectTypeScriptInfo: {
+									exportedEnum: true
 								}
 							}
 						}

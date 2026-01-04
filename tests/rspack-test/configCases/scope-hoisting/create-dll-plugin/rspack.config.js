@@ -3,8 +3,8 @@ var webpack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: ["./index.js"],
-	// CHANGE: use optimization.concatenateModules instead of ModuleConcatenationPlugin
 	optimization: {
+		// MAYBE: support ModuleConcatenationPlugin
 		concatenateModules: true
 	},
 	plugins: [

@@ -6,6 +6,35 @@ This page lists configuration options that have been deprecated in Rspack.
 
 These options are kept for backward compatibility only and should not be used in new projects.
 
+## builtin:swc-loader options
+
+### rspackExperiments.collectTypeScriptInfo
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+Used to collect information from TypeScript's AST for consumption by subsequent Rspack processes.
+
+:::warning
+This configuration has been deprecated. Use top-level [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) instead.
+
+```diff
+{
+  loader: 'builtin:swc-loader',
+  options: {
+-   rspackExperiments: {
+-     collectTypeScriptInfo: {
+-       exportedEnum: true,
+-     },
+-   },
++   collectTypeScriptInfo: {
++     exportedEnum: true,
++   },
+  },
+}
+```
+
+:::
+
 ## experiments.topLevelAwait
 
 - **Type:** `boolean`
@@ -100,4 +129,79 @@ An array to pass the loader package name and its options.
 
 :::warning
 This option has been deprecated. Use [rules[].use](/config/module-rules#rulesuse) instead.
+:::
+
+## experiments.inlineConst
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Used to enable the experimental feature for cross-module inline optimization for constant exports.
+
+:::warning
+This configuration has been deprecated and is no longer required. The inline exports optimization is now controlled by [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) instead.
+:::
+
+## experiments.inlineEnum
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Used to enable inline optimization for TypeScript enums.
+
+:::warning
+This configuration has been deprecated and is no longer required. Inline enum optimization is now controlled by [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) and [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum).
+
+Please refer to [inline enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum) for more details.
+:::
+
+## experiments.lazyBarrel
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Used to enable lazy barrel optimization for skipping the building of unused re-export modules in side-effect-free barrel files.
+
+:::warning
+This configuration has been deprecated and will be removed in Rspack v2.0. Lazy barrel optimization is already stable and enabled by default. Remove this option from your Rspack configuration.
+:::
+
+:::tip
+Lazy barrel is now a stable feature that is always enabled. It helps optimize build performance by skipping the building of unused re-export modules in side-effect-free barrel files.
+
+For more details, see the [Lazy barrel guide](/guide/optimization/lazy-barrel).
+:::
+
+## experiments.typeReexportsPresence
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Used to enable error tolerance for type re-exports.
+
+:::warning
+This configuration has been deprecated and is no longer required. Type re-exports presence checking is now controlled by [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) and [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports).
+
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+:::
+
+## module.parser.javascript.inlineConst
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Used to control whether to perform cross-module inline optimization for constant exports in the parser.
+
+:::warning
+This configuration has been deprecated. Use [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) instead.
 :::

@@ -12,6 +12,16 @@
     "editor.formatOnSave": true
   },
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json5]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "git.ignoreLimitWarning": true,
   "eslint.enable": false,
   "cSpell.allowCompoundWords": true,
@@ -48,6 +58,7 @@
     "Rslib",
     "rspack",
     "rstack",
+    "rstackjs",
     "threejs",
     "tokio",
     "ukey",

@@ -19,12 +19,6 @@ module.exports = {
 			-     "web": true,
 			+     "web": false,
 			@@ ... @@
-			-   "lazyCompilation": Object {
-			-     "entries": false,
-			-     "imports": true,
-			-   },
-			+   "lazyCompilation": false,
-			@@ ... @@
 			-       "document": true,
 			+       "document": false,
 			@@ ... @@

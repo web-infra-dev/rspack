@@ -31,7 +31,7 @@ fn then_expr(
   };
 
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
     dep_id,
     &module.identifier(),
@@ -233,7 +233,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
 
     // importer and importee are both scope hoisted
     let ref_exports = dep.get_referenced_exports(
-      &module_graph,
+      module_graph,
       &code_generatable_context
         .compilation
         .module_graph_cache_artifact,

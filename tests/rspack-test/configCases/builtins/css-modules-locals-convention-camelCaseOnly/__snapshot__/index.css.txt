@@ -1,6 +1,6 @@
 Object {
-  btnInfoIsDisabled: bd00b1e0e0954270-btn-info_is-disabled,
-  btnInfoIsDisabled1: bd00b1e0e0954270-btn--info_is-disabled_1,
-  fooBar: bd00b1e0e0954270-foo_bar,
-  simple: bd00b1e0e0954270-simple,
+  btnInfoIsDisabled: _4a85b55da1f9cb8f,
+  btnInfoIsDisabled1: b58019133463c6ab,
+  fooBar: c50c6146da0c5ca2,
+  simple: _6c735e4b5cf5f8c3,
 }

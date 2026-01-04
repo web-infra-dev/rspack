@@ -29,7 +29,7 @@ impl Dependency {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
-      if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
+      if let Some(dependency) = module_graph.try_dependency_by_id(&self.dependency_id) {
         self.dependency = {
           #[allow(clippy::unwrap_used)]
           NonNull::new(dependency.as_ref() as *const dyn rspack_core::Dependency
@@ -134,7 +134,7 @@ impl Dependency {
       Some(compilation) => {
         let module_graph = compilation.get_module_graph();
         if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
-          let ids = dependency.get_ids(&module_graph);
+          let ids = dependency.get_ids(module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
           for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;
@@ -143,14 +143,14 @@ impl Dependency {
         } else if let Some(dependency) =
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
-          let ids = dependency.get_ids(&module_graph);
+          let ids = dependency.get_ids(module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
           for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;
           }
           Either::A(arr)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          let ids = dependency.get_ids(&module_graph);
+          let ids = dependency.get_ids(module_graph);
           let mut arr = env.create_array(ids.len() as u32)?;
           for (i, v) in ids.iter().enumerate() {
             arr.set(i as u32, v.as_str())?;

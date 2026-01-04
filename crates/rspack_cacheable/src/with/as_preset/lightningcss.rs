@@ -8,7 +8,7 @@ use rkyv::{
 };
 
 use super::AsPreset;
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 pub struct BrowsersResolver {
   inner: StringResolver,
@@ -28,15 +28,12 @@ impl ArchiveWith<Browsers> for AsPreset {
 
 impl<S> SerializeWith<Browsers, S> for AsPreset
 where
-  S: Fallible<Error = SerializeError> + Writer,
+  S: Fallible<Error = Error> + Writer,
 {
   #[inline]
-  fn serialize_with(
-    field: &Browsers,
-    serializer: &mut S,
-  ) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &Browsers, serializer: &mut S) -> Result<Self::Resolver> {
     let value = serde_json::to_string(field)
-      .map_err(|_| SerializeError::MessageError("serialize serde_json value failed"))?;
+      .map_err(|_| Error::MessageError("serialize serde_json value failed"))?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(BrowsersResolver { value, inner })
   }
@@ -44,13 +41,10 @@ where
 
 impl<D> DeserializeWith<ArchivedString, Browsers, D> for AsPreset
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = Error>,
 {
-  fn deserialize_with(
-    field: &ArchivedString,
-    _deserializer: &mut D,
-  ) -> Result<Browsers, DeserializeError> {
+  fn deserialize_with(field: &ArchivedString, _deserializer: &mut D) -> Result<Browsers> {
     serde_json::from_str(field.as_str())
-      .map_err(|_| DeserializeError::MessageError("deserialize serde_json value failed"))
+      .map_err(|_| Error::MessageError("deserialize serde_json value failed"))
   }
 }

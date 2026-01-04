@@ -25,7 +25,7 @@ NormalModuleFactory.hooks.someHook.tap(/* ... */);
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', (resolveData) => {
       // 访问和修改模块请求信息
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -55,7 +55,7 @@ compiler.hooks.compilation.tap(
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.factorize.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.factorize.tap('MyPlugin', (resolveData) => {
       // 访问和修改模块请求信息
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -87,7 +87,7 @@ compiler.hooks.compilation.tap(
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.resolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.resolve.tap('MyPlugin', (resolveData) => {
       // 访问和修改模块请求信息
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -121,7 +121,7 @@ compiler.hooks.compilation.tap(
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', (resolveData) => {
       // 访问和修改解析后的模块信息
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -153,7 +153,7 @@ compiler.hooks.compilation.tap(
   (compilation, { normalModuleFactory }) => {
     normalModuleFactory.hooks.resolveForScheme
       .for('https')
-      .tap('MyPlugin', resourceData => {
+      .tap('MyPlugin', (resourceData) => {
         console.log(JSON.stringify(resourceData, null, 2));
       });
   },

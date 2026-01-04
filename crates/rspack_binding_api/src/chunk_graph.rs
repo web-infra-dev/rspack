@@ -60,7 +60,7 @@ impl ChunkGraph {
     let module_graph = compilation.get_module_graph();
     let modules = compilation
       .chunk_graph
-      .get_chunk_modules(&chunk.chunk_ukey, &module_graph);
+      .get_chunk_modules(&chunk.chunk_ukey, module_graph);
 
     Ok(
       modules
@@ -138,7 +138,7 @@ impl ChunkGraph {
     let chunk_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       &chunk.chunk_ukey,
       SourceType::from(source_type.as_str()),
-      &module_graph,
+      module_graph,
     );
 
     Ok(

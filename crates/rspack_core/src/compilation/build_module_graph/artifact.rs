@@ -5,8 +5,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleGraphMut, ModuleGraphPartial,
-  ModuleGraphRef, ModuleIdentifier,
+  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
@@ -48,7 +47,7 @@ pub struct BuildModuleGraphArtifact {
   /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
   pub state: BuildModuleGraphArtifactState,
   /// Module graph data
-  pub module_graph_partial: ModuleGraphPartial,
+  pub module_graph: ModuleGraph,
   pub module_to_lazy_make: ModuleToLazyMake,
 
   // statistical data, which can be regenerated from module_graph_partial and used as index.
@@ -69,26 +68,18 @@ pub struct BuildModuleGraphArtifact {
 }
 
 impl BuildModuleGraphArtifact {
-  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    ModuleGraph::new_ref([Some(&self.module_graph_partial), None])
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    &self.module_graph
   }
-  pub fn get_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut([None, None], &mut self.module_graph_partial)
-  }
-  // TODO remove it
-  pub fn get_module_graph_partial(&self) -> &ModuleGraphPartial {
-    &self.module_graph_partial
-  }
-  // TODO remove it
-  pub fn get_module_graph_partial_mut(&mut self) -> &mut ModuleGraphPartial {
-    &mut self.module_graph_partial
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    &mut self.module_graph
   }
 
   /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let mut mg = ModuleGraph::new_mut([None, None], &mut self.module_graph_partial);
+    let mg = &mut self.module_graph;
     let module = mg
       .module_by_identifier(module_identifier)
       .expect("should have module");
@@ -121,9 +112,7 @@ impl BuildModuleGraphArtifact {
     {
       self.make_failed_dependencies.remove(&dep_id);
 
-      let dep = mg
-        .dependency_by_id_mut(&dep_id)
-        .expect("should have dependency");
+      let dep = mg.dependency_by_id_mut(&dep_id);
       if let Some(info) = FactorizeInfo::revoke(dep) {
         let resource_id = ResourceId::from(dep_id);
         self
@@ -151,26 +140,24 @@ impl BuildModuleGraphArtifact {
   pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
     self.make_failed_dependencies.remove(dep_id);
 
-    let mut mg = ModuleGraph::new_mut([None, None], &mut self.module_graph_partial);
-    let revoke_dep_ids = if let Some(factorize_info) = mg
-      .dependency_by_id_mut(dep_id)
-      .and_then(FactorizeInfo::revoke)
-    {
-      let resource_id = ResourceId::from(dep_id);
-      self
-        .file_dependencies
-        .remove_files(&resource_id, factorize_info.file_dependencies());
-      self
-        .context_dependencies
-        .remove_files(&resource_id, factorize_info.context_dependencies());
-      self
-        .missing_dependencies
-        .remove_files(&resource_id, factorize_info.missing_dependencies());
-      // related_dep_ids will contain dep_id it self
-      factorize_info.related_dep_ids().to_vec()
-    } else {
-      vec![*dep_id]
-    };
+    let mg = &mut self.module_graph;
+    let revoke_dep_ids =
+      if let Some(factorize_info) = FactorizeInfo::revoke(mg.dependency_by_id_mut(dep_id)) {
+        let resource_id = ResourceId::from(dep_id);
+        self
+          .file_dependencies
+          .remove_files(&resource_id, factorize_info.file_dependencies());
+        self
+          .context_dependencies
+          .remove_files(&resource_id, factorize_info.context_dependencies());
+        self
+          .missing_dependencies
+          .remove_files(&resource_id, factorize_info.missing_dependencies());
+        // related_dep_ids will contain dep_id it self
+        factorize_info.related_dep_ids().to_vec()
+      } else {
+        vec![*dep_id]
+      };
     revoke_dep_ids
       .iter()
       .filter_map(|dep_id| {
@@ -199,7 +186,7 @@ impl BuildModuleGraphArtifact {
           .collect::<Vec<_>>()
       });
     let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
-      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let dep = mg.dependency_by_id(dep_id);
       let origin_module_identifier = mg.get_parent_module(dep_id);
       FactorizeInfo::get_from(dep)
         .expect("should have factorize info")

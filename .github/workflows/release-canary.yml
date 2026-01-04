@@ -2,19 +2,19 @@ name: Release Canary
 
 on:
   schedule:
-    - cron: "0 17 * * *"
+    - cron: '0 17 * * *'
 
   workflow_dispatch:
     inputs:
       commit:
         required: true
         type: string
-        description: "Commit SHA"
+        description: 'Commit SHA'
       test:
         required: false
         type: boolean
         default: false
-        description: "Run tests"
+        description: 'Run tests'
       profile:
         required: true
         type: choice
@@ -24,7 +24,7 @@ on:
           - profiling
           - ci
           - debug
-        description: "profiling means release with debug info for profiling, ci means release with debug info and faster build time"
+        description: 'profiling means release with debug info for profiling, ci means release with debug info and faster build time'
 
 permissions:
   # To publish packages with provenance
@@ -43,7 +43,7 @@ jobs:
     name: Build Canary
     needs: [get-runner-labels]
     strategy:
-      fail-fast: true # for better utilize ci runners
+      fail-fast: false
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
@@ -96,12 +96,15 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           path: artifacts
+          pattern: bindings-*
 
       - name: Clean artifacts
         run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
 
       - name: Move artifacts
-        run: node scripts/build-npm.cjs
+        run: |
+          ls -R artifacts
+          node scripts/build-npm.cjs
 
       - name: Show binding packages
         run: ls -R npm

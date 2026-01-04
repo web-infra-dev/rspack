@@ -1,7 +1,7 @@
 /** @typedef {"info" | "warning" | "error"} LogLevel */
 
 /** @type {LogLevel} */
-var logLevel = "info";
+var logLevel = 'info';
 
 function dummy() {}
 
@@ -10,11 +10,11 @@ function dummy() {}
  * @returns {boolean} true, if should log
  */
 function shouldLog(level) {
-	var shouldLog =
-		(logLevel === "info" && level === "info") ||
-		(["info", "warning"].indexOf(logLevel) >= 0 && level === "warning") ||
-		(["info", "warning", "error"].indexOf(logLevel) >= 0 && level === "error");
-	return shouldLog;
+  var shouldLog =
+    (logLevel === 'info' && level === 'info') ||
+    (['info', 'warning'].indexOf(logLevel) >= 0 && level === 'warning') ||
+    (['info', 'warning', 'error'].indexOf(logLevel) >= 0 && level === 'error');
+  return shouldLog;
 }
 
 /**
@@ -22,11 +22,11 @@ function shouldLog(level) {
  * @returns {(level: LogLevel, msg?: string) => void} function that logs when log level is sufficient
  */
 function logGroup(logFn) {
-	return function (level, msg) {
-		if (shouldLog(level)) {
-			logFn(msg);
-		}
-	};
+  return function (level, msg) {
+    if (shouldLog(level)) {
+      logFn(msg);
+    }
+  };
 }
 
 /**
@@ -34,15 +34,15 @@ function logGroup(logFn) {
  * @param {string|Error} msg message
  */
 module.exports = function (level, msg) {
-	if (shouldLog(level)) {
-		if (level === "info") {
-			console.log(msg);
-		} else if (level === "warning") {
-			console.warn(msg);
-		} else if (level === "error") {
-			console.error(msg);
-		}
-	}
+  if (shouldLog(level)) {
+    if (level === 'info') {
+      console.log(msg);
+    } else if (level === 'warning') {
+      console.warn(msg);
+    } else if (level === 'error') {
+      console.error(msg);
+    }
+  }
 };
 
 var group = console.group || dummy;
@@ -59,7 +59,7 @@ module.exports.groupEnd = logGroup(groupEnd);
  * @param {LogLevel} level log level
  */
 module.exports.setLogLevel = function (level) {
-	logLevel = level;
+  logLevel = level;
 };
 
 /**
@@ -67,13 +67,13 @@ module.exports.setLogLevel = function (level) {
  * @returns {string} formatted error
  */
 module.exports.formatError = function (err) {
-	var message = err.message;
-	var stack = err.stack;
-	if (!stack) {
-		return message;
-	} else if (stack.indexOf(message) < 0) {
-		return message + "\n" + stack;
-	} else {
-		return stack;
-	}
+  var message = err.message;
+  var stack = err.stack;
+  if (!stack) {
+    return message;
+  } else if (stack.indexOf(message) < 0) {
+    return message + '\n' + stack;
+  } else {
+    return stack;
+  }
 };
