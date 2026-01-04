@@ -1,8 +1,7 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use regex::Regex;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
@@ -39,10 +38,10 @@ struct ClientEntry {
 }
 
 #[derive(Debug)]
-struct InjectedClientEntry {
+struct InjectedSsrEntry {
   runtime: RuntimeSpec,
-  add_ssr_entry: (BoxDependency, EntryOptions),
-  ssr_dependency_id: DependencyId,
+  add_entry: (BoxDependency, EntryOptions),
+  dependency_id: DependencyId,
 }
 
 struct ActionEntry {
@@ -167,15 +166,9 @@ impl Plugin for RscServerPlugin {
   }
 }
 
-pub static IMAGE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  let image_extensions = ["jpg", "jpeg", "png", "webp", "avif", "ico", "svg"];
-  #[allow(clippy::unwrap_used)]
-  Regex::new(&format!(r"\.({})$", image_extensions.join("|"))).unwrap()
-});
-
 impl RscServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Default::default();
+    let mut add_ssr_modules_list: Vec<InjectedSsrEntry> = Default::default();
     let mut created_ssr_dependencies_per_entry: FxHashMap<String, Vec<DependencyId>> =
       Default::default();
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
@@ -228,9 +221,9 @@ impl RscServerPlugin {
           created_ssr_dependencies_per_entry
             .entry(entry_name)
             .or_default()
-            .push(injected.ssr_dependency_id);
+            .push(injected.dependency_id);
 
-          add_client_entry_and_ssr_modules_list.push(injected);
+          add_ssr_modules_list.push(injected);
         }
       }
 
@@ -260,41 +253,28 @@ impl RscServerPlugin {
 
     // Wait for action entries to be added.
 
-    let runtimes = add_client_entry_and_ssr_modules_list
+    let included_dependencies: Vec<(DependencyId, RuntimeSpec)> = add_ssr_modules_list
       .iter()
-      .map(|injected| injected.runtime.clone())
+      .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone()))
+      .collect();
+    let add_include_args: Vec<(BoxDependency, EntryOptions)> = add_ssr_modules_list
+      .into_iter()
+      .map(|injected_ssr_entry| injected_ssr_entry.add_entry)
       .chain(
         add_action_entry_list
-          .iter()
-          .map(|injected| injected.runtime.clone()),
+          .into_iter()
+          .map(|add_action_entry| add_action_entry.add_entry),
       )
-      .collect::<Vec<_>>();
-    let add_include_args: Vec<(BoxDependency, EntryOptions)> =
-      add_client_entry_and_ssr_modules_list
-        .into_iter()
-        .map(|add_client_entry_and_ssr_modules: InjectedClientEntry| {
-          add_client_entry_and_ssr_modules.add_ssr_entry
-        })
-        .chain(
-          add_action_entry_list
-            .into_iter()
-            .map(|add_action_entry| add_action_entry.add_entry),
-        )
-        .collect();
-    let included_dependencies: Vec<_> = add_include_args
-      .iter()
-      .map(|(dependency, _)| *dependency.id())
       .collect();
     compilation.add_include(add_include_args).await?;
-    for (idx, dependency_id) in included_dependencies.into_iter().enumerate() {
+    for (dependency_id, runtime) in included_dependencies {
       let mut mg =
         Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
       let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
       let info = mg.get_exports_info(&module.identifier());
-      let runtime = &runtimes[idx];
-      info.set_used_in_unknown_way(&mut mg, Some(runtime));
+      info.set_used_in_unknown_way(&mut mg, Some(&runtime));
     }
 
     self
@@ -382,7 +362,7 @@ impl RscServerPlugin {
     client_entry: ClientEntry,
     should_inject_ssr_modules: bool,
     plugin_state: &mut PluginState,
-  ) -> Option<InjectedClientEntry> {
+  ) -> Option<InjectedSsrEntry> {
     let ClientEntry {
       entry_name,
       runtime,
@@ -461,17 +441,17 @@ impl RscServerPlugin {
       Some(LAYERS_NAMES.server_side_rendering.to_string()),
       false,
     );
-    let ssr_dependency_id = *(ssr_entry_dependency.id());
-    Some(InjectedClientEntry {
+    let dependency_id = *(ssr_entry_dependency.id());
+    Some(InjectedSsrEntry {
       runtime,
-      add_ssr_entry: (
+      add_entry: (
         Box::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
           ..Default::default()
         },
       ),
-      ssr_dependency_id,
+      dependency_id,
     })
   }
 

@@ -10,7 +10,7 @@ use simd_json::{
   derived::ValueTryAsArray,
 };
 
-use crate::constants::REGEX_CSS;
+use crate::constants::CSS_REGEX;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ClientEntry {
@@ -112,7 +112,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
       .iter()
       .filter(|client_component| {
         if is_server {
-          !REGEX_CSS.is_match(&client_component.request)
+          !CSS_REGEX.is_match(&client_component.request)
         } else {
           true
         }

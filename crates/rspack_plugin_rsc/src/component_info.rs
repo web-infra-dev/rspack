@@ -12,9 +12,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
-  constants::LAYERS_NAMES,
+  constants::{IMAGE_REGEX, LAYERS_NAMES},
   plugin_state::ActionIdNamePair,
-  server_plugin::IMAGE_REGEX,
   utils::{get_module_resource, is_css_mod},
 };
 

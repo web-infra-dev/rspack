@@ -10,7 +10,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
 use urlencoding::encode;
 
-use crate::constants::REGEX_CSS;
+use crate::constants::CSS_REGEX;
 
 pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   if let Some(module) = module.as_normal_module() {
@@ -39,7 +39,7 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
     return true;
   }
   let resource = get_module_resource(module);
-  REGEX_CSS.is_match(resource.as_ref())
+  CSS_REGEX.is_match(resource.as_ref())
 }
 
 pub struct ChunkModules<'a> {
