@@ -29,7 +29,7 @@ impl Dependency {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
-      if let Some(dependency) = internal::try_dependency_by_id(&module_graph, &self.dependency_id) {
+      if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id) {
         self.dependency = {
           #[allow(clippy::unwrap_used)]
           NonNull::new(
