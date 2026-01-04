@@ -2,8 +2,14 @@ import { BuiltinPluginName } from '@rspack/binding';
 
 import { create } from '../builtin-plugin/base';
 
+export interface ModuleFederationRuntimeExperimentsOptions {
+  asyncStartup?: boolean;
+}
+
 export interface ModuleFederationRuntimeOptions {
   entryRuntime?: string;
+  experiments?: ModuleFederationRuntimeExperimentsOptions;
+  asyncStartup?: boolean;
 }
 
 export const ModuleFederationRuntimePlugin = create(
