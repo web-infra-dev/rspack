@@ -20,7 +20,7 @@ runs:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
     - name: Save cache to local
-      if: ${{ runner.environment == 'self-hosted' }}
+      if: ${{ runner.environment == 'self-hosted' && startsWith(runner.name, 'rspack') }}
       uses: lynx-infra/cache/save@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732 # main
       with:
         key: ${{ inputs.key }}
