@@ -33,6 +33,8 @@ module.exports = {
 		]
 	},
 	experiments: {
-		parallelLoader: true
+		parallelLoader: {
+			maxWorkers: 8,
+		}
 	}
 };

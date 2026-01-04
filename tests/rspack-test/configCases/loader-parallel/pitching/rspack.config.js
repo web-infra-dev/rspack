@@ -22,7 +22,9 @@ module.exports = [
 			})
 		],
 		experiments: {
-			parallelLoader: true
+			parallelLoader: {
+			maxWorkers: 8,
+		}
 		}
 	},
 	{
@@ -48,7 +50,9 @@ module.exports = [
 			})
 		],
 		experiments: {
-			parallelLoader: true
+			parallelLoader: {
+			maxWorkers: 8,
+		}
 		}
 	},
 	{
@@ -74,7 +78,9 @@ module.exports = [
 			})
 		],
 		experiments: {
-			parallelLoader: true
+			parallelLoader: {
+			maxWorkers: 8,
+		}
 		}
 	},
 	{
@@ -100,7 +106,9 @@ module.exports = [
 			})
 		],
 		experiments: {
-			parallelLoader: true
+			parallelLoader: {
+			maxWorkers: 8,
+		}
 		}
 	}
 ];
