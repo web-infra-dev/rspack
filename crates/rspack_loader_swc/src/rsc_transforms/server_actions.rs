@@ -1695,58 +1695,57 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
       // Ensure that the exports are functions by appending a runtime check:
       //
-      //   import { ensureServerEntryExports } from 'private-next-rsc-action-validate'
-      //   ensureServerEntryExports([action1, action2, ...])
+      //   import { ensureServerActions } from 'react-server-dom-rspack/server'
+      //   ensureServerActions([action1, action2, ...])
       //
       // But it's only needed for the server layer, because on the client
       // layer they're transformed into references already.
-      // TODO: ensureServerEntryExports 应该放到哪里
       if self.has_action && self.config.is_react_server_layer {
         new.append(&mut self.extra_items);
 
-        // if !server_reference_exports.is_empty() {
-        //   let ensure_ident = private_ident!("ensureServerEntryExports");
-        //   new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-        //     span: DUMMY_SP,
-        //     specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        //       span: DUMMY_SP,
-        //       local: ensure_ident.clone(),
-        //       imported: None,
-        //       is_type_only: false,
-        //     })],
-        //     src: Box::new(Str {
-        //       span: DUMMY_SP,
-        //       value: atom!("private-next-rsc-action-validate").into(),
-        //       raw: None,
-        //     }),
-        //     type_only: false,
-        //     with: None,
-        //     phase: Default::default(),
-        //   })));
-        //   new.push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-        //     span: DUMMY_SP,
-        //     expr: Box::new(Expr::Call(CallExpr {
-        //       span: DUMMY_SP,
-        //       callee: Callee::Expr(Box::new(Expr::Ident(ensure_ident))),
-        //       args: vec![ExprOrSpread {
-        //         spread: None,
-        //         expr: Box::new(Expr::Array(ArrayLit {
-        //           span: DUMMY_SP,
-        //           elems: server_reference_exports
-        //             .iter()
-        //             .map(|ServerReferenceExport { ident, .. }| {
-        //               Some(ExprOrSpread {
-        //                 spread: None,
-        //                 expr: Box::new(Expr::Ident(ident.clone())),
-        //               })
-        //             })
-        //             .collect(),
-        //         })),
-        //       }],
-        //       ..Default::default()
-        //     })),
-        //   })));
-        // }
+        if !server_reference_exports.is_empty() {
+          let ensure_ident = private_ident!("ensureServerActions");
+          new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+            span: DUMMY_SP,
+            specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+              span: DUMMY_SP,
+              local: ensure_ident.clone(),
+              imported: None,
+              is_type_only: false,
+            })],
+            src: Box::new(Str {
+              span: DUMMY_SP,
+              value: atom!("react-server-dom-rspack/server").into(),
+              raw: None,
+            }),
+            type_only: false,
+            with: None,
+            phase: Default::default(),
+          })));
+          new.push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+            span: DUMMY_SP,
+            expr: Box::new(Expr::Call(CallExpr {
+              span: DUMMY_SP,
+              callee: Callee::Expr(Box::new(Expr::Ident(ensure_ident))),
+              args: vec![ExprOrSpread {
+                spread: None,
+                expr: Box::new(Expr::Array(ArrayLit {
+                  span: DUMMY_SP,
+                  elems: server_reference_exports
+                    .iter()
+                    .map(|ServerReferenceExport { ident, .. }| {
+                      Some(ExprOrSpread {
+                        spread: None,
+                        expr: Box::new(Expr::Ident(ident.clone())),
+                      })
+                    })
+                    .collect(),
+                })),
+              }],
+              ..Default::default()
+            })),
+          })));
+        }
 
         // Append annotations to the end of the file.
         new.extend(self.annotations.drain(..).map(ModuleItem::Stmt));
@@ -2331,7 +2330,6 @@ impl DirectiveVisitor<'_> {
             });
           } else if self.is_allowed_position {
             self.found_use_server = true;
-
             return true;
           } else {
             emit_error(ServerActionsErrorKind::MisplacedDirective {
