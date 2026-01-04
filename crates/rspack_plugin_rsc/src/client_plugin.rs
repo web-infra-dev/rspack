@@ -549,17 +549,18 @@ async fn runtime_requirements_in_tree(
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
-  _runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  // TODO
-  compilation.add_runtime_module(
-    chunk_ukey,
-    #[allow(clippy::unwrap_used)]
-    Box::new(RscHotReloaderRuntimeModule::new(
-      self.server_compiler_id.borrow().unwrap(),
-    )),
-  )?;
+  if runtime_requirements.contains(RuntimeGlobals::RSC_HOT_RELOADER) {
+    compilation.add_runtime_module(
+      chunk_ukey,
+      #[allow(clippy::unwrap_used)]
+      Box::new(RscHotReloaderRuntimeModule::new(
+        self.server_compiler_id.borrow().unwrap(),
+      )),
+    )?;
+  }
 
   Ok(None)
 }

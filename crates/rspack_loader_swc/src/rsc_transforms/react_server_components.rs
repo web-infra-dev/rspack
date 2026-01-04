@@ -225,7 +225,6 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
               Expr::Lit(Lit::Str(Str { value, .. })) => {
                 if &**value == "use server-entry" {
                   is_server_entry = true;
-                  // TODO: handle error case when both directives are present
                 } else if &**value == "use client" {
                   if !finished_directives {
                     is_client_entry = true;
