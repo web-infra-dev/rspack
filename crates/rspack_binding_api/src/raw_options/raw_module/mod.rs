@@ -310,6 +310,7 @@ pub struct RawJavascriptParserOptions {
   /// @experimental
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
+  pub pure_functions: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -388,6 +389,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       jsx: value.jsx,
       defer_import: value.defer_import,
+      pure_functions: value
+        .pure_functions
+        .map(|functions| functions.into_iter().collect()),
     }
   }
 }

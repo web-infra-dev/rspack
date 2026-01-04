@@ -27,6 +27,7 @@ pub struct RawExperiments {
   pub css: Option<bool>,
   pub lazy_barrel: bool,
   pub defer_import: bool,
+  pub no_side_effects_notation: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -45,6 +46,7 @@ impl From<RawExperiments> for Experiments {
       css: value.css.unwrap_or(false),
       lazy_barrel: value.lazy_barrel,
       defer_import: value.defer_import,
+      no_side_effects_notation: value.no_side_effects_notation,
     }
   }
 }

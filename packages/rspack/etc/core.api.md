@@ -2530,6 +2530,8 @@ export interface ExperimentsNormalized {
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
+    noSideEffectsNotation?: boolean;
+    // (undocumented)
     outputModule?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
@@ -3573,6 +3575,7 @@ export type JavascriptParserOptions = {
     typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
     jsx?: boolean;
     deferImport?: boolean;
+    pureFunctions?: string[];
 };
 
 // @public (undocumented)

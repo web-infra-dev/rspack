@@ -3699,6 +3699,7 @@ pub struct ExperimentsBuilder {
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
+  no_side_effects_notation: Option<bool>,
 }
 
 impl From<Experiments> for ExperimentsBuilder {
@@ -3712,6 +3713,7 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
+      no_side_effects_notation: Some(value.no_side_effects_notation),
     }
   }
 }
@@ -3727,6 +3729,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
+      no_side_effects_notation: value.no_side_effects_notation.take(),
     }
   }
 }
@@ -3812,6 +3815,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       lazy_barrel: true,
       defer_import: false,
+      no_side_effects_notation: d!(self.no_side_effects_notation, false),
     })
   }
 }

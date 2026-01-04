@@ -309,6 +309,7 @@ pub struct JavascriptParserOptions {
   pub commonjs_magic_comments: Option<bool>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
+  pub pure_functions: Option<Vec<String>>,
 }
 
 #[cacheable]

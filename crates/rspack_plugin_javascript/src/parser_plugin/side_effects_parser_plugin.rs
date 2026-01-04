@@ -1,44 +1,186 @@
-use std::sync::LazyLock;
-
-use rspack_core::SideEffectsBailoutItemWithSpan;
+use rspack_core::{
+  DeferredPureCheck, Dependency, ModuleDependency, SideEffectsBailoutItemWithSpan,
+};
+use rspack_util::SpanExt;
+use rustc_hash::FxHashSet;
 use swc_core::{
-  common::{
-    Mark, Spanned, SyntaxContext,
-    comments::{CommentKind, Comments},
-  },
+  atoms::Atom,
+  common::{Mark, Span, Spanned, SyntaxContext, comments::Comments},
   ecma::{
     ast::{
-      Class, ClassMember, Decl, Expr, Function, ModuleDecl, Pat, PropName, VarDecl, VarDeclOrExpr,
+      Callee, Class, ClassMember, Decl, Expr, Function, ModuleDecl, Pat, PropName, Stmt, VarDecl,
+      VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
+    visit::{Visit, VisitWith},
   },
 };
 
 use crate::{
   ClassExt, JavascriptParserPlugin,
-  visitors::{JavascriptParser, Statement, VariableDeclaration},
+  dependency::ESMImportSideEffectDependency,
+  parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
+  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration},
 };
-
-static PURE_COMMENTS: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
 
 pub struct SideEffectsParserPlugin {
   unresolve_ctxt: SyntaxContext,
+  analyze_pure_notation: bool,
 }
 
 impl SideEffectsParserPlugin {
-  pub fn new(unresolved_mark: Mark) -> Self {
+  pub fn new(unresolved_mark: Mark, analyze_pure_notation: bool) -> Self {
     Self {
       unresolve_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
+      analyze_pure_notation,
+    }
+  }
+}
+
+struct PureAnnotation<'a> {
+  pure_functions: FxHashSet<Atom>,
+  parser: &'a JavascriptParser<'a>,
+}
+
+fn has_no_side_effects_notation(comments: Option<&dyn Comments>, span: Span) -> bool {
+  comments
+    .map(|comments| comments.has_flag(span.lo, "NO_SIDE_EFFECTS"))
+    .unwrap_or(false)
+}
+
+impl<'a> Visit for PureAnnotation<'a> {
+  fn visit_module_decl(&mut self, node: &ModuleDecl) {
+    match &node {
+      ModuleDecl::ExportDefaultExpr(default_expr) => {
+        if let Some(fn_expr) = default_expr.expr.as_fn_expr()
+          && let Some(ident) = &fn_expr.ident
+          && (has_no_side_effects_notation(self.parser.comments, default_expr.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
+        {
+          self.pure_functions.insert(ident.sym.clone());
+        }
+      }
+      ModuleDecl::ExportDefaultDecl(default_decl) => {
+        if let Some(fn_expr) = default_decl.decl.as_fn_expr()
+          && let Some(ident) = &fn_expr.ident
+          && (has_no_side_effects_notation(self.parser.comments, default_decl.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
+        {
+          self.pure_functions.insert(ident.sym.clone());
+        }
+      }
+      ModuleDecl::ExportDecl(export_decl) => {
+        if let Some(fn_decl) = export_decl.decl.as_fn_decl()
+          && (has_no_side_effects_notation(self.parser.comments, export_decl.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_decl.span()))
+        {
+          self.pure_functions.insert(fn_decl.ident.sym.clone());
+        } else if let Some(var_decl) = export_decl.decl.as_var()
+          && matches!(var_decl.kind, VarDeclKind::Const)
+          && var_decl.decls.len() == 1
+        {
+          let const_decl = &var_decl.decls[0];
+          if let Some(ident) = const_decl.name.as_ident()
+            && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+            && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+              || has_no_side_effects_notation(self.parser.comments, fn_expr.span())
+              || has_no_side_effects_notation(self.parser.comments, export_decl.span()))
+          {
+            self.pure_functions.insert(ident.sym.clone());
+          } else if let Some(ident) = const_decl.name.as_ident()
+            && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+            && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+              || has_no_side_effects_notation(self.parser.comments, fn_expr.span())
+              || has_no_side_effects_notation(self.parser.comments, export_decl.span()))
+          {
+            self.pure_functions.insert(ident.sym.clone());
+          }
+        }
+      }
+      _ => {}
+    }
+  }
+
+  fn visit_stmt(&mut self, node: &Stmt) {
+    if let Stmt::Decl(decl) = node {
+      match decl {
+        Decl::Fn(fn_decl) => {
+          if has_no_side_effects_notation(self.parser.comments, fn_decl.span()) {
+            self.pure_functions.insert(fn_decl.ident.sym.clone());
+          }
+        }
+        Decl::Var(var_decl) => {
+          /*
+          example:
+          ```
+          /*#__NO_SIDE_EFFECTS__*/ const sideEffectFreeVariable = () => {}
+          const sideEffectFreeVariable = /*#__NO_SIDE_EFFECTS__*/ () => {}
+          ```
+           */
+          if matches!(var_decl.kind, VarDeclKind::Const) && var_decl.decls.len() == 1 {
+            let const_decl = &var_decl.decls[0];
+
+            if let Some(ident) = const_decl.name.as_ident()
+              && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+              && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+                || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
+            {
+              self.pure_functions.insert(ident.sym.clone());
+            } else if let Some(ident) = const_decl.name.as_ident()
+              && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+              && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+                || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
+            {
+              self.pure_functions.insert(ident.sym.clone());
+            }
+          }
+        }
+        _ => {}
+      }
     }
   }
 }
 
 impl JavascriptParserPlugin for SideEffectsParserPlugin {
+  fn program(
+    &self,
+    parser: &mut JavascriptParser,
+    ast: &swc_core::ecma::ast::Program,
+  ) -> Option<bool> {
+    // analyze if any function contains #__NO_SIDE_EFFECTS__ annotation
+    // so that pure functions in current module can be marked as pure
+    if self.analyze_pure_notation {
+      // use a raw swc visitor so that we can find all pure functions before the parser visit the ast
+      let mut pure_annotation = PureAnnotation {
+        pure_functions: FxHashSet::default(),
+        parser,
+      };
+      ast.visit_with(&mut pure_annotation);
+      let detected_pure_functions = pure_annotation.pure_functions;
+      if !detected_pure_functions.is_empty() {
+        let pure_functions = parser.build_info.pure_functions.get_or_insert_default();
+        pure_functions.extend(detected_pure_functions);
+      }
+
+      if let Some(flagged_pure_functions) = &parser.javascript_options.pure_functions {
+        let pure_functions = parser.build_info.pure_functions.get_or_insert_default();
+        pure_functions.extend(flagged_pure_functions.iter().cloned().map(Into::into));
+      }
+    }
+
+    None
+  }
+
   fn module_declaration(&self, parser: &mut JavascriptParser, decl: &ModuleDecl) -> Option<bool> {
     match decl {
       ModuleDecl::ExportDefaultExpr(expr) => {
-        if !is_pure_expression(parser, &expr.expr, self.unresolve_ctxt, parser.comments) {
+        if !is_pure_expression(
+          parser,
+          self.analyze_pure_notation,
+          &expr.expr,
+          self.unresolve_ctxt,
+          parser.comments,
+        ) {
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             expr.span,
             String::from("ExportDefaultExpr"),
@@ -46,7 +188,13 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
         }
       }
       ModuleDecl::ExportDecl(decl) => {
-        if !is_pure_decl(parser, &decl.decl, self.unresolve_ctxt, parser.comments) {
+        if !is_pure_decl(
+          parser,
+          self.analyze_pure_notation,
+          &decl.decl,
+          self.unresolve_ctxt,
+          parser.comments,
+        ) {
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             decl.decl.span(),
             String::from("Decl"),
@@ -64,10 +212,37 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     self.analyze_stmt_side_effects(&stmt, parser);
     None
   }
+
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+    let mut not_defined = Vec::new();
+    // check if all user flagged pure_functions are defined
+    if let Some(pure_functions) = &parser.javascript_options.pure_functions {
+      let mut pure_functions = pure_functions.iter().collect::<Vec<_>>();
+      pure_functions.sort();
+      for atom in pure_functions {
+        if parser
+          .definitions_db
+          .get(parser.definitions, &Atom::from(atom.clone()))
+          .is_none()
+        {
+          not_defined.push(atom.clone());
+        }
+      }
+    }
+
+    if !not_defined.is_empty() {
+      let resource = parser.resource_data.resource();
+      parser.add_warning(
+        rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[{{index}}].pureFunctions`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
+      );
+    }
+    None
+  }
 }
 
 fn is_pure_call_expr(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
@@ -75,33 +250,106 @@ fn is_pure_call_expr(
   let Expr::Call(call_expr) = expr else {
     unreachable!();
   };
+
   let callee = &call_expr.callee;
   let pure_flag = comments
-    .and_then(|comments| {
-      if let Some(comment_list) = comments.get_leading(callee.span().lo) {
-        return Some(comment_list.iter().any(|comment| {
-          comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text)
-        }));
-      }
-      None
-    })
+    .map(|comments| comments.has_flag(callee.span().lo, "PURE"))
     .unwrap_or(false);
-  if !pure_flag {
-    !expr.may_have_side_effects(ExprCtx {
-      unresolved_ctxt,
-      in_strict: false,
-      is_unresolved_ref_safe: false,
-      remaining_depth: 4,
-    })
-  } else {
-    call_expr.args.iter().all(|arg| {
+
+  if pure_flag {
+    return call_expr.args.iter().all(|arg| {
       if arg.spread.is_some() {
         false
       } else {
-        is_pure_expression(parser, &arg.expr, unresolved_ctxt, comments)
+        is_pure_expression(
+          parser,
+          analyze_pure_notation,
+          &arg.expr,
+          unresolved_ctxt,
+          comments,
+        )
       }
-    })
+    });
+  } else if analyze_pure_notation {
+    if let Some(Expr::Ident(ident)) = callee.as_expr().map(|expr| expr.as_ref())
+      && parser
+        .build_info
+        .pure_functions
+        .as_ref()
+        .map(|pure_functions| pure_functions.contains(&ident.sym))
+        .unwrap_or(false)
+    {
+      // this is a locally pure function
+      return true;
+    }
+
+    if let Some(deferred_check) = try_extract_deferred_check(parser, callee) {
+      parser.build_info.deferred_pure_checks.push(deferred_check);
+      return call_expr.args.iter().all(|arg| {
+        if arg.spread.is_some() {
+          false
+        } else {
+          is_pure_expression(
+            parser,
+            analyze_pure_notation,
+            &arg.expr,
+            unresolved_ctxt,
+            comments,
+          )
+        }
+      });
+    }
   }
+
+  !expr.may_have_side_effects(ExprCtx {
+    unresolved_ctxt,
+    in_strict: false,
+    is_unresolved_ref_safe: false,
+    remaining_depth: 4,
+  })
+}
+
+fn try_extract_deferred_check(
+  parser: &mut JavascriptParser,
+  callee: &Callee,
+) -> Option<DeferredPureCheck> {
+  let Callee::Expr(expr) = callee else {
+    return None;
+  };
+
+  let info = match &**expr {
+    Expr::Ident(ident) => parser.get_variable_info(&ident.sym)?,
+    _ => return None,
+  };
+
+  let tag_info_id = info.tag_info?;
+  let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
+
+  if tag_info.tag != ESM_SPECIFIER_TAG {
+    return None;
+  }
+
+  let data = ESMSpecifierData::downcast(tag_info.data.clone()?);
+
+  parser
+    .get_dependencies()
+    .iter()
+    .find(|dep| {
+      let Some(dep) = dep.downcast_ref::<ESMImportSideEffectDependency>() else {
+        return false;
+      };
+
+      let request_eq = dep.request() == &data.source;
+      let attributes: Option<&rspack_core::ImportAttributes> = data.attributes.as_ref();
+      let attributes_eq = attributes == dep.get_attributes();
+      request_eq && attributes_eq
+    })
+    .map(|dep| DeferredPureCheck {
+      atom: data.name.clone(),
+      dep_id: *dep.id(),
+      start: callee.span().real_lo(),
+      end: callee.span().real_hi(),
+    })
 }
 
 impl SideEffectsParserPlugin {
@@ -111,7 +359,13 @@ impl SideEffectsParserPlugin {
     }
     match stmt {
       Statement::If(if_stmt) => {
-        if !is_pure_expression(parser, &if_stmt.test, self.unresolve_ctxt, parser.comments) {
+        if !is_pure_expression(
+          parser,
+          self.analyze_pure_notation,
+          &if_stmt.test,
+          self.unresolve_ctxt,
+          parser.comments,
+        ) {
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             if_stmt.span(),
             String::from("Statement"),
@@ -121,6 +375,7 @@ impl SideEffectsParserPlugin {
       Statement::While(while_stmt) => {
         if !is_pure_expression(
           parser,
+          self.analyze_pure_notation,
           &while_stmt.test,
           self.unresolve_ctxt,
           parser.comments,
@@ -134,6 +389,7 @@ impl SideEffectsParserPlugin {
       Statement::DoWhile(do_while_stmt) => {
         if !is_pure_expression(
           parser,
+          self.analyze_pure_notation,
           &do_while_stmt.test,
           self.unresolve_ctxt,
           parser.comments,
@@ -147,12 +403,20 @@ impl SideEffectsParserPlugin {
       Statement::For(for_stmt) => {
         let pure_init = match for_stmt.init {
           Some(ref init) => match init {
-            VarDeclOrExpr::VarDecl(decl) => {
-              is_pure_var_decl(parser, decl, self.unresolve_ctxt, parser.comments)
-            }
-            VarDeclOrExpr::Expr(expr) => {
-              is_pure_expression(parser, expr, self.unresolve_ctxt, parser.comments)
-            }
+            VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(
+              parser,
+              self.analyze_pure_notation,
+              decl,
+              self.unresolve_ctxt,
+              parser.comments,
+            ),
+            VarDeclOrExpr::Expr(expr) => is_pure_expression(
+              parser,
+              self.analyze_pure_notation,
+              expr,
+              self.unresolve_ctxt,
+              parser.comments,
+            ),
           },
           None => true,
         };
@@ -166,7 +430,13 @@ impl SideEffectsParserPlugin {
         }
 
         let pure_test = match &for_stmt.test {
-          Some(test) => is_pure_expression(parser, test, self.unresolve_ctxt, parser.comments),
+          Some(test) => is_pure_expression(
+            parser,
+            self.analyze_pure_notation,
+            test,
+            self.unresolve_ctxt,
+            parser.comments,
+          ),
           None => true,
         };
 
@@ -179,7 +449,13 @@ impl SideEffectsParserPlugin {
         }
 
         let pure_update = match for_stmt.update {
-          Some(ref expr) => is_pure_expression(parser, expr, self.unresolve_ctxt, parser.comments),
+          Some(ref expr) => is_pure_expression(
+            parser,
+            self.analyze_pure_notation,
+            expr,
+            self.unresolve_ctxt,
+            parser.comments,
+          ),
           None => true,
         };
 
@@ -193,6 +469,7 @@ impl SideEffectsParserPlugin {
       Statement::Expr(expr_stmt) => {
         if !is_pure_expression(
           parser,
+          self.analyze_pure_notation,
           &expr_stmt.expr,
           self.unresolve_ctxt,
           parser.comments,
@@ -206,6 +483,7 @@ impl SideEffectsParserPlugin {
       Statement::Switch(switch_stmt) => {
         if !is_pure_expression(
           parser,
+          self.analyze_pure_notation,
           &switch_stmt.discriminant,
           self.unresolve_ctxt,
           parser.comments,
@@ -219,6 +497,7 @@ impl SideEffectsParserPlugin {
       Statement::Class(class_stmt) => {
         if !is_pure_class(
           parser,
+          self.analyze_pure_notation,
           class_stmt.class(),
           self.unresolve_ctxt,
           parser.comments,
@@ -231,7 +510,13 @@ impl SideEffectsParserPlugin {
       }
       Statement::Var(var_stmt) => match var_stmt {
         VariableDeclaration::VarDecl(var_decl) => {
-          if !is_pure_var_decl(parser, var_decl, self.unresolve_ctxt, parser.comments) {
+          if !is_pure_var_decl(
+            parser,
+            self.analyze_pure_notation,
+            var_decl,
+            self.unresolve_ctxt,
+            parser.comments,
+          ) {
             parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
               var_stmt.span(),
               String::from("Statement"),
@@ -261,6 +546,7 @@ impl SideEffectsParserPlugin {
 
 pub fn is_pure_pat<'a>(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   pat: &'a Pat,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
@@ -269,28 +555,45 @@ pub fn is_pure_pat<'a>(
     Pat::Ident(_) => true,
     Pat::Array(array_pat) => array_pat.elems.iter().all(|ele| {
       if let Some(pat) = ele {
-        is_pure_pat(parser, pat, unresolved_ctxt, comments)
+        is_pure_pat(
+          parser,
+          analyze_pure_notation,
+          pat,
+          unresolved_ctxt,
+          comments,
+        )
       } else {
         true
       }
     }),
     Pat::Rest(_) => true,
     Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
-    Pat::Expr(expr) => is_pure_expression(parser, expr, unresolved_ctxt, comments),
+    Pat::Expr(expr) => is_pure_expression(
+      parser,
+      analyze_pure_notation,
+      expr,
+      unresolved_ctxt,
+      comments,
+    ),
   }
 }
 
 pub fn is_pure_function<'a>(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   function: &'a Function,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
 ) -> bool {
-  if !function
-    .params
-    .iter()
-    .all(|param| is_pure_pat(parser, &param.pat, unresolved_ctxt, comments))
-  {
+  if !function.params.iter().all(|param| {
+    is_pure_pat(
+      parser,
+      analyze_pure_notation,
+      &param.pat,
+      unresolved_ctxt,
+      comments,
+    )
+  }) {
     return false;
   }
 
@@ -299,12 +602,14 @@ pub fn is_pure_function<'a>(
 
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   expr: &'a Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
 ) -> bool {
   pub fn _is_pure_expression<'a>(
     parser: &mut JavascriptParser,
+    analyze_pure_notation: bool,
     expr: &'a Expr,
     unresolved_ctxt: SyntaxContext,
     comments: Option<&'a dyn Comments>,
@@ -315,12 +620,23 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments),
+      Expr::Call(_) => is_pure_call_expr(
+        parser,
+        analyze_pure_notation,
+        expr,
+        unresolved_ctxt,
+        comments,
+      ),
       Expr::Paren(_) => unreachable!(),
-      Expr::Seq(seq_expr) => seq_expr
-        .exprs
-        .iter()
-        .all(|expr| is_pure_expression(parser, expr, unresolved_ctxt, comments)),
+      Expr::Seq(seq_expr) => seq_expr.exprs.iter().all(|expr| {
+        is_pure_expression(
+          parser,
+          analyze_pure_notation,
+          expr,
+          unresolved_ctxt,
+          comments,
+        )
+      }),
       _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
@@ -329,11 +645,18 @@ pub fn is_pure_expression<'a>(
       }),
     }
   }
-  _is_pure_expression(parser, expr, unresolved_ctxt, comments)
+  _is_pure_expression(
+    parser,
+    analyze_pure_notation,
+    expr,
+    unresolved_ctxt,
+    comments,
+  )
 }
 
 pub fn is_pure_class_member<'a>(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   member: &'a ClassMember,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
@@ -342,9 +665,13 @@ pub fn is_pure_class_member<'a>(
     Some(PropName::Ident(_ident)) => true,
     Some(PropName::Str(_)) => true,
     Some(PropName::Num(_)) => true,
-    Some(PropName::Computed(computed)) => {
-      is_pure_expression(parser, &computed.expr, unresolved_ctxt, comments)
-    }
+    Some(PropName::Computed(computed)) => is_pure_expression(
+      parser,
+      analyze_pure_notation,
+      &computed.expr,
+      unresolved_ctxt,
+      comments,
+    ),
     Some(PropName::BigInt(_)) => true,
     None => true,
   };
@@ -358,14 +685,26 @@ pub fn is_pure_class_member<'a>(
     ClassMember::PrivateMethod(_) => true,
     ClassMember::ClassProp(prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(parser, value, unresolved_ctxt, comments)
+        is_pure_expression(
+          parser,
+          analyze_pure_notation,
+          value,
+          unresolved_ctxt,
+          comments,
+        )
       } else {
         true
       }
     }
     ClassMember::PrivateProp(prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(parser, value, unresolved_ctxt, comments)
+        is_pure_expression(
+          parser,
+          analyze_pure_notation,
+          value,
+          unresolved_ctxt,
+          comments,
+        )
       } else {
         true
       }
@@ -383,14 +722,27 @@ pub fn is_pure_class_member<'a>(
 
 pub fn is_pure_decl(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   stmt: &Decl,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
 ) -> bool {
   match stmt {
-    Decl::Class(class) => is_pure_class(parser, &class.class, unresolved_ctxt, comments),
+    Decl::Class(class) => is_pure_class(
+      parser,
+      analyze_pure_notation,
+      &class.class,
+      unresolved_ctxt,
+      comments,
+    ),
     Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(parser, var, unresolved_ctxt, comments),
+    Decl::Var(var) => is_pure_var_decl(
+      parser,
+      analyze_pure_notation,
+      var,
+      unresolved_ctxt,
+      comments,
+    ),
     Decl::Using(_) => false,
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
@@ -402,21 +754,32 @@ pub fn is_pure_decl(
 
 pub fn is_pure_class(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   class: &Class,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class
-    && !is_pure_expression(parser, super_class, unresolved_ctxt, comments)
+    && !is_pure_expression(
+      parser,
+      analyze_pure_notation,
+      super_class,
+      unresolved_ctxt,
+      comments,
+    )
   {
     return false;
   }
   let is_pure_key = |parser: &mut JavascriptParser, key: &PropName| -> bool {
     match key {
       PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
-      PropName::Computed(computed) => {
-        is_pure_expression(parser, &computed.expr, unresolved_ctxt, comments)
-      }
+      PropName::Computed(computed) => is_pure_expression(
+        parser,
+        analyze_pure_notation,
+        &computed.expr,
+        unresolved_ctxt,
+        comments,
+      ),
     }
   };
 
@@ -426,6 +789,7 @@ pub fn is_pure_class(
       ClassMember::Method(method) => is_pure_key(parser, &method.key),
       ClassMember::PrivateMethod(method) => is_pure_expression(
         parser,
+        analyze_pure_notation,
         &Expr::PrivateName(method.key.clone()),
         unresolved_ctxt,
         comments,
@@ -434,7 +798,13 @@ pub fn is_pure_class(
         is_pure_key(parser, &prop.key)
           && (!prop.is_static
             || if let Some(ref value) = prop.value {
-              is_pure_expression(parser, value, unresolved_ctxt, comments)
+              is_pure_expression(
+                parser,
+                analyze_pure_notation,
+                value,
+                unresolved_ctxt,
+                comments,
+              )
             } else {
               true
             })
@@ -442,12 +812,19 @@ pub fn is_pure_class(
       ClassMember::PrivateProp(prop) => {
         is_pure_expression(
           parser,
+          analyze_pure_notation,
           &Expr::PrivateName(prop.key.clone()),
           unresolved_ctxt,
           comments,
         ) && (!prop.is_static
           || if let Some(ref value) = prop.value {
-            is_pure_expression(parser, value, unresolved_ctxt, comments)
+            is_pure_expression(
+              parser,
+              analyze_pure_notation,
+              value,
+              unresolved_ctxt,
+              comments,
+            )
           } else {
             true
           })
@@ -462,13 +839,20 @@ pub fn is_pure_class(
 
 fn is_pure_var_decl<'a>(
   parser: &mut JavascriptParser,
+  analyze_pure_notation: bool,
   var: &'a VarDecl,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
 ) -> bool {
   var.decls.iter().all(|decl| {
     if let Some(ref init) = decl.init {
-      is_pure_expression(parser, init, unresolved_ctxt, comments)
+      is_pure_expression(
+        parser,
+        analyze_pure_notation,
+        init,
+        unresolved_ctxt,
+        comments,
+      )
     } else {
       true
     }

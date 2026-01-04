@@ -3,8 +3,9 @@ use std::{fmt::Debug, rc::Rc};
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
+  CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
+  DependencyRange, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
   NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
   ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
@@ -18,7 +19,12 @@ use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
 use swc_core::ecma::ast::*;
 
-use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
+use crate::{
+  FLAG_DEPENDENCY_EXPORTS_STAGE,
+  dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
+};
+
+pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 1;
 
 #[derive(Clone, Debug)]
 enum SideEffects {
@@ -126,6 +132,7 @@ async fn nmf_module(
     });
     return Ok(());
   }
+
   let resource_data = &create_data.resource_resolve_data;
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
@@ -142,9 +149,150 @@ async fn nmf_module(
     .relative(package_path)
     .assert_utf8();
   let has_side_effects = get_side_effects_from_package_json(side_effects, relative_path.as_path());
+
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(!has_side_effects),
   });
+  Ok(())
+}
+
+// run after exports info are set
+#[plugin_hook(CompilationFinishModules for SideEffectsFlagPlugin, stage = SIDE_EFFECTS_FLAG_PLUGIN_STAGE)]
+async fn finish_modules(
+  &self,
+  compilation: &mut Compilation,
+  _modules: &mut AsyncModulesArtifact,
+) -> Result<()> {
+  let modules: IdentifierSet = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::SIDE_EFFECTS)
+  {
+    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
+    tracing::debug!(
+      target: incremental::TRACING_TARGET,
+      passes = %IncrementalPasses::SIDE_EFFECTS,
+      %mutations,
+      ?modules
+    );
+    let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
+
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules.len(),
+      compilation.get_module_graph().modules().len()
+    ));
+    modules
+  } else {
+    compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect()
+  };
+
+  let module_graph = compilation.get_module_graph();
+
+  let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
+
+  let modules_with_impurities = modules
+    .par_iter()
+    .filter_map(|module_identifier| {
+      let module = module_graph.module_by_identifier(module_identifier)?;
+
+      // if already has side effects by another statement, skip
+      if module.build_meta().side_effect_free == Some(false) {
+        return None;
+      }
+
+      // if user set side effect free, skip
+      if module
+        .factory_meta()
+        .and_then(|factory_meta| factory_meta.side_effect_free)
+        == Some(true)
+      {
+        return None;
+      }
+
+      let build_info = module.build_info();
+      if build_info.deferred_pure_checks.is_empty() {
+        return None;
+      }
+
+      // check if all deferred pure checks are pure
+      let issue_check = build_info.deferred_pure_checks.iter().find(|needs_check| {
+        // find the ref target
+        let Some(ref_module) = module_graph.module_identifier_by_dependency_id(&needs_check.dep_id)
+        else {
+          return true;
+        };
+
+        let target_exports_info =
+          module_graph.get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+        let target_export_info =
+          target_exports_info.get_export_info_without_mut_module_graph(&needs_check.atom);
+
+        let (ref_module_id, atom) = if let Some(target) =
+          target_export_info.get_target(module_graph, Rc::new(|_| true))
+          && let Some(export) = &target.export
+          && let Some(atom) = export.first()
+        {
+          (target.module, atom.clone())
+        } else {
+          (*ref_module, needs_check.atom.clone())
+        };
+
+        let ref_module = module_graph
+          .module_by_identifier(&ref_module_id)
+          .expect("should have module");
+
+        let Some(pure_functions) = &ref_module.build_info().pure_functions else {
+          return true;
+        };
+        !pure_functions.contains(&atom)
+      });
+
+      if let Some(issue_check) = issue_check {
+        let short_id = module.readable_identifier(&compilation.options.context);
+        let source = module
+          .source()
+          .map(|source| source.source().into_string_lossy().to_string());
+        let msg =
+          DependencyRange::new(issue_check.start, issue_check.end).to_loc(source.as_deref());
+        let atom = &issue_check.atom;
+
+        let reason = format!(
+          "Call `{atom}` with side_effects in source code at {short_id}{}",
+          if let Some(msg) = msg {
+            format!(":{}", msg)
+          } else {
+            String::new()
+          }
+        );
+
+        Some((*module_identifier, reason))
+      } else {
+        logger.log(format!(
+          "{module_identifier} is sideEffectsFree as its all function calls are pure",
+        ));
+        None
+      }
+    })
+    .collect::<Vec<_>>();
+
+  let module_graph_mut = compilation.get_module_graph_mut();
+
+  for (module_id, reason) in modules_with_impurities {
+    let module = module_graph_mut
+      .module_by_identifier_mut(&module_id)
+      .expect("should have module");
+    module.build_meta_mut().side_effect_free = Some(false);
+
+    module_graph_mut
+      .get_optimization_bailout_mut(&module_id)
+      .push(reason);
+  }
+
   Ok(())
 }
 
@@ -435,6 +583,10 @@ impl Plugin for SideEffectsFlagPlugin {
       .normal_module_factory_hooks
       .module
       .tap(nmf_module::new(self));
+    ctx
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     ctx
       .compilation_hooks
       .optimize_dependencies
