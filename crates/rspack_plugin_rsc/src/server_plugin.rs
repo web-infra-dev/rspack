@@ -297,7 +297,6 @@ impl RscServerPlugin {
       info.set_used_in_unknown_way(&mut mg, Some(runtime));
     }
 
-    // TODO: 避免被前置 error 导致没有走到这里
     self
       .coordinator
       .complete_server_entries_compilation()
