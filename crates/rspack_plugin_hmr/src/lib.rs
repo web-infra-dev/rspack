@@ -9,7 +9,7 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
   ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, ProcessAssetsArtifact, RunnerContext, RuntimeGlobals,
   RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
@@ -55,7 +55,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let Some(CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,

@@ -5,7 +5,7 @@ use std::{
 
 use rspack_core::{
   Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, ProcessAssetsArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -162,7 +162,7 @@ struct MockFlagPos {
 }
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn mock_hoist_process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let mut files = Vec::with_capacity(compilation.chunk_by_ukey.len());
 
   for chunk in compilation.chunk_by_ukey.values() {

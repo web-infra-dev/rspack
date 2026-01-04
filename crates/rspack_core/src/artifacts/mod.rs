@@ -11,6 +11,7 @@ mod chunk_render_cache_artifact;
 mod code_generation_results;
 mod module_graph_cache_artifact;
 mod module_static_cache_artifact;
+mod process_assets_artifact;
 mod side_effects_do_optimize_artifact;
 
 pub use cgm_hash_artifact::*;
@@ -21,6 +22,7 @@ pub use chunk_render_cache_artifact::ChunkRenderCacheArtifact;
 pub use code_generation_results::*;
 pub use module_graph_cache_artifact::*;
 pub use module_static_cache_artifact::*;
+pub use process_assets_artifact::*;
 pub use side_effects_do_optimize_artifact::*;
 
 pub type AsyncModulesArtifact = IdentifierSet;

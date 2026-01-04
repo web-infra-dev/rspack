@@ -14,7 +14,7 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  CompilationProcessAssets, Filename, Logger, PathData, Plugin, ProcessAssetsArtifact,
   rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
@@ -572,12 +572,12 @@ impl CopyRspackPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
-  let file_dependencies = DashSet::default();
-  let context_dependencies = DashSet::default();
-  let diagnostics = Arc::new(Mutex::new(Vec::new()));
+  let local_file_dependencies = DashSet::default();
+  let local_context_dependencies = DashSet::default();
+  let local_diagnostics = Arc::new(Mutex::new(Vec::new()));
 
   let mut copied_result: Vec<(i32, RunPatternResult)> =
     join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
@@ -585,9 +585,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         compilation,
         pattern,
         index,
-        &file_dependencies,
-        &context_dependencies,
-        diagnostics.clone(),
+        &local_file_dependencies,
+        &local_context_dependencies,
+        local_diagnostics.clone(),
         &logger,
       )
     }))
@@ -607,14 +607,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("emit assets");
-  compilation
-    .file_dependencies
-    .extend(file_dependencies.into_iter().map(Into::into));
-  compilation
-    .context_dependencies
-    .extend(context_dependencies.into_iter().map(Into::into));
-  compilation.extend_diagnostics(std::mem::take(
-    diagnostics
+  artifact.file_dependencies
+    .extend(local_file_dependencies.into_iter().map(Into::into));
+  artifact.context_dependencies
+    .extend(local_context_dependencies.into_iter().map(Into::into));
+  artifact.diagnostics.extend(std::mem::take(
+    local_diagnostics
       .lock()
       .expect("failed to obtain lock of `diagnostics`")
       .deref_mut(),
@@ -629,7 +627,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let source_path = result.absolute_filename.clone();
     let dest_path = compilation.options.output.path.join(&result.filename);
 
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+    if let Some(exist_asset) = artifact.assets.get_mut(&result.filename) {
       if !result.force {
         return;
       }
@@ -650,8 +648,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         set_info(&mut asset_info, info);
       }
 
-      compilation.emit_asset(
-        result.filename,
+      artifact.assets.insert(
+        result.filename.clone(),
         CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
       );
     }

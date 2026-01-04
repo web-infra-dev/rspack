@@ -31,6 +31,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::{ArcPath, ArcPathIndexSet, ArcPathSet};
 use rspack_sources::BoxSource;
+use crate::ProcessAssetsArtifact;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -100,7 +101,7 @@ define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_uke
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
-define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
+define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation, artifact: &mut ProcessAssetsArtifact));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
@@ -1373,12 +1374,24 @@ impl Compilation {
 
   #[instrument("Compilation:process_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    let mut artifact = ProcessAssetsArtifact::new(
+      std::mem::take(&mut self.assets),
+      std::mem::take(&mut self.file_dependencies),
+      std::mem::take(&mut self.context_dependencies),
+    );
+
     plugin_driver
       .compilation_hooks
       .process_assets
-      .call(self)
+      .call(self, &mut artifact)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))?;
+
+    self.assets = artifact.assets;
+    self.file_dependencies = artifact.file_dependencies;
+    self.context_dependencies = artifact.context_dependencies;
+    self.extend_diagnostics(artifact.diagnostics);
+    Ok(())
   }
 
   #[instrument("Compilation:after_process_assets", skip_all)]

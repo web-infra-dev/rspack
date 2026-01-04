@@ -22,7 +22,7 @@ pub use options::{
 };
 use rspack_core::{
   Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
-  PublicPath,
+  ProcessAssetsArtifact, PublicPath,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -85,7 +85,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   None
 }
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   // Prepare entrypoint names
   let entry_point_names: HashSet<String> = compilation
     .entrypoints

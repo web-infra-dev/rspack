@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin,
+  CompilerCompilation, Plugin, ProcessAssetsArtifact,
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
@@ -157,7 +157,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
