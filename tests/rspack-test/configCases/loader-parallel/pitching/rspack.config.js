@@ -9,9 +9,9 @@ module.exports = [
 				{
 					test: /lib\.js$/,
 					use: [
-						{ loader: "./simple-loader.js", parallel: true, options: {} },
-						{ loader: "./pitching-loader.js", parallel: true, options: {} },
-						{ loader: "./simple-async-loader.js", parallel: true, options: {} }
+						{ loader: "./simple-loader.js", parallel: { maxWorkers: 4 }, options: {} },
+						{ loader: "./pitching-loader.js", parallel: { maxWorkers: 4 }, options: {} },
+						{ loader: "./simple-async-loader.js", parallel: { maxWorkers: 4 }, options: {} }
 					]
 				}
 			]
@@ -33,11 +33,11 @@ module.exports = [
 					use: [
 						{
 							loader: "builtin:test-simple-loader",
-							parallel: true,
+							parallel: { maxWorkers: 4 },
 							options: {}
 						},
-						{ loader: "./pitching-loader.js", parallel: true, options: {} },
-						{ loader: "./simple-async-loader.js", parallel: true, options: {} }
+						{ loader: "./pitching-loader.js", parallel: { maxWorkers: 4 }, options: {} },
+						{ loader: "./simple-async-loader.js", parallel: { maxWorkers: 4 }, options: {} }
 					]
 				}
 			]
@@ -57,13 +57,13 @@ module.exports = [
 				{
 					test: /lib\.js$/,
 					use: [
-						{ loader: "./simple-loader.js", parallel: true, options: {} },
+						{ loader: "./simple-loader.js", parallel: { maxWorkers: 4 }, options: {} },
 						{
 							loader: "builtin:test-pitching-loader",
-							parallel: true,
+							parallel: { maxWorkers: 4 },
 							options: {}
 						},
-						{ loader: "./simple-async-loader.js", parallel: true, options: {} }
+						{ loader: "./simple-async-loader.js", parallel: { maxWorkers: 4 }, options: {} }
 					]
 				}
 			]
@@ -83,8 +83,8 @@ module.exports = [
 				{
 					test: /lib\.js$/,
 					use: [
-						{ loader: "./simple-loader.js", parallel: true, options: {} },
-						{ loader: "./pitching-loader.js", parallel: true, options: {} },
+						{ loader: "./simple-loader.js", parallel: { maxWorkers: 4 }, options: {} },
+						{ loader: "./pitching-loader.js", parallel: { maxWorkers: 4 }, options: {} },
 						{
 							loader: "builtin:test-simple-async-loader.js",
 							parallel: false,

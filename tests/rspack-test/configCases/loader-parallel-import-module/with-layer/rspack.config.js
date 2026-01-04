@@ -9,7 +9,7 @@ module.exports = {
 					{
 						loader: "./loader",
 						options: {},
-						parallel: true
+						parallel: { maxWorkers: 4 }
 					}
 				],
 				issuerLayer: "main"

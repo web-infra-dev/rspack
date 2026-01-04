@@ -30,7 +30,7 @@ module.exports = {
 									publicPath: "/other/",
 									baseUri: "my-schema://base"
 								},
-								parallel: true
+								parallel: { maxWorkers: 4 }
 							}
 						],
 						type: "asset/source"
@@ -43,7 +43,7 @@ module.exports = {
 								options: {
 									baseUri: "my-schema://base"
 								},
-								parallel: true
+								parallel: { maxWorkers: 4 }
 							}
 						],
 						type: "asset/source"

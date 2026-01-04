@@ -14,7 +14,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./async.js",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {}
 					}
 				]
@@ -25,7 +25,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./callback.js",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {}
 					}
 				]

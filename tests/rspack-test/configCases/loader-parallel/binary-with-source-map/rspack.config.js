@@ -10,7 +10,7 @@ module.exports = {
 		rules: [
 			{
 				test: path.join(__dirname, "logo.png"),
-				use: [{ loader: "./empty-loader.js", parallel: true, options: {} }],
+				use: [{ loader: "./empty-loader.js", parallel: { maxWorkers: 4 }, options: {} }],
 				type: "asset/resource"
 			}
 		]
