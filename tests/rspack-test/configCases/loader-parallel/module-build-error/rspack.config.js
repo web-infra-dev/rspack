@@ -5,7 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,
-				use: [{ loader: "sass-loader", parallel: true, options: {} }],
+				use: [{ loader: "sass-loader", parallel: { maxWorkers: 4 }, options: {} }],
 				type: "css"
 			}
 		]

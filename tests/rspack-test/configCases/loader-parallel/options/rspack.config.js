@@ -11,7 +11,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./loader",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {
 							arg: true,
 							arg1: null,
@@ -29,7 +29,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./loader-1",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {
 							arg: true,
 							arg1: null,
@@ -94,7 +94,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./loader-1",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {
 							arg6: { foo: "value", bar: { baz: 42 } }
 						}
@@ -106,7 +106,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./loader-2",
-						parallel: true,
+						parallel: { maxWorkers: 4 },
 						options: {
 							arg: false
 						}

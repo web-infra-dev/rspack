@@ -619,9 +619,9 @@ function resolveStringifyLoaders(
   else if (typeof use.options === 'object') obj.query = `??${(ident = path)}`;
   else obj.query = `?${JSON.stringify(use.options)}`;
 
-  const parallelism = !!use.parallel;
+  const parallelism = use.parallel;
 
-  if (parallelism && (!use.options || typeof use.options !== 'object')) {
+  if (!!parallelism && (!use.options || typeof use.options !== 'object')) {
     throw new Error(
       `\`Rule.use.parallel\` requires \`Rule.use.options\` to be an object.\nHowever the received value is \`${use.options}\` under option path \`${path}\`\nInternally, parallelism is provided by passing \`Rule.use.ident\` to the loader as an identifier to ident the parallelism option\nYou can either replace the \`Rule.use.loader\` with \`Rule.use.options = {}\` or remove \`Rule.use.parallel\`.`,
     );

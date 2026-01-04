@@ -6,18 +6,18 @@ module.exports = {
 		rules: [
 			{
 				test: /a\.js$/,
-				use: { loader: "./loader1", parallel: true, options: {} }
+				use: { loader: "./loader1", parallel: { maxWorkers: 4 }, options: {} }
 			},
 			{
 				test: /a\.js$/,
-				use: { loader: "./loader2", parallel: true, options: {} },
+				use: { loader: "./loader2", parallel: { maxWorkers: 4 }, options: {} },
 				enforce: "pre"
 			},
 			{
 				test: /a\.js$/,
 				use: {
 					loader: "./loader3",
-					parallel: true,
+					parallel: { maxWorkers: 4 },
 					options: {}
 				},
 				enforce: "post"
