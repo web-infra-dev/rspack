@@ -3738,6 +3738,7 @@ dependencies = [
  "json",
  "lightningcss",
  "once_cell",
+ "regex",
  "rkyv 0.8.8",
  "rspack-allocative",
  "rspack_cacheable_macros",
