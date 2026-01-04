@@ -14,9 +14,10 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
+  InnerGraphPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
-  parser_plugin::inner_graph::plugin::InnerGraphPlugin,
+  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
@@ -166,16 +167,7 @@ impl JavascriptParserPlugin for URLPlugin {
       );
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
-      InnerGraphPlugin::on_usage(
-        parser,
-        Box::new(move |parser, used_by_exports| {
-          if let Some(dep) = parser.get_dependency_mut(dep_idx)
-            && let Some(dep) = dep.downcast_mut::<URLDependency>()
-          {
-            dep.set_used_by_exports(used_by_exports);
-          }
-        }),
-      );
+      InnerGraphPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
 

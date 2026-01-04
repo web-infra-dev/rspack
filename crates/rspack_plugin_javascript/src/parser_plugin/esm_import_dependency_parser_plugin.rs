@@ -10,6 +10,7 @@ use swc_core::{
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
+  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   utils::object_properties::get_attributes,
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, TagInfoData,
@@ -158,13 +159,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     InnerGraphPlugin::on_usage(
       parser,
-      Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser.get_dependency_mut(dep_idx)
-          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
-        {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }),
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
     Some(true)
@@ -226,13 +221,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     InnerGraphPlugin::on_usage(
       parser,
-      Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser.get_dependency_mut(dep_idx)
-          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
-        {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }),
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
     Some(true)
@@ -294,13 +283,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     InnerGraphPlugin::on_usage(
       parser,
-      Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser.get_dependency_mut(dep_idx)
-          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
-        {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }),
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
     parser.walk_expr_or_spread(&call_expr.args);
@@ -361,13 +344,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     InnerGraphPlugin::on_usage(
       parser,
-      Box::new(move |parser, used_by_exports| {
-        if let Some(dep) = parser.get_dependency_mut(dep_idx)
-          && let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>()
-        {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }),
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
     Some(true)
