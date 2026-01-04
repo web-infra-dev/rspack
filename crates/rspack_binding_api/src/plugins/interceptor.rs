@@ -44,6 +44,7 @@ use rspack_core::{
   Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
   rspack_sources::RawStringSource,
 };
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -1441,7 +1442,11 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_sync(compilation).await
   }
