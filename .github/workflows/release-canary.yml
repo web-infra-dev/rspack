@@ -55,11 +55,11 @@ jobs:
           - target: aarch64-unknown-linux-musl
             runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
           - target: i686-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
           - target: x86_64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
           - target: aarch64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
           - target: x86_64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: aarch64-apple-darwin
