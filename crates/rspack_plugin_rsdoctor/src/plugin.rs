@@ -452,7 +452,11 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin, stage = 9999)]
-async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(
+  &self,
+  compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::Assets) {
     return Ok(());
   }

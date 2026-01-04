@@ -1,7 +1,7 @@
 use std::{cell::RefCell, ptr::NonNull};
 
 use napi_derive::napi;
-use rspack_core::DependenciesBlock as _;
+use rspack_core::{DependenciesBlock as _, internal};
 use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
@@ -24,9 +24,13 @@ impl AsyncDependenciesBlock {
         .get_dependencies()
         .iter()
         .filter_map(|dependency_id| {
-          module_graph
-            .try_dependency_by_id(dependency_id)
-            .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+          internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
+            DependencyWrapper::new(
+              (&**dep) as &dyn rspack_core::Dependency,
+              compilation.id(),
+              Some(compilation),
+            )
+          })
         })
         .collect::<Vec<_>>()
     } else {

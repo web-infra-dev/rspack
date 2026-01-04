@@ -1,6 +1,7 @@
-pub(crate) mod internal;
+pub mod internal;
 pub mod rollback;
 
+use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -12,7 +13,6 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
   ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
-  internal::try_get_module_graph_module_mut_by_identifier,
 };
 mod module;
 pub use module::*;
@@ -546,19 +546,6 @@ impl ModuleGraph {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
-  /// Try to get a dependency by ID, returning None if not found.
-  ///
-  /// **RESTRICTED TO BINDING LAYER ONLY**: This method should ONLY be used in
-  /// the `rspack_binding_api` crate for JavaScript/Node.js API bindings that need
-  /// to handle missing dependencies gracefully for external API consumers.
-  ///
-  /// **All internal Rust code should use `dependency_by_id()`** instead, which
-  /// enforces the invariant that dependencies exist and provides clear panic
-  /// messages when this expectation is violated.
-  pub fn try_dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self.inner.dependencies.get(dependency_id)
-  }
-
   /// Get a dependency by ID, panicking if not found.
   ///
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
@@ -572,7 +559,7 @@ impl ModuleGraph {
   /// Dependencies should always be accessible in internal operations, so this
   /// method enforces that invariant with a clear panic message if violated.
   ///
-  /// **Only the binding layer (`rspack_binding_api`) should use `try_dependency_by_id()`**
+  /// **Only the binding layer (`rspack_binding_api`) should use `internal::try_dependency_by_id()`**
   /// for graceful handling of missing dependencies in external APIs.
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
     self
